@@ -27,6 +27,7 @@
  * 两个接口任一失败都降级：没有治理元数据时只显示旧口径（分类 + 启停），不白屏。
  */
 import { useEffect, useMemo, useState } from 'react'
+import { hubHref } from '../../../workbench/hubNav'
 import { Power, ShieldAlert } from 'lucide-react'
 import { Card, Loading, ErrorBox, DataTable, Badge, CallabilityBadge, PageHeader, hubGet, hubPost } from '../components/ui'
 import { callabilityCounts, callabilityLegend, hasCallabilityMark, type CallabilityInfo } from '@/lib/callability'
@@ -104,6 +105,91 @@ export default function ToolsToolset() {
   const [toolUsage, setToolUsage] = useState<Record<string, ToolUsageRow>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  /** 深链定位：`?tool=<name>`（转化队列「去工具页启用」会带过来）——滚动+高亮这一行 */
+  const [focusTool, setFocusTool] = useState<string>(() => {
+    try {
+      const hash = window.location.hash || ''
+      return new URLSearchParams(hash.split('?')[1] ?? '').get('tool') ?? ''
+    } catch {
+      return ''
+    }
+  })
+
+  // 关键：**已经在工具页时再点深链**不会重新挂载组件（hashchange 而已），
+  // 所以必须监听 hashchange 重新取 ?tool= —— 否则"点第二次没反应"（实测）。
+  useEffect(() => {
+    const onHash = () => {
+      try {
+        const v = new URLSearchParams((window.location.hash || '').split('?')[1] ?? '').get('tool') ?? ''
+        setFocusState('')
+        setFocusTool(v)
+      } catch {
+        /* 非法 hash：保持现状 */
+      }
+    }
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
+  /** 定位结果：'' 未触发 / 'found' 已高亮 / 'missing' 没这个工具（未启用/已删/拼错） */
+  const [focusState, setFocusState] = useState<'' | 'found' | 'missing'>('')
+
+  // 定位：先把平面筛到该工具所属平面（避免"滚不到"），再把该行滚进视口并高亮
+  useEffect(() => {
+    if (!focusTool || loading) return
+    // 名字归一：**连字符与下划线视为同一个字**（作业里是 byted-seedance-video-generate，
+    // 注册表里是 byted_seedance_video_generate —— 同一件工具，两种写法），再比大小写。
+    const norm = (s: string) => s.trim().toLowerCase().replace(/[-_]/g, '')
+    const target = norm(focusTool)
+    const row = tools.find((t) => t.name === focusTool)
+      ?? tools.find((t) => norm(t.name) === target)
+      ?? tools.find((t) => norm(t.name).endsWith(target))
+    if (!row) {
+      setFocusState('missing')
+      return
+    }
+    const plane = String(meta[row.name]?.plane ?? '')
+    if (plane && filter !== plane) {
+      setFilter(plane)
+      return
+    }
+    const el = document.querySelector('[data-focus-tool="' + row.name + '"]')
+    if (!el) return
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    el.classList.add('ring-2', 'ring-cyan-500', 'bg-cyan-500/10')
+    setFocusState('found')
+    const timer = window.setTimeout(() => {
+      el.classList.remove('ring-2', 'ring-cyan-500', 'bg-cyan-500/10')
+    }, 8000)
+    return () => window.clearTimeout(timer)
+  }, [focusTool, loading, tools, meta, filter])
+
+  // 定位横幅：高亮 8 秒会消失，把"到底定位到没有"用文字说清楚（没找到也给原因）
+  const focusBanner = focusTool ? (
+    <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-cyan-900/60 bg-cyan-950/20 px-3 py-1.5 text-[11px]">
+      {focusState === 'found' ? (
+        <span className="text-cyan-200">已定位到 <span className="font-mono">{focusTool}</span>（高亮 8 秒）</span>
+      ) : focusState === 'missing' ? (
+        <>
+        <span className="text-amber-300">
+          未找到工具 <span className="font-mono">{focusTool}</span> —— 已按「连字符/下划线、大小写」归一比对过。
+          三种可能：① 只在 <span className="font-mono">data/tool_definitions/</span> 有 YAML，但模块没进
+          <span className="font-mono"> agent/tools/custom/</span>（注册表里没有）；② 注册了但 enabled=false；
+          ③ 注册名被改过。①→用「能力获取 → 草稿评审 → 登记为工具」重登记；②→在下方列表启用。
+        </span>
+        <a href={hubHref('tools', { tab: 'governance' })}
+          className="rounded border border-amber-800/70 px-2 py-0.5 text-[10px] text-amber-200 hover:bg-amber-950/40">
+          去工具治理看注册名
+        </a>
+        </>
+      ) : (
+        <span className="text-slate-400">正在定位 <span className="font-mono">{focusTool}</span> …</span>
+      )}
+      <button type="button" onClick={() => { setFocusTool(''); setFocusState('') }}
+        className="ml-auto rounded border border-slate-700 px-2 py-0.5 text-[10px] text-slate-400 hover:bg-slate-800">
+        清除定位
+      </button>
+    </div>
+  ) : null
 
   const load = () => {
     setLoading(true)
@@ -309,6 +395,7 @@ export default function ToolsToolset() {
         </div>
       )}
 
+      {focusBanner}
       {loading ? <Loading /> : (
         <div className="space-y-5">
           {shown.map((g) => {
@@ -325,7 +412,8 @@ export default function ToolsToolset() {
                   </span>
                   <span className="ml-auto text-xs text-slate-500">{g.rows.length} 个</span>
                 </div>
-                <DataTable data={g.rows} keyField="name" columns={columns} />
+                <DataTable data={g.rows} keyField="name" columns={columns}
+                  rowProps={(row) => (row.name === focusTool ? { 'data-focus-tool': row.name } : {})} />
               </Card>
             )
           })}

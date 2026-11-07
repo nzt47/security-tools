@@ -81,7 +81,7 @@ export default function MemoryDraftPanel() {
           <div className="text-[10px] text-slate-500">
             聚类 {result.total_clusters ?? 0} · 过闸 {result.passed_clusters ?? 0}
             {' · 草稿 ' + (result.drafts ?? []).filter((d) => d.drafted).length}
-            <span className="ml-1 text-slate-600">（登记/启用去「转化队列」）</span>
+            <span className="ml-1 text-slate-600">（登记/启用去「草稿评审」）</span>
           </div>
           {(result.drafts ?? []).length === 0 ? (
             <div className="mt-1 text-slate-500">没有生成草稿。</div>

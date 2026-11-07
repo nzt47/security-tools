@@ -31,7 +31,11 @@ function hashSearch(): string {
 /** 从 URL 读 Tab（未知值回落 skills，保证深链/刷新一致） */
 export function tabFromSearch(search: string): Tab {
   try {
-    return new URLSearchParams(search).get('tab') === 'visual' ? 'visual' : 'skills'
+    const params = new URLSearchParams(search)
+    // 2026-11-07：带 ?workflow=<id> 的深链（转化队列「去工作流页启用」/登记后）必须落在
+    // **列表 Tab** —— 那一行在列表里，落到画布上等于没定位到。
+    if (params.get('workflow')) return 'skills'
+    return params.get('tab') === 'visual' ? 'visual' : 'skills'
   } catch {
     return 'skills'
   }

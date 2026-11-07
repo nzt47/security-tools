@@ -96,7 +96,16 @@ def _source_from_body(body: Dict[str, Any]) -> IngestSource:
 
 
 def _plan_payload(plan: Any) -> Dict[str, Any]:
-    return {"plan": plan.to_dict()}
+    payload = {"plan": plan.to_dict()}
+    # 步骤数随预览一起回给前端：form=workflow 时若为 0，提交会被拒（工作流需要可绑定步骤），
+    # 与其等用户点完"生成草稿"才 400，不如在预览卡片上先说清。
+    try:
+        from agent.ingestion import drafts as _drafts
+        body = getattr(getattr(plan, "skill", None), "body", "") or ""
+        payload["steps_count"] = len(_drafts.extract_steps(body))
+    except Exception:  # noqa: BLE001 步骤数只是提示，取不到不影响预览
+        payload["steps_count"] = None
+    return payload
 
 
 def _resolve_llm_client() -> Any:
@@ -264,6 +273,53 @@ def api_ingestion_draft_delete(draft_id: str):
         pass
     return _ok({"deleted": draft_id})
 
+
+
+@bp.route("/api/ingestion/drafts/<draft_id>/register", methods=["POST"])
+@_require_token
+def api_ingestion_draft_register(draft_id: str):
+    """把隔离草稿登记成真实能力（技能/工具/工作流）；enable=true 时一并启用。
+
+    【为什么不做成自动】草稿期的价值就是"人看一眼再进台账"：登记默认**不启用**，
+    启用要额外的 confirm=true —— 与「新工具默认 enabled:false 先观察」同源。
+    """
+    from agent.audit.facade import audit
+    from agent.ingestion import register_draft as register_mod
+    try:
+        body = _json_body()
+    except IngestionError as exc:
+        return _fail(exc)
+    enable = body.get("enable") is True
+    if enable and body.get("confirm") is not True:
+        return _problem(400, title="需要显式确认",
+                        detail="登记本身不改状态；一并启用要 confirm=true",
+                        type_slug="confirm-required")
+    try:
+        result = register_mod.register_draft(draft_id, enable=enable)
+    except FileNotFoundError as exc:
+        logger.warning("[ingestion] 登记时草稿不存在 draft=%s: %s", draft_id, exc)
+        return _problem(404, title="草稿不存在",
+                        detail="草稿 %s 不存在（详见服务日志）" % draft_id,
+                        type_slug="draft-not-found")
+    except register_mod.RegisterError as exc:
+        logger.warning("[ingestion] 登记失败 draft=%s: %s", draft_id, exc)
+        # 失败也要在队列里留痕（否则第二次点「登记」时，人只看到同一个 400，
+        # 却不知道上次卡在哪一步）。状态用 register_failed，note 存**固定文案**。
+        _job_step(draft_id, "register_failed", form="",
+                  note="登记失败（详见服务日志）：" + (exc.message or "")[:120])
+        return _problem(400, title="登记失败", detail=exc.message,
+                        type_slug="draft-register-failed")
+    try:
+        audit.record("ingestion.draft_register", subject=draft_id,
+                     payload={"draft_id": draft_id, "form": result.get("form"),
+                              "enabled": bool(enable),
+                              "target": str(result.get("target") or "")})
+    except Exception:  # noqa: BLE001 登记已生效，审计失败不回滚
+        pass
+    _job_step(draft_id, "registered", form=str(result.get("form") or "skill"),
+              title=str(result.get("skill_id") or result.get("tool_name") or result.get("workflow_id") or draft_id),
+              note="已登记" + ("并启用" if enable else "（未启用）"))
+    return _ok({"result": result}, message="已登记" + ("并启用" if enable else "（未启用，去技能中心/工具页启用）"))
 
 @bp.route("/api/ingestion/drafts/<draft_id>/autobind", methods=["POST"])
 @_require_token

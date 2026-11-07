@@ -144,9 +144,12 @@ export const ingestionDraftAutobind = (draftId: string) =>
   `/api/ingestion/drafts/${encodeURIComponent(draftId)}/autobind`;
 export const ingestionDraftImplement = (draftId: string) =>
   `/api/ingestion/drafts/${encodeURIComponent(draftId)}/implement`;
-// 【2026-11-06 删除】ingestionDraftInstallSkill / ingestionDraftRegister /
-// ingestionDraftRegisterTool 三个常量随端点一起下线：登记/启用统一走
-// /api/skills-mgmt/transforms/{register,enable}（转化队列），UI 早已无调用方。
+// 【2026-11-07 恢复**一个**统一的登记口】原先的三个常量（install-skill / register-tool /
+// register）在 2026-11-06 随「合并重复入口」下线，但那次只把「技能」接到了转化队列：
+// tool / workflow 骨架草稿在 /api/skills-mgmt/queue 里**根本不存在**，于是草稿页只剩一句
+// 「登记去「转化队列」Tab」的死提示。现在三种形态共用一个端点（后端按 manifest.form 分派）。
+export const ingestionDraftRegister = (draftId: string) =>
+  `/api/ingestion/drafts/${encodeURIComponent(draftId)}/register`;
 
 export const workflowLearnExecute = (wfId: string) => `/api/workflow-learning/execute/${encodeURIComponent(wfId)}`;
 export const workflowLearnWorkflows = (wfId: string) => `/api/workflow-learning/workflows/${encodeURIComponent(wfId)}`;

@@ -41,3 +41,15 @@ describe('WorkflowHub（工作流叶子）', () => {
     expect(tabFromSearch('')).toBe('skills')
   })
 })
+
+describe('tabFromSearch —— 深链定位', () => {
+  it('带 ?workflow=<id> 时落在列表 Tab（那一行在列表里，不在画布上）', () => {
+    expect(tabFromSearch('?panel=workflow&workflow=code-review-workflow')).toBe('skills')
+    expect(tabFromSearch('?panel=workflow&tab=visual&workflow=wf-1')).toBe('skills')
+  })
+
+  it('没有 workflow 参数时 tab 照旧生效', () => {
+    expect(tabFromSearch('?panel=workflow&tab=visual')).toBe('visual')
+    expect(tabFromSearch('?panel=workflow')).toBe('skills')
+  })
+})

@@ -15,6 +15,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, Archive, CheckCircle2, ChevronDown, ChevronRight, Loader2, RotateCcw, Sparkles, X } from 'lucide-react'
 import { authHeader } from '../lib/apiToken'
+import { hubHref } from '../workbench/hubNav'
 import {
   SKILLS_MGMT_TRANSFORMS,
   SKILLS_MGMT_TRANSFORM_REGISTER,
@@ -69,7 +70,12 @@ type Job = {
   target?: { kind?: string; id?: string }
   artifacts?: string
   updated_at?: string
+  /** 台账备注（登记失败原因等，由后端 note 字段带回） */
+  note?: string
 }
+
+/** 台账备注（失败原因）——列表与浮层共用一处取值 */
+const jobNote = (j: Job) => (j.note ?? '').trim()
 
 /**
  * `embedded`：同一个组件既当弹窗、也当「能力获取 → 转化队列」页内 Tab。
@@ -86,6 +92,8 @@ const JOB_STATUS_STYLE: Record<string, string> = {
   enabled: 'border-emerald-700 text-emerald-200',
   archived: 'border-slate-700 text-slate-500',
   failed: 'border-rose-800/60 text-rose-300',
+  // 登记动作跑了但没真正进注册表/台账（2026-11-07 的"registered 但工具不存在"错账）
+  register_failed: 'border-rose-800/60 text-rose-300',
 }
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -124,6 +132,17 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
   const [items, setItems] = useState<Item[]>([])
   const [broken, setBroken] = useState(0)
   const [jobs, setJobs] = useState<Job[]>([])
+  /** 单击高亮（只是"我在看这条"），双击才打开操作面板（避免误触） */
+  const [activeJobId, setActiveJobId] = useState('')
+  const [jobPanel, setJobPanel] = useState<Job | null>(null)
+
+  // Esc 关闭操作面板（浮层打开了就得能一键退出）
+  useEffect(() => {
+    if (!jobPanel) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setJobPanel(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [jobPanel])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [openId, setOpenId] = useState<string | null>(null)
@@ -182,6 +201,7 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
       const pr = j.pr && j.pr.pr_url ? `，PR：${j.pr.pr_url}` : '（未开 PR，改动停在工作区）'
       setNotice(`已登记 ${j.skill_id} → 文件轨${pr}；只登记未启用，启用请到技能中心`)
       setRegisterJob(null)
+      setJobPanel(null)   // 登记成功：连作业卡一起关掉（同一张卡里的确认态自然消失）
       await load()
     } catch (e) {
       setError(String((e as Error).message || e))
@@ -206,6 +226,7 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
       if (!r.ok || j.ok === false) throw new Error(j.error || j.code || `HTTP ${r.status}`)
       setNotice(`已启用 ${j.skill_id}（文件轨 + 主轨双写）`)
       setEnableJob(null)
+      setJobPanel(null)
       await load()
     } catch (e) {
       setError(String((e as Error).message || e))
@@ -345,7 +366,14 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
               </div>
               <ul className="divide-y divide-slate-800/70">
                 {jobs.map((j) => (
-                  <li key={j.job_id} className="flex flex-wrap items-center gap-1.5 px-3 py-1 text-[10px]">
+                  <li key={j.job_id}
+                      onClick={() => setActiveJobId(j.job_id)}
+                      onDoubleClick={() => { setJobPanel(j); setRegisterJob(null); setEnableJob(null) }}
+                      title="单击选中；双击打开操作面板"
+                      className={'flex cursor-pointer flex-wrap items-center gap-1.5 px-3 py-1 text-[10px] transition-colors ' +
+                        (activeJobId === j.job_id
+                          ? 'bg-cyan-500/10 ring-1 ring-inset ring-cyan-700/60'
+                          : 'hover:bg-slate-800/40')}>
                     <Badge text={SOURCE_LABEL[j.source] || j.source} style="border-slate-700 text-slate-400" />
                     <span className="truncate text-[11px] text-slate-200">{j.title || j.source_ref}</span>
                     <Badge text={j.status} style={JOB_STATUS_STYLE[j.status] || 'border-slate-700 text-slate-400'} />
@@ -355,7 +383,7 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                     {['candidate', 'normalized', 'reviewed'].includes(j.status) && (
                       <button type="button"
                         className="rounded border border-emerald-800/70 px-1.5 py-0.5 text-[10px] text-emerald-300 hover:bg-emerald-950/40"
-                        onClick={() => { setRegisterJob(j); setEnableJob(null); setNotice('') }}
+                        onClick={() => { setJobPanel(j); setRegisterJob(j); setEnableJob(null); setNotice('') }}
                         title="把这条草稿登记进仓库（只登记、不启用）">
                         {j.form === 'tool' ? '登记为工具' : j.form === 'workflow' ? '登记为工作流' : '登记为技能'}
                       </button>
@@ -363,7 +391,7 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                     {j.form === 'skill' && j.status === 'registered' && (
                       <button type="button"
                         className="rounded border border-cyan-800/70 px-1.5 py-0.5 text-[10px] text-cyan-300 hover:bg-cyan-950/40"
-                        onClick={() => { setEnableJob(j); setRegisterJob(null); setNotice('') }}
+                        onClick={() => { setJobPanel(j); setEnableJob(j); setRegisterJob(null); setNotice('') }}
                         title="启用这条已登记的技能（文件轨 + 主轨双写）">
                         启用
                       </button>
@@ -372,11 +400,18 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                         下一步是补实现 + 测试 + 审批（证据都在工具页）；工作流要先试跑。
                         队列只负责把它们指到能判断的地方，避免「在队列里点一下就启用了」的空按钮。 */}
                     {j.status === 'registered' && j.form !== 'skill' && (
-                      <a href={j.form === 'tool' ? '?panel=tools' : '?panel=workflow'}
+                      <a href={j.form === 'tool'
+                        ? hubHref('tools', { tab: 'toolset', tool: String(j.target?.id ?? '') })
+                        : hubHref('workflow', { workflow: String(j.target?.id ?? '') })}
                         className="rounded border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-300 hover:border-cyan-700 hover:bg-cyan-950/40 hover:text-cyan-300"
                         title="启用留在该页：工具要先补实现/测试并过审批，工作流要先试跑——那里才有判断依据">
                         去{j.form === 'tool' ? '工具页' : '工作流页'}启用
                       </a>
+                    )}
+                    {j.status === 'register_failed' && (
+                      <span className="max-w-[420px] truncate text-[10px] text-rose-300" title={jobNote(j)}>
+                        {jobNote(j) || '登记失败'}
+                      </span>
                     )}
                     <code className="ml-auto text-slate-600">{j.job_id}</code>
                   </li>
@@ -396,56 +431,114 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
             </div>
           )}
 
-          {registerJob && (
-            <div className="mb-3 rounded-lg border border-emerald-900/60 bg-emerald-950/20 px-3 py-2">
-              <div className="text-[11px] text-emerald-200">
-                登记 <span className="font-mono">{registerJob.title || registerJob.source_ref}</span> 为技能？
-              </div>
-              <div className="mt-1 text-[10px] leading-relaxed text-slate-400">
-                {registerJob.form === 'tool'
-                  ? '把骨架的 .py / .yaml / 测试搬到真实路径，仍 status=draft、enabled=false；目标已存在会被拒绝。'
-                  : registerJob.form === 'workflow'
-                    ? '登记进工作流仓库（status=draft、enabled=false）；步骤还没绑定工具会被拒绝。'
-                    : '写文件轨并跑入轨校验，不启用；目标已存在会被拒绝。'}
-                {registerJob.form === 'skill' ? '「只到工作区」需要你之后自己 commit / 开 PR。' : ''}
-              </div>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <button type="button" disabled={!!busy} onClick={() => void doRegister(true)}
-                  className="flex items-center gap-1 rounded border border-emerald-800 px-2 py-1 text-[10px] text-emerald-300 hover:bg-emerald-500/10 disabled:opacity-40">
-                  {busy === registerJob.job_id ? <Loader2 size={10} className="animate-spin" /> : <CheckCircle2 size={10} />}
-                  登记并开 PR
-                </button>
-                <button type="button" disabled={!!busy} onClick={() => void doRegister(false)}
-                  className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-300 hover:bg-slate-800 disabled:opacity-40">
-                  只登记到工作区
-                </button>
-                <button type="button" onClick={() => setRegisterJob(null)}
-                  className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-400 hover:bg-slate-800">
-                  取消
-                </button>
-              </div>
-            </div>
-          )}
+          {/* 双击作业行打开：**固定浮层**（不随列表滚动跑掉）——原来渲染在列表上方，
+              条目多时要拖到顶才看得见。点遮罩/关闭/Esc 都可退出。 */}
+          {jobPanel && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4"
+              role="dialog" aria-modal="true" aria-label="转化作业操作"
+              onClick={() => setJobPanel(null)}>
+              <div className="w-full max-w-lg rounded-lg border border-cyan-900/60 bg-slate-900 shadow-2xl"
+                onClick={(e) => e.stopPropagation()}>
+                <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 px-3 py-2">
+                  <span className="text-[12px] text-cyan-200">
+                    {jobPanel.title || jobPanel.source_ref || jobPanel.job_id}
+                  </span>
+                  <Badge text={jobPanel.status} style={JOB_STATUS_STYLE[jobPanel.status] || 'border-slate-700 text-slate-400'} />
+                  <Badge text={jobPanel.form} style="border-slate-700 text-slate-400" />
+                  <span className="ml-auto">
+                    <button type="button" onClick={() => setJobPanel(null)}
+                      aria-label="关闭作业操作面板"
+                      className="rounded border border-slate-700 px-2 py-0.5 text-[10px] text-slate-400 hover:bg-slate-800">
+                      关闭
+                    </button>
+                  </span>
+                </div>
+                {registerJob && registerJob.job_id === jobPanel.job_id && (
+                  <div className="border-b border-slate-800 bg-emerald-950/20 px-3 py-2">
+                    <div className="text-[12px] text-emerald-200">
+                      登记 <span className="font-mono">{jobPanel.title || jobPanel.job_id}</span> 为{jobPanel.form === 'tool' ? '工具' : jobPanel.form === 'workflow' ? '工作流' : '技能'}？
+                    </div>
+                    <div className="mt-1 text-[10px] leading-relaxed text-slate-400">
+                      {jobPanel.form === 'tool'
+                        ? '把骨架的 .py / .yaml / 测试搬到真实路径，仍 status=draft、enabled=false；目标已存在会被拒绝。'
+                        : jobPanel.form === 'workflow'
+                          ? '登记进工作流仓库（status=draft、enabled=false）；步骤还没绑定工具会被拒绝。'
+                          : '写文件轨并跑入轨校验，不启用；目标已存在会被拒绝。'}
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <button type="button" disabled={!!busy} onClick={() => void doRegister(true)}
+                        className="flex items-center gap-1 rounded border border-emerald-800 px-2 py-1 text-[10px] text-emerald-300 hover:bg-emerald-500/10 disabled:opacity-40">
+                        {busy === registerJob.job_id ? <Loader2 size={10} className="animate-spin" /> : <CheckCircle2 size={10} />}
+                        登记并开 PR
+                      </button>
+                      <button type="button" disabled={!!busy} onClick={() => void doRegister(false)}
+                        className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-300 hover:bg-slate-800 disabled:opacity-40">
+                        只登记到工作区
+                      </button>
+                      <button type="button" onClick={() => setRegisterJob(null)}
+                        className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-400 hover:bg-slate-800">
+                        取消
+                      </button>
+                    </div>
+                  </div>
+                )}
 
-          {enableJob && (
-            <div className="mb-3 rounded-lg border border-cyan-900/60 bg-cyan-950/20 px-3 py-2">
-              <div className="text-[11px] text-cyan-200">
-                启用 <span className="font-mono">{enableJob.target?.id || enableJob.title}</span>？
-              </div>
-              <div className="mt-1 text-[10px] leading-relaxed text-slate-400">
-                会双写：先改文件轨 skill.md 的 enabled: true，再走主轨 set_enabled（带审计）。
-                主轨失败会回滚文件，两轨保持一致。停用仍在技能中心。
-              </div>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <button type="button" disabled={!!busy} onClick={() => void doEnable()}
-                  className="flex items-center gap-1 rounded border border-cyan-800 px-2 py-1 text-[10px] text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-40">
-                  {busy === enableJob.job_id + ':enable' ? <Loader2 size={10} className="animate-spin" /> : <CheckCircle2 size={10} />}
-                  确认启用
-                </button>
-                <button type="button" onClick={() => setEnableJob(null)}
-                  className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-400 hover:bg-slate-800">
-                  取消
-                </button>
+                {enableJob && enableJob.job_id === jobPanel.job_id && (
+                  <div className="border-b border-slate-800 bg-cyan-950/20 px-3 py-2">
+                    <div className="text-[12px] text-cyan-200">
+                      启用 <span className="font-mono">{jobPanel.target?.id || jobPanel.title}</span>？
+                    </div>
+                    <div className="mt-1 text-[10px] leading-relaxed text-slate-400">
+                      会双写：先改文件轨 skill.md 的 enabled: true，再走主轨 set_enabled（带审计）；主轨失败会回滚文件。
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <button type="button" disabled={!!busy} onClick={() => void doEnable()}
+                        className="flex items-center gap-1 rounded border border-cyan-800 px-2 py-1 text-[10px] text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-40">
+                        {busy === enableJob.job_id + ':enable' ? <Loader2 size={10} className="animate-spin" /> : <CheckCircle2 size={10} />}
+                        确认启用
+                      </button>
+                      <button type="button" onClick={() => setEnableJob(null)}
+                        className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-400 hover:bg-slate-800">
+                        取消
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 px-3 py-2 text-[11px] text-slate-400">
+                  <dt>作业</dt><dd className="font-mono break-all text-slate-300">{jobPanel.job_id}</dd>
+                  <dt>来源</dt><dd className="break-all">{jobPanel.source_ref || jobPanel.source || '-'}</dd>
+                  <dt>产物</dt><dd className="break-all">{jobPanel.artifacts || '-'}</dd>
+                  <dt>目标</dt><dd>{(jobPanel.target?.kind ? jobPanel.target.kind + ':' : '') + (jobPanel.target?.id || '-')}</dd>
+                  <dt>更新</dt><dd>{jobPanel.updated_at || '-'}</dd>
+                </dl>
+                <div className="flex flex-wrap items-center gap-2 border-t border-slate-800 px-3 py-2">
+                  {['candidate', 'normalized', 'reviewed'].includes(jobPanel.status) && (
+                    <button type="button" onClick={() => { setRegisterJob(jobPanel); setNotice('') }}
+                      className="rounded border border-emerald-800/70 px-2 py-1 text-[11px] text-emerald-300 hover:bg-emerald-950/40">
+                      {jobPanel.form === 'tool' ? '登记为工具' : jobPanel.form === 'workflow' ? '登记为工作流' : '登记为技能'}
+                    </button>
+                  )}
+                  {jobPanel.form === 'skill' && jobPanel.status === 'registered' && (
+                    <button type="button" onClick={() => { setEnableJob(jobPanel); setNotice('') }}
+                      className="rounded border border-cyan-800/70 px-2 py-1 text-[11px] text-cyan-300 hover:bg-cyan-950/40">
+                      启用
+                    </button>
+                  )}
+                  {jobPanel.status === 'registered' && jobPanel.form !== 'skill' && (
+                    <a href={jobPanel.form === 'tool'
+                      ? hubHref('tools', { tab: 'toolset', tool: String(jobPanel.target?.id ?? '') })
+                      : hubHref('workflow', { workflow: String(jobPanel.target?.id ?? '') })}
+                      className="rounded border border-slate-700 px-2 py-1 text-[11px] text-slate-300 hover:border-cyan-700 hover:bg-cyan-950/40 hover:text-cyan-300">
+                      去{jobPanel.form === 'tool' ? '工具页' : '工作流页'}启用
+                    </a>
+                  )}
+                  {!['candidate', 'normalized', 'reviewed', 'registered'].includes(jobPanel.status) && (
+                    <span className="text-[11px] text-slate-500">
+                      该状态（{jobPanel.status}）在队列里没有可执行动作；改名/合并请走「技能中心」。
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           )}

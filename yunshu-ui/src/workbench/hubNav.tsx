@@ -444,6 +444,24 @@ export function navKeyFromSearch(search: string): string {
   }
 }
 
+/** 生成某个导航 key 的**可点击深链**（hash 形态：`#/workbench?panel=xxx`）。
+
+ * 【为什么必须带 hash】本应用是 hash 路由（见 useNavUrlSync：读写的都是 window.location.hash）。
+ * 只写 `?panel=tools` 会把 hash 冲掉、命中路径级 query —— 应用读不到 panel，回落到默认
+ * 导航（session 会话任务）。2026-11-07 实测：转化队列里「去工具页启用」点下去就跳到了会话任务。
+ */
+export function hubHref(key: string, extra?: Record<string, string>): string {
+  const resolved = resolveNavKey(key)
+  const base = '#/workbench' + searchForNavKey('', resolved)
+  if (!extra) return base
+  const params = new URLSearchParams()
+  for (const [k, v] of Object.entries(extra)) {
+    if (v) params.set(k, v)
+  }
+  const q = params.toString()
+  return q ? base + '&' + q : base
+}
+
 /** 把导航 key 写进 URL search（保留其它参数；key 为空则删除该参数） */
 export function searchForNavKey(search: string, key: string): string {
   try {
