@@ -27,6 +27,15 @@ vi.stubGlobal('fetch', fetchMock)
 
 const { default: ToolsPage, TOOLS_TABS, TOOLS_TAB_STORAGE_KEY } = await import('./index')
 
+/**
+ * 懒加载子模块「挂载并发出首个请求」的等待上限。
+ *
+ * 【为什么不是默认 1000ms】工具集是懒加载的重模块（表格 + 两个 hub 接口），单独跑约 1.0s，
+ * 全量并发跑时常跨过 waitFor 默认的 1s 上限 ⇒ 报"默认选中工具集"失败，
+ * 而单独跑必过（2026-11-07 两次实测：1108ms / 1152ms）。这是等待预算问题，不是行为问题。
+ */
+const LAZY_TAB_MOUNT_TIMEOUT_MS = 8000
+
 describe('工具调用 · Tab 结构', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -67,7 +76,7 @@ describe('工具调用 · Tab 结构', () => {
     expect(toolsetTab).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('工具与接入')
     // 子模块懒加载：等待其挂载后应出现该模块自己的 PageHeader 标题
-    await waitFor(() => expect(fetchMock).toHaveBeenCalled())
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled(), { timeout: LAZY_TAB_MOUNT_TIMEOUT_MS })
   })
 
   it('点击 Tab 切换选中态并记忆到 localStorage', async () => {
