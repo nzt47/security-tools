@@ -37,6 +37,16 @@ except Exception:  # noqa: BLE001 审计模块不可用 → 路由功能不受�
 
 logger = logging.getLogger(__name__)
 
+#: 入轨助手（界面 / REST）**默认不改能力面基线**。
+#:
+#: 【为什么默认关（2026-11-08 Owner 决定，R-1）】基线（`tests/unit/test_capregistry_core.py`
+#: 的 `== 142` / `by_kind` / `envelope` …）是**派生面的哨兵**：它们必须等于"干净
+#: worktree 重派生"的结果，人才能靠它们发现清单被手改。入轨助手顺手改这些数字，等于
+#: 在没人 review 的情况下把哨兵挪到新位置 —— 2026-11-07 23:49 那次 UI 入轨就因此把
+#: capability_manifest / 盘点表 / 3 个测试基线一起改了（R-1 事故，事后按口径还原）。
+#: 现在要刷新基线必须**显式传** `fix_baselines: true`（CLI 同理：`--fix-baselines`）。
+DEFAULT_FIX_BASELINES = False
+
 
 def _svc():
     """懒加载服务 (避免启动时即初始化)"""
@@ -257,6 +267,8 @@ def register_routes(app, state):
 
         Body: {execute?, fix_baselines?, fix_meta?, open_pr?, llm_sections?}。
         - 默认干跑；`fix_meta` 默认 true（只在 execute 时真写 front matter）；
+        - `fix_baselines` **默认 false**（见 DEFAULT_FIX_BASELINES：基线是派生物哨兵，
+          自动改写等于绕过 review 挪哨兵）；
         - `open_pr=true` 才走 commit → push → 建 PR（要求当前在 master、且改动全在白名单内），
           响应里回 `pr.pr_url`；不传就仍然停在「工作区已就绪」，由人 review 后提交。
         不建文件轨的技能（global-core-principles / skill）在这里同样被校验拦下。
@@ -274,10 +286,14 @@ def register_routes(app, state):
         try:
             from scripts.intake_skill import intake_one, open_pr
             execute = _as_bool("execute", False)
+            fix_baselines = _as_bool("fix_baselines", DEFAULT_FIX_BASELINES)
             rep = intake_one(skill_id, execute=execute,
-                             fix_baselines=_as_bool("fix_baselines", True),
+                             fix_baselines=fix_baselines,
                              fix_meta=_as_bool("fix_meta", True),
                              llm_sections=_as_bool("llm_sections", False))
+            # 回显生效值：响应里 baseline_changes 为空到底是"没变化"还是"没开"，界面要能分清
+            if isinstance(rep, dict):
+                rep["fix_baselines"] = fix_baselines
             # 一条龙：commit → push → PR。只在 execute 且没有 needs_human 阻塞项时跑，
             # 且必须显式 open_pr —— 默认仍然停在"工作区已就绪"。
             if rep.get("ok") and execute and _as_bool("open_pr", False):

@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-11-07T12:05:42",
+  "generated_at": "2026-11-08T01:39:07",
   "scope": "仓库可复现口径：data/tool_definitions/*.yaml + data/skill_callability.yaml + data/skills_repo/*/skill.md + data/permission_policies.json + 注册点静态扫描（不含 .gitignore 里的运行时技能目录/台账）",
   "runtime_only_declarations": [
     "global-core-principles",
@@ -373,83 +373,83 @@
   },
   "performance_note": "性能列（avg_ms / p99_ms / dpm）**一律未采集**：仓库现有实测只有一次 HTTP 压测（p50=15.84s），且进程内计时冒充压测的产物已确认不可引用（见 TASK-00 §0.2b）。清单**不提供估算值**；采集方案与 TASK-08 对接。",
   "counts": {
-    "total": 140,
+    "total": 142,
     "callable": 72,
     "conditional": 65,
-    "blocked": 3,
+    "blocked": 5,
     "model_callable": 91,
     "by_trigger": {
       "model": 91,
       "system": 46,
       "human": 0,
-      "none": 3
+      "none": 5
     },
     "by_type": {
       "tool": 93,
-      "skill": 47,
+      "skill": 49,
       "api": 0,
       "script": 0
     },
     "by_permission_level": {
       "public": 80,
       "internal": 38,
-      "restricted": 22
+      "restricted": 24
     },
     "blocked_reasons": {
+      "技能状态为 draft": 3,
       "内部执行体": 1,
-      "技能状态为 draft": 1,
       "纯提示词技能": 1
     },
     "conditional_reasons": {
-      "无 JSON Schema": 46,
+      "无 JSON Schema": 48,
       "纯提示词技能": 40,
       "指令型技能": 5,
+      "技能状态为 draft": 3,
       "内部执行体": 1,
       "带脚本技能": 1,
-      "技能状态为 draft": 1,
       "空实现": 1
     },
     "by_kind": {
       "tool": 93,
-      "skill": 47
+      "skill": 49
     },
     "by_location": {
-      "local": 118,
+      "local": 120,
       "remote": 22
     },
     "by_location_source": {
       "declaration": 93,
-      "skill_chain": 47
+      "skill_chain": 49
     },
     "by_location_derived_source": {
       "executor_boundary": 93,
-      "skill_chain": 47
+      "skill_chain": 49
     },
     "by_isolation_level": {
       "none": 0,
-      "process": 140,
+      "process": 142,
       "container": 0
     },
     "by_owner": {
-      "builtin": 140,
+      "builtin": 142,
       "local-installed": 0,
       "tenant-installed": 0,
       "marketplace": 0
     },
     "by_registry_source": {
-      "global": 140,
+      "global": 142,
       "planning": 0
     },
     "by_main_line_status": {
       "not_assembled": 56,
-      "n/a": 47,
+      "n/a": 49,
       "visible": 26,
       "denied_by_effect": 8,
       "muted": 3
     },
     "location_confidence": {
       "low": 72,
-      "high": 68
+      "high": 70
     },
     "declared_location_mismatch": 0
   },
@@ -8332,11 +8332,9 @@
       "location_unresolved": [
         "RuntimeError",
         "SsrfVerdict",
-        "_FIELD_FILTER_RE.finditer",
         "_FIELD_LABEL_ALIASES.get",
         "_PERF_IS_ENABLED_FN",
         "_PERF_RECORD_CALL_FN",
-        "_PIPE_FILTER_RE.finditer",
         "_name_conflicts.append",
         "_perf_time.perf_counter",
         "all_results.append",
@@ -8346,6 +8344,7 @@
         "asyncio.run_coroutine_threadsafe",
         "bool",
         "candidates.append",
+        "ch.isalpha",
         "context_items.append",
         "data.get",
         "data.pop",
@@ -8376,13 +8375,10 @@
         "logger.error",
         "logger.info",
         "logger.warning",
-        "m.group",
-        "m.groups",
         "max",
         "meta.get",
         "meta.update",
         "min",
-        "next",
         "os.listdir",
         "os.path.basename",
         "os.path.join",
@@ -8390,7 +8386,7 @@
         "r.get",
         "res.get",
         "response.json",
-        "rest.replace",
+        "rest_parts.append",
         "result.get",
         "result.update",
         "results.append",
@@ -8411,6 +8407,7 @@
         "sorted",
         "str",
         "term.lower",
+        "text.find",
         "text.startswith",
         "text_terms.append",
         "thread.start",
@@ -11109,6 +11106,79 @@
       "main_line_status": "n/a"
     },
     {
+      "tool_name": "api-multi-search-engine",
+      "tool_type": "skill",
+      "scope": "repo",
+      "llm_callable": false,
+      "callable_mode": "manual",
+      "schema_registered": false,
+      "host_executor": "agent.skills_mgmt.context_injector:ContextInjector",
+      "permission_level": "restricted",
+      "sandbox_allowed": true,
+      "isolation_level": "process",
+      "reason": "技能状态为 draft（非 approved/published）：不会被注入，模型也不发起调用",
+      "capability_id": "default:yunshu:api-multi-search-engine@1.0.0",
+      "kind": "skill",
+      "location": "local",
+      "location_source": "skill_chain",
+      "location_derived_source": "skill_chain",
+      "location_evidence": [
+        "纯提示词技能：ContextInjector 在**本进程内**把内容注入提示词，无子进程/无网络调用",
+        "执行器：agent.skills_mgmt.context_injector:ContextInjector"
+      ],
+      "location_declared": "",
+      "location_consistent": true,
+      "location_confidence": "high",
+      "location_unresolved": [],
+      "location_ffi": [],
+      "owner": "builtin",
+      "version": "1.0.0",
+      "namespace": "yunshu",
+      "tenant_id": "default",
+      "registry_source": "global",
+      "aliases": [],
+      "deprecated": true,
+      "entity_versioned": true,
+      "mark": "❌ 不可调用",
+      "reachable": false,
+      "trigger": "none",
+      "reason_kind": "unreachable",
+      "blockers": [
+        "技能状态为 draft（非 approved/published）：不会被注入，模型也不发起调用"
+      ],
+      "blocker_codes": [
+        "disabled"
+      ],
+      "soft_blockers": [
+        "技能状态为 draft（非 approved/published）：不会被注入，模型也不发起调用",
+        "无 JSON Schema（缺参数契约，模型无法按 schema 填参）"
+      ],
+      "soft_codes": [
+        "declared_false",
+        "no_schema"
+      ],
+      "conditions": [],
+      "notes": [],
+      "declared_llm_callable": false,
+      "declared_permission_level": "",
+      "derived_permission_level": "restricted",
+      "declared_in": "data/skills_repo/api-multi-search-engine/skill.md",
+      "category": "skill",
+      "plane": "resident",
+      "effect": "read",
+      "risk": "low",
+      "needs_approval": false,
+      "internal": false,
+      "enabled": false,
+      "skill_in_repo": true,
+      "skill_in_catalog": false,
+      "skill_in_mgmt": false,
+      "has_scripts": false,
+      "skill_status": "draft",
+      "description": "Multi search engine integration with 17 engines (8 CN + 9 Global). Supports advanced search operators, time filters, site search, privacy engines, and WolframAlpha knowledge queries. No API keys required.",
+      "main_line_status": "n/a"
+    },
+    {
       "tool_name": "autoresearch",
       "tool_type": "skill",
       "scope": "repo",
@@ -11589,6 +11659,79 @@
       "has_scripts": false,
       "skill_status": "approved",
       "description": "持续追踪对话主题、用户意图与时间线的演变，在上下文发生切换或漂移时自动调整回应策略与记忆检索范围",
+      "main_line_status": "n/a"
+    },
+    {
+      "tool_name": "document-skill",
+      "tool_type": "skill",
+      "scope": "repo",
+      "llm_callable": false,
+      "callable_mode": "manual",
+      "schema_registered": false,
+      "host_executor": "agent.skills_mgmt.context_injector:ContextInjector",
+      "permission_level": "restricted",
+      "sandbox_allowed": true,
+      "isolation_level": "process",
+      "reason": "技能状态为 draft（非 approved/published）：不会被注入，模型也不发起调用",
+      "capability_id": "default:yunshu:document-skill@1.0.0",
+      "kind": "skill",
+      "location": "local",
+      "location_source": "skill_chain",
+      "location_derived_source": "skill_chain",
+      "location_evidence": [
+        "纯提示词技能：ContextInjector 在**本进程内**把内容注入提示词，无子进程/无网络调用",
+        "执行器：agent.skills_mgmt.context_injector:ContextInjector"
+      ],
+      "location_declared": "",
+      "location_consistent": true,
+      "location_confidence": "high",
+      "location_unresolved": [],
+      "location_ffi": [],
+      "owner": "builtin",
+      "version": "1.0.0",
+      "namespace": "yunshu",
+      "tenant_id": "default",
+      "registry_source": "global",
+      "aliases": [],
+      "deprecated": true,
+      "entity_versioned": true,
+      "mark": "❌ 不可调用",
+      "reachable": false,
+      "trigger": "none",
+      "reason_kind": "unreachable",
+      "blockers": [
+        "技能状态为 draft（非 approved/published）：不会被注入，模型也不发起调用"
+      ],
+      "blocker_codes": [
+        "disabled"
+      ],
+      "soft_blockers": [
+        "技能状态为 draft（非 approved/published）：不会被注入，模型也不发起调用",
+        "无 JSON Schema（缺参数契约，模型无法按 schema 填参）"
+      ],
+      "soft_codes": [
+        "declared_false",
+        "no_schema"
+      ],
+      "conditions": [],
+      "notes": [],
+      "declared_llm_callable": false,
+      "declared_permission_level": "",
+      "derived_permission_level": "restricted",
+      "declared_in": "data/skills_repo/document-skill/skill.md",
+      "category": "skill",
+      "plane": "resident",
+      "effect": "read",
+      "risk": "low",
+      "needs_approval": false,
+      "internal": false,
+      "enabled": false,
+      "skill_in_repo": true,
+      "skill_in_catalog": false,
+      "skill_in_mgmt": false,
+      "has_scripts": false,
+      "skill_status": "draft",
+      "description": "文档处理技能 - 让 AI 能够读取、解析、提取 PDF、DOCX、PPT 等文档的关键信息，支持文档解析、内容提取、关键信息整合、多格式文档处理、PDF/DOCX/PPT 读取、表格数据提取、图片素材提取、核心观点总结、行业数据整合、竞品分析内容提取、加密文档读取、跨文档内容合并、特定内容筛选、超链接提取、页面标题提取、文档修复、内容翻译、字数统计、错别字检查、目录生成。当用户要求分析文档、提取内容、总结报告时触发此技能。",
       "main_line_status": "n/a"
     },
     {
@@ -22030,11 +22173,9 @@
       "location_unresolved": [
         "RuntimeError",
         "SsrfVerdict",
-        "_FIELD_FILTER_RE.finditer",
         "_FIELD_LABEL_ALIASES.get",
         "_PERF_IS_ENABLED_FN",
         "_PERF_RECORD_CALL_FN",
-        "_PIPE_FILTER_RE.finditer",
         "_name_conflicts.append",
         "_perf_time.perf_counter",
         "all_results.append",
@@ -22044,6 +22185,7 @@
         "asyncio.run_coroutine_threadsafe",
         "bool",
         "candidates.append",
+        "ch.isalpha",
         "context_items.append",
         "data.get",
         "data.pop",
@@ -22074,13 +22216,10 @@
         "logger.error",
         "logger.info",
         "logger.warning",
-        "m.group",
-        "m.groups",
         "max",
         "meta.get",
         "meta.update",
         "min",
-        "next",
         "os.listdir",
         "os.path.basename",
         "os.path.join",
@@ -22088,7 +22227,7 @@
         "r.get",
         "res.get",
         "response.json",
-        "rest.replace",
+        "rest_parts.append",
         "result.get",
         "result.update",
         "results.append",
@@ -22109,6 +22248,7 @@
         "sorted",
         "str",
         "term.lower",
+        "text.find",
         "text.startswith",
         "text_terms.append",
         "thread.start",
@@ -24805,6 +24945,79 @@
       "main_line_status": "n/a"
     },
     {
+      "tool_name": "api-multi-search-engine",
+      "tool_type": "skill",
+      "scope": "repo",
+      "llm_callable": false,
+      "callable_mode": "manual",
+      "schema_registered": false,
+      "host_executor": "agent.skills_mgmt.context_injector:ContextInjector",
+      "permission_level": "restricted",
+      "sandbox_allowed": true,
+      "isolation_level": "process",
+      "reason": "技能状态为 draft（非 approved/published）：不会被注入，模型也不发起调用",
+      "capability_id": "default:yunshu:api-multi-search-engine@1.0.0",
+      "kind": "skill",
+      "location": "local",
+      "location_source": "skill_chain",
+      "location_derived_source": "skill_chain",
+      "location_evidence": [
+        "纯提示词技能：ContextInjector 在**本进程内**把内容注入提示词，无子进程/无网络调用",
+        "执行器：agent.skills_mgmt.context_injector:ContextInjector"
+      ],
+      "location_declared": "",
+      "location_consistent": true,
+      "location_confidence": "high",
+      "location_unresolved": [],
+      "location_ffi": [],
+      "owner": "builtin",
+      "version": "1.0.0",
+      "namespace": "yunshu",
+      "tenant_id": "default",
+      "registry_source": "global",
+      "aliases": [],
+      "deprecated": true,
+      "entity_versioned": true,
+      "mark": "❌ 不可调用",
+      "reachable": false,
+      "trigger": "none",
+      "reason_kind": "unreachable",
+      "blockers": [
+        "技能状态为 draft（非 approved/published）：不会被注入，模型也不发起调用"
+      ],
+      "blocker_codes": [
+        "disabled"
+      ],
+      "soft_blockers": [
+        "技能状态为 draft（非 approved/published）：不会被注入，模型也不发起调用",
+        "无 JSON Schema（缺参数契约，模型无法按 schema 填参）"
+      ],
+      "soft_codes": [
+        "declared_false",
+        "no_schema"
+      ],
+      "conditions": [],
+      "notes": [],
+      "declared_llm_callable": false,
+      "declared_permission_level": "",
+      "derived_permission_level": "restricted",
+      "declared_in": "data/skills_repo/api-multi-search-engine/skill.md",
+      "category": "skill",
+      "plane": "resident",
+      "effect": "read",
+      "risk": "low",
+      "needs_approval": false,
+      "internal": false,
+      "enabled": false,
+      "skill_in_repo": true,
+      "skill_in_catalog": false,
+      "skill_in_mgmt": false,
+      "has_scripts": false,
+      "skill_status": "draft",
+      "description": "Multi search engine integration with 17 engines (8 CN + 9 Global). Supports advanced search operators, time filters, site search, privacy engines, and WolframAlpha knowledge queries. No API keys required.",
+      "main_line_status": "n/a"
+    },
+    {
       "tool_name": "autoresearch",
       "tool_type": "skill",
       "scope": "repo",
@@ -25285,6 +25498,79 @@
       "has_scripts": false,
       "skill_status": "approved",
       "description": "持续追踪对话主题、用户意图与时间线的演变，在上下文发生切换或漂移时自动调整回应策略与记忆检索范围",
+      "main_line_status": "n/a"
+    },
+    {
+      "tool_name": "document-skill",
+      "tool_type": "skill",
+      "scope": "repo",
+      "llm_callable": false,
+      "callable_mode": "manual",
+      "schema_registered": false,
+      "host_executor": "agent.skills_mgmt.context_injector:ContextInjector",
+      "permission_level": "restricted",
+      "sandbox_allowed": true,
+      "isolation_level": "process",
+      "reason": "技能状态为 draft（非 approved/published）：不会被注入，模型也不发起调用",
+      "capability_id": "default:yunshu:document-skill@1.0.0",
+      "kind": "skill",
+      "location": "local",
+      "location_source": "skill_chain",
+      "location_derived_source": "skill_chain",
+      "location_evidence": [
+        "纯提示词技能：ContextInjector 在**本进程内**把内容注入提示词，无子进程/无网络调用",
+        "执行器：agent.skills_mgmt.context_injector:ContextInjector"
+      ],
+      "location_declared": "",
+      "location_consistent": true,
+      "location_confidence": "high",
+      "location_unresolved": [],
+      "location_ffi": [],
+      "owner": "builtin",
+      "version": "1.0.0",
+      "namespace": "yunshu",
+      "tenant_id": "default",
+      "registry_source": "global",
+      "aliases": [],
+      "deprecated": true,
+      "entity_versioned": true,
+      "mark": "❌ 不可调用",
+      "reachable": false,
+      "trigger": "none",
+      "reason_kind": "unreachable",
+      "blockers": [
+        "技能状态为 draft（非 approved/published）：不会被注入，模型也不发起调用"
+      ],
+      "blocker_codes": [
+        "disabled"
+      ],
+      "soft_blockers": [
+        "技能状态为 draft（非 approved/published）：不会被注入，模型也不发起调用",
+        "无 JSON Schema（缺参数契约，模型无法按 schema 填参）"
+      ],
+      "soft_codes": [
+        "declared_false",
+        "no_schema"
+      ],
+      "conditions": [],
+      "notes": [],
+      "declared_llm_callable": false,
+      "declared_permission_level": "",
+      "derived_permission_level": "restricted",
+      "declared_in": "data/skills_repo/document-skill/skill.md",
+      "category": "skill",
+      "plane": "resident",
+      "effect": "read",
+      "risk": "low",
+      "needs_approval": false,
+      "internal": false,
+      "enabled": false,
+      "skill_in_repo": true,
+      "skill_in_catalog": false,
+      "skill_in_mgmt": false,
+      "has_scripts": false,
+      "skill_status": "draft",
+      "description": "文档处理技能 - 让 AI 能够读取、解析、提取 PDF、DOCX、PPT 等文档的关键信息，支持文档解析、内容提取、关键信息整合、多格式文档处理、PDF/DOCX/PPT 读取、表格数据提取、图片素材提取、核心观点总结、行业数据整合、竞品分析内容提取、加密文档读取、跨文档内容合并、特定内容筛选、超链接提取、页面标题提取、文档修复、内容翻译、字数统计、错别字检查、目录生成。当用户要求分析文档、提取内容、总结报告时触发此技能。",
       "main_line_status": "n/a"
     },
     {
