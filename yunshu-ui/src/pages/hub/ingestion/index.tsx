@@ -418,7 +418,7 @@ export default function IngestionPage() {
                       {' · ' + directResult.plan.level + ' · 去重提示 ' + directResult.plan.dedupe.length + ' 条'}
                     </div>
                     <div className="break-all text-emerald-300/80">{directResult.result.draft_dir}</div>
-                    <div className="text-emerald-300/60">登记与启用去「转化队列」；这里只落草稿。</div>
+                    <div className="text-emerald-300/60">这里只落草稿；登记与启用在「草稿评审」的草稿行上。</div>
                   </div>
                 )}
               </>
@@ -512,7 +512,7 @@ export default function IngestionPage() {
                 )}
                 {batchRows.length > 0 && (
                   <div className="mt-2 rounded-sm border border-slate-800 bg-slate-950/60 p-2 text-[10px]">
-                    <div className="text-slate-500">批量结果（{batchRows.length}）：草稿只落隔离区，登记/启用仍在「转化队列」</div>
+                    <div className="text-slate-500">批量结果（{batchRows.length}）：草稿只落隔离区，登记/启用到「草稿评审」逐条点</div>
                     <ul className="mt-1 space-y-0.5">
                       {batchRows.map((row) => (
                         <li key={row.path} className="flex items-center gap-2">
@@ -683,7 +683,7 @@ export default function IngestionPage() {
                     ))}
                   </select>
                   <span className="text-[10px] text-slate-500">
-                    三种形态都<b>只产出草稿</b>（不注册、不启用）；登记/启用请到「转化队列」Tab
+                    三种形态都<b>只产出草稿</b>（不注册、不启用）；确认后在「草稿评审」同一行登记/启用
                   </span>
                 </div>
 
@@ -744,7 +744,7 @@ export default function IngestionPage() {
                 {result.draft && (
                   <div className="text-[10px] leading-relaxed text-slate-500">
                     它<b>只是草稿</b>：不注册、不启用。到「草稿评审」页底部的「吞噬生成的骨架草稿」可以查看与删除；
-                    要登记/启用请到「转化队列」Tab。路径就是上面这个目录。
+                    要登记/启用就在「草稿评审」里点那一行。路径就是上面这个目录。
                   </div>
                 )}
                 {result.warnings.length > 0 && (

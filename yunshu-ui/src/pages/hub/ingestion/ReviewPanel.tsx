@@ -186,7 +186,7 @@ export default function ReviewPanel() {
     const { bound, total } = bind.report
     const full = total > 0 && bound >= total
     if (!window.confirm(full
-      ? `将把 ${bound}/${total} 步写回草稿（登记请到「转化队列」）。继续？`
+      ? `将把 ${bound}/${total} 步写回草稿（写回后再点「登记为工作流」）。继续？`
       : `只绑定 ${bound}/${total} 步（仍有未绑定）；先写回草稿，不会登记。继续？`)) return
     setBusy('apply:' + d.draft_id); setDraftErr(''); setMsg('')
     try {
@@ -195,7 +195,7 @@ export default function ReviewPanel() {
       setMsg('已写回绑定 ' + rep.bound + '/' + rep.total +
         (rep.unbound && rep.unbound.length
           ? '；未绑定：' + rep.unbound.map((u) => u.step_id).join('、')
-          : '；到「转化队列」Tab 点「登记为工作流」'))
+          : '；再点「登记为工作流」'))
       setBind(null); await loadDrafts()
     } catch (e) {
       setDraftErr('应用绑定失败：' + (e instanceof Error ? e.message : String(e)))
@@ -226,7 +226,7 @@ export default function ReviewPanel() {
     setBusy('impl-apply:' + d.draft_id); setDraftErr(''); setMsg('')
     try {
       await postJson(ingestionDraftImplement(d.draft_id), { apply: true, confirm: true })
-      setMsg('已写回实现草稿；到「转化队列」Tab 点「登记为工具」才会进仓库')
+      setMsg('已写回实现草稿；点「登记为工具」才会进仓库')
       setImpl(null); await loadDrafts()
     } catch (e) {
       setDraftErr('写回实现失败：' + (e instanceof Error ? e.message : String(e)))
