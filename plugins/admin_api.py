@@ -197,11 +197,24 @@ _TOKEN_SIG_LEN = 32                    # sha256 十六进制取前 32 位
 _PROCESS_SECRET = secrets.token_bytes(32)
 
 
+#: 签名密钥的域分隔前缀（HKDF 的 info 角色：同一个 seed 在不同用途下派生不同密钥）
+_SIGNING_DOMAIN = b"yunshu-admin-token-v1|"
+
+
 def _signing_key() -> bytes:
-    """签名密钥：优先既有的 FLASK_API_TOKEN（已在 settings/registry 登记），否则进程内随机。"""
+    """签名密钥：优先既有的 FLASK_API_TOKEN（已在 settings/registry 登记），否则进程内随机。
+
+    【为什么用 HMAC 而不是裸 sha256(前缀+seed)】口令学上这叫"无盐快速哈希"，
+    CodeQL 的 py/weak-sensitive-data-hashing 会判它（即便 seed 是高熵令牌）。
+    用 HMAC-SHA256 做一次 PRF 派生是标准做法（HKDF-Expand 的核心就是 HMAC）：
+    同样做域分隔、同样定长输出，但把"哈希一个秘密"变成"用固定 info 做密钥派生"，
+    既不新增依赖，也不再需要慢哈希（输入不是人记得住的口令）。
+
+    影响面：派生值变了 ⇒ 本进程此前签发的管理后台 token 全部失效（TTL 12h、重启即换，
+    属于预期内的轮换）。
+    """
     seed = (os.environ.get("FLASK_API_TOKEN") or "").strip() or _PROCESS_SECRET.hex()
-    # 域分隔：即便 FLASK_API_TOKEN 被别处复用，本用途的签名也不会与其它用途撞车
-    return hashlib.sha256(("yunshu-admin-token-v1|" + seed).encode("utf-8")).digest()
+    return hmac.new(_SIGNING_DOMAIN, seed.encode("utf-8"), hashlib.sha256).digest()
 
 
 def _sign(user_hex: str, ts: str) -> str:

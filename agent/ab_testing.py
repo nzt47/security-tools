@@ -18,12 +18,15 @@ import math
 import sqlite3
 import logging
 import threading
-import hashlib
 from datetime import datetime
 from enum import Enum
 from dataclasses import dataclass, field, asdict
 from typing import Optional, Dict, Any, List, Tuple
 from agent.logging_utils import log_dict
+from agent.utils.bucketing import bucket_index
+
+#: 流量采样分母：traffic_ratio 精度到万分之一（与原 10000 一致）
+_TRAFFIC_BUCKETS = 10000
 
 logger = logging.getLogger(__name__)
 
@@ -586,19 +589,19 @@ class ABTestManager:
         if exp.traffic_ratio >= 1.0:
             return True
 
-        hash_val = int(hashlib.md5(f"traffic:{exp.experiment_id}:{user_id}".encode('utf-8')).hexdigest(), 16)
-        bucket = hash_val % 10000
+        # 【2026-11-07】原来用 MD5 分桶（CodeQL py/weak-sensitive-data-hashing）。
+        # 分桶不需要弱哈希，也不需要密码学强度 —— 统一走 agent.utils.bucketing（SHA-256）。
+        bucket = bucket_index("traffic:%s:%s" % (exp.experiment_id, user_id), _TRAFFIC_BUCKETS)
 
-        return bucket < int(exp.traffic_ratio * 10000)
+        return bucket < int(exp.traffic_ratio * _TRAFFIC_BUCKETS)
 
     def _deterministic_assign(self, variants: List[ExperimentVariant],
                               user_id: str, experiment_id: str) -> ExperimentVariant:
         """确定性分配算法（基于哈希的加权随机）"""
         key = f"{experiment_id}:{user_id}"
-        hash_val = int(hashlib.md5(key.encode('utf-8')).hexdigest(), 16)
 
         total_weight = sum(v.weight for v in variants)
-        bucket = hash_val % total_weight
+        bucket = bucket_index(key, total_weight)
 
         cumulative = 0
         for v in variants:
