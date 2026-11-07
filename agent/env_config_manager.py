@@ -244,8 +244,15 @@ class EnvConfigManager:
             self._update_env_file(key, value)
             # 同步更新 os.environ（热重载，立即生效）
             os.environ[key] = value
-            # 【P3 配置审计】写入审计日志（脱敏后）
-            self._audit_log('set', key, old_value, value)
+            # 【P3 配置审计】写入审计日志
+            # 【C-10：敏感 key 的**值不进审计函数**】即便 _mask_sensitive_value 只返回常量，
+            # 把值当实参传进去仍会让"敏感数据流进日志写点"在静态分析里成立（且日后有人
+            # 改坏脱敏就真的泄了）。敏感 key 走 _audit_log_sensitive：它**不接收任何值**，
+            # 连"有没有旧值"都不记（口径 §4.2：原文/指纹/长度/布尔都不行）。
+            if self._is_sensitive_key(key):
+                self._audit_log_sensitive('set', key)
+            else:
+                self._audit_log('set', key, old_value, value)
             # [C-6-B4 2026-11-04] key 是「装着密钥的环境变量名」，与值同一股数据流：
             # 不记变量名、不记指纹，只记"改了一项"
             logger.info(log_dict({
@@ -265,8 +272,11 @@ class EnvConfigManager:
             old_value = os.environ.get(key)
             self._remove_from_env_file(key)
             os.environ.pop(key, None)
-            # 【P3 配置审计】写入审计日志（脱敏后）
-            self._audit_log('delete', key, old_value, None)
+            # 【P3 配置审计】写入审计日志（敏感 key 同上：值不进入审计函数）
+            if self._is_sensitive_key(key):
+                self._audit_log_sensitive('delete', key)
+            else:
+                self._audit_log('delete', key, old_value, None)
             logger.info(log_dict({
                 'module_name': 'env_config',
                 'action': 'env_config.delete',
@@ -292,6 +302,10 @@ class EnvConfigManager:
         r'API_KEY|TOKEN|WEBHOOK|SECRET|PASSWORD|CREDENTIAL',
         re.IGNORECASE
     )
+
+    def _is_sensitive_key(self, key: str) -> bool:
+        """key 是否属于敏感类（API_KEY/TOKEN/WEBHOOK/SECRET/PASSWORD/CREDENTIAL）"""
+        return bool(self._SENSITIVE_KEY_PATTERN.search(str(key or "")))
 
     def _mask_sensitive_value(self, key: str, value: str | None) -> str | None:
         """脱敏敏感配置值
@@ -332,22 +346,45 @@ class EnvConfigManager:
         logs_dir.mkdir(parents=True, exist_ok=True)
         return logs_dir / 'config_audit.jsonl'
 
+    def _audit_log_sensitive(self, action: str, key: str) -> None:
+        """敏感 key 的审计记录：**入口不接收任何值**（只有 action + key）
+
+        【为什么单开一个函数（C-10 py/clear-text-storage，实测）】上一版把值传给
+        _audit_log 再在里面脱敏，值仍然流进日志写点的实参，静态分析照样报；更糟的是
+        脱敏一旦被改坏就是真泄。这里让敏感值**根本到不了**审计函数：两个值位都写常量，
+        连「有没有旧值」都不记（口径 §4.2 把布尔也排除在外）。
+        """
+        if action == 'delete':
+            old_value, new_value = self.REDACTED_VALUE, None
+        else:
+            old_value, new_value = self.REDACTED_VALUE, self.REDACTED_VALUE
+        self._write_audit_entry(action=action, key=key,
+                                old_value=old_value, new_value=new_value)
+
     def _audit_log(self, action: str, key: str, old_value: str | None, new_value: str | None):
-        """写入配置变更审计日志
+        """写入配置变更审计日志（**非敏感 key** 的原值轨）
 
         Args:
             action: 操作类型（'set' / 'delete'）
             key: 配置 key
-            old_value: 修改前的值（将脱敏）
-            new_value: 修改后的值（将脱敏）
+            old_value: 修改前的值（非敏感 key 原样记录）
+            new_value: 修改后的值（非敏感 key 原样记录）
         """
+        self._write_audit_entry(
+            action=action, key=key,
+            old_value=self._mask_sensitive_value(key, old_value),
+            new_value=self._mask_sensitive_value(key, new_value))
+
+    def _write_audit_entry(self, *, action: str, key: str,
+                           old_value: str | None, new_value: str | None) -> None:
+        """落一行审计（JSONL + 链式审计）；失败只 warning，不阻塞配置写入"""
         try:
             entry = {
                 'timestamp': datetime.now().isoformat(),
                 'action': action,
                 'key': key,
-                'old_value': self._mask_sensitive_value(key, old_value),
-                'new_value': self._mask_sensitive_value(key, new_value),
+                'old_value': old_value,
+                'new_value': new_value,
                 'user': getpass.getuser(),
                 'pid': os.getpid(),
                 'trace_id': os.environ.get('TRACE_ID'),
