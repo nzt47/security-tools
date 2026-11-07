@@ -164,8 +164,13 @@ def enable_skill_job(job_id: str, *, root: Optional[Any] = None) -> Dict[str, An
     再走主轨 set_enabled（唯一落库点，自带审计 + 钩子），最后台账 registered → enabled。
     只做"启用"这一个方向：停用仍留在技能中心（避免把停用做成两个入口）。
 
+    **主轨独有技能**（没有 `data/skills_repo/<id>/skill.md`，如 global-core-principles /
+    skill）不报错：只改主轨，返回值里 `file_track=""`、`file_track_patched=False` 并带一句
+    `note`。`set_enabled` 之前会先确认主轨确实有这条技能，否则报 404 —— 不谎报"启用成功"。
+
     Raises:
-        RegisterError: 作业不存在 / 状态不是 registered / 目标不是 skill / 文件轨缺失
+        RegisterError: 作业不存在 / 状态不是 registered / 目标不是 skill /
+                       两轨都没有这条技能 / 主轨启用失败
     """
     from agent.skills_mgmt.file_store import SkillMDParser
 
@@ -186,35 +191,56 @@ def enable_skill_job(job_id: str, *, root: Optional[Any] = None) -> Dict[str, An
         raise RegisterError("作业目标 id 非法：%r" % skill_id, code="skill-id-invalid")
 
     md_path = base / SKILLS_REPO / skill_id / "skill.md"
-    if not md_path.is_file():
-        raise RegisterError("文件轨里没有 %s/skill.md" % skill_id,
-                            code="file-track-missing", status=409)
-    try:
-        text = md_path.read_text(encoding="utf-8")
-        patched = SkillMDParser.patch_front_matter(text, {"enabled": True})
-        if patched != text:
-            md_path.write_text(patched, encoding="utf-8")
-    except Exception as exc:  # noqa: BLE001
-        raise RegisterError("写文件轨失败：%s" % type(exc).__name__,
-                            code="write-failed", status=500) from exc
+    # 【主轨独有技能是合法状态】global-core-principles / skill 这类技能**只有主轨**
+    # （口径 §5：不给它们建文件轨，materialize 会 409）。2026-11-07 实测：转化队列里
+    # 对 id 为 brainstorming 的作业点「启用」，用户看到的是
+    # 「文件轨里没有 brainstorming/skill.md」—— 作业本身是对的，是这里把
+    # "双写"当成了"必须两轨都存在"。文件轨不在 ⇒ 只改主轨，并如实回报。
+    file_track = md_path.is_file()
+    text = ""
+    if file_track:
+        try:
+            text = md_path.read_text(encoding="utf-8")
+            patched = SkillMDParser.patch_front_matter(text, {"enabled": True})
+            if patched != text:
+                md_path.write_text(patched, encoding="utf-8")
+        except Exception as exc:  # noqa: BLE001
+            raise RegisterError("写文件轨失败：%s" % type(exc).__name__,
+                                code="write-failed", status=500) from exc
 
     try:
         from agent.state_manager import get_skills_mgmt_service
         svc = get_skills_mgmt_service()
+        if not file_track:
+            # 没有文件轨可兜底 ⇒ 先确认主轨确实有这条技能，否则"启用成功"就是谎报
+            getter = getattr(svc, "get", None)
+            if callable(getter):
+                try:
+                    getter(skill_id)
+                except Exception as exc:  # noqa: BLE001
+                    raise RegisterError(
+                        "主轨里也没有技能 %s（文件轨与主轨都不存在），无法启用" % skill_id,
+                        code="skill-not-found", status=404) from exc
         svc.set_enabled(skill_id, True)
+    except RegisterError:
+        raise
     except Exception as exc:  # noqa: BLE001
         # 文件已改成 enabled: true，主轨失败 ⇒ 回滚文件，保持两轨一致
-        try:
-            md_path.write_text(text, encoding="utf-8")
-        except OSError:
-            logger.warning("[transform.enable] 回滚文件轨失败 skill=%s", skill_id)
+        if file_track:
+            try:
+                md_path.write_text(text, encoding="utf-8")
+            except OSError:
+                logger.warning("[transform.enable] 回滚文件轨失败 skill=%s", skill_id)
         raise RegisterError("主轨启用失败：%s" % type(exc).__name__,
                             code="enable-failed", status=500) from exc
 
-    enabled_job = _jobs.transition(job_id, "enabled", root=root,
-                                   note="从转化队列启用（双写：文件轨 + 主轨）")
+    note = ("从转化队列启用（双写：文件轨 + 主轨）" if file_track
+            else "从转化队列启用（该技能只有主轨，没有文件轨；本次只改主轨）")
+    enabled_job = _jobs.transition(job_id, "enabled", root=root, note=note)
     return {"ok": True, "job": enabled_job, "skill_id": skill_id, "enabled": True,
-            "file_track": str(md_path)}
+            "file_track": str(md_path) if file_track else "",
+            "file_track_patched": file_track,
+            "note": "" if file_track else "该技能只有主轨（无文件轨），已只改主轨"}
 
 
 def register_tool_job(job_id: str, *, root: Optional[Any] = None) -> Dict[str, Any]:

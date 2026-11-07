@@ -257,3 +257,63 @@ def test_工作流草稿未绑定工具拒绝登记(tmp_path):
     assert exc.value.code == "workflow-unbound"
     assert jobs.get_job(job["job_id"], root=tmp_path)["status"] == "candidate"
 
+
+def test_主轨独有技能只改主轨不报错(tmp_path, monkeypatch):
+    """没有文件轨的技能（global-core-principles / skill / brainstorming 这一类）也能启用。
+
+    【为什么单列】2026-11-07 实测：转化队列对 id 为 brainstorming 的作业点「启用」，
+    弹的是「文件轨里没有 brainstorming/skill.md」。双写被当成了"两轨必须都存在"，
+    而"只有主轨"是口径 §5 明确允许的合法状态。
+    """
+    tdir = _draft(tmp_path)
+    job = _job(tmp_path, tdir)
+    _patch_intake(monkeypatch)
+    register_skill_job(job["job_id"], root=tmp_path)
+    # 模拟"运行时把文件轨合并掉了"：只留主轨
+    import shutil as _shutil
+    _shutil.rmtree(tmp_path / "data" / "skills_repo" / "gamma-draft")
+
+    enabled_calls = []
+
+    class FakeSvc:
+        def get(self, skill_id):
+            return {"id": skill_id}
+
+        def set_enabled(self, skill_id, enabled):
+            enabled_calls.append((skill_id, enabled))
+
+    import agent.state_manager as state_mod
+    monkeypatch.setattr(state_mod, "get_skills_mgmt_service", lambda: FakeSvc(), raising=False)
+
+    from agent.skills_mgmt.transform.register import enable_skill_job
+    rep = enable_skill_job(job["job_id"], root=tmp_path)
+    assert rep["ok"] is True and rep["enabled"] is True
+    assert rep["file_track"] == "" and rep["file_track_patched"] is False
+    assert "只有主轨" in rep["note"]
+    assert enabled_calls == [("gamma-draft", True)], "没有文件轨也必须把主轨真的启用"
+    assert jobs.get_job(job["job_id"], root=tmp_path)["status"] == "enabled"
+
+
+def test_两轨都没有时如实报找不到(tmp_path, monkeypatch):
+    tdir = _draft(tmp_path)
+    job = _job(tmp_path, tdir)
+    _patch_intake(monkeypatch)
+    register_skill_job(job["job_id"], root=tmp_path)
+    import shutil as _shutil
+    _shutil.rmtree(tmp_path / "data" / "skills_repo" / "gamma-draft")
+
+    class FakeSvc:
+        def get(self, skill_id):
+            raise KeyError(skill_id)
+
+        def set_enabled(self, skill_id, enabled):  # pragma: no cover - 不该被调用
+            raise AssertionError("主轨没有该技能时不该调 set_enabled")
+
+    import agent.state_manager as state_mod
+    monkeypatch.setattr(state_mod, "get_skills_mgmt_service", lambda: FakeSvc(), raising=False)
+
+    from agent.skills_mgmt.transform.register import enable_skill_job
+    with pytest.raises(RegisterError) as exc:
+        enable_skill_job(job["job_id"], root=tmp_path)
+    assert exc.value.code == "skill-not-found"
+    assert jobs.get_job(job["job_id"], root=tmp_path)["status"] == "registered"
