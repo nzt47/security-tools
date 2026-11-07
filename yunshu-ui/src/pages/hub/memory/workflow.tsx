@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Eye, Play, Trash2 } from 'lucide-react'
 import { Card, Loading, ErrorBox, DataTable, Badge, hubPost, hubDelete } from '../components/ui'
+import DescriptionCell from '@/components/DescriptionCell'
 
 import {
   WORKFLOW_LEARNING_WORKFLOWS,
@@ -176,18 +177,10 @@ export function MemoryWorkflowTable() {
               },
               {
                 key: 'description', title: '说明',
-                // 【2026-11-07 Operator 反馈】说明以前是 truncate（只显示一行），长说明
-                // 只能看到「一截」，而工作流的说明常常是几百字（自动学习会把整段任务描述
-                // 写进来）。改成与**技能中心说明列同一口径**：最多 3 行 + 自动换行，
-                // 完整文本仍可点「查看」在详情弹窗里读（workflow-detail.tsx 用 pre-wrap）。
-                render: (r) => {
-                  const text = workflowSummary(r)
-                  return (
-                    <div className="line-clamp-3 max-w-[420px] wrap-break-word leading-relaxed text-slate-400" title={text}>
-                      {text}
-                    </div>
-                  )
-                },
+                // 【2026-11-07】说明列统一走 @/components/DescriptionCell（三张表同一口径：
+                // 最多 3 行 + 自动换行 + 悬停看全文）。以前这里自己写一份 className，
+                // 与技能中心/工具表的字号与宽度上限对不齐。完整文本仍可点「查看」进详情弹窗。
+                render: (r) => <DescriptionCell text={workflowSummary(r)} />,
               },
               {
                 key: 'steps', title: '步骤',
