@@ -2131,11 +2131,13 @@ flowchart LR
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_exceptions
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_reviewer
     agent_server_routes_routes_skills_mgmt -.-> agent_audit_ui_middleware
+    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform_register
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform_register
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_skill_manager
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_native_functions
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_capability_cards
+    agent_server_routes_routes_skills_mgmt -.-> agent_state_manager
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform_queue
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform_jobs
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform_queue
@@ -2394,6 +2396,7 @@ flowchart LR
     agent_skills_mgmt_transform_register --> agent_skills_mgmt_file_store
     agent_skills_mgmt_transform_register -.-> agent_state_manager
     agent_skills_mgmt_transform_register -.-> agent_workflow_learning_models
+    agent_skills_mgmt_transform_register -.-> agent_state_manager
     agent_skills_mgmt_transform_register -.-> agent_state_manager
     agent_skills_mgmt_transform_register -.-> agent_state_manager
     agent_skills_mgmt_transform_rewrite -.-> agent_env_config_manager
@@ -2846,7 +2849,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 728
 - 模块节点数: 631
-- 依赖边数: 2087
-- 跨层调用数: 1320
+- 依赖边数: 2090
+- 跨层调用数: 1323
 - 违规调用数: 0
 - 动态 import 数: 1
