@@ -114,6 +114,21 @@ export default function ToolsToolset() {
     }
   })
 
+  // 关键：**已经在工具页时再点深链**不会重新挂载组件（hashchange 而已），
+  // 所以必须监听 hashchange 重新取 ?tool= —— 否则"点第二次没反应"（实测）。
+  useEffect(() => {
+    const onHash = () => {
+      try {
+        const v = new URLSearchParams((window.location.hash || '').split('?')[1] ?? '').get('tool') ?? ''
+        setFocusState('')
+        setFocusTool(v)
+      } catch {
+        /* 非法 hash：保持现状 */
+      }
+    }
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
   /** 定位结果：'' 未触发 / 'found' 已高亮 / 'missing' 没这个工具（未启用/已删/拼错） */
   const [focusState, setFocusState] = useState<'' | 'found' | 'missing'>('')
 
