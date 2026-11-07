@@ -9,7 +9,7 @@ tags: [ingested, trae]
 content_type: markdown
 enabled: true
 version: 1.0.0
-status: draft
+status: approved
 description_zh: 用于在创建功能、构建组件、添加功能或修改行为等创造性工作前，通过协作对话澄清意图、需求与设计，并在用户批准设计后再进入实现。触发时机：任何创意或实现工作开始前。
 ---
 
@@ -27,7 +27,7 @@ Do NOT invoke any implementation skill, write any code, scaffold any project, or
 
 Every project goes through this process. A todo list, a single-function utility, a config change — all of them. "Simple" projects are where unexamined assumptions cause the most wasted work. The design can be short (a few sentences for truly simple projects), but you MUST present it and get approval.
 
-## Checklist
+## Checklist（步骤）
 
 You MUST create a task for each of these items and complete them in order:
 
