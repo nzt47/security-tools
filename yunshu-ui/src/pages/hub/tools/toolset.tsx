@@ -31,6 +31,7 @@ import { hubHref } from '../../../workbench/hubNav'
 import { Power, ShieldAlert } from 'lucide-react'
 import { Card, Loading, ErrorBox, DataTable, Badge, CallabilityBadge, PageHeader, hubGet, hubPost } from '../components/ui'
 import { callabilityCounts, callabilityLegend, hasCallabilityMark, type CallabilityInfo } from '@/lib/callability'
+import DescriptionCell from '@/components/DescriptionCell'
 // 深链里的名字常是作业/卡片 id（连字符），注册表里是下划线 —— 归一与查行见叶子模块
 import { findToolByName } from '@/lib/toolName'
 // 【P1-front 第四批】后端 GET /api/tools/config 已带 X-Envelope: v2，改用显式信封解析。
@@ -318,9 +319,15 @@ export default function ToolsToolset() {
               <span className="rounded-sm bg-slate-700 px-1.5 py-0.5 text-[10px] text-slate-400">内部</span>
             )}
           </div>
-          {r.description && <div className="max-w-lg text-xs text-slate-500">{String(r.description)}</div>}
         </div>
       ),
+    },
+    {
+      key: 'description', title: '说明',
+      // 【2026-11-07 Operator 反馈】工具表此前**没有**说明列，描述挤在「工具」列名字底下；
+      // 而技能中心/工作流早就是独立「说明」列。现在三张表统一走 @/components/DescriptionCell
+      // （最多 3 行 + 自动换行 + 悬停看全文），形状与字号只有一处定义。
+      render: (r: Merged) => <DescriptionCell text={r.description} />,
     },
     {
       key: 'effect', title: '效果', render: (r: Merged) =>

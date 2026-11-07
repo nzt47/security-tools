@@ -65,6 +65,22 @@ describe('工具集 · 近 7 日调用列', () => {
     expect(within(neverRow).queryByText(/次/)).toBeNull()
   })
 
+  it('工具表有独立「说明」列（与技能中心/工作流同口径，不再挤在名字底下）', async () => {
+    mocks.getEnvelope.mockResolvedValue([
+      { name: 'read_file', enabled: true, description: '读取文件内容（支持多段范围）' },
+    ])
+    routeHubGet({})
+    render(<ToolsToolset />)
+
+    await waitFor(() => expect(screen.getByText('read_file')).toBeInTheDocument())
+    expect(screen.getByText('说明')).toBeInTheDocument()
+    const cell = screen.getByText('读取文件内容（支持多段范围）')
+    expect(cell.className).toContain('line-clamp-3')
+    expect(cell.className).toContain('wrap-break-word')
+    // 名字列不再重复渲染描述：全文只出现一次
+    expect(screen.getAllByText('读取文件内容（支持多段范围）')).toHaveLength(1)
+  })
+
   it('台账接口失败时整列降级为 -，页面不报错', async () => {
     mocks.hubGet.mockImplementation(async (url: string) => {
       if (String(url).includes('usage/stats')) throw new Error('台账不可用')

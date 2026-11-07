@@ -24,6 +24,7 @@ import MergeDuplicatesModal from './merge-duplicates-modal'
 import InstalledExtensions from '../extensions/installed-extensions'
 import { fetchCapabilityManifest, indexCallability, type CallabilityInfo } from '@/lib/callability'
 import { getEnvelope } from '@/api/envelope'
+import DescriptionCell from '@/components/DescriptionCell'
 
 import {
   SKILLS,
@@ -612,20 +613,20 @@ export default function SkillAssessManager() {
         </td>
         {/* 【2026-10-28】说明独立成列：3 行截断 + 悬浮看摘要 + 「查看全文」弹窗；不再和徽章挤一格 */}
         <td className="px-2 py-2 align-top">
-          {(() => {
-            const text = String(it.description_zh || it.description || '').trim()
-            if (!text) return <span className="text-[10px] text-slate-600">（无说明）</span>
-            return (
-              <>
-                <div className="line-clamp-3 wrap-break-word text-[11px] leading-relaxed text-slate-400" title={text}>{text}</div>
-                {text.length > 60 && (
-                  <button type="button" className="mt-1 text-[10px] text-cyan-400 hover:text-cyan-300"
-                    onClick={() => setDescTarget({ id: it.id, name: it.name || it.id, text })}
-                    title="在弹窗里看完整说明（列宽不会被撑开）">查看全文</button>
-                )}
-              </>
-            )
-          })()}
+          {/* 【2026-11-07】与工作流/工具表同一份组件（DescriptionCell）：三行截断 + 自动换行
+              + 悬停看摘要；长说明才给「查看全文」弹窗（列宽不会被撑开） */}
+          <DescriptionCell
+            text={it.description_zh || it.description}
+            onExpand={
+              String(it.description_zh || it.description || '').trim().length > 60
+                ? () => setDescTarget({
+                    id: it.id,
+                    name: it.name || it.id,
+                    text: String(it.description_zh || it.description || '').trim(),
+                  })
+                : undefined
+            }
+          />
         </td>
         {/* 徽章列：触发条件 / 指令型·脚本型 / 敏感 / 标签 */}
         <td className="px-2 py-2 align-top">
