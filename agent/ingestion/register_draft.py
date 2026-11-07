@@ -143,7 +143,8 @@ def register_tool(root: Path, manifest: Dict[str, Any], *, enable: bool = False)
         dest_test = TESTS_DIR / tests[0].name
         shutil.copyfile(tests[0], dest_test)
 
-    code = src_py.read_text(encoding="utf-8", errors="replace")
+    added_shim = _ensure_register_all(dest_py, name, str(declared.get("description") or ""))
+    code = dest_py.read_text(encoding="utf-8", errors="replace")
     from agent.tools import persistence
     ok = persistence.persist_dynamic_tool(
         name,
@@ -166,8 +167,41 @@ def register_tool(root: Path, manifest: Dict[str, Any], *, enable: bool = False)
         logger.warning("[register] 运行时加载动态工具失败: %s", exc)
     return {"form": "tool", "tool_name": name, "target": str(dest_py),
             "test_file": str(dest_test) if dest_test else "", "enabled": bool(enable),
-            "loaded": loaded}
+            "register_all_added": added_shim, "loaded": loaded}
 
+
+def _ensure_register_all(path: Path, name: str, description: str) -> bool:
+    """给拷贝过去的动态工具补一个 `register_all`（返回是否补了）。
+
+    【为什么必须】`persistence.load_dynamic_tools()` 逐个 import 后只认 `register_all()`
+    （见其 docstring：「每个 agent/tools/custom/**/*.py 都应导出 register_all」）。
+    AI 实现产出的是 `TOOL_SCHEMA` + 函数，没有这个壳 ⇒ 加载器直接跳过，
+    结果是**台账里有、注册表里没有**：`/api/tools/config` 数不到它，模型也调不到。
+    （2026-11-07 实测：登记成功、审批闸也拦得住，但 config 里始终不出现。）
+    """
+    text = path.read_text(encoding="utf-8", errors="replace")
+    if "def register_all" in text:
+        return False
+    handler = name if ("def %s(" % name) in text else ""
+    if not handler:
+        m = re.search(r"^def ([A-Za-z_][A-Za-z0-9_]*)\(", text, re.M)
+        handler = m.group(1) if m else ""
+    if not handler:
+        raise RegisterError("工具模块里找不到可注册的处理函数（先「AI 实现」）")
+    safe_desc = description.replace("\\", " ").replace('"', "'")[:200]
+    shim = (
+        "\n\n"
+        "def register_all(dl=None):  # noqa: ARG001 动态加载器契约\n"
+        '    """把本模块注册进全局注册表（persistence.load_dynamic_tools 要求导出本函数）。"""\n'
+        "    from agent import tools as _tools\n"
+        "    _tools.register_dynamic(\n"
+        '        "{name}", "{desc}",\n'
+        "        handler={handler}, schema=TOOL_SCHEMA,\n"
+        '        source="generated", source_id="ingestion_{name}",\n'
+        "    )\n"
+    ).format(name=name, desc=safe_desc, handler=handler)
+    path.write_text(text + shim, encoding="utf-8")
+    return True
 
 def register_workflow(root: Path, manifest: Dict[str, Any], *, enable: bool = False) -> Dict[str, Any]:
     """工作流草稿 → data/learned_workflows.json（必须已绑定步骤）。"""
