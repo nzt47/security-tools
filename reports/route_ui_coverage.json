@@ -1,22 +1,22 @@
 {
-  "generated_at": "2026-11-06T01:17:03",
+  "generated_at": "2026-11-07T11:24:47",
   "totals": {
-    "routes": 495,
-    "live": 495,
+    "routes": 496,
+    "live": 496,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 439,
+    "ui": 440,
     "cli_script": 15,
     "runtime_only": 11,
     "unreferenced": 30,
     "live_by_category": {
-      "ui": 439,
+      "ui": 440,
       "cli_script": 15,
       "runtime_only": 11,
       "unreferenced": 30
     },
     "by_intent": {
-      "should_be_in_ui": 417,
+      "should_be_in_ui": 418,
       "should_not_be_in_ui": 73,
       "unclassified": 5
     },
@@ -30,14 +30,14 @@
       "调度与任务": 26,
       "对话与会话": 35,
       "业务与评估": 18,
-      "技能与工具": 131,
+      "技能与工具": 132,
       "认知与学习": 6,
       "观测与诊断": 74,
       "开发与内部": 14,
       "记忆与知识": 39
     }
   },
-  "frontend_endpoints": 443,
+  "frontend_endpoints": 444,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -64,7 +64,7 @@
         "scripts/configure_branch_protection.py"
       ],
       "where": [
-        "app_server.py:2014"
+        "app_server.py:2016"
       ],
       "description": "首页：重定向到统一工作台（2026-10-03 R0-b legacy 收敛）。",
       "description_source": "handler",
@@ -120,8 +120,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_agent_lines.py:505",
-        "agent/server_routes/routes_agent_lines.py:742"
+        "agent/server_routes/routes_agent_lines.py:518",
+        "agent/server_routes/routes_agent_lines.py:755"
       ],
       "description": "全部主线档案 + 当前激活的主线（`active: null` = 不装线，全量工具）",
       "description_source": "handler",
@@ -148,9 +148,9 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_agent_lines.py:659",
-        "agent/server_routes/routes_agent_lines.py:764",
-        "agent/server_routes/routes_agent_lines.py:790"
+        "agent/server_routes/routes_agent_lines.py:672",
+        "agent/server_routes/routes_agent_lines.py:777",
+        "agent/server_routes/routes_agent_lines.py:803"
       ],
       "description": "单条档案 + 现场装配预览（不保存、不改状态）",
       "description_source": "handler",
@@ -175,7 +175,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_agent_lines.py:813"
+        "agent/server_routes/routes_agent_lines.py:826"
       ],
       "description": "设置全局激活主线：`{\"line_id\": \"<id>\"}` 或 `{\"line_id\": null}`",
       "description_source": "handler",
@@ -201,7 +201,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_agent_lines.py:529"
+        "agent/server_routes/routes_agent_lines.py:542"
       ],
       "description": "分类法单一来源 + 全量工具目录 + 未登记（fail-closed）工具清单",
       "description_source": "handler",
@@ -226,7 +226,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_agent_lines.py:700"
+        "agent/server_routes/routes_agent_lines.py:713"
       ],
       "description": "按请求体里的档案跑一次装配（**零副作用**：不落盘、不动激活指针）",
       "description_source": "handler",
@@ -251,7 +251,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_agent_lines.py:840"
+        "agent/server_routes/routes_agent_lines.py:853"
       ],
       "description": "跑 `LineProfile.validate(known_tools, known_skills)` 并返回问题列表（**不保存**）",
       "description_source": "handler",
@@ -751,7 +751,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/audit_coverage.py:27"
+        "plugins/audit_coverage.py:30"
       ],
       "description": "路由↔UI 覆盖盘点（只读，读提交产物）。",
       "description_source": "handler",
@@ -827,7 +827,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_background.py:89"
+        "agent/server_routes/routes_background.py:90"
       ],
       "description": "列出后台任务（默认按创建时间倒序；limit 截断，status 过滤）",
       "description_source": "handler",
@@ -852,7 +852,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_background.py:116"
+        "agent/server_routes/routes_background.py:117"
       ],
       "description": "单任务状态",
       "description_source": "handler",
@@ -878,7 +878,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_background.py:142"
+        "agent/server_routes/routes_background.py:143"
       ],
       "description": "取消后台任务（仅 pending/running 可取消）",
       "description_source": "handler",
@@ -903,7 +903,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_background.py:129"
+        "agent/server_routes/routes_background.py:130"
       ],
       "description": "任务结果（未完成时返回进行中提示，不视为错误）",
       "description_source": "handler",
@@ -1128,7 +1128,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_business_dashboard.py:283"
+        "agent/server_routes/routes_business_dashboard.py:284"
       ],
       "description": "业务仪表盘总览",
       "description_source": "handler",
@@ -1153,7 +1153,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_business_dashboard.py:367"
+        "agent/server_routes/routes_business_dashboard.py:368"
       ],
       "description": "指标定义列表",
       "description_source": "handler",
@@ -1178,7 +1178,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_business_dashboard.py:259"
+        "agent/server_routes/routes_business_dashboard.py:260"
       ],
       "description": "业务指标健康检查",
       "description_source": "handler",
@@ -1203,7 +1203,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_business_dashboard.py:325"
+        "agent/server_routes/routes_business_dashboard.py:326"
       ],
       "description": "单个指标详情",
       "description_source": "handler",
@@ -1228,7 +1228,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_business_dashboard.py:355"
+        "agent/server_routes/routes_business_dashboard.py:356"
       ],
       "description": "Prometheus 格式导出",
       "description_source": "handler",
@@ -1253,7 +1253,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_agent_lines.py:609"
+        "agent/server_routes/routes_agent_lines.py:622"
       ],
       "description": "工具 / 技能的「可被 LLM 调用」统一清单（`data/capability_manifest.json`）",
       "description_source": "handler",
@@ -1283,7 +1283,7 @@
         "scripts/verify_zh_scenarios_20260815.py"
       ],
       "where": [
-        "plugins/chat.py:95"
+        "plugins/chat.py:101"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
@@ -1308,7 +1308,7 @@
         "scripts/probe_prefix_cache_interaction.py"
       ],
       "where": [
-        "plugins/chat.py:2674"
+        "plugins/chat.py:2681"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
@@ -1331,7 +1331,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1168"
+        "plugins/chat.py:1174"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
@@ -1432,7 +1432,7 @@
       "non_ui_refs": [],
       "where": [
         "cognitive/flask_adapter.py:33",
-        "plugins/status.py:353"
+        "plugins/status.py:356"
       ],
       "description": "元认知 API 路由：把 PromptInjector 的注入 / 翻译 / 拒答暴露为 Flask 端点。",
       "description_source": "module",
@@ -1613,7 +1613,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_ui_panels.py:473"
+        "agent/server_routes/routes_ui_panels.py:478"
       ],
       "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
       "description_source": "module",
@@ -1638,7 +1638,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_ui_panels.py:897"
+        "agent/server_routes/routes_ui_panels.py:902"
       ],
       "description": "批量裁决（**逐条复用单条审批的完整安全链，不新增旁路**）",
       "description_source": "handler",
@@ -1663,7 +1663,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_ui_panels.py:820"
+        "agent/server_routes/routes_ui_panels.py:825"
       ],
       "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
       "description_source": "module",
@@ -1688,7 +1688,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_ui_panels.py:278"
+        "agent/server_routes/routes_ui_panels.py:283"
       ],
       "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
       "description_source": "module",
@@ -1713,7 +1713,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_ui_panels.py:381"
+        "agent/server_routes/routes_ui_panels.py:386"
       ],
       "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
       "description_source": "module",
@@ -1738,7 +1738,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_ui_panels.py:405"
+        "agent/server_routes/routes_ui_panels.py:410"
       ],
       "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
       "description_source": "module",
@@ -1763,7 +1763,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_ui_panels.py:431"
+        "agent/server_routes/routes_ui_panels.py:436"
       ],
       "description": "签发「永不自动化五类」操作的单次确认凭据",
       "description_source": "handler",
@@ -1788,7 +1788,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_ui_panels.py:260"
+        "agent/server_routes/routes_ui_panels.py:265"
       ],
       "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
       "description_source": "module",
@@ -1813,7 +1813,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_ui_panels.py:244"
+        "agent/server_routes/routes_ui_panels.py:249"
       ],
       "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
       "description_source": "module",
@@ -1838,7 +1838,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_ui_panels.py:318"
+        "agent/server_routes/routes_ui_panels.py:323"
       ],
       "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
       "description_source": "module",
@@ -1863,7 +1863,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_ui_panels.py:333"
+        "agent/server_routes/routes_ui_panels.py:338"
       ],
       "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
       "description_source": "module",
@@ -1888,7 +1888,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_ui_panels.py:304"
+        "agent/server_routes/routes_ui_panels.py:309"
       ],
       "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
       "description_source": "module",
@@ -1913,7 +1913,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_ui_panels.py:210"
+        "agent/server_routes/routes_ui_panels.py:215"
       ],
       "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
       "description_source": "module",
@@ -1938,7 +1938,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_ui_panels.py:291"
+        "agent/server_routes/routes_ui_panels.py:296"
       ],
       "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
       "description_source": "module",
@@ -1963,7 +1963,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_ui_panels.py:356"
+        "agent/server_routes/routes_ui_panels.py:361"
       ],
       "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
       "description_source": "module",
@@ -1988,7 +1988,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_ui_panels.py:370"
+        "agent/server_routes/routes_ui_panels.py:375"
       ],
       "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
       "description_source": "module",
@@ -2619,7 +2619,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/experience.py:250"
+        "plugins/experience.py:254"
       ],
       "description": "经验库插件（方案「把 DSH 的历史会话提炼成经验库」P3）。",
       "description_source": "module",
@@ -2644,7 +2644,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/experience.py:315"
+        "plugins/experience.py:321"
       ],
       "description": "经验库插件（方案「把 DSH 的历史会话提炼成经验库」P3）。",
       "description_source": "module",
@@ -2669,7 +2669,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/experience.py:339"
+        "plugins/experience.py:345"
       ],
       "description": "经验库插件（方案「把 DSH 的历史会话提炼成经验库」P3）。",
       "description_source": "module",
@@ -2694,7 +2694,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/experience.py:157"
+        "plugins/experience.py:161"
       ],
       "description": "经验库插件（方案「把 DSH 的历史会话提炼成经验库」P3）。",
       "description_source": "module",
@@ -2720,7 +2720,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/experience.py:216"
+        "plugins/experience.py:220"
       ],
       "description": "经验库插件（方案「把 DSH 的历史会话提炼成经验库」P3）。",
       "description_source": "module",
@@ -2746,7 +2746,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/experience.py:287"
+        "plugins/experience.py:291"
       ],
       "description": "仅供 UI 预检预览 —— 纯本地检索，不走 DeepSeek。",
       "description_source": "handler",
@@ -2771,7 +2771,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/experience.py:261"
+        "plugins/experience.py:265"
       ],
       "description": "经验库插件（方案「把 DSH 的历史会话提炼成经验库」P3）。",
       "description_source": "module",
@@ -3100,7 +3100,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_feedback.py:165"
+        "agent/server_routes/routes_feedback.py:166"
       ],
       "description": "获取单个反馈详情",
       "description_source": "handler",
@@ -3126,7 +3126,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_feedback.py:193"
+        "agent/server_routes/routes_feedback.py:194"
       ],
       "description": "标记反馈为已解决",
       "description_source": "handler",
@@ -3151,7 +3151,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_feedback.py:113"
+        "agent/server_routes/routes_feedback.py:114"
       ],
       "description": "获取反馈列表",
       "description_source": "handler",
@@ -3176,7 +3176,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_feedback.py:264"
+        "agent/server_routes/routes_feedback.py:265"
       ],
       "description": "获取优质案例列表",
       "description_source": "handler",
@@ -3201,7 +3201,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_feedback.py:305"
+        "agent/server_routes/routes_feedback.py:306"
       ],
       "description": "生成反馈分析报告",
       "description_source": "handler",
@@ -3226,7 +3226,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_feedback.py:33"
+        "agent/server_routes/routes_feedback.py:34"
       ],
       "description": "提交用户反馈",
       "description_source": "handler",
@@ -3251,7 +3251,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_feedback.py:236"
+        "agent/server_routes/routes_feedback.py:237"
       ],
       "description": "获取反馈汇总统计",
       "description_source": "handler",
@@ -3402,7 +3402,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:717"
+        "plugins/chat.py:723"
       ],
       "description": "生成会话交接文档 —— LLM 把当前会话压缩成 Markdown，落盘到 OS 临时目录。",
       "description_source": "handler",
@@ -3440,7 +3440,7 @@
         "scripts/rotate_grafana_password.ps1"
       ],
       "where": [
-        "plugins/status.py:234"
+        "plugins/status.py:237"
       ],
       "description": "status 插件：系统状态、感知与性格域（T1.4，迁移自 app_server.py）。",
       "description_source": "module",
@@ -3488,7 +3488,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/status.py:242"
+        "plugins/status.py:245"
       ],
       "description": "鉴权配置状态（**只读**；TASK-06 §3 第 5 步第 2 项第 ① 步）",
       "description_source": "handler",
@@ -3645,7 +3645,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:1692"
+        "app_server.py:1694"
       ],
       "description": "混合检索器（embedding worker）健康状态（**只读**；永不 500）。",
       "description_source": "handler",
@@ -3797,7 +3797,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/status.py:789"
+        "plugins/status.py:792"
       ],
       "description": "心跳检测接口 — 全维度健康检查（**已迁移到统一信封**）。",
       "description_source": "handler",
@@ -3822,7 +3822,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/status.py:815"
+        "plugins/status.py:820"
       ],
       "description": "获取心跳历史（**已迁移到统一信封**）。",
       "description_source": "handler",
@@ -3847,7 +3847,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/status.py:844"
+        "plugins/status.py:849"
       ],
       "description": "获取心跳概览（**已迁移到统一信封**）。",
       "description_source": "handler",
@@ -3872,7 +3872,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1146"
+        "plugins/chat.py:1152"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
@@ -3897,7 +3897,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1182"
+        "plugins/chat.py:1188"
       ],
       "description": "删除指定索引的历史记录（同时删除用户消息和助手回复）",
       "description_source": "handler",
@@ -3922,7 +3922,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:160"
+        "plugins/ingestion.py:169"
       ],
       "description": "吞噬落库：按 plan_id 安装；L2 需带 preview(rewrite=true) 生成的 archive_id。",
       "description_source": "handler",
@@ -3947,7 +3947,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:187"
+        "plugins/ingestion.py:196"
       ],
       "description": "直通：一段文本 → 一份草稿（一次调用，跳过分级/确认两道闸）",
       "description_source": "handler",
@@ -3972,7 +3972,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:229"
+        "plugins/ingestion.py:238"
       ],
       "description": "列出吞噬生成的骨架草稿（隔离区）。",
       "description_source": "handler",
@@ -3997,7 +3997,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:246"
+        "plugins/ingestion.py:255"
       ],
       "description": "删除一个骨架草稿目录（不可恢复；只删隔离区，按目录 listing 等值匹配）。",
       "description_source": "handler",
@@ -4022,7 +4022,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:268"
+        "plugins/ingestion.py:324"
       ],
       "description": "AI 自动绑定：把步骤描述映射到真实工具 + 参数模板（默认 dry-run）。",
       "description_source": "handler",
@@ -4047,13 +4047,38 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:311"
+        "plugins/ingestion.py:373"
       ],
       "description": "tool 草稿：AI 生成实现 + 静态校验（默认 dry-run，apply 需 confirm）。",
       "description_source": "handler",
       "intent": "should_be_in_ui",
       "intent_area": "记忆与资产/吞噬",
       "intent_note": "tool 草稿的「AI 实现」：LLM 读来源 SKILL.md/脚本生成实现，静态校验后写回草稿；默认 dry-run，apply 需 confirm。",
+      "ui_pending": false,
+      "domain": "技能与工具"
+    },
+    {
+      "path": "/api/ingestion/drafts/<draft_id>/register",
+      "norm": "/api/ingestion/drafts/*/register",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/ingestion/ReviewPanel.tsx"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/ingestion.py:278"
+      ],
+      "description": "把隔离草稿登记成真实能力（技能/工具/工作流）；enable=true 时一并启用。",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "记忆与资产/吞噬",
+      "intent_note": "草稿评审 Tab 的「删除」按钮：只删 data/ingestion/drafts/ 隔离区里的骨架草稿，按目录 listing 等值匹配（不可恢复，前端先 confirm）。",
       "ui_pending": false,
       "domain": "技能与工具"
     },
@@ -4072,7 +4097,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:393"
+        "plugins/ingestion.py:458"
       ],
       "description": "执行一条治理动作：默认 dry-run；真执行必须 confirm=true。",
       "description_source": "handler",
@@ -4097,7 +4122,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:376"
+        "plugins/ingestion.py:441"
       ],
       "description": "生成确定性治理计划：merge / archive / split / refactor / delete_orphans。",
       "description_source": "handler",
@@ -4122,7 +4147,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:359"
+        "plugins/ingestion.py:424"
       ],
       "description": "存量资产治理盘点（只读）：技能/重复/孤儿/无用 + 结构化问题。",
       "description_source": "handler",
@@ -4147,7 +4172,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:127"
+        "plugins/ingestion.py:136"
       ],
       "description": "吞噬预览：识别来源并生成 L0/L1/L2 计划；rewrite=true 时额外生成重写草稿与存档。",
       "description_source": "handler",
@@ -4172,7 +4197,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:151"
+        "plugins/ingestion.py:160"
       ],
       "description": "吞噬源探测：列出配置根（默认 claude/openclaw/trae）下的可预览候选，只读不写。",
       "description_source": "handler",
@@ -4227,8 +4252,8 @@
         "scripts/dev/kb_crud_smoke.py"
       ],
       "where": [
-        "agent/server_routes/routes_knowledge.py:188",
-        "agent/server_routes/routes_knowledge.py:225"
+        "agent/server_routes/routes_knowledge.py:189",
+        "agent/server_routes/routes_knowledge.py:226"
       ],
       "description": "卡片列表（支持 ?status= & ?type= 过滤）。",
       "description_source": "handler",
@@ -4255,9 +4280,9 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_knowledge.py:209",
-        "agent/server_routes/routes_knowledge.py:255",
-        "agent/server_routes/routes_knowledge.py:317"
+        "agent/server_routes/routes_knowledge.py:210",
+        "agent/server_routes/routes_knowledge.py:256",
+        "agent/server_routes/routes_knowledge.py:318"
       ],
       "description": "卡片详情（含 links、contradictions、incoming_links）。",
       "description_source": "handler",
@@ -4282,7 +4307,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_knowledge.py:368"
+        "agent/server_routes/routes_knowledge.py:369"
       ],
       "description": "节点-边数据（关系图入口）。",
       "description_source": "handler",
@@ -4309,7 +4334,7 @@
         "agent/modules_api.py"
       ],
       "where": [
-        "agent/server_routes/routes_knowledge.py:338"
+        "agent/server_routes/routes_knowledge.py:339"
       ],
       "description": "获取 index.md 内容。",
       "description_source": "handler",
@@ -4334,7 +4359,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_knowledge.py:352"
+        "agent/server_routes/routes_knowledge.py:353"
       ],
       "description": "健康报告（lint_all）。",
       "description_source": "handler",
@@ -4359,7 +4384,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_knowledge.py:109"
+        "agent/server_routes/routes_knowledge.py:110"
       ],
       "description": "知识库融合检索：RRF 融合 + 双链扩展 + rerank 重排。",
       "description_source": "handler",
@@ -4412,7 +4437,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_llm_monitor.py:94"
+        "agent/server_routes/routes_llm_monitor.py:95"
       ],
       "description": "清除所有记录",
       "description_source": "handler",
@@ -4440,7 +4465,7 @@
         "scripts/probe_prefix_cache_interaction.py"
       ],
       "where": [
-        "agent/server_routes/routes_llm_monitor.py:25"
+        "agent/server_routes/routes_llm_monitor.py:26"
       ],
       "description": "获取 LLM 通信记录列表（倒序）",
       "description_source": "handler",
@@ -4465,7 +4490,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_llm_monitor.py:56"
+        "agent/server_routes/routes_llm_monitor.py:57"
       ],
       "description": "获取 LLM 通信统计概览（含会话快照持久化信息）",
       "description_source": "handler",
@@ -4490,7 +4515,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_llm_monitor.py:80"
+        "agent/server_routes/routes_llm_monitor.py:81"
       ],
       "description": "启用或禁用监控",
       "description_source": "handler",
@@ -5238,7 +5263,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/status.py:311"
+        "plugins/status.py:314"
       ],
       "description": "status 插件：系统状态、感知与性格域（T1.4，迁移自 app_server.py）。",
       "description_source": "module",
@@ -5265,7 +5290,7 @@
         "scripts/verify_topology_view.py"
       ],
       "where": [
-        "agent/modules_api.py:475"
+        "agent/modules_api.py:477"
       ],
       "description": "统一干预入口（写操作，FLASK_API_TOKEN 启用时需认证）",
       "description_source": "handler",
@@ -5292,7 +5317,7 @@
         "scripts/verify_topology_view.py"
       ],
       "where": [
-        "agent/modules_api.py:449"
+        "agent/modules_api.py:451"
       ],
       "description": "节点详情：状态/指标/可执行动作/近期审计",
       "description_source": "handler",
@@ -5320,7 +5345,7 @@
         "scripts/verify_topology_view.py"
       ],
       "where": [
-        "agent/modules_api.py:407"
+        "agent/modules_api.py:409"
       ],
       "description": "六域模块树 + 实时状态 + 指标（拓扑视图数据源）。",
       "description_source": "handler",
@@ -5450,7 +5475,7 @@
         "scripts/verify_key_revocation.ps1"
       ],
       "where": [
-        "plugins/chat.py:415"
+        "plugins/chat.py:421"
       ],
       "description": "新闻直通接口 — 搜索+翻译+格式化，绕过 LLM",
       "description_source": "handler",
@@ -5851,8 +5876,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_semantic_config.py:42",
-        "agent/server_routes/routes_semantic_config.py:60"
+        "agent/server_routes/routes_semantic_config.py:43",
+        "agent/server_routes/routes_semantic_config.py:61"
       ],
       "description": "查询语义层当前生效配置（含 env/config.yaml/API override 合并结果）",
       "description_source": "handler",
@@ -5880,7 +5905,7 @@
         "app_server.py"
       ],
       "where": [
-        "plugins/status.py:373"
+        "plugins/status.py:376"
       ],
       "description": "获取全景页面所需的所有数据（单次调用，**已迁移到统一信封**）。",
       "description_source": "handler",
@@ -6088,7 +6113,7 @@
         "agent/modules_api.py"
       ],
       "where": [
-        "plugins/status.py:665"
+        "plugins/status.py:668"
       ],
       "description": "读取人格配置（**已迁移到统一信封**）。",
       "description_source": "handler",
@@ -6113,7 +6138,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/status.py:684"
+        "plugins/status.py:687"
       ],
       "description": "status 插件：系统状态、感知与性格域（T1.4，迁移自 app_server.py）。",
       "description_source": "module",
@@ -6140,7 +6165,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/status.py:694"
+        "plugins/status.py:697"
       ],
       "description": "status 插件：系统状态、感知与性格域（T1.4，迁移自 app_server.py）。",
       "description_source": "module",
@@ -6167,7 +6192,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/status.py:704"
+        "plugins/status.py:707"
       ],
       "description": "status 插件：系统状态、感知与性格域（T1.4，迁移自 app_server.py）。",
       "description_source": "module",
@@ -6195,7 +6220,7 @@
         "scripts/verify_modules_api.py"
       ],
       "where": [
-        "plugins/status.py:329"
+        "plugins/status.py:332"
       ],
       "description": "切换规划引擎运行开关（热生效，不写 config.yaml）",
       "description_source": "handler",
@@ -6299,7 +6324,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_process_distill.py:67"
+        "agent/server_routes/routes_process_distill.py:68"
       ],
       "description": "从知识库/素材蒸馏并固化为 workflow/skill。",
       "description_source": "handler",
@@ -6324,7 +6349,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_process_distill.py:58"
+        "agent/server_routes/routes_process_distill.py:59"
       ],
       "description": "过程蒸馏 HTTP API 路由（/api/process-distill/*）",
       "description_source": "module",
@@ -6506,8 +6531,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:983",
-        "plugins/chat.py:991"
+        "plugins/chat.py:989",
+        "plugins/chat.py:997"
       ],
       "description": "列出全部项目（id / name / workspace_root / created_at / updated_at）",
       "description_source": "handler",
@@ -6533,8 +6558,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1016",
-        "plugins/chat.py:1045"
+        "plugins/chat.py:1022",
+        "plugins/chat.py:1051"
       ],
       "description": "改名 / 改工作空间：body {name?, path|workspace_root?, create?}（只改传了的字段）",
       "description_source": "handler",
@@ -6559,7 +6584,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:2633"
+        "plugins/chat.py:2639"
       ],
       "description": "提示词实验室「真实接口」的后端代理（2026-10-14 修 404）。",
       "description_source": "handler",
@@ -6584,7 +6609,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_replay.py:195"
+        "agent/server_routes/routes_replay.py:196"
       ],
       "description": "获取单条回放元数据",
       "description_source": "handler",
@@ -6609,7 +6634,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_replay.py:223"
+        "agent/server_routes/routes_replay.py:224"
       ],
       "description": "获取回放数据（解码后的 JSON 字符串）",
       "description_source": "handler",
@@ -6634,7 +6659,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_replay.py:286"
+        "agent/server_routes/routes_replay.py:288"
       ],
       "description": "清理过期回放数据",
       "description_source": "handler",
@@ -6659,7 +6684,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_replay.py:142"
+        "agent/server_routes/routes_replay.py:143"
       ],
       "description": "查询回放列表",
       "description_source": "handler",
@@ -6684,7 +6709,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_replay.py:258"
+        "agent/server_routes/routes_replay.py:260"
       ],
       "description": "获取回放关联统计",
       "description_source": "handler",
@@ -7565,7 +7590,7 @@
         "scripts/quick_flask_test.py"
       ],
       "where": [
-        "plugins/status.py:270"
+        "plugins/status.py:273"
       ],
       "description": "传感器读数列表（**已迁移到统一信封**）。",
       "description_source": "handler",
@@ -7592,8 +7617,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1080",
-        "plugins/chat.py:1089"
+        "plugins/chat.py:1086",
+        "plugins/chat.py:1095"
       ],
       "description": "列出分组及 会话→分组 归属表；?project_id= 只返回该项目下的分组",
       "description_source": "handler",
@@ -7619,8 +7644,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1104",
-        "plugins/chat.py:1119"
+        "plugins/chat.py:1110",
+        "plugins/chat.py:1125"
       ],
       "description": "重命名分组",
       "description_source": "handler",
@@ -7648,8 +7673,8 @@
         "scripts/dev/verify_prompt_injection_mock.py"
       ],
       "where": [
-        "plugins/chat.py:497",
-        "plugins/chat.py:536"
+        "plugins/chat.py:503",
+        "plugins/chat.py:542"
       ],
       "description": "获取会话列表",
       "description_source": "handler",
@@ -7674,7 +7699,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:558"
+        "plugins/chat.py:564"
       ],
       "description": "删除会话",
       "description_source": "handler",
@@ -7699,7 +7724,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:615"
+        "plugins/chat.py:621"
       ],
       "description": "设置/清除会话级智能体：body {agent: string|null}；null/空 = 母体。",
       "description_source": "handler",
@@ -7724,7 +7749,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1130"
+        "plugins/chat.py:1136"
       ],
       "description": "把会话移入/移出分组：body {group_id: string|null}；null = 未分组",
       "description_source": "handler",
@@ -7751,8 +7776,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:668",
-        "plugins/chat.py:678"
+        "plugins/chat.py:674",
+        "plugins/chat.py:684"
       ],
       "description": "获取会话消息",
       "description_source": "handler",
@@ -7777,7 +7802,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:593"
+        "plugins/chat.py:599"
       ],
       "description": "把会话归入/移出项目：body {project_id: string|null}；null = 未归属项目。",
       "description_source": "handler",
@@ -7802,7 +7827,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:578"
+        "plugins/chat.py:584"
       ],
       "description": "重命名会话",
       "description_source": "handler",
@@ -7827,7 +7852,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:818"
+        "plugins/chat.py:824"
       ],
       "description": "列出会话工作空间文件树（会话不存在 404）",
       "description_source": "handler",
@@ -7853,8 +7878,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:841",
-        "plugins/chat.py:867"
+        "plugins/chat.py:847",
+        "plugins/chat.py:873"
       ],
       "description": "绑定/切换会话工作空间到本地绝对路径（仿 DSH 添加工作区）",
       "description_source": "handler",
@@ -7879,7 +7904,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:879"
+        "plugins/chat.py:885"
       ],
       "description": "在系统文件管理器中打开该会话的工作空间目录（本机桌面应用场景）",
       "description_source": "handler",
@@ -7904,7 +7929,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:639"
+        "plugins/chat.py:645"
       ],
       "description": "切换当前会话",
       "description_source": "handler",
@@ -7929,7 +7954,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:756"
+        "plugins/chat.py:762"
       ],
       "description": "用交接文档开一个新会话（可选的续接入口）",
       "description_source": "handler",
@@ -10023,7 +10048,7 @@
         "app_server.py"
       ],
       "where": [
-        "plugins/status.py:283"
+        "plugins/status.py:286"
       ],
       "description": "运行状态总览（TASK-06：状态面**增量**暴露鉴权模式）",
       "description_source": "handler",
@@ -10049,8 +10074,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/status.py:716",
-        "plugins/status.py:732"
+        "plugins/status.py:719",
+        "plugins/status.py:735"
       ],
       "description": "读取 status 插件 schema 全部字段的当前生效值（供 SchemaRenderer 预填）。",
       "description_source": "handler",
@@ -10454,8 +10479,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_system_prompt.py:58",
-        "agent/server_routes/routes_system_prompt.py:97"
+        "agent/server_routes/routes_system_prompt.py:59",
+        "agent/server_routes/routes_system_prompt.py:98"
       ],
       "description": "获取提示词组件配置及 Token 开销统计",
       "description_source": "handler",
@@ -10480,7 +10505,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_system_prompt.py:145"
+        "agent/server_routes/routes_system_prompt.py:146"
       ],
       "description": "根据当前配置生成模板并应用到运行环境",
       "description_source": "handler",
@@ -10505,7 +10530,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_system_prompt.py:207"
+        "agent/server_routes/routes_system_prompt.py:208"
       ],
       "description": "根据提供的配置生成预览模板（不保存）",
       "description_source": "handler",
@@ -10530,7 +10555,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_system_prompt.py:126"
+        "agent/server_routes/routes_system_prompt.py:127"
       ],
       "description": "恢复默认配置",
       "description_source": "handler",
@@ -10580,7 +10605,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_system_prompt.py:233"
+        "agent/server_routes/routes_system_prompt.py:234"
       ],
       "description": "检查配置模板与运行模板是否同步",
       "description_source": "handler",
@@ -10607,7 +10632,7 @@
         "scripts/handoff_snapshot.py"
       ],
       "where": [
-        "agent/server_routes/routes_units.py:26"
+        "agent/server_routes/routes_units.py:27"
       ],
       "description": "功能单位工作状况快照",
       "description_source": "handler",
@@ -10783,7 +10808,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2159"
+        "app_server.py:2161"
       ],
       "description": "测试端点：测试除法运算（正常情况）",
       "description_source": "handler",
@@ -10808,7 +10833,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2135"
+        "app_server.py:2137"
       ],
       "description": "测试端点：触发除零错误以验证堆栈捕获",
       "description_source": "handler",
@@ -10833,7 +10858,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2148"
+        "app_server.py:2150"
       ],
       "description": "测试端点：触发空指针错误以验证堆栈捕获",
       "description_source": "handler",
@@ -11375,8 +11400,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_visual_workflows.py:205",
-        "agent/server_routes/routes_visual_workflows.py:234"
+        "agent/server_routes/routes_visual_workflows.py:206",
+        "agent/server_routes/routes_visual_workflows.py:235"
       ],
       "description": "保存（upsert）可视化工作流草稿",
       "description_source": "handler",
@@ -11402,8 +11427,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_visual_workflows.py:219",
-        "agent/server_routes/routes_visual_workflows.py:275"
+        "agent/server_routes/routes_visual_workflows.py:220",
+        "agent/server_routes/routes_visual_workflows.py:276"
       ],
       "description": "可视化编辑器工作流草稿持久化 API",
       "description_source": "module",
@@ -12097,9 +12122,9 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:943",
-        "plugins/chat.py:951",
-        "plugins/chat.py:967"
+        "plugins/chat.py:949",
+        "plugins/chat.py:957",
+        "plugins/chat.py:973"
       ],
       "description": "列出已添加的工作区（路径/名称/添加时间）",
       "description_source": "handler",
@@ -12147,7 +12172,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_capabilities.py:322"
+        "agent/server_routes/routes_capabilities.py:323"
       ],
       "description": "能力层 HTTP 面 —— 非 LLM 入口（v1.4 §5.3 / §6 / §13，TASK-05 第 4 步）",
       "description_source": "module",
@@ -12172,7 +12197,7 @@
         "scripts/verify_loader_degradation_startup.py"
       ],
       "where": [
-        "agent/server_routes/routes_capabilities.py:338"
+        "agent/server_routes/routes_capabilities.py:339"
       ],
       "description": "能力层 HTTP 面 —— 非 LLM 入口（v1.4 §5.3 / §6 / §13，TASK-05 第 4 步）",
       "description_source": "module",
@@ -12197,7 +12222,7 @@
         "scripts/verify_llm_off_entrypoints.py"
       ],
       "where": [
-        "agent/server_routes/routes_capabilities.py:223"
+        "agent/server_routes/routes_capabilities.py:224"
       ],
       "description": "能力层 HTTP 面 —— 非 LLM 入口（v1.4 §5.3 / §6 / §13，TASK-05 第 4 步）",
       "description_source": "module",
@@ -12220,7 +12245,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_capabilities.py:287"
+        "agent/server_routes/routes_capabilities.py:288"
       ],
       "description": "能力层 HTTP 面 —— 非 LLM 入口（v1.4 §5.3 / §6 / §13，TASK-05 第 4 步）",
       "description_source": "module",
@@ -12246,7 +12271,7 @@
         "scripts/verify_loader_degradation_startup.py"
       ],
       "where": [
-        "agent/server_routes/routes_capabilities.py:168"
+        "agent/server_routes/routes_capabilities.py:169"
       ],
       "description": "能力层 HTTP 面 —— 非 LLM 入口（v1.4 §5.3 / §6 / §13，TASK-05 第 4 步）",
       "description_source": "module",
@@ -12273,7 +12298,7 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2050"
+        "app_server.py:2052"
       ],
       "description": "云枢 React SPA 入口（build:flask 同步自 yunshu-ui/dist → templates/yunshu.html）。",
       "description_source": "handler",
@@ -12634,7 +12659,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2114"
+        "app_server.py:2116"
       ],
       "description": "[简易] 用户行为回放页面",
       "description_source": "handler",
@@ -12659,7 +12684,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2106"
+        "app_server.py:2108"
       ],
       "description": "搜索引擎状态监控页面",
       "description_source": "handler",
@@ -12685,7 +12710,7 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2087"
+        "app_server.py:2089"
       ],
       "description": "云枢 Web 应用 — 感知底座 + 数字生命对话",
       "description_source": "module",
@@ -12696,5 +12721,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "5115d7c81e3973b6"
+  "content_hash": "5dcf2018a34dd910"
 }
