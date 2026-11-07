@@ -1,16 +1,16 @@
 {
-  "generated_at": "2026-11-08T00:43:01+08:00",
+  "generated_at": "2026-11-08T02:16:31+08:00",
   "repo": {
     "branch": "master",
-    "head": "6908f52a1",
-    "origin_master": "fe74bb77d",
-    "tracked_dirty_lines": 2
+    "head": "f281592f8",
+    "origin_master": "f281592f8",
+    "tracked_dirty_lines": 3
   },
   "service": {
-    "backend": "6908f52a1",
-    "frontend": "6908f52a1",
-    "bundle": "index-BtWmLgH9.js",
-    "pid": 48936
+    "backend": "f281592f8",
+    "frontend": "f281592f8",
+    "bundle": "index-CdBiMgi3.js",
+    "pid": 53324
   },
   "skills": {
     "file_track": 51,
@@ -35,34 +35,34 @@
       "software_install"
     ]
   },
-  "audit_rows": 83066,
+  "audit_rows": 83105,
   "selfcheck": {
     "dual_track": {
-      "ok": false,
+      "ok": true,
       "file_track": 51,
-      "main_track": 51,
-      "orphans_ok": false
+      "main_track": 53,
+      "orphans_ok": true
     },
     "skill_md": {
-      "ok": false,
+      "ok": true,
       "files": 51,
-      "errors": 1,
-      "warnings": 4
+      "errors": 0,
+      "warnings": 3
     },
     "audit_chain": {
       "ok": true,
-      "rows": 83066,
+      "rows": 83105,
       "breaks": 0
     },
     "layer_coverage": {
       "ok": true,
       "steps_pct": 100.0,
       "trigger_pct": 100.0,
-      "saved_pct": 53.1
+      "saved_pct": 50.6
     }
   },
   "next": {
-    "total": 28,
+    "total": 29,
     "open": [
       {
         "id": "chart-visualization-missing-assets",
