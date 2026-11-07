@@ -167,6 +167,38 @@ async function main() {
       }
       return r.result.result.value;
     };
+    /**
+     * 固定函数体 + 参数走 CDP arguments（**不把值拼进 expression**）。
+     *
+     * 【为什么】把 label/selector/value 用 `+ '${...}'` 拼进 Runtime.evaluate 的表达式，
+     * 等于"用数据构造代码"，会被 CodeQL 判成 js/bad-code-sanitization。
+     * 这里参数经 arguments 传值，脚本源码与数据彻底分离。
+     * 【为什么每次重取 window 句柄】导航会作废旧 objectId；失败时重取一次再试。
+     */
+    let winObjectId = '';
+    const evFn = async (functionDeclaration, fnArgs = []) => {
+      const call = async (objectId) => send('Runtime.callFunctionOn', {
+        objectId,
+        functionDeclaration,
+        arguments: fnArgs.map((v) => ({ value: v })),
+        returnByValue: true,
+        awaitPromise: true,
+      });
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        if (!winObjectId) {
+          const h = await send('Runtime.evaluate', { expression: 'window' });
+          winObjectId = (h?.result?.result?.objectId) || '';
+          if (!winObjectId) throw new Error('取不到 window 句柄');
+        }
+        const r = await call(winObjectId);
+        if (r?.error) { winObjectId = ''; continue; }
+        if (r.result && r.result.exceptionDetails) {
+          throw new Error('页面脚本执行失败: ' + JSON.stringify(r.result.exceptionDetails).slice(0, 300));
+        }
+        return r.result.result.value;
+      }
+      throw new Error('callFunctionOn 失败（window 句柄连续两次不可用）');
+    };
     const waitFor = async (expression, timeoutMs) => {
       const deadline = Date.now() + timeoutMs;
       while (Date.now() < deadline) {
@@ -181,11 +213,17 @@ async function main() {
     const hashExpr = `(location.hash || '').replace(/^#/, '') || '/'`;
     /** 设置 hash 并等待其落在目标路径（精确匹配或为目标路径的子路径） */
     const setAndWaitHash = async (path, timeoutMs = 15_000) => {
-      await ev(`location.hash = ${JSON.stringify('#' + path)}`);
-      return waitFor(
-        `(${hashExpr}) === ${JSON.stringify(path)} || (${hashExpr}).startsWith(${JSON.stringify(path + '/')})`,
-        timeoutMs,
-      );
+      await evFn(`function(target){location.hash = target}`, ['#' + path]);
+      const deadline = Date.now() + timeoutMs;
+      while (Date.now() < deadline) {
+        const ok = await evFn(
+          `function(want){const h=(location.hash||'').replace(/^#/,'')||'/';return h===want||h.startsWith(want+'/')}`,
+          [path],
+        );
+        if (ok) return true;
+        await sleep(350);
+      }
+      return false;
     };
     /** 等待重定向落地统一工作台（#/workbench 或其子路径） */
     const waitWorkbench = (timeoutMs = 20_000) =>
@@ -194,7 +232,7 @@ async function main() {
         timeoutMs,
       );
     const clickByExactText = (label) =>
-      ev(`(()=>{const bs=[...document.querySelectorAll('button')];const b=bs.find(x=>x.textContent.trim()===${JSON.stringify(label)});if(b){b.click();return true}return false})()`);
+      evFn(`function(label){const bs=[...document.querySelectorAll('button')];const b=bs.find(x=>x.textContent.trim()===label);if(b){b.click();return true}return false}`, [label]);
 
     // ── 2. 统一工作台可启动（导航含「系统管理」栏目）──
     check('工作台 SPA 启动（导航含「系统管理」）',
@@ -207,7 +245,7 @@ async function main() {
     //   形态都是 `landed=true hash=/workbench hasNav=false` —— 典型的时序 flaky。
     //   故导航判定一律用 `waitFor` 轮询，而不是一次性 `ev` 取值。
     for (const legacy of ['/dashboard', '/demo', '/export', '/system/user', '/system/log', '/knowledge']) {
-      await ev(`location.hash = ${JSON.stringify('#' + legacy)}`);
+      await evFn(`function(target){location.hash = target}`, ['#' + legacy]);
       const landed = await waitWorkbench();
       const hasNav = await waitFor(`document.body.innerText.includes('系统管理')`, 10_000);
       const hashNow = await ev(hashExpr);
