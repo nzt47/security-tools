@@ -710,6 +710,7 @@ flowchart LR
     subgraph utils [utils]
         agent_utils["agent.utils"]:::crosslayer
         agent_utils_atomic_write["agent.utils.atomic_write"]:::crosslayer
+        agent_utils_bucketing["agent.utils.bucketing"]:::crosslayer
         agent_utils_compatibility["agent.utils.compatibility"]:::crosslayer
         agent_utils_cross_process_lock["agent.utils.cross_process_lock"]:::crosslayer
         agent_utils_obs_hooks["agent.utils.obs_hooks"]:::crosslayer
@@ -749,6 +750,7 @@ flowchart LR
         agent_workflow_learning_skill_converter["agent.workflow_learning.skill_converter"]:::crosslayer
     end
     agent_ab_testing --> agent_logging_utils
+    agent_ab_testing -.-> agent_utils_bucketing
     agent_ab_testing -.-> agent_utils_singleton_manager
     agent_api_gateway --> agent_rate_limiter
     agent_api_gateway -.-> agent_monitoring_tracing
@@ -2842,9 +2844,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 727
-- 模块节点数: 630
-- 依赖边数: 2086
-- 跨层调用数: 1319
+- 扫描文件数: 728
+- 模块节点数: 631
+- 依赖边数: 2087
+- 跨层调用数: 1320
 - 违规调用数: 0
 - 动态 import 数: 1

@@ -7,7 +7,7 @@
       "layer": "core",
       "file_path": "agent/ab_testing.py",
       "in_degree": 0,
-      "out_degree": 2
+      "out_degree": 3
     },
     {
       "path": "agent.logging_utils",
@@ -16,6 +16,14 @@
       "file_path": "",
       "in_degree": 208,
       "out_degree": 2
+    },
+    {
+      "path": "agent.utils.bucketing",
+      "name": "bucketing",
+      "layer": "utils",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 0
     },
     {
       "path": "agent.utils.singleton_manager",
@@ -5049,9 +5057,22 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 26,
+      "line": 25,
       "source_file": "agent/ab_testing.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ab_testing",
+      "target": "agent.utils.bucketing",
+      "source_layer": "core",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 26,
+      "source_file": "agent/ab_testing.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -5062,7 +5083,7 @@
       "source_layer": "core",
       "target_layer": "utils",
       "import_type": "from_import",
-      "line": 1107,
+      "line": 1110,
       "source_file": "agent/ab_testing.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -32163,15 +32184,15 @@
     }
   ],
   "stats": {
-    "total_files": 727,
-    "total_nodes": 630,
-    "total_edges": 2086,
-    "cross_layer_edges": 1319,
+    "total_files": 728,
+    "total_nodes": 631,
+    "total_edges": 2087,
+    "cross_layer_edges": 1320,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
       "core": 80,
-      "utils": 11,
+      "utils": 12,
       "monitoring": 32,
       "tools": 30,
       "audit": 8,
