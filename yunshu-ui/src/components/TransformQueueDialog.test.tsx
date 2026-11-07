@@ -8,7 +8,7 @@
  * 单击即弹会让人以为"点一下就登记了"。
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 
 const api = vi.hoisted(() => ({ hubGet: vi.fn(), hubPost: vi.fn() }))
 vi.mock('./ui', async (importOriginal) => ({
@@ -106,6 +106,84 @@ it('目标技能已不存在的作业：启用按钮灰掉并说明原因（不�
     const btn = await screen.findByRole('button', { name: /目标已不存在/ })
     expect(btn).toBeDisabled()
     expect(btn.getAttribute('title')).toContain('两轨都不存在')
+  })
+})
+
+describe('TransformQueueDialog 归档 / 彻底删除（2026-11-07）', () => {
+  const job = {
+    job_id: 'job-1', source: 'ingestion', source_ref: 'path:C:/skills/demo',
+    form: 'tool', title: '演示工具', status: 'candidate',
+    target: { kind: 'tool', id: 'demo_tool' }, artifacts: 'agent/tools/demo.py',
+    updated_at: '2026-11-07T10:00:00+08:00',
+  }
+
+  function stubFetch(extra?: (url: string, init?: RequestInit) => unknown) {
+    const calls: { url: string; init?: RequestInit }[] = []
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push({ url: String(url), init })
+      const hit = extra ? extra(String(url), init) : null
+      if (hit) return hit
+      return { ok: true, status: 200, json: async () => ({ ok: true, broken: 0, items: [], jobs: [job] }) }
+    }))
+    return calls
+  }
+
+  it('点「归档」：POST 到 jobs/archive（带 job_id），并刷新队列', async () => {
+    const calls = stubFetch((url) =>
+      url.includes('/jobs/archive')
+        ? { ok: true, status: 200, json: async () => ({ ok: true, job: { ...job, status: 'archived' } }) }
+        : null)
+    render(<TransformQueueDialog embedded />)
+    fireEvent.click(await screen.findByRole('button', { name: '归档' }))
+
+    await waitFor(() => expect(calls.some((c) => c.url.includes('/jobs/archive'))).toBe(true))
+    const call = calls.find((c) => c.url.includes('/jobs/archive'))!
+    expect(JSON.parse(String(call.init?.body)).job_id).toBe('job-1')
+    expect(await screen.findByText(/已归档 演示工具/)).toBeTruthy()
+  })
+
+  it('已归档的作业显示「彻底删除」，先 dry_run 预览再 confirm 才落盘', async () => {
+    const archived = { ...job, status: 'archived' }
+    const calls: { url: string; init?: RequestInit }[] = []
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push({ url: String(url), init })
+      if (String(url).includes('/jobs/delete')) {
+        const body = JSON.parse(String(init?.body))
+        if (body.dry_run) {
+          return { ok: true, status: 200, json: async () => ({ ok: true, dry_run: true, job: archived, targets: [
+            { path: 'C:/repo/data/ingestion/drafts/ing_x', exists: true, allowed: true, files: ['card.md'] },
+          ] }) }
+        }
+        return { ok: true, status: 200, json: async () => ({ ok: true, dry_run: false, deleted: ['C:/repo/data/ingestion/drafts/ing_x'], skipped: [] }) }
+      }
+      return { ok: true, status: 200, json: async () => ({ ok: true, broken: 0, items: [], jobs: [archived] }) }
+    }))
+    render(<TransformQueueDialog embedded />)
+    fireEvent.click(await screen.findByRole('button', { name: '彻底删除' }))
+
+    // 预览：对话框里列出将要删的目录与文件，此时**还没有**真删
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog.textContent).toContain('C:/repo/data/ingestion/drafts/ing_x')
+    expect(dialog.textContent).toContain('card.md')
+    expect(calls.filter((c) => c.url.includes('/jobs/delete')).every(
+      (c) => JSON.parse(String(c.init?.body)).dry_run !== false)).toBe(true)
+
+    // 行内也有同名按钮，确认键在对话框里 —— 必须 within(dialog) 才不会点错
+    fireEvent.click(within(dialog).getByRole('button', { name: '彻底删除' }))
+    await waitFor(() => expect(calls.some((c) => {
+      if (!c.url.includes('/jobs/delete')) return false
+      const b = JSON.parse(String(c.init?.body))
+      return b.dry_run === false && b.confirm === true
+    })).toBe(true))
+  })
+
+  it('「显示已归档」开关：请求带 include_archived=1', async () => {
+    const calls = stubFetch()
+    render(<TransformQueueDialog embedded />)
+    await screen.findByText('job-1')
+    const box = screen.getByRole('checkbox')
+    fireEvent.click(box)
+    await waitFor(() => expect(calls.some((c) => c.url.includes('include_archived=1'))).toBe(true))
   })
 })
 

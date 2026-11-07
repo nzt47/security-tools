@@ -20,12 +20,38 @@ import {
   SKILLS_MGMT_TRANSFORMS,
   SKILLS_MGMT_TRANSFORM_REGISTER,
   SKILLS_MGMT_TRANSFORM_ENABLE,
+  SKILLS_MGMT_TRANSFORM_JOB_ARCHIVE,
+  SKILLS_MGMT_TRANSFORM_JOB_DELETE,
   skillTransform,
   skillTransformRedraft,
   skillTransformRollback,
 } from '../api/endpoints'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 type Target = { rel: string; role: string; skill_id: string; state: string }
+
+type DeletePreview = {
+  job: Job
+  targets: { path: string; exists: boolean; allowed: boolean; files: string[] }[]
+}
+
+/** 彻底删除确认框的正文：说清删什么、不动什么（已入库的技能/工具与文件轨） */
+export function deleteDialogDescription(p: DeletePreview): string {
+  const title = p.job.title || p.job.source_ref
+  return `作业：${title}（${p.job.job_id}）。删除范围 = 台账行 + 下列工件目录；已入库的技能/工具与文件轨**不受影响**。`
+}
+
+/** 彻底删除确认框的清单：目录 + 每个目录下要删的文件（最多 20 个，避免撑爆对话框） */
+export function deleteDialogItems(p: DeletePreview): string[] {
+  const out: string[] = []
+  for (const t of p.targets) {
+    out.push(t.path)
+    for (const f of t.files.slice(0, 20)) out.push('  ' + t.path + '/' + f)
+    if (t.files.length > 20) out.push(`  … 其余 ${t.files.length - 20} 个文件`)
+  }
+  return out
+}
+
 
 type Item = {
   transform_id: string
@@ -167,12 +193,20 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
 
   const [registerJob, setRegisterJob] = useState<Job | null>(null)
   const [enableJob, setEnableJob] = useState<Job | null>(null)
+  /** 归档/删除：默认只看"在队列里"的作业；已归档的要显式打开开关才显示 */
+  const [showArchived, setShowArchived] = useState(false)
+  /** 彻底删除的预览（dry_run 的返回：作业 + 将删的工件目录） */
+  const [deletePreview, setDeletePreview] = useState<{
+    job: Job
+    targets: { path: string; exists: boolean; allowed: boolean; files: string[] }[]
+  } | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
-      const r = await fetch(SKILLS_MGMT_TRANSFORMS, { headers: authHeader() })
+      const url = showArchived ? SKILLS_MGMT_TRANSFORMS + '?include_archived=1' : SKILLS_MGMT_TRANSFORMS
+      const r = await fetch(url, { headers: authHeader() })
       const j = await r.json()
       if (!r.ok || j.ok === false) throw new Error(j.error || `HTTP ${r.status}`)
       setItems(Array.isArray(j.items) ? j.items : [])
@@ -183,7 +217,7 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [showArchived])
 
   useEffect(() => {
     if (open || embedded) void load()
@@ -231,6 +265,76 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
       if (!r.ok || j.ok === false) throw new Error(j.error || j.code || `HTTP ${r.status}`)
       setNotice(`已启用 ${j.skill_id}（文件轨 + 主轨双写）`)
       setEnableJob(null)
+      setJobPanel(null)
+      await load()
+    } catch (e) {
+      setError(String((e as Error).message || e))
+    } finally {
+      setBusy('')
+    }
+  }
+
+  /** 归档：从队列隐藏、台账留证据（终态；之后可在「显示已归档」里彻底删除） */
+  const doArchive = async (job: Job) => {
+    setBusy(job.job_id + ':archive')
+    setNotice('')
+    setError('')
+    try {
+      const r = await fetch(SKILLS_MGMT_TRANSFORM_JOB_ARCHIVE, {
+        method: 'POST',
+        headers: { ...authHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ job_id: job.job_id, note: 'UI 归档' }),
+      })
+      const j = await r.json()
+      if (!r.ok || j.ok === false) throw new Error(j.error || j.code || `HTTP ${r.status}`)
+      setNotice(`已归档 ${job.title || job.source_ref}：从队列隐藏，台账仍保留证据（勾选「显示已归档」可找回并彻底删除）`)
+      setJobPanel(null)
+      await load()
+    } catch (e) {
+      setError(String((e as Error).message || e))
+    } finally {
+      setBusy('')
+    }
+  }
+
+  /** 彻底删除第一步：dry_run 预览（列出将删的工件目录） */
+  const openDelete = async (job: Job) => {
+    setBusy(job.job_id + ':preview')
+    setNotice('')
+    setError('')
+    try {
+      const r = await fetch(SKILLS_MGMT_TRANSFORM_JOB_DELETE, {
+        method: 'POST',
+        headers: { ...authHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ job_id: job.job_id, dry_run: true }),
+      })
+      const j = await r.json()
+      if (!r.ok || j.ok === false) throw new Error(j.error || j.code || `HTTP ${r.status}`)
+      setDeletePreview({ job, targets: Array.isArray(j.targets) ? j.targets : [] })
+    } catch (e) {
+      setError(String((e as Error).message || e))
+    } finally {
+      setBusy('')
+    }
+  }
+
+  /** 彻底删除第二步：confirm=true 真删（台账行 + 受控根内的工件目录） */
+  const doDelete = async () => {
+    const p = deletePreview
+    if (!p) return
+    setBusy(p.job.job_id + ':delete')
+    setError('')
+    try {
+      const r = await fetch(SKILLS_MGMT_TRANSFORM_JOB_DELETE, {
+        method: 'POST',
+        headers: { ...authHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ job_id: p.job.job_id, dry_run: false, confirm: true }),
+      })
+      const j = await r.json()
+      if (!r.ok || j.ok === false) throw new Error(j.error || j.code || `HTTP ${r.status}`)
+      const skipped = Array.isArray(j.skipped) && j.skipped.length ? `；${j.skipped.length} 个路径不在受控根内，未删` : ''
+      setNotice(`已彻底删除 ${p.job.title || p.job.source_ref}（台账行 + ${(j.deleted || []).length} 个工件目录）${skipped}`)
+      setDeletePreview(null)
       setJobPanel(null)
       await load()
     } catch (e) {
@@ -367,7 +471,15 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
             <div className="mb-3 rounded-lg border border-slate-800 bg-slate-900/40">
               <div className="flex items-center justify-between border-b border-slate-800 px-3 py-1.5">
                 <span className="text-[11px] text-slate-300">统一作业（S1 · 三套入口收敛）</span>
-                <span className="text-[10px] text-slate-500">{jobs.length} 条</span>
+                <div className="flex items-center gap-3">
+                  <label className="flex cursor-pointer items-center gap-1 text-[10px] text-slate-400"
+                         title="已归档的作业默认从队列隐藏；勾选后可找回并彻底删除">
+                    <input type="checkbox" checked={showArchived}
+                           onChange={(e) => setShowArchived(e.target.checked)} />
+                    显示已归档
+                  </label>
+                  <span className="text-[10px] text-slate-500">{jobs.length} 条</span>
+                </div>
               </div>
               <ul className="divide-y divide-slate-800/70">
                 {jobs.map((j) => (
@@ -420,6 +532,24 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                         title="启用留在该页：工具要先补实现/测试并过审批，工作流要先试跑——那里才有判断依据">
                         去{j.form === 'tool' ? '工具页' : '工作流页'}启用
                       </a>
+                    )}
+                    {j.status !== 'archived' && (
+                      <button type="button"
+                        className="rounded border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-300 hover:border-amber-700 hover:bg-amber-950/30 hover:text-amber-300"
+                        onClick={(e) => { e.stopPropagation(); void doArchive(j) }}
+                        disabled={busy === j.job_id + ':archive'}
+                        title="归档：从队列隐藏、台账保留证据（不删任何文件；已入库的技能/工具不受影响）">
+                        {busy === j.job_id + ':archive' ? '归档中…' : '归档'}
+                      </button>
+                    )}
+                    {j.status === 'archived' && (
+                      <button type="button"
+                        className="rounded border border-rose-800/70 px-1.5 py-0.5 text-[10px] text-rose-300 hover:bg-rose-950/40"
+                        onClick={(e) => { e.stopPropagation(); void openDelete(j) }}
+                        disabled={busy === j.job_id + ':preview'}
+                        title="彻底删除：删台账行 + 该作业的工件目录（仓库内/系统临时目录）；先预览再确认">
+                        {busy === j.job_id + ':preview' ? '准备中…' : '彻底删除'}
+                      </button>
                     )}
                     {j.status === 'register_failed' && (
                       <span className="max-w-[420px] truncate text-[10px] text-rose-300" title={jobNote(j)}>
@@ -751,6 +881,23 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
           </ul>
         </div>
       </div>
+      {/* 彻底删除的二次确认：先看清「将删哪些目录/文件」，再落盘（§8 陷阱 31） */}
+      <ConfirmDialog
+        open={!!deletePreview}
+        title="彻底删除这条作业？"
+        message={
+          (deletePreview ? deleteDialogDescription(deletePreview) : '') +
+          (deletePreview && deletePreview.targets.some((t) => t.exists && !t.allowed)
+            ? '（有工件目录不在受控根内，只会列出、不会删除）'
+            : '')
+        }
+        details={deletePreview ? deleteDialogItems(deletePreview) : []}
+        confirmText="彻底删除"
+        danger
+        loading={!!busy}
+        onCancel={() => setDeletePreview(null)}
+        onConfirm={() => void doDelete()}
+      />
     </div>
   )
 }

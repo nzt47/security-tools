@@ -16,6 +16,8 @@ interface ConfirmDialogProps {
   title: string
   /** 提示内容 */
   message: string
+  /** 可选明细清单（路径/文件/影响面）；有值时渲染成可滚动列表，避免把长清单塞进一句话 */
+  details?: string[]
   /** 确认按钮文案，默认「确认」 */
   confirmText?: string
   /** 取消按钮文案，默认「取消」 */
@@ -34,6 +36,7 @@ export default function ConfirmDialog({
   open,
   title,
   message,
+  details = [],
   confirmText = '确认',
   cancelText = '取消',
   loading = false,
@@ -67,7 +70,18 @@ export default function ConfirmDialog({
         >
           <TriangleAlert className="h-5 w-5" />
         </div>
-        <p className="min-w-0 text-sm text-muted-foreground">{message}</p>
+        <div className="min-w-0">
+          <p className="text-sm text-muted-foreground">{message}</p>
+          {details.length > 0 && (
+            <ul className="mt-2 max-h-48 overflow-auto rounded-md border border-border bg-surface p-2 text-xs text-muted-foreground">
+              {details.map((d) => (
+                <li key={d} className="truncate font-mono" title={d}>
+                  {d}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </ModalBase>
   )

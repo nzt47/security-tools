@@ -24,6 +24,8 @@ from __future__ import annotations
 
 import json
 import logging
+import shutil
+import tempfile
 import os
 import threading
 from datetime import datetime, timezone
@@ -226,10 +228,18 @@ def get_job(jid: str, *, root: Optional[Any] = None) -> Optional[Dict[str, Any]]
 
 
 def list_jobs(*, source: Optional[str] = None, status: Optional[str] = None,
-              limit: int = 200, root: Optional[Any] = None) -> List[Dict[str, Any]]:
-    """按来源/状态过滤，**按更新时间倒序**（队列页默认顺序）。"""
+              limit: int = 200, root: Optional[Any] = None,
+              include_archived: bool = False) -> List[Dict[str, Any]]:
+    """按来源/状态过滤，**按更新时间倒序**（队列页默认顺序）。
+
+    【默认不含 archived】归档的语义就是"从作业队列里消失、证据留在台账里"。
+    老实现不按状态过滤 —— 于是"归档"了也照样出现在队列里（等于没归档），
+    所以这里把过滤放在**读取侧**：默认 False，需要看历史时显式 include_archived=True。
+    """
     with _LOCK:
         jobs = list(_load(jobs_path(root)).values())
+    if not include_archived:
+        jobs = [j for j in jobs if str(j.get("status")) != "archived"]
     if source:
         jobs = [j for j in jobs if j.get("source") == source]
     if status:
@@ -248,15 +258,122 @@ def summary(*, root: Optional[Any] = None) -> Dict[str, Any]:
     for job in jobs:
         by_status[str(job.get("status"))] = by_status.get(str(job.get("status")), 0) + 1
         by_source[str(job.get("source"))] = by_source.get(str(job.get("source")), 0) + 1
-    return {"total": len(jobs), "by_status": by_status, "by_source": by_source}
+    archived = int(by_status.get("archived", 0))
+    return {"total": len(jobs), "archived": archived,
+            "visible": len(jobs) - archived,
+            "by_status": by_status, "by_source": by_source}
+
+
+def archive(jid: str, *, note: str = "",
+            root: Optional[Any] = None) -> Dict[str, Any]:
+    """把作业归档（终态）：从队列隐藏、证据保留，可回退到"再彻底删除"。"""
+    return transition(jid, "archived", note=note, root=root)
+
+
+def remove_job(jid: str, *, root: Optional[Any] = None) -> Dict[str, Any]:
+    """从台账**彻底删除**一条作业（只允许 archived），返回被删的那条。
+
+    【为什么只允许 archived】"删除"要不可逆地抹掉证据，必须经过归档这一步：
+    归档留下"谁在什么时候把它移出队列"的 history，删除只清台账行。
+    未归档就删 = 绕过证据链，直接拒绝（比事后追责便宜）。
+    """
+    with _LOCK:
+        path = jobs_path(root)
+        jobs = _load(path)
+        job = jobs.get(str(jid))
+        if job is None:
+            raise JobError("作业不存在: %s" % jid)
+        if str(job.get("status")) != "archived":
+            raise JobError("只能彻底删除**已归档**的作业（当前状态：%s）"
+                           % job.get("status"))
+        del jobs[str(jid)]
+        _save(path, jobs)
+        return dict(job)
+
+
+#: 允许被"彻底删除"清掉的工件根：仓库内 + 系统临时目录（pytest/演示产物的落点）
+def _allowed_artifact_roots() -> List[Path]:
+    """允许被"彻底删除"清掉的工件根：仓库内 + 系统临时目录。
+
+    【为什么不读 TEMP/TMP 环境变量】本仓的「开关零缺口」守卫会 AST 扫描 os.environ 读取，
+    要求每个读取点都进 agent/settings/registry.py —— 而 TEMP 是操作系统给的，不是产品开关，
+    为它登记一条开关语义是错的。这里只用 tempfile.gettempdir()（内部已处理平台差异）。
+    """
+    candidates = [Path(".").resolve(), Path(__file__).resolve().parents[3] / ".pytest_tmp"]
+    try:
+        candidates.append(Path(tempfile.gettempdir()))
+    except Exception:  # noqa: BLE001 取不到临时目录就只认仓库内
+        pass
+    out: List[Path] = []
+    for c in candidates:
+        try:
+            out.append(c.resolve())
+        except OSError:
+            continue
+    return out
+
+
+def artifact_targets(job: Dict[str, Any], *,
+                     allowed_roots: Optional[List[Any]] = None) -> List[Dict[str, Any]]:
+    """列出这条作业的工件目录（**只报告，不删**）：给删除前的预览用。
+
+    每条给出 {path, exists, allowed, files}。allowed=False 的**不会**被删除
+    （例如指向用户主目录/网络盘的历史路径），只如实列出来让人知道。
+    """
+    raw = str(job.get("artifacts") or "").strip()
+    if not raw:
+        return []
+    p = Path(raw)
+    try:
+        resolved = p.resolve()
+    except OSError:
+        resolved = p
+    roots = ([Path(r) for r in allowed_roots] if allowed_roots is not None
+             else _allowed_artifact_roots())
+    allowed = any(
+        str(resolved).lower().startswith(str(r).lower() + os.sep) for r in roots
+    )
+    files: List[str] = []
+    exists = resolved.is_dir()
+    if exists:
+        try:
+            files = sorted(str(f.relative_to(resolved)) for f in resolved.rglob("*") if f.is_file())[:200]
+        except OSError:
+            files = []
+    return [{"path": str(resolved), "exists": exists, "allowed": bool(allowed),
+             "files": files}]
+
+
+def purge_artifacts(job: Dict[str, Any], *,
+                    allowed_roots: Optional[List[Any]] = None) -> Dict[str, List[str]]:
+    """删掉作业的工件目录（**仅 allowed 的那些**）；返回 {deleted, skipped}。"""
+    deleted: List[str] = []
+    skipped: List[str] = []
+    for item in artifact_targets(job, allowed_roots=allowed_roots):
+        if not item["exists"]:
+            continue
+        if not item["allowed"]:
+            skipped.append(item["path"])
+            continue
+        try:
+            shutil.rmtree(item["path"])
+            deleted.append(item["path"])
+        except OSError as exc:  # noqa: BLE001 删不掉如实报告，不假装成功
+            logger.warning("[transforms.jobs] 工件目录删除失败 %s: %s", item["path"], exc)
+            skipped.append(item["path"])
+    return {"deleted": deleted, "skipped": skipped}
 
 
 __all__ = [
     "JOBS_REL",
     "STATES",
     "JobError",
+    "archive",
+    "artifact_targets",
     "get_job",
     "job_id",
+    "purge_artifacts",
+    "remove_job",
     "jobs_path",
     "list_jobs",
     "summary",

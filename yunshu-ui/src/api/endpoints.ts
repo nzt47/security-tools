@@ -61,6 +61,10 @@ export const skillTransformRedraft = (transformId: string) =>
 export const SKILLS_MGMT_TRANSFORM_REGISTER = '/api/skills-mgmt/transforms/register';
 /** S5：把已登记的技能作业启用（双写文件轨+主轨；不是停用入口） */
 export const SKILLS_MGMT_TRANSFORM_ENABLE = '/api/skills-mgmt/transforms/enable';
+/** 作业归档：从队列隐藏、台账留证据（终态；可再彻底删除） */
+export const SKILLS_MGMT_TRANSFORM_JOB_ARCHIVE = '/api/skills-mgmt/transforms/jobs/archive';
+/** 作业彻底删除：默认 dry_run 预览（列出将删的工件目录），落盘要 confirm=true */
+export const SKILLS_MGMT_TRANSFORM_JOB_DELETE = '/api/skills-mgmt/transforms/jobs/delete';
 /** 分层加载：L0 摘要 / L1 能力卡 / L2 全文 / L3 脚本清单（?layer=） */
 export const skillCardLayer = (skillId: string) => `/api/skills-mgmt/${encodeURIComponent(skillId)}/card`;
 
@@ -505,6 +509,8 @@ export const searchInstanceTest = (id: string) => `/api/search/instances/${encod
 export const AGENT_LINES_PLANES = '/api/agent-lines/planes';
 export const TOOLS_CONFIG = '/api/tools/config';
 export const TOOLS_TOGGLE = '/api/tools/toggle';
+/** 移除**运行时登记**的工具（默认 dry_run 预览；内建工具一律拒绝，需走 PR） */
+export const TOOLS_REMOVE_RUNTIME = '/api/tools/remove-runtime';
 // 工具治理（分类 / 健康 / 路由关键词 / 启用总览）
 export const TOOLS_CATEGORIES = '/api/tools/categories';
 export const TOOLS_HEALTH = '/api/tools/health';

@@ -788,6 +788,14 @@ def api_tools_config():
         perm_logs = []
     result = []
     declared_disabled = _declared_disabled_tools()
+    #: 运行时登记的工具（台账 data/dynamic_tools.json）——只有这一类才允许页面「移除」。
+    #: 内建工具是代码注册：删了下次启动又回来，真删必须改代码 + 重派生五处（PR 级）。
+    try:
+        from agent.tools import persistence as _persistence
+        runtime_names = set(_persistence.runtime_tool_names())
+    except Exception as exc:  # noqa: BLE001 台账读不到就一律按"内建"处理（宁可不给删除）
+        logger.debug("读取动态工具台账失败（移除按钮将不显示）: %s", exc)
+        runtime_names = set()
     for t in tools:
         tool_name = t["name"]
         call_count = sum(1 for log in perm_logs if log.get("tool") == tool_name)
@@ -796,10 +804,52 @@ def api_tools_config():
             "description": t.get("description", ""),
             # 生效状态 = UI 开关 > YAML enabled（否则「停用观察」在页面上看不出来）
             "enabled": _get_tool_state(tool_name, declared=tool_name not in declared_disabled),
+            "runtime": tool_name in runtime_names,
+            "removable": tool_name in runtime_names,
             "call_count": call_count,
             "last_used": None,
         })
     return _ok(result)
+
+
+@bp.route("/api/tools/remove-runtime", methods=["POST"])
+@_require_token
+@_log_request()
+def api_tools_remove_runtime():
+    """移除一个**运行时登记**的工具（台账 + YAML + 实现 + 单测 + UI 开关 + 注册表）。
+
+    默认 dry_run=true 只返回"将删什么"；真删要 confirm=true。内建工具一律 409
+    （删了下次启动又回来，必须走 PR 改代码 + 重派生五处）。
+    """
+    data = request.get_json(silent=True) or {}
+    name = str(data.get("name") or "").strip()
+    if not name:
+        return jsonify({"ok": False, "error": "缺少 name"}), 400
+    try:
+        from agent.tools import persistence
+        report = persistence.remove_runtime_tool(
+            name,
+            dry_run=bool(data.get("dry_run", True)),
+            confirm=bool(data.get("confirm")),
+        )
+    except Exception as e:  # noqa: BLE001 异常原文只进日志
+        logger.warning("移除运行时工具失败 name=%s: %s", name, e, exc_info=True)
+        return jsonify({"ok": False, "error": "移除失败（详见服务日志）"}), 500
+    if report.get("ok"):
+        if not report.get("dry_run"):
+            try:
+                from agent.audit import audit as _audit_facade
+                _audit_facade.record(
+                    "tool.runtime.remove", actor="ui", subject="tool:" + name,
+                    payload={"backup": report.get("backup"),
+                             "files": report.get("files") or []},
+                    source="ui", status="success")
+            except Exception as exc:  # noqa: BLE001 审计失败不阻塞
+                logger.debug("工具移除审计留痕失败: %s", exc)
+        return jsonify(report)
+    reason = report.get("reason")
+    status = 409 if reason in ("builtin", "remove_failed") else 400
+    return jsonify(report), status
 
 
 @bp.route("/api/tools/toggle", methods=["POST"])

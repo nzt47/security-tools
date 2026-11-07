@@ -10,14 +10,14 @@
  *   - **没有记录 ≠ 调用 0 次**：从未调用/旧后端/接口失败一律显示 '-'（不假装 0）。
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 
-const mocks = vi.hoisted(() => ({ getEnvelope: vi.fn(), hubGet: vi.fn() }))
+const mocks = vi.hoisted(() => ({ getEnvelope: vi.fn(), hubGet: vi.fn(), hubPost: vi.fn() }))
 
 vi.mock('@/api/envelope', () => ({ getEnvelope: mocks.getEnvelope }))
 vi.mock('../components/ui', async (importOriginal) => {
   const orig = await importOriginal<typeof import('../components/ui')>()
-  return { ...orig, hubGet: mocks.hubGet }
+  return { ...orig, hubGet: mocks.hubGet, hubPost: mocks.hubPost }
 })
 
 const { default: ToolsToolset } = await import('./toolset')
@@ -39,6 +39,7 @@ describe('工具集 · 近 7 日调用列', () => {
   beforeEach(() => {
     mocks.getEnvelope.mockReset()
     mocks.hubGet.mockReset()
+    mocks.hubPost.mockReset()
     mocks.getEnvelope.mockResolvedValue(TOOLS)
   })
   afterEach(cleanup)
@@ -93,6 +94,61 @@ describe('工具集 · 近 7 日调用列', () => {
     expect(screen.queryByText(/^\d+ 次$/)).toBeNull()
   })
 })
+
+describe('工具集 · 移除运行时工具（2026-11-07）', () => {
+  beforeEach(() => {
+    mocks.getEnvelope.mockReset()
+    mocks.hubGet.mockReset()
+    mocks.hubPost.mockReset()
+    routeHubGet({})
+  })
+  afterEach(cleanup)
+
+  it('只有运行时工具显示「移除」；内建工具不给按钮（需走 PR 改代码）', async () => {
+    mocks.getEnvelope.mockResolvedValue([
+      { name: 'byted_seedance_video_generate', enabled: false, runtime: true, removable: true },
+      { name: 'read_file', enabled: true, runtime: false, removable: false },
+    ])
+    render(<ToolsToolset />)
+    await waitFor(() => expect(screen.getByText('byted_seedance_video_generate')).toBeInTheDocument())
+    const btns = screen.getAllByRole('button', { name: '移除' })
+    expect(btns).toHaveLength(1)
+    const row = screen.getByText('read_file').closest('tr')!
+    expect(within(row).queryAllByRole('button', { name: '移除' })).toHaveLength(0)
+  })
+
+  it('移除流程：先 dry_run 预览（列出将删文件），再 confirm 落盘', async () => {
+    mocks.getEnvelope.mockResolvedValue([
+      { name: 'byted_seedance_video_generate', enabled: false, runtime: true, removable: true },
+    ])
+    mocks.hubPost.mockImplementation(async (url: string, body: Record<string, unknown>) => {
+      if (String(url).includes('remove-runtime')) {
+        if (body.dry_run) {
+          return { ok: true, dry_run: true, files: ['agent/tools/custom/x.py', 'data/dynamic_tools.json'],
+                   in_manifest: false, note: '不在入库声明口径' }
+        }
+        return { ok: true, dry_run: false, backup: 'data/backups/tool-remove-x' }
+      }
+      return { ok: true }
+    })
+    render(<ToolsToolset />)
+    fireEvent.click(await screen.findByRole('button', { name: '移除' }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog.textContent).toContain('agent/tools/custom/x.py')
+    expect(mocks.hubPost).toHaveBeenCalledWith(
+      expect.stringContaining('remove-runtime'),
+      expect.objectContaining({ name: 'byted_seedance_video_generate', dry_run: true }),
+    )
+
+    fireEvent.click(within(dialog).getByRole('button', { name: '移除' }))
+    await waitFor(() => expect(mocks.hubPost).toHaveBeenCalledWith(
+      expect.stringContaining('remove-runtime'),
+      expect.objectContaining({ name: 'byted_seedance_video_generate', dry_run: false, confirm: true }),
+    ))
+  })
+})
+
 describe('工具集 · 深链定位（?tool=）', () => {
   it('连字符写法也能定位到注册表里的下划线工具（不许卡在「正在定位」）', async () => {
     // jsdom 没有 scrollIntoView；不补会抛 TypeError

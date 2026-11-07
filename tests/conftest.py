@@ -224,6 +224,39 @@ PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 
+def _pin_repo_root_first(path: list[str], *, root: Path | None = None) -> list[str]:
+    """把仓根钉在 sys.path[0]，并把 `agent/` 挪到末尾（同名包遮蔽的唯一解）。
+
+    【为什么（2026-11-07 三次 CI 红实测）】仓里有两个同名包：仓根 `cognitive/`（元认知引擎，
+    含 PromptInjector）与 `agent/cognitive/`（认知循环）。只要有谁把 `.../agent` 放进
+    sys.path 且排在仓根前面，`from cognitive import PromptInjector` 就解析到后者 ⇒
+    ImportError（junit 里就是这条 + 3 个收集失败），而本地 `-n 2` 跑整 shard6 却全绿 ——
+    纯粹取决于 worker 内的导入顺序。
+
+    不删 `agent/`（有模块靠它 import app_server / plugins），只把它挪到末尾：
+    同名包不再遮蔽，原有导入仍可用。调用点是"模块收集前"与"每个用例前"。
+    """
+    base = root or PROJECT_ROOT
+    root_s = str(base)
+    agent_s = str(base / "agent")
+    trailing = [e for e in path if e and os.path.abspath(e) == os.path.abspath(agent_s)]
+    for e in trailing:
+        path.remove(e)
+    if root_s in path:
+        path.remove(root_s)
+    path.insert(0, root_s)
+    path.extend(trailing)
+    return path
+
+
+_pin_repo_root_first(sys.path)
+
+
+def pytest_collectstart(collector):  # noqa: ARG001 —— hook 必须接受 collector
+    """每个模块**导入前**再钉一次：模块级 import 是遮蔽最容易发作的时机。"""
+    _pin_repo_root_first(sys.path)
+
+
 #: 审批库**绝不该出现**的位置（`agent/data/` 是 tool_trace.db 等运行期库的家，
 #: 但审批库正确位置是 `<repo>/data/`）——两个守卫共用的同一份判据
 _STRAY_APPROVAL_TARGETS = [
@@ -252,6 +285,35 @@ _STRAY_APPROVAL_TARGETS = [
 # "服务写的" ⇒ 真缺陷被甩锅、且文件不删（守卫完全失效）。
 # 现改用**窗口前后 (size, mtime_ns) 差集**归属（见下方两道守卫），
 # 它能在后端存活的情况下仍精确抓出"本窗口内被改动"，故不再需要该探测，也不留死代码。
+
+
+@pytest.fixture(autouse=True)
+def _keep_repo_root_first():
+    """每个用例前再兜一次 sys.path 顺序（见 _pin_repo_root_first 的实测说明）。"""
+    _pin_repo_root_first(sys.path)
+    yield
+
+
+@pytest.fixture(autouse=True)
+def _isolate_transform_jobs(tmp_path, monkeypatch):
+    """转化**作业台账**默认落点改到 tmp_path：单测不许往真实 data/transforms/jobs.json 写。
+
+    【为什么（2026-11-07 实测）】真实台账里 62 条作业有 **35 条**的 artifacts 指向
+    系统临时目录下的 pytest-of-... 子目录 —— 都是跑单测时经 upsert_job() 写进去的。
+    后果：转化队列里混进一堆永远不可能推进的假作业（还会被当成 target_missing 僵尸），
+    而「测试写生产数据」是本仓反复踩的坑（审批库/事件流/审计台账都有过同类守卫）。
+
+    做法：把 jobs_path 的**默认根**换成当前用例的 tmp_path；显式传了 root 的调用不受影响。
+    """
+    from pathlib import Path
+
+    from agent.skills_mgmt.transform import jobs as _jobs
+
+    def _path(root=None):
+        base = Path(root) if root else tmp_path
+        return base / _jobs.JOBS_REL
+
+    monkeypatch.setattr(_jobs, "jobs_path", _path)
 
 
 @pytest.fixture(autouse=True)
