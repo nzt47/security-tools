@@ -385,6 +385,67 @@ class SeqJournal:
         """
         return self.read_after(after_seq, limit=limit)
 
+    def rows_for(self, seqs: Sequence[int]) -> Dict[int, Dict[str, Any]]:
+        """按 seq **精确**取行（只读；**不受** enabled 影响）
+
+        【为什么不受 enabled 影响】enabled 的语义是"本实例要不要**写**日志"
+        （reader 角色恒为 False，见 AuditChain.__init__）。而日志文件本身是
+        **既成事实**：验签要区分"记录在日志里、只是没落库"与"真的被篡改"，就必须
+        能读到一个 reader 实例并不拥有的日志。故本方法只读文件、不写、不看 enabled。
+
+        【为什么不复用 read_after】那个方法的过滤是"seq > 游标"，为收敛/重放设计；
+        这里要的是"这些指定 seq"，且必须一次拿全（缺口可能跨多个窗口）。
+
+        【重复 seq 的处理】日志是追加式的，同一 seq 出现两次说明"分配被重放/日志被
+        外部拼接过"——此时**不信任**该 seq（两条都丢掉，不进入返回集），让上层按
+        "取不到"处理：宁可判成"不是待提交预留"（verify 仍报异常），也不拿一条来路
+        不明的行去补链。
+
+        Args:
+            seqs: 需要的 seq 集合（可迭代）。
+
+        Returns:
+            {seq: 行字典}；文件不可读时返回空字典（调用方按"取不到"处理）。
+        """
+        want = {int(s) for s in seqs}
+        out: Dict[int, Dict[str, Any]] = {}
+        conflict: set = set()
+        if not want:
+            return out
+        try:
+            with open(self.path, "r", encoding="utf-8", errors="ignore") as fh:
+                for line in fh:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        data = json.loads(line)
+                    except (ValueError, TypeError):
+                        continue
+                    if not isinstance(data, dict):
+                        continue
+                    try:
+                        seq = int(data.get("seq") or 0)
+                    except (TypeError, ValueError):
+                        continue
+                    if seq not in want or seq in conflict:
+                        continue
+                    prev_row = out.get(seq)
+                    if prev_row is not None and str(prev_row.get("self_hash")) != \
+                            str(data.get("self_hash")):
+                        # 同一 seq 两条**不同**记录：来路不明 ⇒ 两条都不要
+                        out.pop(seq, None)
+                        conflict.add(seq)
+                        continue
+                    out[seq] = data
+        except OSError as exc:
+            logger.warning("预留日志按 seq 读取失败: %s", exc)
+            return {}
+        if conflict:
+            logger.warning("预留日志存在重复且不一致的 seq（已丢弃，不用于补链）: %s",
+                           sorted(conflict)[:10])
+        return out
+
     def max_seq(self) -> int:
         """日志中出现的最大 seq（0 = 无）"""
         return int(self.head()[0])
