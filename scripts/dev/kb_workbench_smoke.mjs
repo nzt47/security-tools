@@ -241,8 +241,12 @@ async function main() {
 
     // ── 3. 融合检索 tab ──
     check('切换「融合检索」tab', await clickByExactText('融合检索'));
-    const typed = await ev(
-      `(()=>{const el=document.querySelector('input[placeholder="输入问题，检索知识库（RRF 融合）"]');if(!el)return false;Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set.call(el,${JSON.stringify(args.query)});el.dispatchEvent(new Event('input',{bubbles:true}));return true})()`,
+    // 【2026-11-07】检索词不再拼进表达式：值是运行时参数（--query），拼进 Runtime.evaluate
+    // 的源码就是「用数据构造代码」（CodeQL js/bad-code-sanitization 的最后一条残留）。
+    // 改成固定函数体 + 参数走 CDP arguments。
+    const typed = await evFn(
+      `function(value){const el=document.querySelector('input[placeholder="输入问题，检索知识库（RRF 融合）"]');if(!el)return false;Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set.call(el,value);el.dispatchEvent(new Event('input',{bubbles:true}));return true}`,
+      [args.query],
     );
     check('输入检索词', typed);
     await sleep(400);
