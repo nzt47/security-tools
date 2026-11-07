@@ -14,7 +14,7 @@ import logging
 import re
 import shutil
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 from . import jobs as _jobs
 
@@ -157,6 +157,43 @@ def register_skill_job(job_id: str, *, open_pr: bool = False,
     }
 
 
+def _resolve_skill_id(skill_id: str, base: Path) -> Tuple[str, str]:
+    """作业里的目标 id → 主轨真实 id。
+
+    先当 id 认（文件轨目录在 / 主轨 get 得到）；认不到再按 **name 唯一命中**解析
+    （作业里常记的是名字或合并前的旧 id，如 `brainstorming` 对
+    `pd-brainstorming-697b717a-skill`）。多义或解析不了就原样返回，
+    由调用方按"两轨都没有"如实报 404 —— 不猜。
+
+    Returns: (真实 id, 'id' | 'name')
+    """
+    if (base / SKILLS_REPO / skill_id / "skill.md").is_file():
+        return skill_id, "id"
+    try:
+        from agent.state_manager import get_skills_mgmt_service
+        svc = get_skills_mgmt_service()
+    except Exception:  # noqa: BLE001 主轨不可用时按原 id 继续，失败由下游如实报
+        return skill_id, "id"
+    getter = getattr(svc, "get", None)
+    if callable(getter):
+        try:
+            getter(skill_id)
+            return skill_id, "id"
+        except Exception:  # noqa: BLE001 按 id 认不到 ⇒ 继续按名字试
+            pass
+    lister = getattr(svc, "list_all", None)
+    if not callable(lister):
+        return skill_id, "id"
+    try:
+        hits = [s for s in lister() if str(getattr(s, "name", "")) == skill_id]
+    except Exception:  # noqa: BLE001 列不出来就按原 id 继续
+        return skill_id, "id"
+    ids = {str(getattr(s, "id", "")) for s in hits if getattr(s, "id", "")}
+    if len(ids) == 1:
+        return ids.pop(), "name"
+    return skill_id, "id"
+
+
 def enable_skill_job(job_id: str, *, root: Optional[Any] = None) -> Dict[str, Any]:
     """把已登记（registered）的技能作业启用（S5 第三批：启用也进队列）
 
@@ -190,12 +227,15 @@ def enable_skill_job(job_id: str, *, root: Optional[Any] = None) -> Dict[str, An
     if not _ID_RE.match(skill_id):
         raise RegisterError("作业目标 id 非法：%r" % skill_id, code="skill-id-invalid")
 
-    md_path = base / SKILLS_REPO / skill_id / "skill.md"
+    # 【作业里的 id 可能是**旧 id / 名字**】2026-11-07 实测：作业 ingestion:ing_a27df08b1b47f72f
+    # 的 target.id 是 `brainstorming`，而主轨里的真实 id 是
+    # `pd-brainstorming-697b717a-skill`（name=brainstorming）。旧代码只按 id 找文件轨，
+    # 于是用户点「启用」看到的是「文件轨里没有 brainstorming/skill.md」—— 死胡同。
+    # 这里先按 id 认，认不到再按 **name 唯一命中**解析一次；仍认不到才报 404。
+    resolved_id, resolved_by = _resolve_skill_id(skill_id, base)
+    md_path = base / SKILLS_REPO / resolved_id / "skill.md"
     # 【主轨独有技能是合法状态】global-core-principles / skill 这类技能**只有主轨**
-    # （口径 §5：不给它们建文件轨，materialize 会 409）。2026-11-07 实测：转化队列里
-    # 对 id 为 brainstorming 的作业点「启用」，用户看到的是
-    # 「文件轨里没有 brainstorming/skill.md」—— 作业本身是对的，是这里把
-    # "双写"当成了"必须两轨都存在"。文件轨不在 ⇒ 只改主轨，并如实回报。
+    # （口径 §5：不给它们建文件轨，materialize 会 409）⇒ 文件轨不在只改主轨并如实回报。
     file_track = md_path.is_file()
     text = ""
     if file_track:
@@ -211,17 +251,17 @@ def enable_skill_job(job_id: str, *, root: Optional[Any] = None) -> Dict[str, An
     try:
         from agent.state_manager import get_skills_mgmt_service
         svc = get_skills_mgmt_service()
-        if not file_track:
+        if not file_track and resolved_by == "id":
             # 没有文件轨可兜底 ⇒ 先确认主轨确实有这条技能，否则"启用成功"就是谎报
             getter = getattr(svc, "get", None)
             if callable(getter):
                 try:
-                    getter(skill_id)
+                    getter(resolved_id)
                 except Exception as exc:  # noqa: BLE001
                     raise RegisterError(
-                        "主轨里也没有技能 %s（文件轨与主轨都不存在），无法启用" % skill_id,
+                        "主轨里也没有技能 %s（文件轨与主轨都不存在），无法启用" % resolved_id,
                         code="skill-not-found", status=404) from exc
-        svc.set_enabled(skill_id, True)
+        svc.set_enabled(resolved_id, True)
     except RegisterError:
         raise
     except Exception as exc:  # noqa: BLE001
@@ -236,11 +276,17 @@ def enable_skill_job(job_id: str, *, root: Optional[Any] = None) -> Dict[str, An
 
     note = ("从转化队列启用（双写：文件轨 + 主轨）" if file_track
             else "从转化队列启用（该技能只有主轨，没有文件轨；本次只改主轨）")
+    if resolved_by == "name":
+        note += "；作业里的 id %s 是旧 id/名字，已按主轨 id %s 处理" % (skill_id, resolved_id)
     enabled_job = _jobs.transition(job_id, "enabled", root=root, note=note)
-    return {"ok": True, "job": enabled_job, "skill_id": skill_id, "enabled": True,
+    return {"ok": True, "job": enabled_job, "skill_id": resolved_id, "enabled": True,
+            "job_target_id": skill_id, "resolved_by": resolved_by,
             "file_track": str(md_path) if file_track else "",
             "file_track_patched": file_track,
-            "note": "" if file_track else "该技能只有主轨（无文件轨），已只改主轨"}
+            "note": "；".join(
+                ([ "该技能只有主轨（无文件轨），已只改主轨" ] if not file_track else [])
+                + ([ "作业里的 id %s 是旧 id/名字，已按主轨 id %s 处理" % (skill_id, resolved_id) ]
+                   if resolved_by == "name" else []))}
 
 
 def register_tool_job(job_id: str, *, root: Optional[Any] = None) -> Dict[str, Any]:
