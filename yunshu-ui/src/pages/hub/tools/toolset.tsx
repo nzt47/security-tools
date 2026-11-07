@@ -28,7 +28,7 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import { hubHref } from '../../../workbench/hubNav'
-import { Power, ShieldAlert } from 'lucide-react'
+import { Power, ShieldAlert, Trash2 } from 'lucide-react'
 import { Card, Loading, ErrorBox, DataTable, Badge, CallabilityBadge, PageHeader, hubGet, hubPost } from '../components/ui'
 import { callabilityCounts, callabilityLegend, hasCallabilityMark, type CallabilityInfo } from '@/lib/callability'
 import DescriptionCell from '@/components/DescriptionCell'
@@ -37,12 +37,14 @@ import { findToolByName } from '@/lib/toolName'
 // 【P1-front 第四批】后端 GET /api/tools/config 已带 X-Envelope: v2，改用显式信封解析。
 // 同页的 AGENT_LINES_PLANES（治理元数据）尚未迁移，继续走 hubGet 的旧解析。
 import { getEnvelope } from '@/api/envelope'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 import {
   AGENT_LINES_PLANES,
   SKILLS_MGMT_USAGE_STATS,
   TOOLS_CONFIG,
   TOOLS_TOGGLE,
+  TOOLS_REMOVE_RUNTIME,
 } from '@/api/endpoints';
 
 interface ToolItem {
@@ -112,6 +114,16 @@ export default function ToolsToolset() {
   const [toolUsage, setToolUsage] = useState<Record<string, ToolUsageRow>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  /** 页面内提示（操作成功的一句话结果，如「已移除 X」） */
+  const [notice, setNotice] = useState('')
+  /** 运行时工具移除的预览（dry_run 返回：将删的文件清单 + 是否在能力清单里） */
+  const [removePreview, setRemovePreview] = useState<{
+    name: string
+    files: string[]
+    in_manifest: boolean
+    note: string
+  } | null>(null)
+  const [removeBusy, setRemoveBusy] = useState(false)
   /** 深链定位：`?tool=<name>`（转化队列「去工具页启用」会带过来）——滚动+高亮这一行 */
   const [focusTool, setFocusTool] = useState<string>(() => {
     try {
@@ -270,6 +282,40 @@ export default function ToolsToolset() {
     } catch (e) { setError(String(e)) }
   }
 
+  /** 移除第一步：dry_run 预览（列出将删的文件 / 是否牵动能力清单） */
+  const openRemove = async (name: string) => {
+    setError('')
+    setNotice('')
+    try {
+      const r = await hubPost<{
+        ok?: boolean; files?: string[]; in_manifest?: boolean; note?: string; error?: string
+      }>(TOOLS_REMOVE_RUNTIME, { name, dry_run: true })
+      if (!r?.ok) throw new Error(r?.error || '预览失败')
+      setRemovePreview({
+        name,
+        files: Array.isArray(r.files) ? r.files : [],
+        in_manifest: !!r.in_manifest,
+        note: String(r.note || ''),
+      })
+    } catch (e) { setError(String(e)) }
+  }
+
+  /** 移除第二步：confirm=true 真删（后端先快照，失败自动回滚） */
+  const doRemove = async () => {
+    const p = removePreview
+    if (!p) return
+    setRemoveBusy(true)
+    setError('')
+    try {
+      const r = await hubPost<{ ok?: boolean; backup?: string; error?: string }>(
+        TOOLS_REMOVE_RUNTIME, { name: p.name, dry_run: false, confirm: true })
+      if (!r?.ok) throw new Error(r?.error || '移除失败')
+      setNotice('已移除运行时工具 ' + p.name + '（快照：' + (r.backup || '见 data/backups') + '）')
+      setRemovePreview(null)
+      load()
+    } catch (e) { setError(String(e)) } finally { setRemoveBusy(false) }
+  }
+
   const merged: Merged[] = useMemo(
     () => tools.map((t) => ({ ...t, ...(meta[t.name] ?? {}) })),
     [tools, meta],
@@ -365,12 +411,25 @@ export default function ToolsToolset() {
     },
     {
       key: 'actions', title: '操作', render: (r: Merged) => (
-        <button
-          onClick={() => toggle(String(r.name), Boolean(r.enabled))}
-          className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs ${r.enabled ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-emerald-600 text-white hover:bg-emerald-500'}`}
-        >
-          <Power size={12} /> {r.enabled ? '停用' : '启用'}
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => toggle(String(r.name), Boolean(r.enabled))}
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs ${r.enabled ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-emerald-600 text-white hover:bg-emerald-500'}`}
+          >
+            <Power size={12} /> {r.enabled ? '停用' : '启用'}
+          </button>
+          {/* 【只给运行时登记的工具】内建工具是代码注册：删了下次启动又回来，真删必须改代码 +
+              重派生五处（口径 §3.1）⇒ 页面不给按钮，避免"点了就删了"的错觉。 */}
+          {r.removable && (
+            <button
+              onClick={() => void openRemove(String(r.name))}
+              className="flex items-center gap-1.5 rounded-md border border-rose-800/70 px-2 py-1.5 text-xs text-rose-300 hover:bg-rose-950/40"
+              title="移除这个**运行时登记**的工具：台账 + YAML + 实现 + 单测 + UI 开关（先预览再确认；内建工具需走 PR）"
+            >
+              <Trash2 size={12} /> 移除
+            </button>
+          )}
+        </div>
       ),
     },
   ]
@@ -382,6 +441,27 @@ export default function ToolsToolset() {
         description="按四能力平面分组的工具总览：常驻 / 感知 / 行动 / 治理（治理平面 = 审批边界）"
       />
       {error && <div className="mb-4"><ErrorBox message={error} /></div>}
+      {notice && (
+        <div className="mb-4 rounded-md border border-emerald-800/60 bg-emerald-950/30 p-3 text-xs text-emerald-300">
+          {notice}
+        </div>
+      )}
+      <ConfirmDialog
+        open={!!removePreview}
+        title="移除这个运行时工具？"
+        message={
+          (removePreview
+            ? '将删除「' + removePreview.name + '」在台账 / YAML / 实现 / 单测里的全部落点，并清掉 UI 开关；'
+              + '删前会快照到 data/backups（失败自动回滚）。已入库的内建工具不受影响。'
+            : '') + (removePreview?.note ? ' ' + removePreview.note : '')
+        }
+        details={removePreview ? removePreview.files : []}
+        confirmText="移除"
+        danger
+        loading={removeBusy}
+        onCancel={() => setRemovePreview(null)}
+        onConfirm={() => void doRemove()}
+      />
 
       {!metaOk && (
         <div className="mb-4 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-300">

@@ -255,6 +255,28 @@ _STRAY_APPROVAL_TARGETS = [
 
 
 @pytest.fixture(autouse=True)
+def _isolate_transform_jobs(tmp_path, monkeypatch):
+    """转化**作业台账**默认落点改到 tmp_path：单测不许往真实 data/transforms/jobs.json 写。
+
+    【为什么（2026-11-07 实测）】真实台账里 62 条作业有 **35 条**的 artifacts 指向
+    系统临时目录下的 pytest-of-... 子目录 —— 都是跑单测时经 upsert_job() 写进去的。
+    后果：转化队列里混进一堆永远不可能推进的假作业（还会被当成 target_missing 僵尸），
+    而「测试写生产数据」是本仓反复踩的坑（审批库/事件流/审计台账都有过同类守卫）。
+
+    做法：把 jobs_path 的**默认根**换成当前用例的 tmp_path；显式传了 root 的调用不受影响。
+    """
+    from pathlib import Path
+
+    from agent.skills_mgmt.transform import jobs as _jobs
+
+    def _path(root=None):
+        base = Path(root) if root else tmp_path
+        return base / _jobs.JOBS_REL
+
+    monkeypatch.setattr(_jobs, "jobs_path", _path)
+
+
+@pytest.fixture(autouse=True)
 def _no_stray_approval_store(request):
     """**逐用例**守卫：审批库若在某个用例执行期间出现在 agent/data/ 下，就地失败并点名
 

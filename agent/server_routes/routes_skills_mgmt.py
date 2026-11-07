@@ -416,13 +416,94 @@ def register_routes(app, state):
         # 它是**旁路**信息：台账不可用只降级为空表，不能拖垮转化队列本身。
         try:
             from agent.skills_mgmt.transform.jobs import list_jobs, summary as _jobs_summary
-            jobs = list_jobs(limit=200)
+            # 【默认不含已归档】归档 = 从队列消失、台账留证据；要看历史用 ?include_archived=1
+            include_archived = str(request.args.get("include_archived") or "").lower() in (
+                "1", "true", "yes", "on")
+            jobs = list_jobs(limit=200, include_archived=include_archived)
             jobs_sum = _jobs_summary()
             jobs = _mark_missing_skill_targets(jobs)
         except Exception as e:  # noqa: BLE001
             logger.warning("读取转化作业台账失败（降级为空）: %s", e)
             jobs, jobs_sum = [], {"total": 0, "by_status": {}, "by_source": {}}
-        return jsonify({"ok": True, **payload, "jobs": jobs, "jobs_summary": jobs_sum})
+        return jsonify({"ok": True, **payload, "jobs": jobs, "jobs_summary": jobs_sum,
+                        "include_archived": include_archived})
+
+    def _audit_job(action: str, jid: str, *, extra: Dict[str, Any] | None = None) -> None:
+        """作业台账操作的审计留痕（失败只记日志，不阻断操作）"""
+        try:
+            from agent.audit import audit as _audit_facade
+            payload = {"job_id": jid}
+            payload.update(extra or {})
+            _audit_facade.record(action, actor="ui", subject="transform:" + jid,
+                                 payload=payload, source="ui", status="success")
+        except Exception as e:  # noqa: BLE001 审计失败不阻塞（与配置审计同口径）
+            logger.debug("作业台账审计留痕失败: %s", e)
+
+    @app.route("/api/skills-mgmt/transforms/jobs/archive", methods=["POST"])
+    @require_token
+    @trace_route("SkillsMgmt")
+    @log_request()
+    def api_skills_mgmt_transform_job_archive():
+        """把一条作业**归档**：从队列隐藏、台账保留证据（终态，可再彻底删除）。
+
+        只作用于**作业台账**（data/transforms/jobs.json），不动已入库的技能/文件轨。
+        """
+        body = request.get_json(silent=True) or {}
+        jid = str(body.get("job_id") or "").strip()
+        if not jid:
+            return jsonify({"ok": False, "error": "缺少 job_id"}), 400
+        from agent.skills_mgmt.transform import jobs as _jobs
+        try:
+            job = _jobs.archive(jid, note=str(body.get("note") or ""))
+        except _jobs.JobError:  # noqa: BLE001 领域错误：固定文案（原文只进日志）
+            logger.warning("作业归档被拒绝 job=%s", jid, exc_info=True)
+            return jsonify({"ok": False, "error": "归档被拒绝（作业不存在或状态不允许归档）"}), 409
+        except Exception as e:  # noqa: BLE001
+            return _fail(e, "归档失败（详见服务日志）", log="作业归档失败")
+        _audit_job("transform.job.archive", jid, extra={"status": job.get("status")})
+        return jsonify({"ok": True, "job": job})
+
+    @app.route("/api/skills-mgmt/transforms/jobs/delete", methods=["POST"])
+    @require_token
+    @trace_route("SkillsMgmt")
+    @log_request()
+    def api_skills_mgmt_transform_job_delete():
+        """**彻底删除**一条已归档作业：先预览（dry_run，默认）、再确认（confirm=true）。
+
+        删除范围：台账行 + 该作业的工件目录（仅"仓库内 / 系统临时目录"这两类根，
+        其它路径只列不删）。工作流/技能本身**不受影响** —— 这里动的是作业台账。
+        """
+        body = request.get_json(silent=True) or {}
+        jid = str(body.get("job_id") or "").strip()
+        if not jid:
+            return jsonify({"ok": False, "error": "缺少 job_id"}), 400
+        from agent.skills_mgmt.transform import jobs as _jobs
+        try:
+            job = _jobs.get_job(jid)
+            if job is None:
+                return jsonify({"ok": False, "error": "作业不存在"}), 404
+            if str(job.get("status")) != "archived":
+                return jsonify({"ok": False, "error": "只能彻底删除已归档的作业（先归档）",
+                                "status": job.get("status")}), 409
+            targets = _jobs.artifact_targets(job)
+            dry_run = bool(body.get("dry_run", True))
+            if dry_run:
+                return jsonify({"ok": True, "dry_run": True, "job": job,
+                                "targets": targets})
+            if not bool(body.get("confirm")):
+                return jsonify({"ok": False, "error": "需要 confirm=true 才真正删除"}), 400
+            removed = _jobs.remove_job(jid)
+            purged = _jobs.purge_artifacts(job)
+        except _jobs.JobError:  # noqa: BLE001
+            logger.warning("作业彻底删除被拒绝 job=%s", jid, exc_info=True)
+            return jsonify({"ok": False, "error": "删除被拒绝（需先归档）"}), 409
+        except Exception as e:  # noqa: BLE001
+            return _fail(e, "删除失败（详见服务日志）", log="作业删除失败")
+        _audit_job("transform.job.delete", jid,
+                   extra={"deleted_dirs": purged.get("deleted") or []})
+        return jsonify({"ok": True, "dry_run": False, "removed": removed,
+                        "deleted": purged.get("deleted") or [],
+                        "skipped": purged.get("skipped") or []})
 
     @app.route("/api/skills-mgmt/transforms/<transform_id>", methods=["GET"])
     @require_token

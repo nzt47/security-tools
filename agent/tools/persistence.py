@@ -28,6 +28,7 @@ import importlib.util
 import json
 import logging
 import os
+import tempfile
 import threading
 import time
 from typing import Any, Dict, List, Optional
@@ -267,6 +268,7 @@ def verify_generated_tool(
     logger.warning("[动态工具] %s 调用探针失败，拒绝持久化: %s", name, str(err)[:200])
     return False, f"调用探针失败: {str(err)[:200]}"
 
+
 def persist_dynamic_tool(
     name: str,
     description: str = "",
@@ -357,6 +359,150 @@ def forget_dynamic_tool(name: str) -> bool:
         except OSError:
             return False
     return True
+
+
+def runtime_tool_names() -> List[str]:
+    """台账里的**运行时登记**工具名（页面据此决定「能不能移除」）。"""
+    return sorted(str(t.get("name") or "") for t in list_persisted() if t.get("name"))
+
+
+def runtime_tool_files(name: str) -> List[str]:
+    """一个运行时工具在磁盘上的落点（存在才列）：实现 / YAML / 单测。"""
+    candidates = [
+        os.path.join(CUSTOM_TOOLS_DIR, name + ".py"),
+        os.path.join(TOOL_DEFS_DIR, name + ".yaml"),
+        os.path.join(_ROOT, "tests", "unit", "test_" + name + ".py"),
+    ]
+    return [p for p in candidates if os.path.isfile(p)]
+
+
+def _tool_config_path() -> str:
+    """UI 开关的落点（与 plugins/skills.py 的 _TOOLS_CONFIG_FILE 是同一份文件）"""
+    return os.path.join(_ROOT, "data", "tools_config.json")
+
+
+def _manifest_path() -> str:
+    return os.path.join(_ROOT, "data", "capability_manifest.json")
+
+
+def _drop_tool_state(cfg_path: str, name: str) -> None:
+    """清掉 UI 开关里这条工具的记录（避免「已删工具」的开关残留）"""
+    try:
+        with open(cfg_path, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (OSError, ValueError):
+        return
+    states = data.get("tool_states")
+    if isinstance(states, dict) and name in states:
+        del states[name]
+        try:
+            with open(cfg_path, "w", encoding="utf-8") as fh:
+                json.dump(data, fh, ensure_ascii=False, indent=2)
+        except OSError as exc:  # noqa: BLE001
+            logger.warning("[动态工具] 清理 UI 开关失败 %s: %s", name, exc)
+
+
+def remove_runtime_tool(name: str, *, dry_run: bool = True, confirm: bool = False,
+                        backup_dir: Optional[str] = None) -> Dict[str, Any]:
+    """移除一个**运行时登记**的工具（台账 + YAML + 实现 + 单测 + UI 开关 + 注册表）。
+
+    【为什么只允许台账里的工具】内建工具是代码注册（@_tools.register）：删掉文件/台账
+    下次启动照样回来，而真正删除必须改代码 + 重派生五处（口径 §3.1）——那是 PR 级动作。
+    所以这里只服务「运行时登记」这一类（data/dynamic_tools.json 台账里的），替用户把
+    四处落点一次清干净，而不是给一个对内建工具撒谎的按钮。
+
+    【顺序与回滚】快照 → 注销注册表 → 删台账 → 删文件 → 清 UI 开关；
+    任一步抛错就用快照回滚并重新加载，保证「要么全删、要么回到原样」。
+
+    Args:
+        name: 工具名（必须已在台账里）。
+        dry_run: True 只报告将删什么（默认）。
+        confirm: 真删时必须为 True（双保险，防误调）。
+        backup_dir: 快照目录（默认建在 data/backups/ 下）。
+
+    Returns:
+        dict：ok / name / dry_run / files / ledger_row / backup / in_manifest / note
+    """
+    import shutil
+
+    name = str(name or "").strip()
+    if not name or "/" in name or os.sep in name or ".." in name:
+        return {"ok": False, "error": "工具名不合法", "reason": "bad_name"}
+
+    with _LOCK:
+        ledger = _read_ledger()
+        tools = ledger.get("tools") or {}
+        row = tools.get(name)
+        if not isinstance(row, dict):
+            return {"ok": False, "reason": "builtin",
+                    "error": "不是运行时登记的工具：内建工具需走 PR 改代码（删注册/改 YAML），页面不删"}
+
+        files = runtime_tool_files(name)
+        ledger_path = _ledger_path()
+        cfg_path = _tool_config_path()
+        in_manifest = False
+        try:
+            with open(_manifest_path(), "r", encoding="utf-8") as fh:
+                in_manifest = name in fh.read()
+        except OSError:
+            in_manifest = False
+
+        plan = {
+            "ok": True, "name": name, "dry_run": bool(dry_run),
+            "files": list(files) + [ledger_path],
+            "ledger_row": {k: row.get(k) for k in ("name", "description", "source", "module_path")},
+            "in_manifest": in_manifest,
+            "note": ("该工具不在入库声明口径（capability_manifest 查无此名）⇒ 不涉及五处派生"
+                     if not in_manifest else
+                     "该工具名出现在 capability_manifest 里 —— 删完必须在干净 worktree 重派生五处"
+                     "（清单/盘点表/tool_index/路由基线/BM25 半饱和点），否则 CI 会红"),
+        }
+        if dry_run:
+            return plan
+        if not confirm:
+            return {"ok": False, "error": "需要 confirm=true 才真正移除",
+                    "reason": "need_confirm", "files": plan["files"]}
+
+        backup = backup_dir or tempfile.mkdtemp(
+            prefix="tool-remove-" + name + "-",
+            dir=os.path.join(_ROOT, "data", "backups"))
+        os.makedirs(backup, exist_ok=True)
+        try:
+            shutil.copyfile(ledger_path, os.path.join(backup, "dynamic_tools.json"))
+            for path in files:
+                shutil.copyfile(path, os.path.join(backup, os.path.basename(path)))
+            if os.path.isfile(cfg_path):
+                shutil.copyfile(cfg_path, os.path.join(backup, "tools_config.json"))
+        except OSError as exc:  # noqa: BLE001 快照失败就不动手
+            logger.warning("[动态工具] 移除前快照失败 %s: %s", name, exc)
+            return {"ok": False, "error": "移除前快照失败，已中止（详见服务日志）",
+                    "reason": "backup_failed"}
+
+        try:
+            from agent import tools as _tools
+            _tools.unregister(name)
+            forget_dynamic_tool(name)
+            for path in files:
+                try:
+                    os.remove(path)
+                except OSError as exc:  # noqa: BLE001 单文件删不掉不中断（如实报告）
+                    logger.warning("[动态工具] 删除文件失败 %s: %s", path, exc)
+            _drop_tool_state(cfg_path, name)
+        except Exception as exc:  # noqa: BLE001 回滚到原样
+            logger.warning("[动态工具] 移除失败，回滚中 %s: %s", name, exc)
+            try:
+                shutil.copyfile(os.path.join(backup, "dynamic_tools.json"), ledger_path)
+                for path in files:
+                    src = os.path.join(backup, os.path.basename(path))
+                    if os.path.isfile(src):
+                        shutil.copyfile(src, path)
+                load_dynamic_tools()
+            except Exception as rexc:  # noqa: BLE001
+                logger.error("[动态工具] 回滚失败 %s: %s", name, rexc)
+            return {"ok": False, "error": "移除失败，已按快照回滚", "reason": "remove_failed"}
+
+        return {**plan, "dry_run": False, "backup": backup,
+                "removed": True, "in_manifest": in_manifest}
 
 
 def list_persisted() -> List[Dict[str, Any]]:
