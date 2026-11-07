@@ -80,6 +80,10 @@ describe('TransformQueueDialog 行交互', () => {
     fireEvent.doubleClick(code.closest('li') as HTMLLIElement)
     const buttons = await screen.findAllByText('登记为工具')
     fireEvent.click(buttons[buttons.length - 1])
+    // 确认块也必须是**浮层**（role=dialog + fixed）：以前渲染在列表上方，滚下去就看不见
+    const confirm = await screen.findByRole('dialog', { name: '登记确认' })
+    expect(confirm.className).toContain('fixed')
+    expect(confirm.textContent ?? '').toContain('登记并开 PR')
     // 进入既有登记确认流（tool 形态的说明文案），且**没有**直接提交
     expect(await screen.findByText(/把骨架的/)).toBeTruthy()
     expect(screen.queryByText('tool:demo_tool')).toBeNull()   // 操作面板已让位给确认块

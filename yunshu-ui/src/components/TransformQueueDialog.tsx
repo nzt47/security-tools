@@ -478,7 +478,7 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
           )}
 
           {registerJob && (
-            <div className="mb-3 rounded-lg border border-emerald-900/60 bg-emerald-950/20 px-3 py-2">
+            <div className={"fixed left-1/2 top-1/2 z-50 w-[min(92vw,32rem)] -translate-x-1/2 -translate-y-1/2 rounded-lg border shadow-2xl px-3 py-2 border-emerald-900/60 bg-slate-900"} role="dialog" aria-modal="true" aria-label="登记确认">
               <div className="text-[11px] text-emerald-200">
                 登记 <span className="font-mono">{registerJob.title || registerJob.source_ref}</span> 为技能？
               </div>
@@ -509,7 +509,7 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
           )}
 
           {enableJob && (
-            <div className="mb-3 rounded-lg border border-cyan-900/60 bg-cyan-950/20 px-3 py-2">
+            <div className={"fixed left-1/2 top-1/2 z-50 w-[min(92vw,32rem)] -translate-x-1/2 -translate-y-1/2 rounded-lg border shadow-2xl px-3 py-2 border-cyan-900/60 bg-slate-900"} role="dialog" aria-modal="true" aria-label="启用确认">
               <div className="text-[11px] text-cyan-200">
                 启用 <span className="font-mono">{enableJob.target?.id || enableJob.title}</span>？
               </div>
