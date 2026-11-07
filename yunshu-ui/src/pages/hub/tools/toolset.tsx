@@ -114,25 +114,54 @@ export default function ToolsToolset() {
     }
   })
 
-  // 定位：先把平面筛到该工具所属平面（避免"滚不到"），再把该行滚进视口并闪一下
+  /** 定位结果：'' 未触发 / 'found' 已高亮 / 'missing' 没这个工具（未启用/已删/拼错） */
+  const [focusState, setFocusState] = useState<'' | 'found' | 'missing'>('')
+
+  // 定位：先把平面筛到该工具所属平面（避免"滚不到"），再把该行滚进视口并高亮
   useEffect(() => {
     if (!focusTool || loading) return
+    const norm = focusTool.trim().toLowerCase()
     const row = tools.find((t) => t.name === focusTool)
-    const plane = (row ? (meta[focusTool]?.plane ?? '') : '') as string
+      ?? tools.find((t) => t.name.toLowerCase() === norm)
+      ?? tools.find((t) => t.name.toLowerCase().endsWith(norm))
+    if (!row) {
+      setFocusState('missing')
+      return
+    }
+    const plane = String(meta[row.name]?.plane ?? '')
     if (plane && filter !== plane) {
       setFilter(plane)
       return
     }
-    const el = document.querySelector('[data-focus-tool="' + focusTool + '"]')
+    const el = document.querySelector('[data-focus-tool="' + row.name + '"]')
     if (!el) return
     el.scrollIntoView({ block: 'center', behavior: 'smooth' })
     el.classList.add('ring-2', 'ring-cyan-500', 'bg-cyan-500/10')
+    setFocusState('found')
     const timer = window.setTimeout(() => {
       el.classList.remove('ring-2', 'ring-cyan-500', 'bg-cyan-500/10')
-      setFocusTool('')          // 只闪一次，避免后续筛选反复抢焦点
-    }, 4000)
+    }, 8000)
     return () => window.clearTimeout(timer)
   }, [focusTool, loading, tools, meta, filter])
+
+  // 定位横幅：高亮 8 秒会消失，把"到底定位到没有"用文字说清楚（没找到也给原因）
+  const focusBanner = focusTool ? (
+    <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-cyan-900/60 bg-cyan-950/20 px-3 py-1.5 text-[11px]">
+      {focusState === 'found' ? (
+        <span className="text-cyan-200">已定位到 <span className="font-mono">{focusTool}</span>（高亮 8 秒）</span>
+      ) : focusState === 'missing' ? (
+        <span className="text-amber-300">
+          未找到工具 <span className="font-mono">{focusTool}</span> —— 可能未启用、已删除或名字被改过
+        </span>
+      ) : (
+        <span className="text-slate-400">正在定位 <span className="font-mono">{focusTool}</span> …</span>
+      )}
+      <button type="button" onClick={() => { setFocusTool(''); setFocusState('') }}
+        className="ml-auto rounded border border-slate-700 px-2 py-0.5 text-[10px] text-slate-400 hover:bg-slate-800">
+        清除定位
+      </button>
+    </div>
+  ) : null
 
   const load = () => {
     setLoading(true)
@@ -338,6 +367,7 @@ export default function ToolsToolset() {
         </div>
       )}
 
+      {focusBanner}
       {loading ? <Loading /> : (
         <div className="space-y-5">
           {shown.map((g) => {
