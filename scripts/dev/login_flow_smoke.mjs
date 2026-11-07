@@ -160,6 +160,38 @@ async function main() {
       }
       return r.result.result.value;
     };
+    /**
+     * 固定函数体 + 参数走 CDP arguments（**不把值拼进 expression**）。
+     *
+     * 【为什么】把 label/selector/value 用 `+ '${...}'` 拼进 Runtime.evaluate 的表达式，
+     * 等于"用数据构造代码"，会被 CodeQL 判成 js/bad-code-sanitization。
+     * 这里参数经 arguments 传值，脚本源码与数据彻底分离。
+     * 【为什么每次重取 window 句柄】导航会作废旧 objectId；失败时重取一次再试。
+     */
+    let winObjectId = '';
+    const evFn = async (functionDeclaration, fnArgs = []) => {
+      const call = async (objectId) => send('Runtime.callFunctionOn', {
+        objectId,
+        functionDeclaration,
+        arguments: fnArgs.map((v) => ({ value: v })),
+        returnByValue: true,
+        awaitPromise: true,
+      });
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        if (!winObjectId) {
+          const h = await send('Runtime.evaluate', { expression: 'window' });
+          winObjectId = (h?.result?.result?.objectId) || '';
+          if (!winObjectId) throw new Error('取不到 window 句柄');
+        }
+        const r = await call(winObjectId);
+        if (r?.error) { winObjectId = ''; continue; }
+        if (r.result && r.result.exceptionDetails) {
+          throw new Error('页面脚本执行失败: ' + JSON.stringify(r.result.exceptionDetails).slice(0, 300));
+        }
+        return r.result.result.value;
+      }
+      throw new Error('callFunctionOn 失败（window 句柄连续两次不可用）');
+    };
     const waitFor = async (expression, timeoutMs) => {
       const deadline = Date.now() + timeoutMs;
       while (Date.now() < deadline) {
@@ -171,10 +203,10 @@ async function main() {
       return false;
     };
     const clickByExactText = (label) =>
-      ev(`(()=>{const bs=[...document.querySelectorAll('button')];const b=bs.find(x=>x.textContent.trim()===${JSON.stringify(label)});if(b){b.click();return true}return false})()`);
+      evFn(`function(label){const bs=[...document.querySelectorAll('button')];const b=bs.find(x=>x.textContent.trim()===label);if(b){b.click();return true}return false}`, [label]);
     /** 以原生 setter 填值（React 受控组件需触发 input 事件） */
     const fillInput = (selector, value) =>
-      ev(`(()=>{const el=document.querySelector(${JSON.stringify(selector)});if(!el)return false;const proto=el.tagName==='TEXTAREA'?window.HTMLTextAreaElement.prototype:window.HTMLInputElement.prototype;Object.getOwnPropertyDescriptor(proto,'value').set.call(el,${JSON.stringify(value)});el.dispatchEvent(new Event('input',{bubbles:true}));return true})()`);
+      evFn(`function(selector,value){const el=document.querySelector(selector);if(!el)return false;const proto=el.tagName==='TEXTAREA'?window.HTMLTextAreaElement.prototype:window.HTMLInputElement.prototype;Object.getOwnPropertyDescriptor(proto,'value').set.call(el,value);el.dispatchEvent(new Event('input',{bubbles:true}));return true}`, [selector, value]);
 
     const hashExpr = `(location.hash || '').replace(/^#/, '') || '/'`;
 

@@ -144,6 +144,38 @@ async function main() {
       if (r.result?.exceptionDetails) throw new Error('页面脚本异常: ' + JSON.stringify(r.result.exceptionDetails).slice(0, 200));
       return r.result?.result?.value;
     };
+    /**
+     * 固定函数体 + 参数走 CDP arguments（**不把值拼进 expression**）。
+     *
+     * 【为什么】把 label/selector/value 用 `+ '${...}'` 拼进 Runtime.evaluate 的表达式，
+     * 等于"用数据构造代码"，会被 CodeQL 判成 js/bad-code-sanitization。
+     * 这里参数经 arguments 传值，脚本源码与数据彻底分离。
+     * 【为什么每次重取 window 句柄】导航会作废旧 objectId；失败时重取一次再试。
+     */
+    let winObjectId = '';
+    const evFn = async (functionDeclaration, fnArgs = []) => {
+      const call = async (objectId) => send('Runtime.callFunctionOn', {
+        objectId,
+        functionDeclaration,
+        arguments: fnArgs.map((v) => ({ value: v })),
+        returnByValue: true,
+        awaitPromise: true,
+      });
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        if (!winObjectId) {
+          const h = await send('Runtime.evaluate', { expression: 'window' });
+          winObjectId = (h?.result?.result?.objectId) || '';
+          if (!winObjectId) throw new Error('取不到 window 句柄');
+        }
+        const r = await call(winObjectId);
+        if (r?.error) { winObjectId = ''; continue; }
+        if (r.result && r.result.exceptionDetails) {
+          throw new Error('页面脚本执行失败: ' + JSON.stringify(r.result.exceptionDetails).slice(0, 300));
+        }
+        return r.result.result.value;
+      }
+      throw new Error('callFunctionOn 失败（window 句柄连续两次不可用）');
+    };
     const waitFor = async (expr, timeoutMs) => {
       const dl = Date.now() + timeoutMs;
       while (Date.now() < dl) {
@@ -155,8 +187,8 @@ async function main() {
     // 按可见文本点击：先精确匹配，再退化为包含匹配。
     // 【Why】2026-10-15 工作台 IA 重构后，导航项/页内 Tab 常带图标或角标，
     // textContent 不再是纯标签文本，纯 === 匹配会大面积 miss。
-    const clickText = (label) => ev(
-      `(()=>{const els=[...document.querySelectorAll('button,a,[role=tab]')];const t=(x)=>(x.textContent||'').trim();const L=${JSON.stringify(label)};const b=els.find(x=>t(x)===L)||els.find(x=>t(x).includes(L));if(b){b.click();return true}return false})()`);
+    const clickText = (label) => evFn(
+      `function(L){const els=[...document.querySelectorAll('button,a,[role=tab]')];const t=(x)=>(x.textContent||'').trim();const b=els.find(x=>t(x)===L)||els.find(x=>t(x).includes(L));if(b){b.click();return true}return false}`, [label]);
     const bodyText = () => ev(`document.body.innerText`);
 
     // ═══ A. DevConsole FAB ═══
@@ -226,8 +258,8 @@ async function main() {
       const formOk = await waitFor(`!!document.querySelector('input[placeholder="唯一标识（创建后不可修改）"]')`, 10000);
       check('新建弹层出现', formOk);
       if (formOk) {
-        const fillInput = (ph, val) => ev(`(()=>{const els=[...document.querySelectorAll('input,textarea')];const el=els.find(x=>x.placeholder&&x.placeholder.startsWith(${JSON.stringify(ph)}));if(!el)return false;const d=(el.tagName==='TEXTAREA')?Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype,'value'):Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value');d.set.call(el,${JSON.stringify(val)});el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));return true})()`);
-        const setSelect = (idx, val) => ev(`(()=>{const sels=[...document.querySelectorAll('.kb-form select, select')];const el=sels[${idx}];if(!el)return false;const opt=[...el.options].find(o=>o.value===${JSON.stringify(val)});if(!opt)return false;el.value=opt.value;el.dispatchEvent(new Event('change',{bubbles:true}));return true})()`);
+        const fillInput = (ph, val) => evFn(`function(ph,val){const els=[...document.querySelectorAll('input,textarea')];const el=els.find(x=>x.placeholder&&x.placeholder.startsWith(ph));if(!el)return false;const d=(el.tagName==='TEXTAREA')?Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype,'value'):Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value');d.set.call(el,val);el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));return true}`, [ph, val]);
+        const setSelect = (idx, val) => evFn(`function(idx,val){const sels=[...document.querySelectorAll('.kb-form select, select')];const el=sels[idx];if(!el)return false;const opt=[...el.options].find(o=>o.value===val);if(!opt)return false;el.value=opt.value;el.dispatchEvent(new Event('change',{bubbles:true}));return true}`, [idx, val]);
         await fillInput('卡片标题', smokeTitle);
         await fillInput('唯一标识', slug);
         await fillInput('一句话核心洞见', `${smokeTitle} 核心洞见（验收冒烟自动创建）`);
@@ -247,7 +279,7 @@ async function main() {
         }
         // 删除：先注入 confirm/alert 覆盖（headless 默认拒绝），再点行内删除
         await ev(`(()=>{window.confirm=()=>true;window.alert=()=>{}})()`);
-        const delClicked = await ev(`(()=>{const bs=[...document.querySelectorAll('button')];const b=bs.find(x=>x.title==='删除'&&x.closest('tr')&&x.closest('tr').textContent.includes(${JSON.stringify(smokeTitle)}));if(!b)return false;b.click();return true})()`);
+        const delClicked = await evFn(`function(title){const bs=[...document.querySelectorAll('button')];const b=bs.find(x=>x.title==='删除'&&x.closest('tr')&&x.closest('tr').textContent.includes(title));if(!b)return false;b.click();return true}`, [smokeTitle]);
         check('点击冒烟卡片删除', delClicked);
         check('冒烟卡片已从列表移除', await waitFor(`!document.body.innerText.includes(${JSON.stringify(smokeTitle)})`, 10000));
       } else {
