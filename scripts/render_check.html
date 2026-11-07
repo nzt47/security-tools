@@ -700,11 +700,20 @@ function addMessage(text, role, modeLabel) {
   const div = document.createElement('div');
   div.className = 'msg ' + role;
 
+  // 【C-10 js/xss-through-dom】正文（用户输入 / LLM 回复）一律走 textContent：
+  // 这是本地冒烟页，之前用 innerHTML 把用户输入与模型输出当 HTML 解析 —— 模型
+  // 回一段 `<img onerror=...>` 就等于在本机页面上执行了它。模式标签是唯一的结构性
+  // 装饰，单独用 DOM 节点拼（不拼字符串），既保留样式也切断了注入链。
+  div.textContent = String(text);
   if (modeLabel) {
-    text = text + `<div class="meta"><span>模式: ${modeLabel}</span></div>`;
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    const span = document.createElement('span');
+    span.textContent = '模式: ' + modeLabel;
+    meta.appendChild(span);
+    div.appendChild(meta);
   }
 
-  div.innerHTML = text;
   el.appendChild(div);
   el.scrollTop = el.scrollHeight;
 }

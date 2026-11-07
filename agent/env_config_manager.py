@@ -279,10 +279,13 @@ class EnvConfigManager:
     # 设计原则（三义）:
     # - 【不易】审计日志独立于业务日志，写入 logs/config_audit.jsonl
     #   每行一条 JSON，便于工具化分析与合规审计
-    # - 【变易】敏感 key（API_KEY/TOKEN/WEBHOOK/SECRET 等）的值自动脱敏
-    #   保留前 4 + 后 4 字符，中间用 *** 替代，防止明文泄露
+    # - 【变易】敏感 key（API_KEY/TOKEN/WEBHOOK/SECRET 等）的值只记常量 ***
+    #   （不保留任何前缀/后缀/长度——派生片段也是凭据的一部分，见下方注释）
     # - 【简易】失败降级为 warning，不阻塞主流程（写入已成功，不应回滚）
     # ──────────────────────────────────────────────────────────────────────────
+
+    #: 敏感值在审计日志里的**唯一**形态（常量；不含任何原文片段/长度/指纹）
+    REDACTED_VALUE = '***'
 
     # 敏感 key 匹配模式（大小写不敏感）
     _SENSITIVE_KEY_PATTERN = re.compile(
@@ -295,9 +298,15 @@ class EnvConfigManager:
 
         规则:
         - 非敏感 key：原值返回
-        - 敏感 key 且值长度 > 8：保留前 4 + *** + 后 4
-        - 敏感 key 且值长度 <= 8：全替换为 ***
+        - 敏感 key：**一律**只留常量占位 ***（不保留任何派生片段）
         - None 值：返回 None（用于 delete 操作的 new_value）
+
+        【为什么连"前 4 + 后 4"也不给（C-10 py/clear-text-storage）】
+        旧规则保留前 4 / 后 4 字符，看着像脱敏，实际把凭据的 8 个字符写进了
+        logs/config_audit.jsonl（一个会被打包/取证的文件）——对高熵 Key 来说，
+        前缀常常是"sk-xx"/账号段，后 4 位又足以做比对。口径 §4.2 写的是
+        「真凭据不进日志：原文 / 指纹 / **长度** / 布尔全都不行」，派生片段同属此列。
+        审计要证明的是"这个键被改过"，不是"值长什么样"，所以只留常量。
 
         Args:
             key: 配置 key（用于判断是否敏感）
@@ -310,10 +319,7 @@ class EnvConfigManager:
             return None
         if not self._SENSITIVE_KEY_PATTERN.search(key):
             return value
-        # 敏感 key 脱敏
-        if len(value) <= 8:
-            return '***'
-        return f'{value[:4]}***{value[-4:]}'
+        return self.REDACTED_VALUE
 
     def _get_audit_log_path(self) -> Path:
         """获取审计日志文件路径

@@ -125,7 +125,10 @@ class DataProcessor:
             return ""
 
         # HTML 标签
-        text = re.sub(r"<[^>]+>", " ", text)
+        # 【为什么字符类里要排除 '<'（C-10 py/polynomial-redos）】原来的 <[^>]+> 在
+        # 全是 '<' 的输入上会"每个起点扫到串尾再逐个回溯" ⇒ O(n²)。HTML 标签内部本来
+        # 就不可能含 '<'，把 '<' 也排除后每个起点立即失败 ⇒ 线性，且语义更准确。
+        text = re.sub(r"<[^<>]*>", " ", text)
 
         # HTML 实体
         try:

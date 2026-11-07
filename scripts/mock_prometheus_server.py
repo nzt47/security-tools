@@ -48,6 +48,11 @@ from urllib.parse import urlparse, parse_qs
 
 logger = logging.getLogger("mock_prometheus")
 
+#: step 参数的单位 → 秒（Prometheus 风格步长，如 "1h" / "6h"）
+_STEP_UNIT_SECONDS = {"s": 1, "m": 60, "h": 3600, "d": 86400}
+#: step 缺失 / 无法解析 / 非正数时的回退值（1 小时）
+DEFAULT_STEP_SECONDS = 3600
+
 
 def _trace_id() -> str:
     return uuid.uuid4().hex[:16]
@@ -270,19 +275,18 @@ class MockPrometheusHandler(BaseHTTPRequestHandler):
             end_ts = time.time()
 
         # 解析 step（如 "1h" → 3600, "6h" → 21600）
-        step_match = re.match(r'(\d+)([smhd])', step)
-        if step_match:
-            num = int(step_match.group(1))
-            unit = step_match.group(2)
-            unit_map = {"s": 1, "m": 60, "h": 3600, "d": 86400}
-            step_seconds = num * unit_map[unit]
-            # 【Issue #6 防护】零/负步长（如 "0h"）会导致点数计算除零，
-            # 抛未捕获异常 → 500 非 JSON 响应（CI 断言解析失败）。回退默认 1h，
-            # 保证 query_range 对任意合法请求始终返回 Prometheus 风格 JSON。
-            if step_seconds <= 0:
-                step_seconds = 3600
-        else:
-            step_seconds = 3600  # 默认 1 小时
+        # 【C-10 py/polynomial-redos】原实现 re.match(r'(\d+)([smhd])') 在"一长串数字
+        # 后面没有单位"的输入上，每个起点都要把数字扫到尾再回溯 ⇒ O(n²)（这个 mock
+        # 服务对外收 URL 查询串，属于可被外部控制入参的代码）。改成"末尾一位是单位、
+        # 前面全是数字"的线性判定，语义与原来一致（原来是 match 前缀匹配）。
+        step_seconds = 0
+        if len(step) >= 2 and step[-1] in _STEP_UNIT_SECONDS and step[:-1].isdigit():
+            step_seconds = int(step[:-1]) * _STEP_UNIT_SECONDS[step[-1]]
+        # 【Issue #6 防护】零/负步长（如 "0h"）会导致点数计算除零，
+        # 抛未捕获异常 → 500 非 JSON 响应（CI 断言解析失败）。回退默认 1h，
+        # 保证 query_range 对任意合法请求始终返回 Prometheus 风格 JSON。
+        if step_seconds <= 0:
+            step_seconds = DEFAULT_STEP_SECONDS
 
         # 提取指标名
         metric_name = _extract_metric_name(query)
