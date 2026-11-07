@@ -54,7 +54,7 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REF = "origin/master"
@@ -347,6 +347,17 @@ def wait_health(url: str = DEFAULT_HEALTH_URL, timeout: float = DEFAULT_READY_TI
         time.sleep(interval)
 
 
+#: 冒烟/版本读取的**冷启动容忍窗口**（秒）。
+#:
+#: 【为什么要容忍】每次部署都见过这个假红：/api/health 已经 200、后端也已就绪，
+#: 但紧接着探 /api/version 偶尔拿到"无响应"或 5xx（首个请求要装配版本快照 + 读构建戳），
+#: 于是 deploy 自带 smoke 报红，人工再带 token 复测又是 200 —— 红了个寂寞（§11.58 D 的假红）。
+#: **判据不变（仍然只认 200）**，只是给它几秒钟，而不是一次探测就下结论。
+SMOKE_RETRY_WINDOW_SEC = 20.0
+#: 容忍窗口内的重试间隔（秒）
+SMOKE_RETRY_INTERVAL_SEC = 2.0
+
+
 def http_status(url: str, token: Optional[str] = None, timeout: float = 5.0) -> Optional[int]:
     """GET 一个 URL 的状态码（HTTP 错误也返回其码；连不上返回 None）。"""
     req = urllib.request.Request(url)
@@ -361,29 +372,72 @@ def http_status(url: str, token: Optional[str] = None, timeout: float = 5.0) -> 
         return None
 
 
+def _retryable_status(status: Optional[int]) -> bool:
+    """只在"还没起来"的形态上重试：无响应（None）或 5xx。
+
+    4xx 一律**立即返回** —— 401 是令牌不对、404 是路由不存在，重试 20 秒只会让部署变慢，
+    而且会把"真错"拖成"看起来像慢"。
+    """
+    return status is None or int(status) >= 500
+
+
+def http_status_retry(url: str, token: Optional[str] = None, timeout: float = 5.0,
+                      window: float = SMOKE_RETRY_WINDOW_SEC,
+                      interval: float = SMOKE_RETRY_INTERVAL_SEC,
+                      sleep: Callable[[float], None] = time.sleep) -> Optional[int]:
+    """带冷启动容忍的 `http_status`：无响应 / 5xx 在 window 内重试，4xx 立即返回。
+
+    健康时**零等待**（第一次就 200，不进循环）；只有冷启动才等，最多 window 秒。
+    `sleep` 可注入，单测不真的等。
+    """
+    deadline = time.monotonic() + max(0.0, float(window))
+    status = http_status(url, token, timeout=timeout)
+    while _retryable_status(status) and time.monotonic() < deadline:
+        sleep(interval)
+        status = http_status(url, token, timeout=timeout)
+    return status
+
+
 def run_smoke(port: int = DEFAULT_PORT, token: Optional[str] = None,
               paths: Sequence[str] = DEFAULT_SMOKE_PATHS,
-              timeout: float = 5.0) -> List[Dict[str, Any]]:
-    """对关键端点逐个 GET，返回 [{path, status, ok}]；只判 200。"""
+              timeout: float = 5.0,
+              window: float = SMOKE_RETRY_WINDOW_SEC) -> List[Dict[str, Any]]:
+    """对关键端点逐个 GET，返回 [{path, status, ok}]；只判 200（冷启动窗口内重试）。"""
     results: List[Dict[str, Any]] = []
     for path in paths:
         url = "http://127.0.0.1:%d%s" % (int(port), path)
-        code = http_status(url, token, timeout=timeout)
+        code = http_status_retry(url, token, timeout=timeout, window=window)
         results.append({"path": path, "status": code, "ok": code == 200})
     return results
 
 
 def fetch_version(port: int = DEFAULT_PORT, token: Optional[str] = None,
-                  timeout: float = 5.0) -> Optional[Dict[str, Any]]:
+                  timeout: float = 5.0,
+                  window: float = 0.0,
+                  interval: float = SMOKE_RETRY_INTERVAL_SEC,
+                  sleep: Callable[[float], None] = time.sleep) -> Optional[Dict[str, Any]]:
+    """读 /api/version；`window>0` 时对"未就绪/5xx"在窗口内重试。
+
+    【为什么区分 4xx】401/403 = 令牌不对（`.env` 缺 FLASK_API_TOKEN 时就是这个），
+    重试 20 秒也还是 401 ⇒ 立即返回 None，由调用方打"可能是令牌"的提示。
+    默认 window=0 保持老的"一次探测"语义（既有单测依赖它）。
+    """
     url = "http://127.0.0.1:%d%s" % (int(port), VERSION_PATH)
     req = urllib.request.Request(url)
     if token:
         req.add_header("X-API-Token", token)
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read().decode("utf-8", "replace"))
-    except Exception:  # noqa: BLE001 端点未就绪/无令牌都返回 None
-        return None
+    deadline = time.monotonic() + max(0.0, float(window))
+    while True:
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return json.loads(resp.read().decode("utf-8", "replace"))
+        except urllib.error.HTTPError as e:
+            retryable = int(getattr(e, "code", 0) or 0) >= 500
+        except Exception:  # noqa: BLE001 连不上/超时 ⇒ 冷启动最可能的形态
+            retryable = True
+        if not retryable or time.monotonic() >= deadline:
+            return None
+        sleep(interval)
 
 
 def restart_backend(repo_root: Path, python_exe: str, port: int,
@@ -444,7 +498,8 @@ def restart_verify_smoke(repo: Path, args: argparse.Namespace, target: str) -> i
         log("后端已就绪（%s，约 %ss）" % (how, waited))
 
     token = read_env_token(repo)
-    payload = fetch_version(args.port, token)
+    # 冷启动容忍：/api/health 已 200 但 /api/version 可能还没装配好（每次部署都见过的假红）
+    payload = fetch_version(args.port, token, window=SMOKE_RETRY_WINDOW_SEC)
     if payload:
         data = payload.get("data", payload)
         backend = (data or {}).get("backend", {}) or {}
@@ -459,7 +514,8 @@ def restart_verify_smoke(repo: Path, args: argparse.Namespace, target: str) -> i
             log("警告：前端构建戳 commit 与目标不一致（%s != %s）"
                 % (str(build_commit)[:12], target[:12]))
     else:
-        log("未能读取 /api/version（端点未就绪，或需要 .env 里的 FLASK_API_TOKEN）")
+        log("未能读取 /api/version（等了 %ss 仍未就绪；若服务其实是好的，多半是 .env 缺 FLASK_API_TOKEN）"
+            % int(SMOKE_RETRY_WINDOW_SEC))
 
     if args.smoke:
         results = run_smoke(args.port, token, paths=tuple(args.smoke_paths or DEFAULT_SMOKE_PATHS))
