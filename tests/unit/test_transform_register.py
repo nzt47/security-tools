@@ -366,3 +366,34 @@ def test_作业里是旧名字时按_name_解析到主轨_id(tmp_path, monkeypat
     assert enabled_calls == [("pd-gamma", True)]
     md = (tmp_path / "data" / "skills_repo" / "pd-gamma" / "skill.md").read_text(encoding="utf-8")
     assert "enabled: true" in md, "解析到真实 id 后，那一份文件轨也要同步改"
+
+class Test目标是否还在:
+    """队列里"演示数据 / 已删除技能"的作业：启用按钮该先灰掉（2026-11-07）。
+
+    实测：demo-queue（2026-11-03 的演示作业）与 algorithmic-art（2026-11-06 删除）这类
+    作业点「启用」只会吃到一句"两轨都不存在"。列表要能事先算出来，按钮才好灰掉。
+    """
+
+    def test_文件轨在就算在(self, tmp_path):
+        d = tmp_path / "data" / "skills_repo" / "gamma"
+        d.mkdir(parents=True)
+        (d / "skill.md").write_text("---\nid: gamma\n---\n", encoding="utf-8")
+        from agent.skills_mgmt.transform.register import skill_target_present
+        assert skill_target_present("gamma", tmp_path) is True
+
+    def test_主轨id在也算在(self, tmp_path):
+        class FakeSvc:
+            def list_all(self):
+                return [types.SimpleNamespace(id="pd-gamma", name="gamma")]
+
+        import agent.state_manager as state_mod
+        import pytest as _pytest
+        monkeypatch = _pytest.MonkeyPatch()
+        monkeypatch.setattr(state_mod, "get_skills_mgmt_service", lambda: FakeSvc(), raising=False)
+        try:
+            from agent.skills_mgmt.transform.register import skill_target_present
+            assert skill_target_present("pd-gamma", tmp_path) is True
+            assert skill_target_present("gamma", tmp_path) is True      # 按 name 命中
+            assert skill_target_present("demo-queue", tmp_path) is False
+        finally:
+            monkeypatch.undo()

@@ -72,6 +72,11 @@ type Job = {
   updated_at?: string
   /** 台账备注（登记失败原因等，由后端 note 字段带回） */
   note?: string
+  /**
+   * 目标技能**两轨都不存在**（服务端算：demo-queue 这类演示数据、或已被删除的技能）。
+   * 这种作业点「启用」必然 404，按钮该灰掉并说明原因 —— 2026-11-07 实测有 3 条这种记录。
+   */
+  target_missing?: boolean
 }
 
 /** 台账备注（失败原因）——列表与浮层共用一处取值 */
@@ -388,14 +393,22 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                         {j.form === 'tool' ? '登记为工具' : j.form === 'workflow' ? '登记为工作流' : '登记为技能'}
                       </button>
                     )}
-                    {j.form === 'skill' && j.status === 'registered' && (
+                    {j.form === 'skill' && j.status === 'registered' && (j.target_missing ? (
+                      // 目标已不存在（演示数据 / 已删除）：按钮还在但**不可点**，并说明原因。
+                      // 以前这里可点，点了只回一句「两轨都不存在」，等于空按钮。
+                      <button type="button" disabled
+                        className="cursor-not-allowed rounded border border-slate-800 px-1.5 py-0.5 text-[10px] text-slate-500"
+                        title="该技能在两轨都不存在（演示数据或已被删除）：启用不适用，请重新登记或把作业归档">
+                        启用（目标已不存在）
+                      </button>
+                    ) : (
                       <button type="button"
                         className="rounded border border-cyan-800/70 px-1.5 py-0.5 text-[10px] text-cyan-300 hover:bg-cyan-950/40"
                         onClick={() => { setJobPanel(j); setEnableJob(j); setRegisterJob(null); setNotice('') }}
                         title="启用这条已登记的技能（文件轨 + 主轨双写）">
                         启用
                       </button>
-                    )}
+                    ))}
                     {/* 2026-11-05 决定：工具/工作流的「启用」**不进**队列 —— 工具草稿只是骨架，
                         下一步是补实现 + 测试 + 审批（证据都在工具页）；工作流要先试跑。
                         队列只负责把它们指到能判断的地方，避免「在队列里点一下就启用了」的空按钮。 */}
@@ -491,8 +504,13 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                     <div className="mt-1 text-[10px] leading-relaxed text-slate-400">
                       会双写：先改文件轨 skill.md 的 enabled: true，再走主轨 set_enabled（带审计）；主轨失败会回滚文件。
                     </div>
+                    {enableJob.target_missing && (
+                      <div className="mt-1 rounded border border-amber-800/60 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-200">
+                        目标技能在两轨都不存在（演示数据或已被删除）—— 启用不适用，请重新登记或把作业归档。
+                      </div>
+                    )}
                     <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <button type="button" disabled={!!busy} onClick={() => void doEnable()}
+                      <button type="button" disabled={!!busy || !!enableJob.target_missing} onClick={() => void doEnable()}
                         className="flex items-center gap-1 rounded border border-cyan-800 px-2 py-1 text-[10px] text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-40">
                         {busy === enableJob.job_id + ':enable' ? <Loader2 size={10} className="animate-spin" /> : <CheckCircle2 size={10} />}
                         确认启用

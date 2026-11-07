@@ -157,6 +157,44 @@ def register_skill_job(job_id: str, *, open_pr: bool = False,
     }
 
 
+def skill_target_present(skill_id: str, base: Path, *, known: Optional[Tuple[set, set]] = None) -> bool:
+    """作业里的技能目标**现在还在不在**（文件轨或有主轨 id/name 命中）。
+
+    【为什么需要】队列里会留下"演示数据 / 已删除技能"的旧作业（如 2026-11-03 的
+    demo-queue、2026-11-06 删掉的 algorithmic-art）。它们的「启用」按钮点了必然失败，
+    但列表上看不出区别 —— 用户只会收到一句"两轨都不存在"。这里给列表一个可计算的判据，
+    让按钮先灰掉并说明原因。
+
+    known 可传入 (ids, names) 复用一次 list_all()，避免逐条查主轨。
+    """
+    if (base / SKILLS_REPO / skill_id / "skill.md").is_file():
+        return True
+    try:
+        from agent.state_manager import get_skills_mgmt_service
+        svc = get_skills_mgmt_service()
+    except Exception:  # noqa: BLE001 主轨不可用时按"在"处理，别把列表全灰掉
+        return True
+    ids, names = known if known is not None else _skill_id_sets(svc)
+    return skill_id in ids or skill_id in names
+
+
+def _skill_id_sets(svc: Any) -> Tuple[set, set]:
+    """主轨里所有技能的 (id 集合, name 集合)；取不到就返回空集合。"""
+    try:
+        items = svc.list_all()
+    except Exception:  # noqa: BLE001
+        return set(), set()
+    ids, names = set(), set()
+    for item in items:
+        sid = str(getattr(item, "id", "") or "")
+        name = str(getattr(item, "name", "") or "")
+        if sid:
+            ids.add(sid)
+        if name:
+            names.add(name)
+    return ids, names
+
+
 def _resolve_skill_id(skill_id: str, base: Path) -> Tuple[str, str]:
     """作业里的目标 id → 主轨真实 id。
 
@@ -259,7 +297,8 @@ def enable_skill_job(job_id: str, *, root: Optional[Any] = None) -> Dict[str, An
                     getter(resolved_id)
                 except Exception as exc:  # noqa: BLE001
                     raise RegisterError(
-                        "主轨里也没有技能 %s（文件轨与主轨都不存在），无法启用" % resolved_id,
+                        "作业目标 %s 在两轨都不存在（多半是演示数据或技能已被删除）："
+                        "这条作业的「启用」不适用，请重新登记，或把它归档" % resolved_id,
                         code="skill-not-found", status=404) from exc
         svc.set_enabled(resolved_id, True)
     except RegisterError:

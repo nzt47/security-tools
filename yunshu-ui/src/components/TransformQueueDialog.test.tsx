@@ -92,4 +92,20 @@ describe('TransformQueueDialog 行交互', () => {
     expect(text).not.toContain('为技能？')
     expect(api.hubPost).not.toHaveBeenCalled()   // 仍未提交
   })
+it('目标技能已不存在的作业：启用按钮灰掉并说明原因（不再是可以点的空按钮）', async () => {
+    const payload = {
+      ok: true, broken: 0, items: [],
+      jobs: [{
+        job_id: 'transform:demo', source: 'transform', source_ref: 'demo', form: 'skill',
+        title: 'demo-queue', status: 'registered',
+        target: { kind: 'skill', id: 'demo-queue' }, target_missing: true,
+      }],
+    }
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, json: async () => payload })))
+    render(<TransformQueueDialog embedded />)
+    const btn = await screen.findByRole('button', { name: /目标已不存在/ })
+    expect(btn).toBeDisabled()
+    expect(btn.getAttribute('title')).toContain('两轨都不存在')
+  })
 })
+

@@ -364,6 +364,34 @@ def register_routes(app, state):
     #  + 按 transform_id 的反向补丁回滚（全有或全无，先预览再落盘）
     # ═══════════════════════════════════════════════════
 
+    def _mark_missing_skill_targets(jobs):
+        """给每条作业标 target_missing：目标技能**两轨都不存在**。
+
+        【为什么在服务端算】队列里留着演示/已删除技能的旧作业（demo-queue、
+        algorithmic-art 等），它们的「启用」必然失败。界面要据此把按钮灰掉，
+        而不是让人点完再吃一句"两轨都不存在"。一次 list_all() 复用给全部作业。
+        """
+        from agent.skills_mgmt.transform import register as _reg
+        try:
+            from pathlib import Path as _Path
+            base = _Path(_reg.__file__).resolve().parents[3]
+            from agent.state_manager import get_skills_mgmt_service
+            known = _reg._skill_id_sets(get_skills_mgmt_service())
+        except Exception:  # noqa: BLE001 主轨不可用 ⇒ 不标（宁可多显示按钮，也不误灰）
+            return jobs
+        out = []
+        for job in jobs:
+            target = job.get("target") or {}
+            item = dict(job)
+            if str(target.get("kind") or "") == "skill":
+                sid = str(target.get("id") or "").strip()
+                item["target_missing"] = bool(sid) and not _reg.skill_target_present(
+                    sid, base, known=known)
+            else:
+                item["target_missing"] = False
+            out.append(item)
+        return out
+
     @app.route("/api/skills-mgmt/transforms", methods=["GET"])
     # require_token 放最外层：REQUIRES_TOKEN_ATTR 要挂在 Flask 最终持有的视图函数上
     # （放里层会被 trace_route 的 wrapper 吞掉，静态鉴权守卫看不见 —— 2026-11-01 实测）。
@@ -390,6 +418,7 @@ def register_routes(app, state):
             from agent.skills_mgmt.transform.jobs import list_jobs, summary as _jobs_summary
             jobs = list_jobs(limit=200)
             jobs_sum = _jobs_summary()
+            jobs = _mark_missing_skill_targets(jobs)
         except Exception as e:  # noqa: BLE001
             logger.warning("读取转化作业台账失败（降级为空）: %s", e)
             jobs, jobs_sum = [], {"total": 0, "by_status": {}, "by_source": {}}
