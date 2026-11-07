@@ -25,6 +25,10 @@ import InstalledExtensions from '../extensions/installed-extensions'
 import { fetchCapabilityManifest, indexCallability, type CallabilityInfo } from '@/lib/callability'
 import { getEnvelope } from '@/api/envelope'
 import DescriptionCell from '@/components/DescriptionCell'
+// 列宽拖动的**唯一实现**（2026-11-08：工具集/工作流也用它，三张表同口径）
+import ColResizer from '@/components/ColResizer'
+import { useResizableColumns } from '@/lib/tableCols'
+import { TABLE_BTN, TABLE_BTN_INFO, TABLE_BTN_DANGER } from '@/lib/tableActions'
 
 import {
   SKILLS,
@@ -63,10 +67,12 @@ import {
   skillVersionsRollback,
 } from '@/api/endpoints';
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-const BTN_EM = `${BTN} border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10`
+// 【2026-11-08】按钮形状与颜色改为三张表共用常量（工具集/工作流同步换成这一份）：
+// 形状只有一处定义，颜色表达语义（中性/主动作/信息/破坏性）。别名仅为减少本文件改动面。
+const BTN = TABLE_BTN
+const BTN_EM = TABLE_BTN_INFO
+const BTN_RED = TABLE_BTN_DANGER
 const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
-const BTN_RED = `${BTN} hover:bg-red-500/10 hover:text-red-400`
 
 // ── 列宽（可拖动）+ 说明全文弹窗 ──────────────────────────────────────
 // 中文说明长短差异极大（有的 20 字、有的 400 字），固定列宽要么截断要么把表撑爆；
@@ -76,19 +82,6 @@ const DEFAULT_COLS: Record<ColKey, number> = {
   name: 260, desc: 340, badges: 220, status: 88, review: 88, score: 92, usage: 112, ops: 320,
 }
 const COL_STORE = 'yunshu.skills.table.cols.v1'
-
-function ColResizer({ onStart, onReset }: { onStart: (e: React.MouseEvent) => void; onReset: () => void }) {
-  return (
-    <span
-      role="separator"
-      aria-label="拖动调整列宽"
-      title="拖动调整列宽（双击恢复默认）"
-      onMouseDown={onStart}
-      onDoubleClick={onReset}
-      className="ml-1 inline-block h-3 w-1 cursor-col-resize rounded-sm bg-slate-700 align-middle hover:bg-cyan-500"
-    />
-  )
-}
 
 interface Finding { severity: string; category: string; code: string; message: string; location?: string }
 interface ReviewLike {
@@ -546,37 +539,9 @@ export default function SkillAssessManager() {
   }
 
   // ── 可拖动列宽（持久化到 localStorage；双击手柄恢复默认）──────────────
-  const [cols, setCols] = useState<Record<ColKey, number>>(() => {
-    try {
-      const raw = localStorage.getItem(COL_STORE)
-      const parsed = raw ? (JSON.parse(raw) as Partial<Record<ColKey, number>>) : null
-      return { ...DEFAULT_COLS, ...(parsed ?? {}) }
-    } catch { return DEFAULT_COLS }
-  })
-  const dragRef = useRef<{ key: ColKey; x: number; w: number } | null>(null)
-  const startColDrag = (key: ColKey) => (e: React.MouseEvent) => {
-    e.preventDefault(); e.stopPropagation()
-    dragRef.current = { key, x: e.clientX, w: cols[key] }
-    const move = (ev: MouseEvent) => {
-      const d = dragRef.current
-      if (!d) return
-      const next = Math.max(80, Math.min(720, d.w + (ev.clientX - d.x)))
-      setCols((prev) => ({ ...prev, [d.key]: next }))
-    }
-    const up = () => {
-      window.removeEventListener('mousemove', move)
-      window.removeEventListener('mouseup', up)
-      dragRef.current = null
-      setCols((prev) => { try { localStorage.setItem(COL_STORE, JSON.stringify(prev)) } catch { /* 隐私模式忽略 */ } return prev })
-    }
-    window.addEventListener('mousemove', move)
-    window.addEventListener('mouseup', up)
-  }
-  const resetCol = (key: ColKey) => setCols((prev) => {
-    const next = { ...prev, [key]: DEFAULT_COLS[key] }
-    try { localStorage.setItem(COL_STORE, JSON.stringify(next)) } catch { /* 忽略 */ }
-    return next
-  })
+  // 状态/拖拽/持久化都在 lib/tableCols（工具集与工作流用的是同一份），这里只留列 key 的类型。
+  const { cols, startDrag, reset: resetCol } = useResizableColumns(DEFAULT_COLS, COL_STORE)
+  const startColDrag = (key: ColKey) => startDrag(key)
   /** 说明全文弹窗：中文说明可达 400 字，列窄时用弹窗看全文而不是把表撑开 */
   const [descTarget, setDescTarget] = useState<{ id: string; name: string; text: string } | null>(null)
 

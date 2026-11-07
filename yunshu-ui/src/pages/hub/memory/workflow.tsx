@@ -10,6 +10,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Eye, Play, Trash2 } from 'lucide-react'
 import { Card, Loading, ErrorBox, DataTable, Badge, hubPost, hubDelete } from '../components/ui'
 import DescriptionCell from '@/components/DescriptionCell'
+// 行内按钮形状与技能中心/工具集同一口径（2026-11-08 统一；颜色表达语义）
+import { TABLE_BTN, TABLE_BTN_PRIMARY, TABLE_BTN_INFO, TABLE_BTN_DANGER } from '@/lib/tableActions'
 
 import {
   WORKFLOW_LEARNING_WORKFLOWS,
@@ -49,6 +51,13 @@ export function workflowChain(steps?: WorkflowStep[]): string {
   if (!tools.length) return '—'
   return tools.slice(0, 5).join(' → ') + (tools.length > 5 ? ' → …' : '')
 }
+
+/** 工作流表各列默认宽度（px）：列宽可拖（与技能中心同口径），这些只是初值 */
+const WORKFLOW_COL_WIDTHS: Record<string, number> = {
+  name: 240, description: 340, steps: 200, workflow_type: 130, enabled: 110, stats: 150, actions: 300,
+}
+/** 表格最小宽度（px）：7 列低于这个宽度就横向滚动 */
+const WORKFLOW_TABLE_MIN_WIDTH = 980
 
 /** 列表体（技能中心「工作流技能」Tab 复用；页面/中心各自提供外壳） */
 export function MemoryWorkflowTable() {
@@ -160,6 +169,11 @@ export function MemoryWorkflowTable() {
           <DataTable
             data={items}
             keyField="id"
+            // 列宽可自由拖动（与技能中心同一份实现：lib/tableCols + components/ColResizer）
+            resizable
+            colStore="yunshu.workflows.table.cols.v1"
+            colWidths={WORKFLOW_COL_WIDTHS}
+            minWidth={WORKFLOW_TABLE_MIN_WIDTH}
             rowProps={(r) => (String(r.id) === focusWorkflow ? { 'data-focus-workflow': String(r.id) } : {})}
             empty="暂无工作流。工作流由历史交互自动学习，或在「可视化编辑」里编排。"
             columns={[
@@ -220,24 +234,25 @@ export function MemoryWorkflowTable() {
               {
                 key: 'actions', title: '操作',
                 render: (r) => (
-                  <div className="flex flex-wrap gap-2">
-                    <button onClick={() => setDetail(r)} className="flex items-center gap-1 rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800" title="查看说明、触发词与步骤定义">
+                  <div className="flex flex-wrap items-center gap-1">
+                    <button onClick={() => setDetail(r)} className={TABLE_BTN} title="查看说明、触发词与步骤定义">
                       <Eye size={11} /> 查看
                     </button>
-                    <button onClick={() => exec(r.id, String(r.source_user_input ?? r.name ?? r.id ?? ''))} className="flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-500" title="立即执行该工作流">
+                    <button onClick={() => exec(r.id, String(r.source_user_input ?? r.name ?? r.id ?? ''))} className={TABLE_BTN_PRIMARY} title="立即执行该工作流">
                       <Play size={11} /> 执行
                     </button>
-                    <button onClick={() => toggle(r.id)} className="rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800" title={r.enabled ? '停用该工作流' : '启用该工作流'}>
+                    {/* 启停：启用=主动作色、停用=中性色（与工具集/技能中心同一个判断） */}
+                    <button onClick={() => toggle(r.id)} className={r.enabled ? TABLE_BTN : TABLE_BTN_PRIMARY} title={r.enabled ? '停用该工作流' : '启用该工作流'}>
                       {r.enabled ? '停用' : '启用'}
                     </button>
                     <button onClick={() => void remove(r)}
-                      className="flex items-center gap-1 rounded-md border border-red-900/60 px-3 py-1.5 text-xs text-red-300 hover:bg-red-950/40"
+                      className={TABLE_BTN_DANGER}
                       title="删除该工作流（不可恢复）；自动学习产生的同名重复项可用它清理">
                       <Trash2 size={11} /> 删除
                     </button>
                     <button
                       onClick={() => convert(r)}
-                      className="flex items-center gap-1 rounded-md border border-emerald-800/70 px-3 py-1.5 text-xs text-emerald-300 hover:bg-emerald-950/40"
+                      className={TABLE_BTN_INFO}
                       title={
                         r.converted_to_skill_id
                           ? `已导出 LLM 参考 ${r.converted_to_skill_id}（再次点击返回既有参考）`
