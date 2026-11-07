@@ -70,7 +70,7 @@
       "name": "tools",
       "layer": "tools",
       "file_path": "",
-      "in_degree": 13,
+      "in_degree": 14,
       "out_degree": 19
     },
     {
@@ -278,7 +278,7 @@
       "name": "agent",
       "layer": "unknown",
       "file_path": "",
-      "in_degree": 55,
+      "in_degree": 56,
       "out_degree": 0
     },
     {
@@ -750,7 +750,7 @@
       "name": "models",
       "layer": "workflow_learning",
       "file_path": "",
-      "in_degree": 5,
+      "in_degree": 6,
       "out_degree": 0
     },
     {
@@ -1615,6 +1615,30 @@
       "layer": "skills_mgmt",
       "file_path": "",
       "in_degree": 3,
+      "out_degree": 0
+    },
+    {
+      "path": "agent.ingestion.register_draft",
+      "name": "register_draft",
+      "layer": "ingestion",
+      "file_path": "agent/ingestion/register_draft.py",
+      "in_degree": 0,
+      "out_degree": 5
+    },
+    {
+      "path": "agent.workflow_learning.repository",
+      "name": "repository",
+      "layer": "workflow_learning",
+      "file_path": "",
+      "in_degree": 2,
+      "out_degree": 0
+    },
+    {
+      "path": "agent.skills_mgmt",
+      "name": "skills_mgmt",
+      "layer": "skills_mgmt",
+      "file_path": "",
+      "in_degree": 13,
       "out_degree": 0
     },
     {
@@ -2714,14 +2738,6 @@
       "out_degree": 3
     },
     {
-      "path": "agent.skills_mgmt",
-      "name": "skills_mgmt",
-      "layer": "skills_mgmt",
-      "file_path": "",
-      "in_degree": 12,
-      "out_degree": 0
-    },
-    {
       "path": "agent.multi_tenant",
       "name": "multi_tenant",
       "layer": "core",
@@ -3416,14 +3432,6 @@
       "file_path": "",
       "in_degree": 1,
       "out_degree": 1
-    },
-    {
-      "path": "agent.workflow_learning.repository",
-      "name": "repository",
-      "layer": "workflow_learning",
-      "file_path": "",
-      "in_degree": 1,
-      "out_degree": 0
     },
     {
       "path": "agent.process_distill.sources",
@@ -10241,7 +10249,7 @@
       "source_layer": "ingestion",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
-      "line": 336,
+      "line": 346,
       "source_file": "agent/ingestion/drafts.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -10283,6 +10291,71 @@
       "line": 400,
       "source_file": "agent/ingestion/governance.py",
       "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ingestion.register_draft",
+      "target": "agent.tools",
+      "source_layer": "ingestion",
+      "target_layer": "tools",
+      "import_type": "from_import",
+      "line": 148,
+      "source_file": "agent/ingestion/register_draft.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ingestion.register_draft",
+      "target": "agent.workflow_learning.models",
+      "source_layer": "ingestion",
+      "target_layer": "workflow_learning",
+      "import_type": "from_import",
+      "line": 250,
+      "source_file": "agent/ingestion/register_draft.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ingestion.register_draft",
+      "target": "agent.workflow_learning.repository",
+      "source_layer": "ingestion",
+      "target_layer": "workflow_learning",
+      "import_type": "from_import",
+      "line": 251,
+      "source_file": "agent/ingestion/register_draft.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ingestion.register_draft",
+      "target": "agent.skills_mgmt",
+      "source_layer": "ingestion",
+      "target_layer": "skills_mgmt",
+      "import_type": "from_import",
+      "line": 105,
+      "source_file": "agent/ingestion/register_draft.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ingestion.register_draft",
+      "target": "agent",
+      "source_layer": "ingestion",
+      "target_layer": "unknown",
+      "import_type": "from_import",
+      "line": 174,
+      "source_file": "agent/ingestion/register_draft.py",
+      "is_cross_layer": false,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -32077,10 +32150,10 @@
     }
   ],
   "stats": {
-    "total_files": 725,
-    "total_nodes": 629,
-    "total_edges": 2080,
-    "cross_layer_edges": 1314,
+    "total_files": 726,
+    "total_nodes": 630,
+    "total_edges": 2085,
+    "cross_layer_edges": 1318,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -32118,7 +32191,7 @@
       "handoff": 1,
       "health": 7,
       "human_in_the_loop": 5,
-      "ingestion": 7,
+      "ingestion": 8,
       "knowledge": 28,
       "lazy_loader": 3,
       "learning": 2,
