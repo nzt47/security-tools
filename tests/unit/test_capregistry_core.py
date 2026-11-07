@@ -168,9 +168,11 @@ class TestQuery:
         # （此前只在运行时台账里，仓库可复现口径因此少算 8 条）。
         # 【2026-10-31】133/42 → 135/44、local 112 → 114：autoresearch / pdf 入文件轨
         # （§11.32 C · N5；两条技能此前只在本机运行期，干净检出看不到）。
-        assert st["total"] == 139, f"能力总数应为 139，实际 {st['total']}"
-        assert st["by_kind"] == {"skill": 46, "tool": 93}
-        assert st["by_location"] == {"local": 117, "remote": 22}
+        # 【2026-11-07】139 → 140、skill 46 → 47、local 117 → 118：
+        # chart-visualization（演示技能）入文件轨，见 §11.57 ①。
+        assert st["total"] == 140, f"能力总数应为 140，实际 {st['total']}"
+        assert st["by_kind"] == {"skill": 47, "tool": 93}
+        assert st["by_location"] == {"local": 118, "remote": 22}
         assert st["degraded"] is False
 
     def test_主键索引_tenant_name(self, real_registry):
@@ -186,7 +188,8 @@ class TestQuery:
         # 【2026-10-24】36 → 35：query 默认 enabled_only=True，gstack 以 enabled=false
         # 回到文件轨后被排除（stats 里仍是 36，两者口径不同，见下一条用例注释）
         # 【2026-10-31】41 -> 43：autoresearch / pdf 入文件轨（enabled_only 口径同 stats-1）
-        assert len(tools) == 93 and len(skills) == 44
+        # 【2026-11-07】44 → 45：chart-visualization 启用态（enabled: true）⇒ enabled_only 口径 +1
+        assert len(tools) == 93 and len(skills) == 45
         remote = real_registry.query(location="remote")
         # 【2026-11-05】21 -> 22：software_install（subprocess.run ⇒ location=remote）
         assert len(remote) == 22
@@ -201,7 +204,7 @@ class TestQuery:
     @_SKIP_COMMITTED_BASELINE
     def test_索引_确实被构建(self, real_registry):
         idx = real_registry.stats()["index"]
-        assert idx["primary"] == 139  # 【2026-10-31】+2：autoresearch / pdf 入文件轨
+        assert idx["primary"] == 140  # 【2026-11-07】+1：chart-visualization 入文件轨
         assert idx["facet"] >= 1
 
 
