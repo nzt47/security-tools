@@ -2132,6 +2132,8 @@ flowchart LR
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_reviewer
     agent_server_routes_routes_skills_mgmt -.-> agent_audit_ui_middleware
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform
+    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform
+    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform_register
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform_register
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_skill_manager
@@ -2140,6 +2142,7 @@ flowchart LR
     agent_server_routes_routes_skills_mgmt -.-> agent_state_manager
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform_queue
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform_jobs
+    agent_server_routes_routes_skills_mgmt -.-> agent_audit
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform_queue
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform_queue
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform_queue
@@ -2727,7 +2730,9 @@ flowchart LR
     agent_tools_pdf_tools --> agent
     agent_tools_pdf_tools -.-> agent_logging_utils
     agent_tools_pdf_tools -.-> agent_pdf_tools
+    agent_tools_persistence -.-> agent_safe_paths
     agent_tools_persistence --> agent_tools_tool_generator
+    agent_tools_persistence --> agent
     agent_tools_persistence --> agent
     agent_tools_plan_tools --> agent
     agent_tools_plan_tools -.-> agent_observability_trace_v2
@@ -2849,7 +2854,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 728
 - 模块节点数: 631
-- 依赖边数: 2090
-- 跨层调用数: 1323
+- 依赖边数: 2095
+- 跨层调用数: 1327
 - 违规调用数: 0
 - 动态 import 数: 1
