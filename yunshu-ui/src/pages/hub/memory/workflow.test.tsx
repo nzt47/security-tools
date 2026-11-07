@@ -6,6 +6,8 @@ const env = vi.hoisted(() => ({ getEnvelope: vi.fn() }))
 vi.mock('@/api/envelope', () => ({ getEnvelope: env.getEnvelope }))
 
 import { MemoryWorkflowTable, workflowChain, workflowSummary } from './workflow'
+// 三张表共用的按钮常量：用例断言页面真的用了这一份（不各写一套）
+import { TABLE_BTN, TABLE_BTN_PRIMARY, TABLE_BTN_INFO, TABLE_BTN_DANGER } from '@/lib/tableActions'
 
 const WF = {
   id: 'weekly-report',
@@ -97,3 +99,31 @@ it('说明列最多 3 行自动换行（不再是 truncate 的单行截断）', 
   })
 })
 
+describe('工作流表 · 列宽可拖 + 按钮与技能中心同口径（2026-11-08）', () => {
+  it('表头 7 列都有拖动手柄，表是 table-fixed + colgroup（与技能中心同一实现）', async () => {
+    env.getEnvelope.mockResolvedValue({ ok: true, total: 1, items: [WF] })
+    const { container } = render(<MemoryWorkflowTable />)
+    await screen.findByText('周报生成')
+
+    expect(screen.getAllByRole('separator', { name: '拖动调整列宽' })).toHaveLength(7)
+    const table = container.querySelector('table')!
+    expect(table.className).toContain('table-fixed')
+    const cols = table.querySelectorAll('colgroup > col')
+    expect(cols.length).toBe(7)
+    // 默认宽度来自模块常量（WORKFLOW_COL_WIDTHS.name = 240）
+    expect((cols[0] as HTMLElement).style.width).toBe('240px')
+  })
+
+  it('行内按钮用 @/lib/tableActions 的常量：查看中性 / 执行主动作 / 删除破坏性 / 导出信息', async () => {
+    env.getEnvelope.mockResolvedValue({ ok: true, total: 1, items: [WF] })
+    render(<MemoryWorkflowTable />)
+    await screen.findByText('周报生成')
+
+    expect(screen.getByRole('button', { name: /查看/ }).className).toBe(TABLE_BTN)
+    expect(screen.getByRole('button', { name: /执行/ }).className).toBe(TABLE_BTN_PRIMARY)
+    expect(screen.getByRole('button', { name: /删除/ }).className).toBe(TABLE_BTN_DANGER)
+    expect(screen.getByRole('button', { name: /导出为 LLM 参考/ }).className).toBe(TABLE_BTN_INFO)
+    // 已启用 ⇒ 动作是「停用」⇒ 中性色（与工具集同一判断）
+    expect(screen.getByRole('button', { name: '停用' }).className).toBe(TABLE_BTN)
+  })
+})

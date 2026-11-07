@@ -21,6 +21,8 @@ vi.mock('../components/ui', async (importOriginal) => {
 })
 
 const { default: ToolsToolset } = await import('./toolset')
+// 三张表共用的按钮常量：用例断言「页面真的用了这一份」，而不是各写一套
+const actions = await import('@/lib/tableActions')
 
 const TOOLS = [
   { name: 'read_file', enabled: true },
@@ -188,5 +190,47 @@ describe('工具集 · 深链定位（?tool=）', () => {
     await waitFor(() => expect(screen.getByText(/未找到工具/)).toBeInTheDocument())
     expect(screen.queryByText(/正在定位/)).toBeNull()
     window.history.replaceState(null, '', '/')
+  })
+})
+describe('工具集 · 列宽可拖 + 按钮与技能中心同口径（2026-11-08）', () => {
+  beforeEach(() => {
+    mocks.getEnvelope.mockReset()
+    mocks.hubGet.mockReset()
+    mocks.hubPost.mockReset()
+    routeHubGet({})
+  })
+  afterEach(cleanup)
+
+  it('表头每个内容列都有拖动手柄，表是 table-fixed + colgroup（与技能中心同一实现）', async () => {
+    mocks.getEnvelope.mockResolvedValue([{ name: 'read_file', enabled: true }])
+    const { container } = render(<ToolsToolset />)
+    await waitFor(() => expect(screen.getByText('read_file')).toBeInTheDocument())
+
+    // 工具表 8 列 ⇒ 8 个手柄（技能中心/工作流用的是同一个 components/ColResizer）
+    expect(screen.getAllByRole('separator', { name: '拖动调整列宽' })).toHaveLength(8)
+    const table = container.querySelector('table')!
+    expect(table.className).toContain('table-fixed')
+    const cols = table.querySelectorAll('colgroup > col')
+    expect(cols.length).toBe(8)
+    // 默认宽度来自模块常量（TOOL_COL_WIDTHS.name = 240）
+    expect((cols[0] as HTMLElement).style.width).toBe('240px')
+  })
+
+  it('行内按钮用 @/lib/tableActions 的四个常量（形状一致、颜色表语义）', async () => {
+    mocks.getEnvelope.mockResolvedValue([
+      { name: 'read_file', enabled: true },
+      { name: 'byted_x', enabled: false, runtime: true, removable: true },
+    ])
+    render(<ToolsToolset />)
+    await waitFor(() => expect(screen.getByText('read_file')).toBeInTheDocument())
+
+    const enabledRow = screen.getByText('read_file').closest('tr')!
+    // 已启用 ⇒ 动作是「停用」⇒ 中性色
+    expect(within(enabledRow).getByRole('button', { name: '停用' }).className).toBe(actions.TABLE_BTN)
+    const disabledRow = screen.getByText('byted_x').closest('tr')!
+    // 未启用 ⇒ 动作是「启用」⇒ 主动作色
+    expect(within(disabledRow).getByRole('button', { name: '启用' }).className).toBe(actions.TABLE_BTN_PRIMARY)
+    // 移除 = 破坏性
+    expect(within(disabledRow).getByRole('button', { name: '移除' }).className).toBe(actions.TABLE_BTN_DANGER)
   })
 })

@@ -32,6 +32,8 @@ import { Power, ShieldAlert, Trash2 } from 'lucide-react'
 import { Card, Loading, ErrorBox, DataTable, Badge, CallabilityBadge, PageHeader, hubGet, hubPost } from '../components/ui'
 import { callabilityCounts, callabilityLegend, hasCallabilityMark, type CallabilityInfo } from '@/lib/callability'
 import DescriptionCell from '@/components/DescriptionCell'
+// 行内按钮形状与技能中心/工作流同一口径（2026-11-08：三张表按钮大小不一，统一到 lib/tableActions）
+import { TABLE_BTN_DANGER, toggleBtnClass } from '@/lib/tableActions'
 // 深链里的名字常是作业/卡片 id（连字符），注册表里是下划线 —— 归一与查行见叶子模块
 import { findToolByName } from '@/lib/toolName'
 // 【P1-front 第四批】后端 GET /api/tools/config 已带 X-Envelope: v2，改用显式信封解析。
@@ -95,6 +97,13 @@ const EFFECT_LABEL: Record<string, string> = {
 }
 /** 定位：高亮持续时长（毫秒）——横幅会一直说明"已定位到"，高亮只是放大器 */
 const FOCUS_HIGHLIGHT_MS = 8000
+
+/** 工具表各列默认宽度（px）：列宽可拖（与技能中心同口径），这些只是初值 */
+const TOOL_COL_WIDTHS: Record<string, number> = {
+  name: 240, description: 360, effect: 96, risk: 88, category: 110, usage: 120, enabled: 96, actions: 200,
+}
+/** 表格最小宽度（px）：8 列低于这个宽度就横向滚动，不把「说明」挤成一条竖线 */
+const TOOL_TABLE_MIN_WIDTH = 1080
 /** 定位：等待目标行画出来的帧数上限（约 0.2s@60fps）；超时如实报"没找到"，不许一直"正在定位" */
 const FOCUS_RETRY_FRAMES = 12
 
@@ -414,19 +423,21 @@ export default function ToolsToolset() {
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => toggle(String(r.name), Boolean(r.enabled))}
-            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs ${r.enabled ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-emerald-600 text-white hover:bg-emerald-500'}`}
+            // 形状/字号与技能中心、工作流同一常量（启用=主动作色，停用=中性色）
+            className={toggleBtnClass(r.enabled)}
+            title={r.enabled ? '停用该工具' : '启用该工具'}
           >
-            <Power size={12} /> {r.enabled ? '停用' : '启用'}
+            <Power size={11} /> {r.enabled ? '停用' : '启用'}
           </button>
           {/* 【只给运行时登记的工具】内建工具是代码注册：删了下次启动又回来，真删必须改代码 +
               重派生五处（口径 §3.1）⇒ 页面不给按钮，避免"点了就删了"的错觉。 */}
           {r.removable && (
             <button
               onClick={() => void openRemove(String(r.name))}
-              className="flex items-center gap-1.5 rounded-md border border-rose-800/70 px-2 py-1.5 text-xs text-rose-300 hover:bg-rose-950/40"
+              className={TABLE_BTN_DANGER}
               title="移除这个**运行时登记**的工具：台账 + YAML + 实现 + 单测 + UI 开关（先预览再确认；内建工具需走 PR）"
             >
-              <Trash2 size={12} /> 移除
+              <Trash2 size={11} /> 移除
             </button>
           )}
         </div>
@@ -527,6 +538,11 @@ export default function ToolsToolset() {
                   <span className="ml-auto text-xs text-slate-500">{g.rows.length} 个</span>
                 </div>
                 <DataTable data={g.rows} keyField="name" columns={columns}
+                  // 列宽可自由拖动（与技能中心同一份实现）：8 列在宽屏上按默认宽度铺开，窄屏横向滚动
+                  resizable
+                  colStore="yunshu.tools.table.cols.v1"
+                  colWidths={TOOL_COL_WIDTHS}
+                  minWidth={TOOL_TABLE_MIN_WIDTH}
                   rowProps={(row) => (row.name === focusRow ? { 'data-focus-tool': row.name } : {})} />
               </Card>
             )
