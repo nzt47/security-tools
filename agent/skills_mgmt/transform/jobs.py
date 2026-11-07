@@ -293,18 +293,13 @@ def remove_job(jid: str, *, root: Optional[Any] = None) -> Dict[str, Any]:
 
 #: 允许被"彻底删除"清掉的工件根：仓库内 + 系统临时目录（pytest/演示产物的落点）
 def _allowed_artifact_roots() -> List[Path]:
-    """允许被"彻底删除"清掉的工件根：仓库内 + 各类系统临时目录。
+    """允许被"彻底删除"清掉的工件根：仓库内 + 系统临时目录。
 
-    【为什么不止 tempfile.gettempdir()】本仓的单测把 tempfile.tempdir 重定向到
-    仓库内 .pytest_tmp（跨平台可诊断），而 pytest 的 tmp_path 仍可能落在系统 TEMP
-    （basetemp 在夹具生效前就已定下）——只认一个来源会让"删自己的测试工件"被误拒。
-    生产上这三者本来就指向同一处（系统 TEMP，Windows 上是 C:/Windows/Temp）。
+    【为什么不读 TEMP/TMP 环境变量】本仓的「开关零缺口」守卫会 AST 扫描 os.environ 读取，
+    要求每个读取点都进 agent/settings/registry.py —— 而 TEMP 是操作系统给的，不是产品开关，
+    为它登记一条开关语义是错的。这里只用 tempfile.gettempdir()（内部已处理平台差异）。
     """
     candidates = [Path(".").resolve(), Path(__file__).resolve().parents[3] / ".pytest_tmp"]
-    for env in ("TEMP", "TMP"):
-        raw = os.environ.get(env)
-        if raw:
-            candidates.append(Path(raw))
     try:
         candidates.append(Path(tempfile.gettempdir()))
     except Exception:  # noqa: BLE001 取不到临时目录就只认仓库内
@@ -318,7 +313,8 @@ def _allowed_artifact_roots() -> List[Path]:
     return out
 
 
-def artifact_targets(job: Dict[str, Any]) -> List[Dict[str, Any]]:
+def artifact_targets(job: Dict[str, Any], *,
+                     allowed_roots: Optional[List[Any]] = None) -> List[Dict[str, Any]]:
     """列出这条作业的工件目录（**只报告，不删**）：给删除前的预览用。
 
     每条给出 {path, exists, allowed, files}。allowed=False 的**不会**被删除
@@ -332,8 +328,10 @@ def artifact_targets(job: Dict[str, Any]) -> List[Dict[str, Any]]:
         resolved = p.resolve()
     except OSError:
         resolved = p
+    roots = ([Path(r) for r in allowed_roots] if allowed_roots is not None
+             else _allowed_artifact_roots())
     allowed = any(
-        str(resolved).lower().startswith(str(r).lower() + os.sep) for r in _allowed_artifact_roots()
+        str(resolved).lower().startswith(str(r).lower() + os.sep) for r in roots
     )
     files: List[str] = []
     exists = resolved.is_dir()
@@ -346,11 +344,12 @@ def artifact_targets(job: Dict[str, Any]) -> List[Dict[str, Any]]:
              "files": files}]
 
 
-def purge_artifacts(job: Dict[str, Any]) -> Dict[str, List[str]]:
+def purge_artifacts(job: Dict[str, Any], *,
+                    allowed_roots: Optional[List[Any]] = None) -> Dict[str, List[str]]:
     """删掉作业的工件目录（**仅 allowed 的那些**）；返回 {deleted, skipped}。"""
     deleted: List[str] = []
     skipped: List[str] = []
-    for item in artifact_targets(job):
+    for item in artifact_targets(job, allowed_roots=allowed_roots):
         if not item["exists"]:
             continue
         if not item["allowed"]:

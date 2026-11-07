@@ -73,13 +73,13 @@ def test_artifact_targets_marks_allowed_and_purges(tmp_path):
     (art / "card.md").write_text("x", encoding="utf-8")
     jid = _seed(tmp_path, jid="ing_e", artifacts=str(art))
     job = J.get_job(jid, root=tmp_path)
-    targets = J.artifact_targets(job)
+    targets = J.artifact_targets(job, allowed_roots=[tmp_path])
     assert len(targets) == 1
     assert targets[0]["exists"] is True
     assert targets[0]["allowed"] is True
     assert "card.md" in targets[0]["files"]
 
-    purged = J.purge_artifacts(job)
+    purged = J.purge_artifacts(job, allowed_roots=[tmp_path])
     assert purged["deleted"] and not purged["skipped"]
     assert not art.exists()
 

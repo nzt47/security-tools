@@ -38,6 +38,8 @@ logger = logging.getLogger(__name__)
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 CUSTOM_TOOLS_DIR = os.path.join(_ROOT, "agent", "tools", "custom")
 TOOL_DEFS_DIR = os.path.join(_ROOT, "data", "tool_definitions")
+#: 运行时工具的单测落点（移除时一并清掉；与 register_draft 的拷贝目标同源）
+TESTS_UNIT_DIR = os.path.join(_ROOT, "tests", "unit")
 
 _LOCK = threading.RLock()
 _index_path: Optional[str] = None
@@ -367,13 +369,25 @@ def runtime_tool_names() -> List[str]:
 
 
 def runtime_tool_files(name: str) -> List[str]:
-    """一个运行时工具在磁盘上的落点（存在才列）：实现 / YAML / 单测。"""
-    candidates = [
-        os.path.join(CUSTOM_TOOLS_DIR, name + ".py"),
-        os.path.join(TOOL_DEFS_DIR, name + ".yaml"),
-        os.path.join(_ROOT, "tests", "unit", "test_" + name + ".py"),
-    ]
-    return [p for p in candidates if os.path.isfile(p)]
+    """一个运行时工具在磁盘上的落点（存在才列）：实现 / YAML / 单测。
+
+    【为什么用 enumerate_path 而不是 os.path.join】名字来自请求（工具名），直接拼进路径
+    会被判 py/path-injection（C-10 的口径：resolve+前缀校验、正则白名单、basename 都不被认）。
+    这里让名字**只参与比较**：逐段列父目录、按 child.name 等值匹配，真正进路径的是
+    listdir 出来的名字（agent/safe_paths.enumerate_path）。
+    """
+    from agent.safe_paths import enumerate_path
+
+    out: List[str] = []
+    for base, filename in (
+        (CUSTOM_TOOLS_DIR, name + ".py"),
+        (TOOL_DEFS_DIR, name + ".yaml"),
+        (TESTS_UNIT_DIR, "test_" + name + ".py"),
+    ):
+        found = enumerate_path(filename, base=base)
+        if found is not None and found.is_file():
+            out.append(str(found))
+    return out
 
 
 def _tool_config_path() -> str:
@@ -463,8 +477,13 @@ def remove_runtime_tool(name: str, *, dry_run: bool = True, confirm: bool = Fals
             return {"ok": False, "error": "需要 confirm=true 才真正移除",
                     "reason": "need_confirm", "files": plan["files"]}
 
+        # 备份目录名只用**名字的 sha256 摘要**（口径 §4.3：摘要是被静态分析认的屏障；
+        # 直接拼名字会被判 path-injection，而名字本身进摘要也不可逆）
+        import hashlib
+
+        digest = hashlib.sha256(name.encode("utf-8")).hexdigest()[:12]
         backup = backup_dir or tempfile.mkdtemp(
-            prefix="tool-remove-" + name + "-",
+            prefix="tool-remove-" + digest + "-",
             dir=os.path.join(_ROOT, "data", "backups"))
         os.makedirs(backup, exist_ok=True)
         try:
