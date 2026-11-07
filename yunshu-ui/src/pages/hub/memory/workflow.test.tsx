@@ -83,4 +83,17 @@ describe('MemoryWorkflowTable（工作流技能）', () => {
     expect(workflowChain([{ step_id: 's1', tool_name: 't1' }, { step_id: 's2', need_llm: true }])).toBe('t1 → LLM')
     expect(workflowChain([])).toBe('—')
   })
+it('说明列最多 3 行自动换行（不再是 truncate 的单行截断）', async () => {
+    const long = '这是一段很长的工作流说明，'.repeat(12)
+    env.getEnvelope.mockResolvedValue({ ok: true, total: 1, items: [{ ...WF, description: long }] })
+    render(<MemoryWorkflowTable />)
+    const cell = await screen.findByTitle(long)
+    // 与技能中心说明列同一口径：line-clamp-3 + wrap-break-word；绝不能是 truncate
+    expect(cell.className).toContain('line-clamp-3')
+    expect(cell.className).toContain('wrap-break-word')
+    expect(cell.className).not.toContain('truncate')
+    // 文本仍在 DOM 里（CSS 截断只影响视觉），悬浮/详情能拿到全文
+    expect(cell.textContent).toBe(long)
+  })
 })
+
