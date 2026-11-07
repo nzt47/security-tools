@@ -482,9 +482,12 @@ def remove_runtime_tool(name: str, *, dry_run: bool = True, confirm: bool = Fals
         import hashlib
 
         digest = hashlib.sha256(name.encode("utf-8")).hexdigest()[:12]
+        backups_root = os.path.join(_ROOT, "data", "backups")
+        if not backup_dir:
+            # CI 的干净 checkout 里没有 data/backups（本地跑才会有）——先建再 mkdtemp
+            os.makedirs(backups_root, exist_ok=True)
         backup = backup_dir or tempfile.mkdtemp(
-            prefix="tool-remove-" + digest + "-",
-            dir=os.path.join(_ROOT, "data", "backups"))
+            prefix="tool-remove-" + digest + "-", dir=backups_root)
         os.makedirs(backup, exist_ok=True)
         try:
             shutil.copyfile(ledger_path, os.path.join(backup, "dynamic_tools.json"))
