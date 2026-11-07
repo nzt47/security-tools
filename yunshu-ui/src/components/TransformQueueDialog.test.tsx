@@ -59,6 +59,11 @@ describe('TransformQueueDialog 行交互', () => {
     const li = code.closest('li') as HTMLLIElement
     fireEvent.doubleClick(li)
 
+    // 面板必须是**固定浮层**（role=dialog + fixed），而不是列表里的内联块 ——
+    // 原先渲染在列表上方，条目一多就得拖到顶才看得见。
+    const dialog = screen.getByRole('dialog')
+    expect(dialog.className).toContain('fixed')
+    expect(dialog.getAttribute('aria-modal')).toBe('true')
     // 面板里出现作业详情（行内也有一枚同名按钮，故用 allBy）
     expect(await screen.findByText('tool:demo_tool')).toBeTruthy()
     expect(screen.getByText('agent/tools/demo.py')).toBeTruthy()

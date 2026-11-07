@@ -52,6 +52,14 @@ export function workflowChain(steps?: WorkflowStep[]): string {
 /** 列表体（技能中心「工作流技能」Tab 复用；页面/中心各自提供外壳） */
 export function MemoryWorkflowTable() {
   const [items, setItems] = useState<Workflow[]>([])
+  /** 深链定位：?workflow=<id>（登记后/队列「去工作流页启用」带过来）→ 滚动 + 高亮那一行 */
+  const [focusWorkflow, setFocusWorkflow] = useState<string>(() => {
+    try {
+      return new URLSearchParams((window.location.hash || '').split('?')[1] ?? '').get('workflow') ?? ''
+    } catch {
+      return ''
+    }
+  })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [execMsg, setExecMsg] = useState('')
@@ -129,6 +137,19 @@ export function MemoryWorkflowTable() {
     }
   }
 
+  useEffect(() => {
+    if (!focusWorkflow || loading) return
+    const el = document.querySelector('[data-focus-workflow="' + focusWorkflow + '"]')
+    if (!el) return
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    el.classList.add('ring-2', 'ring-cyan-500', 'bg-cyan-500/10')
+    const timer = window.setTimeout(() => {
+      el.classList.remove('ring-2', 'ring-cyan-500', 'bg-cyan-500/10')
+      setFocusWorkflow('')
+    }, 4000)
+    return () => window.clearTimeout(timer)
+  }, [focusWorkflow, loading, items])
+
   return (
     <div>
       {error && <div className="mb-4"><ErrorBox message={error} /></div>}
@@ -138,6 +159,7 @@ export function MemoryWorkflowTable() {
           <DataTable
             data={items}
             keyField="id"
+            rowProps={(r) => (String(r.id) === focusWorkflow ? { 'data-focus-workflow': String(r.id) } : {})}
             empty="暂无工作流。工作流由历史交互自动学习，或在「可视化编辑」里编排。"
             columns={[
               {
