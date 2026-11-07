@@ -38,6 +38,10 @@ import sys
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _DEFS_DIR = os.path.join(_ROOT, "data", "tool_definitions")
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
+
+from agent.lines.callability import runtime_registered_tool_names  # noqa: E402
 
 PLANES = ("resident", "perceive", "act", "govern")
 EFFECTS = ("read", "write", "execute", "extend")
@@ -214,6 +218,18 @@ def main() -> int:
     args = ap.parse_args()
 
     yamls = sorted(f for f in os.listdir(_DEFS_DIR) if f.endswith(".yaml"))
+    # 【2026-11-07】运行时登记的工具（data/dynamic_tools.json 台账里的那些）**不参与本检查**：
+    # 它们的 YAML 是生产写路径现场生成的运行时状态，不是入库声明 —— 清单与可调用性两个口径
+    # 都早已排除（见 backfill_tool_callability.py、build_manifest(exclude_runtime_tools=...)）。
+    # 不排除的后果与本机实测一致：登记 5 个工具后 --check 直接 exit 2，报"没有平面映射"，
+    # 而 CI（干净检出、无台账）恒绿 —— 典型的"本机红、CI 绿"假红。
+    runtime_only = {n for n in runtime_registered_tool_names()
+                    if os.path.exists(os.path.join(_DEFS_DIR, n + ".yaml"))}
+    if runtime_only:
+        names = ", ".join(sorted(runtime_only))
+        print("[INFO] 跳过 %d 个运行时登记工具（不进入入库声明口径）：%s"
+              % (len(runtime_only), names))
+        yamls = [f for f in yamls if os.path.splitext(f)[0] not in runtime_only]
     known = {os.path.splitext(f)[0] for f in yamls}
 
     # 完整性：PLANE_MAP 覆盖全部 YAML；且不含未知工具

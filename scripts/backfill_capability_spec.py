@@ -130,6 +130,20 @@ def main() -> int:
 
     facts = _facts()
     names = sorted(facts)
+    # 【2026-11-07】运行时登记的工具（data/dynamic_tools.json 台账）**不参与本口径**：
+    # 它们的 YAML 是生产写路径现场生成的运行时状态、不是入库声明；清单与可调用性两个
+    # 口径早已排除（build_manifest(exclude_runtime_tools=...)、backfill_tool_callability）。
+    # 不排除的后果：本机登记 5 个工具后 --check 报 5 条 location 不一致，CI 却恒绿。
+    try:
+        from agent.lines.callability import runtime_registered_tool_names
+        _runtime_only = {n for n in runtime_registered_tool_names()
+                         if os.path.exists(os.path.join(TOOL_DEFS_DIR, n + ".yaml"))}
+    except Exception:  # noqa: BLE001 台账不可用就当没有运行时工具
+        _runtime_only = set()
+    if _runtime_only:
+        print("[INFO] 跳过 %d 个运行时登记工具（不进入入库声明口径）：%s"
+              % (len(_runtime_only), ", ".join(sorted(_runtime_only))))
+        names = [n for n in names if n not in _runtime_only]
     if args.only:
         names = [n for n in names if n == args.only]
 
