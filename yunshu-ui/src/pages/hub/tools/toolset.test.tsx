@@ -77,3 +77,44 @@ describe('工具集 · 近 7 日调用列', () => {
     expect(screen.queryByText(/^\d+ 次$/)).toBeNull()
   })
 })
+describe('工具集 · 深链定位（?tool=）', () => {
+  it('连字符写法也能定位到注册表里的下划线工具（不许卡在「正在定位」）', async () => {
+    // jsdom 没有 scrollIntoView；不补会抛 TypeError
+    const origScroll = Element.prototype.scrollIntoView
+    Element.prototype.scrollIntoView = vi.fn()
+    window.history.replaceState(null, '', '/chat#/workbench?panel=tools&tool=byted-seedance-video-generate')
+    mocks.getEnvelope.mockResolvedValue([
+      { name: 'byted_seedance_video_generate', enabled: false },
+      { name: 'read_file', enabled: true },
+    ])
+    routeHubGet({ planes: {
+      tools: [{ name: 'byted_seedance_video_generate', plane: 'act' }],
+      planes: [{ key: 'act', label: '行动', hint: '会改变世界', count: 1 }],
+    } })
+
+    render(<ToolsToolset />)
+
+    // 行真的被打上标记（此前 row.name === focusTool 恒不等 ⇒ 永远没有这个属性）
+    await waitFor(() => {
+      expect(document.querySelector('[data-focus-tool="byted_seedance_video_generate"]')).not.toBeNull()
+    })
+    // 横幅必须从「正在定位」翻成「已定位到」
+    await waitFor(() => expect(screen.getByText(/已定位到/)).toBeInTheDocument())
+    expect(screen.queryByText(/正在定位/)).toBeNull()
+
+    Element.prototype.scrollIntoView = origScroll
+    window.history.replaceState(null, '', '/')
+  })
+
+  it('真没有这个工具 ⇒ 明确说「未找到工具」，不留在「正在定位」', async () => {
+    window.history.replaceState(null, '', '/chat#/workbench?panel=tools&tool=no-such-tool-at-all')
+    mocks.getEnvelope.mockResolvedValue([{ name: 'read_file', enabled: true }])
+    routeHubGet({ planes: { tools: [], planes: [] } })
+
+    render(<ToolsToolset />)
+
+    await waitFor(() => expect(screen.getByText(/未找到工具/)).toBeInTheDocument())
+    expect(screen.queryByText(/正在定位/)).toBeNull()
+    window.history.replaceState(null, '', '/')
+  })
+})

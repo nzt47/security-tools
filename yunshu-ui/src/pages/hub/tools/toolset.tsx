@@ -31,6 +31,8 @@ import { hubHref } from '../../../workbench/hubNav'
 import { Power, ShieldAlert } from 'lucide-react'
 import { Card, Loading, ErrorBox, DataTable, Badge, CallabilityBadge, PageHeader, hubGet, hubPost } from '../components/ui'
 import { callabilityCounts, callabilityLegend, hasCallabilityMark, type CallabilityInfo } from '@/lib/callability'
+// 深链里的名字常是作业/卡片 id（连字符），注册表里是下划线 —— 归一与查行见叶子模块
+import { findToolByName } from '@/lib/toolName'
 // 【P1-front 第四批】后端 GET /api/tools/config 已带 X-Envelope: v2，改用显式信封解析。
 // 同页的 AGENT_LINES_PLANES（治理元数据）尚未迁移，继续走 hubGet 的旧解析。
 import { getEnvelope } from '@/api/envelope'
@@ -88,6 +90,10 @@ const RISK_STYLE: Record<string, 'green' | 'amber' | 'red' | 'slate'> = {
 const EFFECT_LABEL: Record<string, string> = {
   read: '只读', write: '写入', execute: '执行', extend: '改自身',
 }
+/** 定位：高亮持续时长（毫秒）——横幅会一直说明"已定位到"，高亮只是放大器 */
+const FOCUS_HIGHLIGHT_MS = 8000
+/** 定位：等待目标行画出来的帧数上限（约 0.2s@60fps）；超时如实报"没找到"，不许一直"正在定位" */
+const FOCUS_RETRY_FRAMES = 12
 
 type Merged = ToolItem & MetaRow
 
@@ -122,6 +128,7 @@ export default function ToolsToolset() {
       try {
         const v = new URLSearchParams((window.location.hash || '').split('?')[1] ?? '').get('tool') ?? ''
         setFocusState('')
+        setFocusRow('')
         setFocusTool(v)
       } catch {
         /* 非法 hash：保持现状 */
@@ -132,36 +139,56 @@ export default function ToolsToolset() {
   }, [])
   /** 定位结果：'' 未触发 / 'found' 已高亮 / 'missing' 没这个工具（未启用/已删/拼错） */
   const [focusState, setFocusState] = useState<'' | 'found' | 'missing'>('')
+  /**
+   * 归一后命中的**注册表真实名**。
+   *
+   * 【为什么必须有这个状态】深链带过来的常是作业/卡片 id（连字符写法），而 DOM 上
+   * 打标只能打在真实行上。此前 `rowProps` 用 `row.name === focusTool` 判断，
+   * 连字符形态永远不相等 ⇒ 那一行**从来没被标记** ⇒ 下面的 `querySelector` 拿到 null
+   * ⇒ effect 直接 return，横幅永远停在「正在定位 …」（2026-11-07 实测）。
+   */
+  const [focusRow, setFocusRow] = useState('')
 
-  // 定位：先把平面筛到该工具所属平面（避免"滚不到"），再把该行滚进视口并高亮
+  // 第一步：把深链里的名字解析成一行（并先把平面筛过去，避免"滚不到"）
   useEffect(() => {
     if (!focusTool || loading) return
-    // 名字归一：**连字符与下划线视为同一个字**（作业里是 byted-seedance-video-generate，
-    // 注册表里是 byted_seedance_video_generate —— 同一件工具，两种写法），再比大小写。
-    const norm = (s: string) => s.trim().toLowerCase().replace(/[-_]/g, '')
-    const target = norm(focusTool)
-    const row = tools.find((t) => t.name === focusTool)
-      ?? tools.find((t) => norm(t.name) === target)
-      ?? tools.find((t) => norm(t.name).endsWith(target))
+    const row = findToolByName(tools, focusTool)
     if (!row) {
+      setFocusRow('')
       setFocusState('missing')
       return
     }
+    setFocusRow(row.name)
     const plane = String(meta[row.name]?.plane ?? '')
-    if (plane && filter !== plane) {
-      setFilter(plane)
-      return
-    }
-    const el = document.querySelector('[data-focus-tool="' + row.name + '"]')
-    if (!el) return
-    el.scrollIntoView({ block: 'center', behavior: 'smooth' })
-    el.classList.add('ring-2', 'ring-cyan-500', 'bg-cyan-500/10')
-    setFocusState('found')
-    const timer = window.setTimeout(() => {
-      el.classList.remove('ring-2', 'ring-cyan-500', 'bg-cyan-500/10')
-    }, 8000)
-    return () => window.clearTimeout(timer)
+    if (plane && filter !== plane) setFilter(plane)
   }, [focusTool, loading, tools, meta, filter])
+
+  // 第二步：等打标的那一行真的画出来再滚/高亮；画不出来就如实说"没找到"，不许一直"正在定位"
+  useEffect(() => {
+    if (!focusRow) return undefined
+    let raf = 0
+    let tries = 0
+    let timer = 0
+    const tick = () => {
+      const el = document.querySelector('[data-focus-tool="' + focusRow + '"]')
+      if (el) {
+        el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+        el.classList.add('ring-2', 'ring-cyan-500', 'bg-cyan-500/10')
+        setFocusState('found')
+        timer = window.setTimeout(() => {
+          el.classList.remove('ring-2', 'ring-cyan-500', 'bg-cyan-500/10')
+        }, FOCUS_HIGHLIGHT_MS)
+        return
+      }
+      if (++tries < FOCUS_RETRY_FRAMES) { raf = window.requestAnimationFrame(tick); return }
+      setFocusState('missing')
+    }
+    raf = window.requestAnimationFrame(tick)
+    return () => {
+      window.cancelAnimationFrame(raf)
+      window.clearTimeout(timer)
+    }
+  }, [focusRow, filter, loading])
 
   // 定位横幅：高亮 8 秒会消失，把"到底定位到没有"用文字说清楚（没找到也给原因）
   const focusBanner = focusTool ? (
@@ -184,7 +211,7 @@ export default function ToolsToolset() {
       ) : (
         <span className="text-slate-400">正在定位 <span className="font-mono">{focusTool}</span> …</span>
       )}
-      <button type="button" onClick={() => { setFocusTool(''); setFocusState('') }}
+      <button type="button" onClick={() => { setFocusTool(''); setFocusRow(''); setFocusState('') }}
         className="ml-auto rounded border border-slate-700 px-2 py-0.5 text-[10px] text-slate-400 hover:bg-slate-800">
         清除定位
       </button>
@@ -413,7 +440,7 @@ export default function ToolsToolset() {
                   <span className="ml-auto text-xs text-slate-500">{g.rows.length} 个</span>
                 </div>
                 <DataTable data={g.rows} keyField="name" columns={columns}
-                  rowProps={(row) => (row.name === focusTool ? { 'data-focus-tool': row.name } : {})} />
+                  rowProps={(row) => (row.name === focusRow ? { 'data-focus-tool': row.name } : {})} />
               </Card>
             )
           })}
