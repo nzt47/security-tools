@@ -1,20 +1,20 @@
 {
-  "generated_at": "2026-11-05T19:05:38+08:00",
+  "generated_at": "2026-11-07T22:35:19+08:00",
   "repo": {
     "branch": "master",
-    "head": "53c7536e8",
-    "origin_master": "53c7536e8",
-    "tracked_dirty_lines": 1
+    "head": "b66fddd31",
+    "origin_master": "b66fddd31",
+    "tracked_dirty_lines": 3
   },
   "service": {
-    "backend": "53c7536e8",
-    "frontend": "53c7536e8",
-    "bundle": "index-CjHPgHa-.js",
-    "pid": 9156
+    "backend": "b66fddd31",
+    "frontend": "b66fddd31",
+    "bundle": "index-C1ZJZP1s.js",
+    "pid": 48900
   },
   "skills": {
-    "file_track": 46,
-    "cards": 46
+    "file_track": 49,
+    "cards": 49
   },
   "scheduler": {
     "total": 16,
@@ -27,11 +27,75 @@
     "score": 91.7
   },
   "tools": {
-    "total": 94,
+    "total": 98,
     "disabled": [
       "byted_bp_cdn_pagesdeploy",
-      "schedule_task"
+      "byted_seedance_video_generate",
+      "schedule_task",
+      "software_install"
     ]
   },
-  "audit_rows": 82408
+  "audit_rows": 82955,
+  "selfcheck": {
+    "dual_track": {
+      "ok": true,
+      "file_track": 49,
+      "main_track": 51,
+      "orphans_ok": true
+    },
+    "skill_md": {
+      "ok": true,
+      "files": 49,
+      "errors": 0,
+      "warnings": 2
+    },
+    "audit_chain": {
+      "ok": true,
+      "rows": 82955,
+      "breaks": 0
+    },
+    "layer_coverage": {
+      "ok": true,
+      "steps_pct": 100.0,
+      "trigger_pct": 100.0,
+      "saved_pct": 53.3
+    }
+  },
+  "next": {
+    "total": 27,
+    "open": [
+      {
+        "id": "chart-visualization-missing-assets",
+        "title": "chart-visualization 只入了 SKILL/CARD：scripts/ 与 references/ 未随源导入",
+        "status": "open",
+        "priority": "P3",
+        "criteria": "来源草稿 data/ingestion/drafts/ing_a27df08b1b47f72f（scripts: frame-template.html/helper.js/server.cjs/start-server.sh/stop-server.sh）与 ing_bc4d42fa838ebbd1（scripts/generate.js）里都没有 26 份 references/*.md；因此正文第 3 步 node ./scripts/generate.js 现在必失败，技能正文已如实标注",
+        "next": "二选一：① 从 antvis/chart-visualization-skills 补齐 scripts/ + references/ 再入库；② 保持现状（只当选择图表的提示词资产），别再宣称能出图"
+      },
+      {
+        "id": "demo-capability-tools-local",
+        "title": "演示工具 api_multi_search_engine / byted_seedance_video_generate 保持本机运行期（不入仓）",
+        "status": "open",
+        "priority": "P3",
+        "criteria": "两者的落地位置是 agent/tools/custom/*.py（.gitignore 第 181 行明确其=运行时状态，与 data/dynamic_tools.json 同类）+ data/tool_definitions/*.yaml + tests/unit/test_*.py；本机 98 条工具里含这两条（seedance 为 enabled: false）",
+        "next": "要入仓必须一次做齐：tool_index / 清单+盘点表 / BM25 半饱和点重标定 / 路由基线 / 路由冲突 τ 五处连锁，且 byted_seedance 的 BYTEPLUS_* 读取点要先进 agent/settings/registry.py（否则「开关零缺口」红）。未定前别只提交 YAML"
+      },
+      {
+        "id": "c10-remaining",
+        "title": "C-10 余量归零：26 → 20（#1496/#1497）→ 0（#1501 修 14 条 + 6 条 dismiss）",
+        "status": "open",
+        "priority": "P1",
+        "criteria": "#1501 已合并（c4bb9fb69）：14 条按**源**改（polynomial-redos 6 / redos 1 / clear-text-storage 2 / cookie-injection 1 / reflective-xss 1 / js xss-through-dom 3）；6 条按「设计如此」dismiss。合并后 code scanning 26 → 20 → **1**（唯一残余是 agent/env_config_manager.py 的 py/clear-text-storage：值仍被当实参传给审计写点）⇒ #1503 把敏感 key 改成「值不进审计函数」（_audit_log_sensitive，只给 action+key）",
+        "next": "#1503 合并后等 python 分析重跑，确认 code scanning = 0；若还有残余，python scripts/audit/codeql_flows.py --rule <rule> --sources-only 按源改（别动 sink）"
+      },
+      {
+        "id": "ci-shard6-cognitive-shadow",
+        "title": "CI shard6 的 cognitive 包遮蔽 flake（ImportError: PromptInjector）",
+        "status": "open",
+        "priority": "P2",
+        "criteria": "仓里两个同名包：仓根 cognitive/（元认知引擎）与 agent/cognitive/（认知循环）。只要 agent/ 排在 sys.path 前面，from cognitive import PromptInjector 就解析到 agent/cognitive ⇒ ImportError（本机已复现该机制）。CI 的 shard6 在 #1498/#1499 上红了两轮（3 个收集失败 + test_plan_tools SessionRestore），本机 -n 2 跑完整 shard6 3752 条全绿 —— 属导入顺序 flake，非回归",
+        "next": "在 tests/conftest.py 钉住 sys.path[0]=仓根、摘掉 agent/ 条目（autouse fixture + 模块级各一次），并补一条「agent/ 在 sys.path 前时 from cognitive 仍能 import」的用例"
+      }
+    ]
+  }
 }

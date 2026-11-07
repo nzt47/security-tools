@@ -187,6 +187,38 @@
       "priority": "P1",
       "criteria": "统一「返回值只放类名或固定文案，原文进 logger」；向量回执改域异常 message 以保住原因；473 passed",
       "next": "-"
+    },
+    {
+      "id": "c10-remaining",
+      "title": "C-10 余量归零：26 → 20（#1496/#1497）→ 0（#1501 修 14 + 6 dismiss；#1503 修最后 1 条 + 1 dismiss）",
+      "status": "done",
+      "priority": "P1",
+      "criteria": "#1501 已合并（c4bb9fb69）：14 条按**源**改（polynomial-redos 6 / redos 1 / clear-text-storage 2 / cookie-injection 1 / reflective-xss 1 / js xss-through-dom 3）；6 条按「设计如此」dismiss。合并后 code scanning 26 → 20 → **1**（唯一残余是 agent/env_config_manager.py 的 py/clear-text-storage：值仍被当实参传给审计写点）⇒ #1503 把敏感 key 改成「值不进审计函数」（_audit_log_sensitive，只给 action+key）",
+      "next": "已完成：code scanning 0 / secret scanning 0（2026-11-07 22:40 实测）。#529 是「运行时按 key 分流、静态无法判定」的 dismiss，理由与守卫用例见 dismissed_comment；以后同类告警先看是否有 key 分流再决定"
+    },
+    {
+      "id": "audit-chain-journal-gap",
+      "title": "审计链「预留未落库」不再报成篡改（seq 82897）+ 生产补写（已完成）",
+      "status": "done",
+      "priority": "P1",
+      "criteria": "根因两条：append 入库失败只 warning + 收敛 3 轮后放弃重试；启动自愈只看「日志链头 > DB 链头」⇒ 中间空洞不自愈。PR #1500：验签三态（ok/pending_commit/tampered，ok 不放宽）+ rows_for + replay_journal_pending + CLI --replay-journal + _mark_drain_if_gap（连续水位判空洞）+ 退出码 3。真实台账副本实测：exit 3 → 补写 1 条 → exit 0（82,919 条）",
+      "next": "已完成：#1500 合并为 b4e8e82f9；生产台账停后端后 python scripts/verify_audit_chain.py --replay-journal 补写 1 条 → exit 0（82,931 条，seq 1..82931）；交接卡自检「审计 82934 条 / 0 断点」。若将来再出现 3=PENDING：同一命令补写即可；别再当篡改取证"
+    },
+    {
+      "id": "ci-shard6-cognitive-shadow",
+      "title": "CI shard6 的 cognitive 包遮蔽 flake（ImportError: PromptInjector）",
+      "status": "open",
+      "priority": "P2",
+      "criteria": "仓里两个同名包：仓根 cognitive/（元认知引擎）与 agent/cognitive/（认知循环）。只要 agent/ 排在 sys.path 前面，from cognitive import PromptInjector 就解析到 agent/cognitive ⇒ ImportError（本机已复现该机制）。CI 的 shard6 在 #1498/#1499 上红了两轮（3 个收集失败 + test_plan_tools SessionRestore），本机 -n 2 跑完整 shard6 3752 条全绿 —— 属导入顺序 flake，非回归",
+      "next": "在 tests/conftest.py 钉住 sys.path[0]=仓根、摘掉 agent/ 条目（autouse fixture + 模块级各一次），并补一条「agent/ 在 sys.path 前时 from cognitive 仍能 import」的用例"
+    },
+    {
+      "id": "weak-hash-queue",
+      "title": "weak-hash 5 条（分桶 MD5→SHA-256 + 签名密钥 PBKDF2+缓存，#1496）",
+      "status": "done",
+      "priority": "P1",
+      "criteria": "merged 937fbe69c；分桶改 SHA-256（agent/utils/bucketing.py），签名密钥派生改 PBKDF2 + 进程内缓存；code scanning weak-sensitive-data-hashing 5 → 0。另 3 条 identity/judge 的 dismiss 仍是裁决过的，别再动",
+      "next": "-"
     }
   ]
 }
