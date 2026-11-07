@@ -44,8 +44,7 @@ def _main_env() -> dict:
 
 
 def main() -> int:
-    import hashlib
-
+    
     from agent.digestion import judge_runtime as JR
     from agent.digestion import shadow as SH
     from agent.observability import events as events_mod
@@ -66,8 +65,10 @@ def main() -> int:
         print("=" * 78)
         print("S11-04 最小真实探针（**只发一次**真实判定调用）")
         print("=" * 78)
-        print(f"端点={base_url} 模型={model} 凭证={len(key)}字符 "
-              f"指纹={hashlib.sha256(key.encode()).hexdigest()[:12]}")
+        # 【口径 §4.2】真凭据**什么都不进输出**：原文/指纹/长度/布尔都不行。
+        # 此前这里打印 len(key) 与 sha256(key)[:12] —— 既是弱哈希告警源，
+        # 也把"哪把钥匙、多长"暴露在终端与 CI 日志里。
+        print(f"端点={base_url} 模型={model} 凭证=已配置（不打印任何凭据派生值）")
         print(f"事件目录（隔离，不污染 data/）={os.environ['CP_EVENTS_DIR']}")
         print()
 

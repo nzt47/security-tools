@@ -286,8 +286,9 @@ def mode_on(args: argparse.Namespace, tmp: Path) -> Dict[str, Any]:
         "env_file_found": Path(args.env_file).exists(),
         "provider": provider, "model": model, "base_url": base_url,
         "credential_present": bool(secret),
-        "credential_fingerprint": (("sha256:" + hashlib.sha256(
-            secret.encode("utf-8")).hexdigest()[:12]) if secret else ""),
+        # 【口径 §4.2】真凭据的**指纹**也不进输出：此前这里给的是
+        # sha256(secret)[:12]，既是 py/weak-sensitive-data-hashing 的告警源，
+        # 也让"用的是哪把钥匙"这种可关联信息落进报告。证据只留"有没有配"。
         "confirm_real_calls": bool(args.confirm_real_calls),
     }
     if not (provider and model and secret):
