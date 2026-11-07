@@ -230,11 +230,11 @@
     },
     {
       "id": "runtime-skill-intake-quality",
-      "title": "本机运行期技能 4 条（新增 api-multi-search-engine / document-skill），其中 document-skill 的 front matter 解析失败",
-      "status": "open",
+      "title": "本机运行期技能质量（document-skill front matter 解析失败 + 入轨助手自动改基线）—— 已按 Owner 决定收口",
+      "status": "done",
       "priority": "P3",
       "criteria": "2026-11-07 23:49–23:51 有人用 UI 走「转化队列 → 登记/入轨」：新增 api-multi-search-engine（文件轨 + 主轨）与 document-skill；两条都不在 git（运行期）。document-skill/skill.md 的 front matter 被写成 description: name: ... 的多冒号单行 ⇒ YAML ScannerError，validate_skill_md 报 1 error；另有 4 条缺 description_zh/何时使用/示例的 warning（含既有的 adaptive-skill-stack / claude-code-analysis）。同期还自动改了 capability_manifest / 盘点表 / 3 个测试基线（已按口径还原，未提交）。交接卡自检因此显示 ⚠（dual_track 51/51 孤儿 / skill_md 1 error）",
-      "next": "三选一：① 修 document-skill 的 front matter（把 description 改成单引号标量、name 用技能名）并补 description_zh/何时使用/示例；② 用 DELETE /api/skills-mgmt/<id> 删掉这两条运行期技能；③ 保留现状，但把 capability 基线的自动改写关掉（入轨助手 fix_baselines 默认 false）。等 Operator 一句"
+      "next": "已按 Owner 的 ①+③ 收口（2026-11-08 01:45）：① 两条技能修好并正式入轨 —— document-skill 的 description 改成单引号标量、name=技能名、去掉正文里重复的 name/description 与末行 Tags（不编内容），api-multi-search-engine 补 description_zh + 「何时使用」并把被截断的 description 补完；intake_skill --execute --fix-baselines 入轨（skill.md + CARD.md 进 git），干净 worktree 重派生 capability_manifest/盘点表（140 → 142 条，工具 93 不动），基线六处同步（entries 142 / by_kind skill 49 / by_location local 120 / skill_total 49），并顺手把 HEAD 里那处不可复现的 search_memory.location_unresolved 漂移改正；③ 入轨助手 fix_baselines 默认 false（DEFAULT_FIX_BASELINES + 界面「同时刷新基线」显式勾选），带 4 条路由用例与 2 条界面用例。结果：validate_skill_md 0 error（3 warning 是既有两条 + document-skill 无「示例」）、双轨 0 孤儿（文件轨 51 / 主轨 53）。剩余：「取消归档」见 queue-archive 条目"
     }
   ]
 }

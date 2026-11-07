@@ -378,7 +378,7 @@ class TestConsistencyWithPermissionLevel:
         # 【2026-10-31】42 → 44：autoresearch / pdf 入文件轨（§11.32 C · N5）
         # 【2026-11-07】46 → 47：chart-visualization 入文件轨（§11.57 ①）
         skills = [e for e in _manifest_entries() if e.get("kind") == "skill"]
-        assert len(skills) == 47, len(skills)
+        assert len(skills) == 49, len(skills)
         for e in skills:
             assert "confirm_level" not in e, (
                 f"技能 {e.get('tool_name')} 不该有工具侧的 confirm_level 字段")

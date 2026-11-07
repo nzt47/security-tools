@@ -9,7 +9,9 @@
  *   ① 自动修/自动补 front matter（只补可确定性推导的字段：version/status/category/
  *      author/tags/content_type/enabled/id，中文 description 照抄成 description_zh，
  *      清掉 name 的「（自动整理）」后缀；**不翻译、不编造「何时使用」**）；
- *   ② 校验 → git add（只该技能目录）→ 干净 worktree 重派生清单/盘点表 → 刷新基线；
+ *   ② 校验 → git add（只该技能目录）→ 干净 worktree 重派生清单/盘点表 →（可选）刷新基线；
+ *      【2026-11-08】刷新基线默认**关**（DEFAULT_FIX_BASELINES=false，Owner 决定）：
+ *      基线是"派生面哨兵"，顺手改会把测试里的数字悄悄挪走（R-1 事故），要改必须显式勾；
  *   ③ 可选「入轨并建 PR」：commit → push 分支 → gh pr create（要求当前在 master，
  *      且改动全部落在白名单内，否则后端直接拒绝，绝不会顺带提交别的草稿）。
  */
@@ -40,6 +42,10 @@ export default function SkillIntakeDialog({ open, onClose }: Props) {
   const [busy, setBusy] = useState<string | null>(null)
   const [autoFix, setAutoFix] = useState(true)
   const [useLlm, setUseLlm] = useState(false)
+  // 【2026-11-08 Owner 决定】基线默认**不刷**：基线是「派生面哨兵」，顺手改等于绕过 review
+  // 挪哨兵（R-1 事故就是入轨助手一次改了 manifest / 盘点表 / 3 个测试基线）。
+  // 要让 manifest 与测试里的数字跟上，必须在这里显式勾。
+  const [refreshBaselines, setRefreshBaselines] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState<{ id: string; text: string; prUrl?: string } | null>(null)
 
@@ -77,7 +83,7 @@ export default function SkillIntakeDialog({ open, onClose }: Props) {
         headers: { ...authHeader(), 'Content-Type': 'application/json' },
         body: JSON.stringify({
           execute: true,
-          fix_baselines: true,
+          fix_baselines: refreshBaselines,
           fix_meta: autoFix,
           llm_sections: useLlm,
           open_pr: mode === 'pr',
@@ -102,7 +108,9 @@ export default function SkillIntakeDialog({ open, onClose }: Props) {
       const parts = [
         fixed ? `自动补全：${fixed}` : '',
         cardText,
-        `已 git add 并重派生：${changed}；基线更新 ${base} 处`,
+        `已 git add 并重派生：${changed}；` + (j.fix_baselines === false
+          ? '基线未动（勾「同时刷新基线」才会改测试里的哨兵数字）'
+          : `基线更新 ${base} 处`),
         prUrl ? '已提交并开 PR' : '未提交（工作区已就绪，review 后再提交）',
       ].filter(Boolean)
       setDone({ id, text: parts.join('；'), prUrl })
@@ -139,8 +147,8 @@ export default function SkillIntakeDialog({ open, onClose }: Props) {
             <p className="mt-2 font-medium text-slate-200">一键入轨现在做到哪一步？</p>
             <p className="mt-1">
               校验 → <strong className="text-slate-200">自动补全元数据</strong> → git add（只该技能目录）→
-              干净 worktree 重派生清单与盘点表 → 刷新能力面基线。勾选「入轨后直接建 PR」则继续
-              commit → push 分支 → 开 PR；不勾就停在工作区，等你 review。
+              干净 worktree 重派生清单与盘点表 →（<strong className="text-slate-300">可选</strong>）刷新能力面基线。
+              勾选「入轨后直接建 PR」则继续 commit → push 分支 → 开 PR；不勾就停在工作区，等你 review。
             </p>
             <p className="mt-2 text-slate-500">
               自动补全只补<strong className="text-slate-300">能确定性推导</strong>的字段（version/status/
@@ -186,6 +194,13 @@ export default function SkillIntakeDialog({ open, onClose }: Props) {
               <label className="flex items-center gap-1 text-[10px] text-slate-400">
                 <input type="checkbox" checked={autoFix} onChange={(e) => setAutoFix(e.target.checked)} />
                 自动补全元数据
+              </label>
+              <label
+                className="flex items-center gap-1 text-[10px] text-slate-400"
+                title="刷新 tests/unit 里那几处能力面基线（== 142 / by_kind / envelope…）。它们等于「干净 worktree 重派生」的结果，是发现清单被手改的哨兵 —— 所以默认不勾，等你在 diff 里确认过派生结果再勾。"
+              >
+                <input type="checkbox" checked={refreshBaselines} onChange={(e) => setRefreshBaselines(e.target.checked)} />
+                同时刷新基线
               </label>
               {items.some((i) => i.llm_available) ? (
                 <label
