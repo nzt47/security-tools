@@ -165,6 +165,25 @@ class TestAuditLogWrite:
         assert entry['new_value'] == '***'  # 已脱敏（只留常量）
         assert entry['new_value'] != 'sk-1234567890abcdef'  # 不是明文
 
+    def test_sensitive_value_never_enters_audit_writer(self, isolated_manager,
+                                                       monkeypatch):
+        """敏感 key 的值**不进**审计写入函数（C-10 py/clear-text-storage 的机制性守卫）
+
+        上一版把值当实参传给 _audit_log 再在里面脱敏 —— 值仍然"流到日志写点"，静态分析
+        照样报，且脱敏被改坏就是真泄。现在敏感 key 走 _audit_log_sensitive：只给
+        action + key，两个值位都是常量。
+        """
+        manager, _ = isolated_manager
+        seen = []
+        monkeypatch.setattr(type(manager), "_write_audit_entry",
+                            lambda self, **kw: seen.append(kw))
+        manager.set("LLM_API_KEY", "sk-very-secret-123456")
+        assert len(seen) == 1, seen
+        kw = seen[0]
+        assert kw["old_value"] == manager.REDACTED_VALUE
+        assert kw["new_value"] == manager.REDACTED_VALUE
+        assert "sk-" not in json.dumps(kw, ensure_ascii=False)
+
     def test_set_non_sensitive_key_not_masked_in_audit(self, isolated_manager):
         """非敏感 key 的 value 在审计日志中原值记录"""
         manager, audit_log = isolated_manager
