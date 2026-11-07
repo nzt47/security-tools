@@ -61,14 +61,36 @@ def _gh(args: Iterable[str]) -> str:
     return proc.stdout or ""
 
 
+def _pick_analysis(items: Iterable[Dict[str, Any]], language: str) -> Dict[str, Any] | None:
+    """从分析列表里挑出**该语言最近一次默认分支分析**。
+
+    【为什么必须排除 PR 分析（2026-11-07 实测）】PR head 的分析是**增量口径**：
+    SARIF 里 results=0（实测 refs/pull/1488/head 的 python 分析 results=0，
+    同一时刻 master 上的同语言分析 results=89）。列表 API 按时间倒序，
+    PR 分析永远比 master 的新 ⇒ 直接取第一条就等于"永远拿到空的 SARIF"，
+    --sources-only 一直空、C-6 那套"按源改"的方法随即失效
+    （本轮就踩了这个坑：cache 里 232KB 的 SARIF 一条结果都没有）。
+
+    退化顺序：默认分支（refs/heads/…）→ 该语言任意一条 → None。
+    """
+    tail = []
+    for item in items:
+        if str(item.get("category") or "") != "/language:%s" % language:
+            continue
+        tail.append(item)
+        if str(item.get("ref") or "").startswith("refs/heads/"):
+            return item
+    return tail[0] if tail else None
+
+
 def latest_analysis(repo: str, language: str) -> Dict[str, Any]:
-    """该语言**最近一次**分析（按 created_at 取最新；列表 API 已按时间倒序）。"""
+    """该语言**最近一次默认分支**分析（列表 API 已按时间倒序）。"""
     out = _gh(["api",
                "repos/%s/code-scanning/analyses?per_page=30" % repo])
-    for item in json.loads(out or "[]"):
-        if str(item.get("category") or "") == "/language:%s" % language:
-            return item
-    raise SystemExit("[codeql_flows] 找不到 /language:%s 的分析（语言写错了？）" % language)
+    picked = _pick_analysis(json.loads(out or "[]"), language)
+    if picked is None:
+        raise SystemExit("[codeql_flows] 找不到 /language:%s 的分析（语言写错了？）" % language)
+    return picked
 
 
 def fetch_sarif(repo: str, analysis_id: int) -> Dict[str, Any]:
