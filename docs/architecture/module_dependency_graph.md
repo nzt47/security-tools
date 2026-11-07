@@ -2393,6 +2393,7 @@ flowchart LR
     agent_skills_mgmt_transform_register -.-> agent_state_manager
     agent_skills_mgmt_transform_register -.-> agent_workflow_learning_models
     agent_skills_mgmt_transform_register -.-> agent_state_manager
+    agent_skills_mgmt_transform_register -.-> agent_state_manager
     agent_skills_mgmt_transform_rewrite -.-> agent_env_config_manager
     agent_skills_mgmt_transform_rewrite --> agent_skills_mgmt_service
     agent_skills_mgmt_vector_adapter -.-> agent_logging_utils
@@ -2843,7 +2844,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 726
 - 模块节点数: 630
-- 依赖边数: 2085
-- 跨层调用数: 1318
+- 依赖边数: 2086
+- 跨层调用数: 1319
 - 违规调用数: 0
 - 动态 import 数: 1

@@ -1030,7 +1030,7 @@
       "name": "state_manager",
       "layer": "core",
       "file_path": "",
-      "in_degree": 23,
+      "in_degree": 24,
       "out_degree": 4
     },
     {
@@ -4071,7 +4071,7 @@
       "layer": "skills_mgmt",
       "file_path": "",
       "in_degree": 2,
-      "out_degree": 4
+      "out_degree": 5
     },
     {
       "path": "agent.skills_mgmt.skill_manager",
@@ -26382,7 +26382,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
-      "line": 175,
+      "line": 212,
       "source_file": "agent/skills_mgmt/transform/register.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -26395,7 +26395,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 326,
+      "line": 372,
       "source_file": "agent/skills_mgmt/transform/register.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -26408,7 +26408,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "workflow_learning",
       "import_type": "from_import",
-      "line": 327,
+      "line": 373,
       "source_file": "agent/skills_mgmt/transform/register.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -26421,7 +26421,20 @@
       "source_layer": "skills_mgmt",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 212,
+      "line": 173,
+      "source_file": "agent/skills_mgmt/transform/register.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.skills_mgmt.transform.register",
+      "target": "agent.state_manager",
+      "source_layer": "skills_mgmt",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 252,
       "source_file": "agent/skills_mgmt/transform/register.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -32152,8 +32165,8 @@
   "stats": {
     "total_files": 726,
     "total_nodes": 630,
-    "total_edges": 2085,
-    "cross_layer_edges": 1318,
+    "total_edges": 2086,
+    "cross_layer_edges": 1319,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
