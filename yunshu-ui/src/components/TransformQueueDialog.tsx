@@ -374,7 +374,7 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                     {['candidate', 'normalized', 'reviewed'].includes(j.status) && (
                       <button type="button"
                         className="rounded border border-emerald-800/70 px-1.5 py-0.5 text-[10px] text-emerald-300 hover:bg-emerald-950/40"
-                        onClick={() => { setRegisterJob(j); setEnableJob(null); setNotice('') }}
+                        onClick={() => { setJobPanel(j); setRegisterJob(j); setEnableJob(null); setNotice('') }}
                         title="把这条草稿登记进仓库（只登记、不启用）">
                         {j.form === 'tool' ? '登记为工具' : j.form === 'workflow' ? '登记为工作流' : '登记为技能'}
                       </button>
@@ -382,7 +382,7 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                     {j.form === 'skill' && j.status === 'registered' && (
                       <button type="button"
                         className="rounded border border-cyan-800/70 px-1.5 py-0.5 text-[10px] text-cyan-300 hover:bg-cyan-950/40"
-                        onClick={() => { setEnableJob(j); setRegisterJob(null); setNotice('') }}
+                        onClick={() => { setJobPanel(j); setEnableJob(j); setRegisterJob(null); setNotice('') }}
                         title="启用这条已登记的技能（文件轨 + 主轨双写）">
                         启用
                       </button>
@@ -439,6 +439,58 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                     </button>
                   </span>
                 </div>
+                {registerJob && registerJob.job_id === jobPanel.job_id && (
+                  <div className="border-b border-slate-800 bg-emerald-950/20 px-3 py-2">
+                    <div className="text-[12px] text-emerald-200">
+                      登记 <span className="font-mono">{jobPanel.title || jobPanel.job_id}</span> 为{jobPanel.form === 'tool' ? '工具' : jobPanel.form === 'workflow' ? '工作流' : '技能'}？
+                    </div>
+                    <div className="mt-1 text-[10px] leading-relaxed text-slate-400">
+                      {jobPanel.form === 'tool'
+                        ? '把骨架的 .py / .yaml / 测试搬到真实路径，仍 status=draft、enabled=false；目标已存在会被拒绝。'
+                        : jobPanel.form === 'workflow'
+                          ? '登记进工作流仓库（status=draft、enabled=false）；步骤还没绑定工具会被拒绝。'
+                          : '写文件轨并跑入轨校验，不启用；目标已存在会被拒绝。'}
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <button type="button" disabled={!!busy} onClick={() => void doRegister(true)}
+                        className="flex items-center gap-1 rounded border border-emerald-800 px-2 py-1 text-[10px] text-emerald-300 hover:bg-emerald-500/10 disabled:opacity-40">
+                        {busy === registerJob.job_id ? <Loader2 size={10} className="animate-spin" /> : <CheckCircle2 size={10} />}
+                        登记并开 PR
+                      </button>
+                      <button type="button" disabled={!!busy} onClick={() => void doRegister(false)}
+                        className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-300 hover:bg-slate-800 disabled:opacity-40">
+                        只登记到工作区
+                      </button>
+                      <button type="button" onClick={() => setRegisterJob(null)}
+                        className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-400 hover:bg-slate-800">
+                        取消
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {enableJob && enableJob.job_id === jobPanel.job_id && (
+                  <div className="border-b border-slate-800 bg-cyan-950/20 px-3 py-2">
+                    <div className="text-[12px] text-cyan-200">
+                      启用 <span className="font-mono">{jobPanel.target?.id || jobPanel.title}</span>？
+                    </div>
+                    <div className="mt-1 text-[10px] leading-relaxed text-slate-400">
+                      会双写：先改文件轨 skill.md 的 enabled: true，再走主轨 set_enabled（带审计）；主轨失败会回滚文件。
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <button type="button" disabled={!!busy} onClick={() => void doEnable()}
+                        className="flex items-center gap-1 rounded border border-cyan-800 px-2 py-1 text-[10px] text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-40">
+                        {busy === enableJob.job_id + ':enable' ? <Loader2 size={10} className="animate-spin" /> : <CheckCircle2 size={10} />}
+                        确认启用
+                      </button>
+                      <button type="button" onClick={() => setEnableJob(null)}
+                        className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-400 hover:bg-slate-800">
+                        取消
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 px-3 py-2 text-[11px] text-slate-400">
                   <dt>作业</dt><dd className="font-mono break-all text-slate-300">{jobPanel.job_id}</dd>
                   <dt>来源</dt><dd className="break-all">{jobPanel.source_ref || jobPanel.source || '-'}</dd>
@@ -448,13 +500,13 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                 </dl>
                 <div className="flex flex-wrap items-center gap-2 border-t border-slate-800 px-3 py-2">
                   {['candidate', 'normalized', 'reviewed'].includes(jobPanel.status) && (
-                    <button type="button" onClick={() => { setRegisterJob(jobPanel); setJobPanel(null); setNotice('') }}
+                    <button type="button" onClick={() => { setRegisterJob(jobPanel); setNotice('') }}
                       className="rounded border border-emerald-800/70 px-2 py-1 text-[11px] text-emerald-300 hover:bg-emerald-950/40">
                       {jobPanel.form === 'tool' ? '登记为工具' : jobPanel.form === 'workflow' ? '登记为工作流' : '登记为技能'}
                     </button>
                   )}
                   {jobPanel.form === 'skill' && jobPanel.status === 'registered' && (
-                    <button type="button" onClick={() => { setEnableJob(jobPanel); setJobPanel(null); setNotice('') }}
+                    <button type="button" onClick={() => { setEnableJob(jobPanel); setNotice('') }}
                       className="rounded border border-cyan-800/70 px-2 py-1 text-[11px] text-cyan-300 hover:bg-cyan-950/40">
                       启用
                     </button>
@@ -477,7 +529,7 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
             </div>
           )}
 
-          {registerJob && (
+          {registerJob && !jobPanel && (
             <div className={"fixed left-1/2 top-1/2 z-50 w-[min(92vw,32rem)] -translate-x-1/2 -translate-y-1/2 rounded-lg border shadow-2xl px-3 py-2 border-emerald-900/60 bg-slate-900"} role="dialog" aria-modal="true" aria-label="登记确认">
               <div className="text-[11px] text-emerald-200">
                 登记 <span className="font-mono">{registerJob.title || registerJob.source_ref}</span> 为技能？
@@ -508,7 +560,7 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
             </div>
           )}
 
-          {enableJob && (
+          {enableJob && !jobPanel && (
             <div className={"fixed left-1/2 top-1/2 z-50 w-[min(92vw,32rem)] -translate-x-1/2 -translate-y-1/2 rounded-lg border shadow-2xl px-3 py-2 border-cyan-900/60 bg-slate-900"} role="dialog" aria-modal="true" aria-label="启用确认">
               <div className="text-[11px] text-cyan-200">
                 启用 <span className="font-mono">{enableJob.target?.id || enableJob.title}</span>？

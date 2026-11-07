@@ -74,19 +74,22 @@ describe('TransformQueueDialog 行交互', () => {
     expect(screen.queryByText('tool:demo_tool')).toBeNull()
   })
 
-  it('点面板里的「登记为工具」进入既有登记确认流（不直接提交）', async () => {
+  it('点面板里的「登记为工具」：确认态**在同一个浮层里**（不叠第二个），且文案是「为工具」', async () => {
     renderWithJob()
     const code = await screen.findByText('job-1')
     fireEvent.doubleClick(code.closest('li') as HTMLLIElement)
     const buttons = await screen.findAllByText('登记为工具')
     fireEvent.click(buttons[buttons.length - 1])
-    // 确认块也必须是**浮层**（role=dialog + fixed）：以前渲染在列表上方，滚下去就看不见
-    const confirm = await screen.findByRole('dialog', { name: '登记确认' })
-    expect(confirm.className).toContain('fixed')
-    expect(confirm.textContent ?? '').toContain('登记并开 PR')
-    // 进入既有登记确认流（tool 形态的说明文案），且**没有**直接提交
-    expect(await screen.findByText(/把骨架的/)).toBeTruthy()
-    expect(screen.queryByText('tool:demo_tool')).toBeNull()   // 操作面板已让位给确认块
-    expect(api.hubPost).not.toHaveBeenCalled()
+
+    // 进来之后仍然只有一个浮层：确认内容并入同一张卡（用户反馈"何必搞两个浮层"）
+    expect(screen.getAllByRole('dialog').length).toBe(1)
+    const dialog = screen.getByRole('dialog', { name: '转化作业操作' })
+    const text = dialog.textContent ?? ''
+    expect(text).toContain('登记并开 PR')
+    expect(text).toContain('只登记到工作区')
+    // 文案必须按形态说：这条是 tool，不能写成"为技能"
+    expect(text).toContain('为工具？')
+    expect(text).not.toContain('为技能？')
+    expect(api.hubPost).not.toHaveBeenCalled()   // 仍未提交
   })
 })
