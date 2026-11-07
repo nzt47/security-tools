@@ -25,6 +25,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -269,6 +270,7 @@ def discover(roots: Optional[Sequence[Any]] = None,
         by_ecosystem[spec.ecosystem] = by_ecosystem.get(spec.ecosystem, 0) + len(items)
 
     candidates.sort(key=lambda c: (c.get("ecosystem", ""), c.get("path", "")))
+    _mark_usage(candidates)
     missing = sum(1 for row in root_rows if not row["exists"])
     return {
         "roots": root_rows,
@@ -281,6 +283,61 @@ def discover(roots: Optional[Sequence[Any]] = None,
             "by_ecosystem": by_ecosystem,
         },
     }
+
+
+#: 草稿区与技能库（与 drafts/register 同源；做成模块级变量便于测试替换）
+_DRAFTS_DIR = Path(__file__).resolve().parents[2] / "data" / "ingestion" / "drafts"
+_SKILLS_DIR = Path(__file__).resolve().parents[2] / "data" / "skills_repo"
+
+
+def _mark_usage(candidates: List[Dict[str, Any]]) -> None:
+    """给候选打「用过」标记：`usage` 为空串 / `draft` / `registered`。
+
+    【为什么要有】候选列表 100 条、名字都长得差不多，没有标记就得靠记忆：
+    "这条我是不是已经生成过草稿/已经入轨了？"（2026-11-07 实测：同一批里
+    brainstorming / algorithmic-art / byted-* 都已经被用过，列表里完全看不出）。
+
+    判定口径（都按**等值比较**，不把名字拼进路径）：
+    - `registered`：`data/skills_repo/<候选名>` 存在（已入轨技能）；
+    - `draft`：某个草稿 manifest 的 `source_ref == "path:<候选路径>"`（生成过草稿）；
+    - 两者都有时以 `registered` 为准（更靠后），并保留草稿时间做提示。
+    """
+    draft_by_path: Dict[str, Dict[str, str]] = {}
+    try:
+        if _DRAFTS_DIR.is_dir():
+            for child in _DRAFTS_DIR.iterdir():
+                manifest = child / "manifest.json"
+                if not (child.is_dir() and manifest.is_file()):
+                    continue
+                try:
+                    data = json.loads(manifest.read_text(encoding="utf-8", errors="replace"))
+                except (OSError, ValueError):
+                    continue
+                ref = str(data.get("source_ref") or "")
+                if ref.startswith("path:"):
+                    draft_by_path[ref[5:]] = {
+                        "draft_id": str(data.get("draft_id") or child.name),
+                        "created_at": str(data.get("created_at") or ""),
+                    }
+    except OSError:
+        draft_by_path = {}
+
+    skill_dirs = set()
+    try:
+        if _SKILLS_DIR.is_dir():
+            skill_dirs = {d.name for d in _SKILLS_DIR.iterdir()
+                          if d.is_dir() and not d.name.startswith(".")}
+    except OSError:
+        skill_dirs = set()
+
+    for cand in candidates:
+        path = str(cand.get("path") or "")
+        name = str(cand.get("name") or "")
+        hit = draft_by_path.get(path)
+        registered = bool(name) and name in skill_dirs
+        cand["usage"] = "registered" if registered else ("draft" if hit else "")
+        cand["usage_draft_id"] = hit.get("draft_id", "") if hit else ""
+        cand["usage_at"] = hit.get("created_at", "") if hit else ""
 
 
 def discover_sources(roots: Optional[Sequence[Any]] = None) -> Dict[str, Any]:
