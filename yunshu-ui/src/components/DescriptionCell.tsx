@@ -35,7 +35,9 @@ export default function DescriptionCell({
   }
   return (
     <div style={{ maxWidth }}>
-      <div className="line-clamp-3 wrap-break-word leading-relaxed text-slate-400" title={body}>
+      {/* 【字号必须写死】三张表的行继承字号不同（技能中心 12px、工具/工作流 14px）——只靠继承
+          就会出现"同组件不同长相"。这里钉成 text-xs，三表逐像素一致（leading-relaxed ⇒ 19.5px）。 */}
+      <div className="line-clamp-3 wrap-break-word text-xs leading-relaxed text-slate-400" title={body}>
         {body}
       </div>
       {onExpand && (
