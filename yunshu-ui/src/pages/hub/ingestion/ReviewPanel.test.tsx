@@ -93,7 +93,7 @@ describe('ReviewPanel', () => {
     expect(screen.getByRole('button', { name: '登记草稿 ing_ai' })).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: 'AI 绑定 ing_ai' }))
-    expect(await screen.findByText(/AI 建议：绑定/)).toBeTruthy()
+    expect(await screen.findByText(/AI 建议：落地/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '应用绑定 ing_ai' }))
     await waitFor(() => expect(screen.getByText(/已写回绑定 2\/2/)).toBeTruthy())
     expect(screen.getByText(/再点「登记为工作流」/)).toBeTruthy()
@@ -108,19 +108,63 @@ describe('ReviewPanel', () => {
     expect(regBody).toMatchObject({ enable: false })
   })
 
-  it('草稿行有登记入口；工作流没绑完时按钮禁用并给出原因', async () => {
+  it('工作流没绑工具也**不再锁死登记**：点得动，并说清剩下的步骤按 LLM 步骤处理', async () => {
+    // 2026-11-08 修：后端 register_draft 会把没绑工具的步骤就地补成 need_llm 步（#1483），
+    // 而界面原来按"每步都要有 tool_name"把按钮**永久置灰** ⇒ code-review 这类
+    // 「一半步骤靠判断」的工作流根本做不起来（Operator 实测的 blocker）。
     api.hubGet.mockImplementation((url: string) => url === '/api/ingestion/drafts'
       ? Promise.resolve({ data: { items: [{
         draft_id: 'ing_sk', form: 'workflow', skill_id: 'code-refactor', skill_name: '代码重构',
-        source_ref: 'path:C:/skills/code-refactor', bound_steps: 0, total_steps: 18,
+        source_ref: 'path:C:/skills/code-refactor', bound_steps: 10, total_steps: 19,
       }] } })
       : Promise.resolve({ ok: true, total: 0, items: [] }))
     render(<ReviewPanel />)
     await screen.findByText('ing_sk')
     const btn = screen.getByRole('button', { name: '登记草稿 ing_sk' }) as HTMLButtonElement
-    expect(btn.disabled).toBe(true)
-    expect(btn.getAttribute('title') || '').toContain('没绑定工具')
+    expect(btn.disabled).toBe(false)
+    expect(btn.getAttribute('title') || '').toContain('LLM 步骤')
     expect(screen.getByText(/登记与启用就在这一行/)).toBeTruthy()
+  })
+
+  it('工作流 0 步仍然禁用（真没法登记）', async () => {
+    api.hubGet.mockImplementation((url: string) => url === '/api/ingestion/drafts'
+      ? Promise.resolve({ data: { items: [{
+        draft_id: 'ing_zero', form: 'workflow', skill_name: '空工作流',
+        source_ref: 'path:C:/skills/x', bound_steps: 0, total_steps: 0,
+      }] } })
+      : Promise.resolve({ ok: true, total: 0, items: [] }))
+    render(<ReviewPanel />)
+    await screen.findByText('ing_zero')
+    const btn = screen.getByRole('button', { name: '登记草稿 ing_zero' }) as HTMLButtonElement
+    expect(btn.disabled).toBe(true)
+    expect(btn.getAttribute('title') || '').toContain('0 步')
+  })
+
+
+  it('AI 绑定：判断/评审类步骤标成「LLM 步骤」也能落地（不再卡在"没绑定工具"）', async () => {
+    api.hubGet.mockImplementation((url: string) => url === '/api/ingestion/drafts'
+      ? Promise.resolve({ data: { items: [{
+        draft_id: 'ing_review', form: 'workflow', skill_name: 'code-review',
+        created_at: '2026-11-08T04:00:00+08:00', warnings: [],
+        draft_dir: 'C:/repo/data/ingestion/drafts/ing_review',
+        source_ref: 'path:C:/skills/code-review', bound_steps: 19, total_steps: 19,
+      }] } })
+      : Promise.resolve({ ok: true, total: 0, items: [] }))
+    const f = vi.fn(async (url: string) => {
+      if (url.endsWith('/autobind')) {
+        return { ok: true, json: async () => ({ data: {
+          report: { bound: 19, total: 19, model: 'fake', llm_steps: 9, unbound: [] }, workflow: {},
+        } }) }
+      }
+      return { ok: false, json: async () => ({ detail: 'unexpected' }) }
+    })
+    vi.stubGlobal('fetch', f)
+    render(<ReviewPanel />)
+    await screen.findByText('ing_review')
+    fireEvent.click(screen.getByRole('button', { name: 'AI 绑定 ing_review' }))
+    // 预览里必须说清"9 步没有工具、按 LLM 步骤执行"，否则人会以为只绑了一半
+    expect(await screen.findByText(/9 步没有对应工具，标成「LLM 步骤」/)).toBeTruthy()
+    expect(screen.getAllByText(/19\/19/).length).toBeGreaterThan(0)
   })
 
   it('tool 草稿：AI 实现 → 写回 → 就地登记为工具', async () => {

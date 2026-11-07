@@ -29,6 +29,7 @@ import yaml
 
 from .adapters.base import slugify
 from .models import IngestPlan, InvalidSource, NormalizedSkill
+from .step_binding import step_is_bound
 
 DEFAULT_DRAFT_DIR = Path(__file__).resolve().parents[2] / "data" / "ingestion" / "drafts"
 _STEP_RE = re.compile(r"^(?:\d+[.、)]|[-*])\s+(.+)$")
@@ -424,7 +425,8 @@ def list_drafts(draft_dir: Any = None) -> List[Dict[str, Any]]:
                 wf = json.loads(wf_path.read_text(encoding="utf-8"))
                 steps = wf.get("steps") or []
                 total = len(steps)
-                bound = sum(1 for s in steps if str(s.get("tool_name") or "").strip())
+                # 「已落地」= 有工具 **或** 标了 need_llm（口径见 step_binding 模块文档）
+                bound = sum(1 for s in steps if step_is_bound(s))
             except (OSError, ValueError):
                 pass
         out.append({
@@ -498,7 +500,7 @@ def save_workflow(draft_id: str, workflow: Dict[str, Any], *, warnings: Any = No
     data = load_workflow(draft_id, draft_dir=draft_dir)
     root, manifest, path = data["root"], data["manifest"], data["path"]
     steps = workflow.get("steps") or []
-    bound = sum(1 for s in steps if str(s.get("tool_name") or "").strip())
+    bound = sum(1 for s in steps if step_is_bound(s))
     total = len(steps)
     workflow["requires_binding"] = bound < total
     path.write_text(json.dumps(workflow, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

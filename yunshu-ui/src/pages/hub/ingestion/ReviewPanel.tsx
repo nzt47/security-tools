@@ -66,6 +66,8 @@ interface BindReport {
   bound: number
   total: number
   model?: string
+  /** 其中"没有工具、按 LLM 步骤执行"的步数（need_llm=true） */
+  llm_steps?: number
   unbound?: { step_id?: string; reason?: string }[]
 }
 interface BatchResult { ok?: boolean; error?: string; published?: string[]; failed?: { id?: string; error?: string }[] }
@@ -117,14 +119,29 @@ export default function ReviewPanel() {
   useEffect(() => { void loadQueue() }, [loadQueue])
   useEffect(() => { void loadDrafts() }, [loadDrafts])
 
-  /** 工作流只有「每步都绑了工具」才允许登记（后端同口径拒绝；这里先给出原因，别让人点了才报错）。 */
+  /**
+   * 工作流草稿能不能点「登记」。
+   *
+   * 【2026-11-08 修】以前是「每步都绑到**工具**才允许登记」，于是 code-review 这类
+   * 「一半步骤靠人/模型判断」的工作流在界面上被**永久锁死**（19 步只能绑 10 步，按钮恒灰），
+   * 而服务端 register_draft 早就支持把没绑工具的步骤**就地补成 LLM 步**
+   * （need_llm=true + prompt_template=原描述原文，#1483）。⇒ 这里只拦「0 步」这种真没法登记的，
+   * 其余放行，并在 title 里说清"没绑工具的那些步骤会按 LLM 步骤登记"。
+   */
   const regBlocked = (d: DraftRow): string => {
+    if (d.form !== 'workflow') return ''
+    if ((d.total_steps ?? 0) === 0) return '工作流 0 步：先补步骤（或改用技能形态）'
+    return ''
+  }
+
+  /** 登记按钮的补充说明：还有多少步没绑工具、它们登记时会被当成什么。 */
+  const regHint = (d: DraftRow): string => {
     if (d.form !== 'workflow') return ''
     const total = d.total_steps ?? 0
     const bound = d.bound_steps ?? 0
-    if (total === 0) return '工作流 0 步：先补步骤（或改用技能形态）'
-    if (bound < total) return '还有 ' + (total - bound) + ' 步没绑定工具：先「AI 绑定」或人工补'
-    return ''
+    if (total === 0 || bound >= total) return ''
+    return '（还有 ' + (total - bound) + ' 步没有对应工具：登记时会按「LLM 步骤」处理，'
+      + '执行时由模型完成这几步）'
   }
 
   const registerDraft = async (d: DraftRow, enable: boolean) => {
@@ -193,6 +210,7 @@ export default function ReviewPanel() {
       const r = await postJson<{ report: BindReport }>(ingestionDraftAutobind(d.draft_id), { apply: true, confirm: true })
       const rep = r.report
       setMsg('已写回绑定 ' + rep.bound + '/' + rep.total +
+        (rep.llm_steps ? '（' + rep.llm_steps + ' 步为 LLM 步骤）' : '') +
         (rep.unbound && rep.unbound.length
           ? '；未绑定：' + rep.unbound.map((u) => u.step_id).join('、')
           : '；再点「登记为工作流」'))
@@ -421,7 +439,8 @@ export default function ReviewPanel() {
                     <span className="text-[10px] text-slate-500" title={d.created_at}>生成 {fmtTime(d.created_at)}</span>
                   ) : null}
                   {isWorkflow && (
-                    <span className={'text-[10px] ' + (ready ? 'text-emerald-300' : 'text-amber-300')}>
+                    <span className={'text-[10px] ' + (ready ? 'text-emerald-300' : 'text-amber-300')}
+                      title={ready ? '每一步都有工具或用 LLM 步骤兜住，可以直接登记' : '没绑工具的步骤登记时会按「LLM 步骤」处理'}>
                       绑定 {bound}/{total}
                     </span>
                   )}
@@ -434,7 +453,7 @@ export default function ReviewPanel() {
                     <span className="max-w-[300px] truncate font-mono text-[10px] text-slate-500" title={d.draft_dir}>{d.draft_dir}</span>
                     {isWorkflow && (
                       <button type="button" className={BTN_EM} disabled={loading} onClick={() => void bindDraft(d)}
-                        title="用 LLM 把步骤映射到真实工具与参数（先预览，不写盘）"
+                        title="用 LLM 把步骤映射到真实工具与参数；判断/评审/写作类步骤会标成「LLM 步骤」（need_llm），执行时由模型完成。先预览，不写盘"
                         aria-label={'AI 绑定 ' + d.draft_id}>
                         {busy === 'bind:' + d.draft_id ? <Loader2 size={11} className="animate-spin" /> : null} AI 绑定
                       </button>
@@ -454,14 +473,14 @@ export default function ReviewPanel() {
                       onClick={() => void registerDraft(d, false)}
                       title={regBlocked(d) || (d.form === 'tool'
                         ? '把实现写进 agent/tools/custom + 治理 YAML + 单测，过验证门后进台账（不启用）'
-                        : '登记进仓库/台账，不启用（启用要再过一道确认）')}
+                        : '登记进仓库/台账，不启用（启用要再过一道确认）') + regHint(d)}
                       aria-label={'登记草稿 ' + d.draft_id}>
                       {busy === 'reg:' + d.draft_id ? <Loader2 size={11} className="animate-spin" /> : null}
                       {d.form === 'tool' ? '登记为工具' : d.form === 'workflow' ? '登记为工作流' : '登记为技能'}
                     </button>
                     <button type="button" className={BTN} disabled={loading || regBlocked(d) !== ''}
                       onClick={() => void registerDraft(d, true)}
-                      title="登记并直接启用（会再过一次确认；工具仍受审批边界约束）"
+                      title={'登记并直接启用（会再过一次确认；工具仍受审批边界约束）' + regHint(d)}
                       aria-label={'登记并启用草稿 ' + d.draft_id}>
                       {busy === 'reg-on:' + d.draft_id ? <Loader2 size={11} className="animate-spin" /> : null} 登记并启用
                     </button>
@@ -474,7 +493,10 @@ export default function ReviewPanel() {
                   {bind?.id === d.draft_id && (
                     <div className="mt-1 flex w-full flex-col gap-1 rounded-sm border border-cyan-900/60 bg-cyan-950/20 p-2 text-[10px] text-slate-300">
                       <div>
-                        AI 建议：绑定 <b className="text-cyan-300">{bind.report.bound}/{bind.report.total}</b> 步
+                        AI 建议：落地 <b className="text-cyan-300">{bind.report.bound}/{bind.report.total}</b> 步
+                        {bind.report.llm_steps
+                          ? '（其中 ' + bind.report.llm_steps + ' 步没有对应工具，标成「LLM 步骤」，执行时会调模型）'
+                          : ''}
                         {bind.report.model ? '（模型 ' + bind.report.model + '）' : ''}
                       </div>
                       {(bind.report.unbound ?? []).length > 0 && (

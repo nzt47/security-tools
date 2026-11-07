@@ -13,6 +13,7 @@ import json
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
+from .step_binding import as_bool, step_is_bound
 from .tool_catalog import load_catalog, tool_names
 
 #: 单次最多绑定的步骤数（prompt/输出可控；超过请先拆分工作流）
@@ -80,9 +81,12 @@ def build_prompt(workflow: Dict[str, Any], *, tool_dir: Optional[str] = None,
         "1. 每个 step_id 输出一条 binding；\n"
         "2. tool_name 必须是工具清单里的 name；没有合适工具就填 \"\"，并在 reason 里说明；\n"
         "3. params_template 必须是对象，可引用 $input / $prev_output / $step.<n>.output / $param.<key>；\n"
-        "4. 不要编造工具名，不要输出任何解释。\n"
+        "4. **若这一步本质是判断/评审/写作这类「没有工具、由模型自己完成」的动作**，"
+        "把 need_llm 设为 true（tool_name 留空、params_template 留空），并在 reason 里说明为什么没有对应工具 ——"
+        "这类步骤会被当作「LLM 步骤」执行，不算未绑定；\n"
+        "5. 不要编造工具名，不要输出任何解释。\n"
         "输出格式：{\"bindings\":[{\"step_id\":\"step_1\",\"tool_name\":\"...\","
-        "\"params_template\":{},\"reason\":\"...\"}]}"
+        "\"params_template\":{},\"need_llm\":false,\"reason\":\"...\"}]}"
     )
     return prompt
 
@@ -120,11 +124,19 @@ def apply_bindings(workflow: Dict[str, Any], bindings: List[Dict[str, Any]], *,
         b = by_id.get(sid) or {}
         name = str(b.get("tool_name") or "").strip()
         params = b.get("params_template")
+        # 【2026-11-08】need_llm 也是**合法落地方式**：这一步由模型的步骤级 runner 执行
+        # （executor 对 need_llm=True 的步骤走 llm_step_runner，不看 tool_name；
+        #   WorkflowStep.tool_name 的注释本来就写着"need_llm=True 时可为空"）。
+        # 早先这里只认 tool_name ⇒ 「判断/评审/写作」这类步骤被永久判成未绑定，
+        # code-review 那种一半靠人判断的工作流**永远登记不了**（Operator 实测：19 步只能绑 10 步）。
+        wants_llm = as_bool(b.get("need_llm")) or as_bool(step.get("need_llm"))
         if name and name not in names:
             unbound.append({"step_id": sid, "reason": "模型给出的工具不在工具目录：" + name})
             seen_unbound.add(sid)
             name = ""
-        if not name:
+        if not name and wants_llm:
+            params = {}
+        elif not name:
             if sid not in seen_unbound:
                 unbound.append({"step_id": sid, "reason": str(b.get("reason") or "没有合适的工具")})
                 seen_unbound.add(sid)
@@ -134,15 +146,19 @@ def apply_bindings(workflow: Dict[str, Any], bindings: List[Dict[str, Any]], *,
         merged = dict(step)
         merged["tool_name"] = name
         merged["params_template"] = params
+        merged["need_llm"] = bool(wants_llm)
         new_steps.append(merged)
     total = len(new_steps)
-    bound = sum(1 for s in new_steps if s.get("tool_name"))
+    bound = sum(1 for s in new_steps if step_is_bound(s))
     out = dict(workflow)
     out["steps"] = new_steps
     out["requires_binding"] = bound < total
     out["binding_meta"] = {"model": model, "bound": bound, "total": total,
                            "unbound": [u["step_id"] for u in unbound]}
-    return out, {"bound": bound, "total": total, "model": model, "unbound": unbound}
+    #: 「没有工具、由模型自己执行」的步骤数（界面/警告文案要能区分"绑定成了 LLM 步骤"与"真没绑定"）
+    llm_steps = sum(1 for s in new_steps if s.get("need_llm") and not s.get("tool_name"))
+    return out, {"bound": bound, "total": total, "model": model,
+                 "unbound": unbound, "llm_steps": llm_steps}
 
 
 def propose(workflow: Dict[str, Any], llm: Any, *, tool_dir: Optional[str] = None,
@@ -173,8 +189,11 @@ def binding_warnings(report: Dict[str, Any]) -> List[str]:
     bound, total = int(report.get("bound") or 0), int(report.get("total") or 0)
     model = str(report.get("model") or "未知模型")
     if total and bound >= total:
+        llm_steps = int(report.get("llm_steps") or 0)
+        extra = (f"；其中 {llm_steps} 步没有对应工具，按「LLM 步骤」执行（执行时会调用模型）"
+                 if llm_steps else "")
         return [
-            f"AI 已自动绑定全部 {total} 步（模型 {model}）：执行前请复核工具选择与参数。",
+            f"AI 已自动绑定全部 {total} 步（模型 {model}）{extra}：执行前请复核工具选择与参数。",
             "草稿仍在隔离区：点「登记为工作流」后才会出现在工作流页（默认停用，需手动启用）。",
         ]
     unbound = "、".join(str(u.get("step_id")) for u in (report.get("unbound") or [])[:8])
@@ -193,7 +212,10 @@ def build_learned_workflow(workflow: Dict[str, Any], *, draft_id: str = "",
     steps = workflow.get("steps") or []
     if not steps:
         raise BindError("工作流没有步骤，不能登记")
-    missing = [str(s.get("step_id") or "") for s in steps if not str(s.get("tool_name") or "").strip()]
+    # 【2026-11-08】need_llm=True 的步骤**不需要** tool_name（executor 走 llm_step_runner）；
+    # 只把"既没工具、也不是 LLM 步骤"的算未绑定，否则判断/评审类工作流永远登记不了。
+    missing = [str(s.get("step_id") or "") for s in steps
+               if not step_is_bound(s)]
     unknown = sorted({str(s.get("tool_name")) for s in steps
                       if s.get("tool_name") and str(s.get("tool_name")) not in names})
     if missing or unknown:
@@ -211,7 +233,9 @@ def build_learned_workflow(workflow: Dict[str, Any], *, draft_id: str = "",
             params_template=dict(s.get("params_template") or {}),
             output_key=str(s.get("output_key") or ""),
             description=str(s.get("description") or ""),
-            need_llm=bool(s.get("need_llm")),
+            need_llm=as_bool(s.get("need_llm")),
+            # need_llm 步骤的提示词：优先 prompt_template，否则 executor 回落到 description
+            prompt_template=str(s.get("prompt_template") or ""),
             timeout_ms=int(s.get("timeout_ms") or 30000),
         ))
     name = str(workflow.get("name") or workflow.get("id") or "ingested-workflow")
