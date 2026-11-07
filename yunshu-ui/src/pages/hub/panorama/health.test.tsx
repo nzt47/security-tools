@@ -14,7 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 
 import PanoramaHealth, {
-  MISSING, NO_PROBE_DATA, SOURCE_LABELS,
+  MISSING, NO_PROBE_DATA, PROBE_LAYERS, SOURCE_LABELS,
   buildHistoryCsv, downsample, heartbeatStatusText, historyRows, levelOf,
   metricRows, overviewCards, probeScoreText, secondsToMs,
   type AlertsData, type HeartbeatData, type HeartbeatHistory, type HeartbeatStatus,
@@ -441,5 +441,66 @@ describe('PanoramaHealth 功能单位 Tab', () => {
     // 切回概览后卸载，不会继续轮询/占位
     fireEvent.click(screen.getByTestId('tab-overview'))
     expect(screen.queryByTestId('panel-units')).toBeNull()
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════
+//  2026-11-08 Operator 三问：L5 是什么 / 数据从哪来 / 端点未返回怎么回事
+// ═══════════════════════════════════════════════════════════════
+describe('L1~L5 数据来源标注与「端点未返回」说明', () => {
+  it('overviewCards 用 L1 探针 metrics 填核心数/可用内存/磁盘（不再恒为 MISSING）', () => {
+    const point = {
+      ...PROBE.points![1],
+      probe_details: {
+        ...PROBE.points![1].probe_details,
+        l1_process: {
+          available: true, score: 0.8,
+          detail: 'mem=83.8% avail=2467MB cpu=25.0% threads=4 disk_free=22.8%',
+          metrics: { cpu_cores: 12, mem_available_mb: 2467, disk_free_gb: 212.1 },
+        },
+      },
+    }
+    const cards = overviewCards(HB, HB_STATUS, METRICS, point)
+    const by = (k: string) => cards.find((c) => c.key === k)!
+    expect(by('cpu-cores').value).toBe('12 核')
+    expect(by('cpu-cores').missing).toBe(false)
+    expect(by('mem-available').value).toBe('2.4 GB')
+    expect(by('disk-available').value).toBe('212.1 GB')
+    expect(by('cpu-cores').sub).toContain('probe_details.l1_process.metrics')
+  })
+
+  it('五层维度卡都标出「来源：…」，并解释「—（端点未返回）」是什么', async () => {
+    render(<PanoramaHealth />)
+    await screen.findByTestId('health-dimensions')
+    for (const k of ['l1_process', 'l2_dependency', 'l3_llm_tool', 'l4_business', 'l5_semantic']) {
+      const origin = screen.getByTestId('origin-' + k)
+      expect(origin.textContent).toContain('来源：')
+      // 悬浮给完整口径（否则"来源"两个字等于没说）
+      expect((origin.getAttribute('title') || '').length).toBeGreaterThan(8)
+    }
+    const note = screen.getByTestId('missing-note')
+    expect(note.textContent).toContain('端点未返回')
+    expect(note.textContent).toContain('histograms')
+    expect(note.textContent).toContain('state/activeAt')
+  })
+
+  it('探针明细表多出「数据来源」列（L1-L3 表里能看到 psutil）', async () => {
+    render(<PanoramaHealth />)
+    await screen.findByTestId('panel-overview')
+    fireEvent.click(screen.getByTestId('tab-stability'))
+    const stab = await screen.findByTestId('stab-probe-table')
+    expect(within(stab).getByText('数据来源')).toBeTruthy()
+    expect(within(stab).getByText(/psutil 本机采样/)).toBeTruthy()
+    expect(within(stab).getByText(/configs 核心文件可读性/)).toBeTruthy()
+  })
+
+  it('L5 口径写在来源说明里：只数 like/dislike、样本不足不评分（0 分是假的）', () => {
+    // 渲染路径与其它四层共用 renderProbeTable（已由上面「稳定性/质量 Tab」用例覆盖）；
+    // 这里锁"口径文案"，避免以后又把 suggestion/开发随记算进分母而没人发现。
+    const l5 = PROBE_LAYERS.find((l) => l.key === 'l5_semantic')!
+    expect(l5.origin).toContain('like/dislike')
+    expect(l5.originDetail).toContain('开发随记')
+    expect(l5.originDetail).toContain('样本')
+    expect(probeScoreText(null)).toBe(NO_PROBE_DATA)
   })
 })

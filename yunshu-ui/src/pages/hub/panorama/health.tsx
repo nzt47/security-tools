@@ -74,7 +74,13 @@ import {
 // ═══════════════════════════════════════════════════════════════
 //  响应类型（与实测形状一一对应）
 // ═══════════════════════════════════════════════════════════════
-export interface ProbeDetail { available?: boolean; score?: number | null; detail?: string }
+export interface ProbeDetail {
+  available?: boolean
+  score?: number | null
+  detail?: string
+  /** 结构化采集数值（L1 有：cpu_pct / cpu_cores / mem_available_mb / disk_free_gb …；L5 有：likes / dislikes / suggestions / stale） */
+  metrics?: Record<string, number>
+}
 export interface ProbePoint {
   timestamp?: string
   overall?: number | null
@@ -143,12 +149,43 @@ export const MISSING = '—（端点未返回）'
 /** 探针采集到但该层无数据（probe_details.available=false / score=null） */
 export const NO_PROBE_DATA = '无数据'
 
+/**
+ * 五层探针的**定义 + 数据来源标注**（2026-11-08 Operator 要求：每层都要说清数据从哪来）。
+ *
+ * `origin` 是给人看的一句话（卡片上的小字），`originDetail` 是悬浮/详情里的完整口径。
+ * 两处都只描述**后端探针实际读了什么**（`agent/health/probes.py`），不写"应该是什么"——
+ * 口径与实现漂移时，这里必须跟着改，否则卡片会撒谎。
+ */
 export const PROBE_LAYERS = [
-  { key: 'l1_process', label: 'L1 进程', icon: '🖥️', stage: 'stability', color: '#22d3ee' },
-  { key: 'l2_dependency', label: 'L2 依赖', icon: '🧩', stage: 'stability', color: '#34d399' },
-  { key: 'l3_llm_tool', label: 'L3 LLM/工具', icon: '🤖', stage: 'stability', color: '#fbbf24' },
-  { key: 'l4_business', label: 'L4 业务', icon: '📡', stage: 'quality', color: '#f472b6' },
-  { key: 'l5_semantic', label: 'L5 语义', icon: '💬', stage: 'quality', color: '#a78bfa' },
+  {
+    key: 'l1_process', label: 'L1 进程', icon: '🖥️', stage: 'stability', color: '#22d3ee',
+    origin: 'psutil 本机采样',
+    originDetail: '本机 psutil：virtual_memory / cpu_percent / Process().threads() / disk_usage；'
+      + '健康采集器每 60s 跑一次并写进 /api/health/probe-trend',
+  },
+  {
+    key: 'l2_dependency', label: 'L2 依赖', icon: '🧩', stage: 'stability', color: '#34d399',
+    origin: 'configs 核心文件可读性',
+    originDetail: '逐个打开 configs/app.yaml、configs/paths.yaml 判断依赖是否可用（可读 N/N）',
+  },
+  {
+    key: 'l3_llm_tool', label: 'L3 LLM/工具', icon: '🤖', stage: 'stability', color: '#fbbf24',
+    origin: 'LLM/工具调用错误率 + 熔断器',
+    originDetail: 'agent.monitoring.metrics 里 LLM/工具链路的调用计数与错误率；'
+      + '没有计数时回落到 circuit_breaker 状态（全关=1.0，有 open=0.1）',
+  },
+  {
+    key: 'l4_business', label: 'L4 业务', icon: '📡', stage: 'quality', color: '#f472b6',
+    origin: '业务接口成功率',
+    originDetail: 'agent.monitoring.metrics 的 request / error 计数器（count.* → 成功率）；'
+      + '最近窗口没有请求就报「无数据」，不假装 100%',
+  },
+  {
+    key: 'l5_semantic', label: 'L5 语义', icon: '💬', stage: 'quality', color: '#a78bfa',
+    origin: '反馈库近 7 天 like/dislike',
+    originDetail: 'feedback.db 近 7 天的 like / dislike 反馈：满意度 = like ÷ (like + dislike)；'
+      + '「建议 / 开发随记」不是满意度信号、不计入分母；样本 < 5 条不评分（显示「无数据」）',
+  },
 ] as const
 export type ProbeLayer = (typeof PROBE_LAYERS)[number]
 export type ProbeLayerKey = ProbeLayer['key']
@@ -342,6 +379,10 @@ export function overviewCards(
   const requests = metrics?.counters?.['count.chat.total']
   const l4 = latest?.probe_details?.l4_business?.score
   const l3 = latest?.probe_details?.l3_llm_tool?.score
+  // 【2026-11-08】L1 探针现在给结构化数值（cpu_cores / mem_available_mb / disk_free_gb）。
+  // 以前这三张卡是**硬编码 MISSING**（心跳端点只给使用率百分比）⇒ 页面上一片「—（端点未返回）」。
+  const l1m = latest?.probe_details?.l1_process?.metrics
+  const L1_SRC = '来源：/api/health/probe-trend → probe_details.l1_process.metrics（L1 探针）'
   return [
     {
       key: 'sys-status', label: '系统状态', tone: 'info',
@@ -362,7 +403,9 @@ export function overviewCards(
     },
     {
       key: 'cpu-cores', label: 'CPU 核心数', tone: 'info',
-      value: MISSING, sub: HEARTBEAT + ' 未返回 cpu_cores', missing: true,
+      value: l1m?.cpu_cores == null ? MISSING : String(l1m.cpu_cores) + ' 核',
+      sub: l1m?.cpu_cores == null ? 'L1 探针未返回 cpu_cores' : L1_SRC,
+      missing: l1m?.cpu_cores == null,
     },
     {
       key: 'memory', label: '内存使用率', tone: 'info',
@@ -372,11 +415,15 @@ export function overviewCards(
     },
     {
       key: 'mem-available', label: '内存可用量', tone: 'info',
-      value: MISSING, sub: HEARTBEAT + ' 只返回使用率，无可用量字段', missing: true,
+      value: l1m?.mem_available_mb == null ? MISSING : (l1m.mem_available_mb / 1024).toFixed(1) + ' GB',
+      sub: l1m?.mem_available_mb == null ? HEARTBEAT + ' 只返回使用率；L1 探针也没给可用量' : L1_SRC,
+      missing: l1m?.mem_available_mb == null,
     },
     {
       key: 'disk-available', label: '磁盘可用', tone: 'info',
-      value: MISSING, sub: HEARTBEAT + ' 未返回 disk；disk_free 仅出现在 L1 探针明细文本', missing: true,
+      value: l1m?.disk_free_gb == null ? MISSING : l1m.disk_free_gb.toFixed(1) + ' GB',
+      sub: l1m?.disk_free_gb == null ? HEARTBEAT + ' 未返回 disk；L1 探针也没给' : L1_SRC,
+      missing: l1m?.disk_free_gb == null,
     },
     {
       key: 'llm', label: 'LLM', tone: llm?.status === 'ok' ? 'success' : 'warning',
@@ -641,6 +688,7 @@ export default function PanoramaHealth() {
               <th className="px-3 py-2 font-medium">探针层</th>
               <th className="px-3 py-2 font-medium">得分</th>
               <th className="px-3 py-2 font-medium">状态</th>
+              <th className="px-3 py-2 font-medium">数据来源</th>
               <th className="px-3 py-2 font-medium">采集明细</th>
             </tr>
           </thead>
@@ -657,6 +705,9 @@ export default function PanoramaHealth() {
                   </td>
                   <td className="px-3 py-2.5">
                     <Badge color={available ? 'green' : 'amber'}>{available ? '正常采集' : '无数据'}</Badge>
+                  </td>
+                  <td className="px-3 py-2.5 text-xs text-slate-500" title={l.originDetail}>
+                    {l.origin}
                   </td>
                   <td className="px-3 py-2.5 text-xs text-slate-400">{d?.detail || '-'}</td>
                 </tr>
@@ -757,6 +808,10 @@ export default function PanoramaHealth() {
                   <div key={l.key} className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 text-center" data-testid={'dim-' + l.key}>
                     <div className="text-xl">{l.icon}</div>
                     <div className="mt-1 text-xs text-slate-500">{l.label}</div>
+                    {/* 数据来源：回答"这个分数是谁算的/读的什么"（2026-11-08 Operator 要求） */}
+                    <div className="mt-1 truncate text-[9px] text-slate-600" title={l.originDetail} data-testid={'origin-' + l.key}>
+                      来源：{l.origin}
+                    </div>
                     <div className={'mt-1 text-2xl font-semibold ' + (lv === 'excellent' || lv === 'good' ? 'text-emerald-400' : lv === 'fair' || lv === 'warning' ? 'text-amber-400' : lv === 'critical' ? 'text-red-400' : 'text-slate-600')}>
                       {score == null ? NO_PROBE_DATA : score.toFixed(0)}
                     </div>
@@ -773,6 +828,19 @@ export default function PanoramaHealth() {
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
                 {cards.map((c) => <MetricTile key={c.key} card={c} />)}
               </div>
+
+              {/* 「—（端点未返回）」不是页面坏了：那个字段后端端点确实没给，前端不重算、不编造。
+                  2026-11-08 Operator 问"很多端点未返回是怎么回事" ⇒ 把三处结构性缺口写清楚。 */}
+              <p className="mt-2 text-[10px] leading-relaxed text-slate-600" data-testid="missing-note">
+                <span className="text-slate-500">「—（端点未返回）」= 那个字段在后端端点里<strong>不存在</strong></span>（不是加载失败）：
+                前端只显示真实返回的值，不拿浏览器侧的数去补。已知三处结构性缺口 ——
+                ① 心跳端点只有 CPU/内存的<strong className="text-slate-500">使用率</strong>，没有核心数/可用量/磁盘，
+                这三项现在改由 <span className="text-slate-500">L1 探针的 metrics</span> 提供；
+                ② <span className="text-slate-500">/api/diagnostics/metrics</span> 的 histograms 为空
+                （该指标还没产生采样）⇒ P50/P95/P99 与延迟分布只能占位；
+                ③ <span className="text-slate-500">/api/observability/alerts</span> 只返回规则定义，
+                不含运行态 state/activeAt ⇒ 告警表那两列占位。
+              </p>
 
               <div className="mt-4 grid gap-4 lg:grid-cols-2">
                 <Card title="综合健康度趋势（按所选区间）"

@@ -42,7 +42,17 @@ L1_EXTREME_MEM_PCT = 95.0
 
 #: 【2026-11-01】L5 语义质量的最小样本：低于它**不评分**（available=False），
 #: 否则 1 条 dislike / 2 条反馈就能把整机健康分从 1.0 拽到 0.68（2026-10-31 实测）。
+#: 【2026-11-08】样本只数 **like / dislike**（真正的满意度信号），不再数全部反馈。
 L5_MIN_FEEDBACK = 5
+
+#: 【2026-11-08】L5 的时间窗（天）。docstring/文案一直写"近 7 天"，而老实现是全量扫描 ——
+#: 7 月的 1 条 like 会永远留在分母里，与"近 7 天"名不符实。
+L5_WINDOW_DAYS = 7
+
+#: 满意度信号的反馈类型：只有这两种能表达"满意/不满意"。
+#: suggestion（开发随记）/ bug 报告不是满意度信号 —— 把它们计入分母就是"没点赞算差评"，
+#: 实测：7 条 dev-note 把 L5 从 50% 压到 11.1%，整机健康分凭空掉了 0.1 权重。
+L5_SENTIMENT_TYPES = ("like", "dislike")
 
 
 @dataclass
@@ -59,14 +69,21 @@ class ProbeResult:
     score: Optional[float]
     detail: str
     available: bool = True
+    #: 结构化数值（可选；界面要显示具体数字时用它，别去正则拆 detail 文本）
+    metrics: Optional[dict] = None
 
 
 def _as_dict(result: ProbeResult) -> dict:
-    return {
+    out = {
         "score": result.score,
         "available": result.available,
         "detail": result.detail,
     }
+    # 【2026-11-08】只在这层真有结构化数值时才加键 —— 老消费方（storage/前端）
+    # 看到的形状与以前逐字节一致，不会因为多一个 null 键而出现假 diff。
+    if result.metrics:
+        out["metrics"] = dict(result.metrics)
+    return out
 
 
 def probe_l1_process() -> ProbeResult:
@@ -88,6 +105,19 @@ def probe_l1_process() -> ProbeResult:
         disk_free_pct = disk.free / disk.total * 100
         detail = (f"mem={mem_pct:.1f}% avail={avail_mb:.0f}MB cpu={cpu:.1f}%"
                   f" threads={threads} disk_free={disk_free_pct:.1f}%")
+        # 【2026-11-08】结构化数值：健康仪表盘概览卡的「CPU 核心数 / 内存可用量 / 磁盘可用」
+        # 以前恒为「—（端点未返回）」，因为 /api/health/heartbeat 只给使用率百分比。
+        # 这些数 L1 探针本来就算出来了（detail 里也有），以前只拼成文本 ⇒ 前端只能显示 MISSING。
+        metrics = {
+            "cpu_pct": round(float(cpu), 1),
+            "cpu_cores": int(psutil.cpu_count() or 0),
+            "mem_pct": round(float(mem_pct), 1),
+            "mem_available_mb": round(float(avail_mb), 0),
+            "mem_total_mb": round(float(getattr(vm, "total", 0)) / (1024 * 1024), 0),
+            "threads": int(threads),
+            "disk_free_pct": round(float(disk_free_pct), 1),
+            "disk_free_gb": round(float(disk.free) / (1024 ** 3), 1),
+        }
         # 评分：**可用内存绝对值** + CPU；磁盘剩余越少越低分。
         # 【2026-11-01】原判据是 mem_pct > 85（百分比）：本机 15GB、模型+浏览器常驻，
         # 91% 是常态 ⇒ 每次巡检都扣 0.5，把整体健康分压到 0.68、三个服务节点一起变黄。
@@ -101,7 +131,7 @@ def probe_l1_process() -> ProbeResult:
             score -= 0.3
         elif disk_free_pct < 10:
             score -= 0.1
-        return ProbeResult("l1_process", max(0.0, round(score, 2)), detail)
+        return ProbeResult("l1_process", max(0.0, round(score, 2)), detail, metrics=metrics)
     except Exception as e:  # noqa: BLE001 - 探针失败降级为无数据
         logger.warning("probe_l1_process 采集失败: %s", e)
         return ProbeResult("l1_process", None, f"进程资源采集失败: {type(e).__name__}", available=False)
@@ -190,10 +220,41 @@ def probe_l4_business() -> ProbeResult:
     return ProbeResult("l4_business", round(success_rate, 2), detail)
 
 
-def probe_l5_semantic() -> ProbeResult:
-    """L5 语义质量：用户反馈满意度
+def _feedback_age_days(record) -> Optional[float]:
+    """反馈距今多少天；**取不到时间就返回 None**（只可能是测试替身/老数据）。
 
-    近窗口无用户反馈 → available=False, score=None。
+    `created_at` 在真库里是 float 字符串（如 `1793880805.0841296`），也可能是 datetime，
+    这里统一成"距今天数"；解析不出来时**不算过期**（宁可多算，也不要因为格式不认识就丢样本）。
+    """
+    raw = getattr(record, "created_at", None)
+    if raw in (None, ""):
+        return None
+    try:
+        import time as _time
+
+        if isinstance(raw, (int, float)):
+            ts = float(raw)
+        else:
+            text = str(raw).strip()
+            try:
+                ts = float(text)
+            except ValueError:
+                from datetime import datetime
+
+                ts = datetime.fromisoformat(text.replace("Z", "+00:00")).timestamp()
+        return max(0.0, (_time.time() - ts) / 86400.0)
+    except Exception:  # noqa: BLE001 解析失败 ⇒ 当作"时间未知"
+        return None
+
+
+def probe_l5_semantic() -> ProbeResult:
+    """L5 语义质量：**近 7 天**用户反馈里的满意度（like / (like + dislike)）。
+
+    【口径（2026-11-08 修）】
+    - 只看近 `L5_WINDOW_DAYS` 天（与文案一致；老实现是全量，7 月的老反馈一直留在分母）；
+    - 分母只含 like / dislike：`suggestion`（开发随记）`bug` 等**不是满意度信号**，
+      计入分母等于"没点赞就算差评"（实测 7 条随记把 50% 压成 11.1%）；
+    - 样本不足 `L5_MIN_FEEDBACK` 不评分；一条 like/dislike 都没有也如实报"无数据"。
     """
     try:
         from agent.feedback import FeedbackManager
@@ -201,25 +262,48 @@ def probe_l5_semantic() -> ProbeResult:
         records = manager.list_feedback(limit=200)
     except Exception as e:  # noqa: BLE001
         logger.warning("probe_l5_semantic feedback 不可用: %s", e)
-        return ProbeResult("l5_semantic", None, "近 7 天无用户反馈", available=False)
+        return ProbeResult("l5_semantic", None, "反馈库不可用（详见服务日志）", available=False)
 
     if not records:
         return ProbeResult("l5_semantic", None, "近 7 天无用户反馈", available=False)
 
-    total = len(records)
-    # 【2026-11-01】小样本不评分：2 条反馈里 1 条 dislike 就是 50%，能把整机分拽到 0.68。
-    # 与「技能使用探针：样本 ≥ 20 才 warn」同一取舍 —— 宁可说"样本不足"，也不给-noise 打分。
+    recent, others, stale = [], 0, 0
+    for r in records:
+        age = _feedback_age_days(r)
+        if age is not None and age > L5_WINDOW_DAYS:
+            stale += 1
+            continue
+        if getattr(r, "feedback_type", None) in L5_SENTIMENT_TYPES:
+            recent.append(r)
+        else:
+            others += 1
+
+    likes = sum(1 for r in recent if getattr(r, "feedback_type", None) == "like")
+    dislikes = sum(1 for r in recent if getattr(r, "feedback_type", None) == "dislike")
+    total = likes + dislikes
+    extra = (f"（另有 {others} 条建议/随记不计入满意度"
+             + (f"，{stale} 条超出 {L5_WINDOW_DAYS} 天窗口" if stale else "") + "）")
+
+    if total == 0:
+        return ProbeResult(
+            "l5_semantic", None,
+            f"近 {L5_WINDOW_DAYS} 天没有 like/dislike 反馈{extra}",
+            available=False,
+            metrics={"likes": 0, "dislikes": 0, "suggestions": others, "stale": stale},
+        )
     if total < L5_MIN_FEEDBACK:
         return ProbeResult(
             "l5_semantic", None,
-            f"样本不足（近 7 天反馈 {total} 条，需 ≥{L5_MIN_FEEDBACK} 条才评分）",
+            f"样本不足（近 {L5_WINDOW_DAYS} 天 like/dislike 共 {total} 条，需 ≥{L5_MIN_FEEDBACK} 条才评分）{extra}",
             available=False,
+            metrics={"likes": likes, "dislikes": dislikes,
+                     "suggestions": others, "stale": stale},
         )
-    dislikes = sum(1 for r in records if getattr(r, "feedback_type", None) == "dislike")
-    likes = sum(1 for r in records if getattr(r, "feedback_type", None) == "like")
-    satisfaction = likes / total if total else 0.0
-    detail = f"feedback={total} satisfaction={satisfaction:.1%} dislike={dislikes}"
-    return ProbeResult("l5_semantic", round(satisfaction, 2), detail)
+    satisfaction = likes / total
+    detail = (f"likes={likes} dislikes={dislikes} satisfaction={satisfaction:.1%}{extra}")
+    return ProbeResult("l5_semantic", round(satisfaction, 2), detail,
+                       metrics={"likes": likes, "dislikes": dislikes,
+                                "suggestions": others, "stale": stale})
 
 
 # 探针执行顺序（固定，保证 probe_details 键序稳定）
