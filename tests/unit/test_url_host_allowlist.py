@@ -19,9 +19,12 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from agent.utils.remote_url import remote_repo_slug
 from scripts.configure_branch_protection import _remote_repo_slug
-from scripts.gen_perf_trend import _repo_slug_from_remote
 from scripts.notify_arch_violation import detect_webhook_type
+# 【为什么不 import scripts.gen_perf_trend】它顶部 import matplotlib，
+# CI 的单元测试分片没装该依赖 ⇒ 测试导入即 collection error（2026-11-07 实测 shard3 红）。
+# 该脚本的 _repo_slug_from_remote 现在只是这个叶子函数的转发，故这里直接测叶子实现。
 
 
 class TestGitRemoteSlug:
@@ -35,7 +38,7 @@ class TestGitRemoteSlug:
     ])
     def test_接受的写法(self, url):
         assert _remote_repo_slug(url) == "o/r"
-        assert _repo_slug_from_remote(url) == "o/r"
+        assert remote_repo_slug(url) == "o/r"
 
     @pytest.mark.parametrize("url", [
         "https://github.com.evil.tld/o/r",
@@ -47,7 +50,7 @@ class TestGitRemoteSlug:
     ])
     def test_拒绝近似主机(self, url):
         assert _remote_repo_slug(url) == ""
-        assert _repo_slug_from_remote(url) is None
+        assert remote_repo_slug(url) is None
 
 
 class TestWebhookType:

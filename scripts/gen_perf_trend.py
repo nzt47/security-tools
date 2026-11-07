@@ -45,7 +45,8 @@ import tempfile
 import zipfile
 from pathlib import Path
 from typing import List, Dict, Any, Optional
-from urllib.parse import urlsplit
+
+from agent.utils.remote_url import remote_repo_slug
 
 # 加入项目根
 ROOT = Path(__file__).resolve().parent.parent
@@ -441,29 +442,14 @@ def _auto_select_source(ci_min_runs: int, repo_override: Optional[str]) -> str:
 def _repo_slug_from_remote(url: str) -> Optional[str]:
     """把远端地址解析成 owner/repo；主机名不是 github.com 就返回 None。
 
-    【CodeQL py/incomplete-url-substring-sanitization】不能写
-    `"github.com" in url` / `url.split("github.com/", 1)`：
-    `https://github.com.evil.tld/o/r`、`https://gist.github.com/o/r`、
-    `https://x/?github.com/o/r` 都会被子串命中。这里先取主机名等比等值，
-    路径再从 parsed path 里取（不靠字符串切割定位域名）。
+    实现在叶子模块里（含"只认主机名等值、不做 URL 子串判断"的安全口径），
+    与 configure_branch_protection.py 共用：见 agent/utils/remote_url.py。
+
+    【为什么不放在本脚本】本脚本顶部 `import matplotlib`，把它当作工具函数的
+    宿主会让**没装 matplotlib** 的地方（CI 单元测试分片）导入即失败 —— 2026-11-07
+    实测过一次 collection error。
     """
-    raw = (url or "").strip()
-    if not raw:
-        return None
-    if raw.startswith("git@"):
-        # scp 风格：git@github.com:owner/repo.git（**不是** URL，urlsplit 解不了）
-        rest = raw.split("@", 1)[1]
-        host, _, path = rest.partition(":")
-        host = host.split("/", 1)[0]
-    else:
-        # https://… 与 ssh://git@host/… 都是标准 URL，交给 urlsplit
-        parts = urlsplit(raw)
-        host = parts.hostname or ""
-        path = (parts.path or "").lstrip("/")
-    if (host or "").lower() != "github.com":
-        return None
-    slug = path.replace(".git", "").strip("/")
-    return slug if "/" in slug else None
+    return remote_repo_slug(url)
 
 
 def _infer_repo() -> Optional[str]:
