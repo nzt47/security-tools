@@ -261,3 +261,22 @@ describe('hubHref —— 可点击深链', () => {
     expect(navKeyFromSearch(href.split('?')[1] ?? '')).toBe('tools')
   })
 })
+
+describe('hubHref —— 带定位参数（工具页直接定位到可启用的那一行）', () => {
+  it('工具深链带上 tab 与 tool 名', () => {
+    expect(hubHref('tools', { tab: 'toolset', tool: 'api_multi_search_engine' }))
+      .toBe('#/workbench?panel=tools&tab=toolset&tool=api_multi_search_engine')
+  })
+
+  it('空值参数被丢掉（不产生 tool= 空串）', () => {
+    expect(hubHref('tools', { tab: 'toolset', tool: '' }))
+      .toBe('#/workbench?panel=tools&tab=toolset')
+  })
+
+  it('深链里的 tool 能被重新读出来（目标页据此定位）', () => {
+    const href = hubHref('tools', { tab: 'toolset', tool: 'demo_tool' })
+    const params = new URLSearchParams(href.split('?')[1] ?? '')
+    expect(params.get('tool')).toBe('demo_tool')
+    expect(params.get('tab')).toBe('toolset')
+  })
+})

@@ -104,6 +104,35 @@ export default function ToolsToolset() {
   const [toolUsage, setToolUsage] = useState<Record<string, ToolUsageRow>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  /** 深链定位：`?tool=<name>`（转化队列「去工具页启用」会带过来）——滚动+高亮这一行 */
+  const [focusTool, setFocusTool] = useState<string>(() => {
+    try {
+      const hash = window.location.hash || ''
+      return new URLSearchParams(hash.split('?')[1] ?? '').get('tool') ?? ''
+    } catch {
+      return ''
+    }
+  })
+
+  // 定位：先把平面筛到该工具所属平面（避免"滚不到"），再把该行滚进视口并闪一下
+  useEffect(() => {
+    if (!focusTool || loading) return
+    const row = tools.find((t) => t.name === focusTool)
+    const plane = (row ? (meta[focusTool]?.plane ?? '') : '') as string
+    if (plane && filter !== plane) {
+      setFilter(plane)
+      return
+    }
+    const el = document.querySelector('[data-focus-tool="' + focusTool + '"]')
+    if (!el) return
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    el.classList.add('ring-2', 'ring-cyan-500', 'bg-cyan-500/10')
+    const timer = window.setTimeout(() => {
+      el.classList.remove('ring-2', 'ring-cyan-500', 'bg-cyan-500/10')
+      setFocusTool('')          // 只闪一次，避免后续筛选反复抢焦点
+    }, 4000)
+    return () => window.clearTimeout(timer)
+  }, [focusTool, loading, tools, meta, filter])
 
   const load = () => {
     setLoading(true)
@@ -325,7 +354,8 @@ export default function ToolsToolset() {
                   </span>
                   <span className="ml-auto text-xs text-slate-500">{g.rows.length} 个</span>
                 </div>
-                <DataTable data={g.rows} keyField="name" columns={columns} />
+                <DataTable data={g.rows} keyField="name" columns={columns}
+                  rowProps={(row) => (row.name === focusTool ? { 'data-focus-tool': row.name } : {})} />
               </Card>
             )
           })}

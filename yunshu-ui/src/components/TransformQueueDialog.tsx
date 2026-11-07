@@ -373,7 +373,9 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                         下一步是补实现 + 测试 + 审批（证据都在工具页）；工作流要先试跑。
                         队列只负责把它们指到能判断的地方，避免「在队列里点一下就启用了」的空按钮。 */}
                     {j.status === 'registered' && j.form !== 'skill' && (
-                      <a href={hubHref(j.form === 'tool' ? 'tools' : 'workflow')}
+                      <a href={j.form === 'tool'
+                        ? hubHref('tools', { tab: 'toolset', tool: String(j.target?.id ?? '') })
+                        : hubHref('workflow', { workflow: String(j.target?.id ?? '') })}
                         className="rounded border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-300 hover:border-cyan-700 hover:bg-cyan-950/40 hover:text-cyan-300"
                         title="启用留在该页：工具要先补实现/测试并过审批，工作流要先试跑——那里才有判断依据">
                         去{j.form === 'tool' ? '工具页' : '工作流页'}启用

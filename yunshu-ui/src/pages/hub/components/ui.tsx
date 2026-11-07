@@ -52,12 +52,14 @@ export function StatCard({
 
 /** 通用数据表格 */
 export function DataTable<T extends object>({
-  columns, data, keyField, empty = '暂无数据',
+  columns, data, keyField, empty = '暂无数据', rowProps,
 }: {
   columns: { key: string; title: string; render?: (row: T) => ReactNode }[]
   data: T[]
   keyField: string
   empty?: string
+  /** 逐行附加 DOM 属性（如 `data-focus-tool`）——供"从别处深链过来定位某一行"用 */
+  rowProps?: (row: T) => Record<string, string>
 }) {
   if (data.length === 0) {
     return (
@@ -81,7 +83,8 @@ export function DataTable<T extends object>({
           {data.map((row) => {
             const r = row as Record<string, unknown>
             return (
-              <tr key={String(r[keyField])} className="border-b border-slate-800/50 hover:bg-slate-800/30">
+              <tr key={String(r[keyField])} className="border-b border-slate-800/50 hover:bg-slate-800/30"
+                {...(rowProps ? rowProps(row) : {})}>
                 {columns.map((c) => (
                   <td key={c.key} className="px-3 py-2.5 text-slate-300">
                     {c.render ? c.render(row) : String(r[c.key] ?? '')}
