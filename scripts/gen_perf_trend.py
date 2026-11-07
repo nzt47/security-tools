@@ -45,6 +45,7 @@ import tempfile
 import zipfile
 from pathlib import Path
 from typing import List, Dict, Any, Optional
+from urllib.parse import urlsplit
 
 # 加入项目根
 ROOT = Path(__file__).resolve().parent.parent
@@ -437,6 +438,34 @@ def _auto_select_source(ci_min_runs: int, repo_override: Optional[str]) -> str:
         return "local"
 
 
+def _repo_slug_from_remote(url: str) -> Optional[str]:
+    """把远端地址解析成 owner/repo；主机名不是 github.com 就返回 None。
+
+    【CodeQL py/incomplete-url-substring-sanitization】不能写
+    `"github.com" in url` / `url.split("github.com/", 1)`：
+    `https://github.com.evil.tld/o/r`、`https://gist.github.com/o/r`、
+    `https://x/?github.com/o/r` 都会被子串命中。这里先取主机名等比等值，
+    路径再从 parsed path 里取（不靠字符串切割定位域名）。
+    """
+    raw = (url or "").strip()
+    if not raw:
+        return None
+    if raw.startswith("git@"):
+        # scp 风格：git@github.com:owner/repo.git（**不是** URL，urlsplit 解不了）
+        rest = raw.split("@", 1)[1]
+        host, _, path = rest.partition(":")
+        host = host.split("/", 1)[0]
+    else:
+        # https://… 与 ssh://git@host/… 都是标准 URL，交给 urlsplit
+        parts = urlsplit(raw)
+        host = parts.hostname or ""
+        path = (parts.path or "").lstrip("/")
+    if (host or "").lower() != "github.com":
+        return None
+    slug = path.replace(".git", "").strip("/")
+    return slug if "/" in slug else None
+
+
 def _infer_repo() -> Optional[str]:
     """从 git remote 推断 owner/repo"""
     try:
@@ -444,16 +473,7 @@ def _infer_repo() -> Optional[str]:
             ["git", "remote", "get-url", "origin"],
             capture_output=True, text=True, check=True, timeout=5,
         )
-        url = result.stdout.strip()
-        # git@github.com:owner/repo.git 或 https://github.com/owner/repo.git
-        if "github.com" not in url:
-            return None
-        if url.startswith("git@"):
-            path = url.split(":", 1)[1]
-        else:
-            path = url.split("github.com/", 1)[1] if "github.com/" in url else url
-        path = path.replace(".git", "").strip("/")
-        return path if "/" in path else None
+        return _repo_slug_from_remote(result.stdout)
     except Exception:
         return None
 

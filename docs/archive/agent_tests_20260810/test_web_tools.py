@@ -14,6 +14,7 @@ tool-tests.yml（云枢工具模块测试）显式指定路径运行。
 import json
 import pytest
 from unittest.mock import patch, MagicMock, PropertyMock
+from urllib.parse import urlsplit
 
 from agent.web import HttpClient, SearchEngine, Scraper, DataProcessor
 
@@ -403,4 +404,6 @@ class TestDataProcessor:
         processed = dt.process(items)
         urls = [i["url"] for i in processed]
         assert urls.count("http://a.com") == 1
-        assert "http://b.com" in urls
+        # 【CodeQL py/incomplete-url-substring-sanitization】按解析后的结构断言，
+        # 不用 "http://b.com" in urls 的子串判断（列表成员判断也要用等值语义表达）。
+        assert any(urlsplit(u) == urlsplit("http://b.com") for u in urls)

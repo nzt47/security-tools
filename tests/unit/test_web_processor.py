@@ -1,6 +1,7 @@
 """Data Processor 单元测试"""
 import pytest
 from unittest.mock import MagicMock, patch
+from urllib.parse import urlsplit
 
 from agent.web.processor import DataProcessor
 
@@ -337,7 +338,12 @@ class TestSummarizeResults:
         summary = DataProcessor.summarize_results(results)
         
         assert "Test Article" in summary
-        assert "https://example.com" in summary
+        # 【CodeQL py/incomplete-url-substring-sanitization】对 URL 不做子串断言：
+        # "https://example.com" 也可以作为**别的 URL 的一部分**出现（路径/查询串），
+        # 子串命中不能证明"摘要里就是这条链接"。改成把摘要里那条 🔗 行解析出来比结构。
+        url_lines = [ln.split("🔗", 1)[1].strip() for ln in summary.splitlines() if "🔗" in ln]
+        assert url_lines, "摘要里应有带 🔗 的链接行"
+        assert urlsplit(url_lines[0]) == urlsplit("https://example.com")
 
     def test_summarize_results_empty(self):
         """测试空结果的摘要"""

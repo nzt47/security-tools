@@ -43,6 +43,13 @@ import urllib.error
 import urllib.request
 import uuid
 from datetime import datetime, timezone
+from urllib.parse import urlparse
+
+#: Webhook 判型用**主机名**（不是 URL 子串）：判型只影响消息体格式，
+#: 但子串判断会把 `https://attacker.tld/?hooks.slack.com` 也认成 Slack。
+SLACK_WEBHOOK_HOST = "hooks.slack.com"
+#: Teams 历史上两个入口域名（webhook.office.com 与 hooks.microsoft.com）
+TEAMS_WEBHOOK_HOSTS = ("webhook.office.com", "hooks.microsoft.com")
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -231,6 +238,23 @@ def write_prometheus_metrics(
     return METRICS_FILE
 
 
+def detect_webhook_type(webhook_url: str) -> str:
+    """按 **URL 主机名**判 webhook 类型（slack / teams / generic）。
+
+    【CodeQL py/incomplete-url-substring-sanitization】不能用
+    `"hooks.slack.com" in webhook_url` 之类的子串判断：
+    `https://attacker.tld/?hooks.slack.com` 这种 URL 的查询串里也含该子串，
+    会被误判成 Slack 并按 Slack 的报文格式发出去（发到攻击者给的地址）。
+    这里取 `urlparse().hostname`（已去掉 userinfo/port、大小写归一）再比等值。
+    """
+    host = (urlparse(webhook_url).hostname or "").lower()
+    if host == SLACK_WEBHOOK_HOST:
+        return "slack"
+    if host in TEAMS_WEBHOOK_HOSTS:
+        return "teams"
+    return "generic"
+
+
 def send_webhook_notification(
     event: Dict[str, Any],
     webhook_url: str,
@@ -252,12 +276,7 @@ def send_webhook_notification(
 
     # 自动检测类型
     if webhook_type == "auto":
-        if "hooks.slack.com" in webhook_url:
-            webhook_type = "slack"
-        elif "webhook.office.com" in webhook_url or "hooks.microsoft.com" in webhook_url:
-            webhook_type = "teams"
-        else:
-            webhook_type = "generic"
+        webhook_type = detect_webhook_type(webhook_url)
 
     # 构建消息体
     if webhook_type == "slack":

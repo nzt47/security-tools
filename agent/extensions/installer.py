@@ -173,7 +173,11 @@ class InstallEngine:
             import urllib.request
             parsed = urlparse(url)
             # 如果是 GitHub raw 内容
-            if "raw.githubusercontent.com" in parsed.netloc:
+            # 【CodeQL py/incomplete-url-substring-sanitization】不能用
+            # `"raw.githubusercontent.com" in parsed.netloc`：netloc 里可以塞
+            # `raw.githubusercontent.com.evil.tld` 或 `user@raw.githubusercontent.com`，
+            # 子串判断都会被骗过。这里比**解析后的 hostname**（大小写已归一、无 userinfo/port）。
+            if (parsed.hostname or "").lower() == "raw.githubusercontent.com":
                 file_path = target_dir / os.path.basename(parsed.path)
                 urllib.request.urlretrieve(url, file_path)
                 return True

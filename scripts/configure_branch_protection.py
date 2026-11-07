@@ -33,6 +33,36 @@ import time
 import urllib.error
 import urllib.request
 from typing import Any, Dict, Optional
+from urllib.parse import urlsplit
+
+#: 本脚本只对 GitHub 远端生效（判据是**解析后的主机名**，不是 URL 子串）
+GITHUB_HOST = "github.com"
+
+
+def _remote_repo_slug(remote_url: str) -> str:
+    """把远端地址解析成 owner/repo（认 https 与 scp 两种写法）。
+
+    【为什么不用子串】"github.com" in remote_url 也会命中
+    https://gist.github.com.evil.tld/... 或 https://github.com@attacker/
+    —— 这里先取主机名再比等值，主机名不匹配直接返回空串（调用方回落到 --repo）。
+    """
+    raw = (remote_url or "").strip()
+    if not raw:
+        return ""
+    if raw.startswith("git@"):
+        # scp 风格：git@github.com:owner/repo.git（**不是** URL，urlsplit 解不了）
+        rest = raw.split("@", 1)[1]
+        host, _, path = rest.partition(":")
+        host = host.split("/", 1)[0]
+    else:
+        # https://… 与 ssh://git@host/… 都是标准 URL，交给 urlsplit
+        parts = urlsplit(raw)
+        host = parts.hostname or ""
+        path = (parts.path or "").lstrip("/")
+    if (host or "").lower() != GITHUB_HOST:
+        return ""
+    slug = path.replace(".git", "").strip("/")
+    return slug if "/" in slug else ""
 
 # 结构化日志
 import logging
@@ -323,11 +353,7 @@ def main() -> int:
             )
             remote_url = result.stdout.strip()
             # 解析 https://github.com/owner/repo.git 或 git@github.com:owner/repo.git
-            if "github.com" in remote_url:
-                if remote_url.startswith("https://"):
-                    repo = remote_url.replace("https://github.com/", "").replace(".git", "")
-                elif remote_url.startswith("git@"):
-                    repo = remote_url.split(":")[1].replace(".git", "")
+            repo = _remote_repo_slug(remote_url)
         except Exception:
             pass
 
