@@ -303,6 +303,10 @@ def api_ingestion_draft_register(draft_id: str):
                         type_slug="draft-not-found")
     except register_mod.RegisterError as exc:
         logger.warning("[ingestion] 登记失败 draft=%s: %s", draft_id, exc)
+        # 失败也要在队列里留痕（否则第二次点「登记」时，人只看到同一个 400，
+        # 却不知道上次卡在哪一步）。状态用 register_failed，note 存**固定文案**。
+        _job_step(draft_id, "register_failed", form="",
+                  note="登记失败（详见服务日志）：" + (exc.message or "")[:120])
         return _problem(400, title="登记失败", detail=exc.message,
                         type_slug="draft-register-failed")
     try:

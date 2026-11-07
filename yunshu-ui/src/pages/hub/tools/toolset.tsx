@@ -27,6 +27,7 @@
  * 两个接口任一失败都降级：没有治理元数据时只显示旧口径（分类 + 启停），不白屏。
  */
 import { useEffect, useMemo, useState } from 'react'
+import { hubHref } from '../../../workbench/hubNav'
 import { Power, ShieldAlert } from 'lucide-react'
 import { Card, Loading, ErrorBox, DataTable, Badge, CallabilityBadge, PageHeader, hubGet, hubPost } from '../components/ui'
 import { callabilityCounts, callabilityLegend, hasCallabilityMark, type CallabilityInfo } from '@/lib/callability'
@@ -135,10 +136,13 @@ export default function ToolsToolset() {
   // 定位：先把平面筛到该工具所属平面（避免"滚不到"），再把该行滚进视口并高亮
   useEffect(() => {
     if (!focusTool || loading) return
-    const norm = focusTool.trim().toLowerCase()
+    // 名字归一：**连字符与下划线视为同一个字**（作业里是 byted-seedance-video-generate，
+    // 注册表里是 byted_seedance_video_generate —— 同一件工具，两种写法），再比大小写。
+    const norm = (s: string) => s.trim().toLowerCase().replace(/[-_]/g, '')
+    const target = norm(focusTool)
     const row = tools.find((t) => t.name === focusTool)
-      ?? tools.find((t) => t.name.toLowerCase() === norm)
-      ?? tools.find((t) => t.name.toLowerCase().endsWith(norm))
+      ?? tools.find((t) => norm(t.name) === target)
+      ?? tools.find((t) => norm(t.name).endsWith(target))
     if (!row) {
       setFocusState('missing')
       return
@@ -165,9 +169,18 @@ export default function ToolsToolset() {
       {focusState === 'found' ? (
         <span className="text-cyan-200">已定位到 <span className="font-mono">{focusTool}</span>（高亮 8 秒）</span>
       ) : focusState === 'missing' ? (
+        <>
         <span className="text-amber-300">
-          未找到工具 <span className="font-mono">{focusTool}</span> —— 可能未启用、已删除或名字被改过
+          未找到工具 <span className="font-mono">{focusTool}</span> —— 已按「连字符/下划线、大小写」归一比对过。
+          三种可能：① 只在 <span className="font-mono">data/tool_definitions/</span> 有 YAML，但模块没进
+          <span className="font-mono"> agent/tools/custom/</span>（注册表里没有）；② 注册了但 enabled=false；
+          ③ 注册名被改过。①→用「能力获取 → 草稿评审 → 登记为工具」重登记；②→在下方列表启用。
         </span>
+        <a href={hubHref('tools', { tab: 'governance' })}
+          className="rounded border border-amber-800/70 px-2 py-0.5 text-[10px] text-amber-200 hover:bg-amber-950/40">
+          去工具治理看注册名
+        </a>
+        </>
       ) : (
         <span className="text-slate-400">正在定位 <span className="font-mono">{focusTool}</span> …</span>
       )}

@@ -165,6 +165,21 @@ def register_tool(root: Path, manifest: Dict[str, Any], *, enable: bool = False)
         loaded = int(persistence.load_dynamic_tools() or 0)
     except Exception as exc:  # noqa: BLE001 运行时加载失败不回滚文件（重启即加载）
         logger.warning("[register] 运行时加载动态工具失败: %s", exc)
+
+    # 【回读校验】台账/文件写成功 ≠ 注册表里有它。2026-11-07 实测过一条"registered 但
+    # 工具根本不在 /api/tools/config"的错账（模块没进 custom/、也没 register_all）——
+    # 队列据此显示「去工具页启用」，点过去必然是「未找到工具」。所以这里必须回读：
+    registered = False
+    try:
+        from agent import tools as _tools
+        registered = name in getattr(_tools, "_registry", {})
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("[register] 回读注册表失败 tool=%s: %s", name, exc)
+    if not registered:
+        raise RegisterError(
+            "工具文件已写入 agent/tools/custom/，但回读注册表里没有它（未真正可调用）"
+            "；请检查模块能否导入、是否导出 register_all、依赖是否齐备"
+        )
     return {"form": "tool", "tool_name": name, "target": str(dest_py),
             "test_file": str(dest_test) if dest_test else "", "enabled": bool(enable),
             "register_all_added": added_shim, "loaded": loaded}
