@@ -51,11 +51,38 @@ class TestSkillRegister:
 
         out = register_mod.register_skill(root, manifest, enable=False)
         assert out["skill_id"] == "demo-skill"
-        assert (repo / "demo-skill" / "SKILL.md").is_file()
+        assert (repo / "demo-skill" / "skill.md").is_file()
         assert (repo / "demo-skill" / "CARD.md").is_file()
         assert called == {"dry_run": False}, "主轨补登记必须真的落库（dry_run=False）"
-        text = (repo / "demo-skill" / "SKILL.md").read_text(encoding="utf-8")
+        text = (repo / "demo-skill" / "skill.md").read_text(encoding="utf-8")
         assert "status: draft" in text and "enabled: false" in text, "登记默认不启用"
+
+    def test_written_file_name_is_lowercase_skill_md(self, tmp_path, monkeypatch):
+        """文件轨的入口名**必须**是 `skill.md`（大小写敏感的文件系统上也一样）。
+
+        【为什么单列一条】此前写的是 `SKILL.md`：Windows 大小写不敏感 ⇒ 本机看不出问题，
+        Linux（CI / 容器）上 file_store / capability_cards / layered / backfill_file_track
+        里的 `dir / "skill.md"` 全部找不到文件 ⇒ 该技能"登记成功但对文件轨不可见"。
+        这里比对**目录里的真实文件名**（不靠 is_file()），才能在 Windows 上也抓到回归。
+        """
+        repo = tmp_path / "skills_repo"
+        monkeypatch.setattr(register_mod, "SKILLS_REPO", repo)
+
+        class _Svc:
+            def backfill_file_track(self, *, dry_run=True):
+                return {}
+
+        import agent.skills_mgmt as sm
+        monkeypatch.setattr(sm, "SkillsMgmtService", lambda: _Svc())
+        root = _skill_draft(tmp_path / "drafts")
+        manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+        register_mod.register_skill(root, manifest, enable=True)
+
+        names = sorted(p.name for p in (repo / "demo-skill").iterdir())
+        assert "skill.md" in names, f"文件轨入口名不是小写 skill.md：{names}"
+        assert "SKILL.md" not in names, (
+            "又写成大写 SKILL.md 了：Windows 能跑，Linux 上该技能对文件轨完全不可见"
+        )
 
     def test_enable_patches_front_matter(self, tmp_path, monkeypatch):
         repo = tmp_path / "skills_repo"
@@ -70,7 +97,7 @@ class TestSkillRegister:
         root = _skill_draft(tmp_path / "drafts")
         manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
         register_mod.register_skill(root, manifest, enable=True)
-        text = (repo / "demo-skill" / "SKILL.md").read_text(encoding="utf-8")
+        text = (repo / "demo-skill" / "skill.md").read_text(encoding="utf-8")
         assert "status: approved" in text and "enabled: true" in text
 
 

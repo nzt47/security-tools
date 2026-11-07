@@ -95,7 +95,13 @@ def register_skill(root: Path, manifest: Dict[str, Any], *, enable: bool = False
 
     dest = SKILLS_REPO / sid
     dest.mkdir(parents=True, exist_ok=True)
-    (dest / "SKILL.md").write_text(text, encoding="utf-8")
+    # 【必须是小写 skill.md】文件轨的唯一契约是 `data/skills_repo/<id>/skill.md`
+    # （见 agent/skills_mgmt/file_store.py::_SKILL_MD，以及 capability_cards / layered /
+    # service.backfill_file_track 里成片的 `dir / "skill.md"`）。此前这里写的是
+    # `SKILL.md`：Windows 大小写不敏感 ⇒ 本机一切正常，Linux（CI / 容器）上
+    # 该技能对文件轨完全不可见（不入清单、不出能力卡、backfill 找不到）。
+    # 2026-11-07 实测：chart-visualization 就是这样只在本机"存在"的。
+    (dest / "skill.md").write_text(text, encoding="utf-8")
     card = root / "CARD.md"
     if card.is_file():
         shutil.copyfile(card, dest / "CARD.md")
