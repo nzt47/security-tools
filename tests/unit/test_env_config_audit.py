@@ -55,16 +55,21 @@ def isolated_manager(tmp_path, monkeypatch):
 # ════════════════════════════════════════════════════════════════════════════
 
 class TestMaskSensitiveValue:
-    """敏感 key 脱敏规则测试"""
+    """敏感 key 脱敏规则测试
+
+    【C-10 变更（py/clear-text-storage）】旧规则保留前 4 + 后 4 字符，等于把凭据的
+    8 个字符写进 logs/config_audit.jsonl。现在敏感值**只**记常量 ***：审计要证明的
+    是"这个键被改过"，不是"值长什么样"（口径 §4.2：原文/指纹/长度/布尔都不行）。
+    """
 
     def test_sensitive_key_long_value(self, isolated_manager):
-        """敏感 key + 长 value（>8 字符）→ 前 4 + *** + 后 4"""
+        """敏感 key + 长 value → 只留常量 ***（不含任何片段）"""
         manager, _ = isolated_manager
         result = manager._mask_sensitive_value('LLM_API_KEY', 'sk-1234567890abcdef')
-        assert result == 'sk-1***cdef'
+        assert result == '***'
 
     def test_sensitive_key_short_value(self, isolated_manager):
-        """敏感 key + 短 value（<=8 字符）→ ***"""
+        """敏感 key + 短 value → ***（与长度无关，避免泄露长度）"""
         manager, _ = isolated_manager
         result = manager._mask_sensitive_value('LLM_API_KEY', 'sk-123')
         assert result == '***'
@@ -76,10 +81,10 @@ class TestMaskSensitiveValue:
         assert result == '***'
 
     def test_sensitive_key_boundary_length_9(self, isolated_manager):
-        """敏感 key + 正好 9 字符 value → 前 4 + *** + 后 4（边界值）"""
+        """敏感 key + 正好 9 字符 value → ***（边界值，不再泄前 4/后 4）"""
         manager, _ = isolated_manager
         result = manager._mask_sensitive_value('LLM_API_KEY', '123456789')
-        assert result == '1234***6789'
+        assert result == '***'
 
     def test_non_sensitive_key(self, isolated_manager):
         """非敏感 key + value → 原值返回"""
@@ -102,7 +107,7 @@ class TestMaskSensitiveValue:
         manager, _ = isolated_manager
         value = 'abcdefghijklmnopqrstuvwxyz'  # 26 字符
         result = manager._mask_sensitive_value(key, value)
-        assert result == 'abcd***wxyz'
+        assert result == '***'
         assert result != value  # 必须脱敏
 
     def test_non_sensitive_long_value_not_masked(self, isolated_manager):
@@ -157,7 +162,7 @@ class TestAuditLogWrite:
         lines = audit_log.read_text(encoding='utf-8').strip().split('\n')
         entry = json.loads(lines[-1])
         assert entry['key'] == 'LLM_API_KEY'
-        assert entry['new_value'] == 'sk-1***cdef'  # 已脱敏
+        assert entry['new_value'] == '***'  # 已脱敏（只留常量）
         assert entry['new_value'] != 'sk-1234567890abcdef'  # 不是明文
 
     def test_set_non_sensitive_key_not_masked_in_audit(self, isolated_manager):
@@ -181,7 +186,7 @@ class TestAuditLogWrite:
         entry = json.loads(lines[-1])
         assert entry['action'] == 'delete'
         assert entry['key'] == 'LLM_API_KEY'
-        assert entry['old_value'] == 'sk-1***cdef'  # 已脱敏
+        assert entry['old_value'] == '***'  # 已脱敏（只留常量）
 
     def test_set_old_value_captured(self, isolated_manager):
         """set 操作记录修改前的 old_value"""

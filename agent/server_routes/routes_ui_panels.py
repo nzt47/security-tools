@@ -790,6 +790,9 @@ def _do_governance_action(key: str, target: str, *, reason: str,
 _BATCHES: Dict[str, Dict[str, Any]] = {}
 _BATCH_TTL_SECONDS = 900.0          # 与 §5.7⑦ 链接时效硬上限同源（≤900s）
 _BATCH_MAX = 200
+#: 批量裁决的"链接载体" Cookie 名（**常量**：后端从不读它，只用来让一次性链接
+#: 不暴露给 JS；因此不需要把 batch_id 拼进名字——见 set_cookie 处 C-10 注释）
+_BATCH_COOKIE_NAME = "cp_batch"
 
 
 def _purge_batches(now: Optional[float] = None) -> None:
@@ -893,7 +896,12 @@ def register_batch(app: Any) -> None:
                      "（后端单表校验，前端不拥有额外权限）"),
         }))
         # token 集合入 HttpOnly Cookie（与单条路径同款；不暴露给 JS）
-        response.set_cookie(f"cp_batch_{batch_id}", json.dumps(tokens),
+        # 【C-10 py/cookie-injection：名字里不再拼 batch_id】旧实现用
+        # f"cp_batch_{batch_id}" 作 Cookie 名、delete 时又用请求体里的 batch_id
+        # 拼同一个名字 ⇒ 用户可控串直接进 Set-Cookie 头。这枚 Cookie **后端从不读取**
+        # （只是"不给 JS 看"的载体，见上 note），所以名字不必区分批次：改成常量名，
+        # 语义不变（服务端只认 _BATCHES 里的 batch_id），注入链直接消失。
+        response.set_cookie(_BATCH_COOKIE_NAME, json.dumps(tokens),
                             httponly=True, samesite="Strict",
                             max_age=int(min(_BATCH_TTL_SECONDS,
                                             float(session_mod.link_ttl_seconds()))))
@@ -991,7 +999,7 @@ def register_batch(app: Any) -> None:
             "note": ("批量裁决=逐条走同一审批链（会话+CSRF+链接+二次认证+矩阵）；"
                      "无新增权限实现，无旁路"),
         }))
-        response.delete_cookie(f"cp_batch_{batch_id}")
+        response.delete_cookie(_BATCH_COOKIE_NAME)
         return response
 
 

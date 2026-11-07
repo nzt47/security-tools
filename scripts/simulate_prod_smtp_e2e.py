@@ -132,9 +132,14 @@ def run(args: list[str], timeout: int = 60) -> subprocess.CompletedProcess:
 
 
 def mask(secret: str) -> str:
-    if len(secret) <= 8:
-        return "*" * len(secret)
-    return f"{secret[:4]}****{secret[-4:]}"
+    """打码显示（只给常量占位，不给任何派生片段）
+
+    【为什么连首尾 4 位也不留（C-10 py/clear-text-storage）】旧实现返回
+    "前 4 + **** + 后 4"，这份报告会被写进文件（--report-out）并被当证据传阅，
+    等于把授权码的 8 个字符连同"长度"一起留在了明文制品里。口径 §4.2：真凭据
+    不进日志/制品 —— 原文 / 指纹 / **长度** / 布尔全都不行。这里只回常量。
+    """
+    return "********"
 
 
 def current_password() -> str:

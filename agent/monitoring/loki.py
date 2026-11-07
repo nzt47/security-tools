@@ -8,7 +8,6 @@
 import json
 import logging
 import os
-import re
 import time
 import uuid
 import threading
@@ -45,16 +44,28 @@ _FIELD_LABEL_ALIASES = {
     'env': ('env', 'environment'),
 }
 
-#: 路由把 level/service 拼成 `|~ 'VALUE'` 管道过滤（见 routes_logging）：
-#: 这类片段不能对整串做子串匹配，要拆出 VALUE 作为文本词（对 message + labels 一起匹配）。
-_PIPE_FILTER_RE = re.compile(r"\|~?\s*(?:'([^']*)'|\"([^\"]*)\")")
-#: `key=value` / `key="value"` 字段过滤
-_FIELD_FILTER_RE = re.compile(
-    r"([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(?:\"([^\"]*)\"|'([^']*)'|([^\s\"'|]+))"
-)
+#: 查询串里允许的引号（管道过滤 `|~ 'VALUE'` 与 `key="value"` 都用它）
+_QUOTES = ('"', "'")
+#: `key=value` 里 key 的首字符（字母或下划线；后续字符为字母/数字/下划线）
+_FIELD_NAME_START = "_"
+#: 未加引号的字段值在这几个字符处结束（空白 / 引号 / 管道）
+_QUOTE_OR_PIPE = (" ", "\t", "\n", "\r", '"', "'", "|")
 
 #: 被当作"全匹配"的空查询（路由在无任何筛选时传 ".+"）
 _MATCH_ALL_QUERIES = {'.+', '.*', '.+?'}
+
+
+def _read_quoted(text: str, start: int):
+    """从 text[start] 的引号开始读一个引号串：返回 (值, 结束后位置)
+
+    找不到闭合引号时返回 ("", start) ⇒ 调用方按"这里不是引号串"处理（与原来正则
+    "匹配不到就不匹配"同义）。**纯扫描、无回溯**，所以对"很多引号但不闭合"的输入是线性的。
+    """
+    quote = text[start]
+    end = text.find(quote, start + 1)
+    if end < 0:
+        return "", start
+    return text[start + 1:end], end + 1
 
 
 def _parse_local_query(query: str):
@@ -68,23 +79,67 @@ def _parse_local_query(query: str):
     if not q or q in _MATCH_ALL_QUERIES:
         return {}, []
 
-    text_terms = []
-    for m in _PIPE_FILTER_RE.finditer(q):
-        value = next((g for g in m.groups() if g), '')
-        if value.strip():
-            text_terms.append(value.strip())
-    rest = _PIPE_FILTER_RE.sub(' ', q)
+    # 【C-10 py/polynomial-redos：这两条正则换成一次线性扫描】
+    # 原实现用 _PIPE_FILTER_RE / _FIELD_FILTER_RE 的 finditer + sub（每条都要把整串再扫
+    # 一遍），而查询串来自 URL（`/api/logging/query?query=`，长度不受控）。两条正则里的
+    # `[^\']*` / `[^\"]*` 与交替在"很多引号但不闭合"的输入上会逐位置回溯 ⇒ 多项式级。
+    # 现在一次从左到右扫描：遇到 `|` 读可选的 `~` + 引号串；遇到标识符读 key 再读 `=` 与值；
+    # 其余字符进"剩余串"再按空白/竖线切词。语义与两条正则等价（含 key 小写、引号剥离）。
+    text_terms: List[str] = []
+    field_filters: Dict[str, str] = {}
+    rest_parts: List[str] = []
+    i = 0
+    n = len(q)
+    while i < n:
+        ch = q[i]
+        if ch == "|":
+            j = i + 1
+            if j < n and q[j] == "~":
+                j += 1
+            while j < n and q[j].isspace():
+                j += 1
+            if j < n and q[j] in _QUOTES:
+                value, end = _read_quoted(q, j)
+                if end > j:
+                    if value.strip():
+                        text_terms.append(value.strip())
+                    i = end
+                    continue
+            rest_parts.append(ch)
+            i += 1
+            continue
+        if ch.isalpha() or ch == _FIELD_NAME_START:
+            j = i
+            while j < n and (q[j].isalnum() or q[j] == _FIELD_NAME_START):
+                j += 1
+            name_end = j
+            k = j
+            while k < n and q[k].isspace():
+                k += 1
+            if k < n and q[k] == "=":
+                k += 1
+                while k < n and q[k].isspace():
+                    k += 1
+                if k < n and q[k] in _QUOTES:
+                    value, end = _read_quoted(q, k)
+                else:
+                    start = k
+                    while k < n and not q[k].isspace() and q[k] not in _QUOTE_OR_PIPE:
+                        k += 1
+                    value, end = q[start:k], k
+                if end > i:
+                    if value:
+                        field_filters[q[i:name_end].lower()] = value
+                    i = end
+                    continue
+            rest_parts.append(ch)
+            i += 1
+            continue
+        rest_parts.append(ch)
+        i += 1
 
-    field_filters = {}
-    for m in _FIELD_FILTER_RE.finditer(rest):
-        key = m.group(1).lower()
-        value = next((g for g in m.groups()[1:] if g is not None), '')
-        if value:
-            field_filters[key] = value
-    rest = _FIELD_FILTER_RE.sub(' ', rest)
-
-    for token in rest.replace('|', ' ').split():
-        token = token.strip().strip('\'"')
+    for token in "".join(rest_parts).replace("|", " ").split():
+        token = token.strip().strip("\'\"")
         if token and token not in _MATCH_ALL_QUERIES:
             text_terms.append(token)
     return field_filters, text_terms

@@ -47,7 +47,10 @@ def register_prompt_routes(app, injector, sensor_cache: dict):
         for r in _get_all_readings():
             if r.get("sensor_name") == sensor_name:
                 return injector.translate(r)
-        return {"error": f"sensor '{sensor_name}' not found"}, 404
+        # 【C-10 py/reflective-xss】把用户可控的 sensor_name 直接放进 dict 返回，Flask
+        # 会按 HTML 渲染这条错误（CodeQL 的反射模型就是这么看的）。显式 jsonify 声明
+        # 媒体类型为 application/json，既符合"错误只回 JSON"的既有口径，也让反射链断开。
+        return jsonify({"error": f"sensor '{sensor_name}' not found"}), 404
 
     @app.route("/api/cognitive/reject")
     def cognitive_reject():

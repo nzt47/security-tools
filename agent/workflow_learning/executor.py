@@ -75,6 +75,11 @@ def _resolve_template(value: Any, ctx: Dict[str, Any],
     return value
 
 
+#: 条件表达式里的比较运算符（**长的在前**：>= 必须先于 >，与原正则的交替顺序一致）
+_COMPARISON_OPS = ("==", "!=", ">=", "<=", ">", "<")
+#: 条件表达式里的方法调用标记（原正则的 \.includes\( 部分；这里是纯字符串，不走正则）
+_INCLUDES_CALL = ".includes("
+
 _REF_RE = re.compile(r"\$\{([^}]+)\}|\$([a-zA-Z_][a-zA-Z0-9_.]*)")
 # 整串单个引用 — 用于 _resolve_string 判断是否保留原值类型 (dict/number 等)
 _FULL_REF_RE = re.compile(r"^\$\{([^}]+)\}$|^\$([a-zA-Z_][a-zA-Z0-9_.]*)$")
@@ -128,6 +133,25 @@ def _lookup(key: str, ctx: Dict[str, Any],
     return cur
 
 
+def _split_comparison(expr: str):
+    """把 "left <op> right" 线性拆开（找不到运算符返回空三元组）
+
+    【为什么不用正则（C-10 py/polynomial-redos）】原正则要求"左边 ≥1 字符 + 运算符 +
+    右边 ≥1 字符"，在长表达式上要做逐位置回溯；这里从左往右扫一次，每个位置只做
+    常数次 startswith（运算符最长 2 字符）⇒ O(n)。语义与原正则对齐：
+    取**最靠前**的运算符；同一位置长的先试（所以 "a>=b" 拆成 (a, >=, b) 而不是 (a>, =b)）。
+    """
+    for i in range(1, len(expr)):
+        for op in _COMPARISON_OPS:
+            if expr.startswith(op, i):
+                left = expr[:i].strip()
+                right = expr[i + len(op):].strip()
+                if left and right:
+                    return left, op, right
+                return "", "", ""
+    return "", "", ""
+
+
 def _eval_condition(expr: str, ctx: Dict[str, Any]) -> bool:
     """简化版条件求值
 
@@ -146,9 +170,12 @@ def _eval_condition(expr: str, ctx: Dict[str, Any]) -> bool:
     resolved = _resolve_string(expr, ctx)
 
     # 简单相等比较
-    m = re.match(r"^(.+?)\s*(==|!=|>=|<=|>|<)\s*(.+)$", resolved)
-    if m:
-        left, op, right = m.group(1).strip(), m.group(2), m.group(3).strip()
+    # 【C-10 py/polynomial-redos】原实现是一条「懒点星 + 运算符交替 + 尾部长点星」的正则：
+    # 懒点星 + 交替 + 尾部 (.+) 在"很长但没有任何比较运算符"的表达式上会逐位置回溯
+    # ⇒ O(n²)，而表达式来自模型生成的工作流定义（长度不受控）。改成线性扫描：
+    # 从左往右找**最靠前**的运算符，同一位置上长的先试（>= 先于 >，与原交替顺序一致）。
+    left, op, right = _split_comparison(resolved)
+    if op:
         # 尝试去除引号
         if right.startswith('"') and right.endswith('"'):
             right = right[1:-1]
@@ -170,13 +197,16 @@ def _eval_condition(expr: str, ctx: Dict[str, Any]) -> bool:
         except (ValueError, TypeError):
             return False
 
-    # .includes(...) 调用
-    m = re.match(r"^(.+?)\.includes\((.+)\)$", resolved)
-    if m:
-        haystack, needle = m.group(1), m.group(2).strip()
-        if needle.startswith('"') and needle.endswith('"'):
-            needle = needle[1:-1]
-        return needle in haystack
+    # .includes(...) 调用（同样是线性切片，不用「懒点星 + 尾部长点星」那类正则）
+    if resolved.endswith(")") and _INCLUDES_CALL in resolved:
+        idx = resolved.find(_INCLUDES_CALL)
+        if idx > 0:
+            haystack = resolved[:idx]
+            needle = resolved[idx + len(_INCLUDES_CALL):-1].strip()
+            if needle:
+                if needle.startswith('"') and needle.endswith('"'):
+                    needle = needle[1:-1]
+                return needle in haystack
 
     # 默认: 表达式存在但无法解析 → 不执行 (保守)
     logger.warning("[Executor] 无法解析条件表达式: %s", expr)

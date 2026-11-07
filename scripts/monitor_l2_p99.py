@@ -122,24 +122,39 @@ def parse_comparison_log(content: str) -> dict | None:
           B        21.55            21.55            21.55
           C        22.28            390.10           390.10
     """
-    # 匹配场景概览表中的场景 C 行
-    pattern = re.compile(
-        r"── 全部场景概览 ──.*?\n.*?P50.*?P99.*?Max.*?\n.*?-+.*?\n"
-        r"(?:.*\n)*?"  # 跳过 A/B 行
-        r"\s*C\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)",
-        re.DOTALL,
-    )
-    match = pattern.search(content)
-    if not match:
+    # 【C-10 py/redos】原实现是一条正则：
+    #   "── 全部场景概览 ──.*?\n.*?P50.*?P99.*?Max.*?\n.*?-+.*?\n(?:.*\n)*?\s*C\s+..."
+    # 其中 (?:.*\n)*? 在 DOTALL 下是"任意行重复"，配上后面的 C 行锚点后，遇到
+    # "有表头但没有 C 行"的日志就会把整份内容重扫成 O(n²)（这个脚本会读几 MB 的
+    # 压测日志）。按行扫描是线性且更直白：先定表头，再找第一行以 C 开头的四列数据。
+    lines = content.splitlines()
+    header_idx = None
+    for i, line in enumerate(lines):
+        if "全部场景概览" not in line:
+            continue
+        header_idx = next((j for j in range(i, min(i + 4, len(lines)))
+                           if "P50" in lines[j] and "P99" in lines[j]), None)
+        if header_idx is not None:
+            break
+    if header_idx is None:
         return None
 
-    return {
-        "scenario": "C",
-        "description": "高并发同步串行",
-        "p50": float(match.group(1)),
-        "p99": float(match.group(2)),
-        "pmax": float(match.group(3)),
-    }
+    for line in lines[header_idx + 1:]:
+        parts = line.split()
+        if len(parts) < 4 or parts[0] != "C":
+            continue
+        try:
+            p50, p99, pmax = float(parts[1]), float(parts[2]), float(parts[3])
+        except ValueError:
+            continue
+        return {
+            "scenario": "C",
+            "description": "高并发同步串行",
+            "p50": p50,
+            "p99": p99,
+            "pmax": pmax,
+        }
+    return None
 
 
 def parse_markdown_report(content: str) -> dict | None:
