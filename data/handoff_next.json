@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-07T12:20:00+08:00",
+  "updated_at": "2026-11-08T13:20:00+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
     {
@@ -291,6 +291,22 @@
       "priority": "P3",
       "criteria": "2026-11-07 23:49–23:51 有人用 UI 走「转化队列 → 登记/入轨」：新增 api-multi-search-engine（文件轨 + 主轨）与 document-skill；两条都不在 git（运行期）。document-skill/skill.md 的 front matter 被写成 description: name: ... 的多冒号单行 ⇒ YAML ScannerError，validate_skill_md 报 1 error；另有 4 条缺 description_zh/何时使用/示例的 warning（含既有的 adaptive-skill-stack / claude-code-analysis）。同期还自动改了 capability_manifest / 盘点表 / 3 个测试基线（已按口径还原，未提交）。交接卡自检因此显示 ⚠（dual_track 51/51 孤儿 / skill_md 1 error）",
       "next": "已按 Owner 的 ①+③ 收口（2026-11-08 01:45）：① 两条技能修好并正式入轨 —— document-skill 的 description 改成单引号标量、name=技能名、去掉正文里重复的 name/description 与末行 Tags（不编内容），api-multi-search-engine 补 description_zh + 「何时使用」并把被截断的 description 补完；intake_skill --execute --fix-baselines 入轨（skill.md + CARD.md 进 git），干净 worktree 重派生 capability_manifest/盘点表（140 → 142 条，工具 93 不动），基线六处同步（entries 142 / by_kind skill 49 / by_location local 120 / skill_total 49），并顺手把 HEAD 里那处不可复现的 search_memory.location_unresolved 漂移改正；③ 入轨助手 fix_baselines 默认 false（DEFAULT_FIX_BASELINES + 界面「同时刷新基线」显式勾选），带 4 条路由用例与 2 条界面用例。结果：validate_skill_md 0 error（3 warning 是既有两条 + document-skill 无「示例」）、双轨 0 孤儿（文件轨 51 / 主轨 53）。剩余：「取消归档」见 queue-archive 条目"
+    },
+    {
+      "id": "compress-trigger-global-pool",
+      "title": "压缩触发池是**全局记忆**（跨会话最近 200 条），与界面读数（本会话）不同源；floor 又按 100 条记 ⇒ 闸门恒开",
+      "status": "done",
+      "priority": "P1",
+      "criteria": "量测（2026-11-08，python -X utf8 scripts/probe_compress_vs_cache.py）：触发池 data/messages.jsonl 是全库（295 条，无 session 字段），counted(最近 200 条)=130,469 token = 窗口 131,072 的 99.5%、80% 阈值(104,857)的 1.24 倍；而界面 /api/context/status 算的是**本会话**：68~70 条 / 68,243 token = 52.1%。阈值早在 2026-10-05T17:22（第 98 条）就越过，之后恒在阈值以上 ⇒ 新会话在 3% 也会因「另一条会话的消息」触发压缩。次因：_execute_compression 用 load_recent_messages(limit=100) 记 floor(69,895)，触发却看 200 条(130,469) ⇒ counted200 >= 1.1×floor=76,884 恒成立，闸门形同虚设；按现有消息池模拟可触发 186 次（floor 用同一 200 条窗口时只有 6 次）。实测压缩 80 次（79 成 + 1 空摘要），2026-10-13 一天 25 次、12:09–12:31 六次。",
+      "next": "已完成（PR #1518 → 74d7690c5，2026-11-08 15:00 部署）：① 触发池按会话（add_message/score_and_save_message 带 session_id、_recent_messages 过滤、水位按会话分桶）；② floor 与触发同窗口（COMPRESS_TRIGGER_WINDOW=200），并把维护线程也改成按会话判定；③ 重启时从落盘回填 _message_window（否则压缩输入只拿到重启后新写的几条，实测只剩 147 token）。实测：会话 0.1%→2.5% 期间压缩事件 +0、摘要版本 94 不变；离线演示触发点恰好 800/1000=80%，别的会话灌到 2000 不触发新会话。剩余边界：触发看会话最近 200 条、界面看会话全量累计 ⇒ 超长会话（>200 条）仍可能「界面到 80% 而触发未到」（方向安全，不再提前压）；摘要仍是全局一份"
+    },
+    {
+      "id": "retrieval-mode-prefix-cache",
+      "title": "检索/完整·流式档把「会话摘要+最近消息」塞进 system prompt ⇒ 整段前缀每轮失效（可复用 ≤0.13%）",
+      "status": "done",
+      "priority": "P1",
+      "criteria": "实测 7 条 LLM 记录：稳定档位内命中 99.4%~99.7%（每次只 miss 新增尾部 201~351 token）；换档那次（工具集 17→26、system prompt 75→434 字，3,774→7,270 token 的 tools）命中 0/62,415；压缩调用本身命中 0/57,385（摘要用另一套前缀，构造上不可能命中）。零命中 2 次贡献 119,800 token = 全部 miss 的 97.1%。检索档的 system prompt 里 [工作记忆] 块起点在第 102 字（块前只有 80 token），而该块 = get_context 的「摘要 + 最近 20 条」截 500 字 ⇒ 窗口每滑动一条就整段失效（模拟 115 轮里 114 轮该块变化，首个分歧就在块首）；压缩改写摘要同理（可复用 111 token）。",
+      "next": "已完成（PR #1518 → 74d7690c5）：plugins/chat.py 的技能 instruction / 检索片段不再拼 SYSTEM_PROMPT，改随本轮最后一条用户消息下发（与编排器 F3-1 共用 YUNSHU_PROMPT_VOLATILE_TAIL 开关，=0 回滚）。实测（pid 64828）：三次检索档对话 21 次调用，system prompt 恒 75 字、命中 88.1%、零命中 0 次（修前同档 0/62,415）；同轮相邻命中 93~98%。未做：压缩调用自身仍是另一套前缀（57k token 全价），要它命中得把摘要指令拼在对话前缀之后"
     }
   ]
 }
