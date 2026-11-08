@@ -63,6 +63,8 @@ LIVE_BUDGET_DEFAULT = 100000
 LIVE_MAX_TOKENS = 64
 #: --live 预热那一次只要几个 token
 LIVE_WARM_MAX_TOKENS = 8
+#: --ab 的回复上限（与 Summarizer.FIRST_TRY_TOKENS 同量级，便于比较「够不够出摘要」）
+AB_MAX_TOKENS = 500
 #: 关 thinking（口径 §6：本次只量前缀命中；且落盘历史里的 assistant 消息没有
 #: reasoning_content，开着 thinking 回放会被上游 400 拒绝）
 LIVE_EXTRA_BODY = {"thinking": {"type": "disabled"}}
@@ -351,6 +353,174 @@ def live(info, with_baseline=False, live_budget=LIVE_BUDGET_DEFAULT):
         call("3) 压缩·现状(全价)", base_msgs, None, LIVE_MAX_TOKENS)
 
 
+def e2e(info, live_budget=LIVE_BUDGET_DEFAULT):
+    """端到端验证：生产链路（MemoryManager._execute_compression）真的复用前缀。
+
+    步骤：① 用与对话相同的 payload 打一次真实请求（建前缀）；
+          ② 把这份 payload 登记进 agent/chat_prefix；
+          ③ 打开开关、构造真实 MemoryManager，跑一次 _execute_compression；
+          ④ 用**请求侧探针**读这次 summarize 真正拿到的 usage（llm_monitor 的 summarize
+             记录拿不到 usage：_do_summarize 返回的是文本不是响应对象，见记录里的 0）。
+    """
+    import tempfile
+    from openai import OpenAI
+
+    _load_env(os.path.join(_ROOT, ".env"))
+    key = os.environ.get("LLM_API_KEY") or os.environ.get("DEEPSEEK_API_KEY") or ""
+    if not key:
+        print("!! 未配置 LLM_API_KEY，跳过 --e2e")
+        return
+    base = (os.environ.get("LLM_BASE_URL") or "https://api.deepseek.com").rstrip("/")
+    model = os.environ.get("LLM_MODEL") or "deepseek-flash"
+    counter = _counter()
+    rows = _load_messages(MESSAGES_PATH)
+    _, pool = _pick_pool(rows, None)
+    kept, kept_tok = _keep_within_budget(counter, pool, int(live_budget))
+    system_text = info.get("system_text") or ""
+    tools = info.get("tools") or []
+    sid = "probe-e2e"
+
+    from agent import chat_prefix
+    from memory.llm_service import LLMService
+
+    client = OpenAI(api_key=key, base_url=base)
+    msgs = [{"role": "system", "content": system_text}] + [
+        {"role": m.get("role") or "user", "content": str(m.get("content") or "")} for m in kept]
+    print()
+    print("== F. 端到端（生产链路）：窗口 %d 条 / %d token" % (len(kept), kept_tok))
+    warm = client.chat.completions.create(
+        model=model, messages=msgs, tools=tools,
+        max_tokens=LIVE_WARM_MAX_TOKENS, temperature=0, extra_body=LIVE_EXTRA_BODY)
+    u = getattr(warm, "usage", None)
+    print("   ① 建前缀 prompt=%s hit=%s" % (
+        getattr(u, "prompt_tokens", "?"), getattr(u, "prompt_cache_hit_tokens", "?")))
+
+    chat_prefix.record(sid, system_text, tools, msgs[1:], window_tokens=WINDOW_DEFAULT,
+                       model=model)
+    os.environ[chat_prefix.ENV_FLAG] = "1"
+
+    from memory.memory_manager import MemoryManager
+    mgr = MemoryManager(config={
+        "data_dir": tempfile.mkdtemp(prefix="probe-e2e-"),
+        "token_limit": WINDOW_DEFAULT,
+        "compress_threshold": 0.8,
+        "llm": {"timeout": 180},
+        "async_compress": {"enabled": False},
+    })
+    # 请求侧探针：包住 LLMService 的 client，把 summarize 的**响应对象**接住（拿真实 usage）
+    captured = []
+
+    class _SpyCompletions:
+        def __init__(self, inner):
+            self._inner = inner
+
+        def create(self, **kwargs):
+            resp = self._inner.create(**kwargs)
+            captured.append({"kwargs": kwargs, "resp": resp})
+            return resp
+
+    class _SpyChat:
+        def __init__(self, inner):
+            self.completions = _SpyCompletions(inner.completions)
+
+    class _SpyClient:
+        def __init__(self, inner):
+            self.chat = _SpyChat(inner.chat)
+
+    _orig_get_client = LLMService._get_client
+    LLMService._get_client = lambda self: _SpyClient(_orig_get_client(self))
+
+    mgr._message_window.append({"role": "user", "content": "占位消息", "session_id": sid})
+    ok = mgr._execute_compression(sid)
+    print("   ② _execute_compression 返回 %s" % ok)
+
+    if not captured:
+        print("   !! 没接住 summarize 的请求（生产链路没走 LLMService？）")
+        return
+    sent = captured[-1]
+    u = getattr(sent["resp"], "usage", None)
+    prompt = int(getattr(u, "prompt_tokens", 0) or 0) if u else 0
+    hit = int(getattr(u, "prompt_cache_hit_tokens", 0) or 0) if u else 0
+    miss = int(getattr(u, "prompt_cache_miss_tokens", 0) or 0) if u else 0
+    kw = sent["kwargs"]
+    print("   ③ 生产链路这次 summarize：prompt=%d hit=%d miss=%d ⇒ %.1f%%（tools=%d，system==工作台 %s）"
+          % (prompt, hit, miss, (100.0 * hit / prompt) if prompt else 0.0,
+             len(kw.get("tools") or []),
+             str((kw.get("messages") or [{}])[0].get("content") or "") == system_text))
+
+def ab(info, live_budget=LIVE_BUDGET_DEFAULT, out_path=""):
+    """A/B：同一段对话，两种压缩输入各压一次，比较「是否真出摘要」与长度/内容。
+
+    旧路径 = [system 摘要指令][system 策略指令][最近 100 条]（无 tools）
+    新路径 = [system 工作台][对话窗口][user 摘要指令]（同 tools）
+    """
+    from openai import OpenAI
+
+    _load_env(os.path.join(_ROOT, ".env"))
+    key = os.environ.get("LLM_API_KEY") or os.environ.get("DEEPSEEK_API_KEY") or ""
+    if not key:
+        print("!! 未配置 LLM_API_KEY，跳过 --ab")
+        return
+    base = (os.environ.get("LLM_BASE_URL") or "https://api.deepseek.com").rstrip("/")
+    model = os.environ.get("LLM_MODEL") or "deepseek-flash"
+    counter = _counter()
+    rows = _load_messages(MESSAGES_PATH)
+    _, pool = _pick_pool(rows, None)
+    kept, kept_tok = _keep_within_budget(counter, pool, int(live_budget))
+    system_text = info.get("system_text") or ""
+    tools = info.get("tools") or []
+    sys_default, sys_strategy = _instructions()
+    client = OpenAI(api_key=key, base_url=base)
+
+    def _chat(messages, tools_arg):
+        resp = client.chat.completions.create(
+            model=model, messages=messages,
+            **({"tools": tools_arg} if tools_arg else {}),
+            max_tokens=AB_MAX_TOKENS, temperature=0,
+            extra_body=LIVE_EXTRA_BODY)
+        msg = resp.choices[0].message
+        tool_calls = getattr(msg, "tool_calls", None) or []
+        u = getattr(resp, "usage", None)
+        return {
+            "text": (msg.content or "").strip(),
+            "tool_calls": [getattr(tc.function, "name", "") for tc in tool_calls],
+            "prompt": int(getattr(u, "prompt_tokens", 0) or 0) if u else 0,
+            "completion": int(getattr(u, "completion_tokens", 0) or 0) if u else 0,
+        }
+
+    print()
+    print("== E. A/B：同一段对话，两种压缩输入（窗口 %d 条 / %d token；model=%s）"
+          % (len(kept), kept_tok, model))
+    old_msgs = [{"role": "system", "content": sys_default},
+                {"role": "system", "content": sys_strategy}] + [
+        {"role": m.get("role") or "user", "content": str(m.get("content") or "")}
+        for m in pool[-100:]]
+    new_msgs = [{"role": "system", "content": system_text}] + [
+        {"role": m.get("role") or "user", "content": str(m.get("content") or "")}
+        for m in kept] + [{"role": "user", "content": sys_strategy}]
+
+    results = {}
+    for tag, msgs, t in (("old", old_msgs, None), ("d2", new_msgs, tools)):
+        try:
+            r = _chat(msgs, t)
+        except Exception as e:  # noqa: BLE001 探针如实报错，不回显凭据
+            print("   %-14s !! %s: %s" % (tag, type(e).__name__, str(e)[:200]))
+            continue
+        results[tag] = r
+        print("   %-14s prompt=%6d completion=%4d tool_calls=%s len=%d"
+              % (tag, r["prompt"], r["completion"], r["tool_calls"] or "-", len(r["text"])))
+        print("                  head: %s" % r["text"][:120].replace("\n", " "))
+    if out_path and results:
+        try:
+            import io as _io
+            with _io.open(out_path, "w", encoding="utf-8") as f:
+                json.dump({"window_messages": len(kept), "window_tokens": kept_tok,
+                           "results": results}, f, ensure_ascii=False, indent=2)
+            print("   已落盘：%s" % out_path)
+        except Exception as e:  # noqa: BLE001 落盘失败不影响结论（屏上已有数字）
+            print("   !! 落盘失败：%s" % e)
+
+
 def main():
     ap = argparse.ArgumentParser(description="压缩调用能不能复用对话前缀（只读量测）")
     ap.add_argument("--session", default="", help="会话 id（默认：未分会话的旧池）")
@@ -359,10 +529,20 @@ def main():
                     help="--live 时多验一次现状（全价 100 条，约 6 万 token）")
     ap.add_argument("--live-budget", type=int, default=LIVE_BUDGET_DEFAULT,
                     help="--live 的消息 token 预算（默认 %d）" % LIVE_BUDGET_DEFAULT)
+    ap.add_argument("--ab", action="store_true",
+                    help="再跑一次压缩输入 A/B（旧路径 vs D2 各压一次，花钱）")
+    ap.add_argument("--ab-out", default="",
+                    help="--ab 时把两份输出落盘为 JSON（便于人评/归档）")
+    ap.add_argument("--e2e", action="store_true",
+                    help="端到端验证生产链路（建前缀 → MemoryManager 压缩 → 读监控命中）")
     args = ap.parse_args()
     info = offline(args.session.strip() or None)
     if args.live and info:
         live(info, with_baseline=args.with_baseline, live_budget=args.live_budget)
+    if args.ab and info:
+        ab(info, live_budget=args.live_budget, out_path=args.ab_out)
+    if args.e2e and info:
+        e2e(info, live_budget=args.live_budget)
 
 
 if __name__ == "__main__":

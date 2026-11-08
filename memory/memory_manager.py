@@ -32,6 +32,9 @@ logger = logging.getLogger(__name__)
 COMPRESS_TRIGGER_WINDOW = 200
 #: 送进摘要的原文条数（摘要输入口径，与触发窗口无关；保持既有行为）
 COMPRESS_INPUT_WINDOW = 100
+#: 复用对话前缀时给窗口留的余量（token）：摘要指令 + chat 模板开销 + 上游取整。
+#: 前缀 + 输出预算(RETRY_TOKENS) + 本余量 > 窗口 ⇒ **不**复用，回落旧路径（宁可全价，不可 400）。
+COMPRESS_PREFIX_MARGIN_TOKENS = 1024
 
 
 def log_event_loop_status() -> str:
@@ -437,8 +440,17 @@ class MemoryManager:
                 return False
 
             step_start = time.time()
-            logger.warning("├─ [步骤3] 调用 LLM 压缩消息")
-            summary = self._summarizer.compress(recent_messages)
+            # 【2026-11-08 · 复用对话前缀】开关打开且前缀新鲜、装得下时：压缩请求与
+            #   本轮对话**逐字同前缀**（system + tools + 消息切片），摘要指令放末尾。
+            #   实测命中 99.8%（hit=87,552/87,701），单次压缩成本 −81%；冷缓存会贵 1.85 倍，
+            #   所以只在 MAX_AGE_SECONDS 内复用，超时就回落旧路径。见 docs/handoff §11.71。
+            _prefix = self._chat_prefix_for(sid)
+            logger.warning("├─ [步骤3] 调用 LLM 压缩消息（%s）",
+                           "复用对话前缀" if _prefix else "独立摘要前缀")
+            if _prefix:
+                summary = self._summarizer.compress(recent_messages, prefix=_prefix)
+            else:
+                summary = self._summarizer.compress(recent_messages)
             step_elapsed = (time.time() - step_start) * 1000
             logger.warning("│   └─ ✓ LLM 返回摘要长度: %d 字符, 耗时: %.2fms", len(summary) if summary else 0, step_elapsed)
 
@@ -593,6 +605,46 @@ class MemoryManager:
             except Exception:  # noqa: BLE001 同上
                 msgs = []
         return msgs[-limit:]
+
+    def _chat_prefix_for(self, session_id: str):
+        """能复用的「本轮对话前缀」（开关关 / 过期 / 装不下窗口 ⇒ None）
+
+        【为什么放在这里】复用是**压缩侧**的决定：输入切片、窗口余量、回落策略都由
+        MemoryManager 掌握；前缀本身由 plugins/chat.py 在真实发请求前登记
+        （agent/chat_prefix.py）。两边只共享那一个叶子模块，没有 chat↔memory 依赖边。
+
+        【为什么必须判「装得下」】前缀是对话窗口（80% 时约 10 万 token），再加指令与输出
+        可能顶穿窗口；一旦 400 就连摘要都没了。宁可回落旧路径（全价但一定成功）。
+        """
+        try:
+            from agent import chat_prefix as _chat_prefix
+            if not _chat_prefix.enabled():
+                return None
+            item = _chat_prefix.get_if_fresh(session_id)
+            if not item or not item.get("messages"):
+                return None
+            # 模型必须一致：缓存键含模型，不一致 ⇒ 命中恒 0，而请求却从 6.6 万变 12 万
+            # （冷价 = 现状的 1.85 倍）⇒ 宁可回落旧路径。会话绑定分身时会走到这里。
+            want_model = str(getattr(self._llm_service, "model", "") or "")
+            got_model = str(item.get("model") or "")
+            if got_model and want_model and got_model != want_model:
+                logger.info("[MemoryManager] 压缩前缀模型不一致（%s vs %s）⇒ 回落旧路径",
+                            got_model, want_model)
+                return None
+            tokens = int(self._token_counter.count(str(item.get("system_prompt") or "")))
+            for _m in item["messages"]:
+                tokens += int(self._token_counter.count(str(_m.get("content") or "")))
+            reserve = int(getattr(Summarizer, "RETRY_TOKENS", 2000)) + COMPRESS_PREFIX_MARGIN_TOKENS
+            limit = int(getattr(self, "_token_limit", 0) or 0)
+            if limit > 0 and tokens + reserve > limit:
+                logger.warning(
+                    "[MemoryManager] 压缩前缀装不下窗口：%d + %d 余量 > %d ⇒ 回落旧路径",
+                    tokens, reserve, limit)
+                return None
+            return item
+        except Exception as e:  # noqa: BLE001 判断失败 ⇒ 回落旧路径（旧行为一定可用）
+            logger.debug("[MemoryManager] 压缩前缀复用判断失败（回落旧路径）: %s", e)
+            return None
 
     def _floor_for(self, session_id: str = "") -> int:
         """该会话上次压缩时的正文水位（0 = 还没压过）"""

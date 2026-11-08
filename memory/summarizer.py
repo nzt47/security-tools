@@ -42,12 +42,17 @@ class Summarizer:
         """
         return total_tokens >= int(token_limit * threshold)
 
-    def compress(self, messages: list[dict], strategy: str = "default") -> str:
+    def compress(self, messages: list[dict], strategy: str = "default", *,
+                 prefix: dict = None) -> str:
         """压缩对话为摘要
 
         Args:
             messages: 待压缩的消息列表
             strategy: 摘要策略（default/brief/detail）
+            prefix: 可选的「本轮对话前缀」（见 agent/chat_prefix.py）。给了就**复用**它：
+                system 用对话的 system、messages 用对话真正发出去的那一份、tools 原样带上，
+                摘要指令改放**最后一条 user 消息**（前缀逐字相同 ⇒ 前缀缓存可命中）。
+                不给（缺省）= 逐字旧行为。
 
         Returns:
             摘要文本
@@ -55,8 +60,30 @@ class Summarizer:
         if not messages or self._llm is None:
             return ""
 
-        # 将策略指令作为首条消息注入
         instruction = self.STRATEGIES.get(strategy, self.STRATEGIES["default"])
+        # 【2026-11-08 · 复用对话前缀】实测（docs/handoff §11.71）：
+        #   旧路径命中 0/57,385（system 与 tools 都不同，且消息切片起点不同）；
+        #   同前缀 + 指令后置命中 87,552/87,701 = 99.8%。
+        #   【边界】只有「system+tools+消息切片」三者**全同**才可能命中；只换 system+tools
+        #   而切片不动 = 只剩 6,144 token 的 system+tools 块，净成本 +1%（白干）。
+        if prefix and prefix.get("messages"):
+            augmented = [dict(m) for m in prefix["messages"]]
+            augmented.append({"role": "user", "content": instruction})
+            text = self._llm.summarize(
+                augmented, max_tokens=FIRST_TRY_TOKENS,
+                system_prompt=str(prefix.get("system_prompt") or ""),
+                tools=prefix.get("tools"))
+            if (text or "").strip():
+                return text
+            logger.warning("[Summarizer] 首次压缩返回空摘要，放大 max_tokens 到 %d 重试一次",
+                           RETRY_TOKENS)
+            text = self._llm.summarize(
+                augmented, max_tokens=RETRY_TOKENS,
+                system_prompt=str(prefix.get("system_prompt") or ""),
+                tools=prefix.get("tools"))
+            return text or ""
+
+        # 将策略指令作为首条消息注入
         augmented = [{"role": "system", "content": instruction}, *messages]
         text = self._llm.summarize(augmented, max_tokens=FIRST_TRY_TOKENS)
         if (text or "").strip():

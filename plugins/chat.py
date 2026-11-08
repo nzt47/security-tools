@@ -2545,6 +2545,19 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                 _pieces = (_cache_hit_text[i:i + 80]
                            for i in range(0, len(_cache_hit_text), 80))
             else:
+                # 【2026-11-08 · 复用对话前缀】把**这一轮真正发出去的前缀**登记一份，供压缩
+                #   侧复用（agent/chat_prefix.py）。开关关闭 ⇒ 不登记，零行为变化。
+                #   必须登记 stream_kwargs 的那两个活对象：工具循环后几轮 messages 还会 append，
+                #   而 record() 内部会复制快照，所以后一轮登记会覆盖成"最后真正发出去的那一份"。
+                try:
+                    from agent import chat_prefix as _chat_prefix
+                    if _chat_prefix.enabled():
+                        _chat_prefix.record(
+                            session_id, SYSTEM_PROMPT, tool_defs, loop_messages,
+                            window_tokens=_window_tokens or 0,
+                            model=str(getattr(llm, "model", model) or ""))
+                except Exception as _pe:  # noqa: BLE001 登记失败不得影响对话主链路
+                    logger.debug("[workbench][SSE] 对话前缀登记失败: %s", _pe)
                 _pieces = llm.chat_stream(**stream_kwargs)
             for text_piece in _pieces:
                 if text_piece and _llm_first_piece_at is None:

@@ -2931,6 +2931,16 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        " [2026-11-08；plugins/chat.py::_plain_subset_enabled]",
        owner="plugins/chat.py"),
 
+    # · 压缩复用对话前缀（默认关；实测命中 99.8%、单次压缩成本 −81%，见 docs/handoff §11.71）
+    _a("CP_COMPRESS_REUSE_CHAT_PREFIX", CAT_ORCHESTRATION, False,
+       "压缩（摘要）调用是否复用「本轮对话」的前缀缓存：默认关 = 逐字旧路径"
+       "（摘要指令 + 最近 100 条、无 tools、命中 0/57,385）；置 1/true/yes/on ⇒ 用与本轮对话"
+       "逐字相同的 system+tools+消息切片，摘要指令放末尾，实测命中 99.8%（87,552/87,701）、"
+       "单次压缩成本 −81%。冷缓存时全价反而是现状的 1.85 倍 ⇒ 只复用 30 分钟内的前缀，"
+       "且前缀+输出+余量装不下窗口就回落旧路径"
+       " [2026-11-08；agent/chat_prefix.py::enabled]",
+       owner="agent/chat_prefix.py"),
+
     # · F3-1 卡：前缀缓存的易变尾簇搬家（每次调用都读 ⇒ 热生效）
     _a("YUNSHU_PROMPT_VOLATILE_TAIL", CAT_ORCHESTRATION, True,
        "是否把易变尾簇从 system message 搬到请求最后一条消息（默认开 = 新顺序，把可缓存"

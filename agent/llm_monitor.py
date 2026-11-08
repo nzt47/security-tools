@@ -829,12 +829,15 @@ def install_hooks():
                 except Exception as e:
                     logger.debug("记录 LLM chat 调用失败: %s", e)
 
-        def _patched_do_summarize(self, messages, max_tokens=500, system_prompt=""):
+        def _patched_do_summarize(self, messages, max_tokens=500, system_prompt="", tools=None):
+            # 【2026-11-08】tools 必须**透传**：压缩复用对话前缀时，tools 段是前缀的一部分，
+            #   漏传 ⇒ 上游收到的请求少了 tools，前缀不匹配（白付全价）+ 记录里看不到真实的
+            #   tools 数。口径 §6：给 LLMService 加参数要同步 _do_chat / 本钩子 / 降级 lambda 三处。
             start = time.time()
             error = ""
             response_obj = None
             try:
-                response_obj = orig_do_summarize(self, messages, max_tokens, system_prompt)
+                response_obj = orig_do_summarize(self, messages, max_tokens, system_prompt, tools)
                 return response_obj
             except Exception as e:
                 error = str(e)
@@ -845,6 +848,7 @@ def install_hooks():
                     record = LLMMonitor.create_from_api_call(
                         system_prompt=system_prompt,
                         messages=messages,
+                        tools=tools,
                         response_obj=response_obj,
                         model=getattr(self, 'model', ''),
                         provider=getattr(self, 'provider', ''),
