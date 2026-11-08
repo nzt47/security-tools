@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-08T13:20:00+08:00",
+  "updated_at": "2026-11-08T19:50:00+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
     {
@@ -307,6 +307,54 @@
       "priority": "P1",
       "criteria": "实测 7 条 LLM 记录：稳定档位内命中 99.4%~99.7%（每次只 miss 新增尾部 201~351 token）；换档那次（工具集 17→26、system prompt 75→434 字，3,774→7,270 token 的 tools）命中 0/62,415；压缩调用本身命中 0/57,385（摘要用另一套前缀，构造上不可能命中）。零命中 2 次贡献 119,800 token = 全部 miss 的 97.1%。检索档的 system prompt 里 [工作记忆] 块起点在第 102 字（块前只有 80 token），而该块 = get_context 的「摘要 + 最近 20 条」截 500 字 ⇒ 窗口每滑动一条就整段失效（模拟 115 轮里 114 轮该块变化，首个分歧就在块首）；压缩改写摘要同理（可复用 111 token）。",
       "next": "已完成（PR #1518 → 74d7690c5）：plugins/chat.py 的技能 instruction / 检索片段不再拼 SYSTEM_PROMPT，改随本轮最后一条用户消息下发（与编排器 F3-1 共用 YUNSHU_PROMPT_VOLATILE_TAIL 开关，=0 回滚）。实测（pid 64828）：三次检索档对话 21 次调用，system prompt 恒 75 字、命中 88.1%、零命中 0 次（修前同档 0/62,415）；同轮相邻命中 93~98%。未做：压缩调用自身仍是另一套前缀（57k token 全价），要它命中得把摘要指令拼在对话前缀之后"
+    },
+    {
+      "id": "compress-call-prefix-reuse",
+      "title": "压缩调用复用对话前缀（现在 0% 命中、57k token/次全价）",
+      "status": "open",
+      "priority": "P2",
+      "criteria": "实测 2026-11-08：压缩调用 system=摘要指令、messages=该会话最近 100 条 ⇒ 与对话请求前缀不同源，命中 0/57,385（单次压缩成本≈一次普通对话）。触发已按会话（PR #1518），会话 80% 才压一次，频次降了但每次仍全价。",
+      "next": "先量再改：取一个会话到 80% 时的压缩输入，与「该会话最近一次 chat 请求」求公共前缀 token 数；若够长，就让摘要请求以同一 system prompt + 同一消息切片开头、摘要指令放末尾（前缀可命中）。风险：跨 memory/chat 耦合 + 摘要质量变化，必须 A/B。"
+    },
+    {
+      "id": "ui-vs-trigger-metric",
+      "title": "界面占用率与压缩触发仍不同源（界面=会话累计，触发=最近 200 条）",
+      "status": "open",
+      "priority": "P2",
+      "criteria": "PR #1518 后触发只算本会话，但 /api/context/status 的 percentage 仍是会话全量 content 累计（percentage_semantics=current_window_usage 只对最近 20 条的装配生效）。超长会话（>200 条）可能出现「界面 80% 而触发未到」——方向安全，但不是同一个数。",
+      "next": "二选一：① 界面也改成「最近 200 条」口径（并同步 percentage_note/percentage_semantics 文案与用例）；② 触发改成会话累计（会把 PR #1518 的收敛抵消一部分）。改哪边都要同步 docs/handoff/口径.md §7。"
+    },
+    {
+      "id": "per-session-summary",
+      "title": "摘要仍全局一份（按会话压缩、并进同一份 summary.txt）",
+      "status": "open",
+      "priority": "P2",
+      "criteria": "PR #1518 把压缩输入切成触发会话，但 _execute_compression 仍把结果 merge 进同一份全局摘要 ⇒ 会话 A 的摘要会出现在会话 B 的上下文里（既有行为，本轮未改）。",
+      "next": "要真隔离：summary 按会话分文件（data/summary_<sid>.txt）+ 老摘要迁移策略 + get_context/get_budget_context 按会话读；影响面大于 #1518，先出设计给 Owner 再动手。"
+    },
+    {
+      "id": "lab-apply-cache-notice",
+      "title": "提示词实验室 apply 旁标注「改身份=下一次调用整段前缀失效一次」",
+      "status": "open",
+      "priority": "P3",
+      "criteria": "实测 2026-11-08：改一行身份 → system prompt 277→281 字、下一次命中 0/3,605（整段前缀作废一次），之后恢复；改回时若旧前缀仍在服务端缓存则不再付全价。",
+      "next": "在 /api/system-prompt/config/apply 的响应与实验室「应用」按钮旁给一句提示（带当前 system prompt 的 token 数与「会作废一次前缀」），只加提示不改行为。"
+    },
+    {
+      "id": "unscoped-legacy-pool",
+      "title": "未分会话的历史池不再自动压缩（301 条 / 128k token）",
+      "status": "open",
+      "priority": "P3",
+      "criteria": "PR #1518 后维护线程只在「窗口最后一条消息带 session_id」时判定；legacy 301 条（无 session_id）已不再被压，摘要也不再消化它们。",
+      "next": "二选一：一次性迁移（给老行补 session_id，或只保留最近 N 条并归档）或在记忆面板明确标注「历史池已冻结、不再自动压缩」。"
+    },
+    {
+      "id": "unit-board-no-data",
+      "title": "单位看板两个「无数据」（工作流 0 条 never / 长期记忆 0 行 warn）",
+      "status": "open",
+      "priority": "P3",
+      "criteria": "2026-11-08 交接卡：12 个单位 9 ok / 2 warn / 1 never；两项都是「没有数据」而不是故障，却常挂在看板上像告警。",
+      "next": "按 L5 口径统一：无数据就显示「无数据」并给下一步入口（去创建工作流 / 去导入记忆），或不把它们计入「必须健康」的判定；别折算成 0 分或绿色满分。"
     }
   ]
 }
