@@ -153,3 +153,79 @@ class TestFloorSameWindow:
         # 旧口径（未分会话）仍读 _compress_floor_tokens，兼容既有调用
         manager._compress_floor_tokens = 700
         assert manager._floor_for("") == 700
+
+class _FakeStorageForJanitor:
+    def load_recent_messages(self, limit=200):
+        return []
+
+
+class _FakeCounterForJanitor:
+    def count_messages(self, msgs):
+        return 0
+
+
+class _FakeMemoryForJanitor:
+    """维护线程只看 _message_window 的最后一条 + _recent_messages/_should_compress_now"""
+
+    def __init__(self, window):
+        self._message_window = list(window)
+        self._token_limit = 1000
+        self._compress_threshold = 0.8
+        self._need_compress = False
+        self._pending_session = ""
+        self._storage = _FakeStorageForJanitor()
+        self._token_counter = _FakeCounterForJanitor()
+        self.checked = None
+
+    def _recent_messages(self, sid="", limit=200):
+        return [m for m in self._message_window if str(m.get("session_id") or "") == sid]
+
+    def _should_compress_now(self, messages, session_id=""):
+        self.checked = (len(messages), session_id)
+        return bool(messages)
+
+
+class TestMaintenanceThreadAlsoScoped:
+    """维护线程（lifecycle_manager._run_maint_compress）不得再拿全局池当会话窗口"""
+
+    def test_按窗口最后一条的会话判定并记住会话(self):
+        from agent.orchestrator.lifecycle_manager import LifecycleManager
+
+        mem = _FakeMemoryForJanitor([_msg("A", size=10), _msg("A", size=900)])
+        LifecycleManager._run_maint_compress(type("S", (), {"_memory": mem})())
+        assert mem.checked and mem.checked[1] == "A", "必须按 A 会话判定"
+        assert mem._need_compress is True
+        assert mem._pending_session == "A", "必须记住会话，压缩器才知道压哪一段"
+
+    def test_最新消息没有会话就跳过_不拿全局池冒充(self):
+        from agent.orchestrator.lifecycle_manager import LifecycleManager
+
+        mem = _FakeMemoryForJanitor([_msg("A", size=900), _msg("", size=10)])
+        LifecycleManager._run_maint_compress(type("S", (), {"_memory": mem})())
+        assert mem.checked is None, "没有会话上下文时不得拿全局池判定"
+        assert mem._need_compress is False
+
+class TestWindowPreloadOnRestart:
+    """进程重启后窗口不能是空的：它既是触发口径的数据源，也是压缩输入的数据源
+
+    实测（2026-11-08 部署后）发现的形态：全局检查按落盘 200 条判定"要压"，
+    而压缩输入走空窗口 ⇒ 只压到重启后新写的几条（147 token），摘要退化成"只总结两条消息"。
+    """
+
+    def test_重启后窗口能读回落盘消息(self, tmp_path):
+        cfg = {
+            "data_dir": str(tmp_path / "memory_restart"),
+            "token_limit": 100000,
+            "compress_threshold": 0.8,
+            "llm": {"provider": "openai", "api_key": "sk-test-key-valid-12345", "model": "gpt-4"},
+            "async_compress": {"enabled": False},
+        }
+        first = MemoryManager(config=dict(cfg))
+        first._token_counter = _Counter()
+        first.add_message("user", "老消息甲", session_id="A")
+        first.add_message("assistant", "老消息乙", session_id="A")
+
+        second = MemoryManager(config=dict(cfg))          # 等价于进程重启
+        second._token_counter = _Counter()
+        assert [m["content"] for m in second._message_window] == ["老消息甲", "老消息乙"]
+        assert [m["content"] for m in second._recent_messages("A", 10)] == ["老消息甲", "老消息乙"]

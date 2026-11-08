@@ -369,6 +369,17 @@ class MemoryManager:
         self._message_window = collections.deque(
             maxlen=config.get("message_window_size", 200)
         )
+        # 【2026-11-08 · 重启后补窗】窗口是**压缩触发**的唯一数据源；进程刚起来时它是空的，
+        #   而压缩**输入**若也走窗口，就只会压到重启后新写的那几条（实测：全局检查判定要压，
+        #   实际输入只有 147 token ⇒ 摘要退化成"只总结两条消息"）。启动时从落盘回填最近 N 条，
+        #   让"触发看到的"和"压缩拿到的"是同一段数据。
+        try:
+            for _m in self._storage.load_recent_messages(
+                    limit=int(self._message_window.maxlen or COMPRESS_TRIGGER_WINDOW)):
+                if isinstance(_m, dict):
+                    self._message_window.append(_m)
+        except Exception as _e:  # noqa: BLE001 回填失败=空窗口（旧行为），不影响启动
+            logger.debug("[MemoryManager] 启动回填消息窗口失败: %s", _e)
 
         self._need_compress = False
 

@@ -878,7 +878,23 @@ class LifecycleManager:
                 #   触发，就会把"一次大工具输出 = 一次压缩"重新带回来 ⇒ 改调同一实现；
                 #   拿不到新实现时退回旧算法（保证旧内存管理器仍可用）。
                 check = getattr(self._memory, "_should_compress_now", None)
-                if callable(check):
+                pick = getattr(self._memory, "_recent_messages", None)
+                if callable(check) and callable(pick):
+                    # 【2026-11-08 · 按会话口径】全局池（全库最近 200 条）**不是一个会话的
+                    #   上下文窗口**：拿窗口阈值去压它，就是"会话才 3% 却在压缩"的来源。
+                    #   维护线程没有会话上下文 ⇒ 取窗口里**最新一条消息**的 session_id 当作
+                    #   当前会话；没有（历史遗留/手动记忆）就跳过，不拿全局池冒充某个会话。
+                    tail = list(getattr(self._memory, "_message_window", []) or [])
+                    sid = str((tail[-1] or {}).get("session_id") or "") if tail else ""
+                    if not sid:
+                        return
+                    should = bool(check(pick(sid), sid))
+                    if should:
+                        try:
+                            self._memory._pending_session = sid   # 压缩器按这个会话选输入切片
+                        except Exception:  # noqa: BLE001 老实现没有该属性不影响判定
+                            pass
+                elif callable(check):
                     should = bool(check(recent))
                 else:
                     should = bool(self._memory._summarizer.should_compress(
