@@ -266,18 +266,27 @@ def _chat_src() -> str:
     return p.read_text(encoding="utf-8")
 
 
-def test_工作台SSE的system_prompt不含工具宣告行():
-    """工作台 SSE（plugins/chat.py::_workbench_real_stream）用的是**字面量**
-    SYSTEM_PROMPT，既不调用 _build_tool_status_text，也不含 【工具】 标记。
-    ⇒ F3 担心的"该行逐请求变"在这条链路上**根本不成立**（不是"变化很小"，是没有这一行）。
+def test_工作台SSE的system_prompt的工具段不随请求变化():
+    """③'（2026-11-08 改写）：工作台 system prompt 改读提示词实验室模板后，
+    「工具段是否逐请求变化」这条**不变量**仍然成立 —— 依据从"根本不渲染"变成
+    "渲染的是部署级计数"。
+
+    F3 的担心是「宣告行逐请求变 ⇒ 其后全部 miss」。现在工作台的工具槽位由
+    plugins/chat.py::_tools_registry_summary 提供：只写"本部署共 N 个可调用工具"，
+    **不列工具名、不随档位/问题变化**（换档只改请求体的 tools=）。
+    若哪天有人把工具名/启用状态写进这个槽位，本用例会红 —— 那一天的红色含义仍是
+    「F3 的裁决需要重做」，不是"测试过时"。
     """
     src = _chat_src()
-    seg = src[src.index('SYSTEM_PROMPT = "你是云枢'):]
-    seg = seg[:seg.index("\n")]
-    assert ADVERT not in seg, "工作台提示词不该有工具宣告行（若改成有，请重做 F3 裁决）"
     assert "_build_tool_status_text" not in src, (
-        "工作台若开始渲染工具状态文本，F3 的 (b) 结论需重做")
-
+        "工作台不得改用编排器的逐请求渲染器（那才是 F3 的风险面）")
+    assert "_render_workbench_system_prompt()" in src, (
+        "工作台必须走模板渲染（提示词实验室才生效）")
+    from plugins.chat import _tools_registry_summary
+    summary = _tools_registry_summary()
+    assert "【工具】" not in summary
+    for name in ("read_file", "list_directory", "grep", "shell_execute", "search_memory"):
+        assert name not in summary, "工具名不得进系统提示词（换档会整段失效）"
 
 def test_工作台SSE的工具选择作用于tools而非提示词():
     """hybrid_select_tools(question) 的结果进的是 _get_defs(whitelist=...)，
