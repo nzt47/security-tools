@@ -179,18 +179,19 @@ def probe_l3_llm_tool() -> ProbeResult:
     # 【2026-11-08】把前缀缓存命中率带成结构化数值：健康仪表盘要一张「LLM 缓存命中」卡。
     # 口径只认 API **明确上报过**缓存字段的调用（cache_reported），否则"没上报"会被算成
     # "未命中"而把命中率拉低（见 LLMMonitor.extract_usage 的注释）。
+    # 【为什么从 prometheus 取而不是 llm_monitor】health.probes → llm_monitor 会把
+    #   events→trace_v2→descriptors.bridge→skills_mgmt.*→health.dashboard→health.probes→
+    #   llm_monitor→events 这条既有长链闭成环（arch_rules 判高严重度）。
+    #   读数本来就在 record_llm_usage 里记账，从这里取不新增依赖边。
     cache_metrics = None
     try:
-        from agent.llm_monitor import get_monitor
-        stats = get_monitor().get_stats()
-        ratio = stats.get("cache_hit_ratio")
-        if ratio is not None:
+        from agent.monitoring.prometheus import get_llm_cache_stats
+        cs = get_llm_cache_stats()
+        if cs.get("cache_hit_ratio") is not None:
             cache_metrics = {
-                "cache_hit_ratio": round(float(ratio), 4),
-                "cache_hit_tokens": int(stats.get("cache_hit_tokens") or 0),
-                "cache_miss_tokens": int(stats.get("cache_miss_tokens") or 0),
-                "cache_reported_calls": int(stats.get("cache_reported_calls") or 0),
-                "llm_calls": int(stats.get("total") or 0),
+                "cache_hit_ratio": float(cs["cache_hit_ratio"]),
+                "cache_hit_tokens": int(cs.get("cache_hit_tokens") or 0),
+                "cache_miss_tokens": int(cs.get("cache_miss_tokens") or 0),
             }
     except Exception as _ce:  # noqa: BLE001 缓存读数失败不影响 L3 的既有判定
         logger.debug("probe_l3_llm_tool 缓存读数不可用: %s", _ce)
