@@ -451,17 +451,21 @@ class TestDropSitesAreGuarded:
         assert "llm_service.chat_stream" in src
         assert "llm_service._do_chat" in src
 
-    def test_工作台硬编码提示词被宣传标记覆盖(self):
-        """`plugins/chat.py` 的 SYSTEM_PROMPT 是**硬编码**的独立提示词。
+    def test_工作台兜底提示词被宣传标记覆盖(self):
+        """工作台的**兜底常量**必须仍带守卫认得的"工具宣传"措辞。
 
-        它不经过编排器的模板渲染，所以"生产提示词"那组集成用例覆盖不到它。
-        若它的措辞改成守卫认不出的说法，工具加载失败时就会静默复现 DSML。
+        【2026-11-08 口径变更】工作台不再写死 SYSTEM_PROMPT：改为读「提示词实验室」的
+        data/system_prompt.txt（与编排器同源，见 plugins/chat.py::_render_workbench_system_prompt）。
+        模板正文由用户编辑，与编排器路径**同一暴露面**；这里守的是"模板不可用时的唯一退路"
+        —— 兜底常量若被改成守卫认不出的说法，工具加载失败时会静默复现 DSML。
         """
+        from plugins.chat import _WORKBENCH_FALLBACK_SYSTEM_PROMPT
+        assert prompt_advertises_tools(_WORKBENCH_FALLBACK_SYSTEM_PROMPT) is True, (
+            "工作台兜底提示词未被守卫的宣传标记覆盖：%r"
+            % _WORKBENCH_FALLBACK_SYSTEM_PROMPT[:60])
         src = _read("plugins/chat.py")
-        m = re.search(r'SYSTEM_PROMPT\s*=\s*"([^"]+)"', src)
-        assert m, "plugins/chat.py 里找不到 SYSTEM_PROMPT 字面量（测试需同步更新）"
-        assert prompt_advertises_tools(m.group(1)) is True, (
-            "工作台硬编码提示词未被守卫的宣传标记覆盖：%r" % m.group(1)[:60])
+        assert "SYSTEM_PROMPT = _render_workbench_system_prompt()" in src, (
+            "工作台必须走模板渲染（否则实验室改了看不到效果）")
 
 
 # ══════════════════════════════════════════════════════════════════════
