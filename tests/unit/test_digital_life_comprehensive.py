@@ -96,11 +96,12 @@ class MockMemory:
     def save_log(self, log_type, data):
         pass
 
-    def add_message(self, role, content):
-        self.messages.append({"role": role, "content": content})
+    def add_message(self, role, content, session_id=""):
+        # 【2026-11-08】真实签名多了 session_id（压缩触发按会话分口径），桩件同形
+        self.messages.append({"role": role, "content": content, "session_id": session_id})
 
-    def score_and_save_message(self, role, content):
-        self.messages.append({"role": role, "content": content})
+    def score_and_save_message(self, role, content, session_id=""):
+        self.messages.append({"role": role, "content": content, "session_id": session_id})
 
     def get_context(self, token_limit=None):
         return self.messages

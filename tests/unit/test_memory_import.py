@@ -447,8 +447,8 @@ def test_memory_manual_route_targets_real_memory_manager(monkeypatch):
     calls = []
 
     class _RealMemory:
-        def score_and_save_message(self, role, content):
-            calls.append((role, content))
+        def score_and_save_message(self, role, content, session_id=""):
+            calls.append((role, content, session_id))
             return "2026-10-24T00:00:00+00:00"
 
     class _YunshuStub:

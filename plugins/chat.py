@@ -1745,8 +1745,9 @@ def _persist_turn_side_effects(session_id: str, question: str, answer: str,
         _mem_text = answer if memory_answer is None else memory_answer
         if write_memory and _mem_text.strip() and memory is not None \
                 and callable(getattr(memory, "add_message", None)):
-            memory.add_message("user", question)
-            memory.add_message("assistant", _mem_text)
+            # 【2026-11-08】带上会话 id：压缩触发按会话分口径（与面板读数同源）
+            memory.add_message("user", question, session_id=session_id)
+            memory.add_message("assistant", _mem_text, session_id=session_id)
             log.info("[workbench][SSE] 已写入全局记忆（会话 %s，%d 字）",
                      session_id, len(_mem_text))
         elif write_memory and not _mem_text.strip():
@@ -2029,6 +2030,14 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
     # 口径只有一份：直接调编排器的 `_context_assembler_extra()`（见其 docstring）。
     _retrieval_text = ""
     _retrieval_tokens = 0
+    #: 本轮**易变**上下文（技能 instruction / 检索片段）。**不进 system prompt**：
+    #: 它含「工作记忆·会话摘要+最近消息」（ContextAssembler 截 500 字），每轮都会变，
+    #: 进 system prompt 等于把整条请求的前缀钉在易变块上。实测（2026-11-08，
+    #: scripts/probe_compress_vs_cache.py）：该块起点只到第 102 字 / 80 token，
+    #: 块一变，其后 99.87% 的 prompt（含 7k token 的 tools 段与全部历史）全部 miss。
+    #: 处置与编排器 F3-1（agent/system_prompt_manager.split_volatile_tail）同一条原则：
+    #: **稳定前缀 + 易变尾部**（尾部本来就是新的，不指望命中）。
+    _volatile_parts: list = []
 
     # ── 完整·流式：先跑编排器的「回答前」能力（2026-10-03 新增）──
     #   为什么需要这一档：full 档委托编排器 ⇒ **首字 = 完成**（实测长答 8.80s 全程无输出），
@@ -2044,10 +2053,11 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
             "status": "running"})
         _kw_instruction, _kw_skill, _kw_score = _semantic_prestage(question)
         if _kw_instruction:
-            SYSTEM_PROMPT = SYSTEM_PROMPT + "\n\n" + _kw_instruction
+            # 2026-11-08：技能 instruction 是**随问题变**的易变内容，不进系统前缀
+            _volatile_parts.append(_kw_instruction)
             yield _sse_event({
                 "type": "thinking", "id": "semantic", "title": "语义层命中技能",
-                "detail": "技能 %s（score=%s）的 instruction 已注入系统提示词" % (
+                "detail": "技能 %s（score=%s）的 instruction 已随本轮消息下发（不进系统前缀）" % (
                     _kw_skill or "(未命名)", _kw_score),
                 "status": "done"})
         else:
@@ -2058,7 +2068,7 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
     if mode in ("retrieval", "full_stream"):
         _retrieval_text = _retrieve_context_extra(question)
         if _retrieval_text:
-            SYSTEM_PROMPT = SYSTEM_PROMPT + "\n\n" + _retrieval_text
+            _volatile_parts.append(_retrieval_text)
             try:
                 _cnt = _get_counter_or_none()
                 _retrieval_tokens = int(_cnt.count(_retrieval_text)) if _cnt else 0
@@ -2072,6 +2082,30 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                        % _retrieval_tokens) if _retrieval_text else
                       "本次未命中任何片段（或该能力未启用）——按轻量继续",
             "status": "done"})
+
+    # ── 易变上下文落到「请求最后一条消息」（2026-11-08）──────────────────────
+    # 【为什么】system prompt 从缓存前缀的第 0 个 token 起；把每轮都变的检索/技能片段塞进去，
+    #   等于让**整条请求**（含 tools 段与全部历史）每轮重算。挪到最后一条用户消息后，
+    #   稳定前缀（身份 + 工具 schema + 历史）可整段命中，只有尾部这条新消息付全价。
+    # 【回滚】YUNSHU_PROMPT_VOLATILE_TAIL=0 ⇒ 回到「拼进 system prompt」的旧顺序
+    #   （与编排器 F3-1 共用同一个开关，不另造一个）。
+    _volatile_ctx = "\n\n".join(p for p in _volatile_parts if p)
+    if _volatile_ctx:
+        try:
+            from agent.system_prompt_manager import volatile_tail_move_enabled as _vt_enabled
+            _vt_on = bool(_vt_enabled())
+        except Exception:  # noqa: BLE001 读不到开关 ⇒ 保持新顺序（与编排器默认一致）
+            _vt_on = True
+        if _vt_on and messages:
+            _last_q = str((messages[-1] or {}).get("content") or "")
+            messages[-1] = {"role": "user",
+                            "content": _volatile_ctx + "\n\n" + _last_q}
+            logger.info("[workbench][SSE] 易变上下文 %d 字符随最后一条消息下发（不进系统前缀）",
+                        len(_volatile_ctx))
+        else:
+            SYSTEM_PROMPT = SYSTEM_PROMPT + "\n\n" + _volatile_ctx
+            logger.info("[workbench][SSE] 易变上下文 %d 字符拼回 system prompt（逃生开关关闭）",
+                        len(_volatile_ctx))
     # 🔴 DSML 根因防线（见 `agent/tools_prompt_guard.py` 模块 docstring 的实测对照）：
     #   本函数上面那句 SYSTEM_PROMPT 里的「可以使用提供的工具」是**无条件的**工具宣传，
     #   而下方的工具加载 `except` 分支（工具定义加载失败）会让 `tool_defs` 保持 None。
@@ -2216,8 +2250,10 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
             _system_tokens = int(_counter_for_budget.count(SYSTEM_PROMPT))
     except Exception:  # noqa: BLE001 系统提示计量失败按 0 计（预算略保守）
         _system_tokens = 0
-    # 固定开销 = 工具 schema + 系统提示 + **检索注入**（检索模式下它同样占窗口）
-    _overhead = int(_tokens or 0) + _system_tokens + int(_retrieval_tokens or 0)
+    # 固定开销 = 工具 schema + 系统提示。
+    # 【2026-11-08】检索/技能片段**不再算固定开销**：它已随最后一条用户消息下发，
+    #   由下面的 _select_within_budget 按消息计（再算一遍 = 同一段文字占两次预算）。
+    _overhead = int(_tokens or 0) + _system_tokens
     _budget = _resolve_ctx_budget(
         _window_tokens, overhead_tokens=_overhead, max_output_tokens=_stream_max_tokens)
     loop_messages, _dropped, _used = _select_within_budget(

@@ -7,6 +7,8 @@ import os
 import threading
 import time
 from datetime import datetime, timezone
+from typing import Optional
+
 from .token_counter import TokenCounter
 from .llm_service import LLMService
 from .summarizer import Summarizer
@@ -21,6 +23,16 @@ except Exception:  # noqa: BLE001 独立运行时（如 memory/ 单包测试）�
     _TOKEN_LIMIT_DEFAULT = 131072
 
 logger = logging.getLogger(__name__)
+
+#: 压缩触发看「最近多少条记忆」（**floor 水位必须用同一个窗口**）。
+#: 【为什么必须同窗口】2026-11-08 实测（scripts/probe_compress_vs_cache.py）：
+#:   触发按最近 200 条算 counted=130,469；floor 却按 load_recent_messages(limit=100) 记
+#:   counted=69,895 ⇒ `counted200 >= 1.1 × floor` **恒成立**，「再压要长 10%」形同虚设
+#:   （同一份消息池模拟：窗口失配 186 次触发，同窗口只有 6 次）。
+COMPRESS_TRIGGER_WINDOW = 200
+#: 送进摘要的原文条数（摘要输入口径，与触发窗口无关；保持既有行为）
+COMPRESS_INPUT_WINDOW = 100
+
 
 def log_event_loop_status() -> str:
     """检查并记录事件循环状态"""
@@ -339,7 +351,12 @@ class MemoryManager:
         # 旧逻辑每条新消息都重新判 `>= token_limit*0.8` ⇒ 过了阈值后**每条消息压一次**
         # （本机实测摘要版本已到 89，用户感觉"一直在压缩"）。
         # 现在记一个"上次压缩时的正文 token"地板：再压之前正文至少要比它多长 X 倍。
-        self._compress_floor_tokens = 0
+        # 【2026-11-08 · 按会话】触发口径改成"本会话"（与界面 /api/context/status 同源），
+        # 所以地板也必须按会话分桶：否则 A 会话的水位会挡（或放行）B 会话的压缩。
+        self._compress_floor_tokens = 0            # 未指定会话时的水位（兼容旧口径/维护线程）
+        self._compress_floor_by_session = {}       # {session_id: 上次压缩时的正文 token}
+        #: 最近一次触发压缩的会话（后台压缩器执行时据此选输入切片）
+        self._pending_session = ""
         self._recompress_growth_ratio = float(
             config.get("recompress_growth_ratio", 1.10))
         if self._recompress_growth_ratio <= 1.0:
@@ -352,6 +369,17 @@ class MemoryManager:
         self._message_window = collections.deque(
             maxlen=config.get("message_window_size", 200)
         )
+        # 【2026-11-08 · 重启后补窗】窗口是**压缩触发**的唯一数据源；进程刚起来时它是空的，
+        #   而压缩**输入**若也走窗口，就只会压到重启后新写的那几条（实测：全局检查判定要压，
+        #   实际输入只有 147 token ⇒ 摘要退化成"只总结两条消息"）。启动时从落盘回填最近 N 条，
+        #   让"触发看到的"和"压缩拿到的"是同一段数据。
+        try:
+            for _m in self._storage.load_recent_messages(
+                    limit=int(self._message_window.maxlen or COMPRESS_TRIGGER_WINDOW)):
+                if isinstance(_m, dict):
+                    self._message_window.append(_m)
+        except Exception as _e:  # noqa: BLE001 回填失败=空窗口（旧行为），不影响启动
+            logger.debug("[MemoryManager] 启动回填消息窗口失败: %s", _e)
 
         self._need_compress = False
 
@@ -364,14 +392,20 @@ class MemoryManager:
         self._summary_cache: Optional[tuple] = None
         logger.info("MemoryManager 初始化完成")
 
-    def _execute_compression(self) -> bool:
+    def _execute_compression(self, session_id: Optional[str] = None) -> bool:
         """执行压缩任务的公共方法
 
         统一的压缩逻辑：加载旧摘要、压缩新消息、合并摘要、保存结果。
 
+        Args:
+            session_id: 要压缩的会话。None = 取最近一次触发压缩的会话
+                （self._pending_session）；空串 = 未分会话（旧口径/维护线程）。
+
         Returns:
             bool: 压缩是否成功执行
         """
+        sid = (str(getattr(self, "_pending_session", "") or "")
+               if session_id is None else str(session_id or ""))
         total_start = time.time()
         try:
             logger.warning("┌─────────────────────────────────────────────")
@@ -389,8 +423,12 @@ class MemoryManager:
             logger.warning("│   └─ 旧摘要版本: %d, 耗时: %.2fms", old_version, step_elapsed)
 
             step_start = time.time()
-            logger.warning("├─ [步骤2] 加载最近消息 (limit=100)")
-            recent_messages = self._storage.load_recent_messages(limit=100)
+            # 【2026-11-08 · 按会话】压缩输入切片与触发口径同源：只取**触发这次压缩的那个会话**
+            #   的最近 COMPRESS_INPUT_WINDOW 条（未分会话时回退到全局，保持旧行为）。
+            #   此前恒定取全局最近 100 条：A 会话触发、却把 B 会话的内容摘进摘要。
+            logger.warning("├─ [步骤2] 加载最近消息 (limit=%d, session=%s)",
+                           COMPRESS_INPUT_WINDOW, sid or "(未分会话)")
+            recent_messages = self._recent_messages(sid, COMPRESS_INPUT_WINDOW)
             step_elapsed = (time.time() - step_start) * 1000
             logger.warning("│   └─ 加载到消息数: %d, 耗时: %.2fms", len(recent_messages), step_elapsed)
 
@@ -469,11 +507,14 @@ class MemoryManager:
             # 现改由压缩执行处清除，失败则保留标记供后台下一轮重试。
             self._need_compress = False
             # 记录本次压缩时的正文水位：下一次要么多长 10%（默认），要么永不重复压。
+            # 【口径】水位必须用**触发窗口**（最近 COMPRESS_TRIGGER_WINDOW 条）量，不能拿
+            #   摘要输入切片（COMPRESS_INPUT_WINDOW 条）去量 —— 两者差一倍时闸门恒开（见常量注释）。
             try:
-                counted_now, _ = self._compress_accounting(recent_messages)
-                self._compress_floor_tokens = int(counted_now)
+                trigger_msgs = self._recent_messages(sid, COMPRESS_TRIGGER_WINDOW)
+                counted_now, _ = self._compress_accounting(trigger_msgs)
+                self._set_floor(sid, counted_now)
             except Exception:  # noqa: BLE001 记录失败不影响压缩结果
-                self._compress_floor_tokens = 0
+                self._set_floor(sid, 0)
             return True
         except Exception as e:
             total_elapsed = (time.time() - total_start) * 1000
@@ -520,15 +561,72 @@ class MemoryManager:
                 counted += tokens
         return counted, tool_tokens
 
-    def _should_compress_now(self, messages: list) -> bool:
+    # ── 触发池与水位：**按会话**取、**同窗口**量（2026-11-08）────────────────
+    def _recent_messages(self, session_id: str = "",
+                         limit: int = COMPRESS_TRIGGER_WINDOW) -> list:
+        """取"压缩口径"看的那一段记忆（默认最近 COMPRESS_TRIGGER_WINDOW 条）。
+
+        【为什么按会话过滤】界面的占用率（/api/context/status）算的是**本会话**，
+        而压缩原先算的是**全库最近 200 条**（跨会话、无 session 字段）。2026-11-08 实测：
+        全库 200 条已到 99.5% 窗口、本会话只有 52% ⇒ 新会话哪怕 3% 也会被别的会话顶到触发。
+
+        【为什么回退全局】进程刚重启时内存窗口是空的；此时从落盘读一段再按会话筛，
+        而不是直接判定"没有消息可压"。未指定会话（旧调用方/维护线程）时**保持旧口径**：
+        就是最近 limit 条，不筛。
+        """
+        limit = max(1, int(limit or COMPRESS_TRIGGER_WINDOW))
+        sid = str(session_id or "")
+        # 防御：单测/维护线程可能用 __new__ 造出没有窗口的实例
+        msgs = list(getattr(self, "_message_window", []) or [])
+        if sid:
+            msgs = [m for m in msgs if str(m.get("session_id") or "") == sid]
+            if not msgs:
+                try:
+                    # 窗口为空（重启）时多读一段再筛：会话消息可能被别的会话穿插
+                    loaded = self._storage.load_recent_messages(limit=limit * 4)
+                except Exception:  # noqa: BLE001 读失败按空处理（不触发压缩，绝不炸主链路）
+                    loaded = []
+                msgs = [m for m in loaded if str(m.get("session_id") or "") == sid]
+        elif not msgs:
+            try:
+                msgs = self._storage.load_recent_messages(limit=limit)
+            except Exception:  # noqa: BLE001 同上
+                msgs = []
+        return msgs[-limit:]
+
+    def _floor_for(self, session_id: str = "") -> int:
+        """该会话上次压缩时的正文水位（0 = 还没压过）"""
+        sid = str(session_id or "")
+        if not sid:
+            return int(getattr(self, "_compress_floor_tokens", 0) or 0)
+        return int((getattr(self, "_compress_floor_by_session", {}) or {}).get(sid, 0) or 0)
+
+    def _set_floor(self, session_id: str, counted_tokens: int) -> None:
+        """记录该会话的正文水位（下次要么多长 recompress_growth_ratio 倍，要么不压）"""
+        counted = int(counted_tokens or 0)
+        sid = str(session_id or "")
+        if not sid:
+            self._compress_floor_tokens = counted
+            return
+        floors = getattr(self, "_compress_floor_by_session", None)
+        if not isinstance(floors, dict):   # 防御：外部把它改成别的类型时不炸
+            floors = {}
+            self._compress_floor_by_session = floors
+        floors[sid] = counted
+
+    def _should_compress_now(self, messages: list, session_id: str = "") -> bool:
         """是否该压缩：正文按阈值触发；工具结果**单独**只有当它自己撑爆窗口时才触发
 
         最后那半句是**兜底**：工具结果单独计量 ≠ 永不压缩 —— 否则一个只产工具输出的
         记忆会无界增长。
+
+        Args:
+            messages: 参与计量的消息（调用方用 self._recent_messages(session_id) 取）。
+            session_id: 分会话水位用；空串 = 未分会话（旧口径）。
         """
         counted, tool_tokens = self._compress_accounting(messages)
-        # 地板：压过之后正文没再长到 `floor * growth` 就先不压（否则每来一条消息压一次）
-        floor = getattr(self, "_compress_floor_tokens", 0) or 0
+        # 地板：压过之后正文没再长到 floor * growth 就先不压（否则每来一条消息压一次）
+        floor = self._floor_for(session_id)
         if floor and counted < int(floor * getattr(self, "_recompress_growth_ratio", 1.10)):
             return False
         if tool_tokens:
@@ -540,7 +638,8 @@ class MemoryManager:
                                             self._compress_threshold):
             return True
         return tool_tokens >= self._token_limit
-    def add_message(self, role: str, content: str) -> str:
+
+    def add_message(self, role: str, content: str, session_id: str = "") -> str:
         """添加新消息
 
         保存消息、记录日志、检查是否需要压缩。
@@ -548,6 +647,9 @@ class MemoryManager:
         Args:
             role: 消息角色（user/assistant/system）
             content: 消息内容
+            session_id: 消息属于哪个会话。压缩触发按它分口径（与界面读数同源）；
+                不传 = 未分会话（旧口径：全库最近 200 条）。落盘时**只在非空时**写该键，
+                保持历史行格式不变。
 
         Returns:
             消息的时间戳 ID
@@ -557,6 +659,8 @@ class MemoryManager:
             "content": content,
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
+        if session_id:
+            message["session_id"] = str(session_id)
         msg_id = self._storage.save_message(message)
         # [审计改进] 追加到内存滑动窗口（提供即时语境，避免重复读文件）
         self._message_window.append(message)
@@ -567,14 +671,26 @@ class MemoryManager:
             "tokens": self._token_counter.count(content)
         })
 
-        # 检查 Token 占用（优先窗口，空则回退文件）
-        recent = list(self._message_window)[-200:] or self._storage.load_recent_messages(limit=200)
-        # 【2026-10-02】触发口径走 _should_compress_now：工具结果单独计量（见其 docstring）
-        if self._should_compress_now(recent):
-            self._need_compress = True
-            self._async_compressor.request()
+        # 检查 Token 占用（**本会话**最近 COMPRESS_TRIGGER_WINDOW 条；窗口空则回退文件）
+        self._maybe_request_compress(session_id)
 
         return msg_id
+
+    def _maybe_request_compress(self, session_id: str = "") -> bool:
+        """按**会话口径**判定一次压缩，需要就点亮标记并通知后台压缩器。
+
+        【为什么收成一个方法】触发点有两处（add_message / score_and_save_message），
+        口径若各写一份，就会出现"一处按会话、一处按全库"的分裂（本轮修的就是这类分裂）。
+        """
+        recent = self._recent_messages(session_id, COMPRESS_TRIGGER_WINDOW)
+        # 【2026-10-02】触发口径走 _should_compress_now：工具结果单独计量（见其 docstring）
+        if not self._should_compress_now(recent, session_id):
+            return False
+        self._need_compress = True
+        # 后台压缩器执行时按这个会话取输入切片（同一时刻只跟最近一次触发，够用且不引入锁）
+        self._pending_session = str(session_id or "")
+        self._async_compressor.request()
+        return True
 
     def find_message(self, msg_id: str) -> dict | None:
         """按 id 查一条长期记忆（先内存窗口，再落盘文件）；找不到返回 None。"""
@@ -611,7 +727,7 @@ class MemoryManager:
             logger.warning("[MemoryManager] 删除记忆后写黑匣子失败: %s", exc)
         return True
 
-    def score_and_save_message(self, role: str, content: str) -> str:
+    def score_and_save_message(self, role: str, content: str, session_id: str = "") -> str:
         """评分并保存消息
 
         根据消息内容进行重要性评分（1-10），附带评分一起保存。
@@ -620,6 +736,7 @@ class MemoryManager:
         Args:
             role: 消息角色（user/assistant）
             content: 消息内容
+            session_id: 所属会话（压缩触发按它分口径；不传 = 未分会话）
 
         Returns:
             消息的时间戳 ID
@@ -633,6 +750,8 @@ class MemoryManager:
             "importance_score": score,
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
+        if session_id:
+            message["session_id"] = str(session_id)
         msg_id = self._storage.save_message(message)
         # [审计改进] 追加到内存滑动窗口（提供即时语境，避免重复读文件）
         self._message_window.append(message)
@@ -649,11 +768,8 @@ class MemoryManager:
         #   而主链路另一处无条件的 add_message 被去掉之后（同一轮写两遍的缺陷修复），
         #   若不提到外面就会出现"低重要性消息堆到超阈值也不触发压缩"的新洞。
         #   故这里恢复"每次必查"，与 add_message 的既有语义一致。
-        recent = list(self._message_window)[-200:] or self._storage.load_recent_messages(limit=200)
-        # 【2026-10-02】工具结果单独计量（口径只有一份：_should_compress_now）
-        if self._should_compress_now(recent):
-            self._need_compress = True
-            self._async_compressor.request()
+        # 【2026-10-02】工具结果单独计量；【2026-11-08】触发池按会话（口径只有一份）
+        self._maybe_request_compress(session_id)
 
         return msg_id
 
