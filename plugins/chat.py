@@ -1769,6 +1769,68 @@ def _persist_turn_side_effects(session_id: str, question: str, answer: str,
         log.warning("[workbench][SSE] 记忆/本轮状态写入失败（不影响回复）: %s", e)
 
 
+#: 工作台系统提示词的兜底常量（模板不可用时**逐字**回到 2026-11-08 之前的行为）
+_WORKBENCH_FALLBACK_SYSTEM_PROMPT = (
+    "你是云枢（Yunshu），一个拥有完整感知-认知-行动闭环的数字生命体。"
+    "请以简洁、自然的语言回答用户。需要时可以使用提供的工具获取实时信息或执行操作。"
+)
+
+
+def _tools_registry_summary() -> str:
+    """部署级工具计数（**跨请求、跨档位稳定**）——给模板里的 tool_status 槽位一个稳定值。
+
+    【为什么不列工具名】工作台按档位下发不同工具集（轻量 17 / 检索·完整 26），
+    把名字写进 system prompt 就等于"每换一次档整段前缀失效"。工具清单的正确载体是
+    请求体的 tools 字段（模型看得到），系统提示词里只留部署级数字。
+    """
+    try:
+        from agent.tools import get_tool_defs
+        n = len(get_tool_defs() or [])
+    except Exception:  # noqa: BLE001 取不到就留空（空串同样是稳定字节）
+        return ""
+    if n <= 0:
+        return ""
+    return "本部署共 %d 个可调用工具（本轮实际下发哪些，以请求体的 tools 字段为准）。" % n
+
+
+def _render_workbench_system_prompt() -> str:
+    """工作台 system prompt：与「提示词实验室」**同源**（读 data/system_prompt.txt）。
+
+    【为什么】实验室改的身份提示词此前只对编排器路径生效，主 UI 的工作台对话用的是
+    硬编码 75 字常量 ⇒ 用户改了看不到效果（口径分裂，2026-11-08 实测确认）。
+
+    【缓存口径】只填**跨请求稳定**的槽位：
+      · skill_instructions / memory_context 留空 —— 工作台把技能指令与检索片段放在
+        本轮**最后一条消息**（见 _workbench_real_stream 里易变上下文的处置），不进系统前缀；
+      · tool_status 用部署级计数，**不按档位列工具名**（换档会让前缀整段失效）；
+      · current_date 填当天：跨天只损失一次前缀（一次全价），可接受；
+      · body_status / mode_name / mode_description 留空（工作台没有这两层语义）。
+
+    【降级】模板缺失 / 占位符不匹配（自定义模板里带裸花括号）/ 渲染为空
+        ⇒ 回退 _WORKBENCH_FALLBACK_SYSTEM_PROMPT（逐字旧行为）。
+    """
+    try:
+        from agent.system_prompt_manager import get_template
+        tpl = get_template()
+    except Exception:  # noqa: BLE001 读模板失败 = 旧行为，绝不让对话起不来
+        return _WORKBENCH_FALLBACK_SYSTEM_PROMPT
+    if not (tpl or "").strip():
+        return _WORKBENCH_FALLBACK_SYSTEM_PROMPT
+    try:
+        rendered = tpl.format(
+            current_date=datetime.datetime.now().strftime("%Y年%m月%d日"),
+            body_status="",
+            mode_name="",
+            mode_description="",
+            memory_context="",
+            tool_status=_tools_registry_summary(),
+            skill_instructions="",
+        )
+    except Exception:  # noqa: BLE001 自定义模板含裸花括号/未知占位符 ⇒ 不猜，回退
+        return _WORKBENCH_FALLBACK_SYSTEM_PROMPT
+    return (rendered or "").strip() or _WORKBENCH_FALLBACK_SYSTEM_PROMPT
+
+
 def _workbench_real_stream(question, session_id="", mode="plain"):
     """真实 LLM 流式 SSE 生成器：thinking 事件 + 真实模型 chunk + done
 
@@ -2019,7 +2081,10 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
     yield _sse({"type": "thinking", "id": "generate", "title": "生成回复",
                 "detail": "模型流式输出中…", "status": "running"})
 
-    SYSTEM_PROMPT = "你是云枢（Yunshu），一个拥有完整感知-认知-行动闭环的数字生命体。请以简洁、自然的语言回答用户。需要时可以使用提供的工具获取实时信息或执行操作。"
+    # 【2026-11-08】系统提示词与「提示词实验室」同源：读 data/system_prompt.txt 渲染；
+    #   模板不可用/占位符不匹配才回退硬编码兜底（= 旧行为）。实验室 apply 后下一次请求生效，
+    #   代价是那一次前缀全失效（身份字变了，缓存必然断），之后恢复。
+    SYSTEM_PROMPT = _render_workbench_system_prompt()
 
     # 会话级智能体（语义 A）：把该分身的受控角色模板注入系统提示词。模板正文来自
     # role_templates.resolve_subagent_role（与委派端点同一口径），此处不拼自由文本。
