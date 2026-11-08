@@ -1140,6 +1140,7 @@ flowchart LR
     agent_health_observability -.-> agent_monitoring_business_metrics
     agent_health_probes -.-> agent_logging_utils
     agent_health_probes -.-> agent_monitoring_metrics
+    agent_health_probes -.-> agent_monitoring_prometheus
     agent_health_probes -.-> agent_monitoring_metrics
     agent_health_probes -.-> agent_feedback
     agent_health_probes -.-> agent_circuit_breaker
@@ -2859,7 +2860,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 730
 - 模块节点数: 632
-- 依赖边数: 2099
-- 跨层调用数: 1330
+- 依赖边数: 2100
+- 跨层调用数: 1331
 - 违规调用数: 0
 - 动态 import 数: 1
