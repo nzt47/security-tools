@@ -464,10 +464,19 @@ def api_memory_manual():
         # 【2026-10-25】把 msg_id 回给调用方：没有它就**没有任何办法**定位并删除
         # 这条记忆（交接单 §9 T3 的根因）。msg_id 就是落盘的 timestamp。
         msg_id = ""
+        # 【2026-11-08】带会话 id：压缩触发按会话分口径；不带就会落进"未分会话"的旧池，
+        #   而那个池早已过阈值 ⇒ 每加一条手动记忆都可能触发一次压缩（且与任何会话都无关）。
+        try:
+            from app_server import _get_current_session_id as _cur_sid
+            _sid = _cur_sid() or ""
+        except Exception:  # noqa: BLE001 取不到会话就退回旧口径（不加 session_id）
+            _sid = ""
+        # 只有真的拿到会话才带这个关键字：取不到会话时保持旧调用形态（老实现/替身同形）
+        _kw = {"session_id": _sid} if _sid else {}
         if hasattr(memory, "score_and_save_message"):
-            msg_id = memory.score_and_save_message("user", text)
+            msg_id = memory.score_and_save_message("user", text, **_kw)
         elif hasattr(memory, "add_message"):
-            msg_id = memory.add_message("user", text)
+            msg_id = memory.add_message("user", text, **_kw)
         else:
             memory.add_memory({"role": "user", "content": text})
         return _ok({"ok": True, "msg_id": str(msg_id or "")})

@@ -14,10 +14,13 @@
 
 口径（与生产代码同源，不另写一份）：
   · 触发判据：memory/memory_manager.py::_should_compress_now
-        counted = 最近 200 条记忆里 user/assistant 的 content token（tool 结果单独计量）
+        counted = **本会话**最近 200 条记忆里 user/assistant 的 content token（tool 结果单独计量）
         counted >= token_limit × compress_threshold            （默认 0.8）
-  · floor 水位：_execute_compression 成功后把 **load_recent_messages(limit=100)** 的 counted 记成
-        _compress_floor_tokens；下一次要求 counted >= floor × recompress_growth_ratio(1.10)
+        2026-11-08 之前这里是**全库**最近 200 条（跨会话）⇒ 别的会话灌满会顶着本会话压缩；
+        未传 session_id 的旧调用方仍走全库口径（见 _recent_messages 的注释）。
+  · floor 水位：_execute_compression 成功后按**同一个触发窗口**（最近 200 条、同一会话）记
+        _compress_floor_by_session[sid]；下一次要求 counted >= floor × recompress_growth_ratio(1.10)
+        （2026-11-08 之前按 load_recent_messages(limit=100) 记 ⇒ 两个窗口差一倍，闸门恒开）
   · 界面占用率：plugins/memory.py::api_context_status → 本**会话** messages.jsonl 的 content token 之和 ÷ 编排窗口
   · 缓存命中：agent/llm_monitor.py 的 usage.prompt_cache_hit_tokens / prompt_cache_miss_tokens
 """
@@ -79,7 +82,7 @@ def part_a(counter, memory_path, window):
     """触发池是哪一份数据、当前水位多少"""
     msgs = _load_jsonl(memory_path)
     trigger = int(window * TRIGGER_RATIO)
-    print("== A. 压缩触发池 = 全局记忆 %s（跨会话，无 session 字段）" % memory_path)
+    print("== A. 全局记忆池 %s（**旧的**触发池；现在只有不传 session_id 的调用方用它）" % memory_path)
     print("   条数=%d · counted(all)=%d" % (len(msgs), _counted(counter, msgs)[0]))
     rows = {}
     for w in (20, FLOOR_WINDOW, TRIGGER_WINDOW):
@@ -96,6 +99,22 @@ def part_a(counter, memory_path, window):
     else:
         print("   尚未越阈值")
     return msgs, rows, trigger
+
+
+def part_a2(counter, memory_path, window):
+    """按会话看触发池（2026-11-08 起的口径：触发只看本会话）"""
+    msgs = _load_jsonl(memory_path)
+    trigger = int(window * TRIGGER_RATIO)
+    buckets = collections.OrderedDict()
+    for m in msgs:
+        sid = str(m.get("session_id") or "(未分会话)")
+        buckets.setdefault(sid, []).append(m)
+    print("\n== A2. 按会话的触发池（每个会话取最近 %d 条）" % TRIGGER_WINDOW)
+    print("   阈值 = %.1f × %d = %d" % (TRIGGER_RATIO, window, trigger))
+    for sid, items in list(buckets.items())[-6:]:
+        c, _t = _counted(counter, items[-TRIGGER_WINDOW:])
+        print("   %-42s 共 %3d 条 · counted=%6d （%.2f× 阈值）· 触发=%s"
+              % (sid, len(items), c, c / trigger if trigger else 0, c >= trigger))
 
 
 def part_b(counter, sessions_dir, window):
@@ -161,7 +180,7 @@ def part_e(counter, msgs, trigger):
             continue
         sim_floor = _counted(counter, msgs[max(0, i - FLOOR_WINDOW + 1):i + 1])[0]
         attempts += 1
-    print("\n== E. floor 水位窗口失配")
+    print("\n== E. floor 水位窗口失配（**历史**：2026-11-08 之前的口径，现已同窗口）")
     print("   触发看最近 %d 条（counted200=%d），floor 记的是最近 %d 条（counted100=%d）"
           % (TRIGGER_WINDOW, c200, FLOOR_WINDOW, c100))
     print("   闸门判据 counted200 >= floor×1.10 = %d ⇒ 恒成立" % int(c100 * GROWTH_RATIO))
@@ -261,6 +280,7 @@ def main():
     counter = _counter()
     memory_path = os.path.join(_ROOT, "data", "messages.jsonl")
     msgs, _rows, trigger = part_a(counter, memory_path, args.window)
+    part_a2(counter, memory_path, args.window)
     session_tokens = part_b(counter, os.path.join(_ROOT, "data", "sessions"), args.window)
     part_c(args.window, session_tokens)
     part_d(os.path.join(_ROOT, "data", "blackbox", "blackbox_001.jsonl"))
