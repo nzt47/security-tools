@@ -250,6 +250,22 @@ describe('3. 审批收件箱面板（P0）', () => {
     expect(await screen.findByText('外来内容')).toBeInTheDocument()
   })
 
+
+  it('对话内弹窗的审批默认不进收件箱：显示条数并在勾选后带 include_inline 重取', async () => {
+    // 【2026-11-08 Operator 要求】需要审批的工具直接在对话里弹窗给选择，不放审批收件箱。
+    api.fetchApprovalInbox.mockResolvedValue({ ...inbox, inline_hidden: 3, include_inline: false })
+    render(<GovernancePanels panel="approvals" />)
+    // ① 如实告知"另有 N 条在对话内弹窗"（否则看着像单子丢了）
+    expect(await screen.findByTestId('approvals-inline-hidden')).toBeInTheDocument()
+    expect(screen.getByTestId('approvals-inline-hidden').textContent).toContain('3')
+    // ② 首屏按默认口径取（不带 include_inline）
+    expect(api.fetchApprovalInbox).toHaveBeenCalledWith(expect.objectContaining({ include_inline: false }))
+    // ③ 勾上开关 ⇒ 用 include_inline=true 重取（排障/审计要看全量）
+    fireEvent.click(screen.getByTestId('approvals-include-inline'))
+    await waitFor(() => expect(api.fetchApprovalInbox).toHaveBeenLastCalledWith(
+      expect.objectContaining({ include_inline: true })))
+  })
+
   it('批量批准：先签发批量链接再提交（两段式，逐条绑定）', async () => {
     api.fetchApprovalInbox.mockResolvedValue(inbox)
     api.batchLink.mockResolvedValue({ ok: true, batch_id: 'batch-1', record_ids: ['r1', 'r2'],

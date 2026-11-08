@@ -2455,7 +2455,12 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                     targs = _json.loads(targs_json) if targs_json else {}
                     if not isinstance(targs, dict):
                         targs = {"args": targs}
-                    tool_result = _tool_call(tname, **targs)
+                    # 【2026-11-08 Operator 要求】对话里触发的审批**在对话内弹窗裁决**，
+                    # 不进审批收件箱待办：这段里挂的单会被标成 origin=inline_chat
+                    # （见 agent/approval_surface），/api/approval/pending 默认不列它们。
+                    from agent.approval_surface import inline_surface
+                    with inline_surface():
+                        tool_result = _tool_call(tname, **targs)
                     # 统一序列化结果（dict → json 字符串）
                     if isinstance(tool_result, (dict, list)):
                         tool_result = _json.dumps(tool_result, ensure_ascii=False, default=str)

@@ -245,7 +245,24 @@ def register_routes(app, state=None) -> None:
                           decision=_public_decision(decision))
         flow = get_approval_flow()
         limit = request.args.get("limit", type=int) or 50
-        records = flow.list({"state": "pending_review"}, limit=max(1, min(limit, 200)))
+        # 【2026-11-08 Operator 要求】对话内弹窗裁决的审批（payload.origin=inline_chat）
+        # **不进收件箱待办**：人已经在对话框里点了「批准/拒绝」，再列进这里只会让人
+        # 以为还得再批一次。要看全量（排障/审计）显式带 ?include_inline=1。
+        from agent.approval_surface import is_inline_payload
+        include_inline = str(request.args.get("include_inline") or "").lower() in (
+            "1", "true", "yes", "on")
+        records = flow.list({"state": "pending_review"}, limit=max(1, min(limit * 4, 800)))
+        inline_hidden = 0
+        if not include_inline:
+            kept = []
+            for r in records:
+                if is_inline_payload(getattr(r, "payload", None)):
+                    inline_hidden += 1
+                    continue
+                kept.append(r)
+            records = kept[:max(1, min(limit, 200))]
+        else:
+            records = records[:max(1, min(limit, 200))]
         from agent.security.governance_bridge import (
             governance_trace_fields,
             taint_flags,
@@ -259,6 +276,9 @@ def register_routes(app, state=None) -> None:
                 "actor": r.actor, "actor_type": r.actor_type,
                 "manual_required": bool(r.manual_required),
                 "created_at": r.created_at,
+                # 审批从哪儿来（inline_chat = 对话内弹窗；空 = 收件箱/CLI）
+                "origin": str((r.payload or {}).get("origin") or "")
+                if isinstance(r.payload, dict) else "",
                 # 治理可回溯（对齐 S1-02 governance：能不能退、怎么退）
                 "risk": guard_mod.resolve_risk(r.object_type, r.object_id, r.payload),
             }
@@ -269,6 +289,9 @@ def register_routes(app, state=None) -> None:
         return jsonify({
             "ok": True,
             "count": len(records),
+            # 被内联弹窗接管的条数（>0 说明"收件箱里少的那几条"在哪，不是丢了）
+            "inline_hidden": inline_hidden,
+            "include_inline": include_inline,
             "items": items,
             "identity": {"actor": ctx.actor, "actor_type": ctx.resolved_type(),
                          "identity_source": ctx.identity_source,

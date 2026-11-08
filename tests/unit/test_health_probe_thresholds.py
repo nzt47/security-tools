@@ -156,3 +156,69 @@ class TestOverallAfterFix:
         }
         score = HealthAssessor().assess_with_probes(probes_map)
         assert score.overall == pytest.approx(1.0)
+
+class TestL5SatisfactionDenominator:
+    """L5 满意度口径（2026-11-08）：只数近 7 天的 like/dislike。
+
+    背景（Operator 实测）：仪表盘 L5 从 50% 掉到 11.1%。根因两条 ——
+    ① 分母含 suggestion（「开发随记」7 条），等于"没点赞就算差评"；
+    ② 不看时间窗，7 月的 1 条 like/1 条 dislike 一直留在分母里。
+    """
+
+    def test_建议与开发随记不计入满意度(self, monkeypatch):
+        _patch_feedback(monkeypatch, ["like"] * 5 + ["suggestion"] * 7)
+        r = probes.probe_l5_semantic()
+        assert r.available is True
+        assert r.score == pytest.approx(1.0), r.detail
+        assert "7 条建议/随记不计入满意度" in r.detail, r.detail
+        assert r.metrics and r.metrics["suggestions"] == 7
+
+    def test_只有建议时如实报无数据而不是0分(self, monkeypatch):
+        _patch_feedback(monkeypatch, ["suggestion"] * 7)
+        r = probes.probe_l5_semantic()
+        assert r.available is False and r.score is None
+        assert "没有 like/dislike" in r.detail
+        assert "7 条建议" in r.detail
+
+    def test_超出7天窗口的反馈被排除(self, monkeypatch):
+        import time as _time
+
+        old = _time.time() - 30 * 86400
+        records = []
+        for t in ["like"] * 5:
+            rec = _Rec(t)
+            rec.created_at = old
+            records.append(rec)
+        fresh = _Rec("dislike")
+        fresh.created_at = _time.time() - 3600
+        records.append(fresh)
+
+        class _Mgr:
+            def __init__(self):
+                self._r = records
+
+            def list_feedback(self, limit=200):  # noqa: ARG002
+                return list(self._r)
+
+        fake_mod = type(sys)("agent.feedback")
+        fake_mod.FeedbackManager = _Mgr
+        monkeypatch.setitem(sys.modules, "agent.feedback", fake_mod)
+
+        r = probes.probe_l5_semantic()
+        # 窗口内只剩 1 条 dislike ⇒ 样本不足；30 天前那 5 条要被明确计入 stale
+        assert r.available is False and r.score is None
+        assert "样本不足" in r.detail and "stale" not in r.detail
+        assert r.metrics["stale"] == 5, r.metrics
+
+    def test_窗口内五条_按点赞比例评分(self, monkeypatch):
+        _patch_feedback(monkeypatch, ["like"] * 4 + ["dislike"] * 2)
+        r = probes.probe_l5_semantic()
+        assert r.available is True
+        assert r.score == pytest.approx(round(4 / 6, 2))
+        assert "satisfaction=66.7%" in r.detail
+
+    def test_时间解析不了不算过期(self, monkeypatch):
+        """`_Rec` 这类没有 created_at 的替身：不能因为"看不出时间"就被丢掉。"""
+        _patch_feedback(monkeypatch, ["like"] * 5)
+        r = probes.probe_l5_semantic()
+        assert r.available is True and r.score == pytest.approx(1.0)

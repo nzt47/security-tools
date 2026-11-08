@@ -1093,8 +1093,16 @@ def _tool_approval_outcome(func_name: str, args: Optional[Dict[str, Any]],
                        "的 WARNING：已消费过 / 台账写入失败 / 台账锁超时），改为重新挂单",
                        approval_id)
 
+    # 【2026-11-08】呈现面：对话链路会把这轮标记成 inline（弹窗确认），
+    # 其余链路留空 ⇒ 仍走审批收件箱。标记写进 payload.origin。
+    try:
+        from agent.approval_surface import current_surface  # noqa: PLC0415 惰性
+        _origin = current_surface()
+    except Exception:  # noqa: BLE001 标记不可用 ⇒ 按收件箱处理（不改变既有行为）
+        _origin = ""
     requested = request_approval(func_name, args, reason=reason, session_key=session_key,
-                                 source=str(_env_str("CP_PERMISSION_SESSION_SOURCE") or ""))
+                                 source=str(_env_str("CP_PERMISSION_SESSION_SOURCE") or ""),
+                                 origin=_origin)
     if not requested.get("ok"):
         _audit_confirm_decision(tool=func_name, level=level, decision="request_failed",
                                 identity=identity, source=source,
@@ -1118,17 +1126,28 @@ def _tool_approval_outcome(func_name: str, args: Optional[Dict[str, Any]],
                       "② 若确实不需要审批，显式关闭审批边界（%s=0）。"
                       "在此之前该工具不可用。" % APPROVAL_ENFORCE_ENV))
     reused = bool(requested.get("reused"))
+    _reused_note = "（复用先前挂单）" if reused else ""
+    # 呈现面决定"人从哪里看到这张单"：inline = 对话里已经弹窗（不进收件箱待办），
+    # 其余 = 收件箱/CLI。给模型的指引因此不同，别让模型以为人还得去翻收件箱。
+    if _origin == "inline_chat":
+        _where = ("该次调用已在**对话里弹窗**等你确认%s（审批单 %s，不进审批收件箱）。"
+                  "点「批准并继续」后**原样重试这一次调用**"
+                  % (_reused_note, approval_id or "-"))
+        _effective = "批准为单次有效。"
+    else:
+        _where = ("该次调用已在审批收件箱挂单%s。人工裁决入口（二选一）："
+                  "① 浏览器打开 %s ；② 命令行 pwsh -File scripts/approve_tool_call.ps1 "
+                  "-Approve <审批单号>。裁决后**原样重试这一次调用**"
+                  % (_reused_note, APPROVAL_CONSOLE_URL))
+        _effective = "批准为单次有效，L1 摘要确认在会话+时效内可复用。"
     return _deny_approval(
         func_name, reason, approval_id=approval_id,
-        guidance=("该次调用已在审批收件箱挂单%s。人工裁决入口（二选一）："
-                  "① 浏览器打开 %s ；② 命令行 \"pwsh -File scripts/approve_tool_call.ps1 "
-                  "-Approve <审批单号>\"。裁决后**原样重试这一次调用**"
-                  "（同一工具 + **逐字相同**的参数；参数差一个字就算另一次调用、需另挂一单）；"
-                  "批准为单次有效，L1 摘要确认在会话+时效内可复用。"
-                  "⚠️ **本回合请勿重复调用该工具**（重试只会复用同一张待办、白耗轮次）："
-                  "请改用其他可行方式继续完成任务；若确实无法绕过，直接向用户说明"
-                  "『该动作需要人工审批』并给出替代方案，**不要空等**。"
-                  % ("（复用先前挂单）" if reused else "", APPROVAL_CONSOLE_URL)))
+        guidance=(_where
+                  + "（同一工具 + **逐字相同**的参数；参数差一个字就算另一次调用、需另挂一单）；"
+                  + _effective
+                  + "⚠️ **本回合请勿重复调用该工具**（重试只会复用同一张待办、白耗轮次）："
+                  + "请改用其他可行方式继续完成任务；若确实无法绕过，直接向用户说明"
+                  "『该动作需要人工审批』并给出替代方案，**不要空等**。"))
 
 
 # ─────────────────────────────────────────────────────────────
