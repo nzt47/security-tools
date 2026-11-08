@@ -102,3 +102,74 @@ def test_未知状态与不存在的作业都要报错(tmp_path):
         jobs.upsert_job(source="x", source_ref="y", form="tool", status="bogus", root=tmp_path)
     with pytest.raises(jobs.JobError):
         jobs.transition("nope:nope", "registered", root=tmp_path)
+
+# ═══════════════════════════════════════════════════════════
+#  取消归档（2026-11-08）：archived 不再是"只能彻底删除"的死路
+# ═══════════════════════════════════════════════════════════
+
+def test_取消归档退回归档前的状态(tmp_path):
+    jobs.upsert_job(source="ingestion", source_ref="ing_u1", form="tool", root=tmp_path)
+    jobs.transition("ingestion:ing_u1", "normalized", root=tmp_path)
+    jobs.transition("ingestion:ing_u1", "registered", root=tmp_path,
+                    target={"kind": "tool", "id": "demo_tool"})
+    jobs.archive("ingestion:ing_u1", note="误归档", root=tmp_path)
+    assert jobs.get_job("ingestion:ing_u1", root=tmp_path)["status"] == "archived"
+
+    job = jobs.unarchive("ingestion:ing_u1", note="点错了", root=tmp_path)
+    assert job["status"] == "registered", "必须退回归档前的状态，而不是一律退回 candidate"
+    assert job["target"] == {"kind": "tool", "id": "demo_tool"}, "取消归档不该丢目标"
+    history = job["history"]
+    assert history[-1]["from"] == "archived" and history[-1]["to"] == "registered"
+    assert history[-1]["note"] == "点错了"
+    assert "ingestion:ing_u1" in [j["job_id"] for j in jobs.list_jobs(root=tmp_path)],         "取消归档后必须重新出现在（默认隐藏已归档的）队列里"
+
+
+def test_取消归档可以显式指定目标状态(tmp_path):
+    jobs.upsert_job(source="ingestion", source_ref="ing_u2", form="tool", root=tmp_path)
+    jobs.archive("ingestion:ing_u2", root=tmp_path)
+    job = jobs.unarchive("ingestion:ing_u2", status="candidate", root=tmp_path)
+    assert job["status"] == "candidate"
+
+
+def test_未归档的作业不能取消归档(tmp_path):
+    jobs.upsert_job(source="ingestion", source_ref="ing_u3", form="tool", root=tmp_path)
+    with pytest.raises(jobs.JobError):
+        jobs.unarchive("ingestion:ing_u3", root=tmp_path)
+
+
+def test_归档前状态未知且未显式指定就报错_不猜(tmp_path):
+    path = jobs.jobs_path(tmp_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # 老台账：只有状态、没有 history（模拟手改/历史遗留）
+    path.write_text(json.dumps({"version": 1, "jobs": [{
+        "job_id": "ingestion:ing_u4", "source": "ingestion", "source_ref": "ing_u4",
+        "form": "tool", "status": "archived", "history": [], "rev": 1,
+        "updated_at": "2026-11-01T00:00:00+00:00",
+    }]}, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(jobs.JobError) as ei:
+        jobs.unarchive("ingestion:ing_u4", root=tmp_path)
+    assert "状态" in str(ei.value)
+    # 显式给了合法状态就可以
+    assert jobs.unarchive("ingestion:ing_u4", status="reviewed", root=tmp_path)["status"] == "reviewed"
+
+
+def test_取消归档不能退到_archived_或非法状态(tmp_path):
+    jobs.upsert_job(source="ingestion", source_ref="ing_u5", form="tool",
+                    status="registered", root=tmp_path)
+    jobs.archive("ingestion:ing_u5", root=tmp_path)
+    with pytest.raises(jobs.JobError):
+        jobs.unarchive("ingestion:ing_u5", status="archived", root=tmp_path)
+    with pytest.raises(jobs.JobError):
+        jobs.unarchive("ingestion:ing_u5", status="not_a_state", root=tmp_path)
+
+
+def test_取消归档不删任何文件也不动工件目录(tmp_path):
+    tdir = tmp_path / "transforms" / "tid_u6"
+    tdir.mkdir(parents=True)
+    (tdir / "raw.md").write_text("原文", encoding="utf-8")
+    jobs.upsert_job(source="transform", source_ref="tid_u6", form="skill",
+                    artifacts=str(tdir), root=tmp_path)
+    jobs.transition("transform:tid_u6", "normalized", root=tmp_path)
+    jobs.archive("transform:tid_u6", root=tmp_path)
+    jobs.unarchive("transform:tid_u6", root=tmp_path)
+    assert (tdir / "raw.md").exists(), "取消归档只改状态，不碰工件"

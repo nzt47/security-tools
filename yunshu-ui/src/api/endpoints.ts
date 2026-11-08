@@ -65,6 +65,8 @@ export const SKILLS_MGMT_TRANSFORM_ENABLE = '/api/skills-mgmt/transforms/enable'
 export const SKILLS_MGMT_TRANSFORM_JOB_ARCHIVE = '/api/skills-mgmt/transforms/jobs/archive';
 /** 作业彻底删除：默认 dry_run 预览（列出将删的工件目录），落盘要 confirm=true */
 export const SKILLS_MGMT_TRANSFORM_JOB_DELETE = '/api/skills-mgmt/transforms/jobs/delete';
+// 【2026-11-08】归档不再是终态：误归档可退回（默认退回归档前的状态）
+export const SKILLS_MGMT_TRANSFORM_JOB_UNARCHIVE = '/api/skills-mgmt/transforms/jobs/unarchive';
 /** 分层加载：L0 摘要 / L1 能力卡 / L2 全文 / L3 脚本清单（?layer=） */
 export const skillCardLayer = (skillId: string) => `/api/skills-mgmt/${encodeURIComponent(skillId)}/card`;
 

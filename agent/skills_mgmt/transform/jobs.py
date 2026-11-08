@@ -266,8 +266,61 @@ def summary(*, root: Optional[Any] = None) -> Dict[str, Any]:
 
 def archive(jid: str, *, note: str = "",
             root: Optional[Any] = None) -> Dict[str, Any]:
-    """把作业归档（终态）：从队列隐藏、证据保留，可回退到"再彻底删除"。"""
+    """把作业归档：从队列隐藏、证据保留（可「取消归档」退回，或再「彻底删除」）。"""
     return transition(jid, "archived", note=note, root=root)
+
+
+#: 允许被"取消归档"退回的状态（archived 自身除外；failed 也可退回，用户可再重试）
+_UNARCHIVE_TARGETS = ("candidate", "normalized", "reviewed", "registered",
+                      "enabled", "failed")
+
+
+def pre_archive_status(job: Dict[str, Any]) -> str:
+    """这条作业**归档前**的状态（取 history 里最近一次 to=archived 的 from）。
+
+    取不到（老台账没记 history / 手改过）返回空串 —— 调用方要么显式给 status，
+    要么如实报错，**不猜**（猜错会把作业放回错误状态，比留在归档里更难排查）。
+    """
+    for h in reversed(list(job.get("history") or [])):
+        if isinstance(h, dict) and str(h.get("to")) == "archived":
+            return str(h.get("from") or "")
+    return ""
+
+
+def unarchive(jid: str, *, status: Optional[str] = None, note: str = "",
+              root: Optional[Any] = None) -> Dict[str, Any]:
+    """把**已归档**的作业退回（取消归档）—— `archived` 不再是无出路的终态。
+
+    【为什么不走 `_advance`】状态机里 `archived` 的出边是空集（归档 = 终态，刻意如此：
+    任何"前进"都不该从归档出发）。取消归档是**唯一的回退**，且目标只能是归档前的状态
+    （或调用方显式指定的合法状态）⇒ 单独一个函数，写一条 `archived → target` 的 history，
+    台账里因此留得下"谁在什么时候把它退回来了"。
+
+    【为什么默认退回归档前状态】人点"取消归档"的意思是"我刚才误归档了"，
+    退回 `registered` 的作业不该变成 `candidate`（那会让人以为又要重新登记一遍）。
+    """
+    with _LOCK:
+        path = jobs_path(root)
+        jobs = _load(path)
+        job = jobs.get(str(jid))
+        if job is None:
+            raise JobError("作业不存在: %s" % jid)
+        current = str(job.get("status") or "")
+        if current != "archived":
+            raise JobError("只有已归档的作业能取消归档（当前状态：%s）" % (current or "未知"))
+        target = str(status or "").strip() or pre_archive_status(job)
+        if target not in _UNARCHIVE_TARGETS:
+            raise JobError("取消归档的目标状态不合法：%r（归档前状态未知时请显式指定 status，"
+                           "可选：%s）" % (target, ", ".join(_UNARCHIVE_TARGETS)))
+        job.setdefault("history", []).append({
+            "from": "archived", "to": target, "at": _now(),
+            "note": str(note or "取消归档"),
+        })
+        job["status"] = target
+        job["updated_at"] = _now()
+        job["rev"] = _next_rev(jobs)
+        _save(path, jobs)
+        return dict(job)
 
 
 def remove_job(jid: str, *, root: Optional[Any] = None) -> Dict[str, Any]:

@@ -187,3 +187,57 @@ describe('TransformQueueDialog 归档 / 彻底删除（2026-11-07）', () => {
   })
 })
 
+
+describe('转化队列 · 取消归档（2026-11-08）', () => {
+  /** 已归档作业（默认队列里看不到，勾「显示已归档」才出现） */
+  function renderArchived() {
+    const payload = {
+      ok: true, broken: 0, items: [],
+      jobs: [{
+        job_id: 'job-arch', source: 'ingestion', source_ref: 'path:C:/skills/gone',
+        form: 'workflow', title: '误归档的工作流', status: 'archived',
+        target: { kind: 'workflow', id: 'wf_demo' }, artifacts: '',
+        updated_at: '2026-11-08T04:00:00+08:00',
+      }],
+      include_archived: true,
+    }
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true, status: 200, json: async () => payload,
+    })))
+    render(<TransformQueueDialog embedded />)
+  }
+
+  it('已归档行同时给出「取消归档」与「彻底删除」（归档不再是无出路的终态）', async () => {
+    renderArchived()
+    // 默认隐藏已归档 ⇒ 先勾「显示已归档」
+    const toggle = await screen.findByRole('checkbox', { name: /显示已归档/ })
+    fireEvent.click(toggle)
+    expect(await screen.findByText('job-arch')).toBeTruthy()
+    expect(screen.getByText('取消归档')).toBeTruthy()
+    expect(screen.getByText('彻底删除')).toBeTruthy()
+  })
+
+  it('点「取消归档」打到 jobs/unarchive，并把退回的状态如实上屏', async () => {
+    renderArchived()
+    fireEvent.click(await screen.findByRole('checkbox', { name: /显示已归档/ }))
+    await screen.findByText('job-arch')
+
+    const calls: { url: string; body?: Record<string, unknown> }[] = []
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push({ url: String(url), body: init?.body ? JSON.parse(String(init.body)) : undefined })
+      if (String(url).includes('/jobs/unarchive')) {
+        return { ok: true, status: 200, json: async () => ({ ok: true, job: { job_id: 'job-arch', status: 'registered' } }) }
+      }
+      return {
+        ok: true, status: 200,
+        json: async () => ({ ok: true, broken: 0, items: [], jobs: [], include_archived: true }),
+      }
+    }))
+
+    fireEvent.click(screen.getByText('取消归档'))
+    await waitFor(() => expect(calls.some((c) => c.url.includes('/jobs/unarchive'))).toBe(true))
+    expect(calls.find((c) => c.url.includes('/jobs/unarchive'))!.body).toMatchObject({ job_id: 'job-arch' })
+    expect(await screen.findByText(/已取消归档/)).toBeTruthy()
+    expect(screen.getByText(/退回状态 registered/)).toBeTruthy()
+  })
+})

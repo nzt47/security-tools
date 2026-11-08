@@ -479,6 +479,33 @@ def register_routes(app, state):
         _audit_job("transform.job.archive", jid, extra={"status": job.get("status")})
         return jsonify({"ok": True, "job": job})
 
+    @app.route("/api/skills-mgmt/transforms/jobs/unarchive", methods=["POST"])
+    @require_token
+    @trace_route("SkillsMgmt")
+    @log_request()
+    def api_skills_mgmt_transform_job_unarchive():
+        """**取消归档**：把已归档作业退回（默认退回**归档前**的状态）。
+
+        Body: {job_id, status?, note?}。只作用于作业台账，不动任何文件/已入库技能。
+        【为什么要有它】归档原先是终态：误点一次就只能「彻底删除」（连台账一起没了）。
+        """
+        body = request.get_json(silent=True) or {}
+        jid = str(body.get("job_id") or "").strip()
+        if not jid:
+            return jsonify({"ok": False, "error": "缺少 job_id"}), 400
+        from agent.skills_mgmt.transform import jobs as _jobs
+        try:
+            job = _jobs.unarchive(jid, status=str(body.get("status") or "") or None,
+                                  note=str(body.get("note") or "取消归档"))
+        except _jobs.JobError:  # noqa: BLE001 领域错误：固定文案（原文只进日志）
+            logger.warning("取消归档被拒绝 job=%s", jid, exc_info=True)
+            return jsonify({"ok": False,
+                            "error": "取消归档被拒绝（作业不存在、未归档，或归档前状态未知）"}), 409
+        except Exception as e:  # noqa: BLE001
+            return _fail(e, "取消归档失败（详见服务日志）", log="作业取消归档失败")
+        _audit_job("transform.job.unarchive", jid, extra={"status": job.get("status")})
+        return jsonify({"ok": True, "job": job})
+
     @app.route("/api/skills-mgmt/transforms/jobs/delete", methods=["POST"])
     @require_token
     @trace_route("SkillsMgmt")
