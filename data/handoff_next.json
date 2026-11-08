@@ -318,11 +318,11 @@
     },
     {
       "id": "compress-prefix-enable",
-      "title": "灰度打开 CP_COMPRESS_REUSE_CHAT_PREFIX（默认关，省的不生效）",
+      "title": "CP_COMPRESS_REUSE_CHAT_PREFIX 已灰度开启（观察中）",
       "status": "open",
       "priority": "P2",
-      "criteria": "PR #1521 已把「压缩复用对话前缀」落成生产代码但**默认关**：开着才省（实测 99.7% 命中、单次压缩成本 −81%）；关着逐字旧行为。已知边界：冷缓存（前缀>30 分钟）= 现状 1.85 倍，所以必须紧跟那轮对话；会话绑定分身且模型不同时不复用（自动回落）。",
-      "next": "建议先灰度一周：置 CP_COMPRESS_REUSE_CHAT_PREFIX=1 → 观察①压缩频率与摘要长度；②python -X utf8 scripts/probe_compress_prefix_reuse.py --e2e 的命中；③人工看 2~3 次摘要是否比旧路径（对话续写）更像摘要；无回归再决定是否设默认。另：摘要输出预算 500 token 触顶（旧路径也触顶）⇒ 要更长摘要需另案调 FIRST_TRY_TOKENS。"
+      "criteria": "**2026-11-09 已按 Owner 指示开启**（开关中心同一条 API：value=true、applied=True、hot 写入进程 os.environ、source=ui_override；重启后由 bootstrap 重新应用）。现场实测（分支临时部署 pid 69772）：窗口临时 30000 + 新会话 23,800 字消息 ⇒ 手动压缩返回 used_prefix=True / prefix_messages=1（摘要 v94→95，随后已还原）。**验收坑**：窗口 2000/3000 时 used_prefix 恒 False —— 守卫按设计拒绝（前缀 + RETRY_TOKENS 2000 + 余量 1024 > 窗口），验收要窗口 ≥ 前缀 + 3k。",
+      "next": "观察（1~2 周）：①压缩触发频次与摘要长度（输出预算 500 token 触顶，旧路径也触顶）；②手动压缩回执里 used_prefix 是否为 True；③人工看 2~3 次摘要质量（旧路径是「对话续写」，新路径应是结构化摘要）。无回归再决定是否在多机默认开启；回滚 = 面板开关关掉或置 0（热生效，无数据迁移）。"
     },
     {
       "id": "summarize-usage-observability",
@@ -334,11 +334,11 @@
     },
     {
       "id": "ui-vs-trigger-metric",
-      "title": "界面占用率与压缩触发仍不同源（界面=会话累计，触发=最近 200 条）",
-      "status": "open",
+      "title": "界面占用率与压缩触发同源（已完成：最近 200 条正文）",
+      "status": "done",
       "priority": "P2",
-      "criteria": "PR #1518 后触发只算本会话，但 /api/context/status 的 percentage 仍是会话全量 content 累计（percentage_semantics=current_window_usage 只对最近 20 条的装配生效）。超长会话（>200 条）可能出现「界面 80% 而触发未到」——方向安全，但不是同一个数。",
-      "next": "二选一：① 界面也改成「最近 200 条」口径（并同步 percentage_note/percentage_semantics 文案与用例）；② 触发改成会话累计（会把 PR #1518 的收敛抵消一部分）。改哪边都要同步 docs/handoff/口径.md §7。"
+      "criteria": "修前：/api/context/status 分子 = 会话全量累计（收+发 over 全部消息），触发量的是最近 COMPRESS_TRIGGER_WINDOW(200) 条正文且跳过工具结果 ⇒ 超长会话「界面 80% 而触发未到」。**已修（PR #1523 → 05545d6bc）**：分子改成最近 200 条正文（跳过 role=tool/tool_call_id），current_tokens 与 percentage 同源；新增 session_total_tokens / percentage_semantics=compress_trigger_window / percentage_window_messages / percentage_note；面板显示后端口径说明 + 会话累计；口径.md §7 已补一条。同 PR 顺带让手动压缩回报 used_prefix/prefix_messages（面板显示「复用前缀 / 独立前缀」）。",
+      "next": "已完成（2026-11-09 部署）。若日后调 COMPRESS_TRIGGER_WINDOW，界面自动跟随（同一常量）；改任一侧必须同批改另一侧 + 用例（test_context_limits_alignment 的「同源」用例）。"
     },
     {
       "id": "per-session-summary",
