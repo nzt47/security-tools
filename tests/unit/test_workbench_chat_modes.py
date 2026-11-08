@@ -44,8 +44,9 @@ class _Memory:
     def __init__(self):
         self.writes = []
 
-    def add_message(self, role, content):
-        self.writes.append((role, content))
+    def add_message(self, role, content, session_id=""):
+        # 【2026-11-08】真实签名多了 session_id；桩件不同形会让写记忆被 except 静默吞掉
+        self.writes.append((role, content, session_id))
         return "ts"
 
 
@@ -182,16 +183,21 @@ class TestPlainMode:
 
 
 class TestRetrievalMode:
-    def test_命中时注入_system_prompt_并外发真实阶段事件(self, env):
+    def test_命中时随最后一条消息注入并外发真实阶段事件(self, env):
         y = _Yunshu(extra="【长期记忆】云枢的技能审核阈值默认 60/70/50/60。")
         client, _fake = env(y)
         body = _body(client.post("/api/chat/stream",
                                  json={"message": "审核阈值是多少", "session_id": "s1",
                                        "mode": "retrieval"}))
-        # 用"包含"而不是"结尾"：请求前还有一次工具一致性守卫（align_system_prompt_with_tools）
-        # 会在 system prompt 末尾补工具声明 —— 检索片段仍必须真的在里面
-        assert "【长期记忆】云枢的技能审核阈值默认 60/70/50/60。" in \
-            FakeLLM.instances[0].seen["system_prompt"], "检索片段必须真的进 system prompt"
+        # 【2026-11-08 契约变更】检索片段**不再进 system prompt**：它含「会话摘要+最近消息」，
+        #   每轮都变，进系统前缀会把整条请求（含 tools 段与全部历史）的缓存打掉
+        #   （实测 0/62,415）。现在随**最后一条用户消息**下发，system prompt 保持稳定。
+        seen = FakeLLM.instances[0].seen
+        last = seen["messages"][-1]["content"]
+        assert "【长期记忆】云枢的技能审核阈值默认 60/70/50/60。" in last, \
+            "检索片段必须随本轮消息真的下发"
+        assert "【长期记忆】" not in seen["system_prompt"], \
+            "易变检索片段不得回到 system prompt（会击穿前缀缓存）"
         ev = [e for e in _events(body) if e.get("id") == "retrieval"]
         assert ev and ev[0]["status"] == "done"
         assert "命中" in ev[0]["detail"] and "token" in ev[0]["detail"]
@@ -310,9 +316,12 @@ class TestFullStreamMode:
         detail = " ".join(str(e.get("detail", "")) for e in _events(body))
         assert "sk-demo" in detail and "0.87" in detail, detail
 
-        # ① 技能指令与检索片段都进了 system prompt
-        prompt = FakeLLM.instances[-1].seen["system_prompt"]
-        assert "先查文档再动手" in prompt and "检索片段" in prompt
+        # ① 技能指令与检索片段都随**最后一条消息**下发（2026-11-08：不进 system prompt）
+        seen = FakeLLM.instances[-1].seen
+        last = seen["messages"][-1]["content"]
+        assert "先查文档再动手" in last and "检索片段" in last
+        assert "先查文档再动手" not in seen["system_prompt"], \
+            "易变技能指令不得回到 system prompt"
         # ② 回答由本工作台的流式循环产出（逐块），不是整段外发
         assert [e["type"] for e in _events(body) if e["type"] == "chunk"] == ["chunk", "chunk"]
         # ③ **不**委托编排器（委托=非流式，正是本档要避免的）
@@ -330,7 +339,7 @@ class TestFullStreamMode:
         detail = " ".join("%s %s" % (e.get("title", ""), e.get("detail", ""))
                           for e in _events(body))
         assert "语义层未命中" in detail, detail
-        assert "检索片段" in FakeLLM.instances[-1].seen["system_prompt"]
+        assert "检索片段" in FakeLLM.instances[-1].seen["messages"][-1]["content"]
         assert yunshu.chat_calls == []
 
     def test_语义层抛异常时按检索档继续(self, env):
@@ -345,7 +354,7 @@ class TestFullStreamMode:
                                 json={"message": "帮我看一下今天的日志", "session_id": "s1",
                                       "mode": "full_stream"}))
         assert [e["type"] for e in _events(body) if e["type"] == "chunk"] == ["chunk", "chunk"]
-        assert "检索片段" in FakeLLM.instances[-1].seen["system_prompt"]
+        assert "检索片段" in FakeLLM.instances[-1].seen["messages"][-1]["content"]
 
     def test_模式清单含五档(self):
         from plugins.chat import CHAT_STREAM_MODES

@@ -50,10 +50,12 @@ class _Memory:
         self.writes = []
         self._boom = boom
 
-    def add_message(self, role, content):
+    def add_message(self, role, content, session_id=""):
+        # 【2026-11-08】真实签名多了 session_id（压缩触发按会话分口径），桩件必须同形，
+        # 否则调用点传参会直接 TypeError —— 那是"桩件与生产不同步"的假红。
         if self._boom:
             raise RuntimeError("记忆写盘失败（模拟）")
-        self.writes.append((role, content))
+        self.writes.append((role, content, session_id))
         return "ts-%d" % len(self.writes)
 
 
@@ -144,7 +146,7 @@ class TestNormalCompletion:
         assert "云枢" in body and "回答" in body
 
         # ① 记忆：与 /api/chat 同口径（user + assistant，顺序一致）
-        assert [r for r, _ in memory.writes] == ["user", "assistant"]
+        assert [w[0] for w in memory.writes] == ["user", "assistant"]
         assert memory.writes[0][1] == "帮我看一下日志"
         assert memory.writes[1][1] == "云枢回答"
         # ② 会话存储照旧（既有行为）
@@ -206,7 +208,7 @@ class TestFailurePathMemoryHygiene:
         monkeypatch.setattr(FakeLLM, "mode", "ok", raising=False)
         _drain(client.post("/api/chat/stream",
                            json={"message": "帮我看一下日志", "session_id": "sess-ok"}))
-        assert [r for r, _ in memory.writes] == ["user", "assistant"]
+        assert [w[0] for w in memory.writes] == ["user", "assistant"]
 
 
 class TestFailSoft:

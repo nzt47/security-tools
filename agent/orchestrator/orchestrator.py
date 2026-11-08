@@ -1721,8 +1721,9 @@ class Orchestrator:
             self._run_persona_distillation()
 
         # 兼容旧系统
-        self._memory.add_message("user", user_input)
-        self._memory.add_message("assistant", response)
+        # 【2026-11-08】带上会话 id：压缩触发按会话分口径（与界面 /api/context/status 同源）
+        self._memory.add_message("user", user_input, session_id=_sid or "")
+        self._memory.add_message("assistant", response, session_id=_sid or "")
 
         # ── 上下文告警：**不得混进正式回答**（TASK-S10-03 现象A）──
         # 修复前：只要 level=="critical" 就往 response 尾部拼
