@@ -257,3 +257,56 @@ class TestRestartBackendNoDoubleStart:
         # 直接启动路径的 waited 只记「spawn 之后」的就绪耗时（既有口径）
         assert waited == 3.0
 
+class TestColdStartRetry:
+    """冒烟/版本探测的冷启动容忍（2026-11-08）：判据仍是 200，只是不再一次探测就红。"""
+
+    def test_无响应或5xx才重试_4xx立即返回(self, monkeypatch):
+        from scripts import deploy_workbench as dw
+
+        seq = [None, 503, 404]
+        calls = []
+
+        def fake_status(url, token=None, timeout=5.0):
+            calls.append(url)
+            return seq[min(len(calls) - 1, len(seq) - 1)]
+
+        monkeypatch.setattr(dw, "http_status", fake_status)
+        slept = []
+        code = dw.http_status_retry("http://x/api/version", window=60.0,
+                                    interval=0.5, sleep=slept.append)
+        assert code == 404, "4xx 必须原样返回（401/404 重试没有意义，只会让部署变慢）"
+        assert len(calls) == 3, calls
+        assert slept == [0.5, 0.5], slept
+
+    def test_健康时零等待(self, monkeypatch):
+        from scripts import deploy_workbench as dw
+        monkeypatch.setattr(dw, "http_status", lambda *a, **kw: 200)
+        slept = []
+        assert dw.http_status_retry("http://x", window=60.0, sleep=slept.append) == 200
+        assert slept == [], "第一次就 200 时不许 sleep（部署不能被这个改动拖慢）"
+
+    def test_窗口用完仍然无响应就如实返回_None(self, monkeypatch):
+        from scripts import deploy_workbench as dw
+        monkeypatch.setattr(dw, "http_status", lambda *a, **kw: None)
+        # window=0 ⇒ 一次探测，不睡（既有单测与"--check"都依赖这个语义）
+        slept = []
+        assert dw.http_status_retry("http://x", window=0.0, sleep=slept.append) is None
+        assert slept == []
+
+    def test_run_smoke_走重试版探测(self, monkeypatch):
+        from scripts import deploy_workbench as dw
+        seen = []
+
+        def fake_retry(url, token=None, timeout=5.0, window=dw.SMOKE_RETRY_WINDOW_SEC, sleep=None):
+            seen.append((url, window))
+            return 200
+
+        monkeypatch.setattr(dw, "http_status_retry", fake_retry)
+        res = dw.run_smoke(port=59998, token="t", paths=("/api/version",))
+        assert res == [{"path": "/api/version", "status": 200, "ok": True}]
+        assert seen and seen[0][1] == dw.SMOKE_RETRY_WINDOW_SEC, "smoke 必须带冷启动窗口"
+
+    def test_fetch_version_窗口默认关闭_保持老语义(self):
+        from scripts import deploy_workbench as dw
+        # 不可达端口：window=0 ⇒ 立刻返回 None（与既有用例同一判据）
+        assert dw.fetch_version(59998, None, timeout=0.2, window=0.0) is None

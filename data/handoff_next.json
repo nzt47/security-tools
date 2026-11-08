@@ -56,8 +56,8 @@
       "title": "C-9：schedule_task 观察期至 2026-11-10",
       "status": "frozen",
       "priority": "P3",
-      "criteria": "到期先复核最后 7 天用量，再决定「恢复/继续冻结/删除」",
-      "next": "2026-11-10 复核"
+      "criteria": "到期先复核最后 7 天用量，再决定「恢复/继续冻结/删除」。**2026-11-08 预复核发现判据本身不成立**：工具级台账（stage=tool）自 2026-10-29 上线至今**全仓 0 条**（连 read_file 这类高频工具都没有），所以「近 7 天 0 次」证明的是台账没数据，不是 schedule_task 没被用；审计链里 15 条命中都是 CP_TOOL_CONFIRM_LEVEL_EXEMPT 的配置变更提到这个名字，不是调用",
+  "next": "2026-11-10 到期时先看 tool-usage-ledger-empty 是否修好：修好前**不要**用用量下结论；在台账接通之前维持 frozen（YAML enabled:false，模型可见集里已剔除），到期若仍无数据则按「观察期内无证据 + 风险高（能自己安排未来任务）」继续冻结，删除需 Owner 单独点头"
     },
     {
       "id": "local-env-noise",
@@ -158,19 +158,27 @@
     },
     {
       "id": "chart-visualization-missing-assets",
-      "title": "chart-visualization 只入了 SKILL/CARD：scripts/ 与 references/ 未随源导入",
-      "status": "open",
+      "title": "chart-visualization 只入了 SKILL/CARD：已按 Owner 决定**降级为「仅提示词资产」**",
+      "status": "done",
       "priority": "P3",
-      "criteria": "来源草稿 data/ingestion/drafts/ing_a27df08b1b47f72f（scripts: frame-template.html/helper.js/server.cjs/start-server.sh/stop-server.sh）与 ing_bc4d42fa838ebbd1（scripts/generate.js）里都没有 26 份 references/*.md；因此正文第 3 步 node ./scripts/generate.js 现在必失败，技能正文已如实标注",
-      "next": "二选一：① 从 antvis/chart-visualization-skills 补齐 scripts/ + references/ 再入库；② 保持现状（只当选择图表的提示词资产），别再宣称能出图"
+      "criteria": "2026-11-08 01:5x Owner 选「降级」：skill.md 正文重写为自足的提示词资产 —— 顶部新增「资产说明（仅提示词资产）」明确没有 scripts/ 与 references/、别去找 generate.js/references；Workflow 第 2 步换成通用 args 字段约定（不再指向缺失文件）、第 3 步换成「Python matplotlib / ECharts option / 只给规格」三条本机可走的路、示例末尾删掉 node ./scripts/generate.js；「何时使用」「示例」保留（validator 0 error / 该技能 0 warning），Reference Material 段写清上游 antvis/chart-visualization-skills 与「未导入」。正文改动对派生面**零影响**（干净 worktree 跑 sync_capability_manifest --check：142 条一致，exit 0）",
+  "next": "已完成（只改正文、未动 front matter ⇒ 不动能力面）。若日后要真出图：把上游 scripts/ 与 references/ 拷进 data/skills_repo/chart-visualization/ 后走 intake_skill.py --execute --fix-baselines 重新入轨"
     },
     {
       "id": "demo-capability-tools-local",
-      "title": "演示工具 api_multi_search_engine / byted_seedance_video_generate 保持本机运行期（不入仓）",
-      "status": "open",
+      "title": "演示工具 api_multi_search_engine / byted_seedance_video_generate 保持本机运行期（不入仓）—— Owner 已决定",
+      "status": "done",
       "priority": "P3",
       "criteria": "两者的落地位置是 agent/tools/custom/*.py（.gitignore 第 181 行明确其=运行时状态，与 data/dynamic_tools.json 同类）+ data/tool_definitions/*.yaml + tests/unit/test_*.py；本机 98 条工具里含这两条（seedance 为 enabled: false）",
-      "next": "要入仓必须一次做齐：tool_index / 清单+盘点表 / BM25 半饱和点重标定 / 路由基线 / 路由冲突 τ 五处连锁，且 byted_seedance 的 BYTEPLUS_* 读取点要先进 agent/settings/registry.py（否则「开关零缺口」红）。未定前别只提交 YAML"
+      "next": "Owner 2026-11-08 决定：**维持运行时登记**（合 5 条：adaptive_skill_stack / api_multi_search_engine / byted_bp_cdn_pagesdeploy / byted_seedance_video_generate / byted_seedream_image_generate）。它们不在入库声明口径 ⟹ YAML 缺 enabled/status/permission_level/llm_callable/location/tool_type 属正常，三个 backfill 的 --check 会跳过；工具页「移除」只对这类工具显示（内建工具必须走 PR）。若日后要入仓：tool_index / 清单+盘点表 / BM25 半饱和点 / 路由基线 / 路由冲突 τ 五处连锁 + BYTEPLUS_* 进 agent/settings/registry.py，别只提交 YAML"
+    },
+    {
+      "id": "tool-usage-ledger-empty",
+      "title": "工具级使用台账 0 条：stage=tool 从未落过一笔，工具页「近 7 日调用」列永远是 -",
+      "status": "open",
+      "priority": "P1",
+      "criteria": "2026-11-08 复核 C-9 时发现：data/skill_usage_events*.jsonl（活动文件 + 8 个按日分片）里 **stage=tool 事件 0 条**，而 stage=load/match 正常（最近三条 load 是 11-07 的三次技能加载）。写入点 agent/tool_calling.py::_record_unified_tool_trace 确实挂在 _execute_safe 的四条终态上（代码无误），usage_log.record_tool 也写同一个文件（import 路径与 load 事件同一条，排除导入失败）**两个假设都还站得住**：①本部署的聊天工具调用没走 ToolCallingService（另有执行链，如 capregistry/invoke.py 只记 business_metrics）；②聊天确实很少真的调用过工具（同期 load 只有 3 条 ⇒ 聊天本身很闲）。/api/business/prometheus 的 tool_call 样本也是 0，但进程刚重启（02:13）⇒ 不能据此判 ①。影响：工具页「近 7 日调用」恒 '-'（设计上「无记录 ≠ 0 次」，所以不误报，但等于没有观测）；C-9 等「看用量」的判据全部失效",
+      "next": "决定性实验（半小时内可做）：在真实聊天里让模型调一次工具（例如「用 read_file 读 README.md 前 5 行」），然后看 data/skill_usage_events.jsonl 有没有新 stage=tool 行 —— 有 ⇒ 假设 ②（台账本身没问题，只是没人用）；没有 ⇒ 假设 ①（漏接），去 grep 聊天链的工具执行点，把 usage_log.record_tool 与 business_metrics.record_tool_call 挂到同一收口，并补「一次调用恰好一条」的守卫用例。修好前 C-9 不要用用量下结论"
     },
     {
       "id": "deeplink-cold-start-search",
