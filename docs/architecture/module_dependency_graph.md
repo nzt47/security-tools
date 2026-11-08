@@ -58,6 +58,7 @@ flowchart LR
         agent_api_envelope["agent.api_envelope"]:::crosslayer
         agent_api_gateway["agent.api_gateway"]
         agent_api_gateway_flask["agent.api_gateway_flask"]
+        agent_approval_surface["agent.approval_surface"]:::crosslayer
         agent_async_executor["agent.async_executor"]:::crosslayer
         agent_auto_tuner["agent.auto_tuner"]
         agent_autonomy["agent.autonomy"]:::crosslayer
@@ -2003,6 +2004,7 @@ flowchart LR
     agent_server_routes_routes_approval -.-> agent_server_auth
     agent_server_routes_routes_approval -.-> agent_security_actor_matrix
     agent_server_routes_routes_approval -.-> agent_skills_mgmt_approval
+    agent_server_routes_routes_approval -.-> agent_approval_surface
     agent_server_routes_routes_approval -.-> agent_security_governance_bridge
     agent_server_routes_routes_approval -.-> agent_security_governance_bridge
     agent_server_routes_routes_assets -.-> agent_server_auth
@@ -2606,6 +2608,7 @@ flowchart LR
     agent_tool_gate -.-> agent_subagent_sandbox
     agent_tool_gate -.-> agent_observability_trace_v2
     agent_tool_gate --> agent_tool_approval
+    agent_tool_gate --> agent_approval_surface
     agent_tool_gate -.-> agent_audit_facade
     agent_tool_gate -.-> agent_audit_facade
     agent_tool_gate -.-> agent_settings_overrides
@@ -2773,6 +2776,7 @@ flowchart LR
     agent_ui_panels_data -.-> agent_safe_paths
     agent_ui_panels_data -.-> agent_safe_paths
     agent_ui_panels_data -.-> agent_safe_paths
+    agent_ui_panels_data -.-> agent_approval_surface
     agent_ui_panels_data -.-> agent_security
     agent_ui_panels_data -.-> agent_observability_events
     agent_ui_panels_data -.-> agent_digestion_shadow
@@ -2852,9 +2856,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 729
-- 模块节点数: 631
-- 依赖边数: 2095
-- 跨层调用数: 1327
+- 扫描文件数: 730
+- 模块节点数: 632
+- 依赖边数: 2098
+- 跨层调用数: 1329
 - 违规调用数: 0
 - 动态 import 数: 1
