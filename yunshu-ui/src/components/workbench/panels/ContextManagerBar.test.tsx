@@ -14,7 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 const envMock = vi.hoisted(() => vi.fn())
-const postMock = vi.hoisted(() => vi.fn(async () => ({ ok: true })))
+const postMock = vi.hoisted(() => vi.fn(async (): Promise<Record<string, unknown>> => ({ ok: true })))
 vi.mock('@/api/envelope', () => ({
   getEnvelope: envMock,
   postEnvelope: postMock,
