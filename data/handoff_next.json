@@ -56,8 +56,8 @@
       "title": "C-9：schedule_task 观察期至 2026-11-10",
       "status": "frozen",
       "priority": "P3",
-      "criteria": "到期先复核最后 7 天用量，再决定「恢复/继续冻结/删除」。**2026-11-08 预复核发现判据本身不成立**：工具级台账（stage=tool）自 2026-10-29 上线至今**全仓 0 条**（连 read_file 这类高频工具都没有），所以「近 7 天 0 次」证明的是台账没数据，不是 schedule_task 没被用；审计链里 15 条命中都是 CP_TOOL_CONFIRM_LEVEL_EXEMPT 的配置变更提到这个名字，不是调用",
-  "next": "2026-11-10 到期时先看 tool-usage-ledger-empty 是否修好：修好前**不要**用用量下结论；在台账接通之前维持 frozen（YAML enabled:false，模型可见集里已剔除），到期若仍无数据则按「观察期内无证据 + 风险高（能自己安排未来任务）」继续冻结，删除需 Owner 单独点头"
+      "criteria": "到期先复核最后 7 天用量，再决定「恢复/继续冻结/删除」。**2026-11-08 预复核发现判据本身不成立**：工具级台账（stage=tool）自 2026-10-29 上线至今**全仓 0 条**（连 read_file 这类高频工具都没有）——根因是台账唯一写入点 ToolCalling._execute_safe 不在本部署的对话链路上（工作台 SSE 直接用 agent.tools.call）。审计链里 15 条命中都是 CP_TOOL_CONFIRM_LEVEL_EXEMPT 的配置变更提到这个名字，不是调用",
+  "next": "台账已在对话执行点补记（PR #1515：plugins/chat.py 的 _record_tool_usage），部署后即可用真实用量复核。2026-11-10 到期时：先看近 7 天 stage=tool 里有没有 schedule_task（当前 YAML enabled:false，模型可见集已剔除 ⇒ 预期 0）；无数据且风险高（能自己安排未来任务）则继续冻结，删除/恢复需 Owner 点头"
     },
     {
       "id": "local-env-noise",
@@ -174,11 +174,59 @@
     },
     {
       "id": "tool-usage-ledger-empty",
-      "title": "工具级使用台账 0 条：stage=tool 从未落过一笔，工具页「近 7 日调用」列永远是 -",
-      "status": "open",
+      "title": "工具级使用台账 0 条（已修）：对话执行点补记，实测已能落 stage=tool",
+      "status": "done",
       "priority": "P1",
       "criteria": "2026-11-08 复核 C-9 时发现：data/skill_usage_events*.jsonl（活动文件 + 8 个按日分片）里 **stage=tool 事件 0 条**，而 stage=load/match 正常（最近三条 load 是 11-07 的三次技能加载）。写入点 agent/tool_calling.py::_record_unified_tool_trace 确实挂在 _execute_safe 的四条终态上（代码无误），usage_log.record_tool 也写同一个文件（import 路径与 load 事件同一条，排除导入失败）**两个假设都还站得住**：①本部署的聊天工具调用没走 ToolCallingService（另有执行链，如 capregistry/invoke.py 只记 business_metrics）；②聊天确实很少真的调用过工具（同期 load 只有 3 条 ⇒ 聊天本身很闲）。/api/business/prometheus 的 tool_call 样本也是 0，但进程刚重启（02:13）⇒ 不能据此判 ①。影响：工具页「近 7 日调用」恒 '-'（设计上「无记录 ≠ 0 次」，所以不误报，但等于没有观测）；C-9 等「看用量」的判据全部失效",
-      "next": "决定性实验（半小时内可做）：在真实聊天里让模型调一次工具（例如「用 read_file 读 README.md 前 5 行」），然后看 data/skill_usage_events.jsonl 有没有新 stage=tool 行 —— 有 ⇒ 假设 ②（台账本身没问题，只是没人用）；没有 ⇒ 假设 ①（漏接），去 grep 聊天链的工具执行点，把 usage_log.record_tool 与 business_metrics.record_tool_call 挂到同一收口，并补「一次调用恰好一条」的守卫用例。修好前 C-9 不要用用量下结论"
+      "next": "已修（PR #1515，master ddb01a559 部署后实测）：plugins/chat.py 工具循环里在真实执行点补记 usage_log.record_tool（_record_tool_usage），失败判据只认显式 ok=False/error_code、工具抛异常也如实记失败。**决定性实验已做**：真实聊一轮（11 thinking / 162 chunk）后台账多 2 条 stage=tool（read_file 66ms / search_memory 883ms，source=workbench_chat）。⇒ 原假设 ① 成立（本部署对话链路不走 ToolCalling._execute_safe）。工具页「近 7 日调用」从此有数据；C-9 可以按真实用量复核（当前 schedule_task 仍 0 次，YAML enabled:false）"
+    },
+    {
+      "id": "approval-inline-surface",
+      "title": "需要审批的工具调用改为**对话内弹窗裁决**，不进审批收件箱（Owner 2026-11-08）",
+      "status": "done",
+      "priority": "P1",
+      "criteria": "PR #1514：新增 agent/approval_surface（contextvar 标记呈现面）+ request_approval(origin=) 落 payload + /api/approval/pending 与 /api/cp/approvals/inbox 默认过滤 origin=inline_chat（回 inline_hidden、?include_inline=1 看全量）+ 收件箱界面「另有 N 条在对话内弹窗」与勾选框；审批链不变（仍挂单/单次消费/审计）",
+      "next": "已完成并合并（86ca23f84）。若以后要把「某类工具永远不走弹窗」，改 approval_surface 的判据，别在 tool_gate 里写特例"
+    },
+    {
+      "id": "health-l5-semantics",
+      "title": "健康仪表盘 L5「语义」口径修正（50%→11% 的假数）+ L1~L5 标注数据来源 + 概览卡补 CPU/内存/磁盘",
+      "status": "done",
+      "priority": "P2",
+      "criteria": "PR #1513 + #1516：L5 只数近 7 天 like/dislike（suggestion/开发随记不计入分母、样本<5 或无语义反馈一律 available=false）；PROBE_LAYERS 增 origin/originDetail 并在维度卡与探针明细表展示；L1 探针返回结构化 metrics 且 assessor/collector 逐层透传，概览「CPU 核心数/内存可用量/磁盘可用」不再是 MISSING",
+      "next": "已完成（1d9b0948a 部署）。仍需后端补的两处如实占位：/api/diagnostics/metrics 的 histograms 为空（P50/P95/P99）、/api/observability/alerts 不返回运行态 state/activeAt"
+    },
+    {
+      "id": "ingestion-need-llm-steps",
+      "title": "AI 绑定/草稿登记：判断/评审类步骤按「LLM 步骤」落地（code-review 永远做不起来）",
+      "status": "done",
+      "priority": "P2",
+      "criteria": "PR #1512：新增 agent/ingestion/step_binding（有工具 or need_llm 都算落地，autobind/drafts 共用）；prompt 教模型对判断类步骤标 need_llm；apply_bindings 计 bound 含 need_llm 并回 llm_steps；build_learned_workflow 放行 need_llm 并透传 prompt_template；界面 regBlocked 只拦 0 步",
+      "next": "已完成（14580d5c6）。实测：该草稿修前只能绑 10/19 且登记恒灰，修后判断类步骤由模型标 need_llm（register_draft 也会兜底补）"
+    },
+    {
+      "id": "approval-inline-surface",
+      "title": "需要审批的工具调用改为**对话内弹窗裁决**，不进审批收件箱（Owner 2026-11-08）",
+      "status": "done",
+      "priority": "P1",
+      "criteria": "PR #1514：新增 agent/approval_surface（contextvar 标记呈现面）+ request_approval(origin=) 落 payload + /api/approval/pending 与 /api/cp/approvals/inbox 默认过滤 origin=inline_chat（回 inline_hidden、?include_inline=1 看全量）+ 收件箱界面「另有 N 条在对话内弹窗」与勾选框；审批链不变（仍挂单/单次消费/审计）",
+      "next": "已完成并合并（86ca23f84）。若以后要把「某类工具永远不走弹窗」，改 approval_surface 的判据，别在 tool_gate 里写特例"
+    },
+    {
+      "id": "health-l5-semantics",
+      "title": "健康仪表盘 L5「语义」口径修正（50%→11% 的假数）+ L1~L5 标注数据来源 + 概览卡补 CPU/内存/磁盘",
+      "status": "done",
+      "priority": "P2",
+      "criteria": "PR #1513 + #1516：L5 只数近 7 天 like/dislike（suggestion/开发随记不计入分母、样本<5 或无语义反馈一律 available=false）；PROBE_LAYERS 增 origin/originDetail 并在维度卡与探针明细表展示；L1 探针返回结构化 metrics 且 assessor/collector 逐层透传，概览「CPU 核心数/内存可用量/磁盘可用」不再是 MISSING",
+      "next": "已完成（1d9b0948a 部署）。仍需后端补的两处如实占位：/api/diagnostics/metrics 的 histograms 为空（P50/P95/P99）、/api/observability/alerts 不返回运行态 state/activeAt"
+    },
+    {
+      "id": "ingestion-need-llm-steps",
+      "title": "AI 绑定/草稿登记：判断/评审类步骤按「LLM 步骤」落地（code-review 永远做不起来）",
+      "status": "done",
+      "priority": "P2",
+      "criteria": "PR #1512：新增 agent/ingestion/step_binding（有工具 or need_llm 都算落地，autobind/drafts 共用）；prompt 教模型对判断类步骤标 need_llm；apply_bindings 计 bound 含 need_llm 并回 llm_steps；build_learned_workflow 放行 need_llm 并透传 prompt_template；界面 regBlocked 只拦 0 步",
+      "next": "已完成（14580d5c6）。实测：该草稿修前只能绑 10/19 且登记恒灰，修后判断类步骤由模型标 need_llm（register_draft 也会兜底补）"
     },
     {
       "id": "deeplink-cold-start-search",
@@ -234,7 +282,7 @@
       "status": "done",
       "priority": "P2",
       "criteria": "队列：archive 终态 + remove_job 只删已归档 + artifact_targets 白名单（仓库内/系统临时目录）+ 两个端点 + 「显示已归档」开关；工具：remove_runtime_tool 只认 dynamic_tools 台账（内建拒绝）、快照→注销→删台账/YAML/实现/单测→清 UI 开关、失败回滚。顺带把真实台账 62 → 27 条（删 35 条 pytest 临时目录污染，备份 data/backups/jobs-before-cleanup-20261107-232645.json）+ conftest autouse 隔离 jobs_path",
-      "next": "已完成：6908f52a1 合并 + 部署（三处一致）；code scanning 0。队列 27 条（其中 5 条是本轮 UI 实操归档的，可在「显示已归档」里彻底删除）。附带：conftest 的 sys.path 守卫（agent/ 挪末尾）本轮 shard6 全绿。若以后要「取消归档」再单开（当前只有归档→删除单向）"
+      "next": "已完成：6908f52a1 合并 + 部署（三处一致）；code scanning 0。附带：conftest 的 sys.path 守卫（agent/ 挪末尾）本轮 shard6 全绿。【2026-11-08 补】「取消归档」已做（PR #1515）：jobs.unarchive 退回归档前状态（history 里最近一次 to=archived 的 from；取不到就报错不猜）+ POST /api/skills-mgmt/transforms/jobs/unarchive + 队列已归档行的「取消归档」按钮 + 干净 worktree 重派生 route_ui_coverage（444 ui）"
     },
     {
       "id": "runtime-skill-intake-quality",
