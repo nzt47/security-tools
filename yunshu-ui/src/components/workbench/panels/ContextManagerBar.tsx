@@ -23,6 +23,8 @@ import {
   LLM_MONITOR_STATS,
 } from '@/api/endpoints';
 
+import { CompressPrefixSwitch } from './CompressPrefixSwitch';
+
 interface CtxStatus {
   current_tokens: number
   /** 分母 = **编排窗口**（真正生效的那个）；后端取不到时是 null，界面必须如实显示 — */
@@ -384,6 +386,9 @@ export function ContextManagerBar() {
                   >
                     <Minimize2 size={11} /> {busy ? '压缩中…' : '手动压缩'}
                   </button>
+                  {/* 【2026-11-09】压缩复用对话前缀：与「手动压缩」同一行 —— 按下去压什么、
+                      这一次压缩怎么算钱，两个问题在同一处可见（开关中心是同一份登记表）。 */}
+                  <CompressPrefixSwitch />
                   <button onClick={load} className="flex items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1.5 text-[11px] text-slate-400 hover:bg-slate-800">
                     <RefreshCw size={11} /> 刷新
                   </button>
