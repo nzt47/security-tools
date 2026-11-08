@@ -83,6 +83,17 @@ class TestToolUsageAtChatExecutionPoint:
         monkeypatch.setenv("CP_SKILL_USAGE_LOG", str(Path(ledger).anchor or "/"))
         _record_tool_usage("read_file", '{"ok": true}', 1.0)  # 不抛即通过
 
+    def test_抛异常时如实记失败_不把崩溃当成功(self, ledger):
+        """工具**抛异常**时结果是 `"工具执行失败: …"` 纯文本；
+        按"非 JSON ⇒ 成功"推导会把崩溃记成成功 —— 调用方用 ok= 覆盖。"""
+        from plugins.chat import _record_tool_usage
+
+        _record_tool_usage("shell_execute", "工具执行失败: TimeoutError", 3.0,
+                           ok=False, error_code="TimeoutError")
+        ev = _read_events(ledger)[0]
+        assert ev["success"] is False
+        assert ev["extra"]["error_code"] == "TimeoutError"
+
     def test_结果判定口径(self):
         from plugins.chat import _tool_result_ok
 
