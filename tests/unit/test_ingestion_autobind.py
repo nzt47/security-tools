@@ -200,3 +200,69 @@ class TestDraftIO:
         assert got["workflow"]["steps"][0]["tool_name"] == "search_files"
         rows = drafts.list_drafts(tmp_path / "drafts")
         assert rows[0]["bound_steps"] == 1 and rows[0]["total_steps"] == 1
+
+
+class TestNeedLlmSteps:
+    """判断/评审类步骤 = need_llm 步骤（2026-11-08 Operator 实测的 blocker）。
+
+    code-review 草稿 19 步里 9 步是「判断方案是否正确 / 记录评审直觉 / 纪律约束」这类
+    **没有工具、由模型自己完成**的动作。修前：只认 tool_name ⇒ 只能绑 10/19，登记被
+    build_learned_workflow 永久拒绝。修后：need_llm=True 也算落地（executor 走 llm_step_runner）。
+    """
+
+    def test_need_llm_算已绑定并清掉_requires_binding(self, tool_dir):
+        names = tool_catalog.tool_names(str(tool_dir))
+        wf, report = autobind.apply_bindings(_workflow(2), [
+            {"step_id": "step_1", "tool_name": "search_files", "params_template": {"pattern": "x"}},
+            {"step_id": "step_2", "tool_name": "", "need_llm": True,
+             "reason": "判断方案是否正确属于人工/模型判断，没有对应工具"},
+        ], names=names, model="fake")
+        assert report["bound"] == 2 and report["total"] == 2, report
+        assert report["unbound"] == []
+        assert report["llm_steps"] == 1
+        assert wf["requires_binding"] is False
+        assert wf["steps"][1]["need_llm"] is True
+        assert wf["steps"][1]["tool_name"] == ""
+
+    def test_既不填工具也不标_need_llm_仍算未绑定(self, tool_dir):
+        names = tool_catalog.tool_names(str(tool_dir))
+        wf, report = autobind.apply_bindings(_workflow(2), [
+            {"step_id": "step_1", "tool_name": "", "reason": "没想到"},
+        ], names=names)
+        assert report["bound"] == 0
+        assert wf["requires_binding"] is True
+        assert {u["step_id"] for u in report["unbound"]} == {"step_1", "step_2"}
+
+    def test_need_llm_步骤可以登记_且类型是_hybrid(self, tool_dir):
+        names = tool_catalog.tool_names(str(tool_dir))
+        wf, _ = autobind.apply_bindings(_workflow(2), [
+            {"step_id": "step_1", "tool_name": "read_file", "params_template": {"path": "a"}},
+            {"step_id": "step_2", "tool_name": "", "need_llm": True},
+        ], names=names)
+        learned = autobind.build_learned_workflow(wf, draft_id="ing_x", names=names)
+        assert learned.workflow_type == "hybrid"
+        assert learned.steps[1].need_llm is True
+        assert learned.steps[1].tool_name == ""
+        assert learned.steps[1].description == "步骤 2", "executor 用 description 兜底当提示词"
+
+    def test_只有_need_llm_步骤也允许登记(self, tool_dir):
+        names = tool_catalog.tool_names(str(tool_dir))
+        wf, _ = autobind.apply_bindings(_workflow(2), [
+            {"step_id": "step_1", "need_llm": True},
+            {"step_id": "step_2", "need_llm": "true"},
+        ], names=names)
+        learned = autobind.build_learned_workflow(wf, names=names)
+        assert learned.workflow_type == "hybrid"
+        assert all(s.need_llm for s in learned.steps)
+
+    def test_草稿里已经是_need_llm_的步骤不会被模型提议打回未绑定(self, tool_dir):
+        names = tool_catalog.tool_names(str(tool_dir))
+        wf = _workflow(1)
+        wf["steps"][0]["need_llm"] = True
+        out, report = autobind.apply_bindings(wf, [], names=names)
+        assert report["bound"] == 1 and out["steps"][0]["need_llm"] is True
+
+    def test_prompt_教模型用_need_llm_表达判断类步骤(self, tool_dir):
+        prompt = autobind.build_prompt(_workflow(2), tool_dir=str(tool_dir))
+        assert "need_llm" in prompt
+        assert "不算未绑定" in prompt
