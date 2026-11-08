@@ -222,3 +222,41 @@ class TestL5SatisfactionDenominator:
         _patch_feedback(monkeypatch, ["like"] * 5)
         r = probes.probe_l5_semantic()
         assert r.available is True and r.score == pytest.approx(1.0)
+
+
+class TestProbeMetricsPassthrough:
+    """结构化 metrics 必须一路透传到落盘记录（2026-11-08 实测漏了两层）。
+
+    现象：探针自己有 metrics，但 `/api/health/probe-trend` 里是 `metrics: null`
+    ⇒ 概览卡的「CPU 核心数 / 内存可用量 / 磁盘可用」仍然显示「—（端点未返回）」。
+    根因：assessor 与 collector 各自重建了 {score, available, detail} 三个键。
+    """
+
+    def test_assessor_透传_metrics(self):
+        from agent.health.assessor import HealthAssessor
+        from agent.health.probes import ProbeResult
+
+        probes = {
+            "l1_process": ProbeResult("l1_process", 1.0, "mem ok", True,
+                                      metrics={"cpu_cores": 12, "mem_available_mb": 2048}),
+            "l2_dependency": ProbeResult("l2_dependency", 1.0, "configs 2/2", True),
+        }
+        score = HealthAssessor().assess_with_probes(probes)
+        assert score.probe_details["l1_process"]["metrics"]["cpu_cores"] == 12
+        # 没有 metrics 的层不许多出一个 null 键（老消费方形状不变）
+        assert "metrics" not in score.probe_details["l2_dependency"]
+
+    def test_collector_落盘记录带_metrics(self, monkeypatch):
+        from agent.health import collector
+
+        appended = []
+        monkeypatch.setattr(collector.health_storage, "append",
+                            lambda rec: appended.append(rec), raising=False)
+        rec = collector._collect_once()
+        assert appended, "采集必须落盘（append 被调用）"
+        l1 = rec["probe_details"].get("l1_process") or {}
+        # 本机 psutil 可用时一定有结构化数值；不可用（无 psutil）则该层 available=False
+        if l1.get("available"):
+            assert l1.get("metrics"), "L1 的 metrics 没进落盘记录 ⇒ 界面拿不到核心数/可用内存"
+            assert "cpu_cores" in l1["metrics"]
+        assert "metrics" not in (rec["probe_details"].get("l2_dependency") or {})
