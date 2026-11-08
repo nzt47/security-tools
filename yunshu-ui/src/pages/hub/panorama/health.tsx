@@ -382,7 +382,11 @@ export function overviewCards(
   // 【2026-11-08】L1 探针现在给结构化数值（cpu_cores / mem_available_mb / disk_free_gb）。
   // 以前这三张卡是**硬编码 MISSING**（心跳端点只给使用率百分比）⇒ 页面上一片「—（端点未返回）」。
   const l1m = latest?.probe_details?.l1_process?.metrics
+  // 【2026-11-08】L3 探针现在也带结构化数值：前缀缓存命中率（口径 = 只认 API 上报过
+  // 缓存字段的调用）。命中率掉了不该靠人翻记录发现 ⇒ 概览卡直接上屏。
+  const l3m = latest?.probe_details?.l3_llm_tool?.metrics
   const L1_SRC = '来源：/api/health/probe-trend → probe_details.l1_process.metrics（L1 探针）'
+  const CACHE_SRC = '来源：/api/health/probe-trend → probe_details.l3_llm_tool.metrics（L3 探针）'
   return [
     {
       key: 'sys-status', label: '系统状态', tone: 'info',
@@ -430,6 +434,21 @@ export function overviewCards(
       value: llm ? (llm.status === 'ok' ? (llm.model || '已连接') : '未配置') : MISSING,
       sub: llm?.provider ? llm.provider + ' · 延迟 ' + (llm.latency_ms ?? 0) + 'ms' : undefined,
       missing: !llm,
+    },
+    {
+      key: 'cache-hit', label: 'LLM 缓存命中',
+      tone: l3m?.cache_hit_ratio == null
+        ? 'info'
+        : (l3m.cache_hit_ratio >= 0.8 ? 'success' : 'warning'),
+      value: l3m?.cache_hit_ratio == null
+        ? MISSING
+        : (l3m.cache_hit_ratio * 100).toFixed(1) + '%',
+      sub: l3m?.cache_hit_ratio == null
+        ? '本进程还没有"API 上报过缓存字段"的调用'
+        : '命中 ' + Math.round(l3m.cache_hit_tokens || 0).toLocaleString()
+          + ' / 未命中 ' + Math.round(l3m.cache_miss_tokens || 0).toLocaleString()
+          + ' token · ' + CACHE_SRC,
+      missing: l3m?.cache_hit_ratio == null,
     },
     {
       key: 'scheduler', label: '调度器', tone: sched?.running ? 'success' : 'warning',

@@ -1098,6 +1098,30 @@ def record_llm_usage(usage: dict, model: str = "", source: str = "") -> dict:
     return result
 
 
+def get_llm_cache_stats() -> dict:
+    """进程级前缀缓存累计读数（供健康探针 / 看板读取）。
+
+    【为什么不直接读 llm_monitor】2026-11-08 加「缓存命中」卡时踩过：health.probes
+    → llm_monitor 这条边会把一条既有长链闭成环
+    （events → trace_v2 → descriptors.bridge → skills_mgmt.* → health.dashboard →
+      health.probes → llm_monitor → events），arch_rules 直接判红。
+    读数本来就在本模块记账（record_llm_usage），从这里取不需要新增依赖边。
+
+    Returns:
+        {cache_hit_tokens, cache_miss_tokens, cache_hit_ratio}
+        ratio 为 None 表示本进程还没有"上报过缓存字段"的调用（**不是 0%**）。
+    """
+    with _cache_lock:
+        hit = int(_cache_hit_tokens)
+        miss = int(_cache_miss_tokens)
+    total = hit + miss
+    return {
+        "cache_hit_tokens": hit,
+        "cache_miss_tokens": miss,
+        "cache_hit_ratio": round(hit / total, 4) if total else None,
+    }
+
+
 def reset_llm_cache_counters() -> None:
     """清零进程内缓存命中率累计视图（**仅**供测试 / 诊断隔离）
 
