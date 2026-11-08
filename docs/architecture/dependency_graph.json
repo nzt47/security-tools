@@ -10257,7 +10257,7 @@
       "source_layer": "ingestion",
       "target_layer": "workflow_learning",
       "import_type": "from_import",
-      "line": 190,
+      "line": 209,
       "source_file": "agent/ingestion/autobind.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -10270,7 +10270,7 @@
       "source_layer": "ingestion",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
-      "line": 346,
+      "line": 347,
       "source_file": "agent/ingestion/drafts.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -32288,7 +32288,7 @@
     }
   ],
   "stats": {
-    "total_files": 728,
+    "total_files": 729,
     "total_nodes": 631,
     "total_edges": 2095,
     "cross_layer_edges": 1327,
