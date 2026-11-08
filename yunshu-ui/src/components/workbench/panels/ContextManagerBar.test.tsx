@@ -32,7 +32,13 @@ beforeEach(() => {
   // 否则第 2 个用例会带着"已展开"启动，expand() 反而把它折叠回去。
   localStorage.clear()
   envMock.mockResolvedValue({
-    current_tokens: 12000,
+    // 【2026-11-09】current_tokens 的语义改成「最近 200 条正文」（与压缩触发同源），
+    // 会话累计单列 session_total_tokens。
+    current_tokens: 800,
+    session_total_tokens: 12000,
+    percentage_note: '分子 = 本会话最近 200 条正文 token（与压缩触发同一口径；工具结果不计入）；会话累计见 session_total_tokens。',
+    percentage_window_messages: 200,
+    percentage_semantics: 'compress_trigger_window',
     token_limit: 131072,
     percentage: 9.2,
     per_message_send_limit: 131072,
@@ -132,6 +138,17 @@ describe('ContextManagerBar · DSH 三组读数', () => {
     expect(screen.queryByText('7 次')).toBeNull()
     // 9% 折叠条与展开网格各出现一次 ⇒ 用 getAllByText
     expect(screen.getAllByText('9%').length).toBeGreaterThan(0)
+  })
+
+  it('占用率与压缩触发同源：口径说明 + 会话累计同屏', async () => {
+    render(<ContextManagerBar />)
+    expand()
+    await screen.findByText('会话统计')
+    // 后端给的 percentage_note 原样上屏（不前端另造一句）
+    expect(screen.getByText(/与压缩触发同一口径/)).toBeTruthy()
+    // 会话累计单列，避免把「累计」误读成「这一窗用了多少」
+    expect(screen.getByText(/会话累计/)).toBeTruthy()
+    expect(screen.getByText('12,000')).toBeTruthy()
   })
 
   it('机制说明：开关已移除，但说明正文常驻', async () => {

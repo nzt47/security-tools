@@ -24,7 +24,13 @@ import {
 } from '@/api/endpoints';
 
 interface CtxStatus {
+  /** 分子 = 本会话最近 percentage_window_messages 条正文（与压缩触发同源） */
   current_tokens: number
+  /** 会话「收+发」累计（仅供参考；与压缩触发不是同一个数） */
+  session_total_tokens?: number
+  percentage_semantics?: string
+  percentage_note?: string
+  percentage_window_messages?: number
   /** 分母 = **编排窗口**（真正生效的那个）；后端取不到时是 null，界面必须如实显示 — */
   token_limit: number | null
   token_limit_source?: string
@@ -331,6 +337,16 @@ export function ContextManagerBar() {
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-slate-800">
                   <div className={`h-full ${barColor}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+                </div>
+                {/* 【2026-11-09】口径同源：占用率 = 最近 N 条正文 token ÷ 窗口（与压缩触发同一口径，
+                    工具结果不计入）；会话累计单列，避免把「累计」误读成「这一窗用了多少」。 */}
+                <div className="mt-1 text-[10px] leading-relaxed text-slate-500">
+                  {status.percentage_note
+                    ? status.percentage_note
+                    : `口径：本会话最近 ${status.percentage_window_messages ?? 200} 条正文 token（与压缩触发同源；工具结果不计入）`}
+                  {status.session_total_tokens != null && (
+                    <> · 会话累计 <span className="font-mono">{fmt(status.session_total_tokens)}</span> tok</>
+                  )}
                 </div>
               </div>
 

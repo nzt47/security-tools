@@ -177,6 +177,20 @@ def _compress_base(session_id: str, current: int) -> int:
     return _COMPRESS_BASE_CACHE[key]
 
 
+#: 压缩触发窗口的兜底值（条数）。真值取 memory.memory_manager.COMPRESS_TRIGGER_WINDOW；
+#: 这里只是"导入不可用"时的同值回退，两处若漂移由 scripts/probe_compress_vs_cache.py 量得出来。
+_TRIGGER_WINDOW_FALLBACK = 200
+
+
+def _trigger_window() -> int:
+    """压缩触发的窗口条数 —— 界面占用率与触发判据必须同窗口（见 api_context_status 的注释）"""
+    try:
+        from memory.memory_manager import COMPRESS_TRIGGER_WINDOW
+        return max(1, int(COMPRESS_TRIGGER_WINDOW))
+    except Exception:  # noqa: BLE001 导入失败不阻断读数（值有注释锚点）
+        return _TRIGGER_WINDOW_FALLBACK
+
+
 @bp.route("/api/context/status")
 @_view(log=False)
 def api_context_status():
@@ -242,7 +256,19 @@ def api_context_status():
     limit_info = _context_limit_info(_Yunshu)
     limit = limit_info["limit_tokens"]
     configured_limit = _cfg.get("memory", "token_limit", default=MEMORY_TOKEN_LIMIT_DEFAULT)
-    pct = round(total / limit * 100, 1) if limit else None
+
+    # ── 分子：**与压缩触发同源**（2026-11-09）──────────────────────────────
+    # 【此前】分子 = 本会话**全量累计**（send+recv over all messages），而压缩触发
+    #   （memory_manager._should_compress_now）量的是**最近 COMPRESS_TRIGGER_WINDOW 条正文**、
+    #   且跳过工具结果 ⇒ 超长会话会出现「界面 90% 而触发未到」（方向安全，但不是同一个数）。
+    # 【现在】同一段消息、同一套跳过规则、同一个计数器 ⇒ 界面读数就是触发判据里的 counted。
+    _window = _trigger_window()
+    counted = 0
+    for _m in messages[-_window:]:
+        if str(_m.get("role") or "") == "tool" or _m.get("tool_call_id"):
+            continue          # 工具结果不计入触发口径（大工具输出不该把窗口撑满）
+        counted += counter.count(_m.get("content", "") or "")
+    pct = round(counted / limit * 100, 1) if limit else None
 
     # 压缩次数（= 摘要版本号，**累计值**，不是"当前会话压缩了几次"）
     compress_rounds = 0
@@ -291,14 +317,19 @@ def api_context_status():
         status_reasons.append("summary_warn")
 
     return _ok({
-        "current_tokens": total,
+        # 分子 = 最近 N 条正文（与压缩触发同源）；会话累计另给 session_total_tokens。
+        "current_tokens": counted,
+        "session_total_tokens": total,
         # 分母 = 编排窗口（真正生效的那个）+ 来源披露；百分比语义写明白
         "token_limit": limit,
         "token_limit_source": limit_info["limit_source"],
         "configured_token_limit": configured_limit,
         "configured_token_limit_note": RESTART_FALLBACK_NOTE,
         "percentage": pct,
-        "percentage_semantics": "current_window_usage",
+        "percentage_semantics": "compress_trigger_window",
+        "percentage_window_messages": _window,
+        "percentage_note": ("分子 = 本会话最近 %d 条正文 token（与压缩触发同一口径；"
+                            "工具结果不计入）；会话累计见 session_total_tokens。" % _window),
         "per_message_send_limit": _cfg.get("memory", "per_message_send_limit", default=PER_MESSAGE_SEND_LIMIT_DEFAULT),
         "per_message_recv_limit": _cfg.get("memory", "per_message_recv_limit", default=PER_MESSAGE_RECV_LIMIT_DEFAULT),
         # 语义声明：发送侧**只告警不截断**（绝不静默丢弃用户粘进来的原文）
