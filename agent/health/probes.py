@@ -176,6 +176,25 @@ def probe_l3_llm_tool() -> ProbeResult:
     errors = sum(counters[k] for k in error_keys)
     total = sum(counters[k] for k in total_keys)
 
+    # 【2026-11-08】把前缀缓存命中率带成结构化数值：健康仪表盘要一张「LLM 缓存命中」卡。
+    # 口径只认 API **明确上报过**缓存字段的调用（cache_reported），否则"没上报"会被算成
+    # "未命中"而把命中率拉低（见 LLMMonitor.extract_usage 的注释）。
+    cache_metrics = None
+    try:
+        from agent.llm_monitor import get_monitor
+        stats = get_monitor().get_stats()
+        ratio = stats.get("cache_hit_ratio")
+        if ratio is not None:
+            cache_metrics = {
+                "cache_hit_ratio": round(float(ratio), 4),
+                "cache_hit_tokens": int(stats.get("cache_hit_tokens") or 0),
+                "cache_miss_tokens": int(stats.get("cache_miss_tokens") or 0),
+                "cache_reported_calls": int(stats.get("cache_reported_calls") or 0),
+                "llm_calls": int(stats.get("total") or 0),
+            }
+    except Exception as _ce:  # noqa: BLE001 缓存读数失败不影响 L3 的既有判定
+        logger.debug("probe_l3_llm_tool 缓存读数不可用: %s", _ce)
+
     if total <= 0:
         # 兜底检查熔断器状态
         try:
@@ -184,16 +203,20 @@ def probe_l3_llm_tool() -> ProbeResult:
             if states:
                 opened = [name for name, st in states.items() if getattr(st, "state", None) == "open"]
                 if opened:
-                    return ProbeResult("l3_llm_tool", 0.1, f"熔断器打开: {','.join(opened)}")
-                return ProbeResult("l3_llm_tool", 1.0, "熔断器全部关闭")
+                    return ProbeResult("l3_llm_tool", 0.1, f"熔断器打开: {','.join(opened)}",
+                                       metrics=cache_metrics)
+                return ProbeResult("l3_llm_tool", 1.0, "熔断器全部关闭", metrics=cache_metrics)
         except Exception:  # noqa: BLE001
             pass
-        return ProbeResult("l3_llm_tool", None, "无 LLM/工具链路数据（未注册熔断器且无调用计数）", available=False)
+        return ProbeResult("l3_llm_tool", None, "无 LLM/工具链路数据（未注册熔断器且无调用计数）",
+                           available=False, metrics=cache_metrics)
 
     err_rate = errors / total
     detail = f"chat_error_rate={err_rate:.1%} (errors={errors} total={total})"
+    if cache_metrics:
+        detail += " cache_hit=%.1f%%" % (cache_metrics["cache_hit_ratio"] * 100)
     score = max(0.0, 1.0 - err_rate * 5)
-    return ProbeResult("l3_llm_tool", round(score, 2), detail)
+    return ProbeResult("l3_llm_tool", round(score, 2), detail, metrics=cache_metrics)
 
 
 def probe_l4_business() -> ProbeResult:
