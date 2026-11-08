@@ -1487,6 +1487,51 @@ def _auto_route(question: str):
     return "plain", "短问答"
 
 
+#: 工具结果的"成功"判据（与 tool_gate / usage_log 同口径：显式 ok=False 或带 error_code 才算失败）
+def _tool_result_ok(result_text: object) -> tuple:
+    """把工具结果（JSON 字符串 / 任意对象）判成 (ok, error_code)。
+
+    工具层返回的形状不统一（dict / JSON 字符串 / 纯文本），这里只在**能确定**时判失败：
+    显式 `ok is False` 或带 `error_code`；其余一律按成功（不臆造失败）。
+    """
+    if not isinstance(result_text, str):
+        return True, ""
+    head = result_text.lstrip()[:1]
+    if head != "{":
+        return True, ""
+    try:
+        parsed = json.loads(result_text)
+    except Exception:  # noqa: BLE001 不是合法 JSON ⇒ 当作普通文本结果
+        return True, ""
+    if not isinstance(parsed, dict):
+        return True, ""
+    ok = parsed.get("ok") is not False
+    code = str(parsed.get("error_code") or parsed.get("error") or "")
+    return ok, code[:120]
+
+
+def _record_tool_usage(tool_name: str, result_text: object, latency_ms: float,
+                       source: str = "workbench_chat") -> None:
+    """把一次工具调用记进**统一使用台账**（stage=tool）—— 工具页「近 7 日调用」的唯一数据源。
+
+    【为什么必须在这里记（2026-11-08，P1 `tool-usage-ledger-empty`）】
+    台账的唯一写入点原本是 `ToolCalling._execute_safe`，但**本部署的对话链路不走它**：
+    工作台 SSE 直接用 `agent.tools.call` 执行工具（见本文件工具循环）⇒ 台账自 2026-10-29
+    上线以来 **stage=tool 一条都没有**，工具页那一列永远是 `-`，C-9 这类"看用量"的判据全部失效。
+    故在真实执行点补一条；与 approval 的呈现面标记同一处收口。
+
+    best-effort：观测失败绝不影响对话（异常全吞）。
+    """
+    try:
+        from agent.skills_mgmt import usage_log
+        ok, code = _tool_result_ok(result_text)
+        usage_log.record_tool(str(tool_name or ""), success=ok,
+                              latency_ms=float(latency_ms or 0.0),
+                              error_code=code, source=source)
+    except Exception:  # noqa: BLE001 观测失败不拖垮主链路
+        pass
+
+
 def _sse_event(evt: dict) -> str:
     """把一个事件编码成 SSE 帧（与 _workbench_real_stream 内部 _sse 同格式）"""
     return "data: " + json.dumps(evt, ensure_ascii=False) + "\n\n"
@@ -2470,7 +2515,11 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                     logger.error("[workbench][SSE] 工具执行失败 %s: %s", tname, _te)
                     tool_result = f"工具执行失败: {_te}"
                 finally:
-                    _tool_ms += (time.time() - _tool_t0) * 1000.0
+                    _elapsed_ms = (time.time() - _tool_t0) * 1000.0
+                    _tool_ms += _elapsed_ms
+                    # 【P1 tool-usage-ledger-empty】真实执行点补记台账（stage=tool）：
+                    # 对话链路不走 ToolCalling，不在这记就永远没有工具用量。
+                    _record_tool_usage(tname, tool_result, _elapsed_ms)
                 # 【P0-A 2026-10-12】人工审批边界：把『等待审批 / 被否决』从**工具结果 JSON**
                 #   提升为**独立 SSE 事件**。此前它只藏在回传给模型的 result 里 ⇒ 界面既不显示
                 #   "等待人工审批"、也不显示"审批超时/被否决"，用户看到的是"模型答到一半不动了"。

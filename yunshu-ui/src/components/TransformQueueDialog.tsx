@@ -22,6 +22,7 @@ import {
   SKILLS_MGMT_TRANSFORM_ENABLE,
   SKILLS_MGMT_TRANSFORM_JOB_ARCHIVE,
   SKILLS_MGMT_TRANSFORM_JOB_DELETE,
+  SKILLS_MGMT_TRANSFORM_JOB_UNARCHIVE,
   skillTransform,
   skillTransformRedraft,
   skillTransformRollback,
@@ -297,6 +298,29 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
     }
   }
 
+  /** 取消归档：退回归档前的状态（误归档的唯一出路；不删任何文件、不动已入库技能） */
+  const doUnarchive = async (job: Job) => {
+    setBusy(job.job_id + ':unarchive')
+    setNotice('')
+    setError('')
+    try {
+      const r = await fetch(SKILLS_MGMT_TRANSFORM_JOB_UNARCHIVE, {
+        method: 'POST',
+        headers: { ...authHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ job_id: job.job_id, note: 'UI 取消归档' }),
+      })
+      const j = await r.json()
+      if (!r.ok || j.ok === false) throw new Error(j.error || j.code || `HTTP ${r.status}`)
+      setNotice(`已取消归档 ${job.title || job.source_ref}：退回状态 ${j.job?.status || '（归档前状态）'}，队列里重新可见`)
+      setJobPanel(null)
+      await load()
+    } catch (e) {
+      setError(String((e as Error).message || e))
+    } finally {
+      setBusy('')
+    }
+  }
+
   /** 彻底删除第一步：dry_run 预览（列出将删的工件目录） */
   const openDelete = async (job: Job) => {
     setBusy(job.job_id + ':preview')
@@ -540,6 +564,15 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                         disabled={busy === j.job_id + ':archive'}
                         title="归档：从队列隐藏、台账保留证据（不删任何文件；已入库的技能/工具不受影响）">
                         {busy === j.job_id + ':archive' ? '归档中…' : '归档'}
+                      </button>
+                    )}
+                    {j.status === 'archived' && (
+                      <button type="button"
+                        className="rounded border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-300 hover:border-emerald-700 hover:bg-emerald-950/30 hover:text-emerald-300"
+                        onClick={(e) => { e.stopPropagation(); void doUnarchive(j) }}
+                        disabled={busy === j.job_id + ':unarchive'}
+                        title="取消归档：退回归档前的状态、队列里重新可见（不删文件、不动已入库的技能/工具）">
+                        {busy === j.job_id + ':unarchive' ? '取消归档中…' : '取消归档'}
                       </button>
                     )}
                     {j.status === 'archived' && (
