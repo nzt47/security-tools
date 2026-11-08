@@ -623,6 +623,14 @@ class MemoryManager:
             item = _chat_prefix.get_if_fresh(session_id)
             if not item or not item.get("messages"):
                 return None
+            # 模型必须一致：缓存键含模型，不一致 ⇒ 命中恒 0，而请求却从 6.6 万变 12 万
+            # （冷价 = 现状的 1.85 倍）⇒ 宁可回落旧路径。会话绑定分身时会走到这里。
+            want_model = str(getattr(self._llm_service, "model", "") or "")
+            got_model = str(item.get("model") or "")
+            if got_model and want_model and got_model != want_model:
+                logger.info("[MemoryManager] 压缩前缀模型不一致（%s vs %s）⇒ 回落旧路径",
+                            got_model, want_model)
+                return None
             tokens = int(self._token_counter.count(str(item.get("system_prompt") or "")))
             for _m in item["messages"]:
                 tokens += int(self._token_counter.count(str(_m.get("content") or "")))

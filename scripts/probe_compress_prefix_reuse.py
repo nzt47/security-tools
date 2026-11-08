@@ -395,7 +395,8 @@ def e2e(info, live_budget=LIVE_BUDGET_DEFAULT):
     print("   ① 建前缀 prompt=%s hit=%s" % (
         getattr(u, "prompt_tokens", "?"), getattr(u, "prompt_cache_hit_tokens", "?")))
 
-    chat_prefix.record(sid, system_text, tools, msgs[1:], window_tokens=WINDOW_DEFAULT)
+    chat_prefix.record(sid, system_text, tools, msgs[1:], window_tokens=WINDOW_DEFAULT,
+                       model=model)
     os.environ[chat_prefix.ENV_FLAG] = "1"
 
     from memory.memory_manager import MemoryManager

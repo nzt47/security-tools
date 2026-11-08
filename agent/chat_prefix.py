@@ -49,7 +49,8 @@ def enabled() -> bool:
     return str(os.environ.get(ENV_FLAG, "")).strip().lower() in _TRUE
 
 
-def record(session_id: str, system_prompt: str, tools, messages, window_tokens: int = 0) -> bool:
+def record(session_id: str, system_prompt: str, tools, messages, window_tokens: int = 0,
+           model: str = "") -> bool:
     """登记「本轮真正发出去的对话前缀」。失败/无会话一律静默返回 False（绝不击穿对话）。
 
     Args:
@@ -59,6 +60,8 @@ def record(session_id: str, system_prompt: str, tools, messages, window_tokens: 
         messages: 本轮真正下发的 messages（调用方传入的活列表会被**复制**，
             因为工具循环后续还会往里 append）。
         window_tokens: 本轮编排窗口（0 = 未测）。
+        model: 本轮真正用的模型（会话绑定分身时可能与 .env 的 LLM_MODEL 不同）。
+            压缩侧模型不一致 ⇒ 缓存键不同、命中恒 0，所以必须存下来供比对。
     """
     sid = str(session_id or "")
     if not sid:
@@ -70,6 +73,7 @@ def record(session_id: str, system_prompt: str, tools, messages, window_tokens: 
             "tools": list(tools) if tools else None,
             "messages": [dict(m) for m in (messages or []) if isinstance(m, dict)],
             "window_tokens": int(window_tokens or 0),
+            "model": str(model or ""),
             "updated_at": _now(),
         }
     except Exception:  # noqa: BLE001 登记失败不得影响对话主链路
@@ -98,6 +102,7 @@ def peek(session_id: str):
             "tools": list(item["tools"]) if item.get("tools") else None,
             "messages": [dict(m) for m in item.get("messages") or []],
             "window_tokens": int(item.get("window_tokens") or 0),
+            "model": str(item.get("model") or ""),
             "updated_at": item["updated_at"],
         }
 

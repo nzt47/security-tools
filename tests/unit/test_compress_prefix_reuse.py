@@ -202,6 +202,23 @@ class TestMemoryManagerReuse:
         assert manager._execute_compression("A") is True
         assert manager._summarizer.prefixes[-1] is None
 
+    def test_模型不一致时不复用(self, manager, monkeypatch):
+        """缓存键含模型：分身会话的模型可能与母体不同 ⇒ 复用只会白付 1.85 倍"""
+        monkeypatch.setenv(chat_prefix.ENV_FLAG, "1")
+        chat_prefix.record("A", "SYS", None, [{"role": "user", "content": "x"}],
+                           model="some-other-model")
+        manager._message_window.append(_msg("A"))
+        assert manager._execute_compression("A") is True
+        assert manager._summarizer.prefixes[-1] is None
+
+    def test_模型一致时复用(self, manager, monkeypatch):
+        monkeypatch.setenv(chat_prefix.ENV_FLAG, "1")
+        chat_prefix.record("A", "SYS", None, [{"role": "user", "content": "x"}],
+                           model=manager._llm_service.model)
+        manager._message_window.append(_msg("A"))
+        assert manager._execute_compression("A") is True
+        assert manager._summarizer.prefixes[-1] is not None
+
     def test_前缀过期回落旧路径(self, manager, monkeypatch):
         monkeypatch.setenv(chat_prefix.ENV_FLAG, "1")
         t0 = [1000.0]

@@ -2554,7 +2554,8 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                     if _chat_prefix.enabled():
                         _chat_prefix.record(
                             session_id, SYSTEM_PROMPT, tool_defs, loop_messages,
-                            window_tokens=_window_tokens or 0)
+                            window_tokens=_window_tokens or 0,
+                            model=str(getattr(llm, "model", model) or ""))
                 except Exception as _pe:  # noqa: BLE001 登记失败不得影响对话主链路
                     logger.debug("[workbench][SSE] 对话前缀登记失败: %s", _pe)
                 _pieces = llm.chat_stream(**stream_kwargs)
