@@ -223,22 +223,34 @@ class LLMService:
         """判断当前提供商是否兼容 OpenAI API 格式"""
         return self.provider in ("openai", *self.OPENAI_COMPAT.keys())
 
-    def _do_summarize(self, messages: list[dict], max_tokens: int = 500, system_prompt: str = "") -> str:
-        """实际的摘要生成逻辑（不含重试）"""
+    def _do_summarize(self, messages: list[dict], max_tokens: int = 500, system_prompt: str = "",
+                      tools: list = None) -> str:
+        """实际的摘要生成逻辑（不含重试）
+
+        Args:
+            tools: 只在 **OpenAI 兼容后端**透传（本部署 provider=deepseek）。用途是把
+                压缩请求做成「与本轮对话逐字相同的 system+tools+消息切片」，让前缀缓存
+                命中（实测 99.8%，见 docs/handoff §11.71）。缺省 None = 旧行为（不带 tools）。
+        """
         system_prompt = system_prompt or "请将以下对话总结为核心要点，保留关键决策、问题和结论。要求简洁准确。"
         
         client = self._get_client()
         
         if self._is_openai_compat():
-            logger.info("├─ Provider: %s | Model: %s", self.provider, self.model)
-            response = client.chat.completions.create(
+            logger.info("├─ Provider: %s | Model: %s | tools=%s",
+                        self.provider, self.model,
+                        len(tools) if tools else 0)
+            kwargs = dict(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     *messages
                 ],
-                max_tokens=max_tokens
+                max_tokens=max_tokens,
             )
+            if tools:
+                kwargs["tools"] = tools
+            response = client.chat.completions.create(**kwargs)
             result = response.choices[0].message.content.strip()
             logger.info("│ ✓ 摘要生成成功，长度: %d 字符", len(result))
             return result
@@ -255,13 +267,15 @@ class LLMService:
             logger.info("│ ✓ 摘要生成成功，长度: %d 字符", len(result))
             return result
     
-    def summarize(self, messages: list[dict], max_tokens: int = 500, system_prompt: str = "") -> str:
+    def summarize(self, messages: list[dict], max_tokens: int = 500, system_prompt: str = "",
+                   tools: list = None) -> str:
         """调用 LLM 生成对话摘要（带重试机制）
 
         Args:
             messages: 对话消息列表，格式 [{"role": "...", "content": "..."}]
             max_tokens: 摘要最大 Token 数
             system_prompt: 自定义系统提示词（可选）
+            tools: 仅 OpenAI 兼容后端透传（前缀复用需要与原对话同一份 tools；缺省不带）
 
         Returns:
             摘要文本。空输入返回空字符串。
@@ -273,7 +287,7 @@ class LLMService:
             return ""
         
         try:
-            return self._summarize_with_retry(messages, max_tokens, system_prompt)
+            return self._summarize_with_retry(messages, max_tokens, system_prompt, tools)
         except Exception as e:
             logger.error("└─────────────────────────────────────────────")
             logger.error("│ ✗ [LLM摘要] 所有 %d 次尝试均失败", self.max_retries)
@@ -289,7 +303,7 @@ class LLMService:
             outcome = self._fallback_after_failure(
                 "summarize", e,
                 lambda shadow: shadow._summarize_with_retry(
-                    messages, max_tokens, system_prompt))
+                    messages, max_tokens, system_prompt, tools))
             if outcome.get("succeeded"):
                 logger.warning("│ ↩ 已降级到 %s 完成摘要（%s）",
                                outcome.get("to"), outcome.get("chain_source"))
