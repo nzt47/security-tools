@@ -107,6 +107,11 @@ class HealthAssessor:
                     "available": result.available,
                     "detail": result.detail,
                 }
+                # 【2026-11-08】结构化 metrics 透传：界面概览卡要显示
+                # CPU 核心数 / 内存可用量 / 磁盘可用（心跳端点只有百分比）。
+                # 只在这一层丢的话，探针算出来了也到不了 /api/health/probe-trend。
+                if getattr(result, "metrics", None):
+                    details[layer]["metrics"] = dict(result.metrics)
                 dimensions[layer] = result.score
 
             available_layers = [l for l, d in details.items() if d["available"]]

@@ -35,11 +35,15 @@ def _collect_once() -> dict:
         "overall": score.overall,
         "dimensions": score.dimensions,
         "issues": score.issues,
+        # 【2026-11-08】结构化 metrics 必须一起落盘：概览卡的「CPU 核心数 / 内存可用量 /
+        # 磁盘可用」读的就是 probe_details.l1_process.metrics —— 只落 score/detail 的话，
+        # L1 探针算出来了也到不了界面（实测：探针有 metrics、/api/health/probe-trend 里是 null）。
         "probe_details": {
             layer: {
                 "score": detail["score"],
                 "available": detail["available"],
                 "detail": detail["detail"],
+                **({"metrics": detail["metrics"]} if detail.get("metrics") else {}),
             }
             for layer, detail in score.probe_details.items()
         },
