@@ -310,11 +310,27 @@
     },
     {
       "id": "compress-call-prefix-reuse",
-      "title": "压缩调用复用对话前缀（现在 0% 命中、57k token/次全价）",
+      "title": "压缩调用复用对话前缀（已实现，默认关；实测 99.7%、成本 −81%）",
+      "status": "done",
+      "priority": "P2",
+      "criteria": "量测（§11.71）：公共前缀 0 token；压缩的 100 条是对话窗口的后缀 ⇒ 后缀不算前缀；只换 system+tools、切片不动命中 8.5%、成本 +1%（白干）；切片改成对话窗口 + 指令后置离线 99.9%、真实调用 99.8%。**实现（PR #1521 → 320f9d2bc，2026-11-09 00:1x 部署）**：agent/chat_prefix.py（按会话登记本轮实发 system+tools+messages+model，8 会话/30 分钟）+ plugins/chat.py 真实调用前登记 + memory/summarizer.py 前缀模式（指令放末尾）+ memory_manager._chat_prefix_for（开关/新鲜/模型一致/装得下）+ llm_service 与 llm_monitor 透传 tools + registry 登记 CP_COMPRESS_REUSE_CHAT_PREFIX。端到端 --e2e：_execute_compression True、summarize prompt=87,795 hit=87,552 = 99.7%、tools=26、system 逐字一致。A/B：旧路径输出是对话续写，新路径是结构化摘要（两次都触 completion=500）。",
+      "next": "开关默认关 ⇒ 收益尚未生效；开启见 compress-prefix-enable。回滚 = CP_COMPRESS_REUSE_CHAT_PREFIX=0（默认值即回滚）。复现：python -X utf8 scripts/probe_compress_prefix_reuse.py [--live|--ab|--e2e]。"
+    },
+    {
+      "id": "compress-prefix-enable",
+      "title": "灰度打开 CP_COMPRESS_REUSE_CHAT_PREFIX（默认关，省的不生效）",
       "status": "open",
       "priority": "P2",
-      "criteria": "实测 2026-11-08：压缩调用 system=摘要指令、messages=该会话最近 100 条 ⇒ 与对话请求前缀不同源，命中 0/57,385（单次压缩成本≈一次普通对话）。触发已按会话（PR #1518），会话 80% 才压一次，频次降了但每次仍全价。**2026-11-08 23:2x 已量（§11.71）**：公共前缀 0 token（第 0 个 system 就不同、压缩不带 tools）；压缩的 100 条是对话窗口（预算保留 188 条）的**后缀** ⇒ 后缀不算前缀；只换 system+tools、切片不动（D1）命中仅 8.5%、成本 +1%（白干）；切片改成对话窗口 + 指令后置（D2）离线 99.9%、真实调用 87,552/87,701 = 99.8%、成本 −81%。",
-      "next": "【已量，等 Owner 选 D2】D2 = 压缩请求改用「与本轮 chat 逐字相同的 system+tools+消息窗口」+ 摘要指令放末尾：必须①新增开关默认关（如 CP_COMPRESS_REUSE_CHAT_PREFIX，同时进 settings registry）；②chat 侧记本轮实发前缀（跨 memory/chat 耦合点，只有落盘消息时最后一条会分歧）；③输入上限 = 窗口 − 输出 − margin；④摘要质量 A/B（同一会话两种输入各压一次）。**冷缓存时 D2 全价 122k ⇒ 比现状贵 85%**，所以必须紧跟那轮对话（后台线程 60s 内即可，或改回合末同步压）。D1（只换 system+tools、切片不动）不要做：净成本 +1%。复现：python -X utf8 scripts/probe_compress_prefix_reuse.py [--live]。"
+      "criteria": "PR #1521 已把「压缩复用对话前缀」落成生产代码但**默认关**：开着才省（实测 99.7% 命中、单次压缩成本 −81%）；关着逐字旧行为。已知边界：冷缓存（前缀>30 分钟）= 现状 1.85 倍，所以必须紧跟那轮对话；会话绑定分身且模型不同时不复用（自动回落）。",
+      "next": "建议先灰度一周：置 CP_COMPRESS_REUSE_CHAT_PREFIX=1 → 观察①压缩频率与摘要长度；②python -X utf8 scripts/probe_compress_prefix_reuse.py --e2e 的命中；③人工看 2~3 次摘要是否比旧路径（对话续写）更像摘要；无回归再决定是否设默认。另：摘要输出预算 500 token 触顶（旧路径也触顶）⇒ 要更长摘要需另案调 FIRST_TRY_TOKENS。"
+    },
+    {
+      "id": "summarize-usage-observability",
+      "title": "压缩（summarize）调用的 usage 恒 0 ⇒ token/命中不进监控与成本",
+      "status": "open",
+      "priority": "P3",
+      "criteria": "2026-11-09 做 --e2e 时发现：agent/llm_monitor 的 _patched_do_summarize 用 create_from_api_call(response_obj=...) 建记录，但 memory/llm_service._do_summarize 返回的是**文本**而不是响应对象 ⇒ usage_prompt_tokens / prompt_cache_hit_tokens / miss 恒 0（source=summarize、tools 倒是有了）。后果：压缩的 token 与缓存命中在「LLM 缓存命中」卡、成本统计、prometheus 的 llm_tokens_total 里都看不见（这正是当初 §11.67 只能用 --e2e 探针取数的原因）。",
+      "next": "二选一：①_do_summarize 把响应对象挂在 self（如 self._last_summarize_response）供钩子读取（改动最小，但共享状态要防并发）；②_do_summarize 增加一个可选的 on_response 回调参数（显式、无共享状态，但要同步 _do_chat/降级 lambda 三处口径）。修完要复核：概览卡/成本里压缩 token 是否出现、有没有把既有测试的 token 断言打红。"
     },
     {
       "id": "ui-vs-trigger-metric",
