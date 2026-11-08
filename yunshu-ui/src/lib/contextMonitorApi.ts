@@ -28,7 +28,13 @@ export interface RecentMessage {
 }
 
 export interface ContextStatus {
+  /** 分子 = 本会话最近 percentage_window_messages 条正文（与压缩触发同源） */
   current_tokens: number;
+  /** 会话「收+发」累计（仅供参考） */
+  session_total_tokens?: number;
+  percentage_semantics?: string;
+  percentage_note?: string;
+  percentage_window_messages?: number;
   token_limit: number;
   percentage: number;
   per_message_send_limit: number;

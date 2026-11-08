@@ -337,6 +337,30 @@ class TestPanelReadings:
         assert body["percentage"] is None, "分母未知 ⇒ 百分比必须是 None，不能是 0 或假数"
         assert body["status_level"] == "unknown"
 
+    def test_占用率与压缩触发同源_只数最近200条正文(self, panel_env):
+        """【2026-11-09】界面占用率必须等于压缩触发判据里的 counted：
+        最近 200 条、跳过工具结果。修前分子是**会话全量累计** ⇒ 超长会话会出现
+        「界面 90% 而触发未到」（方向安全，但不是同一个数）。
+        """
+        import sys
+
+        client, _yunshu, _cfg = panel_env
+        fake = sys.modules["app_server"]
+        # 前 50 条落在窗口外（5000 token），窗口内 199 条正文（4 token/条）+ 1 条 10k 的工具结果
+        old = [{"role": "user", "content": "x" * 100} for _ in range(50)]
+        win = [{"role": "user", "content": "y" * 4} for _ in range(199)]
+        win.append({"role": "tool", "content": "z" * 10000})
+        fake._session_mgr = _SessionMgrStub(old + win)
+
+        body = client.get("/api/context/status").get_json()["data"]
+        assert body["percentage_window_messages"] == 200
+        assert body["current_tokens"] == 199 * 4, "窗口外与工具结果都不该计入"
+        # session_total_tokens 仍是「收+发」累计（工具结果从来不计入 send/recv）
+        assert body["session_total_tokens"] == 50 * 100 + 199 * 4
+        assert body["percentage"] == round(199 * 4 / 131072 * 100, 1)
+        assert body["percentage_semantics"] == "compress_trigger_window"
+        assert "工具结果" in body["percentage_note"]
+
     def test_发送侧语义声明为只告警(self, panel_env):
         client, _, _ = panel_env
         # 【P1-front 第七批】成功载荷已装进统一信封的 data（视图改用 ok()）

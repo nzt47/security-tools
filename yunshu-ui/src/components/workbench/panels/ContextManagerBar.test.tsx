@@ -14,9 +14,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 const envMock = vi.hoisted(() => vi.fn())
+const postMock = vi.hoisted(() => vi.fn(async (): Promise<Record<string, unknown>> => ({ ok: true })))
 vi.mock('@/api/envelope', () => ({
   getEnvelope: envMock,
-  postEnvelope: vi.fn(async () => ({ ok: true })),
+  postEnvelope: postMock,
 }))
 
 const hubGetMock = vi.hoisted(() => vi.fn())
@@ -32,7 +33,13 @@ beforeEach(() => {
   // 否则第 2 个用例会带着"已展开"启动，expand() 反而把它折叠回去。
   localStorage.clear()
   envMock.mockResolvedValue({
-    current_tokens: 12000,
+    // 【2026-11-09】current_tokens 的语义改成「最近 200 条正文」（与压缩触发同源），
+    // 会话累计单列 session_total_tokens。
+    current_tokens: 800,
+    session_total_tokens: 12000,
+    percentage_note: '分子 = 本会话最近 200 条正文 token（与压缩触发同一口径；工具结果不计入）；会话累计见 session_total_tokens。',
+    percentage_window_messages: 200,
+    percentage_semantics: 'compress_trigger_window',
     token_limit: 131072,
     percentage: 9.2,
     per_message_send_limit: 131072,
@@ -132,6 +139,29 @@ describe('ContextManagerBar · DSH 三组读数', () => {
     expect(screen.queryByText('7 次')).toBeNull()
     // 9% 折叠条与展开网格各出现一次 ⇒ 用 getAllByText
     expect(screen.getAllByText('9%').length).toBeGreaterThan(0)
+  })
+
+  it('占用率与压缩触发同源：口径说明 + 会话累计同屏', async () => {
+    render(<ContextManagerBar />)
+    expand()
+    await screen.findByText('会话统计')
+    // 后端给的 percentage_note 原样上屏（不前端另造一句）
+    expect(screen.getByText(/与压缩触发同一口径/)).toBeTruthy()
+    // 会话累计单列，避免把「累计」误读成「这一窗用了多少」
+    expect(screen.getByText(/会话累计/)).toBeTruthy()
+    expect(screen.getByText('12,000')).toBeTruthy()
+  })
+
+  it('手动压缩回报「这次走的是哪条路」：复用前缀 / 独立前缀', async () => {
+    postMock.mockResolvedValueOnce({
+      ok: true, summary_version: 95, messages_compressed: 100,
+      used_prefix: true, prefix_messages: 188,
+    })
+    render(<ContextManagerBar />)
+    expand()
+    await screen.findByText('会话统计')
+    fireEvent.click(screen.getByRole('button', { name: /手动压缩/ }))
+    expect(await screen.findByText(/复用对话前缀（188 条同前缀消息，命中价）/)).toBeTruthy()
   })
 
   it('机制说明：开关已移除，但说明正文常驻', async () => {

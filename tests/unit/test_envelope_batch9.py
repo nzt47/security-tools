@@ -60,7 +60,9 @@ class _MemoryStub:
         # 【2026-10-14 修 500】手动压缩的真入口：只回报可核实字段（无 freed_tokens，
         # 因为压缩不删消息、释放量不可核实）。
         return {"ok": True, "summary_version": 9, "version_before": 8,
-                "messages_compressed": 12}
+                "messages_compressed": 12,
+                # 【2026-11-09】压缩路径可核实：复用前缀 / 独立前缀
+                "used_prefix": True, "prefix_messages": 7}
 
 
 class _YunshuStub:
@@ -124,7 +126,9 @@ class Test上下文写端点载荷:
         修复后改报可核实字段；本条随之更新（契约变更必须可见，不能只改代码）。"""
         data = _env_post(batch9, "/api/context/compress")
         assert data == {"ok": True, "summary_version": 9, "version_before": 8,
-                        "messages_compressed": 12}, repr(data)[:200]
+                        "messages_compressed": 12,
+                        # 【2026-11-09】新增两个可核实字段（面板显示「这次走哪条路」）
+                        "used_prefix": True, "prefix_messages": 7}, repr(data)[:200]
 
 
 def _own_returns(fn: ast.FunctionDef):

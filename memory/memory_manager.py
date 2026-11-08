@@ -445,6 +445,10 @@ class MemoryManager:
             #   实测命中 99.8%（hit=87,552/87,701），单次压缩成本 −81%；冷缓存会贵 1.85 倍，
             #   所以只在 MAX_AGE_SECONDS 内复用，超时就回落旧路径。见 docs/handoff §11.71。
             _prefix = self._chat_prefix_for(sid)
+            # 把「这一次用的是哪条路径」记下来供手动压缩回报（面板要能看见，不靠猜日志）
+            self._last_compress_used_prefix = bool(_prefix)
+            self._last_compress_prefix_messages = (
+                len(_prefix.get("messages") or []) if _prefix else 0)
             logger.warning("├─ [步骤3] 调用 LLM 压缩消息（%s）",
                            "复用对话前缀" if _prefix else "独立摘要前缀")
             if _prefix:
@@ -1017,6 +1021,10 @@ class MemoryManager:
             "summary_version": int(version_after),
             "version_before": int(version_before),
             "messages_compressed": len(messages),
+            # 【2026-11-09】这次压缩用的是哪条路径（可核实，不是猜）：
+            #   used_prefix=True ⇒ 压缩请求复用了本轮对话前缀（命中价）；False ⇒ 独立前缀（全价）。
+            "used_prefix": bool(getattr(self, "_last_compress_used_prefix", False)),
+            "prefix_messages": int(getattr(self, "_last_compress_prefix_messages", 0) or 0),
         }
 
     def save_log(self, event_type: str, data: dict):

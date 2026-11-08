@@ -219,7 +219,10 @@ class TestManualCompressEntry:
                             lambda: (called.append(1), True)[1])
         got = manager.compress_now()
         assert called == [1], "必须走 _execute_compression（真正的压缩），而不是摘要器薄封装"
-        assert set(got) == {"ok", "summary_version", "version_before", "messages_compressed"}
+        # 【2026-11-09 契约变更（可见）】新增 used_prefix / prefix_messages：
+        #   面板要能看见「这次压缩走的是复用前缀还是独立前缀」，不靠翻日志。
+        assert set(got) == {"ok", "summary_version", "version_before", "messages_compressed",
+                            "used_prefix", "prefix_messages"}
         assert got["ok"] is True
 
     def test_compress_now_不谎报释放量(self, manager, monkeypatch):
