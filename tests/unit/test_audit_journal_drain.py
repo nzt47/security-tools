@@ -198,7 +198,12 @@ def test_drain_abandons_unwritable_seq_with_error_and_keeps_record(tmp_path, mon
                 if out:
                     _write_dropping_one(out)
 
-        errors = [r for r in caplog.records if r.levelno >= logging.ERROR]
+        # 【2026-11-08】只认 audit.chain 自己的记录：caplog.records 收的是**全部** logger
+        # （at_level(..., logger=...) 只改那一级的过滤阈值），CI 共享 worker 上
+        # memory_manager 的后台告警（"连续第 N 次空摘要"）会混进来 ⇒ 断言随机红
+        # （实测卡了 #1516 的 shard3 共 57 分钟）。
+        errors = [r for r in caplog.records
+                  if r.levelno >= logging.ERROR and r.name.startswith("agent.audit")]
         assert errors, "放弃重试必须记 ERROR 告警（否则就是静默丢弃）"
         assert "seq=1" in errors[0].getMessage()
         stats = chain.stats(verify=False)
@@ -230,7 +235,9 @@ def test_drain_does_not_abandon_when_db_unavailable(tmp_path, monkeypatch, caplo
                 chain._drain_journal()
         assert chain.stats(verify=False)["journal_abandoned_count"] == 0, \
             "DB 不可用被误判为记录写不进库（瞬时状态被当成永久失败）"
-        assert not [r for r in caplog.records if r.levelno >= logging.ERROR]
+        # 同上：只认 audit.chain 的 ERROR（别的 logger 的后台告警不算本次失败）
+        assert not [r for r in caplog.records
+                    if r.levelno >= logging.ERROR and r.name.startswith("agent.audit")]
     finally:
         chain.close()
 
