@@ -434,6 +434,9 @@ def api_context_compress():
             "summary_version": result.get("summary_version"),
             "version_before": result.get("version_before"),
             "messages_compressed": result.get("messages_compressed"),
+            # 【2026-11-09】压缩路径可核实：True = 复用了本轮对话前缀（CP_COMPRESS_REUSE_CHAT_PREFIX 打开且命中条件满足）
+            "used_prefix": bool(result.get("used_prefix")),
+            "prefix_messages": int(result.get("prefix_messages") or 0),
         })
     except Exception as e:
         logger.warning(f"手动压缩失败: {e}")

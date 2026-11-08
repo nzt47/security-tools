@@ -92,6 +92,9 @@ interface CompressResp {
   summary_version?: number
   version_before?: number
   messages_compressed?: number
+  /** 【2026-11-09】这次压缩用的路径：true = 复用了本轮对话前缀（命中价）；false = 独立前缀（全价） */
+  used_prefix?: boolean
+  prefix_messages?: number
   error?: string
 }
 
@@ -174,7 +177,13 @@ export function ContextManagerBar() {
       // 【2026-10-14】后端不再回报 freed_tokens（压缩不删消息，释放量不可核实）；
       // 改报「摘要版本 + 并入消息数」—— 面板只展示能被核实的东西。
       const d = await postEnvelope<CompressResp>(CONTEXT_COMPRESS)
-      if (d.ok) flashMsg(`已压缩：摘要版本 v${d.summary_version ?? '?'}（并入 ${d.messages_compressed ?? 0} 条消息）`)
+      if (d.ok) {
+        // 路径可核实：开了复用就直接说，别让人去翻日志（前缀 = 命中价；独立 = 全价）
+        const path = d.used_prefix
+          ? `复用对话前缀（${d.prefix_messages ?? 0} 条同前缀消息，命中价）`
+          : '独立前缀（全价；开关关 / 前缀过期 / 模型不一致 / 装不下窗口）'
+        flashMsg(`已压缩：摘要版本 v${d.summary_version ?? '?'}（并入 ${d.messages_compressed ?? 0} 条消息；${path}）`, 6000)
+      }
       else if (d.error) flashMsg(`压缩失败：${d.error}`, 3500)
       else flashMsg('本轮没有可压缩的消息（摘要未变更）')
     } catch (e) {

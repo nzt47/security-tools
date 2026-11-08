@@ -202,6 +202,26 @@ class TestMemoryManagerReuse:
         assert manager._execute_compression("A") is True
         assert manager._summarizer.prefixes[-1] is None
 
+    def test_compress_now_回报是否复用前缀(self, manager, monkeypatch):
+        """面板要能看见「这次压缩走的是哪条路」，不靠翻日志。"""
+        monkeypatch.setenv(chat_prefix.ENV_FLAG, "1")
+        chat_prefix.record("A", "SYS", None, [{"role": "user", "content": "对话原文"}],
+                           model=manager._llm_service.model)
+        manager._message_window.append(_msg("A"))
+        manager._pending_session = "A"          # compress_now 走 _execute_compression(None)
+        out = manager.compress_now()
+        assert out["ok"] is True
+        assert out["used_prefix"] is True
+        assert out["prefix_messages"] == 1
+
+    def test_compress_now_关着时回报独立前缀(self, manager):
+        manager._message_window.append(_msg("A"))
+        manager._pending_session = "A"
+        out = manager.compress_now()
+        assert out["ok"] is True
+        assert out["used_prefix"] is False
+        assert out["prefix_messages"] == 0
+
     def test_模型不一致时不复用(self, manager, monkeypatch):
         """缓存键含模型：分身会话的模型可能与母体不同 ⇒ 复用只会白付 1.85 倍"""
         monkeypatch.setenv(chat_prefix.ENV_FLAG, "1")

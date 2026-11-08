@@ -14,9 +14,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 const envMock = vi.hoisted(() => vi.fn())
+const postMock = vi.hoisted(() => vi.fn(async () => ({ ok: true })))
 vi.mock('@/api/envelope', () => ({
   getEnvelope: envMock,
-  postEnvelope: vi.fn(async () => ({ ok: true })),
+  postEnvelope: postMock,
 }))
 
 const hubGetMock = vi.hoisted(() => vi.fn())
@@ -149,6 +150,18 @@ describe('ContextManagerBar · DSH 三组读数', () => {
     // 会话累计单列，避免把「累计」误读成「这一窗用了多少」
     expect(screen.getByText(/会话累计/)).toBeTruthy()
     expect(screen.getByText('12,000')).toBeTruthy()
+  })
+
+  it('手动压缩回报「这次走的是哪条路」：复用前缀 / 独立前缀', async () => {
+    postMock.mockResolvedValueOnce({
+      ok: true, summary_version: 95, messages_compressed: 100,
+      used_prefix: true, prefix_messages: 188,
+    })
+    render(<ContextManagerBar />)
+    expand()
+    await screen.findByText('会话统计')
+    fireEvent.click(screen.getByRole('button', { name: /手动压缩/ }))
+    expect(await screen.findByText(/复用对话前缀（188 条同前缀消息，命中价）/)).toBeTruthy()
   })
 
   it('机制说明：开关已移除，但说明正文常驻', async () => {
