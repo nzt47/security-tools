@@ -1443,6 +1443,26 @@ _MODE_LABELS = {"plain": "轻量", "retrieval": "检索",
                 "full": "完整", "full_stream": "完整·流式"}
 
 
+#: 轻量档工具减法开关（**默认关** = 各档共用同一份 tools 段，换档不再重算前缀）
+#: 置 1/true/yes/on ⇒ 恢复 2026-10-20 的 plain 减法（本线 boost 子集）。
+_WORKBENCH_PLAIN_SUBSET_ENV = "CP_WORKBENCH_PLAIN_TOOL_SUBSET"
+_TRUTHY_ENV_VALUES = ("1", "true", "yes", "on")
+
+
+def _plain_subset_enabled() -> bool:
+    """是否启用「轻量档工具减法」（默认否）。
+
+    【为什么默认关】2026-11-08 实测：plain(17 个工具) → 检索(26 个) 那一次前缀命中
+    只有 12.8%（miss≈6,946 = 整段 tools 段作废）；统一工具段的代价是 plain 每轮多带
+    9 个工具（≈3.5k token，按命中价 10% 计）。自动档按问句长短来回切档 ⇒ 每次切都
+    付一次 tools 段全价，不划算。
+    """
+    raw = os.environ.get(_WORKBENCH_PLAIN_SUBSET_ENV)
+    if raw is None:
+        return False
+    return str(raw).strip().lower() in _TRUTHY_ENV_VALUES
+
+
 def _plain_tool_subset(whitelist, boost):
     """轻量档工具减法：取「本线全量 ∩ 本线 boost（核心链路）」。
 
@@ -2234,14 +2254,16 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
             except Exception as _se:  # noqa: BLE001
                 logger.debug("[workbench][SSE] 智能工具选择不可用: %s", _se)
 
-        # ── 轻量档工具集减法（2026-10-20）──────────────────────────────
-        # plain 是「快速对话」档（默认档）：此前与检索/完整档一样下发本线全量
-        # （engineering 实测 **26 个 / 6,889 token**，每轮都算进窗口）。本档收敛到
-        # 本线的 `boost`（档案自己声明的核心链路）子集：**17 个 / 3,799 token**（−45%）。
-        # 被减掉的 9 个是支撑层工具（apply_patch / arch_diagram / compress / decompress /
-        # fan_out / git / run_lint / run_sandbox / run_tests）—— 需要它们时切「检索」或
-        # 「完整」档，那两档保持全量。减法失败一律保持原样（宁可多下发，不静默剥夺能力）。
-        if mode == "plain" and _line_assembled and _whitelist:
+        # ── 轻量档工具集减法（2026-10-20；**2026-11-08 默认关闭**）──────────
+        # 旧行为：plain 收敛到本线 boost 子集（engineering 实测 17 个 / 3,799 token，
+        # 比全量 26 个 / 6,889 token 少 45%）。
+        # 【为什么默认关掉】2026-11-08 实测：plain(17) → 检索(26) 那一次命中只有 12.8%
+        #   （miss≈6,946 —— 整段 tools 段作废），而"统一工具段"的代价只是 plain 每轮
+        #   多带 9 个工具（≈3.5k token，且按命中价 10% 计）。自动档会按问句长短在两个
+        #   档位间来回切 ⇒ 每次都付一次 tools 段全价，明显不划算。
+        # 【回滚】CP_WORKBENCH_PLAIN_TOOL_SUBSET=1 ⇒ 恢复减法（逐字回到 2026-10-20 行为）。
+        # 减法失败一律保持原样（宁可多下发，不静默剥夺能力）。
+        if mode == "plain" and _plain_subset_enabled() and _line_assembled and _whitelist:
             try:
                 from agent.lines.integration import resolve_line_id as _resolve_lid
                 from agent.lines.registry import get_line_registry as _get_lines

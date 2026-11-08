@@ -2922,6 +2922,15 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        owner="agent/skills_mgmt/vector_adapter.py",
        validator=_range_validator(0.0, 1.0, note="代码把取值夹到 [0,1]")),
 
+    # · 工作台档位一致性卡：轻量档是否再做工具减法（默认关 ⇒ 各档共用同一份 tools 段）
+    _a("CP_WORKBENCH_PLAIN_TOOL_SUBSET", CAT_ORCHESTRATION, False,
+       "工作台「轻量」档是否收敛到本线 boost 子集（默认关 = 各档共用同一份 tools 段，"
+       "换档不再重算前缀；置 1/true/yes/on 恢复 2026-10-20 的减法）。"
+       "实测依据：plain(17)→检索(26) 那一次命中 12.8%（miss≈6,946），"
+       "而统一工具段只让 plain 每轮多带 9 个工具（≈3.5k token，按命中价计）"
+       " [2026-11-08；plugins/chat.py::_plain_subset_enabled]",
+       owner="plugins/chat.py"),
+
     # · F3-1 卡：前缀缓存的易变尾簇搬家（每次调用都读 ⇒ 热生效）
     _a("YUNSHU_PROMPT_VOLATILE_TAIL", CAT_ORCHESTRATION, True,
        "是否把易变尾簇从 system message 搬到请求最后一条消息（默认开 = 新顺序，把可缓存"
