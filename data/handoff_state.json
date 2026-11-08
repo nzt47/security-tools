@@ -1,16 +1,16 @@
 {
-  "generated_at": "2026-11-08T02:16:31+08:00",
+  "generated_at": "2026-11-08T10:53:34+08:00",
   "repo": {
     "branch": "master",
-    "head": "f281592f8",
-    "origin_master": "f281592f8",
-    "tracked_dirty_lines": 3
+    "head": "ddb01a559",
+    "origin_master": "ddb01a559",
+    "tracked_dirty_lines": 5
   },
   "service": {
-    "backend": "f281592f8",
-    "frontend": "f281592f8",
-    "bundle": "index-CdBiMgi3.js",
-    "pid": 53324
+    "backend": "ddb01a559",
+    "frontend": "ddb01a559",
+    "bundle": "index-B8Z1EjI8.js",
+    "pid": 57824
   },
   "skills": {
     "file_track": 51,
@@ -35,7 +35,7 @@
       "software_install"
     ]
   },
-  "audit_rows": 83105,
+  "audit_rows": 83204,
   "selfcheck": {
     "dual_track": {
       "ok": true,
@@ -51,7 +51,7 @@
     },
     "audit_chain": {
       "ok": true,
-      "rows": 83105,
+      "rows": 83204,
       "breaks": 0
     },
     "layer_coverage": {
@@ -62,24 +62,7 @@
     }
   },
   "next": {
-    "total": 29,
-    "open": [
-      {
-        "id": "chart-visualization-missing-assets",
-        "title": "chart-visualization 只入了 SKILL/CARD：scripts/ 与 references/ 未随源导入",
-        "status": "open",
-        "priority": "P3",
-        "criteria": "来源草稿 data/ingestion/drafts/ing_a27df08b1b47f72f（scripts: frame-template.html/helper.js/server.cjs/start-server.sh/stop-server.sh）与 ing_bc4d42fa838ebbd1（scripts/generate.js）里都没有 26 份 references/*.md；因此正文第 3 步 node ./scripts/generate.js 现在必失败，技能正文已如实标注",
-        "next": "二选一：① 从 antvis/chart-visualization-skills 补齐 scripts/ + references/ 再入库；② 保持现状（只当选择图表的提示词资产），别再宣称能出图"
-      },
-      {
-        "id": "demo-capability-tools-local",
-        "title": "演示工具 api_multi_search_engine / byted_seedance_video_generate 保持本机运行期（不入仓）",
-        "status": "open",
-        "priority": "P3",
-        "criteria": "两者的落地位置是 agent/tools/custom/*.py（.gitignore 第 181 行明确其=运行时状态，与 data/dynamic_tools.json 同类）+ data/tool_definitions/*.yaml + tests/unit/test_*.py；本机 98 条工具里含这两条（seedance 为 enabled: false）",
-        "next": "要入仓必须一次做齐：tool_index / 清单+盘点表 / BM25 半饱和点重标定 / 路由基线 / 路由冲突 τ 五处连锁，且 byted_seedance 的 BYTEPLUS_* 读取点要先进 agent/settings/registry.py（否则「开关零缺口」红）。未定前别只提交 YAML"
-      }
-    ]
+    "total": 36,
+    "open": []
   }
 }
