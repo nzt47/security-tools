@@ -345,7 +345,7 @@
       "title": "摘要仍全局一份（按会话压缩、并进同一份 summary.txt）",
       "status": "open",
       "priority": "P2",
-      "criteria": "PR #1518 把压缩输入切成触发会话，但 _execute_compression 仍把结果 merge 进同一份全局摘要 ⇒ 会话 A 的摘要会出现在会话 B 的上下文里（既有行为）。**2026-11-09 已落存储层（d5e2cc5a5，零行为变化）**：storage.save_summary/load_summary/clear_summary 支持 session_id=""，非空落 summary_<sha256(sid)[:16]>.txt（sha256 断链），缺文件返回 None。现状读侧证据：MemoryManager.get_context(token_limit) 没有 session 参数，assembler/orchestrator 都这么调 ⇒ 任何会话拿的是同一份摘要；版本号也全局一个。",
+      "criteria": "PR #1518 把压缩输入切成触发会话，但 _execute_compression 仍把结果 merge 进同一份全局摘要 ⇒ 会话 A 的摘要会出现在会话 B 的上下文里（既有行为）。**2026-11-09 已落存储层（d5e2cc5a5，零行为变化）**：storage.save_summary/load_summary/clear_summary 支持 session_id=\"\"，非空落 summary_<sha256(sid)[:16]>.txt（sha256 断链），缺文件返回 None。现状读侧证据：MemoryManager.get_context(token_limit) 没有 session 参数，assembler/orchestrator 都这么调 ⇒ 任何会话拿的是同一份摘要；版本号也全局一个。",
       "next": "等 Owner 拍两件事：①迁移（新会话第一次压缩用全局摘要作基底 vs 从空开始）；②范围（只工作台分家 vs orchestrator/assembler 一起改）。选定后按 §11.74 C 的清单逐点透传：memory_manager（load_summary(sid)/_load_summary_cached(sid)/get_context(...,session_id)/_execute_compression 读写分家/面板版本按会话）+ agent/context/assembler.py + agent/orchestrator/prompt_builder.py + orchestrator.py + plugins/memory.py，外加 CP_SESSION_SUMMARY_SCOPED（默认关）+ 用例；关 = 逐字旧行为。"
     },
     {

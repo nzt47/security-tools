@@ -188,13 +188,19 @@ NEXT_PATH = ROOT / "data" / "handoff_next.json"
 
 
 def _next_actions() -> Dict[str, Any]:
+    """读下一步清单。
+
+    【为什么坏 JSON 要**响亮**报错】此前任何解析失败都返回 {} ⇒ 卡片显示「下一步：（无）」，
+    读起来像「活都干完了」，实际是文件坏了（2026-11-09 实测：一条没转义的引号让 6 条 open
+    从卡上消失）。这里把错误原样带上，交给 _render_next 显式上屏。
+    """
     try:
         doc = json.loads(NEXT_PATH.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return {}
+    except (OSError, ValueError) as e:
+        return {"error": "%s: %s" % (type(e).__name__, e)}
     items = doc.get("items") if isinstance(doc, dict) else None
     if not isinstance(items, list):
-        return {}
+        return {"error": "items 不是列表（文件结构不对）"}
     open_items = [i for i in items if isinstance(i, dict)
                   and str(i.get("status") or "open") == "open"]
     return {"total": len(items), "open": open_items}
@@ -246,6 +252,9 @@ def _render_selfcheck(sc: Dict[str, Any]) -> str:
 
 
 def _render_next(nxt: Dict[str, Any]) -> str:
+    # 坏文件必须显式上屏：显示「（无）」会被读成「没有未完成项」
+    if nxt.get("error"):
+        return "⚠ handoff_next.json 解析失败：%s（下一步不可知）" % nxt["error"]
     open_items = nxt.get("open") or []
     if not open_items:
         return "（无）"
