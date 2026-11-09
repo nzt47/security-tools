@@ -300,7 +300,9 @@ class TestOrchestratorNoLongerReJudgesWithTheSameThreshold:
         class _Svc:
             # 编排层自 2026-10-28 起走 service 门面（带「无文件轨 → 主轨回退」兜底），
             # 假 svc 必须镜像真实 SkillsMgmtService 的这层入口，否则测的是不存在的路径。
-            def load_skill_instruction(self, skill_id):
+            def load_skill_instruction(self, skill_id, source="loader"):
+                # 【2026-11-09】契约变更：语义层按 `source="semantic"` 调（台账分源），
+                # 假 svc 必须镜像真实入口签名，否则全部降级成"命中失败"。
                 return ld.load_instruction(skill_id)
 
         svc = _Svc()

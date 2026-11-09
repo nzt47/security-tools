@@ -529,7 +529,9 @@ class TestCasesVersionSelection:
         assert "决策层通过 27/50" in out
         # 【2026-11-05】0.0465 -> 0.0577：新增 software_probe / software_install 后检索分差分布变了
         # （判据不变：50 个候选 τ 里 F1 最大；27/50 的通过数没变，只标定值跟着索引变）
-        assert "τ 建议   : 0.0577" in out
+        # 【2026-11-09】0.0577 → 0.0571：新增 skill_script_run 后索引 93→94 篇 ⇒ 检索分差分布变化
+        # （决策层通过数仍 27/50，未变；τ 是派生值，随索引重标定）
+        assert "τ 建议   : 0.0571" in out
 
 
 class TestEvalRunsV2:
