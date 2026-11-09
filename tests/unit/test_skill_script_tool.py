@@ -217,9 +217,24 @@ def test_yaml_matches_registered_description_and_schema():
     assert doc["effect"] == "execute" and doc["risk"] == "high"
 
 
-def test_register_all_keeps_tool_registered():
-    from agent import tools as t
-    skill_tools.register_all(None)
-    entry = t._registry.get(skill_tools.TOOL_NAME)
-    assert entry is not None, "导入期注册必须生效（或 register_all 需响亮报警）"
-    assert entry["description"] == _registered_literal()["description"]
+def test_import_registers_tool_in_a_fresh_interpreter():
+    """注册发生在**导入期**（模块级 @_tools.register）—— 必须用干净进程验证。
+
+    【为什么不能用本进程的注册表】全量 `pytest tests/unit` 里有测试会清空/重建
+    工具注册表（失败基线闸实测：本文件在那种顺序下拿到 None）。本进程断言等于
+    测"别人有没有清表"，不是测本模块的注册契约；干净子进程才是那条契约本身。
+    """
+    import subprocess
+    import sys
+
+    code = (
+        "from agent import tools as t\n"
+        "import agent.tools.skill_tools as m\n"
+        "e = t._registry.get('skill_script_run')\n"
+        "print('RESULT', e is not None and e['description'].startswith('在沙箱里执行某个技能的 L3 脚本'))\n"
+    )
+    proc = subprocess.run([sys.executable, "-c", code], capture_output=True,
+                          text=True, timeout=180)
+    lines = [ln for ln in (proc.stdout or "").splitlines() if ln.startswith("RESULT")]
+    assert lines, f"子进程没有输出结果行（stderr={proc.stderr[-500:]!r}）"
+    assert lines[-1].endswith("True"), "导入期注册未生效"
