@@ -34,13 +34,14 @@ class _FakeStorage:
         self._summary = (summary, version) if summary is not None else None
         self._messages = messages if messages is not None else [{"role": "user", "content": "x"}]
 
-    def load_summary(self):
+    def load_summary(self, session_id=""):
+        # 【2026-11-09 契约变更】摘要存储支持按会话（空 = 全局）；假件同步签名
         return self._summary
 
     def load_recent_messages(self, limit=100):
         return self._messages
 
-    def save_summary(self, text, version):
+    def save_summary(self, text, version, session_id=""):
         self.saved.append((text, version))
 
 

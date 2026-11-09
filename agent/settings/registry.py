@@ -2931,6 +2931,15 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        " [2026-11-08；plugins/chat.py::_plain_subset_enabled]",
        owner="plugins/chat.py"),
 
+    # · 摘要按会话分家（默认关 = 全仓一份 summary.txt；见 docs/handoff §11.74）
+    _a("CP_SESSION_SUMMARY_SCOPED", CAT_ORCHESTRATION, False,
+       "摘要是否按会话分家：默认关 = 全仓一份 summary.txt（逐字旧行为）；置 1/true/yes/on ⇒ "
+       "压缩落 summary_<sha256(sid)[:16]>.txt，get_context/load_summary 缺省读**当前会话**。"
+       "首压迁移：该会话没有自己的摘要时以全局摘要作基底（不丢历史要点）。"
+       "热生效；回滚 = 置 0（已分的会话文件保留、不读不写）"
+       " [2026-11-09；memory/memory_manager.py::_session_summary_scoped]",
+       owner="memory/memory_manager.py"),
+
     # · 压缩复用对话前缀（默认关；实测命中 99.8%、单次压缩成本 −81%，见 docs/handoff §11.71）
     _a("CP_COMPRESS_REUSE_CHAT_PREFIX", CAT_ORCHESTRATION, False,
        "压缩（摘要）调用是否复用「本轮对话」的前缀缓存：默认关 = 逐字旧路径"

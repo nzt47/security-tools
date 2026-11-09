@@ -281,11 +281,20 @@ def api_context_status():
 
     # 【2026-10-14 对齐 DSH】「当前窗口的压缩次数」= 本会话基线之上的增量。
     # 面板此前显示的是全局累计版本号（换会话不归零、与实际窗口脱节）。
+    # 【2026-11-09】摘要按会话分家后，版本号本身就是**该会话**的 ⇒ 基线退化为 0，
+    #   再减基线会把刚压的那次也减掉。
     try:
-        compress_rounds_window = max(0, int(compress_rounds)
-                                     - int(_compress_base(session_id, compress_rounds)))
-    except Exception:  # noqa: BLE001 基线不可用 ⇒ 如实退回累计值，不伪造 0
+        _scoped = bool(_Yunshu._memory.session_summary_scoped())
+    except Exception:  # noqa: BLE001 取不到就按旧口径
+        _scoped = False
+    if _scoped:
         compress_rounds_window = int(compress_rounds)
+    else:
+        try:
+            compress_rounds_window = max(0, int(compress_rounds)
+                                         - int(_compress_base(session_id, compress_rounds)))
+        except Exception:  # noqa: BLE001 基线不可用 ⇒ 如实退回累计值，不伪造 0
+            compress_rounds_window = int(compress_rounds)
 
     # ── 档位：**按占用**判定；"摘要退化"作为独立成因单列 ──
     # 【为什么拆开】原先 `compress_rounds >= 5` 直接判 critical ⇒ 占用 22% 也常年报红，

@@ -36,6 +36,17 @@ COMPRESS_INPUT_WINDOW = 100
 #: 前缀 + 输出预算(RETRY_TOKENS) + 本余量 > 窗口 ⇒ **不**复用，回落旧路径（宁可全价，不可 400）。
 COMPRESS_PREFIX_MARGIN_TOKENS = 1024
 
+#: 摘要按会话分家的开关（默认关 = 逐字旧行为：全仓一份 summary.txt）。
+#: 【为什么是开关】分家影响读侧（get_context / load_summary 的缺省会话）与写侧（压缩落盘），
+#:   一开就得整条链一致；默认关让"回滚"只是一个布尔，且旧数据完全不动。
+ENV_SESSION_SUMMARY_SCOPED = "CP_SESSION_SUMMARY_SCOPED"
+_TRUE_VALUES = ("1", "true", "yes", "on")
+
+
+def _session_summary_scoped() -> bool:
+    """摘要是否按会话分家（缺省/拼错一律关 ⇒ 旧行为）"""
+    return str(os.environ.get(ENV_SESSION_SUMMARY_SCOPED, "")).strip().lower() in _TRUE_VALUES
+
 
 def log_event_loop_status() -> str:
     """检查并记录事件循环状态"""
@@ -392,7 +403,9 @@ class MemoryManager:
         # 每请求放大为多次文件 IO。现缓存最近读取结果，写入侧
         # （save_summary / clear_summary）失效。单写者单读者，缓存赋值
         # 原子，最坏情况读到一帧旧值（下一请求即刷新），不引入锁。
-        self._summary_cache: Optional[tuple] = None
+        #: {摘要会话键: (summary, version)}；键 "" = 全局摘要（旧口径）。
+        #: 分家后每个会话一份缓存，读侧按会话命中，互不串味。
+        self._summary_cache: dict = {}
         logger.info("MemoryManager 初始化完成")
 
     def _execute_compression(self, session_id: Optional[str] = None) -> bool:
@@ -409,6 +422,8 @@ class MemoryManager:
         """
         sid = (str(getattr(self, "_pending_session", "") or "")
                if session_id is None else str(session_id or ""))
+        #: 摘要落盘的会话键：开关关 = ""（全局）；开 = 该会话（空串仍是全局）。
+        _ssid = self._summary_sid(sid)
         total_start = time.time()
         try:
             logger.warning("┌─────────────────────────────────────────────")
@@ -419,8 +434,15 @@ class MemoryManager:
             logger.warning("└─────────────────────────────────────────────")
 
             step_start = time.time()
-            logger.warning("├─ [步骤1] 加载旧摘要")
-            old_summary = self._storage.load_summary()
+            logger.warning("├─ [步骤1] 加载旧摘要（%s）",
+                           ("会话 " + _ssid) if _ssid else "全局")
+            old_summary = self._storage.load_summary(_ssid)
+            if old_summary is None and _ssid:
+                # 【迁移 1①·2026-11-09】该会话第一次压缩：用**全局摘要**作基底（带着老包袱分家），
+                #   否则新会话的摘要从空开始、把历史要点全丢。之后只写自己的文件，互不串味。
+                old_summary = self._storage.load_summary("")
+                if old_summary:
+                    logger.warning("│   ├─ 迁移：以全局摘要 v%d 作基底", old_summary[1])
             old_version = old_summary[1] if old_summary else 0
             step_elapsed = (time.time() - step_start) * 1000
             logger.warning("│   └─ 旧摘要版本: %d, 耗时: %.2fms", old_version, step_elapsed)
@@ -494,12 +516,15 @@ class MemoryManager:
             logger.warning("│   └─ 合并/创建完成, 耗时: %.2fms", step_elapsed)
 
             step_start = time.time()
-            logger.warning("├─ [步骤5] 保存摘要 (版本 %d)", new_version)
-            self._storage.save_summary(summary, new_version)
+            logger.warning("├─ [步骤5] 保存摘要 (版本 %d，%s)", new_version,
+                           ("会话 " + _ssid) if _ssid else "全局")
+            self._storage.save_summary(summary, new_version, session_id=_ssid)
             self._empty_compress_streak = 0
             # [2026-08-15 并发修复] 写入后同步刷新摘要缓存，避免请求线程
             # 读到一帧旧摘要（compress_rounds / get_context 使用）
-            self._summary_cache = (summary, new_version)
+            if not isinstance(self._summary_cache, dict):
+                self._summary_cache = {}
+            self._summary_cache[_ssid] = (summary, new_version)
             step_elapsed = (time.time() - step_start) * 1000
             logger.warning("│   └─ ✓ 摘要保存成功, 耗时: %.2fms", step_elapsed)
 
@@ -884,7 +909,7 @@ class MemoryManager:
         # 归一化到 1-10
         return max(1, min(10, score))
 
-    def get_context(self, token_limit: int) -> list[dict]:
+    def get_context(self, token_limit: int, session_id: Optional[str] = None) -> list[dict]:
         """获取压缩后的上下文
 
         如果标记了需要压缩，先尝试同步压缩（当没有后台线程时）。
@@ -892,9 +917,14 @@ class MemoryManager:
 
         Args:
             token_limit: 上下文窗口 Token 上限
+            session_id: 摘要按会话分家时读哪个会话的摘要。None = 当前会话（分家时）/
+                全局（未分家时），与 load_summary 同一套解析。
 
         Returns:
             消息列表 [{"role": "...", "content": "..."}]，无内容时返回空列表
+
+        【已知边界】这里的 recent_messages 仍取**全局**内存窗口（最近 20 条，跨会话）。
+        本轮只收口「摘要」这一半；消息窗口的会话归属是另一条（见 data/handoff_next.json）。
         """
         # [P0 修复] 压缩需求只通知后台压缩器，绝不在请求线程内同步执行 LLM 压缩。
         # Why: 同步压缩含 2 次 LLM 外呼（compress + merge_summaries），会阻塞请求线程，
@@ -918,7 +948,8 @@ class MemoryManager:
         logger.info("│ 🪟 [上下文来源] 内存滑动窗口大小: %d 条 (maxlen=%d)",
                     len(self._message_window), self._message_window.maxlen)
         # [2026-08-15 并发修复] 摘要走内存缓存，不再每次同步读文件
-        summary = self._load_summary_cached()
+        # [2026-11-09] 分家后按会话取（session_id=None ⇒ 当前会话），未分家恒全局
+        summary = self._load_summary_cached(session_id)
         logger.info("│    └─ 摘要: %s", "已加载 ✓" if summary else "无摘要（首次对话）")
         recent = list(self._message_window)[-20:]
         if recent:
@@ -960,14 +991,48 @@ class MemoryManager:
 
         return context
 
-    def _load_summary_cached(self) -> tuple[str, int] | None:
-        """读取摘要（内存缓存优先，避免每个请求同步文件 IO）"""
-        if self._summary_cache is None:
+    # ── 摘要的会话归属（2026-11-09 · 按会话分家）────────────────────────────
+
+    def _summary_sid(self, session_id: Optional[str] = None) -> str:
+        """把调用方给的 session_id 解析成**摘要落盘用的会话键**。
+
+        - 开关关：恒 ""（全局摘要，逐字旧行为）；
+        - 开关开：显式给了就用显式的（"" = 未分会话，仍是全局）；没给（None）就用
+          进程内「当前会话」（agent/current_session，由 SessionManager 发布）；
+          连当前会话都没有 ⇒ ""（回退全局，绝不猜）。
+        """
+        if not _session_summary_scoped():
+            return ""
+        if session_id is None:
             try:
-                self._summary_cache = self._storage.load_summary()
-            except Exception:
-                self._summary_cache = None
-        return self._summary_cache
+                from agent import current_session as _current_session
+                return str(_current_session.get_current() or "")
+            except Exception:  # noqa: BLE001 指针不可用 ⇒ 回退全局
+                return ""
+        return str(session_id or "")
+
+    def session_summary_scoped(self) -> bool:
+        """面板/端点判断用：摘要是否已按会话分家（热读 env，改完即生效）"""
+        return _session_summary_scoped()
+
+    def _load_summary_cached(self, session_id: Optional[str] = None) -> tuple[str, int] | None:
+        """读取摘要（内存缓存优先，避免每个请求同步文件 IO）。
+
+        Args:
+            session_id: None = 当前会话（开关开时）/ 全局（开关关时）；"" = 显式全局。
+        """
+        key = self._summary_sid(session_id)
+        if not isinstance(self._summary_cache, dict):
+            # 防御：旧实例/测试可能把它设成 None（旧实现是单值缓存）⇒ 就地升级成字典
+            self._summary_cache = {}
+        if key in self._summary_cache:
+            return self._summary_cache[key]
+        try:
+            data = self._storage.load_summary(key)
+        except Exception:  # noqa: BLE001 读失败按"没有摘要"处理（与旧行为一致）
+            data = None
+        self._summary_cache[key] = data
+        return data
 
     def compress(self, old_messages: list[dict]) -> str:
         """压缩历史对话（同步接口）
@@ -1031,19 +1096,32 @@ class MemoryManager:
         """记录黑匣子事件（快捷入口）"""
         self._black_box.log(event_type, data)
 
-    def load_summary(self) -> tuple[str, int] | None:
-        """加载当前摘要"""
-        return self._storage.load_summary()
+    def load_summary(self, session_id: Optional[str] = None) -> tuple[str, int] | None:
+        """加载摘要（session_id=None ⇒ 当前会话（分家时）/ 全局（未分家时））。
+
+        【为什么这里**绕过**缓存】旧实现就是直读存储（外部写完立刻能读到）；get_context
+        才走缓存。分家后保持同一分工，避免"刚写完又被旧缓存盖住"。
+        """
+        key = self._summary_sid(session_id)
+        try:
+            data = self._storage.load_summary(key)
+        except Exception:  # noqa: BLE001 读失败按"没有摘要"（与旧行为一致）
+            data = None
+        self._summary_cache[key] = data
+        return data
+
+    def compress_rounds_for(self, session_id: Optional[str] = None) -> int:
+        """该会话的摘要版本号（未分家时就是全局版本，口径与旧行为一致）"""
+        try:
+            summary = self._load_summary_cached(session_id)
+            return summary[1] if summary else 0
+        except Exception:  # noqa: BLE001 读不到按 0（面板显示用，不阻断）
+            return 0
 
     @property
     def compress_rounds(self) -> int:
-        """已压缩次数（从摘要版本号获取）"""
-        try:
-            # [2026-08-15 并发修复] 走内存缓存，避免每次同步读文件
-            summary = self._load_summary_cached()
-            return summary[1] if summary else 0
-        except Exception:
-            return 0
+        """已压缩次数（从摘要版本号获取；分家后是**当前会话**的版本）"""
+        return self.compress_rounds_for(None)
 
     def clear_memory(self):
         """清空记忆（保留摘要和黑匣子日志）"""
@@ -1053,13 +1131,14 @@ class MemoryManager:
         self._black_box.log("memory_cleared", {})
         logger.info("记忆已清空")
 
-    def clear_summary(self):
-        """清空长期摘要，重置版本号"""
-        self._storage.clear_summary()
+    def clear_summary(self, session_id: Optional[str] = None):
+        """清空摘要并重置版本号（session_id=None ⇒ 当前会话（分家时）/ 全局（未分家时））"""
+        key = self._summary_sid(session_id)
+        self._storage.clear_summary(key)
         # [2026-08-15 并发修复] 写入侧同步失效摘要缓存
-        self._summary_cache = None
-        self._black_box.log("summary_cleared", {})
-        logger.info("长期摘要已清空")
+        self._summary_cache.pop(key, None)
+        self._black_box.log("summary_cleared", {"scope": key or "global"})
+        logger.info("长期摘要已清空（%s）", ("会话 " + key) if key else "全局")
 
     def query_logs(self, **filters) -> list[dict]:
         """查询黑匣子日志（快捷入口）"""

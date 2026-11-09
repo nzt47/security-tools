@@ -422,6 +422,13 @@ class SessionManager:
             return False
         with self._lock:
             self._current_id = session_id
+        # 【2026-11-09】把「当前会话」发布给不依赖本模块的读侧（摘要按会话分家时要用）。
+        # 只是转存一个 id，不回调、不加锁顺序风险；见 agent/current_session.py 的说明。
+        try:
+            from agent import current_session as _current_session
+            _current_session.set_current(session_id)
+        except Exception:  # noqa: BLE001 指针发布失败不影响会话切换本身
+            pass
         return True
     def get_current(self) -> dict | None:
         """获取当前会话信息"""
