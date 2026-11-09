@@ -2250,6 +2250,7 @@ flowchart LR
     agent_server_routes_tracing_decorator -.-> agent_monitoring_tracing
     agent_server_routes_tracing_decorator -.-> agent_logging_utils
     agent_server_routes_tracing_middleware -.-> agent_monitoring_tracing
+    agent_session_manager --> agent
     agent_session_manager -.-> agent_observability_trace_v2
     agent_settings --> agent_settings_masking
     agent_settings --> agent_settings_overrides
@@ -2858,9 +2859,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 731
+- 扫描文件数: 732
 - 模块节点数: 632
-- 依赖边数: 2100
+- 依赖边数: 2101
 - 跨层调用数: 1331
 - 违规调用数: 0
 - 动态 import 数: 1

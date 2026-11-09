@@ -286,7 +286,7 @@
       "name": "agent",
       "layer": "unknown",
       "file_path": "",
-      "in_degree": 57,
+      "in_degree": 58,
       "out_degree": 0
     },
     {
@@ -3167,7 +3167,7 @@
       "layer": "core",
       "file_path": "",
       "in_degree": 1,
-      "out_degree": 1
+      "out_degree": 2
     },
     {
       "path": "agent.tool_schema_pruner",
@@ -24561,11 +24561,24 @@
     },
     {
       "source": "agent.session_manager",
+      "target": "agent",
+      "source_layer": "core",
+      "target_layer": "unknown",
+      "import_type": "from_import",
+      "line": 428,
+      "source_file": "agent/session_manager.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.session_manager",
       "target": "agent.observability.trace_v2",
       "source_layer": "core",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 598,
+      "line": 605,
       "source_file": "agent/session_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -24708,7 +24721,7 @@
       "source_layer": "settings",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 3183,
+      "line": 3192,
       "source_file": "agent/settings/registry.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -24721,7 +24734,7 @@
       "source_layer": "settings",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 3303,
+      "line": 3312,
       "source_file": "agent/settings/registry.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -32361,9 +32374,9 @@
     }
   ],
   "stats": {
-    "total_files": 731,
+    "total_files": 732,
     "total_nodes": 632,
-    "total_edges": 2100,
+    "total_edges": 2101,
     "cross_layer_edges": 1331,
     "violation_edges": 0,
     "dynamic_edges": 1,
