@@ -2931,6 +2931,14 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        " [2026-11-08；plugins/chat.py::_plain_subset_enabled]",
        owner="plugins/chat.py"),
 
+    # · 上下文「最近消息」按会话过滤（默认关；与摘要分家分开一个布尔，见 docs/handoff §11.75）
+    _a("CP_CONTEXT_WINDOW_SCOPED", CAT_ORCHESTRATION, False,
+       "get_context 装配的「最近消息」是否按会话过滤：默认关 = 最近 20 条（跨会话，旧行为）；"
+       "置 1/true/yes/on ⇒ 只取当前会话消息（内存窗口优先，空则从 messages.jsonl 按会话筛）。"
+       "与 CP_SESSION_SUMMARY_SCOPED 分开：摘要分家改的是读写哪份文件，这一条改的是这次装配看到哪些原文"
+       " [2026-11-09；memory/memory_manager.py::_context_window_scoped]",
+       owner="memory/memory_manager.py"),
+
     # · 摘要按会话分家（默认关 = 全仓一份 summary.txt；见 docs/handoff §11.74）
     _a("CP_SESSION_SUMMARY_SCOPED", CAT_ORCHESTRATION, False,
        "摘要是否按会话分家：默认关 = 全仓一份 summary.txt（逐字旧行为）；置 1/true/yes/on ⇒ "
