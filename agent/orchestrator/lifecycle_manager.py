@@ -1142,6 +1142,10 @@ class LifecycleManager:
         from agent.tools.notify_tools import register_all as reg_notify
         from agent.tools.db_tools import register_all as reg_db
         from agent.tools.lint_tools import register_all as reg_lint
+        # 技能脚本执行（L3）：补「带脚本技能」的显式执行点（2026-11-09，
+        # 此前 SkillExecutor 只挂在 REST 手动端点与评估器上，聊天链路一条都没有）。
+        # 默认停用（YAML enabled: false），观察期由 Owner 显式打开。
+        from agent.tools.skill_tools import register_all as reg_skill_script
         # 过程蒸馏工具（知识库 → 可复现步骤 → workflow/skill 固化）
         # 失败仅记日志，不影响其余内置工具注册（守主链路稳定）
         try:
@@ -1178,6 +1182,7 @@ class LifecycleManager:
         reg_notify(self)
         reg_db(self)
         reg_lint(self)
+        reg_skill_script(self)
 
         # 动态工具（吞噬登记的自生成工具）属于工具集的一部分，必须随启动加载。
         # 【为什么放在这里】此前只有 `_get_ext_manager` 会调 load_dynamic_tools，而它只被
