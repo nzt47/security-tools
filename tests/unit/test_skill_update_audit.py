@@ -68,10 +68,23 @@ def _records(skill_id: str, action: str):
     return [e for e in _chain().entries(action=action) if e.subject == subject]
 
 
+#: 本文件"留痕"判据只管这两个动作族（都是 update 写的）。
+#: `_advisory_assess` 旁路还会写 `skill.assess.auto`（update 后自动重评估），
+#: 那是**另一个子系统**的记录，不是"字段变更留痕" —— 把它算进"同值 patch 不写记录"
+#: 会让断言取决于 assess 是否成功（2026-11-10 失败基线闸实测：全量顺序下 create 阶段的
+#: advisory assess 失败 ⇒ update 阶段补写一条 ⇒ 计数 +1，分片跑/单跑都绿）。
+_OWNED_ACTIONS = ("skill.update", "skill.registry.set_enabled")
+
+
 def _all_records(skill_id: str):
-    """该技能在链上的全部记录（跨动作；entries() 无 subject 过滤，故 Python 侧过滤）"""
+    """该技能在链上的**全部**记录（跨动作）——隐私扫尾用它，必须保持全量"""
     subject = f"skill:{skill_id}"
     return [e for e in _chain().entries() if e.subject == subject]
+
+
+def _owned_records(skill_id: str):
+    """只属于本文件判据的两个动作族（见 `_OWNED_ACTIONS`）"""
+    return [e for e in _all_records(skill_id) if e.action in _OWNED_ACTIONS]
 
 
 def _wait_count(fn, want: int, *, timeout: float = 3.0, interval: float = 0.05):
@@ -163,12 +176,12 @@ class TestFieldChangeAudit:
         不是「忘了接线」——若将来有人把 description 加回白名单，本用例会红。
         """
         _make_main(iso_svc, "d4-frozen-1", description="old description")
-        before = len(_all_records("d4-frozen-1"))
+        before = len(_owned_records("d4-frozen-1"))
         iso_svc.update("d4-frozen-1", {"description": "new description"})
         assert iso_svc.get("d4-frozen-1").description == "old description", \
             "description 已被冻结：经 update 不得改写主轨值"
         # 0 条也要给 best-effort 写入留一个窗口，否则"晚到一条多余记录"也算绿
-        assert len(_wait_count(lambda: _all_records("d4-frozen-1"), before)) == before, \
+        assert len(_wait_count(lambda: _owned_records("d4-frozen-1"), before)) == before, \
             "冻结字段不产生变更 ⇒ 不得留痕（与其它白名单外键同语义）"
 
     def test_secret_values_never_enter_chain(self, iso_svc):
@@ -238,19 +251,19 @@ class TestFieldChangeAudit:
     def test_same_value_patch_writes_nothing(self, iso_svc):
         """同值 patch 不算变更 → 不写记录（避免审计噪音）"""
         _make_main(iso_svc, "d4-same-1", tags=["same"])
-        before = len(_all_records("d4-same-1"))
+        before = len(_owned_records("d4-same-1"))
         iso_svc.update("d4-same-1", {"tags": ["same"], "enabled": True})
-        assert len(_wait_count(lambda: _all_records("d4-same-1"), before)) == before
+        assert len(_wait_count(lambda: _owned_records("d4-same-1"), before)) == before
         assert _records("d4-same-1", ACTION_UPDATE) == []
         assert _records("d4-same-1", ACTION_SET_ENABLED) == []
 
     def test_non_whitelisted_and_empty_patch_write_nothing(self, iso_svc):
         """非白名单键被忽略（不落库）→ 也不得留痕；空 patch 同理"""
         _make_main(iso_svc, "d4-nonwl-1")
-        before = len(_all_records("d4-nonwl-1"))
+        before = len(_owned_records("d4-nonwl-1"))
         iso_svc.update("d4-nonwl-1", {"status": "archived", "quality_score": 99})
         iso_svc.update("d4-nonwl-1", {})
-        assert len(_wait_count(lambda: _all_records("d4-nonwl-1"), before)) == before
+        assert len(_wait_count(lambda: _owned_records("d4-nonwl-1"), before)) == before
         assert iso_svc.get("d4-nonwl-1").status != "archived"
 
 
