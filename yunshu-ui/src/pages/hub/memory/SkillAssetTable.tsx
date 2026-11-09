@@ -670,7 +670,8 @@ export default function SkillAssessManager() {
             return (
               <span className="flex flex-wrap items-center gap-1"
                 title={`近 7 日 命中 ${hits} · 注入（模型取用）${injected} 次`
-                  + `${browsed ? `（另有详情查看 ${browsed} 次，不计入模型取用）` : ''} · ${execTip}`}>
+                  + `${browsed ? ` · 另有 ${browsed} 次说明读取未计入（详情查看，或 2026-11-09 之前的旧记录未分源）` : ''}`
+                  + ` · ${execTip}`}>
                 {hits > 0
                   ? chip(`已调用·命中 ${hits}`, 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60')
                   : chip(injected > 0 ? '已注入·未命中' : '未调用',
