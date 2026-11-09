@@ -350,11 +350,11 @@
     },
     {
       "id": "context-message-window-scoped",
-      "title": "get_context 的 recent_messages 仍取全局内存窗口（跨会话最近 20 条）",
-      "status": "open",
+      "title": "上下文「最近消息」按会话过滤（已实现并开启：CP_CONTEXT_WINDOW_SCOPED）",
+      "status": "done",
       "priority": "P3",
-      "criteria": "摘要已按会话分家（PR #1524），但 MemoryManager.get_context() 组装上下文时，摘要之后那段 recent 仍取 _message_window（最近 20 条，跨会话）⇒ 会话 B 的上下文里可能带出会话 A 的消息原文。与摘要分家是两件事，本轮只收口了摘要。",
-      "next": "二选一：①get_context 的 recent 也按 session_id 过滤（需要 MemoryManager 的消息窗口按会话分桶，或读存储时按会话筛）；②明确保留「跨会话工作记忆」语义并在面板/文档标注，不再当 bug。改前先量：_message_window 里不同 session_id 的占比、以及 context 装配实际带出多少别会话的消息。"
+      "criteria": "修前：get_context 的 recent 取 _message_window（最近 20 条、跨会话）⇒ 会话 B 的上下文带出 A 的原文。量测（data/messages.jsonl）：最近 20 条来自 8 个会话、最近 200 条来自 21 个。**已实现（PR #1525 → 67ac1cb72）**：CP_CONTEXT_WINDOW_SCOPED（默认关）打开后 recent 只取当前会话（内存优先，空则从 messages.jsonl 取 200 条按会话筛到 20）；拆出 _session_key 与摘要开关解耦；顺带修「有摘要无消息返回空」。A/B 实测：开关关 messages=22 / 开 messages=1（新会话不再带别会话消息）。",
+      "next": "已打开（ui_override）。观察：新会话的上下文是否变短（正常）、老会话是否因为只有自己的消息而丢失跨会话线索（若需要跨会话线索，改用显式检索而不是靠窗口）。回滚 = 置 0。"
     },
     {
       "id": "lab-apply-cache-notice",
