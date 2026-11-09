@@ -342,11 +342,19 @@
     },
     {
       "id": "per-session-summary",
-      "title": "摘要仍全局一份（按会话压缩、并进同一份 summary.txt）",
-      "status": "open",
+      "title": "摘要按会话分家（已实现并开启：CP_SESSION_SUMMARY_SCOPED）",
+      "status": "done",
       "priority": "P2",
-      "criteria": "PR #1518 把压缩输入切成触发会话，但 _execute_compression 仍把结果 merge 进同一份全局摘要 ⇒ 会话 A 的摘要会出现在会话 B 的上下文里（既有行为）。**2026-11-09 已落存储层（d5e2cc5a5，零行为变化）**：storage.save_summary/load_summary/clear_summary 支持 session_id=\"\"，非空落 summary_<sha256(sid)[:16]>.txt（sha256 断链），缺文件返回 None。现状读侧证据：MemoryManager.get_context(token_limit) 没有 session 参数，assembler/orchestrator 都这么调 ⇒ 任何会话拿的是同一份摘要；版本号也全局一个。",
-      "next": "等 Owner 拍两件事：①迁移（新会话第一次压缩用全局摘要作基底 vs 从空开始）；②范围（只工作台分家 vs orchestrator/assembler 一起改）。选定后按 §11.74 C 的清单逐点透传：memory_manager（load_summary(sid)/_load_summary_cached(sid)/get_context(...,session_id)/_execute_compression 读写分家/面板版本按会话）+ agent/context/assembler.py + agent/orchestrator/prompt_builder.py + orchestrator.py + plugins/memory.py，外加 CP_SESSION_SUMMARY_SCOPED（默认关）+ 用例；关 = 逐字旧行为。"
+      "criteria": "修前：压缩永远写同一份 summary.txt，get_context(token_limit) 没有会话参数 ⇒ 会话 A 的摘要出现在 B 的上下文里。**2026-11-09 已实现（PR #1524 → 4d5394490）**，Owner 选 1①（首压以全局摘要作基底）+ 2②（全链路）：agent/current_session 叶子指针（SessionManager.set_current 发布）+ memory_manager._summary_sid（关⇒全局/开⇒显式 id 或当前会话）+ load_summary/get_context/clear_summary 的 session_id + 压缩读会话摘要（没有就迁移民全局）写会话文件 + compress_rounds_for；chat 两个入口解析出 session_id 后 set_current。存储层在 d5e2cc5a5（summary_<sha256(sid)[:16]>.txt）。A 实测：开关 hot 打开 → 会话 A 压缩 v0→97 写自己的文件、全局 v96 mtime 未动；会话 B 的 overview summary_version=None（看不到 A）；切回 A=97。",
+      "next": "已开启（source=ui_override，热生效）。观察：①分家后各会话摘要版本是否各自增长；②老会话首压是否带上全局基底（日志「迁移：以全局摘要 vN 作基底」）；③面板「当前窗口压缩」次数是否合理（分家后基线=0）。回滚 = 置 0。验收坑：手动压缩要紧跟 done 事件时，本轮落库/触发可能没跑完 ⇒ 先等 8~10s 再压，否则 _pending_session 为空、会走全局路径。"
+    },
+    {
+      "id": "context-message-window-scoped",
+      "title": "get_context 的 recent_messages 仍取全局内存窗口（跨会话最近 20 条）",
+      "status": "open",
+      "priority": "P3",
+      "criteria": "摘要已按会话分家（PR #1524），但 MemoryManager.get_context() 组装上下文时，摘要之后那段 recent 仍取 _message_window（最近 20 条，跨会话）⇒ 会话 B 的上下文里可能带出会话 A 的消息原文。与摘要分家是两件事，本轮只收口了摘要。",
+      "next": "二选一：①get_context 的 recent 也按 session_id 过滤（需要 MemoryManager 的消息窗口按会话分桶，或读存储时按会话筛）；②明确保留「跨会话工作记忆」语义并在面板/文档标注，不再当 bug。改前先量：_message_window 里不同 session_id 的占比、以及 context 装配实际带出多少别会话的消息。"
     },
     {
       "id": "lab-apply-cache-notice",
