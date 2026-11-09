@@ -109,10 +109,11 @@ class TestFixtureShapeMatchesProduction:
         assert {t["name"] for t in real_tools} == {t["name"] for t in prod}, (
             "YAML 派生的工具集与 data/tool_index.json 不一致 ⇒ 本回归的「真实形状」前提失效"
         )
-        assert len(real_tools) == 92, f"真实工具数应为 92，实际 {len(real_tools)}"
+        # 【2026-11-09】92 → 93：新增 skill_script_run（llm_callable=true、未弃用）
+        assert len(real_tools) == 93, f"真实工具数应为 93，实际 {len(real_tools)}"
 
     def test_index_is_not_a_toy_fixture(self, real_retriever, real_tools):
-        assert real_retriever._bm25.size == len(real_tools) == 92
+        assert real_retriever._bm25.size == len(real_tools) == 93
 
 
 # ════════════════════════════════════════════════════════════
@@ -427,9 +428,12 @@ class TestBaselineCasesDoNotRegress:
 
         assert c["gold"] in returned, (
             "裁定后的底线被突破：gold %s 掉出返回集合（%d 个）" % (c["gold"], len(returned)))
-        assert returned.index(c["gold"]) + 1 == 9, (
-            "TOOL-010 gold 在返回集合中的名次漂移：%d（裁定基线=9）；顺序=%s"
+        # 【2026-11-09】9 → 4：索引 93→94 篇（新增 skill_script_run）改变 idf/dlen，
+        # gold 名次**前移**（变好，不是回归）；判据不变（名次硬编码、漂移即红）。
+        assert returned.index(c["gold"]) + 1 == 4, (
+            "TOOL-010 gold 在返回集合中的名次漂移：%d（2026-11-09 基线=4）；顺序=%s"
             % (returned.index(c["gold"]) + 1, returned))
-        assert c["gold"] in raw and raw.index(c["gold"]) + 1 == 5, (
-            "TOOL-010 gold 的 BM25 名次漂移：%s（裁定基线=5）；top5=%s"
+        # 【2026-11-09】5 → 4：同一次索引变化（93→94 篇）
+        assert c["gold"] in raw and raw.index(c["gold"]) + 1 == 4, (
+            "TOOL-010 gold 的 BM25 名次漂移：%s（2026-11-09 基线=4）；top5=%s"
             % ((raw.index(c["gold"]) + 1) if c["gold"] in raw else None, raw[:8]))

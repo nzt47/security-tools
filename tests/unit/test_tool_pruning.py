@@ -268,7 +268,8 @@ class TestToken预算零误伤:
         # 不是"没误伤"。真正的误伤要靠**规格集合**（`prot`）判定，即上面的 `hit`。
         assert plan_off.protected_kept == ()
         assert plan_off.misprune_rate() == 0.0
-        assert len(hit) == 7, f"无保护口径下的高危误裁基线是 7，实测 {len(hit)}"
+        # 【2026-11-09】7 → 8：新增 skill_script_run（risk=high）进入同一预算下的误裁集合
+        assert len(hit) == 8, f"无保护口径下的高危误裁基线是 8，实测 {len(hit)}"
 
     def test_预算充足时不裁剪(self, meta, real_defs):
         """对照：预算充足 ⇒ `applied=False`、`dropped=[]`（防"裁剪"被误判为发生）"""
