@@ -1,7 +1,15 @@
 {
-  "updated_at": "2026-11-09T21:40+08:00",
+  "updated_at": "2026-11-10T00:50+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
+    {
+      "id": "derive-fingerprint-guard",
+      "status": "open",
+      "priority": "P2",
+      "title": "全量测试期间 data/ 与派生面被静默写入（gh-cli/gstack 文件轨被删、清单重派生、基线测试被改）——加指纹守卫定位写入方",
+      "criteria": "2026-11-10 00:00–00:44 实测两次：一次全量 `pytest tests/unit -p no:randomly` 期间，data/skills_repo/gh-cli/{skill.md,CARD.md} 被删、data/skills_mgmt.json 少一行（未跟踪运行态）、data/capability_manifest.json 被重派生（generated_at 00:00:13）、3 个基线测试被改（如 confirm_level 49→50）；随后在 00:39–00:41 之间 data/skills_repo/gstack/{CARD.md,skill.md} 又被删。另证：data/logs/2026-11-10.jsonl 混进 410 行测试输出 ⇒ 测试写 data/ 是既有事实。已按生产路径修复（git checkout HEAD 取回 + `SkillsMgmtService.backfill_file_track(dry_run=False)` 补登记 + 重启），当前 skills=53 / 双轨 51/53 / 三处一致。写入方仍未定位；已排除：test_intake_{skill,e2e,autopilot,route_defaults} / test_skill_materialize / test_skill_merge / 3 个 capability 测试 / snapshot 的 4 个自检脚本 / 调度器历史（停在 2026-06）。",
+      "next": "在 tests/conftest.py 加 session 级 autouse 指纹守卫：起止对 data/skills_repo/**/*.md、data/skills_mgmt.json、data/capability_manifest.json、docs/rfc/云枢能力清单盘点表.md、3 个基线测试文件算 (mtime,size,sha256[:12])，变了就**点名**失败。跑一次全量即可锁定写入方（一次运行 ≈20 分钟，别再用二分）。在此之前：**别在跑全量测试的同时做部署/派生**。"
+    },
     {
       "id": "skill-script-run-observe",
       "status": "open",
