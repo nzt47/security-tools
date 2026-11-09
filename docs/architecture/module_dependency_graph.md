@@ -691,6 +691,7 @@ flowchart LR
         agent_tools_process_tools["agent.tools.process_tools"]:::crosslayer
         agent_tools_search_tools["agent.tools.search_tools"]:::crosslayer
         agent_tools_shell_tools["agent.tools.shell_tools"]:::crosslayer
+        agent_tools_skill_tools["agent.tools.skill_tools"]:::crosslayer
         agent_tools_software_tools["agent.tools.software_tools"]:::crosslayer
         agent_tools_subagent_tools["agent.tools.subagent_tools"]:::crosslayer
         agent_tools_system_tools["agent.tools.system_tools"]:::crosslayer
@@ -1556,6 +1557,7 @@ flowchart LR
     agent_monitoring_tracing_perf -.-> agent_logging_utils
     agent_monitoring_tracing_sampling -.-> agent_utils_singleton_manager
     agent_monitoring_unit_probes -.-> agent_skills_mgmt
+    agent_monitoring_unit_probes -.-> agent_skills_mgmt_file_store
     agent_monitoring_unit_probes -.-> agent_skills_mgmt
     agent_monitoring_unit_probes -.-> agent_task_scheduler
     agent_multi_tenant -.-> agent_monitoring_tracing
@@ -1627,6 +1629,7 @@ flowchart LR
     agent_orchestrator_lifecycle_manager -.-> agent_tools_notify_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_db_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_lint_tools
+    agent_orchestrator_lifecycle_manager -.-> agent_tools_skill_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_core_tools
     agent_orchestrator_lifecycle_manager -.-> agent_utils_compatibility
     agent_orchestrator_lifecycle_manager -.-> agent_system_prompt_config
@@ -2746,6 +2749,8 @@ flowchart LR
     agent_tools_shell_tools -.-> agent_subagent_sandbox
     agent_tools_shell_tools -.-> agent_audit_facade
     agent_tools_shell_tools -.-> agent_subagent_sandbox
+    agent_tools_skill_tools --> agent
+    agent_tools_skill_tools -.-> agent_state_manager
     agent_tools_software_tools --> agent
     agent_tools_software_tools -.-> agent_audit_facade
     agent_tools_subagent_tools --> agent
@@ -2859,9 +2864,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 732
-- 模块节点数: 632
-- 依赖边数: 2101
-- 跨层调用数: 1331
+- 扫描文件数: 733
+- 模块节点数: 633
+- 依赖边数: 2105
+- 跨层调用数: 1334
 - 违规调用数: 0
 - 动态 import 数: 1
