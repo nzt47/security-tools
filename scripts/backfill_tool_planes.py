@@ -181,6 +181,10 @@ PLANE_MAP: dict[str, tuple[str, str, str, list[str]]] = {
     # ── test_tools.py（2）──────────────────────────────────
     "run_tests": ("act", "execute", "medium", ["code", "test"]),
     "apply_patch": ("act", "write", "high", ["code", "patch"]),
+
+    # ── skill_tools.py（1，2026-11-09 技能 L3 显式执行点）──────
+    # 起子进程跑技能自带的 scripts/*.py：仓库内代码，但仍是执行外部程序 ⇒ act/execute/high
+    "skill_script_run": ("act", "execute", "high", ["skill", "script", "sandbox"]),
 }
 
 #: 需要 `internal: true` 的工具：保留注册（供内部按名调用），但不进模型可见集。

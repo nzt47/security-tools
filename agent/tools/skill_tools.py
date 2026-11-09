@@ -25,6 +25,11 @@
     3. **异常原文不回响应**（口径 §4.1）：对外只回异常类名 + 固定文案 + 服务日志。
     4. **没有脚本就不装作能跑**：拒绝时明确说"该技能没有 scripts/*.py（指令型技能
        不执行代码）"，而不是返回 success=false 的"执行失败"（那是另一种 0 折算）。
+
+【变易】description / schema 必须是**静态字面量**（`scripts/migrate_tools_to_yaml.py`
+    与 `tests/unit/test_tool_definitions_yaml.py` 都用 AST `literal_eval` 抽取，
+    不执行工具代码）⇒ 它们逐字写在下面的 `@_tools.register` 里，与
+    `data/tool_definitions/skill_script_run.yaml` 的 description/schema 逐字一致。
 """
 from __future__ import annotations
 
@@ -35,7 +40,7 @@ from agent import tools as _tools
 
 logger = logging.getLogger(__name__)
 
-#: 工具名（必须与 data/tool_definitions/skill_script_run.yaml 的 name 逐字一致）
+#: 工具名（必须与 YAML 的 name 逐字一致；注册调用里那份字面量由守门测试对拍）
 TOOL_NAME = "skill_script_run"
 
 #: 缺省脚本名与超时（调用点不写字面量：硬编码边界门禁只认调用点）
@@ -50,18 +55,6 @@ _STDERR_TAIL_CHARS = 2000
 #: 允许执行的状态（与「注入只看 enabled + approved/published」同一口径）
 _EXECUTABLE_STATUSES = ("approved", "published")
 
-DESCRIPTION = (
-    "在沙箱里执行某个技能的 L3 脚本（scripts/*.py）：脚本代码不进上下文，只有执行结果（JSON）返回。"
-    "参数：skill_id 技能 id（必填，必须有 scripts/*.py）、script_name 脚本文件名"
-    "（默认 main.py，只能取该技能 scripts/ 下的文件）、params 传给脚本的 JSON"
-    "（经 stdin，省略时用技能的 default_params）、timeout 超时秒数（默认 30，上限 120）。"
-    "每次调用都需要人工确认且不自动重试；技能没有脚本返回「不适用」而不是执行失败。"
-    "Run a skill script in sandbox, execute skill L3 script"
-)
-
-#: schema 是 **静态字面量**（scripts/migrate_tools_to_yaml.py 用 AST literal_eval 抽取，
-#: 不执行工具代码）—— 故这里在 register_all 里写字面量字典，不引用模块常量。
-
 
 def _tail(text: str, limit: int) -> str:
     s = str(text or "")
@@ -75,6 +68,37 @@ def _err(message: str, **extra: Any) -> Dict[str, Any]:
     return out
 
 
+@_tools.register(
+    "skill_script_run",
+    "在沙箱里执行某个技能的 L3 脚本（scripts/*.py）：脚本代码不进上下文，只有执行结果（JSON）返回。"
+    "参数：skill_id 技能 id（必填，必须有 scripts/*.py）、script_name 脚本文件名"
+    "（默认 main.py，只能取该技能 scripts/ 下的文件）、params 传给脚本的 JSON"
+    "（经 stdin，省略时用技能的 default_params）、timeout 超时秒数（默认 30，上限 120）。"
+    "每次调用都需要人工确认且不自动重试；技能没有脚本返回「不适用」而不是执行失败。"
+    "Run a skill script in sandbox, execute skill L3 script",
+    schema={
+        "type": "object",
+        "properties": {
+            "skill_id": {
+                "type": "string",
+                "description": "技能 id（必须有可执行脚本 scripts/*.py）",
+            },
+            "script_name": {
+                "type": "string",
+                "description": "脚本文件名，默认 main.py；只能是该技能 scripts/ 目录下的文件",
+            },
+            "params": {
+                "type": "object",
+                "description": "传给脚本的 JSON 参数（经 stdin）；省略时用技能的 default_params",
+            },
+            "timeout": {
+                "type": "integer",
+                "description": "超时秒数，默认 30，最大 120",
+            },
+        },
+        "required": ["skill_id"],
+    },
+)
 def skill_script_run(skill_id: str = "", script_name: str = DEFAULT_SCRIPT_NAME,
                      params: Optional[Dict[str, Any]] = None,
                      timeout: Optional[float] = None,
@@ -172,36 +196,13 @@ def skill_script_run(skill_id: str = "", script_name: str = DEFAULT_SCRIPT_NAME,
 
 
 def register_all(dl: Any = None) -> None:
-    """注册技能脚本执行工具（数量 1）。
+    """保持与其它工具模块同一接线形状（`reg_skill_script(self)`）。
 
-    schema 必须是**静态字面量**：scripts/migrate_tools_to_yaml.py 用 AST
-    `literal_eval` 抽取（不执行工具代码），引用模块常量会让它抽不到。
+    本模块的注册在**导入时**由模块级 `@_tools.register` 完成（description/schema
+    必须是静态字面量，供 AST 抽取守门），故这里不再注册，只做一次可见性检查 ——
+    被 `unregister` 掉之后重新接线会**响亮报警**，而不是静默少一个工具。
     """
-    _tools.register(
-        TOOL_NAME,
-        DESCRIPTION,
-        handler=skill_script_run,
-        schema={
-            "type": "object",
-            "properties": {
-                "skill_id": {
-                    "type": "string",
-                    "description": "技能 id（必须有可执行脚本 scripts/*.py）",
-                },
-                "script_name": {
-                    "type": "string",
-                    "description": "脚本文件名，默认 main.py；只能是该技能 scripts/ 目录下的文件",
-                },
-                "params": {
-                    "type": "object",
-                    "description": "传给脚本的 JSON 参数（经 stdin）；省略时用技能的 default_params",
-                },
-                "timeout": {
-                    "type": "integer",
-                    "description": "超时秒数，默认 30，最大 120",
-                },
-            },
-            "required": ["skill_id"],
-        },
-    )
-    logger.info("[skill_tools] 已注册工具 %s（默认停用：YAML enabled=false）", TOOL_NAME)
+    if TOOL_NAME not in _tools._registry:
+        logger.error("[skill_tools] 工具 %s 未在注册表（导入期注册失败？）", TOOL_NAME)
+        return
+    logger.info("[skill_tools] 工具 %s 已就绪（默认停用：YAML enabled=false）", TOOL_NAME)

@@ -179,31 +179,47 @@ def test_long_output_is_truncated(patch_svc):
 
 
 # ── YAML 契约（D1：一份描述，两处逐字一致）────────────────────────
+def _registered_literal() -> dict:
+    """用与迁移脚本/守门测试相同的 AST 口径，抽出装饰器里的 name/description/schema。
+
+    不引用模块常量（那样会让"注册实参"和"YAML"失去对拍意义）：抽取的就是
+    `@_tools.register(...)` 里的**字面量**。
+    """
+    src = Path(skill_tools.__file__).read_text(encoding="utf-8")
+    tree = ast.parse(src)
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for dec in node.decorator_list:
+            if not isinstance(dec, ast.Call):
+                continue
+            fn = dec.func
+            name = fn.attr if isinstance(fn, ast.Attribute) else getattr(fn, "id", "")
+            if name != "register":
+                continue
+            args = [ast.literal_eval(a) for a in dec.args]
+            schema = None
+            for kw in dec.keywords:
+                if kw.arg == "schema":
+                    schema = ast.literal_eval(kw.value)
+            return {"name": args[0], "description": args[1], "schema": schema}
+    raise AssertionError("没找到 register 装饰器（description/schema 必须是静态字面量）")
+
+
 def test_yaml_matches_registered_description_and_schema():
     doc = yaml.safe_load(_YAML_PATH.read_text(encoding="utf-8"))
-    assert doc["name"] == skill_tools.TOOL_NAME
-    assert doc["description"] == skill_tools.DESCRIPTION
+    reg = _registered_literal()
+    assert doc["name"] == reg["name"] == skill_tools.TOOL_NAME
+    assert doc["description"] == reg["description"]
+    assert doc["schema"] == reg["schema"]
     assert doc["enabled"] is False, "新增可执行能力必须默认停用（先观察）"
     assert doc["category"] in {"code"}
     assert doc["effect"] == "execute" and doc["risk"] == "high"
 
-    src = Path(skill_tools.__file__).read_text(encoding="utf-8")
-    tree = ast.parse(src)
-    schema = None
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) \
-                and node.func.attr == "register":
-            for kw in node.keywords:
-                if kw.arg == "schema":
-                    schema = ast.literal_eval(kw.value)
-    assert schema is not None, "register 必须带静态字面量 schema（迁移脚本靠 AST 抽取）"
-    assert doc["schema"] == schema
 
-
-def test_register_all_registers_tool():
+def test_register_all_keeps_tool_registered():
     from agent import tools as t
-    t.unregister(skill_tools.TOOL_NAME)
     skill_tools.register_all(None)
     entry = t._registry.get(skill_tools.TOOL_NAME)
-    assert entry is not None and entry["description"] == skill_tools.DESCRIPTION
-    t.unregister(skill_tools.TOOL_NAME)
+    assert entry is not None, "导入期注册必须生效（或 register_all 需响亮报警）"
+    assert entry["description"] == _registered_literal()["description"]

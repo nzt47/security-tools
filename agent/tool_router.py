@@ -128,6 +128,8 @@ _DEFAULT_TOOL_CATEGORIES = {
             "grep", "edit",
             # 能力补全（B 档）：只读 sqlite 查询 + 代码检查
             "sqlite_query", "run_lint",
+            # 【2026-11-09】技能 L3 显式执行点（默认停用，启用后归本分类）
+            "skill_script_run",
         ],
     },
     "system": {

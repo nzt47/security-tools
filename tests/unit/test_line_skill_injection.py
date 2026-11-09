@@ -151,7 +151,8 @@ class _StubLoader:
     def match(self, task, top_k=2):
         return _StubResult(self._ids[:top_k])
 
-    def load_instruction(self, sid):
+    def load_instruction(self, sid, source="loader"):
+        # 【2026-11-09】编排器按 `source="inject"` 调（台账分源），假件同步签名
         return {"instruction": f"{sid} 的做法"}
 
 

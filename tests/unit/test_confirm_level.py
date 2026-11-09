@@ -59,7 +59,7 @@ def _committed_metas() -> dict:
 
     【为什么需要（2026-10-27 实测）】`load_tool_meta()` 读 `data/tool_definitions/` 全目录；
     吞噬"登记为工具"把 YAML 写到同一个目录（并把名字记进 `data/dynamic_tools.json` 台账），
-    这两份都是 .gitignore 的运行时状态。本文件钉的是**入库基线**（93 条、L2+L3 恰好 20），
+    这两份都是 .gitignore 的运行时状态。本文件钉的是**入库基线**（94 条、L2+L3 恰好 21），
     不排除的后果是"本机红 4 条、CI 全绿"—— 与清单口径同一条判据
     （见 `build_manifest(exclude_runtime_tools=...)`）。
     """
@@ -72,8 +72,10 @@ def _committed_metas() -> dict:
 EXPECTED_HIGH: tuple = (
     "apply_patch", "connect_mcp", "decompress", "edit", "ext_install",
     "ext_send_channel", "ext_uninstall", "fan_out", "git", "run_program",
-    "schedule_task", "workspace_delete", "write_file",
+    "schedule_task", "skill_script_run", "workspace_delete", "write_file",
 )
+# 【2026-11-09】13 → 14：skill_script_run（技能 L3 脚本执行，effect=execute + risk=high
+# ⇒ 每次调用 L2 逐次确认）。它不是 plane=govern/extend，故归 L2 而不是 L3。
 
 #: 13 个里同时是 `plane: govern` / `effect: extend` 的 3 个 ⇒ 按 **L3** 而非 L2 处置
 #: （`derive_confirm_level` 的顺序敏感：从严者先判）
@@ -217,7 +219,7 @@ class TestThirteenHighTools:
     """E1：TASK-06 §1 的缺陷 1（"13 个 high 完全不触发人工确认"）已修"""
 
     def test_名单与_YAML_一致(self):
-        """名单不手抄：直接从能力 YAML 读出来的 high 集合必须**恰好**是这 13 个
+        """名单不手抄：直接从能力 YAML 读出来的 high 集合必须**恰好**是这 14 个
 
         为什么必须"恰好"：少一个 ⇒ 缺陷仍在；多一个 ⇒ 有工具被误升级（会打挂体验）。
         """
@@ -259,11 +261,11 @@ class TestThirteenHighTools:
         from agent.lines import load_tool_meta
         assert load_tool_meta()[tool].effective_confirm_level == "L3"
 
-    def test_其余_10_个是_L2(self):
+    def test_其余_11_个是_L2(self):
         from agent.lines import load_tool_meta
         metas = load_tool_meta()
         l2 = sorted(k for k in EXPECTED_HIGH if k not in HIGH_BUT_L3)
-        assert len(l2) == 10
+        assert len(l2) == 11
         for name in l2:
             assert metas[name].effective_confirm_level == "L2", name
 
@@ -284,8 +286,8 @@ class TestL0StaysFree:
         assert set(dist) == set(CONFIRM_LEVELS), f"四级必须**都在用**：{dist}"
         assert dist["L0"] >= 30, f"L0（免确认）太少，说明分级退化成一刀切：{dist}"
         assert dist["L1"] >= 30, f"L1（可批量摘要确认）太少：{dist}"
-        # 只有 13 个 high 进 L2/L3，其余不该被牵连
-        assert dist["L2"] + dist["L3"] == 20, dist      # 10 个 L2 + 10 个 L3
+        # 只有 14 个 high（+ critical）进 L2/L3，其余不该被牵连
+        assert dist["L2"] + dist["L3"] == 21, dist      # 11 个 L2 + 10 个 L3
 
     @pytest.mark.parametrize("tool", ["read_file", "list_dir", "grep",
                                       "get_weather", "web_search"])
@@ -324,12 +326,12 @@ class TestConsistencyWithPermissionLevel:
         assert _MANIFEST.exists(), "缺少 data/capability_manifest.json（先跑 sync 脚本）"
 
     def test_工具侧_93_条全量对拍(self):
-        """E8 的**适用范围是工具侧 93 条** —— 技能侧不适用，理由见下一个用例
+        """E8 的**适用范围是工具侧 94 条** —— 技能侧不适用，理由见下一个用例
 
         `derive_confirm_level` 是**工具侧** L0–L3 的派生（TASK-06 §3 第 2 步）。
         """
         tools = [e for e in _manifest_entries() if e.get("kind") == "tool"]
-        assert len(tools) == 93, len(tools)
+        assert len(tools) == 94, len(tools)
 
         mismatch = []
         for e in tools:
@@ -1104,7 +1106,7 @@ class TestNoYamlWritesNeeded:
     def test_93_个_YAML_仍然零声明(self):
         """本裁决的可复核形式：YAML 侧不写该字段，且这不影响任何判定"""
         metas = _committed_metas()
-        assert len(metas) == 93, len(metas)
+        assert len(metas) == 94, len(metas)
         declared = {k: v.confirm_level for k, v in metas.items() if v.confirm_level}
         assert declared == {}, f"若要写进 YAML 就属于口径变更，必须同时更新本裁决：{declared}"
 

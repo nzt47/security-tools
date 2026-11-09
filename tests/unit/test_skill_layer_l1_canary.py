@@ -34,7 +34,9 @@ class _StubLoader:
     def __init__(self) -> None:
         self.calls: list[str] = []
 
-    def load_instruction(self, skill_id: str) -> dict:
+    def load_instruction(self, skill_id: str, source: str = "loader") -> dict:
+        # 【2026-11-09】契约变更：`source` 由 ContextInjector 传 `inject`（台账分源）；
+        # 假件必须同步签名，否则测的是"假件不支持新契约"而不是回落行为。
         self.calls.append(skill_id)
         return {"skill_id": skill_id, "instruction": "## 何时使用\n- L2 全文占位",
                 "estimated_tokens": 12, "instruction_chars": 20, "layer": 2}

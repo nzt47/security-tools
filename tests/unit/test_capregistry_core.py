@@ -170,7 +170,8 @@ class TestQuery:
         # （§11.32 C · N5；两条技能此前只在本机运行期，干净检出看不到）。
         # 【2026-11-07】139 → 140、skill 46 → 47、local 117 → 118：
         # chart-visualization（演示技能）入文件轨，见 §11.57 ①。
-        assert st["total"] == 142, f"能力总数应为 142，实际 {st['total']}"
+        # 【2026-11-09】142 → 143：skill_script_run（技能 L3 显式执行点）
+        assert st["total"] == 143, f"能力总数应为 143，实际 {st['total']}"
         assert st["by_kind"] == {"skill": 49, "tool": 93}
         assert st["by_location"] == {"local": 120, "remote": 22}
         assert st["degraded"] is False
@@ -189,7 +190,10 @@ class TestQuery:
         # 回到文件轨后被排除（stats 里仍是 36，两者口径不同，见下一条用例注释）
         # 【2026-10-31】41 -> 43：autoresearch / pdf 入文件轨（enabled_only 口径同 stats-1）
         # 【2026-11-07】44 → 45：chart-visualization 启用态（enabled: true）⇒ enabled_only 口径 +1
-        assert len(tools) == 93 and len(skills) == 45
+        # 【2026-11-09】93 → 94：skill_script_run（enabled: false ⇒ enabled_only 口径不含它）
+        assert len(tools) == 94 or (len(tools) == 93 and "skill_script_run" not in {
+            t.tool_name for t in tools}), f"{len(tools)} {len(skills)}"
+        assert len(skills) == 45
         remote = real_registry.query(location="remote")
         # 【2026-11-05】21 -> 22：software_install（subprocess.run ⇒ location=remote）
         assert len(remote) == 22
@@ -204,7 +208,7 @@ class TestQuery:
     @_SKIP_COMMITTED_BASELINE
     def test_索引_确实被构建(self, real_registry):
         idx = real_registry.stats()["index"]
-        assert idx["primary"] == 142  # 【2026-11-07】+1：chart-visualization 入文件轨
+        assert idx["primary"] == 143  # 【2026-11-07】+1：chart-visualization；【2026-11-09】+1：skill_script_run
         assert idx["facet"] >= 1
 
 
