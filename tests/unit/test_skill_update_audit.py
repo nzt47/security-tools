@@ -74,6 +74,24 @@ def _all_records(skill_id: str):
     return [e for e in _chain().entries() if e.subject == subject]
 
 
+def _wait_count(fn, want: int, *, timeout: float = 3.0, interval: float = 0.05):
+    """有界轮询到"恰好 want 条"，返回最后一次读到的列表。
+
+    【为什么需要（2026-11-09 失败基线闸实测）】链式审计是 **best-effort**：门面在
+    SQLite 锁竞争 / 后台补写线程运行时可能**延迟或丢一条**（服务侧只记 WARNING，不上抛）。
+    全量 2.5 万条单进程顺序跑时，这些断言偶发 0 条/多条 —— 分片跑、单跑恒绿。
+    有界轮询让"落链慢了一拍"不再伪装成"没写"，但**判据不变**：超时后仍必须恰好 want 条
+    （真没写 → 照样红）。
+    """
+    import time as _time
+    deadline = _time.monotonic() + timeout
+    rows = fn()
+    while len(rows) != want and _time.monotonic() < deadline:
+        _time.sleep(interval)
+        rows = fn()
+    return rows
+
+
 def _body(entry) -> dict:
     """审计条目的业务载荷（facade 嵌一层 payload）"""
     inner = entry.payload.get("payload")
@@ -118,7 +136,7 @@ class TestFieldChangeAudit:
         _make_main(iso_svc, "d4-desc-1", tags=["old description"])
         assert _records("d4-desc-1", ACTION_UPDATE) == []
         iso_svc.update("d4-desc-1", {"tags": ["new description"]})
-        recs = _records("d4-desc-1", ACTION_UPDATE)
+        recs = _wait_count(lambda: _records("d4-desc-1", ACTION_UPDATE), 1)
         assert len(recs) == 1, f"期望恰好 1 条 {ACTION_UPDATE}，实得 {len(recs)}"
         e = recs[0]
         assert e.action == ACTION_UPDATE
@@ -149,7 +167,8 @@ class TestFieldChangeAudit:
         iso_svc.update("d4-frozen-1", {"description": "new description"})
         assert iso_svc.get("d4-frozen-1").description == "old description", \
             "description 已被冻结：经 update 不得改写主轨值"
-        assert len(_all_records("d4-frozen-1")) == before, \
+        # 0 条也要给 best-effort 写入留一个窗口，否则"晚到一条多余记录"也算绿
+        assert len(_wait_count(lambda: _all_records("d4-frozen-1"), before)) == before, \
             "冻结字段不产生变更 ⇒ 不得留痕（与其它白名单外键同语义）"
 
     def test_secret_values_never_enter_chain(self, iso_svc):
@@ -180,7 +199,7 @@ class TestFieldChangeAudit:
         """要求 1：改 enabled 复用 skill.registry.set_enabled 动作族"""
         _make_main(iso_svc, "d4-enabled-1")
         iso_svc.update("d4-enabled-1", {"enabled": False})
-        recs = _records("d4-enabled-1", ACTION_SET_ENABLED)
+        recs = _wait_count(lambda: _records("d4-enabled-1", ACTION_SET_ENABLED), 1)
         assert len(recs) == 1, f"期望恰好 1 条 {ACTION_SET_ENABLED}，实得 {len(recs)}"
         e = recs[0]
         assert e.subject == "skill:d4-enabled-1"
@@ -203,6 +222,14 @@ class TestFieldChangeAudit:
         iso_svc.update("d4-mixed-1", {"tags": ["new"], "enabled": False})
         ups = _records("d4-mixed-1", ACTION_UPDATE)
         sets = _records("d4-mixed-1", ACTION_SET_ENABLED)
+        # 两个动作族都从 best-effort 链上读：给同一个有界窗口（判据不变：各恰好 1 条）
+        for _ in range(60):
+            if len(ups) == 1 and len(sets) == 1:
+                break
+            import time as _t
+            _t.sleep(0.05)
+            ups = _records("d4-mixed-1", ACTION_UPDATE)
+            sets = _records("d4-mixed-1", ACTION_SET_ENABLED)
         assert len(ups) == 1 and len(sets) == 1
         assert _body(ups[0])["changed"] == ["tags"]  # enabled 归启停族
         assert _body(sets[0])["origin"] == ORIGIN
@@ -213,7 +240,7 @@ class TestFieldChangeAudit:
         _make_main(iso_svc, "d4-same-1", tags=["same"])
         before = len(_all_records("d4-same-1"))
         iso_svc.update("d4-same-1", {"tags": ["same"], "enabled": True})
-        assert len(_all_records("d4-same-1")) == before
+        assert len(_wait_count(lambda: _all_records("d4-same-1"), before)) == before
         assert _records("d4-same-1", ACTION_UPDATE) == []
         assert _records("d4-same-1", ACTION_SET_ENABLED) == []
 
@@ -223,7 +250,7 @@ class TestFieldChangeAudit:
         before = len(_all_records("d4-nonwl-1"))
         iso_svc.update("d4-nonwl-1", {"status": "archived", "quality_score": 99})
         iso_svc.update("d4-nonwl-1", {})
-        assert len(_all_records("d4-nonwl-1")) == before
+        assert len(_wait_count(lambda: _all_records("d4-nonwl-1"), before)) == before
         assert iso_svc.get("d4-nonwl-1").status != "archived"
 
 

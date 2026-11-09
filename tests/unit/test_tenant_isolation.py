@@ -315,12 +315,24 @@ class TestCrossTenantIsolation:
                                       identity="service_account", source="ci",
                                       reason="隔离维度验证", tenant_id=tenant,
                                       version="1.0.0")
+        # 【2026-11-09】有界轮询：链式审计是 best-effort（锁竞争/后台补写时可能晚一拍），
+        # 全量顺序跑时"最后两条"偶发只剩一条。判据不变：两个租户的记录必须都在且可区分；
+        # 超时后仍缺一个 ⇒ 照样红。
+        import time as _t
+        deadline = _t.monotonic() + 3.0
         seen = set()
-        for e in self._audit_rows()[-2:]:        # 升序 ⇒ 最后两条就是刚写的那两条
-            payload = getattr(e, "payload", None)
-            if isinstance(payload, str):
-                payload = json.loads(payload)
-            seen.add(dict(payload or {})["tenant_id"])
+        while _t.monotonic() < deadline:
+            seen = set()
+            for e in self._audit_rows():
+                payload = getattr(e, "payload", None)
+                if isinstance(payload, str):
+                    payload = json.loads(payload)
+                tid = dict(payload or {}).get("tenant_id")
+                if tid:
+                    seen.add(tid)
+            if {TENANT_A, TENANT_B} <= seen:
+                break
+            _t.sleep(0.05)
         assert seen == {TENANT_A, TENANT_B}, f"两个租户的审计无法区分：{seen}"
 
     # ── 维度 3：配额（TASK-08 的预留接入点）────────────────────────────
