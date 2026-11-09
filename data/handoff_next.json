@@ -357,6 +357,14 @@
       "next": "已打开（ui_override）。观察：新会话的上下文是否变短（正常）、老会话是否因为只有自己的消息而丢失跨会话线索（若需要跨会话线索，改用显式检索而不是靠窗口）。回滚 = 置 0。"
     },
     {
+      "id": "skill-usage-exec-zero",
+      "title": "技能近 7 日：命中/加载/执行的口径是什么？为什么执行恒 0？",
+      "status": "open",
+      "priority": "P2",
+      "criteria": "Owner 2026-11-09 指定。实测 /api/skills-mgmt/usage/stats?days=7：match_calls=32、hit_calls=23（hit_rate=0.7188）、load_calls=56、exec_calls=0、tool_calls=394（全部 ok）。台账 stage 定义在 agent/skills_mgmt/usage_log.py：match=L1 检索 top1、load=L2 说明被取用、exec=**L3 脚本执行**（success 必填）、tool=工具调用；聚合在 usage_log.stats(days)。",
+      "next": "先答「三个词各是什么」，再查 exec 恒 0 的原因：①51 个技能里有多少带 scripts/（chart-visualization 已降级为纯提示词资产）；②工作台 SSE / 编排器链路是否调用过 SkillExecutor.execute（grep 调用点）；③技能中心表格是否把「没有可执行脚本」展示成「执行 0」。判据：若确认没有可执行技能 ⇒ 是展示口径问题（应显示「无脚本，不适用」而不是 0），别当故障修；若链路没接通 ⇒ 才是缺陷。注意「无数据不许折算成 0」的 L5 口径同理。"
+    },
+    {
       "id": "lab-apply-cache-notice",
       "title": "提示词实验室 apply 旁标注「改身份=下一次调用整段前缀失效一次」",
       "status": "open",
