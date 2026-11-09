@@ -1,7 +1,15 @@
 {
-  "updated_at": "2026-11-08T19:50:00+08:00",
+  "updated_at": "2026-11-09T21:40+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
+    {
+      "id": "skill-script-run-observe",
+      "status": "open",
+      "priority": "P2",
+      "title": "skill_script_run 观察期：现场已开（YAML 默认停用），看是否真有人/模型用",
+      "criteria": "§11.78 新增工具：技能 L3 脚本的显式执行点（只补「显式调用」，不做命中即自动执行）。YAML 默认 enabled:false（停用观察口径）；现场通过 /api/tools/toggle 打开（data/tools_config.json，不改仓库）。工具层 L2 逐次确认（effect=execute+risk=high）；执行器内部还有一道 L1 闸门（工具名 skill.<id>）——实测两道路都要过（验收期一次审批 + 原样重试才跑通）。",
+      "next": "观察：①/usage/stats 的 exec_calls 是否随真实使用增长（验收期已实测 1 次成功：scripted-selftest/main.py，exit=0，104ms）；②有没有人抱怨「每次执行都要点确认」；③是否出现脚本超时/输出超限。回滚 = POST /api/tools/toggle {name:skill_script_run,enabled:false}（立即生效）或 YAML 改回 false 并重部署。"
+    },
     {
       "id": "c6-remaining",
       "title": "C-6 py/stack-trace-exposure 归零（4 → 0，三轮 SARIF 反查，#1474/#1477/#1478）",
@@ -57,15 +65,15 @@
       "status": "frozen",
       "priority": "P3",
       "criteria": "到期先复核最后 7 天用量，再决定「恢复/继续冻结/删除」。**2026-11-08 预复核发现判据本身不成立**：工具级台账（stage=tool）自 2026-10-29 上线至今**全仓 0 条**（连 read_file 这类高频工具都没有）——根因是台账唯一写入点 ToolCalling._execute_safe 不在本部署的对话链路上（工作台 SSE 直接用 agent.tools.call）。审计链里 15 条命中都是 CP_TOOL_CONFIRM_LEVEL_EXEMPT 的配置变更提到这个名字，不是调用",
-  "next": "台账已在对话执行点补记（PR #1515：plugins/chat.py 的 _record_tool_usage），部署后即可用真实用量复核。2026-11-10 到期时：先看近 7 天 stage=tool 里有没有 schedule_task（当前 YAML enabled:false，模型可见集已剔除 ⇒ 预期 0）；无数据且风险高（能自己安排未来任务）则继续冻结，删除/恢复需 Owner 点头"
+      "next": "台账已在对话执行点补记（PR #1515：plugins/chat.py 的 _record_tool_usage），部署后即可用真实用量复核。2026-11-10 到期时：先看近 7 天 stage=tool 里有没有 schedule_task（当前 YAML enabled:false，模型可见集已剔除 ⇒ 预期 0）；无数据且风险高（能自己安排未来任务）则继续冻结，删除/恢复需 Owner 点头"
     },
     {
       "id": "local-env-noise",
-      "title": "本机红但不是回归：test_network_config_test_floor（子进程探针）/ test_tool_pruning 的 9==8",
+      "title": "本机红但不是回归：未跟踪运行时 YAML/技能目录带来的派生面测试红（+ test_network_config_test_floor / test_tool_pruning 历史项）",
       "status": "frozen",
       "priority": "P3",
       "criteria": "干净 worktree / CI 均为绿；判绿以干净 worktree 为准",
-      "next": "换机器或 CI 复测"
+      "next": "本机：data/tool_definitions/{adaptive_skill_stack,api_multi_search_engine,byted_*}.yaml（5 个运行时登记工具，category=ingested/custom、缺 examples）⇒ test_tool_definitions_yaml 红；data/skills_repo/{adaptive-skill-stack,claude-code-analysis}/（未跟踪技能目录）⇒ test_capability_spec::test_清单与权威数据一致 红。两者在干净 worktree / CI 均为绿（2026-11-09 §11.78 已按干净 worktree 复核）。"
     },
     {
       "id": "software-probe-install",
@@ -162,7 +170,7 @@
       "status": "done",
       "priority": "P3",
       "criteria": "2026-11-08 01:5x Owner 选「降级」：skill.md 正文重写为自足的提示词资产 —— 顶部新增「资产说明（仅提示词资产）」明确没有 scripts/ 与 references/、别去找 generate.js/references；Workflow 第 2 步换成通用 args 字段约定（不再指向缺失文件）、第 3 步换成「Python matplotlib / ECharts option / 只给规格」三条本机可走的路、示例末尾删掉 node ./scripts/generate.js；「何时使用」「示例」保留（validator 0 error / 该技能 0 warning），Reference Material 段写清上游 antvis/chart-visualization-skills 与「未导入」。正文改动对派生面**零影响**（干净 worktree 跑 sync_capability_manifest --check：142 条一致，exit 0）",
-  "next": "已完成（只改正文、未动 front matter ⇒ 不动能力面）。若日后要真出图：把上游 scripts/ 与 references/ 拷进 data/skills_repo/chart-visualization/ 后走 intake_skill.py --execute --fix-baselines 重新入轨"
+      "next": "已完成（只改正文、未动 front matter ⇒ 不动能力面）。若日后要真出图：把上游 scripts/ 与 references/ 拷进 data/skills_repo/chart-visualization/ 后走 intake_skill.py --execute --fix-baselines 重新入轨"
     },
     {
       "id": "demo-capability-tools-local",
@@ -358,11 +366,13 @@
     },
     {
       "id": "skill-usage-exec-zero",
-      "title": "技能近 7 日：命中/加载/执行的口径是什么？为什么执行恒 0？",
-      "status": "open",
+      "title": "技能近 7 日命中/加载/执行的口径 + 「执行不适用」上屏 + L3 显式执行点（§11.78）",
+      "status": "done",
       "priority": "P2",
-      "criteria": "Owner 2026-11-09 指定。实测 /api/skills-mgmt/usage/stats?days=7：match_calls=32、hit_calls=23（hit_rate=0.7188）、load_calls=56、exec_calls=0、tool_calls=394（全部 ok）。台账 stage 定义在 agent/skills_mgmt/usage_log.py：match=L1 检索 top1、load=L2 说明被取用、exec=**L3 脚本执行**（success 必填）、tool=工具调用；聚合在 usage_log.stats(days)。",
-      "next": "先答「三个词各是什么」，再查 exec 恒 0 的原因：①51 个技能里有多少带 scripts/（chart-visualization 已降级为纯提示词资产）；②工作台 SSE / 编排器链路是否调用过 SkillExecutor.execute（grep 调用点）；③技能中心表格是否把「没有可执行脚本」展示成「执行 0」。判据：若确认没有可执行技能 ⇒ 是展示口径问题（应显示「无脚本，不适用」而不是 0），别当故障修；若链路没接通 ⇒ 才是缺陷。注意「无数据不许折算成 0」的 L5 口径同理。"
+      "criteria": "Owner 2026-11-09 指定。结论：exec 恒 0 **不是链路故障**，是「没有可执行技能」+「聊天链路只做 L1→L2，不执行脚本」+「页面把不适用显示成 0」。实测：51 个文件轨技能里只有 1 个真有 scripts/*.py（scripted-selftest 示例，全仓仅 1 个 .py）；SkillExecutor.execute 的调用点只有 POST /api/skills-mgmt/<id>/execute（人点详情抽屉）、评估器、修复委派 —— 工作台 SSE / 编排器从不执行脚本。台账自 2026-10-28 建账起 exec 事件 = 0（11 个分片全扫）。另两项口径问题：①load 的 source 全写 loader ⇒ 56 条加载里 33 条在 ±15s 内没有同技能命中（详情抽屉默认打开「使用说明」= 一次 load），「加载」把模型取用与人点开详情算成一个数；②命中率 71.9% 的分母是 32 次检索，不是 50 个启用技能（同窗口 39/50 一次都没命中）。",
+      "next": "已落：#1 列表加 has_scripts（叶子 file_store.skill_ids_with_scripts）+ 表格「执行」位改「—/不适用」+看板 summary 改「执行不适用（无带脚本技能）」+ 冲突处置不再提「0 执行」；#2 台账 load 按 source 分列（semantic/inject=模型取用、ui=详情查看、loader=未分源历史），totals 增 load_inject_calls/load_ui_calls/load_legacy_calls；#3 新工具 skill_script_run（L3 显式执行点，默认 YAML enabled:false，现场已开）。遗留：56 条历史加载无法回溯分源（只能按「未分源」单列），新事件起才有语义。",
+      "done_at": "2026-11-09T21:40+08:00",
+      "done_by": "§11.78"
     },
     {
       "id": "lab-apply-cache-notice",
