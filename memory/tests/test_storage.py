@@ -71,3 +71,51 @@ def test_auto_create_directory():
         s = Storage(data_dir=str(path))
         s.save_message({"role": "user", "content": "test"})
         assert path.exists()
+
+# ════════════════════════════════════════════════════════════
+#  每会话摘要（2026-11-09）—— 存储层先支持，何时分家由调用方决定
+# ════════════════════════════════════════════════════════════
+
+
+def test_两会话摘要互不覆盖(storage):
+    """A 的摘要不能出现在 B 的文件里；全局文件也不受影响（旧口径保持）"""
+    storage.save_summary("A 的摘要", version=1, session_id="sess_A")
+    storage.save_summary("B 的摘要", version=2, session_id="sess_B")
+
+    assert storage.load_summary("sess_A") == ("A 的摘要", 1)
+    assert storage.load_summary("sess_B") == ("B 的摘要", 2)
+    # 未传会话 = 全局文件：仍然是"没有"，证明分家写不会污染旧口径
+    assert storage.load_summary() is None
+
+
+def test_与会话摘要不影响全局摘要(storage):
+    storage.save_summary("全局摘要", version=7)
+    storage.save_summary("A 的摘要", version=1, session_id="sess_A")
+    assert storage.load_summary() == ("全局摘要", 7)
+    assert storage.load_summary("sess_A") == ("A 的摘要", 1)
+
+
+def test_会话文件名可预测且无路径分隔符(storage):
+    """文件名 = sha256(sid) 前缀：可预测、无分隔符（路径注入断链）"""
+    storage.save_summary("x", version=1, session_id="../etc/passwd")
+    files = [p.name for p in Path(storage.data_dir).glob("summary_*.txt")
+             if not p.name.endswith(".version.txt")]
+    assert len(files) == 1
+    name = files[0]
+    assert "/" not in name and "\\" not in name and ".." not in name
+    # 同一个 sid 每次算出同一个文件名 ⇒ 能读回
+    assert storage.load_summary("../etc/passwd") == ("x", 1)
+
+
+def test_清空只清该会话(storage):
+    storage.save_summary("A", version=1, session_id="sess_A")
+    storage.save_summary("B", version=1, session_id="sess_B")
+    storage.clear_summary("sess_A")
+    assert storage.load_summary("sess_A") == ("", 0)
+    assert storage.load_summary("sess_B") == ("B", 1)
+
+
+def test_没有该会话摘要时返回_None(storage):
+    """存储层不替调用方猜「要不要回退全局」——没有就是 None"""
+    storage.save_summary("全局摘要", version=3)
+    assert storage.load_summary("sess_never_written") is None

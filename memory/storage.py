@@ -1,11 +1,18 @@
 """持久化存储 — 管理 memory_data/ 目录下的文件读写"""
 
+import hashlib
 import json
 import logging
 import os
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
+
+#: 每会话摘要文件名里的 sid 摘要长度（sha256 前 16 位十六进制）
+#: 【为什么用 sha256 而不是原样拼】会话 id 来自请求，直接拼路径就是路径注入；
+#:   本仓口径（docs/handoff/口径.md §4）只认三种断链：列目录+名字等值匹配、
+#:   常量键→常量路径字典、sha256 摘要 —— 这里是第三种，文件名可预测且无分隔符。
+_SESSION_SUMMARY_HEX = 16
 
 logger = logging.getLogger(__name__)
 
@@ -19,9 +26,15 @@ class Storage:
     """消息历史与摘要的持久化管理器
 
     文件结构：
-        messages.jsonl       — 追加写消息历史
-        summary.txt          — 当前摘要文本
-        summary_version.txt  — 摘要版本号
+        messages.jsonl              — 追加写消息历史
+        summary.txt                 — **未分会话**（旧口径/维护线程）的摘要文本
+        summary_version.txt         — 其版本号
+        summary_<sha256(sid)[:16]>.txt         — 该会话自己的摘要（按会话分家时用）
+        summary_<sha256(sid)[:16]>.version.txt — 其版本号
+
+    说明：摘要方法都带 `session_id=""`，缺省 = 全局文件（逐字旧行为）；
+    传了会话 id 才落到该会话的文件。这样存储层可以先支持分家，
+    而"什么时候开始分家"由调用方（开关）决定，两件事不绑死。
 
     并发安全：
         使用 threading.Lock() 保护文件写入操作，确保多线程安全。
@@ -169,48 +182,69 @@ class Storage:
             logger.info(f"[Storage.delete_message] 已删除 {removed} 条 id={target}")
             return True
 
-    def save_summary(self, summary: str, version: int):
-        """保存摘要（线程安全）"""
-        logger.info(f"[Storage.save_summary] 开始保存摘要，版本: {version}")
+    def _summary_paths(self, session_id: str = "") -> tuple[Path, Path]:
+        """返回 (摘要文件, 版本文件)。session_id 为空 = 全局文件（旧口径）。"""
+        sid = str(session_id or "")
+        if not sid:
+            return self.summary_file, self.version_file
+        key = hashlib.sha256(sid.encode("utf-8")).hexdigest()[:_SESSION_SUMMARY_HEX]
+        return (self.data_dir / ("summary_%s.txt" % key),
+                self.data_dir / ("summary_%s.version.txt" % key))
+
+    def save_summary(self, summary: str, version: int, session_id: str = ""):
+        """保存摘要（线程安全）。
+
+        Args:
+            session_id: 空 = 全局摘要（旧行为）；非空 = 该会话自己的摘要文件。
+        """
+        logger.info(f"[Storage.save_summary] 开始保存摘要，版本: {version}，会话: {session_id or '(全局)'}")
+        summary_file, version_file = self._summary_paths(session_id)
         self._ensure_dir()
         try:
             with self._write_lock:
-                logger.info(f"[Storage.save_summary] 写入摘要文件: {self.summary_file}")
-                self.summary_file.write_text(summary, encoding="utf-8")
-                logger.info(f"[Storage.save_summary] 写入版本文件: {self.version_file}")
-                self.version_file.write_text(str(version), encoding="utf-8")
+                logger.info(f"[Storage.save_summary] 写入摘要文件: {summary_file}")
+                summary_file.write_text(summary, encoding="utf-8")
+                logger.info(f"[Storage.save_summary] 写入版本文件: {version_file}")
+                version_file.write_text(str(version), encoding="utf-8")
                 logger.info(f"[Storage.save_summary] 摘要保存成功")
         except OSError as e:
             logger.error(f"[Storage.save_summary] 写入失败: {e}")
             raise StorageError(f"写入摘要失败: {e}") from e
 
-    def load_summary(self) -> tuple[str, int] | None:
-        """加载当前摘要，返回 (摘要文本, 版本号) 或 None"""
-        logger.info("[Storage.load_summary] 开始加载摘要")
-        if not self.summary_file.exists() or not self.version_file.exists():
+    def load_summary(self, session_id: str = "") -> tuple[str, int] | None:
+        """加载摘要，返回 (摘要文本, 版本号) 或 None。
+
+        Args:
+            session_id: 空 = 全局摘要（旧行为）；非空 = 该会话自己的摘要文件
+                （没有就返回 None —— 是否回退全局由调用方决定，存储层不替它猜）。
+        """
+        summary_file, version_file = self._summary_paths(session_id)
+        logger.info("[Storage.load_summary] 开始加载摘要（会话: %s）", session_id or "(全局)")
+        if not summary_file.exists() or not version_file.exists():
             logger.warning(f"[Storage.load_summary] 摘要或版本文件不存在")
             return None
         try:
-            logger.info(f"[Storage.load_summary] 读取摘要: {self.summary_file}")
-            summary = self.summary_file.read_text(encoding="utf-8")
-            logger.info(f"[Storage.load_summary] 读取版本: {self.version_file}")
-            version = int(self.version_file.read_text(encoding="utf-8").strip())
+            logger.info(f"[Storage.load_summary] 读取摘要: {summary_file}")
+            summary = summary_file.read_text(encoding="utf-8")
+            logger.info(f"[Storage.load_summary] 读取版本: {version_file}")
+            version = int(version_file.read_text(encoding="utf-8").strip())
             logger.info(f"[Storage.load_summary] 加载成功，版本: {version}")
             return summary, version
         except (OSError, ValueError) as e:
             logger.error(f"[Storage.load_summary] 加载失败: {e}")
             raise StorageError(f"读取摘要失败: {e}") from e
 
-    def clear_summary(self):
-        """清空摘要文件，重置版本号"""
-        logger.info("[Storage.clear_summary] 开始清空摘要")
+    def clear_summary(self, session_id: str = ""):
+        """清空摘要文件并重置版本号（session_id 非空 = 只清该会话）"""
+        logger.info("[Storage.clear_summary] 开始清空摘要（会话: %s）", session_id or "(全局)")
+        summary_file, version_file = self._summary_paths(session_id)
         try:
             with self._write_lock:
-                if self.summary_file.exists():
-                    self.summary_file.write_text("", encoding="utf-8")
+                if summary_file.exists():
+                    summary_file.write_text("", encoding="utf-8")
                     logger.info("[Storage.clear_summary] 摘要文件已清空")
-                if self.version_file.exists():
-                    self.version_file.write_text("0", encoding="utf-8")
+                if version_file.exists():
+                    version_file.write_text("0", encoding="utf-8")
                     logger.info("[Storage.clear_summary] 版本号已重置为 0")
                 logger.info("[Storage.clear_summary] 摘要清空成功")
         except OSError as e:
