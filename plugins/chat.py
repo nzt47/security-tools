@@ -153,6 +153,13 @@ def api_chat():
             logger.warning("会话 ID 创建失败（OSError），回退默认会话: %s", _e)
             session_id = _get_current_session_id()
     logs.append(f"[SESSION] 会话 ID: {session_id}")
+    # 【2026-11-09】摘要按会话分家后，读侧取「当前会话」（agent/current_session）；
+    # 真正在聊的会话必须就是当前会话，否则上下文会读到别的会话的摘要。
+    # 指针更新失败不影响对话（fail-soft，最坏退化成"读上一次的当前会话"）。
+    try:
+        _session_mgr.set_current(session_id)
+    except Exception:  # noqa: BLE001 指针失败不得击穿对话主链路
+        pass
 
     # 安全检查（受技能开关控制）
     safety_start = time.time()
@@ -2934,6 +2941,12 @@ def api_chat_stream():
         from app_server import _get_current_session_id as _gcid
         session_id = _gcid()
     logger.info("[workbench][SSE] 开始流式响应（会话 %s）: %s", session_id, question[:60])
+    # 【2026-11-09】同上：让「当前会话」跟着真正在聊的会话走（摘要分家的读侧依赖它）。
+    try:
+        from app_server import _session_mgr as _sm_now
+        _sm_now.set_current(session_id)
+    except Exception as _ce:  # noqa: BLE001 指针失败不影响对话
+        logger.debug("[workbench][SSE] 更新当前会话失败: %s", _ce)
 
     def gen():
         # 累积流式 chunk 文本，流结束时落盘为 assistant 消息（会话持久化；
