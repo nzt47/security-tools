@@ -80,6 +80,11 @@ def plan(service: Any, *, usage_days: int = 7,
         stats = usage_log.stats(usage_days)
     except Exception:  # noqa: BLE001 台账不可读时按「无使用证据」处理，但只允许 escalate
         stats = {}
+    # 哪些技能真有可执行脚本（口径叶子：file_store.skill_ids_with_scripts）
+    try:
+        scripted_ids = set(service.skill_ids_with_scripts())
+    except Exception:  # noqa: BLE001 读不到就按「没有」处理（reason 只会更保守地不提执行）
+        scripted_ids = set()
     items: List[Dict[str, Any]] = []
     judge_calls = 0
     seen = set()
@@ -97,6 +102,10 @@ def plan(service: Any, *, usage_days: int = 7,
         score = float(getattr(rv, "score", 0) or 0)
         usage = _usage_of(stats, sid)
         active = any(usage[k] >= ACTIVE_ANY_USAGE for k in ("hits", "loads", "execs"))
+        # 「0 执行」只对**有脚本**的技能是证据（2026-11-09）：正文型技能不存在执行这件事，
+        # 把它写成「0 执行」是把「不适用」当成了缺陷证据。
+        usage_phrase = ("0 命中/0 加载/0 执行" if sid in scripted_ids
+                        else "0 命中/0 加载（该技能无脚本，执行不适用）")
         kind = "trigger_collision" if any(f["code"] == "INT_SHARED_TRIGGER" for f in findings) \
             else "native_overlap"
         base = {
@@ -114,8 +123,8 @@ def plan(service: Any, *, usage_days: int = 7,
             continue
         if score < AUTO_DISABLE_SCORE:
             base.update(action="disable",
-                        reason="近 %d 天 0 命中/0 加载/0 执行，且综合评分 %.1f < %.0f"
-                        % (usage_days, score, AUTO_DISABLE_SCORE))
+                        reason="近 %d 天 %s，且综合评分 %.1f < %.0f"
+                        % (usage_days, usage_phrase, score, AUTO_DISABLE_SCORE))
             items.append(base)
             continue
         # 高分 + 无使用 ⇒ 规则判不了：可选 LLM 裁决，否则交人工

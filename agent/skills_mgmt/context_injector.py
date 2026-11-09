@@ -486,7 +486,7 @@ class ContextInjector:
                 }
             logger.warning(log_dict({'module_name': 'context_injector', 'action': 'inject_instruction.l1_canary.fallback', 'skill_id': skill_id, 'reason': got.get('error') or 'empty_l1'}))
 
-        return self.loader.load_instruction(skill_id)
+        return self.loader.load_instruction(skill_id, source="inject")
 
     def inject_instruction(self, skill_id: str) -> Dict[str, Any]:
         """第二层 — 按需注入技能的完整使用说明

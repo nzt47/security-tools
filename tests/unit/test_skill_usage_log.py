@@ -39,6 +39,37 @@ def test_record_and_aggregate(log_path):
     assert row["last_used_at"], "last_used_at 必须落值（UI 用它显示最近使用）"
 
 
+def test_load_sources_are_split(log_path):
+    """load 要按来源拆开：只有注入类算「模型取用」，UI 读取与历史记录各自单列（2026-11-09）。
+
+    背景：`source` 此前一律写 loader，于是「加载 56」把「命中后进上下文」和
+    「人点开技能详情读一眼」算成一个数（实测 7 日内 33/56 条加载没有同技能命中）。
+    """
+    usage_log.record("load", "a", source="semantic")   # 语义层命中后注入
+    usage_log.record("load", "a", source="inject")     # 上下文注入器
+    usage_log.record("load", "a", source="ui")         # 详情抽屉读一眼
+    usage_log.record("load", "a")                      # 历史/未分源
+    s = usage_log.stats(7)
+    tot = s["totals"]
+    assert tot["load_calls"] == 4
+    assert tot["load_inject_calls"] == 2
+    assert tot["load_ui_calls"] == 1
+    assert tot["load_legacy_calls"] == 1
+    row = s["skills"]["a"]
+    assert row["loads"] == 4 and row["loads_inject"] == 2
+    # 注入数不能超过总数（口径自洽守卫）
+    assert row["loads_inject"] <= row["loads"]
+
+
+def test_load_with_unknown_source_is_not_counted_as_inject(log_path):
+    """认不出的来源不能默认算成「模型取用」——宁可单列，不可虚增。"""
+    usage_log.record("load", "b", source="something_new")
+    s = usage_log.stats(7)
+    assert s["totals"]["load_inject_calls"] == 0
+    assert s["totals"]["load_legacy_calls"] == 1
+    assert s["skills"]["b"]["loads_inject"] == 0
+
+
 def test_miss_is_counted_but_not_a_hit(log_path):
     usage_log.record("match", None, extra={"top_ids": [], "count": 0})
     usage_log.record("match", "beta", extra={"top_ids": ["beta"], "count": 1})

@@ -198,10 +198,18 @@ def register_routes(app, state):
                 tracks = _svc().file_track_ids()
             except Exception:  # noqa: BLE001 读不到文件轨不影响主列表
                 tracks = set()
+            # has_scripts：UI 用它区分「执行 0 次」与「无脚本，不适用」
+            # （2026-11-09：51 个文件轨技能里只有 1 个真有 scripts/*.py，
+            #   把不适用显示成 0 违反「无数据不许折算成 0」口径）
+            try:
+                scripted = _svc().skill_ids_with_scripts()
+            except Exception:  # noqa: BLE001 读不到脚本目录不影响主列表
+                scripted = set()
             rows = []
             for s in items:
                 row = s.model_dump()
                 row["has_file_track"] = s.id in tracks
+                row["has_scripts"] = s.id in scripted
                 rows.append(row)
             return jsonify({
                 "ok": True,
@@ -2047,8 +2055,9 @@ def register_routes(app, state):
         仅在 Layer 1 命中后才应调用，避免无谓加载。
         """
         try:
+            # source="ui"：人点开详情读一眼 ≠ 模型取用（台账据此分列，2026-11-09）
             return jsonify({"ok": True,
-                            **_svc().load_skill_instruction(skill_id)})
+                            **_svc().load_skill_instruction(skill_id, source="ui")})
         except SkillMgmtError as e:
             return _err(e)
 

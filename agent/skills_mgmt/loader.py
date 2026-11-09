@@ -2504,10 +2504,16 @@ class SkillLoader:
     #  第二层：按需加载使用说明
     # ──────────────────────────────────────────────
 
-    def load_instruction(self, skill_id: str) -> Dict[str, Any]:
+    def load_instruction(self, skill_id: str, source: str = "loader") -> Dict[str, Any]:
         """第二层 — 按需加载技能的完整使用说明
 
         只在第一层匹配到技能后才调用。
+        Args:
+            skill_id: 技能 id
+            source: 谁读的（写进使用台账 stage=load 的 source）。取值约定：
+                semantic = 语义层命中后注入、inject = 上下文注入器、
+                ui = 技能详情/接口读一眼、loader = 未分源的旧调用。
+                口径见 `usage_log.LOAD_INJECT_SOURCES`：**只有注入类算模型取用**。
         Returns: {skill_id, instruction, estimated_tokens, layer}
         """
         t0 = time.time()
@@ -2525,7 +2531,7 @@ class SkillLoader:
         # 使用台账（L2）：与指标同一口径；写失败不影响返回
         try:
             from .usage_log import record
-            record("load", skill_id, latency_ms=elapsed, source="loader")
+            record("load", skill_id, latency_ms=elapsed, source=source or "loader")
         except Exception:  # noqa: BLE001
             pass
 

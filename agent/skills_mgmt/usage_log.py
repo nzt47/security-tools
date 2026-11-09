@@ -9,7 +9,9 @@
 - 一行一个事件：{ts, stage, skill_id, success, latency_ms, trace_id, source, extra}；
 - stage 取 match / load / exec / tool：
   · match：一次 L1 检索（skill_id = top1，extra.top_ids 记前 5 名，用于算命中率）；
-  · load：一次 L2 说明加载（skill_id 必须非空）；
+  · load：一次 L2 说明读取（skill_id 必须非空）。**source 区分「谁读的」**：
+    semantic / inject = 命中后注入给模型（模型取用）；ui = 人点开技能详情读一眼；
+    历史记录没有分源（旧版一律写 loader）⇒ 统计里单列，不并进「模型取用」；
   · exec：一次 L3 脚本执行（success 必填）；
   · tool：一次**工具**调用（2026-10-29 补：工具名放 `tool` 字段，success/latency_ms 必填，
     extra.effect / extra.error_code 可选）。写入点是 `ToolCalling._record_unified_tool_trace`
@@ -44,6 +46,13 @@ _ARCHIVED: set[str] = set()
 _ARCHIVE_LOCK = threading.Lock()
 
 STAGES = ("match", "load", "exec", "tool")
+
+#: load 事件的来源分档（2026-11-09）：`source` 字段此前所有写入点都写 `loader`，
+#: 于是「加载 56」把**模型取用**和**人点开详情**算成了一个数（实测 7 日内 33/56 条加载
+#: 没有同技能的命中，"技能详情抽屉默认打开使用说明"就是一条确定的写入点）。
+#: 现在按来源拆开：只有注入类算「模型取用」，UI 读取单列，历史（未分源）单列。
+LOAD_INJECT_SOURCES = frozenset({"semantic", "inject"})
+LOAD_UI_SOURCES = frozenset({"ui"})
 
 
 def usage_path() -> Path:
@@ -204,18 +213,21 @@ def _iter_events(days: int) -> Iterable[Dict[str, Any]]:
 def stats(days: int = 7) -> Dict[str, Any]:
     """按技能与工具聚合最近 N 天。
 
-    技能：hits / loads / execs / exec_ok / exec_fail / last_used_at；
+    技能：hits / loads / loads_inject / execs / exec_ok / exec_fail / last_used_at；
     工具（stage=tool）：calls / ok / fail / avg_ms / max_ms / last_error / last_used_at。
     两段共用同一次文件扫描 —— 工具台账不是第二份文件，避免两份口径漂移。
     """
     per: Dict[str, Dict[str, Any]] = {}
     tools: Dict[str, Dict[str, Any]] = {}
     totals = {"match_calls": 0, "hit_calls": 0, "load_calls": 0,
+              "load_inject_calls": 0, "load_ui_calls": 0, "load_legacy_calls": 0,
               "exec_calls": 0, "exec_ok": 0, "exec_fail": 0,
               "tool_calls": 0, "tool_ok": 0, "tool_fail": 0}
 
     def _row(sid: str) -> Dict[str, Any]:
-        return per.setdefault(sid, {"skill_id": sid, "hits": 0, "loads": 0, "execs": 0,
+        return per.setdefault(sid, {"skill_id": sid, "hits": 0,
+                                    "loads": 0, "loads_inject": 0,
+                                    "execs": 0,
                                     "exec_ok": 0, "exec_fail": 0, "last_used_at": ""})
 
     for ev in _iter_events(days):
@@ -231,8 +243,19 @@ def stats(days: int = 7) -> Dict[str, Any]:
                 r["last_used_at"] = max(r["last_used_at"], ts)
         elif stage == "load" and sid:
             totals["load_calls"] += 1
+            src = str(ev.get("source") or "")
+            injected = src in LOAD_INJECT_SOURCES
+            if injected:
+                totals["load_inject_calls"] += 1
+            elif src in LOAD_UI_SOURCES:
+                totals["load_ui_calls"] += 1
+            else:
+                # 历史记录（source=loader）无法回溯分源：单列，**不并进注入**，也不丢
+                totals["load_legacy_calls"] += 1
             r = _row(sid)
             r["loads"] += 1
+            if injected:
+                r["loads_inject"] += 1
             r["last_used_at"] = max(r["last_used_at"], ts)
         elif stage == "exec" and sid:
             totals["exec_calls"] += 1

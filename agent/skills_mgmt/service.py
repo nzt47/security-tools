@@ -70,7 +70,7 @@ from .reviewer import SkillReviewer, ReviewThresholds
 from .searcher import SkillSearcher
 from .enhancer import SkillEnhancer, VersionBump, IntegrationHook
 from .file_track_policy import no_file_track_reason
-from .file_store import SkillFileStore
+from .file_store import SkillFileStore, skill_ids_with_scripts
 from .index_cache import SkillIndexCache
 from .loader import SkillLoader, MatchResult
 from .executor import SkillExecutor, ExecutionResult
@@ -2157,6 +2157,17 @@ class SkillsMgmtService:
     def list_all(self) -> List[Skill]:
         return self.store.list_all()
 
+    def skill_ids_with_scripts(self) -> set:
+        """有可执行脚本（`scripts/*.py`）的技能 id 集合。
+
+        口径只有一处（`file_store.skill_ids_with_scripts`）：技能中心的「执行」列、
+        单位看板的执行读数、冲突处置文案共用它，避免三份目录扫描各说各话。
+        读不到仓库 ⇒ 空集（fail-soft，调用方按「未知/不适用」处理，不折算成 0）。
+        """
+        if self.file_store is None:
+            return set()
+        return skill_ids_with_scripts(self.file_store.repo_path)
+
     def file_track_ids(self) -> set:
         """有文件轨的技能 id 集合（`data/skills_repo/<id>/skill.md` 真实存在）。
 
@@ -2789,13 +2800,17 @@ class SkillsMgmtService:
                     details={"intent": intent[:200]},
                 ) from e
 
-    def load_skill_instruction(self, skill_id: str) -> Dict[str, Any]:
+    def load_skill_instruction(self, skill_id: str,
+                               source: str = "loader") -> Dict[str, Any]:
         """Layer 2: 按需加载技能使用说明 (skill.md 正文)
 
         仅在 Layer 1 命中后才应调用此方法，避免无谓加载。
 
         Args:
             skill_id: 技能ID
+            source: 谁读的（透传给使用台账，见 `usage_log.LOAD_INJECT_SOURCES`）：
+                semantic = 语义层命中后注入、ui = 技能详情接口、inject = 上下文注入器。
+                缺省 loader = 未分源（与旧行为逐字相同）。
 
         Returns:
             dict — {skill_id, instruction, estimated_tokens, layer}
@@ -2806,7 +2821,7 @@ class SkillsMgmtService:
         """
         with traced_action("svc_load_instruction", skill_id=skill_id, layer=2):
             try:
-                out = self.loader.load_instruction(skill_id)
+                out = self.loader.load_instruction(skill_id, source=source)
                 out["source"] = "file"
                 return out
             except SkillNotFoundError:

@@ -59,6 +59,32 @@ class TestRoutesSkillsMgmtIntegration:
         assert body["page"] == 1
         mock_svc.search.assert_called_once()
 
+    def test_list_exposes_has_scripts(self, skills_mgmt_client):
+        """测试 1b：列表要给出「有没有可执行脚本」，UI 才能把执行显示成「不适用」。
+
+        2026-11-09：51 个文件轨技能里只有 1 个带 scripts/*.py，页面却对每个技能都
+        显示「执行 0」——把不适用折算成 0（L5 口径禁止）。
+        """
+        client, mock_svc = skills_mgmt_client
+
+        s_plain = MagicMock()
+        s_plain.id = "plain"
+        s_plain.model_dump.return_value = {"id": "plain", "name": "纯提示词技能"}
+        s_scripted = MagicMock()
+        s_scripted.id = "scripted"
+        s_scripted.model_dump.return_value = {"id": "scripted", "name": "带脚本技能"}
+        mock_svc.list_all.return_value = [s_plain, s_scripted]
+        mock_svc.file_track_ids.return_value = {"plain", "scripted"}
+        mock_svc.skill_ids_with_scripts.return_value = {"scripted"}
+
+        resp = client.get("/api/skills-mgmt")
+
+        assert resp.status_code == 200
+        rows = {r["id"]: r for r in resp.json["items"]}
+        assert rows["scripted"]["has_scripts"] is True
+        assert rows["plain"]["has_scripts"] is False
+        assert rows["plain"]["has_file_track"] is True
+
     def test_create_via_ai_validates_inputs(self, skills_mgmt_client):
         """测试 3：AI 辅助创建技能的参数校验"""
         client, mock_svc = skills_mgmt_client

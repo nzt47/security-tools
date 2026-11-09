@@ -41,8 +41,20 @@ class TestPlan:
         out = conflict_auto.plan(svc)
         row = out["items"][0]
         assert row["action"] == "disable" and row["kind"] == "trigger_collision"
-        assert "0 命中/0 加载/0 执行" in row["reason"]
+        # 没有 scripts/*.py ⇒ 不拿「0 执行」当证据（2026-11-09 口径）
+        assert "0 命中/0 加载" in row["reason"]
+        assert "执行不适用" in row["reason"]
+        assert "0 执行" not in row["reason"]
         assert out["summary"]["disable"] == 1
+
+    def test_low_score_with_scripts_keeps_exec_evidence(self, tmp_path, monkeypatch):
+        svc = _svc(tmp_path, monkeypatch)
+        _seed(svc, "scripted", score=60.0)
+        sc = tmp_path / "repo" / "scripted" / "scripts"
+        sc.mkdir(parents=True)
+        (sc / "main.py").write_text("print('{}')", encoding="utf-8")
+        out = conflict_auto.plan(svc)
+        assert "0 命中/0 加载/0 执行" in out["items"][0]["reason"]
 
     def test_high_score_without_usage_escalates_to_human(self, tmp_path, monkeypatch):
         svc = _svc(tmp_path, monkeypatch)

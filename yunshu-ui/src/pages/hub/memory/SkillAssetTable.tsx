@@ -96,6 +96,8 @@ interface SkillItem {
   class_name?: string; class_auto?: boolean; runtime_only?: boolean; callability?: CallabilityInfo
   /** 已有文件轨（data/skills_repo/<id>/skill.md）：为 true 时「生成文件轨」应置灰 */
   has_file_track?: boolean
+  /** 有可执行脚本（data/skills_repo/<id>/scripts/*.py）：为 false 时「执行」是**不适用**，不是 0 */
+  has_scripts?: boolean
 }
 
 /** 文件轨补登记：dry-run 返回候选，确认后返回 created/skipped */
@@ -115,7 +117,12 @@ interface RuntimeSkill {
 }
 
 /** 近 7 日使用台账（/api/skills-mgmt/usage/stats） */
-interface UsageRow { hits?: number; loads?: number; execs?: number; exec_ok?: number; exec_fail?: number; last_used_at?: string }
+interface UsageRow {
+  hits?: number; loads?: number; execs?: number; exec_ok?: number; exec_fail?: number
+  /** 注入类加载（命中后真正进上下文的次数）；`loads` 含「人点开详情读一眼」 */
+  loads_inject?: number
+  last_used_at?: string
+}
 interface UsageStatsResp { ok?: boolean; error?: string; days?: number; skills?: Record<string, UsageRow>; totals?: Record<string, number> }
 
 /** 「仅运行时·无资产记录」的成因说明（悬停可见，避免用户以为是坏数据） */
@@ -637,30 +644,39 @@ export default function SkillAssessManager() {
         <td className="px-2 py-2 align-top">
           {(() => {
             const u = usage?.skills?.[it.id]
+            // 「执行」只有**真有 scripts/*.py** 的技能才是一个数（2026-11-09）：
+            // 51 个文件轨技能里只有 1 个带脚本，其余把「不适用」显示成 0 =
+            // 把没有的事写成"跑了 0 次"（L5：无数据不许折算成 0）。
+            const execTxt = it.has_scripts ? String(u?.execs ?? 0) : '—'
+            const execTip = it.has_scripts
+              ? `执行 ${u?.execs ?? 0} 次（成功 ${u?.exec_ok ?? 0} / 失败 ${u?.exec_fail ?? 0}）`
+              : '该技能没有 scripts/*.py：指令型技能只注入提示词，不执行代码（不适用，不是 0 次）'
             if (it.runtime_only) return <span className="text-[10px] text-slate-600">—</span>
             if (!u) {
               return (
                 <span className="flex flex-wrap items-center gap-1">
-                  {chip('未调用', 'bg-slate-500/10 text-slate-400 border-slate-700', '近 7 天没有命中/加载/执行记录')}
-                  <span className="font-mono text-[9px] text-slate-600">0/0/0</span>
+                  {chip('未调用', 'bg-slate-500/10 text-slate-400 border-slate-700',
+                    '近 7 天没有命中/加载/执行记录' + (it.has_scripts ? '' : '（该技能无脚本，执行不适用）'))}
                 </span>
               )
             }
             const hits = u.hits ?? 0
-            const loads = u.loads ?? 0
-            const execs = u.execs ?? 0
+            // 注入 = 命中后真正进了上下文；loads 还包含「人点开详情读一眼」
+            const injected = u.loads_inject ?? 0
+            const browsed = Math.max(0, (u.loads ?? 0) - injected)
             const ok = u.exec_ok ?? 0
             const bad = u.exec_fail ?? 0
             const tone = hits > 0 ? 'text-emerald-300' : (it.enabled ? 'text-amber-300' : 'text-slate-500')
             return (
               <span className="flex flex-wrap items-center gap-1"
-                title={`近 7 日 命中 ${hits} · 加载 ${loads} · 执行 ${execs}（成功 ${ok} / 失败 ${bad}）`}>
+                title={`近 7 日 命中 ${hits} · 注入（模型取用）${injected} 次`
+                  + `${browsed ? `（另有详情查看 ${browsed} 次，不计入模型取用）` : ''} · ${execTip}`}>
                 {hits > 0
                   ? chip(`已调用·命中 ${hits}`, 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60')
-                  : chip(loads > 0 ? '已加载·未命中' : '未调用',
-                    loads > 0 ? 'bg-amber-500/10 text-amber-300 border-amber-800/60'
+                  : chip(injected > 0 ? '已注入·未命中' : '未调用',
+                    injected > 0 ? 'bg-amber-500/10 text-amber-300 border-amber-800/60'
                       : 'bg-slate-500/10 text-slate-400 border-slate-700')}
-                <span className={`font-mono text-[9px] ${tone}`}>{hits}/{loads}/{execs}</span>
+                <span className={`font-mono text-[9px] ${tone}`}>{hits}/{injected}/{execTxt}</span>
               </span>
             )
           })()}
@@ -903,7 +919,7 @@ export default function SkillAssessManager() {
                 <th className="px-2 py-1.5 font-medium">状态</th>
                 <th className="px-2 py-1.5 font-medium">评审</th>
                 <th className="px-2 py-1.5 font-medium">安全/质量/兼容</th>
-                <th className="px-2 py-1.5 font-medium" title="近 7 天：命中（语义层 top1）/ 加载说明 / 脚本执行">近 7 日<ColResizer onStart={startColDrag('usage')} onReset={() => resetCol('usage')} /></th>
+                <th className="px-2 py-1.5 font-medium" title="近 7 天：命中（语义层 top1）/ 注入（命中后进上下文；不含人点开详情查看）/ 脚本执行（无 scripts/*.py 的技能显示「—」=不适用）">近 7 日<ColResizer onStart={startColDrag('usage')} onReset={() => resetCol('usage')} /></th>
                 <th className="px-2 py-1.5 font-medium">操作<ColResizer onStart={startColDrag('ops')} onReset={() => resetCol('ops')} /></th>
               </tr>
             </thead>

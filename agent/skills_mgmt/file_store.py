@@ -71,6 +71,37 @@ _SCRIPTS_DIR = "scripts"
 _TEMP_DIR = "temp"
 _FRONT_MATTER_SEP = "---"
 
+
+def skill_ids_with_scripts(repo_path: Optional[Path] = None) -> set:
+    """有**可执行脚本**（`scripts/*.py`）的技能 id 集合 — 叶子口径，供各层共用。
+
+    【为什么要是叶子函数】「这个技能能不能执行脚本」有三个消费者：技能中心表格
+    （执行列显示数字还是「不适用」）、单位看板（执行读数）、冲突处置（reason 文案）。
+    各写一遍目录扫描 = 三份口径，迟早出现「表格说 1 个能跑、看板说 0 个」。
+    这里只做一次 `iterdir`（每个技能一次 stat），不 import 任何上层模块。
+
+    边界（与 `SkillFileStore.list_scripts` 逐字同口径）：只认 `<skill>/scripts/*.py`；
+    空目录、只有 temp/ 模板、或脚本放在别处 —— 一律不算「可执行」。
+    `repo` 不可读 ⇒ 返回空集（fail-soft：读不到不等于"没有"，但调用方只能按未知处理）。
+    """
+    root = Path(repo_path) if repo_path else _DEFAULT_REPO_PATH
+    out = set()
+    try:
+        for d in root.iterdir():
+            if not d.is_dir():
+                continue
+            scripts = d / _SCRIPTS_DIR
+            if not scripts.is_dir():
+                continue
+            try:
+                if any(f.is_file() and f.suffix == ".py" for f in scripts.iterdir()):
+                    out.add(d.name)
+            except OSError:
+                continue
+    except OSError:
+        return set()
+    return out
+
 # 允许出现在 front matter 中的字段（白名单）
 _META_FIELDS = {
     "id", "name", "description", "category", "tags", "version",

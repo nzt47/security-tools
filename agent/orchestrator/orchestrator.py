@@ -2580,7 +2580,7 @@ class Orchestrator:
                 # 【2026-10-28】改用 service 入口：它带「无文件轨 → 回退主轨 content」的兜底。
                 # 直接用 svc.loader 时，8 个只有主轨的技能（external_agent 运行期导入的那批）
                 # 即使 L1 命中也会 instruction_failed ⇒ 静默降级 LLM，等于这些技能永远不生效。
-                instr_data = svc.load_skill_instruction(top1.skill_id)
+                instr_data = svc.load_skill_instruction(top1.skill_id, source="semantic")
                 if isinstance(instr_data, dict):
                     instruction = instr_data.get("instruction", "") or ""
                 else:
@@ -4189,7 +4189,7 @@ class Orchestrator:
             for m in result.matches[:2]:
                 text = None
                 try:
-                    instr = self._ctx_skills_loader.load_instruction(m.skill_id) or {}
+                    instr = self._ctx_skills_loader.load_instruction(m.skill_id, source="inject") or {}
                     text = instr.get("instruction") or instr.get("body") or instr.get("content")
                 except Exception:
                     text = None

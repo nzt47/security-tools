@@ -170,21 +170,44 @@ describe('SkillAssetTable（LLM 统一表）', () => {
     expect(screen.getByText(/强发理由/)).toBeTruthy()
   })
 
-  it('近 7 日使用列：命中/加载/执行来自台账统计（无记录显示 0/0/0）', async () => {
+  it('近 7 日使用列：命中/注入/执行来自台账统计（带脚本技能）', async () => {
     api.getEnvelope.mockResolvedValue({ installed: [{ id: 'alpha', name: 'Alpha', enabled: true }], available: [] })
     api.hubGet.mockImplementation(async (url: string) => {
       if (url === '/api/skills-mgmt') {
-        return { items: [{ id: 'alpha', name: 'Alpha', status: 'published', enabled: true }] }
+        return { items: [{ id: 'alpha', name: 'Alpha', status: 'published', enabled: true, has_scripts: true }] }
       }
       if (url.startsWith('/api/skills-mgmt/usage/stats')) {
-        return { ok: true, skills: { alpha: { hits: 3, loads: 2, execs: 1, exec_ok: 1, exec_fail: 0 } } }
+        return {
+          ok: true,
+          skills: { alpha: { hits: 3, loads: 5, loads_inject: 2, execs: 1, exec_ok: 1, exec_fail: 0 } },
+        }
       }
       if (url === '/api/skills-mgmt/classes') return { groups: [] }
       return { ok: true, records: [] }
     })
     render(<SkillAssetTable />)
     expect(await screen.findByRole('columnheader', { name: /近 7 日/ })).toBeTruthy()
+    // 加载位显示**注入**数（2），不是总加载数（5）——详情查看不计入模型取用
     expect(await screen.findByText('3/2/1')).toBeTruthy()
+  })
+
+  it('无脚本技能的「执行」显示 —（不适用），不把不适用折算成 0', async () => {
+    api.getEnvelope.mockResolvedValue({ installed: [{ id: 'alpha', name: 'Alpha', enabled: true }], available: [] })
+    api.hubGet.mockImplementation(async (url: string) => {
+      if (url === '/api/skills-mgmt') {
+        return {
+          items: [{ id: 'alpha', name: 'Alpha', status: 'published', enabled: true, has_scripts: false }],
+        }
+      }
+      if (url.startsWith('/api/skills-mgmt/usage/stats')) {
+        return { ok: true, skills: { alpha: { hits: 2, loads: 4, loads_inject: 2, execs: 0 } } }
+      }
+      if (url === '/api/skills-mgmt/classes') return { groups: [] }
+      return { ok: true, records: [] }
+    })
+    render(<SkillAssetTable />)
+    expect(await screen.findByText('2/2/—')).toBeTruthy()
+    expect(screen.queryByText('2/2/0')).toBeNull()
   })
 
   it('说明独立成列：长说明 3 行截断 + 「查看全文」弹窗（不再被压成一行）', async () => {

@@ -163,9 +163,26 @@ def probe_skills_usage() -> Dict[str, Any]:
                          "、".join(zero_hit[:3])))
     else:
         status = "ok"
-    summary = "近 7 天：命中 %d 次（命中率 %.0f%%）· 加载 %d · 执行 %d 成功/%d 失败" % (
-        tot["hit_calls"], tot["hit_rate"] * 100, tot["load_calls"],
-        tot["exec_ok"], tot["exec_fail"])
+    # 执行读数按「有没有可执行脚本」分两种说法（2026-11-09）：
+    #   51 个文件轨技能里只有 1 个真有 scripts/*.py，正文型技能**不存在**执行这件事 ⇒
+    #   写「0 成功/0 失败」等于把「不适用」折算成 0（L5 口径禁止）。
+    try:
+        from agent.skills_mgmt.file_store import skill_ids_with_scripts
+        scripted_all = skill_ids_with_scripts(_p("data/skills_repo"))
+    except Exception:  # noqa: BLE001 读不到脚本目录 ⇒ 按「未知」处理，不猜 0
+        scripted_all = set()
+    scripted_enabled = len(scripted_all & enabled_ids)
+    if scripted_enabled:
+        exec_txt = "执行 %d 成功/%d 失败" % (tot["exec_ok"], tot["exec_fail"])
+    else:
+        exec_txt = "执行不适用（无带脚本技能）"
+    load_txt = "注入 %d 次" % (tot.get("load_inject_calls") or 0)
+    if tot.get("load_ui_calls"):
+        load_txt += "（另有详情查看 %d 次）" % tot["load_ui_calls"]
+    if tot.get("load_legacy_calls"):
+        load_txt += "（另有 %d 次未分源的历史加载）" % tot["load_legacy_calls"]
+    summary = "近 7 天：命中 %d 次（命中率 %.0f%%）· %s · %s" % (
+        tot["hit_calls"], tot["hit_rate"] * 100, load_txt, exec_txt)
     if 0 < match_calls < USAGE_WARN_MIN_MATCH_CALLS:
         summary += " · 样本不足（match %d<%d），暂不判定 0 命中" % (
             match_calls, USAGE_WARN_MIN_MATCH_CALLS)
@@ -173,6 +190,9 @@ def probe_skills_usage() -> Dict[str, Any]:
             "metrics": dict(tot, zero_hit_enabled=len(zero_hit),
                             zero_hit_ratio=round(zero_ratio, 3),
                             sample_sufficient=sample_ok,
+                            scripted_skills=len(scripted_all),
+                            scripted_enabled=scripted_enabled,
+                            exec_applicable=bool(scripted_enabled),
                             zero_hit_sample=zero_hit[:10]),
             "issues": issues, "last_activity": _mtime(usage_log.usage_path())}
 
