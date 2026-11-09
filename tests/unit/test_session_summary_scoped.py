@@ -16,7 +16,8 @@ import json
 import pytest
 
 from agent import current_session
-from memory.memory_manager import ENV_SESSION_SUMMARY_SCOPED, MemoryManager
+from memory.memory_manager import (ENV_CONTEXT_WINDOW_SCOPED,
+                                   ENV_SESSION_SUMMARY_SCOPED, MemoryManager)
 
 
 class _Counter:
@@ -153,3 +154,45 @@ def test_开关状态可热读(manager, monkeypatch):
     assert manager.session_summary_scoped() is False
     monkeypatch.setenv(ENV_SESSION_SUMMARY_SCOPED, "on")
     assert manager.session_summary_scoped() is True
+
+# ════════════════════════════════════════════════════════════
+#  上下文「最近消息」按会话过滤（CP_CONTEXT_WINDOW_SCOPED，默认关）
+# ════════════════════════════════════════════════════════════
+
+
+class TestContextWindowScoped:
+    def _seed(self, manager):
+        manager._message_window.append({"role": "user", "content": "A1", "session_id": "sess_A"})
+        manager._message_window.append({"role": "user", "content": "B1", "session_id": "sess_B"})
+        manager._message_window.append({"role": "user", "content": "A2", "session_id": "sess_A"})
+
+    def test_默认关_仍取跨会话最近消息(self, manager):
+        self._seed(manager)
+        ctx = manager.get_context(100000, "sess_A")
+        joined = " ".join(m.get("content", "") for m in ctx)
+        assert "B1" in joined, "开关关 = 旧行为（跨会话）"
+
+    def test_开关开_只取本会话(self, manager, monkeypatch):
+        monkeypatch.setenv(ENV_CONTEXT_WINDOW_SCOPED, "1")
+        self._seed(manager)
+        a = " ".join(m.get("content", "") for m in manager.get_context(100000, "sess_A"))
+        b = " ".join(m.get("content", "") for m in manager.get_context(100000, "sess_B"))
+        assert "A1" in a and "A2" in a and "B1" not in a
+        assert "B1" in b and "A1" not in b
+
+    def test_开关开_内存空则从文件按会话筛(self, manager, monkeypatch):
+        monkeypatch.setenv(ENV_CONTEXT_WINDOW_SCOPED, "1")
+        manager._message_window.clear()
+        manager._storage.save_message({"role": "user", "content": "A-file", "session_id": "sess_A"})
+        manager._storage.save_message({"role": "user", "content": "B-file", "session_id": "sess_B"})
+        joined = " ".join(m.get("content", "") for m in manager.get_context(100000, "sess_A"))
+        assert "A-file" in joined and "B-file" not in joined
+
+    def test_有摘要无消息也返回摘要(self, manager, monkeypatch):
+        """会话刚分家/刚压完：窗口里没有它的消息，但摘要必须带出去（不能整体返回空）"""
+        monkeypatch.setenv(ENV_SESSION_SUMMARY_SCOPED, "1")
+        monkeypatch.setenv(ENV_CONTEXT_WINDOW_SCOPED, "1")
+        manager._storage.save_summary("A 的摘要", 3, session_id="sess_A")
+        ctx = manager.get_context(100000, "sess_A")
+        assert len(ctx) == 1
+        assert ctx[0]["role"] == "system" and "A 的摘要" in ctx[0]["content"]

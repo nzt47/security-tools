@@ -48,6 +48,22 @@ def _session_summary_scoped() -> bool:
     return str(os.environ.get(ENV_SESSION_SUMMARY_SCOPED, "")).strip().lower() in _TRUE_VALUES
 
 
+#: 上下文「最近消息」是否也按会话过滤（默认关）。
+#: 【为什么与摘要分家分开一个开关】两件事的风险不同：摘要分家改的是"写盘与读哪一份"，
+#:   消息窗口分家改的是"这次装配看到哪些原文"。后者会减少上下文（会话越短越明显），
+#:   必须能单独回滚，不能捆在一个布尔里。
+ENV_CONTEXT_WINDOW_SCOPED = "CP_CONTEXT_WINDOW_SCOPED"
+#: get_context 装配的「最近消息」条数（与旧行为一致）
+CONTEXT_WINDOW_MESSAGES = 20
+#: 会话过滤时从落盘多取一段再筛（跨会话穿插时也能凑够本会话的条数）
+CONTEXT_WINDOW_FETCH = 200
+
+
+def _context_window_scoped() -> bool:
+    """上下文最近消息是否按会话过滤（缺省/拼错一律关 ⇒ 旧行为）"""
+    return str(os.environ.get(ENV_CONTEXT_WINDOW_SCOPED, "")).strip().lower() in _TRUE_VALUES
+
+
 def log_event_loop_status() -> str:
     """检查并记录事件循环状态"""
     try:
@@ -951,21 +967,35 @@ class MemoryManager:
         # [2026-11-09] 分家后按会话取（session_id=None ⇒ 当前会话），未分家恒全局
         summary = self._load_summary_cached(session_id)
         logger.info("│    └─ 摘要: %s", "已加载 ✓" if summary else "无摘要（首次对话）")
-        recent = list(self._message_window)[-20:]
-        if recent:
-            logger.info("│    ├─ [窗口命中] 从内存滑动窗口取最近 %d 条（零文件 IO）", len(recent))
-            logger.info("│    │    └─ 最新一条: role=%s content=%s…",
-                        recent[-1].get("role"), str(recent[-1].get("content"))[:60])
+        # 【2026-11-09】消息窗口是否也按会话过滤（CP_CONTEXT_WINDOW_SCOPED，默认关）。
+        #   关 = 旧行为：最近 20 条（跨会话）；开 = 只取本会话（与摘要分家同源）。
+        _window_sid = self._session_key(session_id) if _context_window_scoped() else ""
+        if _window_sid:
+            recent = [m for m in list(self._message_window)
+                      if str(m.get("session_id") or "") == _window_sid][-CONTEXT_WINDOW_MESSAGES:]
+            logger.info("│    ├─ [按会话过滤] 会话 %s：内存窗口命中 %d 条", _window_sid, len(recent))
+            if not recent:
+                loaded = self._storage.load_recent_messages(limit=CONTEXT_WINDOW_FETCH)
+                recent = [m for m in loaded
+                          if str(m.get("session_id") or "") == _window_sid][-CONTEXT_WINDOW_MESSAGES:]
+                logger.info("│    │    └─ [文件回退] 从 messages.jsonl 按会话筛出 %d 条", len(recent))
         else:
-            logger.info("│    ├─ [窗口为空] 进程重启或首次调用，回退文件读取…")
-            recent = self._storage.load_recent_messages(limit=20)
+            recent = list(self._message_window)[-CONTEXT_WINDOW_MESSAGES:]
             if recent:
-                logger.info("│    │    └─ [文件回退] 从 messages.jsonl 恢复 %d 条", len(recent))
+                logger.info("│    ├─ [窗口命中] 从内存滑动窗口取最近 %d 条（零文件 IO）", len(recent))
+                logger.info("│    │    └─ 最新一条: role=%s content=%s…",
+                            recent[-1].get("role"), str(recent[-1].get("content"))[:60])
             else:
-                logger.info("│    │    └─ [文件回退] 文件亦无历史消息")
+                logger.info("│    ├─ [窗口为空] 进程重启或首次调用，回退文件读取…")
+                recent = self._storage.load_recent_messages(limit=CONTEXT_WINDOW_MESSAGES)
+                if recent:
+                    logger.info("│    │    └─ [文件回退] 从 messages.jsonl 恢复 %d 条", len(recent))
+                else:
+                    logger.info("│    │    └─ [文件回退] 文件亦无历史消息")
         logger.info("└═══════════════════════════════════════════════")
 
-        if not recent:
+        # 有摘要没消息（会话刚分家/刚压完）也要把摘要带出去 —— 不能因为 recent 空就整体返回空
+        if not recent and not summary:
             return []
 
         context = []
@@ -993,16 +1023,13 @@ class MemoryManager:
 
     # ── 摘要的会话归属（2026-11-09 · 按会话分家）────────────────────────────
 
-    def _summary_sid(self, session_id: Optional[str] = None) -> str:
-        """把调用方给的 session_id 解析成**摘要落盘用的会话键**。
+    def _session_key(self, session_id: Optional[str] = None) -> str:
+        """把调用方给的 session_id 解析成**会话键**（与任何开关无关）。
 
-        - 开关关：恒 ""（全局摘要，逐字旧行为）；
-        - 开关开：显式给了就用显式的（"" = 未分会话，仍是全局）；没给（None）就用
-          进程内「当前会话」（agent/current_session，由 SessionManager 发布）；
-          连当前会话都没有 ⇒ ""（回退全局，绝不猜）。
+        - 显式给了就用显式的（"" = 未分会话，调用方按全局处理）；
+        - 没给（None）就用进程内「当前会话」（agent/current_session，由 SessionManager 发布）；
+        - 连当前会话都没有 ⇒ ""（回退全局，绝不猜）。
         """
-        if not _session_summary_scoped():
-            return ""
         if session_id is None:
             try:
                 from agent import current_session as _current_session
@@ -1010,6 +1037,12 @@ class MemoryManager:
             except Exception:  # noqa: BLE001 指针不可用 ⇒ 回退全局
                 return ""
         return str(session_id or "")
+
+    def _summary_sid(self, session_id: Optional[str] = None) -> str:
+        """摘要落盘用的会话键：摘要开关关 ⇒ 恒 ""（全局，逐字旧行为）；开 ⇒ 会话键。"""
+        if not _session_summary_scoped():
+            return ""
+        return self._session_key(session_id)
 
     def session_summary_scoped(self) -> bool:
         """面板/端点判断用：摘要是否已按会话分家（热读 env，改完即生效）"""
