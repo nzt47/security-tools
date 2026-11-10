@@ -68,7 +68,7 @@ import {
   HEARTBEAT_STATUS,
   OBSERVABILITY_ALERTS,
   SCHEDULER_HISTORY,
-  SCHEDULER_TASKS,
+  SCHEDULER_OVERVIEW,
 } from '@/api/endpoints'
 
 // ═══════════════════════════════════════════════════════════════
@@ -131,7 +131,12 @@ export interface AlertRule {
   activeAt?: string
 }
 export interface AlertGroup { name?: string; interval?: string; rules?: AlertRule[] }
-export interface AlertsData { groups?: AlertGroup[]; timestamp?: number }
+export interface AlertsData {
+  groups?: AlertGroup[]
+  timestamp?: number
+  /** 是否拿到了运行态（false = 评估器没跑过，状态列只能是占位） */
+  runtime_state?: boolean
+}
 
 export interface SchedulerTask { name?: string; type?: string; interval_sec?: number; enabled?: boolean }
 export interface SchedulerTasks { tasks?: SchedulerTask[]; scheduler_tasks?: SchedulerTask[] }
@@ -344,7 +349,7 @@ export const SOURCE_LABELS: Record<SourceKey, string> = {
   probeTrend: HEALTH_PROBE_TREND,
   metrics: DIAGNOSTICS_METRICS,
   alerts: OBSERVABILITY_ALERTS,
-  schedulerTasks: SCHEDULER_TASKS,
+  schedulerTasks: SCHEDULER_OVERVIEW,
   schedulerHistory: SCHEDULER_HISTORY,
 }
 
@@ -574,7 +579,19 @@ export default function PanoramaHealth() {
       { key: 'probeTrend', run: () => hubGet<ProbeTrend>(HEALTH_PROBE_TREND + '?hours=' + hours) },
       { key: 'metrics', run: () => hubGet<MetricsData>(DIAGNOSTICS_METRICS) },
       { key: 'alerts', run: () => hubGet<AlertsData>(OBSERVABILITY_ALERTS) },
-      { key: 'schedulerTasks', run: () => hubGet<SchedulerTasks>(SCHEDULER_TASKS) },
+      // 【2026-11-11】计划任务卡改读 /api/scheduler/overview：/api/scheduler/tasks 只列**文件登记**的
+      //   system_command 任务（实测 0 条），真正跑 cron/interval 的任务只在 overview 里；该端点带
+      //   统一信封（{code,data}）⇒ 解一层 data 再交给卡片。
+      {
+        key: 'schedulerTasks',
+        run: async () => {
+          const raw = await hubGet<Record<string, unknown>>(SCHEDULER_OVERVIEW)
+          const data = (raw && typeof raw === 'object' && 'data' in raw)
+            ? (raw as { data?: { tasks?: unknown[] } }).data
+            : (raw as { tasks?: unknown[] })
+          return { tasks: (data?.tasks ?? []) } as SchedulerTasks
+        },
+      },
       { key: 'schedulerHistory', run: () => hubGet<SchedulerHistory>(SCHEDULER_HISTORY + '?limit=20') },
     ]
     const settled = await Promise.allSettled(tasks.map((t) => t.run()))
@@ -1210,7 +1227,9 @@ export default function PanoramaHealth() {
                 </div>
               )}
               <div className="mt-2 text-[11px] text-slate-600">
-                共 {alerts?.groups?.length ?? 0} 个告警组 / {alertRules.length} 条规则；状态与触发时间字段端点未返回。
+                共 {alerts?.groups?.length ?? 0} 个告警组 / {alertRules.length} 条规则；
+                状态与触发时间来自 alert_evaluator 的**运行态**（runtime_state={String(alerts?.runtime_state ?? false)}），
+                评估器没跑过 / 该规则没被评估的行仍显示占位（不编「未触发」）。
               </div>
             </div>
           )}

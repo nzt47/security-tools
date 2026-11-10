@@ -122,7 +122,7 @@ function installRoutesPassThrough(url: string) {
   if (url.startsWith('/api/health/probe-trend')) return fakeResponse(PROBE, false)
   if (url === '/api/diagnostics/metrics') return fakeResponse(METRICS, false)
   if (url === '/api/observability/alerts') return fakeResponse(ALERTS, false)
-  if (url === '/api/scheduler/tasks') return fakeResponse({ tasks: [], scheduler_tasks: [], scheduler_updated_at: '' }, false)
+  if (url === '/api/scheduler/overview') return fakeResponse({ code: 200, data: { tasks: [], count: 0 }, message: '' }, false)
   if (url.startsWith('/api/scheduler/history')) return fakeResponse({ history: [{ name: '系统心跳', status: 'success', duration_ms: 0, start_time: '2026-10-15T19:04:51.832102' }] }, false)
   throw new Error('unexpected url: ' + url)
 }
