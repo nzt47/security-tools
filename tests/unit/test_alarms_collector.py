@@ -157,6 +157,55 @@ class TestCollectOnce:
         assert store.count() == 1
 
 
+class TestWarmup:
+    """冷启动窗口：重启后首轮不采单位看板（避免"首次探测超时"变成 3 条 critical）。
+
+    【现场依据】2026-11-11 04:51 部署重启后 2 秒内出现 3 条 critical「探测超时」
+    （unit.skills.usage / unit.tools.registry / unit.ingestion.drafts），21 秒后自愈。
+    """
+
+    def test_窗口内跳过单位看板(self, store, monkeypatch):
+        import time as _time
+        monkeypatch.setattr(collector, "_started_at", _time.monotonic())
+        seen = {"units": 0}
+        monkeypatch.setattr(collector, "read_health_point", lambda: {"probe_details": {}})
+        monkeypatch.setattr(collector, "read_audit_verification", lambda: {"ok": True})
+        monkeypatch.setattr(collector, "read_units",
+                            lambda: seen.__setitem__("units", seen["units"] + 1) or {"units": []})
+
+        stats = collect_once(store)          # sources=None ⇒ 真实采集路径
+
+        assert stats["warmup"] is True
+        assert seen["units"] == 0, "冷启动窗口内不该读单位看板"
+        assert stats["checked"].get("units") in (None, False)
+
+    def test_窗口结束后恢复采集(self, store, monkeypatch):
+        import time as _time
+        monkeypatch.setattr(collector, "_started_at", _time.monotonic() - collector.WARMUP_SEC - 1)
+        monkeypatch.setattr(collector, "read_health_point", lambda: {"probe_details": {}})
+        monkeypatch.setattr(collector, "read_audit_verification", lambda: {"ok": True})
+        monkeypatch.setattr(collector, "read_units",
+                            lambda: {"units": [{"id": "skills", "name": "技能", "status": "warn"}]})
+
+        stats = collect_once(store)
+
+        assert stats["warmup"] is False
+        assert stats["raised"] == 1
+        assert store.list()[0]["key"] == "unit.skills"
+
+    def test_注入_sources_时不受窗口影响(self, store, monkeypatch):
+        """单测注入的 sources 代表"稳态"，不该被启动时刻影响。"""
+        import time as _time
+        monkeypatch.setattr(collector, "_started_at", _time.monotonic())
+        stats = collect_once(store, sources={
+            "health": lambda: {"probe_details": {}},
+            "units": lambda: {"units": [{"id": "tools", "name": "工具", "status": "warn"}]},
+            "audit": lambda: {"ok": True},
+        })
+        assert stats["warmup"] is False
+        assert stats["raised"] == 1
+
+
 class TestConfig:
     def test_阈值与窗口是模块常量(self):
         assert HEALTH_DEGRADE_SCORE == 0.8

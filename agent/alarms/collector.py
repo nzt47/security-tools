@@ -52,6 +52,14 @@ UNIT_ALARM_STATUSES = ("warn", "error")
 AUDIT_TAIL_WINDOW = 500
 AUDIT_RECHECK_SEC = 3600
 
+#: 进程启动后的「冷启动窗口」（秒）：窗口内**不采单位看板**。
+#: 【实测依据】2026-11-11 04:51 部署重启后 2 秒内，单位看板 3 个探针同时超时
+#: （unit.skills.usage / unit.tools.registry / unit.ingestion.drafts，detail="探测超时"），
+#: 触发 3 条 critical，21 秒后全部自动恢复 —— 那不是稳态劣化，是**首次探测还没热**：
+#: 单位探针有 60s 缓存，冷进程首轮要现算（含 AST 扫描一类重活）。
+#: 窗口内健康探针（读上一进程落盘的历史）与审计链照常，因为它们不是"现算"的。
+WARMUP_SEC = 90
+
 #: 健康层的中文名（与前端 PROBE_LAYERS 的 label 同源；两边都改才算改）
 LAYER_LABELS: Dict[str, str] = {
     "l1_process": "L1 进程",
@@ -67,9 +75,17 @@ _TRUTHY = frozenset({"1", "true", "yes", "on", "enable", "enabled"})
 _thread: Optional[threading.Thread] = None
 _lock = threading.Lock()
 
+#: 进程启动时刻（monotonic；测试可 monkeypatch）
+_started_at: float = time.monotonic()
+
 #: 审计链节流状态（进程内）：上次核验时刻 / 结果
 _last_audit_at: float = 0.0
 _last_audit_ok: Optional[bool] = None
+
+
+def warmup_active(now: Optional[float] = None) -> bool:
+    """是否仍处于冷启动窗口（窗口内不采单位看板，见 WARMUP_SEC 注释）"""
+    return ((now if now is not None else time.monotonic()) - _started_at) < WARMUP_SEC
 
 
 def enabled() -> bool:
@@ -234,6 +250,12 @@ def collect_once(store: Optional[AlarmStore] = None, *,
     if sources:
         readers.update(sources)
 
+    # 【冷启动窗口】只在**真实采集**（未注入 sources）时生效：单测注入即是"稳态"，
+    #   不该被启动时刻影响判据。
+    warmup = sources is None and warmup_active()
+    if warmup:
+        readers.pop("units", None)
+
     candidates: Dict[str, dict] = {}
     checked: Dict[str, bool] = {}
     for name, reader in readers.items():
@@ -262,7 +284,7 @@ def collect_once(store: Optional[AlarmStore] = None, *,
 
     stats = target.reconcile(candidates, keep=keep)
     return {"checked": checked, "raised": stats["raised"],
-            "resolved": stats["resolved"], "kept": sorted(keep)}
+            "resolved": stats["resolved"], "kept": sorted(keep), "warmup": warmup}
 
 
 def _firing_keys(store: AlarmStore) -> List[str]:
