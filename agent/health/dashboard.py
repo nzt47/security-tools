@@ -22,11 +22,18 @@ def dashboard():
     【同模块的 get_probe_overview()/get_trend() 不走 HTTP】它们是给模块聚合与测试用的
     纯函数，不返回 Flask 响应，故本次不涉及（改它们等于改函数契约）。
     """
-    health = health_assessor.assess()
+    # 【2026-11-10 修「3 项假绿」】原实现调 `assess()`（无参）⇒ 直接返回 HealthScore 的**硬编码默认维度**
+    #   `{response_time, error_rate, tool_success}`（全是 1.0，overall 恒 1.0）——
+    #   系统监控页的「健康检查项 3 / 异常项 0」于是变成**常量而不是测量结果**（而且和「健康仪表盘」
+    #   的五层探针口径对不上：一边 3 项全绿、一边 L3/L4/L5 无数据）。
+    #   现在与健康仪表盘同源：五层探针 → assess_with_probes()；不可用的层 score=None（页面说「无数据」，
+    #   不当 0 也不当满分）。layers 是新增字段（每层 available/detail/score），旧前端忽略也不报错。
+    health = health_assessor.assess_with_probes(run_all_probes())
     return _ok({
         "overall_health": health.overall,
         "dimensions": health.dimensions,
         "issues": health.issues,
+        "layers": health.probe_details,
         "history": [{"timestamp": h.timestamp, "overall": h.overall} for h in health_assessor.get_history(10)],
     })
 

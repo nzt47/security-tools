@@ -47,15 +47,19 @@ interface ModulesTopology {
 interface HealthItem {
   sensor_name?: string
   description?: string
+  /** normal / warning / no_data（no_data = 该层探针没有数据，**不当 0 也不当满分**） */
   severity?: string
-  score?: number
+  score?: number | null
 }
 
-/** /api/health/dashboard 的业务载荷：{dimensions, issues, overall_health} */
+/** /api/health/dashboard 的业务载荷：{dimensions, layers, issues, overall_health} */
 interface HealthDashboard {
-  dimensions?: Record<string, number>
+  /** 五层探针分数；不可用的层是 null（不是 0） */
+  dimensions?: Record<string, number | null>
+  /** 每层 available / detail / score（2026-11-10 新增） */
+  layers?: Record<string, { score?: number | null; available?: boolean; detail?: string }>
   issues?: HealthItem[]
-  overall_health?: number
+  overall_health?: number | null
 }
 
 const STATUS_COLOR: Record<string, 'green' | 'red' | 'amber' | 'slate'> = {
@@ -104,16 +108,30 @@ export default function PanoramaMonitor() {
       }
       if (h.status === 'fulfilled') {
         const d = h.value ?? {}
-        const dims = Object.entries(d.dimensions ?? {}).map(([k, v]) => {
-          const num = Number(v) || 0 // NaN → 0（不能写 ??，左侧恒为 number）
-          return {
-            sensor_name: k,
-            description: k.replace(/_/g, ' '),
-            score: num,
-            severity: num < 0.8 ? 'warning' : 'normal',
-          }
-        })
-        setHealth([...dims, ...(Array.isArray(d.issues) ? d.issues : [])])
+        // 【2026-11-10】优先用 layers（五层探针的真实 available/detail）：
+        //   过去的 3 项是 HealthScore 的默认常量（恒 1.0），现在是测量结果；
+        //   score=null 的层标 no_data —— 不折算成 0（那会变成假告警），也不当满分。
+        const layers = d.layers ?? {}
+        const rows = Object.keys(layers).length
+          ? Object.entries(layers).map(([k, v]) => {
+              const score = v?.score == null ? null : Number(v.score)
+              return {
+                sensor_name: k,
+                description: (v?.detail as string) || k.replace(/_/g, ' '),
+                score,
+                severity: score == null ? 'no_data' : score < 0.8 ? 'warning' : 'normal',
+              }
+            })
+          : Object.entries(d.dimensions ?? {}).map(([k, v]) => {
+              const score = v == null ? null : Number(v)
+              return {
+                sensor_name: k,
+                description: k.replace(/_/g, ' '),
+                score,
+                severity: score == null ? 'no_data' : score < 0.8 ? 'warning' : 'normal',
+              }
+            })
+        setHealth([...rows, ...(Array.isArray(d.issues) ? d.issues : [])])
       }
       setLoading(false)
     })
@@ -128,7 +146,8 @@ export default function PanoramaMonitor() {
   const disabled = allModules.filter((m) => m.status === 'disabled').length
   // 其余状态（warning/degraded/未知）单列，保证 在线 + 离线 + 未启用 + 其他 = 总数
   const other = allModules.length - online - offline - disabled
-  const healthIssues = health.filter((h) => h.severity && h.severity !== 'normal').length
+  // 「异常项」只数真正的低分（warning）：no_data 是「没有数据」，不是异常（L5 口径）。
+  const healthIssues = health.filter((h) => h.severity === 'warning').length
 
   const filteredDomains = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -221,8 +240,8 @@ export default function PanoramaMonitor() {
                 { key: 'description', title: '项目', render: (r) => <span className="text-slate-200">{String(r.description ?? r.sensor_name ?? '')}</span> },
                 {
                   key: 'severity', title: '等级', render: (r) => (
-                    <Badge color={r.severity === 'normal' ? 'green' : r.severity === 'warning' ? 'amber' : 'red'}>
-                      {r.severity ?? '-'}
+                    <Badge color={r.severity === 'normal' ? 'green' : r.severity === 'warning' ? 'amber' : 'slate'}>
+                      {r.severity === 'no_data' ? '无数据' : (r.severity ?? '-')}
                     </Badge>
                   ),
                 },
