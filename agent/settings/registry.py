@@ -2958,6 +2958,23 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        " [2026-11-08；agent/chat_prefix.py::enabled]",
        owner="agent/chat_prefix.py"),
 
+    # · 模块拓扑「自动发现」开关（默认开；白名单式：只有声明了状态源的包才上图）
+    # 【为什么默认开】白名单要求包在自己的 `__init__.py` 里显式声明 `MODULE_STATUS_SOURCE`，
+    #   临时目录里丢一个包**不会**自己上图 —— 所以默认开不会把拓扑变成垃圾场；
+    #   而默认关就等于把「新能力面永远不上图」这个老问题原样保留。
+    # 【风险级 A 的依据】只影响"拓扑上多/少几个节点"，不改变任何请求路径、鉴权或防护面；
+    #   关掉只是退回 2026-11-11 之前的纯手写清单。
+    # 【needs_restart=True 的依据】client 采集器在 app_server 启动时一次性注册
+    #   （`register_client_status_providers`）；运行期从关切到开，节点会因为没有采集器
+    #   而显示"离线" —— 那是假故障，不如要求重启。
+    _a("CP_MODULE_AUTODISCOVERY", CAT_OBSERVABILITY, True,
+       "模块拓扑是否启用「包自声明」自动发现：默认开 = 扫 agent/*/__init__.py，"
+       "把声明了 MODULE_STATUS_SOURCE 的包并入系统监控拓扑（未声明的按「未登记」单列、"
+       "不生成节点、不参与健康分）；置 0/false/no/off ⇒ 退回只有手写 DOMAINS 的旧图。"
+       "重启后生效（采集器在启动期注册）"
+       " [2026-11-11；agent/modules_discovery.py::enabled / agent/modules_registry.py::effective_domains]",
+       owner="agent/modules_discovery.py", needs_restart=True),
+
     # · F3-1 卡：前缀缓存的易变尾簇搬家（每次调用都读 ⇒ 热生效）
     _a("YUNSHU_PROMPT_VOLATILE_TAIL", CAT_ORCHESTRATION, True,
        "是否把易变尾簇从 system message 搬到请求最后一条消息（默认开 = 新顺序，把可缓存"

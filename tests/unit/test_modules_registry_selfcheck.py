@@ -35,6 +35,7 @@ from agent.modules_registry import (  # noqa: E402
     ACTION_ROUTES,
     DOMAINS,
     declared_http_endpoints,
+    effective_domains,
     validate_against_url_map,
 )
 
@@ -72,8 +73,9 @@ class TestDeclaredEndpoints:
 
     def test_条数与注册表规模一致(self):
         items = declared_http_endpoints()
+        # 【2026-11-11】生效域树含自动发现节点 ⇒ 计数口径一起改用 effective_domains()
         n_nodes_api = sum(
-            1 for d in DOMAINS for n in d.nodes
+            1 for d in effective_domains() for n in d.nodes
             if (n.status_source or "").strip().startswith("api:")
         )
         assert len(items) == n_nodes_api + len(ACTION_ROUTES)
@@ -181,14 +183,16 @@ class Test状态源接线覆盖:
     def test_所有api状态源都有provider覆盖(self):
         import agent.modules_api as ma
 
+        # 【2026-11-11】自动发现节点同样受这条守卫约束：包自己声明了 api: 状态源，
+        #   就必须有采集器（手写登记表或自动接上的 client 兜底），否则节点永远离线。
         declared = {
             n.status_source.strip()[len("api:"):]
-            for d in DOMAINS for n in d.nodes
+            for d in effective_domains() for n in d.nodes
             if (n.status_source or "").strip().startswith("api:")
         }
         covered = (
             set(ma.INJECTED_STATUS_SOURCES)
-            | set(ma.CLIENT_STATUS_SOURCES)
+            | set(ma.effective_client_sources())
             | set(ma._default_providers)
         )
         missing = sorted(declared - covered)
@@ -201,7 +205,7 @@ class Test状态源接线覆盖:
         import agent.modules_api as ma
 
         bad = []
-        for d in DOMAINS:
+        for d in effective_domains():
             for n in d.nodes:
                 src = (n.status_source or "").strip()
                 if src.startswith("config:"):

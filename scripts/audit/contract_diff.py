@@ -312,11 +312,13 @@ def collect_registry():
     """导入 agent.modules_registry（其自述可被轻量测试/CI 独立导入）。"""
     sys.path.insert(0, str(ROOT))
     try:
-        from agent.modules_registry import ACTION_ROUTES, DOMAINS  # noqa: PLC0415
+        # 【2026-11-11】用 effective_domains()：手写 DOMAINS + 包自声明后被自动发现的节点。
+        # 自动发现的 status_source 也走同一条判据（否则"包自己声明"就成了绕过契约对拍的暗门）。
+        from agent.modules_registry import ACTION_ROUTES, effective_domains  # noqa: PLC0415
     except Exception as e:  # noqa: BLE001
         return None, "导入 modules_registry 失败: " + type(e).__name__ + ": " + str(e)
     nodes = []
-    for d in DOMAINS:
+    for d in effective_domains():
         for n in d.nodes:
             nodes.append({
                 "domain": d.domain_id, "module_id": n.module_id, "name": n.name,

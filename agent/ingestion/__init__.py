@@ -28,6 +28,15 @@
 
 from __future__ import annotations
 
+# ── 自动发现声明（2026-11-11）──────────────────────────────────────
+# 「系统监控」拓扑按这里的状态源取节点状态（agent/modules_discovery.py 只做 AST 扫描、
+# 不 import 本包）。**只有声明了 MODULE_STATUS_SOURCE 的包才会生成节点**。
+# 注意：必须放在 `from __future__ import annotations` **之后**（它只能是文件第一条语句）。
+MODULE_STATUS_SOURCE = "api:/api/ingestion/sources"
+MODULE_DOMAIN = "cognitive"
+MODULE_NAME = "能力获取/摄入"
+MODULE_DESCRIPTION = "外来资产（技能包/文档/提示词/插件）→ 可预览 IngestPlan → 技能/工作流/工具"
+
 from .models import (  # noqa: F401
     FORMS,
     FORM_LABELS,

@@ -20,6 +20,15 @@
       (matcher / learner / skill_converter)，`force` 只越过统计门控
 """
 
+# ── 自动发现声明（2026-11-11）──────────────────────────────────────
+# 「系统监控」拓扑按这里的状态源取节点状态（agent/modules_discovery.py 只做 AST 扫描、
+# 不 import 本包）。**只有声明了 MODULE_STATUS_SOURCE 的包才会生成节点**；删掉这一行
+# 不会报错，但该包会退回「未登记」单列（不生成节点、不参与健康分）。
+MODULE_STATUS_SOURCE = "api:/api/workflow-learning/health"
+MODULE_DOMAIN = "cognitive"
+MODULE_NAME = "学习工作流"
+MODULE_DESCRIPTION = "从成功交互里学习方法 → 匹配/执行/转技能（含准入门槛与退役台账）"
+
 from .service import WorkflowLearningService
 from . import admission
 from . import retirement

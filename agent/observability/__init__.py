@@ -1,6 +1,14 @@
 # P9 可观测性 — Trace 订阅接口
 """Observability — 性能观测与链路追踪"""
 
+# ── 自动发现声明（2026-11-11）──────────────────────────────────────
+# 「系统监控」拓扑按这里的状态源取节点状态（agent/modules_discovery.py 只做 AST 扫描、
+# 不 import 本包）。**只有声明了 MODULE_STATUS_SOURCE 的包才会生成节点**。
+MODULE_STATUS_SOURCE = "api:/api/observability/state"
+MODULE_DOMAIN = "ops"
+MODULE_NAME = "可观测配置状态"
+MODULE_DESCRIPTION = "告警规则/日志/追踪的运行时配置与健康投影（/api/observability/state）"
+
 # 统一 Trace（TASK-S2-01 / v7.2 §3.4 + §2.7）：公共 Trace 门面 + TraceContext 透传
 from .trace_v2 import (  # noqa: F401
     ACTOR_AUTO,

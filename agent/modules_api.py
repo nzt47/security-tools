@@ -42,10 +42,12 @@ from agent.api_envelope import ok as _ok
 
 from agent.modules_registry import (
     ACTION_ROUTES,
-    DOMAINS,
     ModuleNode,
+    discovery_summary,
+    effective_domains,
     get_node,
     node_actions,
+    unregistered_modules,
 )
 # 与既有写接口保持一致：FLASK_API_TOKEN 启用时干预端点需认证（未启用时放行）
 from agent.server_auth import require_token
@@ -253,9 +255,38 @@ def make_client_provider(api_path: str) -> Callable[[], Optional[dict]]:
     return _provider
 
 
+def discovered_client_sources() -> Dict[str, str]:
+    """自动发现节点的状态源 → 采集路径（声明即采集：`status_source` 是裸路径）。
+
+    【为什么必须有】守卫 `test_所有api状态源都有provider覆盖` 的口径是"声明了 api: 状态源
+    就必须有采集器，否则该节点永远离线"。手写的源逐条登记在 CLIENT_STATUS_SOURCES；
+    自动发现的源由包自己声明，**没人会记得再往那张表里补一行** ⇒ 这里按同一套
+    client 兜底（进程内 GET、200 才算有数据）自动接上，语义与手写源完全一致。
+    """
+    out: Dict[str, str] = {}
+    for domain in effective_domains():
+        for node in domain.nodes:
+            if node.origin != "discovered":
+                continue
+            src = (node.status_source or "").strip()
+            if not src.startswith("api:"):
+                continue
+            declared = src[len("api:"):].strip()
+            if declared:
+                out[declared] = declared  # 声明裸路径 = 采集裸路径（查询串只留在手写表里）
+    return out
+
+
+def effective_client_sources() -> Dict[str, str]:
+    """手写登记表 + 自动发现源（后者不覆盖前者：手写表可带查询串等采集细节）。"""
+    merged = dict(discovered_client_sources())
+    merged.update(CLIENT_STATUS_SOURCES)
+    return merged
+
+
 def register_client_status_providers(sources: Optional[Dict[str, str]] = None) -> int:
-    """为 CLIENT_STATUS_SOURCES 注册 client 采集器；返回注册条数（app_server 启动时调用）。"""
-    mapping = CLIENT_STATUS_SOURCES if sources is None else sources
+    """为（手写 + 自动发现的）状态源注册 client 采集器；返回注册条数。"""
+    mapping = effective_client_sources() if sources is None else sources
     for declared, fetch_path in mapping.items():
         register_status_provider(declared, make_client_provider(fetch_path))
     return len(mapping)
@@ -420,7 +451,10 @@ def topology():
     """
     domains_out = []
     health_scores = []
-    for domain in DOMAINS:
+    # 【2026-11-11】改用 effective_domains()：手写 DOMAINS + 包自声明后被自动发现的节点。
+    #   未登记的包**不在这里出现**（不生成节点 ⇒ 不参与下面的 overall_health 平均），
+    #   只通过 unregistered 单列披露。
+    for domain in effective_domains():
         nodes_out = []
         for node in domain.nodes:
             collected = _collect_status(node.status_source)
@@ -437,6 +471,8 @@ def topology():
                 "metrics": _pick_metrics(node, collected),
                 "actions": [a["action"] for a in node_actions(node)],
                 "danger": node.danger,
+                # declared = modules_registry.DOMAINS 手写声明；discovered = 包自声明
+                "origin": node.origin,
             })
         domains_out.append({
             "domain_id": domain.domain_id,
@@ -444,10 +480,16 @@ def topology():
             "icon": domain.icon,
             "nodes": nodes_out,
         })
+    # 【2026-11-11】自动发现的读数与「未登记」单列：只增字段，不动 domains 形状。
+    #   口径：未登记 = 声明了模块元数据但没有合法 status_source ⇒ 不生成节点、不参与健康分；
+    #   把"没登记"如实列出来，才不会重演"新能力面一个都没上图却没人发现"。
     return _ok({
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
         "overall_health": round(sum(health_scores) / len(health_scores), 2) if health_scores else None,
         "domains": domains_out,
+        # 读数与「未登记」都走 registry 的同一份扫描结果（不在这里重扫、不各算各的）
+        "autodiscovery": discovery_summary(),
+        "unregistered": unregistered_modules(),
     })
 
 
@@ -457,7 +499,7 @@ def detail(module_id: str):
     node = get_node(module_id)
     if node is None:
         return jsonify({"error": f"未知模块: {module_id}"}), 404
-    domain = next((d for d in DOMAINS if any(n.module_id == module_id for n in d.nodes)), None)
+    domain = next((d for d in effective_domains() if any(n.module_id == module_id for n in d.nodes)), None)
     collected = _collect_status(node.status_source)
     state = _classify_status(collected)
     with _audit_lock:

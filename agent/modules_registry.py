@@ -6,13 +6,22 @@
 - ACTION_ROUTES 仅描述"动作 → 既有 API"映射，**不新增业务逻辑、不绕过安全边界**
 - 危险动作（danger=high）必须二次确认 + reason 必填，由聚合层强制
 
-【变易】新增模块只需向 DOMAINS 追加节点声明，前端拓扑自动上图。
+【变易】两种登记方式，效果相同（都自动上图）：
+  ① 向 DOMAINS 追加节点声明（手写、可带 actions/metrics/danger）；
+  ② 包自己声明：`agent/<pkg>/__init__.py` 里写 `MODULE_STATUS_SOURCE = "api:/..."`
+     （+ 可选 MODULE_DOMAIN/NAME/DESCRIPTION/METRICS），由 `agent/modules_discovery.py`
+     静态扫描（AST，不 import）后并入拓扑 —— 见 `effective_domains()`。
+     **白名单**：只有声明了 status_source 的包才生成节点；只声明了名字/描述的包进
+     「未登记」单列（`unregistered_modules()`），**不生成节点、不参与健康分**。
+     总开关 `CP_MODULE_AUTODISCOVERY`（默认开，置 0 退回纯手写清单）。
 【简易】dataclass 声明式，30s 可读。
 """
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
+
+from agent import modules_discovery as _discovery
 
 __version__ = "0.1.0"
 
@@ -35,6 +44,8 @@ class ModuleNode:
         actions: 允许的干预动作 key（必须在 ACTION_ROUTES 中已声明）
         danger: 干预风险等级 low / medium / high
         description: 一句话核心功能
+        origin: declared = 本文件手写声明；discovered = 包自声明后由自动发现并入
+                （前端据此标「自动发现」，两种登记方式在健康分/干预能力上完全同权）
     """
     module_id: str
     name: str
@@ -45,6 +56,7 @@ class ModuleNode:
     actions: List[str] = field(default_factory=list)
     danger: str = "low"             # low / medium / high
     description: str = ""
+    origin: str = "declared"        # declared | discovered
 
 
 @dataclass
@@ -297,8 +309,8 @@ DOMAINS: List[Domain] = [
 # ════════════════════════════════════════════════════════════
 
 def get_node(module_id: str) -> Optional[ModuleNode]:
-    """按 module_id 取节点（全树查找）"""
-    for d in DOMAINS:
+    """按 module_id 取节点（全树查找，含自动发现的节点 —— 详情/干预与手写节点同权）"""
+    for d in effective_domains():
         for n in d.nodes:
             if n.module_id == module_id:
                 return n
@@ -323,12 +335,98 @@ def node_actions(node: ModuleNode) -> List[Dict]:
 
 
 def summary() -> dict:
-    """注册表概览（调试/诊断用）"""
+    """注册表概览（调试/诊断用；含自动发现的读数）"""
     return {
-        "domains": len(DOMAINS),
-        "nodes": sum(len(d.nodes) for d in DOMAINS),
+        "domains": len(effective_domains()),
+        "nodes": sum(len(d.nodes) for d in effective_domains()),
         "actions": len(ACTION_ROUTES),
+        "autodiscovery": discovery_summary(),
     }
+
+
+# ════════════════════════════════════════════════════════════
+#  自动发现（2026-11-11）：包自声明 → 并入拓扑
+#  判据与数据在 agent/modules_discovery.py（纯 stdlib、只做 AST 解析，不 import 包）
+# ════════════════════════════════════════════════════════════
+
+def _discovery_result() -> "_discovery.DiscoveryResult":
+    """当前生效的扫描结果。
+
+    【为什么包一层函数】单测要能替换成夹具（`monkeypatch.setattr(registry, "_discovery_result", ...)`），
+    且开关判断集中在这一处 —— 关掉时返回空结果，DOMAINS 之外**一个节点都不多**。
+    """
+    if not _discovery.enabled():
+        return _discovery.DiscoveryResult()
+    return _discovery.scan()
+
+
+def _covered_packages() -> set:
+    """手写声明已经点到过的包名（`memory/memory_manager.py` → `memory`）。
+
+    用途：同一个人既在 DOMAINS 里写了节点、又在包 `__init__.py` 里声明了状态源时，
+    不能出现两个节点（图上重复 = 健康分被同一个模块算两次）。
+    """
+    covered = set()
+    for domain in DOMAINS:
+        for node in domain.nodes:
+            raw = (node.path or "").strip()
+            if not raw:
+                continue
+            first = raw.replace(",", " ").replace("，", " ").replace(";", " ").split()[0]
+            first = first.strip("/*")
+            if first.startswith("agent/"):
+                first = first[len("agent/"):]
+            if first.endswith(".py"):
+                first = first.rsplit("/", 1)[0] if "/" in first else ""
+            first = first.split("/")[0]
+            if first:
+                covered.add(first)
+    return covered
+
+
+def effective_domains() -> List[Domain]:
+    """**当前生效的**域树 = DOMAINS + 自动发现并入的节点。
+
+    返回新的 `Domain` 列表（浅拷贝节点列表），绝不改 `DOMAINS` 本身 ——
+    它是声明的唯一事实源，被测试/契约对拍反复读取，运行时不能有副作用。
+    """
+    domains = [Domain(d.domain_id, d.domain_name, d.icon, list(d.nodes)) for d in DOMAINS]
+    for module in _discovery_result().declared:
+        if module.package in _covered_packages():
+            continue  # 手写声明已覆盖 ⇒ 不重复上图
+        target = next((d for d in domains if d.domain_id == module.domain_id), None)
+        if target is None:
+            continue  # 域校验在 scan() 里已做；此处是防御（域名漂移时宁可不画）
+        target.nodes.append(ModuleNode(
+            module_id=module.module_id,
+            name=module.name,
+            path=module.display_path,
+            type="service",
+            status_source=module.status_source,
+            metrics=list(module.metrics),
+            description=module.description,
+            origin="discovered",
+        ))
+    return domains
+
+
+def discovery_summary() -> dict:
+    """自动发现的读数（拓扑响应与注册表概览共用同一份，不各算各的）。"""
+    result = _discovery_result()
+    return {
+        "enabled": _discovery.enabled(),
+        "scanned_packages": result.scanned_packages,
+        "discovered": len(result.declared),
+        "unregistered": len(result.unregistered),
+    }
+
+
+def unregistered_modules() -> List[Dict[str, str]]:
+    """「未登记」单列：声明了模块元数据、却没有合法 status_source 的包。
+
+    **不生成节点、不参与健康分**（L5：没有状态源不是"0 分"，也不是"不存在"）。
+    """
+    return [dict(item) for item in _discovery_result().unregistered]
 
 
 # ════════════════════════════════════════════════════════════
@@ -349,7 +447,7 @@ def declared_http_endpoints() -> List[Dict[str, str]]:
     启动期由 app_server 用真实 url_map 调用，单测用夹具调用。
     """
     out: List[Dict[str, str]] = []
-    for d in DOMAINS:
+    for d in effective_domains():
         for n in d.nodes:
             src = (n.status_source or "").strip()
             if src.startswith("api:"):
@@ -417,6 +515,7 @@ if __name__ == "__main__":
         "domains": [
             {"domain_id": d.domain_id, "domain_name": d.domain_name,
              "nodes": [n.module_id for n in d.nodes]}
-            for d in DOMAINS
+            for d in effective_domains()
         ],
+        "unregistered": unregistered_modules(),
     }, ensure_ascii=False, indent=2))
