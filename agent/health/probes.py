@@ -158,23 +158,45 @@ def probe_l2_dependency() -> ProbeResult:
     return ProbeResult("l2_dependency", 1.0, detail)
 
 
+def _counter_totals() -> Dict[str, float]:
+    """真实计数器（跨标签求和）：**Prometheus 投影优先**，进程内 metrics 登记表兜底。
+
+    【2026-11-10 为什么要改】`agent/monitoring/metrics.py` 那张进程内登记表**没有任何写入点**：
+    以前 L3/L4 探针读它 ⇒ 恒 `{}` ⇒ 仪表盘 L3/L4 永远「无数据」（用户看到的「端点未返回/没有数据」）。
+    真实计数在 Prometheus：HTTP 层由 prometheus_flask_exporter 记账，LLM 调用由
+    prometheus.record_llm_call 记账（llm_calls_total / llm_errors_total）。
+    health.probes → prometheus 是**既有允许**的依赖边（反过来 import llm_monitor 会闭合成环）。
+    """
+    merged: Dict[str, float] = {}
+    try:
+        from agent.monitoring.metrics import get_all_metrics
+        for key, value in (get_all_metrics().get("counters") or {}).items():
+            try:
+                merged[str(key)] = float(value)
+            except (TypeError, ValueError):
+                continue
+    except Exception as exc:  # noqa: BLE001 兜底表不可用不算失败（下面是主源）
+        logger.debug("probe counter：metrics 登记表不可用: %s", exc)
+    try:
+        from agent.monitoring.prometheus import counter_snapshot
+        merged.update(counter_snapshot())
+    except Exception as exc:  # noqa: BLE001 投影失败 → 用兜底表（可能为空）
+        logger.debug("probe counter：prometheus 投影不可用: %s", exc)
+    return merged
+
+
 def probe_l3_llm_tool() -> ProbeResult:
     """L3 LLM/工具链路：调用错误率 + 熔断状态
 
     无调用计数或 metrics 不可用 → available=False, score=None。
     """
-    try:
-        from agent.monitoring.metrics import get_all_metrics
-        all_metrics = get_all_metrics()
-    except Exception as e:  # noqa: BLE001
-        logger.warning("probe_l3_llm_tool metrics 不可用: %s", e)
-        return ProbeResult("l3_llm_tool", None, "无 LLM/工具链路数据（metrics 未初始化）", available=False)
-
-    counters = all_metrics.get("counters", {})
-    error_keys = [k for k in counters if "error" in k.lower()]
-    total_keys = [k for k in counters if "total" in k.lower() or "count" in k.lower()]
-    errors = sum(counters[k] for k in error_keys)
-    total = sum(counters[k] for k in total_keys)
+    # 【2026-11-10】改读**真实计数器**：Prometheus 投影优先（llm_calls_total / llm_errors_total、
+    #   HTTP 计数都在那里），进程内 metrics 登记表只作兜底 —— 它历史上没有任何写入点，
+    #   以前 L3/L4 的「无数据」全是因为读了这张空表（不是链路真的没跑）。
+    counters = _counter_totals()
+    llm_keys = [k for k in counters if "llm" in k.lower()]
+    total = sum(counters[k] for k in llm_keys if "call" in k.lower())
+    errors = sum(counters[k] for k in llm_keys if "error" in k.lower())
 
     # 【2026-11-08】把前缀缓存命中率带成结构化数值：健康仪表盘要一张「LLM 缓存命中」卡。
     # 口径只认 API **明确上报过**缓存字段的调用（cache_reported），否则"没上报"会被算成
@@ -209,11 +231,14 @@ def probe_l3_llm_tool() -> ProbeResult:
                 return ProbeResult("l3_llm_tool", 1.0, "熔断器全部关闭", metrics=cache_metrics)
         except Exception:  # noqa: BLE001
             pass
-        return ProbeResult("l3_llm_tool", None, "无 LLM/工具链路数据（未注册熔断器且无调用计数）",
+        return ProbeResult("l3_llm_tool", None,
+                           "无 LLM 调用记录（llm_calls_total=0，本进程还没有 chat/summarize；"
+                           "熔断器也未注册）",
                            available=False, metrics=cache_metrics)
 
     err_rate = errors / total
-    detail = f"chat_error_rate={err_rate:.1%} (errors={errors} total={total})"
+    detail = (f"llm_calls={int(total)} errors={int(errors)} error_rate={err_rate:.1%}"
+              "（来源：prometheus 计数器）")
     if cache_metrics:
         detail += " cache_hit=%.1f%%" % (cache_metrics["cache_hit_ratio"] * 100)
     score = max(0.0, 1.0 - err_rate * 5)
@@ -225,22 +250,22 @@ def probe_l4_business() -> ProbeResult:
 
     最近窗口无业务请求 → available=False, score=None。
     """
-    try:
-        from agent.monitoring.metrics import get_all_metrics
-        all_metrics = get_all_metrics()
-    except Exception as e:  # noqa: BLE001
-        logger.warning("probe_l4_business metrics 不可用: %s", e)
-        return ProbeResult("l4_business", None, "最近窗口无业务请求", available=False)
-
-    counters = all_metrics.get("counters", {})
-    requests = sum(v for k, v in counters.items() if "request" in k.lower())
-    errors = sum(v for k, v in counters.items() if "error" in k.lower() and "request" in k.lower())
+    # 【2026-11-10】同 L3：真实计数在 Prometheus（HTTP 层由 prometheus_flask_exporter 记账），
+    #   以前读进程内空表 ⇒ 永恒「最近窗口无业务请求」。
+    counters = _counter_totals()
+    requests = sum(v for k, v in counters.items()
+                   if "request" in k.lower() and "error" not in k.lower()
+                   and "exception" not in k.lower())
+    errors = sum(v for k, v in counters.items()
+                 if "request" in k.lower() and ("error" in k.lower() or "exception" in k.lower()))
 
     if requests <= 0:
-        return ProbeResult("l4_business", None, "最近窗口无业务请求", available=False)
+        return ProbeResult("l4_business", None,
+                           "最近窗口无业务请求（http_request_total=0）", available=False)
 
     success_rate = 1.0 - (errors / requests) if requests else 0.0
-    detail = f"requests={requests} success_rate={success_rate:.1%}"
+    detail = (f"http_requests={int(requests)} errors={int(errors)} "
+              f"success_rate={success_rate:.1%}（来源：prometheus 计数器）")
     return ProbeResult("l4_business", round(success_rate, 2), detail)
 
 

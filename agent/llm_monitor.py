@@ -24,10 +24,12 @@ try:
     from agent.monitoring.prometheus import (
         record_llm_usage as _record_llm_usage,
         record_tool_selected as _record_tool_selected,
+        record_llm_call as _record_llm_call,
     )
 except Exception:  # noqa: BLE001
     _record_llm_usage = None
     _record_tool_selected = None
+    _record_llm_call = None
 
 try:
     from agent.logging_utils import log_dict as _log_dict
@@ -841,6 +843,12 @@ def install_hooks():
                     monitor.record(record)
                 except Exception as e:
                     logger.debug("记录 LLM chat 调用失败: %s", e)
+                # 调用结果计数：L3 探针靠它算错误率（见 prometheus.record_llm_call 的注释）
+                if _record_llm_call is not None:
+                    try:
+                        _record_llm_call("chat", not error)
+                    except Exception:  # noqa: BLE001 打点失败不影响主链路
+                        pass
 
         def _patched_do_summarize(self, messages, max_tokens=500, system_prompt="", tools=None):
             # 【2026-11-08】tools 必须**透传**：压缩复用对话前缀时，tools 段是前缀的一部分，
@@ -873,6 +881,11 @@ def install_hooks():
                     monitor.record(record)
                 except Exception as e:
                     logger.debug("记录 LLM summarize 调用失败: %s", e)
+                if _record_llm_call is not None:
+                    try:
+                        _record_llm_call("summarize", not error)
+                    except Exception:  # noqa: BLE001
+                        pass
 
         LLMService._do_chat = _patched_do_chat
         LLMService._do_summarize = _patched_do_summarize

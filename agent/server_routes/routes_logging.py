@@ -354,15 +354,21 @@ def _get_runtime_metrics():
         #   yunshu_http_request_duration_seconds 里 ⇒ 读注册表做**投影**合进来，
         #   不新增埋点、不双写（口径见 agent/monitoring/prometheus.py 的 §诊断页分位数投影）。
         histograms = dict(metrics.get("histograms", {}))
+        counters = dict(metrics.get("counters", {}))
         try:
-            from agent.monitoring.prometheus import http_latency_histograms
+            from agent.monitoring.prometheus import (
+                counter_snapshot,
+                http_latency_histograms,
+            )
             histograms.update(http_latency_histograms())
-        except Exception as _hist_exc:  # noqa: BLE001 投影失败不影响 counters/generated_at
-            logger.debug("诊断时延投影失败: %s", _hist_exc)
+            # 同一投影思路：真实计数在 Prometheus（进程内登记表历史无写入点）
+            counters.update(counter_snapshot())
+        except Exception as _hist_exc:  # noqa: BLE001 投影失败不影响 generated_at
+            logger.debug("诊断指标投影失败: %s", _hist_exc)
 
         return {
             "histograms": histograms,
-            "counters": metrics.get("counters", {}),
+            "counters": counters,
             "generated_at": metrics.get("generated_at", time.time()),
             "timestamp": time.time()
         }

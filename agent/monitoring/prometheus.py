@@ -1395,3 +1395,60 @@ def http_latency_histograms(top_n: int = _DIAG_LATENCY_TOP_N,
         return {}
     top = sorted(out.items(), key=lambda kv: kv[1]["count"], reverse=True)[:max(1, int(top_n))]
     return dict(top)
+
+# ── LLM 调用结果计数（2026-11-10，为 L3 探针补「调用错误率」）──────
+# 【为什么需要】L3 探针要算 LLM 错误率，但错误只有 llm_monitor 知道，而 health.probes
+#   不能 import llm_monitor（会闭合成环，arch_rules 判红）。故由 llm_monitor 在钩子里打点，
+#   探针从 prometheus 读（health.probes → prometheus 是既有允许边）。
+llm_calls_total = _safe_counter(
+    "llm_calls_total",
+    "LLM calls by source (chat / summarize / tool_calling)",
+    ["source"]
+)
+llm_errors_total = _safe_counter(
+    "llm_errors_total",
+    "LLM calls that failed, by source",
+    ["source"]
+)
+
+
+def record_llm_call(source: str, ok: bool) -> None:
+    """记录一次 LLM 调用结果（供 L3 探针算错误率）。失败不影响主链路。"""
+    try:
+        label = str(source or "unknown")
+        llm_calls_total.labels(source=label).inc()
+        if not ok:
+            llm_errors_total.labels(source=label).inc()
+    except Exception:  # noqa: BLE001 打点失败不得影响调用结果
+        pass
+
+
+def counter_snapshot() -> dict:
+    """把 Prometheus 的 counter 族投影成 {名字: 累计值}（**跨标签求和**）。
+
+    用途（2026-11-10）：/api/diagnostics/metrics 的 counters 与 L3/L4 探针此前读的是
+    agent/monitoring/metrics.py 那个**没有任何写入点**的进程内登记表 ⇒ 恒空/恒无数据。
+    真实计数一直在 Prometheus（HTTP 层由 prometheus_flask_exporter、LLM 由 record_llm_usage）。
+    投影 = 不新增埋点、不双写。
+
+    Returns:
+        {"<counter 名>": float}；注册表不可读 → {}。只取样本名以 _total 结尾的（Counter 语义），
+        跳过 *_created（那是 gauge 时间戳）。
+    """
+    try:
+        families = list(REGISTRY.collect())
+    except Exception as exc:  # noqa: BLE001 注册表不可读 → 如实返回空
+        logger.debug("counter 投影失败（注册表不可读）: %s", exc)
+        return {}
+    out = {}
+    for fam in families:
+        for sample in getattr(fam, "samples", ()):
+            name = str(getattr(sample, "name", ""))
+            if not name.endswith("_total") or name.endswith("_created"):
+                continue
+            try:
+                value = float(getattr(sample, "value", 0.0) or 0.0)
+            except Exception:  # noqa: BLE001 脏样本跳过
+                continue
+            out[name] = out.get(name, 0.0) + value
+    return out
