@@ -30,6 +30,20 @@
  */
 
 // ═══════════════════════════════════════════════════════════════
+//  报警器（/api/alarms，2026-11-11）
+//  顶栏铃铛与消息中心读的是同一张事件台账；写端点需要令牌。
+// ═══════════════════════════════════════════════════════════════
+/** 报警列表（当前态）：?state=firing|resolved&unread_only=1&kind=&limit=&offset= */
+export const ALARMS_LIST = '/api/alarms/list';
+/** 未读数（静默中的不计入；summary 随载荷一起给） */
+export const ALARMS_UNREAD = '/api/alarms/unread-count';
+/** 全部标记已读 */
+export const ALARMS_READ_ALL = '/api/alarms/read-all';
+export const alarmRead = (alarmId: number) => `/api/alarms/${alarmId}/read`;
+export const alarmAck = (alarmId: number) => `/api/alarms/${alarmId}/ack`;
+export const alarmSilence = (alarmId: number) => `/api/alarms/${alarmId}/silence`;
+
+// ═══════════════════════════════════════════════════════════════
 //  技能管理（/api/skills-mgmt）
 // ═══════════════════════════════════════════════════════════════
 export const SKILLS_MGMT = '/api/skills-mgmt';

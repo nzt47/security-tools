@@ -10,6 +10,14 @@
  * 不是两套未读；消息中心的历史列表来自同一台账的分页投影。
  */
 import { getApiToken } from '@/lib/apiToken'
+import {
+  ALARMS_LIST,
+  ALARMS_READ_ALL,
+  ALARMS_UNREAD,
+  alarmAck,
+  alarmRead,
+  alarmSilence,
+} from '@/api/endpoints'
 
 export type AlarmSeverity = 'info' | 'warning' | 'critical'
 export type AlarmState = 'firing' | 'resolved'
@@ -58,10 +66,10 @@ export interface AlarmListParams {
   offset?: number
 }
 
-// 【为什么路径都写成完整字面量】静态盘点（scripts/audit/route_ui_coverage.py）只认
-// src/ 里出现的完整路径串：用 `BASE + '/list'` 拼出来的路径它看不见 ⇒ 8 条新路由会被判
-// "前端无引用"（unreferenced），把只允许收缩的上限顶破。所以这里不省字。
-const BASE = '/api/alarms'
+// 【路径一律来自端点常量层】本仓纪律：React 侧**不得**出现常量层之外的 /api 字面量
+// （守卫 tests/unit/test_frontend_stray_baseline.py 要求恰好 0 处；常量层是唯一允许的
+// 落字面量处，见 src/api/endpoints.ts 头注）。所以这里用 ALARMS_* / alarmXxx()，
+// 不自己拼 /api/alarms/... —— 那会同时踩字面量守卫与「找不到该改哪些前端文件」的老坑。
 
 /** 统一解析 {code,data} 信封；非 200 业务码抛错（错误文案由后端给，前端不编） */
 async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -91,27 +99,27 @@ export function listAlarms(params: AlarmListParams = {}): Promise<AlarmListPaylo
   if (params.limit != null) q.set('limit', String(params.limit))
   if (params.offset != null) q.set('offset', String(params.offset))
   const suffix = q.toString() ? '?' + q.toString() : ''
-  return call<AlarmListPayload>(`${BASE}/list${suffix}`)
+  return call<AlarmListPayload>(ALARMS_LIST + suffix)
 }
 
 /** 未读数（静默中的不计入） */
 export function getUnreadAlarms(): Promise<{ unread: number; summary: AlarmSummary }> {
-  return call<{ unread: number; summary: AlarmSummary }>(`${BASE}/unread-count`)
+  return call<{ unread: number; summary: AlarmSummary }>(ALARMS_UNREAD)
 }
 
 /** 标记一条已读 */
 export function markAlarmRead(id: number): Promise<{ id: number; read: boolean }> {
-  return call<{ id: number; read: boolean }>(`${BASE}/${id}/read`, { method: 'POST' })
+  return call<{ id: number; read: boolean }>(alarmRead(id), { method: 'POST' })
 }
 
 /** 全部标记已读 */
 export function markAllAlarmsRead(): Promise<{ updated: number }> {
-  return call<{ updated: number }>(`${BASE}/read-all`, { method: 'POST' })
+  return call<{ updated: number }>(ALARMS_READ_ALL, { method: 'POST' })
 }
 
 /** 确认（表示"人已知悉"，与已读分开记） */
 export function ackAlarm(id: number, by = 'owner'): Promise<{ id: number; acked: boolean }> {
-  return call<{ id: number; acked: boolean }>(`${BASE}/${id}/ack`, {
+  return call<{ id: number; acked: boolean }>(alarmAck(id), {
     method: 'POST',
     body: JSON.stringify({ by }),
   })
@@ -119,7 +127,7 @@ export function ackAlarm(id: number, by = 'owner'): Promise<{ id: number; acked:
 
 /** 静默 N 分钟（不改状态、不删除；到期自动重新计入未读） */
 export function silenceAlarm(id: number, minutes: number): Promise<{ id: number; silenced_until: string }> {
-  return call<{ id: number; silenced_until: string }>(`${BASE}/${id}/silence`, {
+  return call<{ id: number; silenced_until: string }>(alarmSilence(id), {
     method: 'POST',
     body: JSON.stringify({ minutes }),
   })
