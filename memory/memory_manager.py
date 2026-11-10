@@ -424,6 +424,22 @@ class MemoryManager:
         self._summary_cache: dict = {}
         logger.info("MemoryManager 初始化完成")
 
+    def _compression_session_key(self, session_id: Optional[str] = None) -> str:
+        """压缩实际会写的**摘要键**（单一事实源）。
+
+        None ⇒ 用最近一次触发压缩的会话（`_pending_session`）；"" ⇒ 未分会话（全局口径）；
+        再经 `_summary_sid` 收口「是否按会话分家」的开关。
+
+        【为什么要抽出来·2026-11-10】`compress_now()` 过去用 `load_summary()`（按**当前会话**解析）
+        读版本，而 `_execute_compression()` 是按 `_pending_session` 写 —— 两者可能不是同一个键：
+        本进程还没跑过对话轮次时 `_pending_session` 为空 ⇒ 写的是**全局**摘要，
+        读的却是当前会话 ⇒ 面板看到「ok=true 但版本 0/0」，明明全局摘要已经从 96 走到 98。
+        """
+        sid = (str(getattr(self, "_pending_session", "") or "")
+               if session_id is None else str(session_id or ""))
+        return self._summary_sid(sid)
+
+
     def _execute_compression(self, session_id: Optional[str] = None) -> bool:
         """执行压缩任务的公共方法
 
@@ -439,7 +455,8 @@ class MemoryManager:
         sid = (str(getattr(self, "_pending_session", "") or "")
                if session_id is None else str(session_id or ""))
         #: 摘要落盘的会话键：开关关 = ""（全局）；开 = 该会话（空串仍是全局）。
-        _ssid = self._summary_sid(sid)
+        #   与 compress_now() 读版本用**同一个**解析（_compression_session_key），避免读写分家。
+        _ssid = self._compression_session_key(session_id)
         total_start = time.time()
         try:
             logger.warning("┌─────────────────────────────────────────────")
@@ -1095,22 +1112,32 @@ class MemoryManager:
         故这里只回报「是否成功 + 摘要版本前后 + 参与压缩的消息数」。
 
         Returns:
-            dict: {ok, summary_version, version_before, messages_compressed}
+            dict: {ok, summary_version, version_before, messages_compressed, scope}
+
+        【2026-11-10 修「ok=true 但版本 0/0」】版本必须从**压缩实际写的那个键**读：
+        旧实现用 load_summary()（按当前会话解析），而 _execute_compression() 按
+        _pending_session 写 —— 本进程还没跑过对话轮次时 pending 为空 ⇒ 写全局、读会话，
+        面板就会显示「成功但版本没变」。现在读写同键（_compression_session_key），
+        并额外回报 scope（session/global）让人一眼看出这次压到了哪儿。
         """
+        sid = str(getattr(self, "_pending_session", "") or "")
+        key = self._compression_session_key()
         version_before = 0
         try:
-            summary = self.load_summary()
+            summary = self._storage.load_summary(key)
             version_before = int(summary[1]) if summary else 0
         except Exception:  # noqa: BLE001 旧版本读不到不阻断压缩
             version_before = 0
         try:
-            messages = self._storage.load_recent_messages(limit=100)
+            messages = self._storage.load_recent_messages(limit=COMPRESS_INPUT_WINDOW)
         except Exception:  # noqa: BLE001 消息读不到按 0 计
             messages = []
+        # 不传参调用：`_execute_compression()` 自己按 `_pending_session` 解析（与上面 key 同一解析），
+        # 且既有调用方/测试替身都按无参形态签名 —— 保持这个签名不动（口径 §6：接口同步三处）。
         ok = self._execute_compression()
         version_after = version_before
         try:
-            summary = self.load_summary()
+            summary = self._storage.load_summary(key)
             version_after = int(summary[1]) if summary else version_before
         except Exception:  # noqa: BLE001
             version_after = version_before
@@ -1119,6 +1146,8 @@ class MemoryManager:
             "summary_version": int(version_after),
             "version_before": int(version_before),
             "messages_compressed": len(messages),
+            # 这次压到了哪儿（session/global）：键为空 = 未分会话（全局摘要）
+            "scope": "session" if key else "global",
             # 【2026-11-09】这次压缩用的是哪条路径（可核实，不是猜）：
             #   used_prefix=True ⇒ 压缩请求复用了本轮对话前缀（命中价）；False ⇒ 独立前缀（全价）。
             "used_prefix": bool(getattr(self, "_last_compress_used_prefix", False)),

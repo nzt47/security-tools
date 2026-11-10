@@ -221,9 +221,12 @@ class TestManualCompressEntry:
         assert called == [1], "必须走 _execute_compression（真正的压缩），而不是摘要器薄封装"
         # 【2026-11-09 契约变更（可见）】新增 used_prefix / prefix_messages：
         #   面板要能看见「这次压缩走的是复用前缀还是独立前缀」，不靠翻日志。
+        # 【2026-11-10 契约变更（可见）】新增 scope（session/global）：
+        #   ok=true 但版本 0/0 的真因是「写全局、读会话」，回报压到哪儿才判得出来。
         assert set(got) == {"ok", "summary_version", "version_before", "messages_compressed",
-                            "used_prefix", "prefix_messages"}
+                            "used_prefix", "prefix_messages", "scope"}
         assert got["ok"] is True
+        assert got["scope"] in ("session", "global")
 
     def test_compress_now_不谎报释放量(self, manager, monkeypatch):
         monkeypatch.setattr(manager, "_execute_compression", lambda: True)
