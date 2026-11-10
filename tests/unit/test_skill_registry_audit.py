@@ -61,6 +61,23 @@ def _records(skill_id: str, action: str):
     return [e for e in _chain().entries(action=action) if e.subject == subject]
 
 
+def _wait_records(fn, want: int, *, timeout: float = 3.0, interval: float = 0.05):
+    """有界轮询到"恰好 want 条"（链式审计是 best-effort，可能晚一拍；判据不变）。
+
+    2026-11-10 CI 实测：全量单进程顺序下 `skill.registry.toggle` 的落链偶发迟到，
+    断言把它当成"没写"而红。分片跑/单跑恒绿 —— 与 `test_skill_update_audit` 的
+    `_wait_count` 同一处置。
+    """
+    import time as _t
+
+    deadline = _t.monotonic() + timeout
+    rows = fn()
+    while len(rows) != want and _t.monotonic() < deadline:
+        _t.sleep(interval)
+        rows = fn()
+    return rows
+
+
 def _body(entry) -> dict:
     """审计条目的业务载荷（facade 嵌一层 `payload`）"""
     inner = entry.payload.get("payload")
@@ -107,7 +124,10 @@ class TestMainTrackAudit:
         r = reg.toggle("d2-toggle-main-1")
         assert r == {"ok": True, "id": "d2-toggle-main-1", "enabled": False,
                      "track": "main"}
-        recs = _records("d2-toggle-main-1", ACTION_TOGGLE)
+        # 【2026-11-10】链式审计 best-effort：全量单进程顺序下 record() 可能晚一拍
+        # （锁竞争/后台补写），按"没写"判红过（CI run 42757130733）。
+        # 有界轮询保留判据：超时仍不是恰好 1 条就照样红。
+        recs = _wait_records(lambda: _records("d2-toggle-main-1", ACTION_TOGGLE), 1)
         assert len(recs) == 1
         body = _body(recs[0])
         assert body["track"] == "main"

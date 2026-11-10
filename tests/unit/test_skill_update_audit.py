@@ -194,7 +194,7 @@ class TestFieldChangeAudit:
                    content="# old", tags=["old"])
         iso_svc.update("d4-secret-1",
                        {"tags": [SECRET], "content": SECRET, "description": SECRET})
-        recs = _records("d4-secret-1", ACTION_UPDATE)
+        recs = _wait_count(lambda: _records("d4-secret-1", ACTION_UPDATE), 1)
         assert len(recs) == 1
         assert _body(recs[0])["changed"] == ["content", "tags"]
         # 跨动作扫该技能的全部记录（含 _advisory_assess 旁路写的 skill.assess.*）

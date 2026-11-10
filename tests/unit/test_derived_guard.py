@@ -1,21 +1,18 @@
 # -*- coding: utf-8 -*-
-"""派生面指纹守卫（tests/conftest.py::_guard_derived_assets）—— 2026-11-10 P2。
+"""派生面指纹守卫的判据（tests/unit/_derived_guard.py + conftest 的 session fixture）。
 
-背景（为什么要有这个守卫）：一次全量 `pytest tests/unit -p no:randomly` 期间，
-`data/skills_repo/gh-cli`、`gstack` 的 skill.md/CARD.md 被删、`data/skills_mgmt.json`
-少行（线上技能 53→52）、能力清单被重派生、3 个基线测试被改；而当时**定位不到写入方**，
-只能靠事后 `git status` 发现。守卫把这件事变成"会话结束点名失败"。
+背景（为什么要有这个守卫）：2026-11-10 00:00 一次全量 `pytest tests/unit -p no:randomly`
+期间，`data/skills_repo/gh-cli`（随后 `gstack`）的 skill.md/CARD.md 被删、
+`data/skills_mgmt.json` 少行（线上技能 53→52）、能力清单被重派生、3 个基线测试被改；
+当时只能用"全量跑 20 分钟 + 事后 git status"发现。审计链后来给出证据：两次都是
+`DELETE /api/skills-mgmt/<id>`（带 bearer token）——**HTTP 调用**，不是测试直接删文件。
 
-本文件测**守卫自己的逻辑**（纯函数 + 目标集），不依赖真实 data/：
-  · 快照/差集：删除 / 改内容 / 新增 三类都能点名；
-  · 点开头的内部目录（.index/.migration/.vector_index）不计入 —— 服务会合法重建它们；
-  · 目标集必须包含五个"派生物/资产"与三个基线哨兵；
-  · 关闸开关 `CP_TEST_GUARD_DERIVED=0`。
+本文件测**判据本身**（纯函数 + 目标集 + 关闸），不碰真实 data/、也**不二次加载 conftest**
+（那会把 conftest 的导入期副作用跑第二遍，实测会打红 `test_network_config_test_floor`）。
 """
 from __future__ import annotations
 
 import importlib.util
-import os
 from pathlib import Path
 
 import pytest
@@ -24,9 +21,9 @@ _ROOT = Path(__file__).resolve().parents[2]
 
 
 def _guard():
-    """按路径加载 conftest（rootdir conftest 不能 `import conftest`）"""
-    spec = importlib.util.spec_from_file_location(
-        "tests_conftest_derived_guard", _ROOT / "tests" / "conftest.py")
+    """按路径加载判据模块（`tests/unit` 虽在 pythonpath，但显式加载更稳）"""
+    path = _ROOT / "tests" / "unit" / "_derived_guard.py"
+    spec = importlib.util.spec_from_file_location("_derived_guard_under_test", path)
     assert spec and spec.loader
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
@@ -39,7 +36,7 @@ def guard():
 
 
 def test_targets_cover_derived_assets_and_sentinels(guard):
-    targets = set(guard._DERIVED_GUARD_TARGETS)
+    targets = set(guard.TARGETS)
     for must in ("data/skills_repo",
                  "data/skills_mgmt.json",
                  "data/capability_manifest.json",
@@ -59,20 +56,20 @@ def test_snapshot_and_diff_report_all_three_kinds(guard, tmp_path):
     f_del.write_text("delete me", encoding="utf-8")
     f_mod.write_text('{"a": 1}', encoding="utf-8")
 
-    before = guard._derived_snapshot(tmp_path)
+    before = guard.snapshot(tmp_path)
     assert set(before) == {"data/skills_repo/s1/skill.md",
                            "data/skills_repo/s1/CARD.md",
                            "data/skills_mgmt.json"}
 
-    f_del.unlink()                              # 删除
-    f_mod.write_text('{"a": 2}', encoding="utf-8")   # 改内容
+    f_del.unlink()
+    f_mod.write_text('{"a": 2}', encoding="utf-8")
     (tmp_path / "data" / "skills_repo" / "s2").mkdir()
     (tmp_path / "data" / "skills_repo" / "s2" / "skill.md").write_text("new", encoding="utf-8")
 
-    diff = guard._derived_diff(before, guard._derived_snapshot(tmp_path))
-    assert diff["deleted"] == ["data/skills_repo/s1/CARD.md"]
-    assert diff["modified"] == ["data/skills_mgmt.json"]
-    assert diff["added"] == ["data/skills_repo/s2/skill.md"]
+    d = guard.diff(before, guard.snapshot(tmp_path))
+    assert d["deleted"] == ["data/skills_repo/s1/CARD.md"]
+    assert d["modified"] == ["data/skills_mgmt.json"]
+    assert d["added"] == ["data/skills_repo/s2/skill.md"]
 
 
 def test_internal_dot_dirs_are_ignored(guard, tmp_path):
@@ -85,63 +82,55 @@ def test_internal_dot_dirs_are_ignored(guard, tmp_path):
         sub.mkdir()
         (sub / "cache.json").write_text("{}", encoding="utf-8")
 
-    snap = guard._derived_snapshot(tmp_path)
-    assert snap == {"data/skills_repo/s1/skill.md": snap["data/skills_repo/s1/skill.md"]}
+    snap = guard.snapshot(tmp_path)
+    assert list(snap) == ["data/skills_repo/s1/skill.md"]
 
 
-def test_added_runtime_file_outside_skills_repo_is_not_hard_failure(guard, tmp_path):
-    """干净检出里 `data/skills_mgmt.json` 本来不存在，构造服务会创建它 ——
-    "新增"必须**分流**：skills_repo 下新增 .md 才算污染（硬失败），其它新增只告警。
-
-    CI shard1 实测过这条假红（`[added] data/skills_mgmt.json`），故把分流逻辑钉住。
-    """
+def test_added_split_runtime_file_is_soft_skill_md_is_hard(guard, tmp_path):
+    """干净检出里 `data/skills_mgmt.json` 本来不存在（构造服务就会创建）⇒ 只告警；
+    `data/skills_repo/` 下新增 .md = 凭空多一条技能 ⇒ 硬失败。"""
     (tmp_path / "data").mkdir()
-    before = guard._derived_snapshot(tmp_path)
+    before = guard.snapshot(tmp_path)
     (tmp_path / "data" / "skills_mgmt.json").write_text("{}", encoding="utf-8")
-    after = guard._derived_snapshot(tmp_path)
-    diff = guard._derived_diff(before, after)
-    added = diff["added"]
-    assert [x for x in added if x.startswith("data/skills_repo/")] == []
-    assert added == ["data/skills_mgmt.json"]
-
-
-def test_added_skill_md_inside_skills_repo_is_pollution(guard, tmp_path):
-    (tmp_path / "data" / "skills_repo").mkdir(parents=True)
-    before = guard._derived_snapshot(tmp_path)
-    (tmp_path / "data" / "skills_repo" / "s-new").mkdir()
+    (tmp_path / "data" / "skills_repo" / "s-new").mkdir(parents=True)
     (tmp_path / "data" / "skills_repo" / "s-new" / "skill.md").write_text("x", encoding="utf-8")
-    diff = guard._derived_diff(before, guard._derived_snapshot(tmp_path))
-    assert [x for x in diff["added"] if x.startswith("data/skills_repo/")] == [
-        "data/skills_repo/s-new/skill.md"]
+
+    hard, soft = guard.split_added(guard.diff(before, guard.snapshot(tmp_path)))
+    assert hard == ["data/skills_repo/s-new/skill.md"]
+    assert soft == ["data/skills_mgmt.json"]
 
 
 def test_no_change_means_empty_diff(guard, tmp_path):
     (tmp_path / "data").mkdir()
     (tmp_path / "data" / "capability_manifest.json").write_text("{}", encoding="utf-8")
-    snap = guard._derived_snapshot(tmp_path)
-    assert guard._derived_diff(snap, guard._derived_snapshot(tmp_path)) == {
+    snap = guard.snapshot(tmp_path)
+    assert guard.diff(snap, guard.snapshot(tmp_path)) == {
         "deleted": [], "modified": [], "added": []}
 
 
 def test_kill_switch(guard, monkeypatch):
-    monkeypatch.delenv(guard._DERIVED_GUARD_ENV, raising=False)
-    assert guard._derived_guard_disabled() is False
-    monkeypatch.setenv(guard._DERIVED_GUARD_ENV, "0")
-    assert guard._derived_guard_disabled() is True
-    monkeypatch.setenv(guard._DERIVED_GUARD_ENV, "OFF")
-    assert guard._derived_guard_disabled() is True
-    monkeypatch.setenv(guard._DERIVED_GUARD_ENV, "1")
-    assert guard._derived_guard_disabled() is False
+    monkeypatch.delenv(guard.ENV_DISABLED, raising=False)
+    assert guard.disabled() is False
+    monkeypatch.setenv(guard.ENV_DISABLED, "0")
+    assert guard.disabled() is True
+    monkeypatch.setenv(guard.ENV_DISABLED, "OFF")
+    assert guard.disabled() is True
+    monkeypatch.setenv(guard.ENV_DISABLED, "1")
+    assert guard.disabled() is False
 
 
-def test_guard_is_session_scoped_autouse(guard):
-    """必须是 session 级 autouse —— 否则起止指纹只覆盖单个用例，等于没守。
+def test_fixture_is_session_scoped_autouse():
+    """守卫必须是 session 级 autouse（否则起止指纹只覆盖单个用例 = 没守）。
 
-    pytest 9 把 `@pytest.fixture` 装饰过的函数包成 `FixtureFunctionDefinition`，
-    scope/autouse 在内部 marker 上（`_fixture_function_marker`），故按 marker 断言。
+    【为什么用"读源码"而不是 import conftest】再加载一次 conftest 会把它的**导入期副作用**
+    跑第二遍（网络配置地板 / .env 地板 / sys.path 钉扎）—— 实测把
+    `test_network_config_test_floor` 打红（地板目录落进仓库的 .pytest_tmp）。
+    源码断言足以钉住"session + autouse"这两件事。
     """
-    fx = guard._guard_derived_assets
-    marker = getattr(fx, "_fixture_function_marker", None)
-    assert marker is not None, f"守卫不是 pytest fixture：{type(fx)}"
-    assert marker.scope == "session", f"守卫 scope 必须是 session，实际 {marker.scope}"
-    assert marker.autouse is True, "守卫必须 autouse（否则没人用就守不住）"
+    src = (_ROOT / "tests" / "conftest.py").read_text(encoding="utf-8")
+    idx = src.find("def _guard_derived_assets")
+    assert idx > 0, "conftest 里没有 _guard_derived_assets"
+    decorator = src[max(0, idx - 200):idx]
+    assert "@pytest.fixture(autouse=True, scope=\"session\")" in decorator, (
+        "守卫必须是 @pytest.fixture(autouse=True, scope=\"session\")，实际装饰器段："
+        + decorator[-120:])

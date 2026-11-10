@@ -468,64 +468,12 @@ def _isolate_skill_usage_log(tmp_path_factory):
 # 【为什么只守这几个】它们都是"派生面或生产资产"：本该由**脚本 + 干净 worktree**改，
 # 任何测试改动都是污染。刻意**不含** `data/tool_definitions`（吞噬/登记类测试会合法新增
 # YAML）与 `data/logs`、`data/*.db`（运行期台账）。
-_DERIVED_GUARD_ENV = "CP_TEST_GUARD_DERIVED"
-_DERIVED_GUARD_TARGETS = (
-    "data/skills_repo",                      # 技能文件轨（*.md 存在性 + 内容）
-    "data/skills_mgmt.json",                 # 主轨登记（运行态，但测试绝不该写）
-    "data/capability_manifest.json",         # 能力清单（派生物）
-    "docs/rfc/云枢能力清单盘点表.md",          # 盘点表（派生物）
-    "tests/unit/test_capability_spec.py",    # 三个派生面基线哨兵
-    "tests/unit/test_capregistry_core.py",
-    "tests/unit/test_confirm_level.py",
-)
-#: 跳过：**点开头的一切目录**（`.index`/`.migration`/`.vector_index` 都是服务合法重建的
-#: 内部库）+ 字节码。判据用"前缀点"，避免每加一个内部目录就往这里加一行。
-_DERIVED_GUARD_SKIP = ("__pycache__",)
-#: 报告最多列多少条（避免一次污染把日志刷爆）
+#: 判据（目标集 / 快照 / 差集 / 关闸）下沉在 `tests/unit/_derived_guard.py`：
+#: **不要在单测里 importlib 再加载一次 conftest** —— 那会把 conftest 的导入期副作用
+#: （网络配置地板 / .env 地板 / sys.path 钉扎）跑第二遍，实测把
+#: `test_network_config_test_floor` 打红（地板目录落进仓库 .pytest_tmp）。
+#: `tests/unit` 已在 pytest.ini 的 pythonpath 里，故这里直接 import。
 _DERIVED_GUARD_MAX_REPORT = 12
-
-
-def _derived_guard_disabled() -> bool:
-    return os.environ.get(_DERIVED_GUARD_ENV, "1").strip().lower() in (
-        "0", "false", "no", "off")
-
-
-def _derived_snapshot(root: Path) -> Dict[str, str]:
-    """目标集合的 {相对路径: sha256[:16]} 快照（**缺失即跳过**，不替测试造文件）"""
-    import hashlib
-
-    out: Dict[str, str] = {}
-    for rel in _DERIVED_GUARD_TARGETS:
-        p = root / rel
-        try:
-            if p.is_file():
-                files = [p]
-            elif p.is_dir():
-                files = [f for f in p.rglob("*") if f.is_file()
-                         and not any(part.startswith(".") or part in _DERIVED_GUARD_SKIP
-                                     for part in f.parts)]
-            else:
-                continue
-        except OSError:
-            continue
-        for f in files:
-            if f.suffix == ".pyc":
-                continue
-            try:
-                digest = hashlib.sha256(f.read_bytes()).hexdigest()[:16]
-            except OSError:
-                continue
-            out[str(f.relative_to(root)).replace("\\", "/")] = digest
-    return out
-
-
-def _derived_diff(before: Dict[str, str], after: Dict[str, str]) -> Dict[str, List[str]]:
-    """三类差异：deleted（少了）/ modified（内容变了）/ added（多出来）"""
-    return {
-        "deleted": sorted(set(before) - set(after)),
-        "modified": sorted(k for k in (set(before) & set(after)) if before[k] != after[k]),
-        "added": sorted(set(after) - set(before)),
-    }
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -534,43 +482,41 @@ def _guard_derived_assets():
 
     关掉：`CP_TEST_GUARD_DERIVED=0`（只在"确认是合法派生"时用，用完删环境变量）。
     """
-    if _derived_guard_disabled():
+    from _derived_guard import MAX_REPORT, disabled, diff, snapshot, split_added
+
+    if disabled():
         yield {}
         return
 
     root = Path(__file__).resolve().parent.parent
-    before = _derived_snapshot(root)
+    before = snapshot(root)
     yield before
-    after = _derived_snapshot(root)
-    diff = _derived_diff(before, after)
+    changes = diff(before, snapshot(root))
     # 【为什么"新增"要分两类（2026-11-10 CI shard1 实测假红）】干净检出里
-    # `data/skills_mgmt.json` **本来不存在**（它是 .gitignore 的运行态），任何
-    # `SkillsMgmtService()` 一构造就会把它创建出来 ⇒ "added" 是**合法副作用**，
-    # 不是污染。判据因此分开：
-    #   · `data/skills_repo/` 下新增 .md ⇒ 可疑（等于凭空多一条技能）⇒ 硬失败；
-    #   · 其它目标的"新增" ⇒ 只告警（不上抛），避免把既有的"构造即落盘"打成红。
-    added_skills = [x for x in diff["added"] if x.startswith("data/skills_repo/")]
-    added_other = [x for x in diff["added"] if not x.startswith("data/skills_repo/")]
-    diff = {"deleted": diff["deleted"], "modified": diff["modified"], "added": added_skills}
-    if added_other:
+    # `data/skills_mgmt.json` **本来不存在**（.gitignore 的运行态），任何
+    # `SkillsMgmtService()` 一构造就会把它创建出来 ⇒ 这类"新增"是**合法副作用**；
+    # 但 `data/skills_repo/` 下凭空多出 .md = 多一条技能 ⇒ 必须硬失败。
+    hard_added, soft_added = split_added(changes)
+    changes = {"deleted": changes["deleted"], "modified": changes["modified"],
+               "added": hard_added}
+    if soft_added:
         warnings.warn(
             "派生面守卫：这些文件在会话内**新建**了（运行态副作用，不作为失败）："
-            + ", ".join(added_other[: _DERIVED_GUARD_MAX_REPORT]),
+            + ", ".join(soft_added[:MAX_REPORT]),
             stacklevel=2)
-    if not any(diff.values()):
+    if not any(changes.values()):
         return
 
     def _fmt(kind: str, items: List[str]) -> str:
-        shown = items[:_DERIVED_GUARD_MAX_REPORT]
-        more = "" if len(items) <= _DERIVED_GUARD_MAX_REPORT else (
-            f"（另有 {len(items) - _DERIVED_GUARD_MAX_REPORT} 条，未列出）")
+        shown = items[:MAX_REPORT]
+        more = "" if len(items) <= MAX_REPORT else f"（另有 {len(items) - MAX_REPORT} 条，未列出）"
         return "\n".join(f"  - [{kind}] {x}" for x in shown) + more
 
     lines = ["测试污染了派生面/生产资产（本次会话内被改）"]
     for kind in ("deleted", "modified", "added"):
-        if diff[kind]:
-            lines.append(f"{kind} {len(diff[kind])} 个：")
-            lines.append(_fmt(kind, diff[kind]))
+        if changes[kind]:
+            lines.append(f"{kind} {len(changes[kind])} 个：")
+            lines.append(_fmt(kind, changes[kind]))
     lines.append(
         "定位：在 tests/unit 里按文件二分（或看 data/handoff_next.json::derive-fingerprint-guard）。"
         "修法：写入方必须改成 tmp_path / 隔离环境变量，或走脚本 + 干净 worktree；"
