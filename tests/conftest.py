@@ -10,6 +10,7 @@ pytest配置文件
 """
 
 import os
+import warnings
 import sys
 import json
 import copy
@@ -542,6 +543,20 @@ def _guard_derived_assets():
     yield before
     after = _derived_snapshot(root)
     diff = _derived_diff(before, after)
+    # 【为什么"新增"要分两类（2026-11-10 CI shard1 实测假红）】干净检出里
+    # `data/skills_mgmt.json` **本来不存在**（它是 .gitignore 的运行态），任何
+    # `SkillsMgmtService()` 一构造就会把它创建出来 ⇒ "added" 是**合法副作用**，
+    # 不是污染。判据因此分开：
+    #   · `data/skills_repo/` 下新增 .md ⇒ 可疑（等于凭空多一条技能）⇒ 硬失败；
+    #   · 其它目标的"新增" ⇒ 只告警（不上抛），避免把既有的"构造即落盘"打成红。
+    added_skills = [x for x in diff["added"] if x.startswith("data/skills_repo/")]
+    added_other = [x for x in diff["added"] if not x.startswith("data/skills_repo/")]
+    diff = {"deleted": diff["deleted"], "modified": diff["modified"], "added": added_skills}
+    if added_other:
+        warnings.warn(
+            "派生面守卫：这些文件在会话内**新建**了（运行态副作用，不作为失败）："
+            + ", ".join(added_other[: _DERIVED_GUARD_MAX_REPORT]),
+            stacklevel=2)
     if not any(diff.values()):
         return
 

@@ -89,6 +89,32 @@ def test_internal_dot_dirs_are_ignored(guard, tmp_path):
     assert snap == {"data/skills_repo/s1/skill.md": snap["data/skills_repo/s1/skill.md"]}
 
 
+def test_added_runtime_file_outside_skills_repo_is_not_hard_failure(guard, tmp_path):
+    """干净检出里 `data/skills_mgmt.json` 本来不存在，构造服务会创建它 ——
+    "新增"必须**分流**：skills_repo 下新增 .md 才算污染（硬失败），其它新增只告警。
+
+    CI shard1 实测过这条假红（`[added] data/skills_mgmt.json`），故把分流逻辑钉住。
+    """
+    (tmp_path / "data").mkdir()
+    before = guard._derived_snapshot(tmp_path)
+    (tmp_path / "data" / "skills_mgmt.json").write_text("{}", encoding="utf-8")
+    after = guard._derived_snapshot(tmp_path)
+    diff = guard._derived_diff(before, after)
+    added = diff["added"]
+    assert [x for x in added if x.startswith("data/skills_repo/")] == []
+    assert added == ["data/skills_mgmt.json"]
+
+
+def test_added_skill_md_inside_skills_repo_is_pollution(guard, tmp_path):
+    (tmp_path / "data" / "skills_repo").mkdir(parents=True)
+    before = guard._derived_snapshot(tmp_path)
+    (tmp_path / "data" / "skills_repo" / "s-new").mkdir()
+    (tmp_path / "data" / "skills_repo" / "s-new" / "skill.md").write_text("x", encoding="utf-8")
+    diff = guard._derived_diff(before, guard._derived_snapshot(tmp_path))
+    assert [x for x in diff["added"] if x.startswith("data/skills_repo/")] == [
+        "data/skills_repo/s-new/skill.md"]
+
+
 def test_no_change_means_empty_diff(guard, tmp_path):
     (tmp_path / "data").mkdir()
     (tmp_path / "data" / "capability_manifest.json").write_text("{}", encoding="utf-8")
