@@ -1,14 +1,14 @@
 {
-  "updated_at": "2026-11-10T00:50+08:00",
+  "updated_at": "2026-11-10T12:25+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
     {
       "id": "derive-fingerprint-guard",
       "status": "open",
       "priority": "P2",
-      "title": "全量测试期间 data/ 与派生面被静默写入（gh-cli/gstack 文件轨被删、清单重派生、基线测试被改）——加指纹守卫定位写入方",
-      "criteria": "2026-11-10 00:00–00:44 实测两次：一次全量 `pytest tests/unit -p no:randomly` 期间，data/skills_repo/gh-cli/{skill.md,CARD.md} 被删、data/skills_mgmt.json 少一行（未跟踪运行态）、data/capability_manifest.json 被重派生（generated_at 00:00:13）、3 个基线测试被改（如 confirm_level 49→50）；随后在 00:39–00:41 之间 data/skills_repo/gstack/{CARD.md,skill.md} 又被删。另证：data/logs/2026-11-10.jsonl 混进 410 行测试输出 ⇒ 测试写 data/ 是既有事实。已按生产路径修复（git checkout HEAD 取回 + `SkillsMgmtService.backfill_file_track(dry_run=False)` 补登记 + 重启），当前 skills=53 / 双轨 51/53 / 三处一致。写入方仍未定位；已排除：test_intake_{skill,e2e,autopilot,route_defaults} / test_skill_materialize / test_skill_merge / 3 个 capability 测试 / snapshot 的 4 个自检脚本 / 调度器历史（停在 2026-06）。",
-      "next": "在 tests/conftest.py 加 session 级 autouse 指纹守卫：起止对 data/skills_repo/**/*.md、data/skills_mgmt.json、data/capability_manifest.json、docs/rfc/云枢能力清单盘点表.md、3 个基线测试文件算 (mtime,size,sha256[:12])，变了就**点名**失败。跑一次全量即可锁定写入方（一次运行 ≈20 分钟，别再用二分）。在此之前：**别在跑全量测试的同时做部署/派生**。"
+      "title": "全量测试期间 data/ 被静默写入（gh-cli/gstack 被 API 删除）—— 守卫已落地，写入方待按审计链 join",
+      "criteria": "2026-11-10 00:00 事故：一次全量 `pytest tests/unit -p no:randomly` 期间 data/skills_repo/gh-cli（随后 gstack）被删、data/skills_mgmt.json 少行（53→52）、能力清单被重派生、3 个基线测试被改。**2026-11-10 12:2x 在审计链找到直接证据**：两条 `skill.delete`，actor=tok_ffd912584295（= FLASK_API_TOKEN 的指纹）、source=ui、payload.method=DELETE、path=/api/skills-mgmt/gh-cli（seq 83644, 2026-11-09T15:53:40Z）与 path=/api/skills-mgmt/gstack（seq 83693, 16:37:51Z）⇒ 删除来自**带 bearer token 的 HTTP 调用**，不是测试直接删文件（测试内没有这种 DELETE：unit 里仅有 test_audit_integration 的假 svc + 假 id）。两次时间点都落在\"本机跑全量测试 + 后端在跑\"的窗口内。守卫已落地（`tests/conftest.py::_guard_derived_assets` + `tests/unit/test_derived_guard.py`，已在本地用故意改清单的探针验证\"会话结束点名 [modified] data/capability_manifest.json\"）。",
+      "next": "1) 已做：守卫 + 端到端证明（探针跑完即删，清单已还原）。2) 待做：把守卫报告与审计链 join —— 守卫在会话结束点名路径，审计链给出 `skill.delete` 的**时间+actor+path**；两者对时间即可锁定是哪一次运行/哪一段测试。3) 待做：按 `gh api`/`data/audit` 里 `actor_source=ui_request_context` 的调用方特征，检查本机是否有用 .env token 直连 5678 的脚本/后台任务（已知候选：scripts/verify_*、scripts/demo_s2_02_audit.py、scripts/approve_tool_call.ps1、以及 data/_*.py 历史助手）。4) 复现时用：`python -m pytest tests/unit -q -p no:randomly -v > 日志`（-v 才有\"哪个测试在跑\"），出事后用审计链时间对齐日志时间戳。"
     },
     {
       "id": "skill-script-run-observe",
