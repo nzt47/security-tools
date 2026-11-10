@@ -1284,3 +1284,114 @@ def register_llm_response_cache_collector() -> bool:
 # 模块导入即注册：/metrics 由默认 REGISTRY 生成，注册必须早于首次抓取。
 register_llm_response_cache_collector()
 
+
+# ════════════════════════════════════════════════════════════
+# 诊断页分位数投影（2026-11-10，条目 diagnostics-histograms-empty）
+#
+# 为什么需要：/api/diagnostics/metrics 的 histograms 一直是空对象 ——
+#   agent/monitoring/metrics.py 那个进程内注册表**没有任何写入点**；
+#   真实时延一直在 **prometheus_flask_exporter 注册到默认 REGISTRY 的**
+#   yunshu_http_request_duration_seconds（标签 method/endpoint/status/le）。
+# 做法：读注册表做**投影**，不新增埋点、不双写（单一事实源）。
+# 口径：桶内线性插值（与 Prometheus histogram_quantile 同法）；样本数低于阈值的端点不报分位
+#   （小样本的 P99 是噪声）；min/max **不报**（直方图只有桶边界，报 min/max 只能是猜）。
+# ════════════════════════════════════════════════════════════
+
+#: HTTP 时延族名：prometheus_flask_exporter 默认前缀是 yunshu_；两种写法都认（换前缀时不至于全空）
+_DIAG_LATENCY_FAMILIES = ("yunshu_http_request_duration_seconds",
+                          "http_request_duration_seconds")
+#: 参与投影的端点数（按样本量降序）：诊断页是给人看的，8 个足够定位慢端点
+_DIAG_LATENCY_TOP_N = 8
+#: 少于此样本量的端点不报分位数（小样本给"精确"分位 = 编数字）
+_DIAG_LATENCY_MIN_SAMPLES = 20
+
+
+def _quantile_from_buckets(series, q):
+    """累积桶 → 分位数（桶内线性插值，与 histogram_quantile 同法）。
+
+    Args:
+        series: [(上界, 累积计数), ...]，按上界升序；上界可为 math.inf（+Inf 桶）。
+        q: 0<q<1。
+
+    Returns:
+        分位数（float）；没有样本 → None；落进 +Inf 桶 → 返回最后一个有限上界
+        （只能说"比它更慢"，不编一个具体值）。
+    """
+    if not series:
+        return None
+    total = float(series[-1][1])
+    if total <= 0:
+        return None
+    rank = float(q) * total
+    prev_ub, prev_c = 0.0, 0.0
+    for ub, c in series:
+        c = float(c)
+        if c >= rank:
+            if ub == float("inf"):
+                return prev_ub
+            if c <= prev_c:
+                return float(ub)
+            return prev_ub + (float(ub) - prev_ub) * (rank - prev_c) / (c - prev_c)
+        prev_ub, prev_c = float(ub), c
+    last = float(series[-1][0])
+    return None if last == float("inf") else last
+
+
+def http_latency_histograms(top_n: int = _DIAG_LATENCY_TOP_N,
+                            min_samples: int = _DIAG_LATENCY_MIN_SAMPLES) -> dict:
+    """从默认 REGISTRY 投影 HTTP 时延分位数（P50/P95/P99），供诊断页展示。
+
+    Returns:
+        {"http.<endpoint>": {count, sum, avg, p50, p95, p99}}；没有数据 → {}。
+        **不含 min/max**：直方图只有桶边界，取不到真 min/max。
+    """
+    try:
+        families = {fam.name: fam for fam in REGISTRY.collect()}
+    except Exception as exc:  # noqa: BLE001 注册表不可读 → 如实返回空（页面显示不可用）
+        logger.debug("诊断时延投影失败（注册表不可读）: %s", exc)
+        return {}
+    out = {}
+    for name in _DIAG_LATENCY_FAMILIES:
+        fam = families.get(name)
+        if fam is None:
+            continue
+        buckets, sums, counts = {}, {}, {}
+        for sample in getattr(fam, "samples", ()):
+            labels = dict(getattr(sample, "labels", {}) or {})
+            endpoint = str(labels.get("endpoint") or "unknown")
+            value = float(getattr(sample, "value", 0.0) or 0.0)
+            sname = str(getattr(sample, "name", ""))
+            if sname.endswith("_bucket"):
+                le = str(labels.get("le"))
+                buckets.setdefault(endpoint, {})
+                buckets[endpoint][le] = buckets[endpoint].get(le, 0.0) + value
+            elif sname.endswith("_sum"):
+                sums[endpoint] = sums.get(endpoint, 0.0) + value
+            elif sname.endswith("_count"):
+                counts[endpoint] = counts.get(endpoint, 0.0) + value
+        for endpoint, cnt in counts.items():
+            if cnt < min_samples:
+                continue
+            series = []
+            for le, c in buckets.get(endpoint, {}).items():
+                ub = float("inf") if le.lower() in ("+inf", "inf") else float(le)
+                series.append((ub, c))
+            series.sort(key=lambda item: item[0])
+            p50 = _quantile_from_buckets(series, 0.50)
+            p95 = _quantile_from_buckets(series, 0.95)
+            p99 = _quantile_from_buckets(series, 0.99)
+            if p50 is None:
+                continue
+            total_sec = sums.get(endpoint, 0.0)
+            out["http." + endpoint] = {
+                "count": int(cnt),
+                "sum": round(total_sec, 3),
+                "avg": round(total_sec / cnt, 4) if cnt else 0.0,
+                "p50": round(float(p50), 4),
+                "p95": round(float(p95), 4),
+                "p99": round(float(p99), 4),
+            }
+    if not out:
+        return {}
+    top = sorted(out.items(), key=lambda kv: kv[1]["count"], reverse=True)[:max(1, int(top_n))]
+    return dict(top)

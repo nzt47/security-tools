@@ -348,9 +348,20 @@ def _get_runtime_metrics():
     try:
         collector = get_metrics_collector()
         metrics = collector.get_all_metrics()
-        
+
+        # 【2026-11-10】histograms 长期是 {}（agent/monitoring/metrics.py 的进程内注册表
+        #   没有任何写入点）。真实时延在 prometheus_flask_exporter 注册到默认 REGISTRY 的
+        #   yunshu_http_request_duration_seconds 里 ⇒ 读注册表做**投影**合进来，
+        #   不新增埋点、不双写（口径见 agent/monitoring/prometheus.py 的 §诊断页分位数投影）。
+        histograms = dict(metrics.get("histograms", {}))
+        try:
+            from agent.monitoring.prometheus import http_latency_histograms
+            histograms.update(http_latency_histograms())
+        except Exception as _hist_exc:  # noqa: BLE001 投影失败不影响 counters/generated_at
+            logger.debug("诊断时延投影失败: %s", _hist_exc)
+
         return {
-            "histograms": metrics.get("histograms", {}),
+            "histograms": histograms,
             "counters": metrics.get("counters", {}),
             "generated_at": metrics.get("generated_at", time.time()),
             "timestamp": time.time()
