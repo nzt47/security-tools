@@ -93,7 +93,11 @@ describe('报警器 · 读数', () => {
 })
 
 describe('报警器 · 动作只打对应端点', () => {
-  const calls = () => fetchMock.mock.calls.map((c) => [String(c[0]), (c[1] as RequestInit | undefined)?.method ?? 'GET', (c[1] as RequestInit | undefined)?.body])
+  const calls = (): Array<[string, string, string]> => fetchMock.mock.calls.map((c) => [
+    String(c[0]),
+    (c[1] as RequestInit | undefined)?.method ?? 'GET',
+    String((c[1] as RequestInit | undefined)?.body ?? ''),
+  ])
 
   it('静默：POST /api/alarms/<id>/silence 带分钟数，随后重新拉取', async () => {
     render(<AlarmBell />)
@@ -104,7 +108,7 @@ describe('报警器 · 动作只打对应端点', () => {
     await waitFor(() => {
       expect(calls().some(([u, m]) => u === '/api/alarms/7/silence' && m === 'POST')).toBe(true)
     })
-    const body = JSON.parse(String(calls().find(([u]) => u === '/api/alarms/7/silence')?.[2]))
+    const body = JSON.parse(calls().find(([u]) => u === '/api/alarms/7/silence')?.[2] ?? '{}')
     expect(body.minutes).toBe(SILENCE_MINUTES)
     await waitFor(() => {
       const count = calls().filter(([u]) => u.startsWith('/api/alarms/unread-count')).length
