@@ -1,7 +1,15 @@
 {
-  "updated_at": "2026-11-11T00:00+08:00",
+  "updated_at": "2026-11-11T00:10+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
+    {
+      "id": "scheduler-card-wrong-endpoint",
+      "status": "open",
+      "priority": "P3",
+      "title": "健康仪表盘的「计划任务」卡读错端点：/api/scheduler/tasks 只列文件登记任务（0 条）",
+      "criteria": "实测 /api/scheduler/tasks 与 scheduler_tasks 都是 0 条（该端点只读 agent.system_tools.list_scheduled_tasks 的**文件登记** system_command）；真正在跑的 16 个 cron/interval 任务只在 /api/scheduler/overview（带统一信封 {code,data}）。于是健康页「计划任务」恒显示「暂无计划任务（/api/scheduler/tasks 返回空列表）」。",
+      "next": "改前端 health.tsx 的 schedulerTasks 数据源为 SCHEDULER_OVERVIEW 并解一层 data（本文件已留注释）；或后端把 overview 的运行态任务并进 /api/scheduler/tasks（会同时影响定时任务页，优先前端改）。"
+    },
     {
       "id": "topology-missing-faces",
       "status": "open",
