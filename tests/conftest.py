@@ -447,6 +447,122 @@ def _isolate_skill_usage_log(tmp_path_factory):
         os.environ[usage_log._ENV_PATH] = prev
 
 
+# ════════════════════════════════════════════════════════════════════
+#  派生面 / 生产资产指纹守卫（2026-11-10，P2 derive-fingerprint-guard）
+# ════════════════════════════════════════════════════════════════════
+#
+# 【为什么需要（2026-11-10 00:00 实测事故）】一次 `pytest tests/unit -p no:randomly`
+# 全量跑期间，仓库与运行态被**静默写入**：
+#   · `data/skills_repo/gh-cli/{skill.md,CARD.md}` 被删（随后 gstack 同样被删）；
+#   · `data/skills_mgmt.json`（未跟踪运行态）少行 ⇒ 线上技能 53→52；
+#   · `data/capability_manifest.json` 被重派生（generated_at 跳到 00:00:13）；
+#   · 3 个基线测试文件被改（如 confirm_level 49→50）。
+# 当时只能用"全量跑 20 分钟 + git status 事后看"才发现，且**定位不到写入方**
+# （已排除 intake / materialize / merge / capability 三件套 / snapshot 自检 / 调度器）。
+#
+# 【本守卫做什么】会话开始给"派生面"做一次指纹，结束时再算一次：
+#   变了 ⇒ **点名失败**（删除/改内容/新增 三类分开列），带"`CP_TEST_GUARD_DERIVED=0` 可关"的提示。
+# 这样一次全量跑就能锁定写入方，而不是靠二分。
+#
+# 【为什么只守这几个】它们都是"派生面或生产资产"：本该由**脚本 + 干净 worktree**改，
+# 任何测试改动都是污染。刻意**不含** `data/tool_definitions`（吞噬/登记类测试会合法新增
+# YAML）与 `data/logs`、`data/*.db`（运行期台账）。
+_DERIVED_GUARD_ENV = "CP_TEST_GUARD_DERIVED"
+_DERIVED_GUARD_TARGETS = (
+    "data/skills_repo",                      # 技能文件轨（*.md 存在性 + 内容）
+    "data/skills_mgmt.json",                 # 主轨登记（运行态，但测试绝不该写）
+    "data/capability_manifest.json",         # 能力清单（派生物）
+    "docs/rfc/云枢能力清单盘点表.md",          # 盘点表（派生物）
+    "tests/unit/test_capability_spec.py",    # 三个派生面基线哨兵
+    "tests/unit/test_capregistry_core.py",
+    "tests/unit/test_confirm_level.py",
+)
+#: 跳过：**点开头的一切目录**（`.index`/`.migration`/`.vector_index` 都是服务合法重建的
+#: 内部库）+ 字节码。判据用"前缀点"，避免每加一个内部目录就往这里加一行。
+_DERIVED_GUARD_SKIP = ("__pycache__",)
+#: 报告最多列多少条（避免一次污染把日志刷爆）
+_DERIVED_GUARD_MAX_REPORT = 12
+
+
+def _derived_guard_disabled() -> bool:
+    return os.environ.get(_DERIVED_GUARD_ENV, "1").strip().lower() in (
+        "0", "false", "no", "off")
+
+
+def _derived_snapshot(root: Path) -> Dict[str, str]:
+    """目标集合的 {相对路径: sha256[:16]} 快照（**缺失即跳过**，不替测试造文件）"""
+    import hashlib
+
+    out: Dict[str, str] = {}
+    for rel in _DERIVED_GUARD_TARGETS:
+        p = root / rel
+        try:
+            if p.is_file():
+                files = [p]
+            elif p.is_dir():
+                files = [f for f in p.rglob("*") if f.is_file()
+                         and not any(part.startswith(".") or part in _DERIVED_GUARD_SKIP
+                                     for part in f.parts)]
+            else:
+                continue
+        except OSError:
+            continue
+        for f in files:
+            if f.suffix == ".pyc":
+                continue
+            try:
+                digest = hashlib.sha256(f.read_bytes()).hexdigest()[:16]
+            except OSError:
+                continue
+            out[str(f.relative_to(root)).replace("\\", "/")] = digest
+    return out
+
+
+def _derived_diff(before: Dict[str, str], after: Dict[str, str]) -> Dict[str, List[str]]:
+    """三类差异：deleted（少了）/ modified（内容变了）/ added（多出来）"""
+    return {
+        "deleted": sorted(set(before) - set(after)),
+        "modified": sorted(k for k in (set(before) & set(after)) if before[k] != after[k]),
+        "added": sorted(set(after) - set(before)),
+    }
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _guard_derived_assets():
+    """测试若改了「派生面/生产资产」⇒ 会话结束**点名失败**（见上方长注释）。
+
+    关掉：`CP_TEST_GUARD_DERIVED=0`（只在"确认是合法派生"时用，用完删环境变量）。
+    """
+    if _derived_guard_disabled():
+        yield {}
+        return
+
+    root = Path(__file__).resolve().parent.parent
+    before = _derived_snapshot(root)
+    yield before
+    after = _derived_snapshot(root)
+    diff = _derived_diff(before, after)
+    if not any(diff.values()):
+        return
+
+    def _fmt(kind: str, items: List[str]) -> str:
+        shown = items[:_DERIVED_GUARD_MAX_REPORT]
+        more = "" if len(items) <= _DERIVED_GUARD_MAX_REPORT else (
+            f"（另有 {len(items) - _DERIVED_GUARD_MAX_REPORT} 条，未列出）")
+        return "\n".join(f"  - [{kind}] {x}" for x in shown) + more
+
+    lines = ["测试污染了派生面/生产资产（本次会话内被改）"]
+    for kind in ("deleted", "modified", "added"):
+        if diff[kind]:
+            lines.append(f"{kind} {len(diff[kind])} 个：")
+            lines.append(_fmt(kind, diff[kind]))
+    lines.append(
+        "定位：在 tests/unit 里按文件二分（或看 data/handoff_next.json::derive-fingerprint-guard）。"
+        "修法：写入方必须改成 tmp_path / 隔离环境变量，或走脚本 + 干净 worktree；"
+        "**不要**用 --update 改基线把它盖掉。")
+    raise AssertionError("\n".join(lines))
+
+
 @pytest.fixture(autouse=True)
 def _reassert_approval_isolation(_isolate_approval_stores, monkeypatch):
     """逐用例**重新施加**审批落盘隔离（防中途 `import app_server` 把它冲掉）
