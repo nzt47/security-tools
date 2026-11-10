@@ -33,6 +33,14 @@ interface CtxStatus {
   percentage_semantics?: string
   percentage_note?: string
   percentage_window_messages?: number
+  /** 未分会话历史池（冻结口径） */
+  legacy_pool?: {
+    available?: boolean
+    policy?: string
+    legacy_messages?: number
+    messages_total?: number
+    note?: string
+  }
   /** 分母 = **编排窗口**（真正生效的那个）；后端取不到时是 null，界面必须如实显示 — */
   token_limit: number | null
   token_limit_source?: string
@@ -359,6 +367,14 @@ export function ContextManagerBar() {
                     <> · 会话累计 <span className="font-mono">{fmt(status.session_total_tokens)}</span> tok</>
                   )}
                 </div>
+                {/* 【2026-11-10】未分会话历史池：会话分家前的无主消息按「冻结」披露（L5：如实标无数据/冻结，
+                    不折算成 0，也不藏起来让人以为压缩漏了它们）。 */}
+                {(status.legacy_pool?.legacy_messages ?? 0) > 0 && (
+                  <div className="mt-1 text-[10px] leading-relaxed text-slate-500"
+                    title={status.legacy_pool?.note}>
+                    未分会话历史池 <span className="font-mono">{fmt(status.legacy_pool?.legacy_messages ?? 0)}</span> 条 · 已冻结（不参与压缩/摘要/最近消息）
+                  </div>
+                )}
               </div>
 
               {/* 【2026-11-05】65% 换会话提示：到 80% 才会自动压缩，压完早期细节只剩摘要，

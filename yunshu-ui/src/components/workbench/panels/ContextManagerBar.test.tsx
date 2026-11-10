@@ -65,6 +65,15 @@ beforeEach(() => {
     recv_tokens: 7000,
     messages_count: 20,
     turns: 10,
+    // 【2026-11-10】未分会话历史池：冻结口径（不参与压缩/摘要/最近消息）
+    legacy_pool: {
+      available: true,
+      policy: 'frozen',
+      legacy_messages: 305,
+      legacy_chars: 436675,
+      messages_total: 415,
+      note: '未分会话历史池：会话分家前写入、没有 session_id 的消息。已冻结——不参与任何会话的压缩触发、摘要与最近消息窗口，也不再写入。',
+    },
   })
   hubGetMock.mockResolvedValue({
     total: 7,
@@ -162,6 +171,15 @@ describe('ContextManagerBar · DSH 三组读数', () => {
     await screen.findByText('会话统计')
     fireEvent.click(screen.getByRole('button', { name: /手动压缩/ }))
     expect(await screen.findByText(/复用对话前缀（188 条同前缀消息，命中价）/)).toBeTruthy()
+  })
+
+  it('未分会话历史池：按「冻结」披露条数，不折算成 0', async () => {
+    render(<ContextManagerBar />)
+    expand()
+    await screen.findByText('会话统计')
+    expect(screen.getByText(/未分会话历史池/)).toBeTruthy()
+    expect(screen.getByText(/已冻结（不参与压缩\/摘要\/最近消息）/)).toBeTruthy()
+    expect(screen.getByText('305')).toBeTruthy()
   })
 
   it('机制说明：开关已移除，但说明正文常驻', async () => {

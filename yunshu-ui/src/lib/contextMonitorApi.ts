@@ -46,6 +46,15 @@ export interface ContextStatus {
   recv_tokens: number;
   messages_count: number;
   recent_messages: RecentMessage[];
+  /** 未分会话历史池（会话分家前没有 session_id 的消息）：按「冻结」披露，不参与压缩/摘要/最近消息 */
+  legacy_pool?: {
+    available?: boolean;
+    policy?: string;
+    legacy_messages?: number;
+    legacy_chars?: number;
+    messages_total?: number;
+    note?: string;
+  };
 }
 
 export interface ContextConfig {
