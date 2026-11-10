@@ -242,7 +242,17 @@ def probe_l3_llm_tool() -> ProbeResult:
     if cache_metrics:
         detail += " cache_hit=%.1f%%" % (cache_metrics["cache_hit_ratio"] * 100)
     score = max(0.0, 1.0 - err_rate * 5)
-    return ProbeResult("l3_llm_tool", round(score, 2), detail, metrics=cache_metrics)
+    # 【2026-11-11】调用数与错误率也带成结构化数值：健康仪表盘把「L3 错误率」合并进
+    #   五层维度卡（原来概览里多一张同名指标卡，标签与维度卡逐字相同 ⇒ 同一屏看两次）。
+    #   结构化数值由**后端**算，前端不拆 detail 文本（L5：界面不重算口径）。
+    metrics = {
+        "llm_calls": int(total),
+        "llm_errors": int(errors),
+        "error_rate": round(float(err_rate), 4),
+    }
+    if cache_metrics:
+        metrics.update(cache_metrics)
+    return ProbeResult("l3_llm_tool", round(score, 2), detail, metrics=metrics)
 
 
 def probe_l4_business() -> ProbeResult:
@@ -266,7 +276,13 @@ def probe_l4_business() -> ProbeResult:
     success_rate = 1.0 - (errors / requests) if requests else 0.0
     detail = (f"http_requests={int(requests)} errors={int(errors)} "
               f"success_rate={success_rate:.1%}（来源：prometheus 计数器）")
-    return ProbeResult("l4_business", round(success_rate, 2), detail)
+    # 【2026-11-11】成功率带成结构化数值：同上，合并进 L4 维度卡，不再另开同名指标卡。
+    return ProbeResult("l4_business", round(success_rate, 2), detail,
+                       metrics={
+                           "http_requests": int(requests),
+                           "http_errors": int(errors),
+                           "success_rate": round(float(success_rate), 4),
+                       })
 
 
 def _feedback_age_days(record) -> Optional[float]:

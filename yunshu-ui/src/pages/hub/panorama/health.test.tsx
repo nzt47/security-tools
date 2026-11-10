@@ -15,7 +15,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 
 import PanoramaHealth, {
   MISSING, NO_PROBE_DATA, PROBE_LAYERS, SOURCE_LABELS,
-  buildHistoryCsv, downsample, heartbeatStatusText, historyRows, levelOf,
+  buildHistoryCsv, downsample, heartbeatStatusText, historyRows, layerMetricLine, levelOf,
   metricRows, overviewCards, probeScoreText, secondsToMs,
   type AlertsData, type HeartbeatData, type HeartbeatHistory, type HeartbeatStatus,
   type MetricsData, type ProbeTrend,
@@ -187,8 +187,9 @@ describe('health 纯函数', () => {
     expect(by('cpu').value).toBe('24.3%')
     expect(by('memory').value).toBe('86.6%')
     expect(by('check-count').value).toBe('1440 次')
-    expect(by('task-success').value).toBe(NO_PROBE_DATA)
-    expect(by('error-rate').value).toBe(NO_PROBE_DATA)
+    // 【2026-11-11】两张与维度卡重复的指标卡已合并进维度卡 ⇒ 概览卡里不得再出现同名卡
+    expect(cards.find((c) => c.key === 'task-success')).toBeUndefined()
+    expect(cards.find((c) => c.key === 'error-rate')).toBeUndefined()
     for (const k of ['cpu-cores', 'mem-available', 'disk-available', 'requests', 'latency', 'p99']) {
       expect(by(k).value, k).toBe(MISSING)
       expect(by(k).missing, k).toBe(true)
@@ -216,6 +217,55 @@ describe('health 纯函数', () => {
     expect(out[0]).toBe(0)
     expect(out[out.length - 1]).toBe(999)
     expect(downsample([1, 2, 3], 240)).toEqual([1, 2, 3])
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════
+//  2026-11-11 Operator 问：为什么有两个「L3 LLM/工具」？（合并进维度卡）
+// ═══════════════════════════════════════════════════════════════
+describe('L3/L4 同名指标卡合并进维度卡', () => {
+  it('layerMetricLine 只认后端结构化数值，取不到就空串（不编数字）', () => {
+    expect(layerMetricLine('l3_llm_tool', { error_rate: 0.024 })).toBe('错误率 2.4%')
+    expect(layerMetricLine('l4_business', { success_rate: 0.99 })).toBe('成功率 99.0%')
+    expect(layerMetricLine('l3_llm_tool', {})).toBe('')
+    expect(layerMetricLine('l4_business', undefined)).toBe('')
+    // 其它层没有这一行（指标只属于 L3/L4）
+    expect(layerMetricLine('l1_process', { error_rate: 0.5 })).toBe('')
+  })
+
+  it('概览里「L3 LLM/工具」只在维度卡出现一次，比率行来自 probe_details.metrics', async () => {
+    const point = {
+      ...PROBE.points![1],
+      probe_details: {
+        ...PROBE.points![1].probe_details,
+        l3_llm_tool: {
+          available: true, score: 0.88, detail: 'llm_calls=100 errors=2 error_rate=2.0%',
+          metrics: { llm_calls: 100, llm_errors: 2, error_rate: 0.02 },
+        },
+        l4_business: {
+          available: true, score: 0.99, detail: 'http_requests=1000 errors=10 success_rate=99.0%',
+          metrics: { http_requests: 1000, http_errors: 10, success_rate: 0.99 },
+        },
+      },
+    }
+    fetchMock.mockImplementation(async (input: unknown) => {
+      const url = String(input)
+      if (url.startsWith('/api/health/probe-trend')) {
+        return fakeResponse({ hours: 1, points: [point], total_records: 1 }, false)
+      }
+      return installRoutesPassThrough(url)
+    })
+    render(<PanoramaHealth />)
+    await screen.findByTestId('dim-l3_llm_tool')
+    // 合并后的比率行：只由后端 metrics 算，前端不拆 detail 文本
+    expect(screen.getByTestId('metric-l3_llm_tool').textContent).toBe('错误率 2.0%')
+    expect(screen.getByTestId('metric-l4_business').textContent).toBe('成功率 99.0%')
+    // 两张旧指标卡（key=error-rate / task-success）彻底消失
+    expect(screen.queryByTestId('ov-error-rate')).toBeNull()
+    expect(screen.queryByTestId('ov-task-success')).toBeNull()
+    // 维度卡网格里该标签只出现一次（旧版这里是两次：维度卡 + 同名指标卡）
+    const grid = screen.getByTestId('health-dimensions')
+    expect(within(grid).getAllByText('L3 LLM/工具').length).toBe(1)
   })
 })
 

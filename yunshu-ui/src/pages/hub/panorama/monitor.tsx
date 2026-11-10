@@ -28,6 +28,15 @@ interface ModuleNode {
   status?: string
   status_detail?: string
   danger?: string
+  /** declared = modules_registry.DOMAINS 手写声明；discovered = 包自声明后自动发现 */
+  origin?: string
+}
+
+/** 「未登记」：声明了模块元数据、但没有合法 status_source 的包（不生成节点、不参与健康分） */
+interface UnregisteredModule {
+  package?: string
+  name?: string
+  reason?: string
 }
 
 interface Domain {
@@ -37,11 +46,19 @@ interface Domain {
   nodes: ModuleNode[]
 }
 
-/** /api/modules/topology 的业务载荷：{generated_at, overall_health, domains} */
+/** /api/modules/topology 的业务载荷：{generated_at, overall_health, domains, autodiscovery, unregistered} */
 interface ModulesTopology {
   generated_at?: string
   overall_health?: number | null
   domains?: Domain[]
+  /** 自动发现读数（2026-11-11）：开关 / 扫描包数 / 已发现 / 未登记 */
+  autodiscovery?: {
+    enabled?: boolean
+    scanned_packages?: number
+    discovered?: number
+    unregistered?: number
+  }
+  unregistered?: UnregisteredModule[]
 }
 
 interface HealthItem {
@@ -81,6 +98,8 @@ const ONLINE_STATUS: ReadonlySet<string> = new Set(['healthy', 'running', 'onlin
 
 export default function PanoramaMonitor() {
   const [domains, setDomains] = useState<Domain[]>([])
+  const [unregistered, setUnregistered] = useState<UnregisteredModule[]>([])
+  const [autodiscovery, setAutodiscovery] = useState<ModulesTopology['autodiscovery']>(undefined)
   const [health, setHealth] = useState<HealthItem[]>([])
   const [overallHealth, setOverallHealth] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
@@ -102,9 +121,15 @@ export default function PanoramaMonitor() {
         const d = m.value
         setDomains(d && Array.isArray(d.domains) ? d.domains : [])
         setOverallHealth(d && typeof d.overall_health === 'number' ? d.overall_health : null)
+        // 【2026-11-11】「未登记」单列：声明了是模块却没声明状态源 ⇒ 不生成节点、
+        // 不参与健康分；这里只做披露，绝不把它们并进 domains（否则健康分会虚高/虚低）。
+        setUnregistered(d && Array.isArray(d.unregistered) ? d.unregistered : [])
+        setAutodiscovery(d && d.autodiscovery ? d.autodiscovery : undefined)
       } else {
         setError('模块拓扑加载失败：' + String(m.reason))
         setDomains([])
+        setUnregistered([])
+        setAutodiscovery(undefined)
       }
       if (h.status === 'fulfilled') {
         const d = h.value ?? {}
@@ -141,6 +166,9 @@ export default function PanoramaMonitor() {
 
   const allModules = useMemo(() => domains.flatMap((d) => d.nodes ?? []), [domains])
 
+  // 自动发现并入的节点数（与手写节点同权参与健康分；这里只用于在页面上说清来源）
+  const discoveredCount = allModules.filter((m) => m.origin === 'discovered').length
+
   const online = allModules.filter((m) => ONLINE_STATUS.has(m.status ?? '')).length
   const offline = allModules.filter((m) => m.status === 'offline').length
   const disabled = allModules.filter((m) => m.status === 'disabled').length
@@ -172,7 +200,10 @@ export default function PanoramaMonitor() {
     <div className="p-6">
       <PageHeader
         title="系统监控"
-        description={'运行时视角：模块状态、健康评分与按域明细（' + domains.length + ' 个域 / ' + allModules.length + ' 个模块）'}
+        description={'运行时视角：模块状态、健康评分与按域明细（' + domains.length + ' 个域 / '
+          + allModules.length + ' 个模块'
+          + (discoveredCount > 0 ? '，其中 ' + discoveredCount + ' 个自动发现' : '')
+          + (unregistered.length > 0 ? '；' + unregistered.length + ' 个未登记' : '') + '）'}
         actions={
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-2 py-1.5">
@@ -230,6 +261,40 @@ export default function PanoramaMonitor() {
             </p>
           )}
 
+          {/* 【2026-11-11】「未登记」单列：以前这些包**根本不会出现在这个页面上**
+              （DOMAINS 是手写清单，没人加行 = 一个节点都没有），而一个人不知道
+              "它没上图"这件事本身不会被任何东西报出来。现在如实列出来：
+              它们只是缺一行 MODULE_STATUS_SOURCE —— 不生成节点、不参与健康分。 */}
+          {unregistered.length > 0 && (
+            <div className="mb-4" data-testid="module-unregistered">
+            <Card title={'未登记模块（' + unregistered.length + '）'}>
+              <p className="mb-2 text-[11px] text-slate-400">
+                这些包声明了「我是个功能面」，但<strong className="text-slate-300">没有声明状态源</strong>
+                （<code className="text-cyan-300">MODULE_STATUS_SOURCE</code>）⇒ 不生成节点、
+                <strong className="text-slate-200">不参与健康分</strong>。
+                补一行声明即可自动上图（无需改手写清单）。
+              </p>
+              <div className="grid gap-2 md:grid-cols-2" data-testid="unregistered-list">
+                {unregistered.map((u) => (
+                  <div key={u.package ?? u.name} className="rounded-lg border border-dashed border-slate-700 bg-slate-900/40 px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-sm text-slate-300">{u.name ?? u.package}</span>
+                      <span className="shrink-0 font-mono text-[10px] text-slate-600">{u.package}</span>
+                    </div>
+                    {u.reason && <div className="mt-1 text-[10px] text-slate-500">{u.reason}</div>}
+                  </div>
+                ))}
+              </div>
+            </Card>
+            </div>
+          )}
+
+          {autodiscovery?.enabled === false && (
+            <p className="mb-4 text-[11px] text-slate-500" data-testid="autodiscovery-off">
+              模块自动发现已关闭（CP_MODULE_AUTODISCOVERY=0）⇒ 拓扑只含手写清单里的节点。
+            </p>
+          )}
+
           {/* ── 健康评分 ── */}
           <Card
             title={overallHealth != null ? '健康评分（整体健康度 ' + overallHealth + '）' : '健康评分'}
@@ -273,6 +338,15 @@ export default function PanoramaMonitor() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="truncate text-sm font-medium text-slate-200">{m.name}</span>
+                          {m.origin === 'discovered' && (
+                            <span
+                              className="shrink-0 rounded-sm bg-cyan-950 px-1.5 py-0.5 text-[9px] text-cyan-300"
+                              data-testid={'origin-badge-' + m.module_id}
+                              title={'该节点由包自己声明（agent/<pkg>/__init__.py 的 MODULE_STATUS_SOURCE），不是手写清单里的一行'}
+                            >
+                              自动发现
+                            </span>
+                          )}
                           <span className="shrink-0 font-mono text-[10px] text-slate-600">{m.module_id}</span>
                         </div>
                         <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-500">

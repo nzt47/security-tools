@@ -217,6 +217,28 @@ export function probeScoreText(score?: number | null): string {
   return score == null ? NO_PROBE_DATA : (score * 100).toFixed(0)
 }
 
+/**
+ * 维度卡上的「本层实测口径」一行（L3 错误率 / L4 成功率）。
+ *
+ * 【2026-11-11 合并】概览区原先另有两张指标卡（key=error-rate / task-success），
+ * 值与维度卡里的 l3_llm_tool / l4_business **是同一个分数**、标签还逐字相同 ⇒ 同一屏
+ * 看两次「L3 LLM/工具」。合并进维度卡后：
+ *   · 分数仍只显示一次（维度卡的大数字）；
+ *   · 「错误率 / 成功率」这类**原始比率**由后端 probe_details.metrics 提供，前端只做
+ *     单位换算，不拆 detail 文本、不重算口径（L5：界面不重算）。
+ * 取不到 metrics（老快照 / 探针无数据）⇒ 返回空串，那一行不渲染 —— 不编数字。
+ */
+export function layerMetricLine(key: string, metrics?: Record<string, number>): string {
+  if (!metrics) return ''
+  if (key === 'l3_llm_tool' && metrics.error_rate != null) {
+    return '错误率 ' + (metrics.error_rate * 100).toFixed(1) + '%'
+  }
+  if (key === 'l4_business' && metrics.success_rate != null) {
+    return '成功率 ' + (metrics.success_rate * 100).toFixed(1) + '%'
+  }
+  return ''
+}
+
 export function fmtTime(ts?: string): string {
   if (!ts) return MISSING
   const d = new Date(ts)
@@ -359,7 +381,8 @@ function errText(reason: unknown): string {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  概览指标卡（老页 #overview-metrics 的九项）
+//  概览指标卡（老页 #overview-metrics 的九项；2026-11-11 合并掉两张与维度卡重复的
+//  「L4 业务成功率 / L3 LLM/工具」⇒ 现七项，口径见 layerMetricLine）
 // ═══════════════════════════════════════════════════════════════
 export interface OverviewCard {
   key: string
@@ -382,8 +405,10 @@ export function overviewCards(
   const sched = hb?.checks?.scheduler
   const hist = metrics?.histograms?.['latency.digital_life.chat']
   const requests = metrics?.counters?.['count.chat.total']
-  const l4 = latest?.probe_details?.l4_business?.score
-  const l3 = latest?.probe_details?.l3_llm_tool?.score
+  // 【2026-11-11】「L4 业务成功率」「L3 LLM/工具」两张指标卡**删除**：它们的值与
+  //   五层维度卡里的 l4_business / l3_llm_tool 是**同一个分数**（同一屏看两次，
+  //   标签还逐字相同 ⇒ 用户无法区分）。合并方式：指标搬到维度卡上（见 layerMetricLine），
+  //   数值改由后端 probe_details.metrics 给（probes.py 的 l3/l4），前端不拆 detail 文本。
   // 【2026-11-08】L1 探针现在给结构化数值（cpu_cores / mem_available_mb / disk_free_gb）。
   // 以前这三张卡是**硬编码 MISSING**（心跳端点只给使用率百分比）⇒ 页面上一片「—（端点未返回）」。
   const l1m = latest?.probe_details?.l1_process?.metrics
@@ -468,12 +493,6 @@ export function overviewCards(
       missing: requests == null,
     },
     {
-      key: 'task-success', label: 'L4 业务成功率', tone: 'success',
-      value: l4 == null ? NO_PROBE_DATA : probeScoreText(l4) + '%',
-      sub: '来源：probe_details.l4_business.score',
-      missing: l4 == null,
-    },
-    {
       key: 'latency', label: '平均延迟', tone: 'warning',
       value: hist?.avg == null ? MISSING : secondsToMs(hist.avg),
       sub: 'latency.digital_life.chat.avg',
@@ -484,12 +503,6 @@ export function overviewCards(
       value: hist?.p99 == null ? MISSING : secondsToMs(hist.p99),
       sub: 'latency.digital_life.chat.p99',
       missing: hist?.p99 == null,
-    },
-    {
-      key: 'error-rate', label: 'L3 LLM/工具', tone: 'error',
-      value: l3 == null ? NO_PROBE_DATA : probeScoreText(l3),
-      sub: '来源：probe_details.l3_llm_tool.score',
-      missing: l3 == null,
     },
   ]
 }
@@ -840,6 +853,7 @@ export default function PanoramaHealth() {
                 const d = latest?.probe_details?.[l.key]
                 const score = d?.score == null ? null : d.score * 100
                 const lv = score == null ? null : levelOf(score)
+                const metricLine = layerMetricLine(l.key, d?.metrics)
                 return (
                   <div key={l.key} className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 text-center" data-testid={'dim-' + l.key}>
                     <div className="text-xl">{l.icon}</div>
@@ -851,6 +865,12 @@ export default function PanoramaHealth() {
                     <div className={'mt-1 text-2xl font-semibold ' + (lv === 'excellent' || lv === 'good' ? 'text-emerald-400' : lv === 'fair' || lv === 'warning' ? 'text-amber-400' : lv === 'critical' ? 'text-red-400' : 'text-slate-600')}>
                       {score == null ? NO_PROBE_DATA : score.toFixed(0)}
                     </div>
+                    {/* 合并进来的原始比率（L3 错误率 / L4 成功率）：只在这里出现一次 */}
+                    {metricLine && (
+                      <div className="mt-0.5 text-[10px] text-slate-500" data-testid={'metric-' + l.key}>
+                        {metricLine}
+                      </div>
+                    )}
                     <div className="mt-2 h-1 overflow-hidden rounded-sm bg-slate-800">
                       <div className="h-full rounded-sm" style={{ width: (score ?? 0) + '%', background: l.color }} />
                     </div>
