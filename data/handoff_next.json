@@ -1,7 +1,30 @@
 {
-  "updated_at": "2026-11-10T23:50+08:00",
+  "updated_at": "2026-11-11T00:00+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
+    {
+      "id": "topology-missing-faces",
+      "status": "open",
+      "priority": "P3",
+      "title": "系统监控的模块拓扑缺 7 类能力面（审计链/技能使用/工作流/记忆三件/向量/摄入/转化队列/反馈）",
+      "criteria": "/api/modules/topology 实测 6 域 32 个节点（感知7/认知4/记忆4/行动9/服务3/运维5）。对比「单位看板」的 12 个探测单位与既有页面，拓扑里**没有**：审计链(ops.audit)、技能使用台账(skills.usage)、学习工作流(workflows)、记忆压缩/长期记忆/反思(memory.compress|longterm|reflection)、向量库(vector)、能力获取/摄入(ingestion)、转化队列(transform)、反馈中心(feedback)。这些在「功能单位工作状况」卡里有读数，但系统监控页看不到它们的存在。",
+      "next": [
+        "做法：在 DOMAINS 里补 3 个节点即可（status_source 直接复用既有端点 —— ops.audit → /api/audit/status 或审计 0 断点读数、skills.usage → /api/skills-mgmt/usage/stats、",
+        "memory.context → /api/context/status）；ingestion/transform/feedback 需要先确认有只读汇总端点。注意 modules_registry 的模块声明与 url_map 自检（54 条端点声明全部命中）要同批改，否则启动自检会报。"
+      ]
+    },
+    {
+      "id": "alerts-runtime-state",
+      "status": "open",
+      "priority": "P3",
+      "title": "/api/observability/alerts 只回规则定义，没有运行态（告警页「状态/触发时间」恒为端点未返回）",
+      "criteria": "实测 /api/observability/alerts 返回 8 组 / 规则字段仅 alert/annotations/expr/for/labels，**没有 state / activeAt / last_fired** ⇒ health.tsx 的告警表只能标「端点未返回」（注释里已承认该缺口）。alert_evaluator 内部有 AlertState（INACTIVE 等），但没暴露成只读查询。",
+      "next": [
+        "在 alert_evaluator 增只读 get_rule_states()（name → {state, activeAt, last_fired, value}），",
+        "由 GET /api/observability/alerts 逐条合并进 rule 行（**只增字段**，不删既有键）；",
+        "前端去掉占位、按 state 上色。要点：链路里没有运行态时**不要编**，仍标「未评估」。"
+      ]
+    },
     {
       "id": "diagnostics-histograms-empty",
       "status": "done",
