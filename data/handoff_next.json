@@ -1,7 +1,23 @@
 {
-  "updated_at": "2026-11-11T00:10+08:00",
+  "updated_at": "2026-11-11T00:12+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
+    {
+      "id": "module-topology-no-autodiscovery",
+      "status": "open",
+      "priority": "P2",
+      "title": "新模块不会自动出现在「系统监控」—— DOMAINS 是手写静态清单（Owner 提问，新会话任务①）",
+      "criteria": "agent/modules_registry.py 的 DOMAINS 是**手写 List[Domain]**（docstring 只写「新增模块只需向 DOMAINS 追加节点声明，前端拓扑自动上图」），没有任何目录扫描/包发现；所以 2026-10 之后新增的能力面（审计链/技能使用/工作流/记忆三件/向量/摄入/转化队列/反馈）一个都没上图。现状实测：6 域 32 节点，全部来自这份清单。",
+      "next": "两条路：① 补清单（快，见 topology-missing-faces）；② 自动发现（治本）：扫 agent/*/__init__.py 或既有 modules 元数据，只对**声明了 status_source 的模块**生成节点，未声明的按「未登记」单列且不参与健康分；必须有白名单/开关，否则任何临时包都会上图。另注意 modules_registry 的 url_map 自检（54 条端点声明）与派生面（route_ui_coverage 等）要同批。"
+    },
+    {
+      "id": "health-dashboard-duplicate-l3",
+      "status": "open",
+      "priority": "P3",
+      "title": "健康仪表盘出现两个「L3 LLM/工具」（维度卡 + 指标卡同名，Owner 提问，新会话任务②）",
+      "criteria": "yunshu-ui/src/pages/hub/panorama/health.tsx 里有两处同名标签：① 五层维度卡 PROBE_LAYERS（line ~172 key=l3_llm_tool, label=L3 LLM/工具）；② 指标卡 VITALS（line ~484 key=error-rate, label=L3 LLM/工具，取 probe_details.l3_llm_tool.score）。两者数据同源、含义不同（一个是层得分，一个是错误率指标），但**标签逐字相同** ⇒ 同一屏看两次「L3 LLM/工具」，用户无法区分。",
+      "next": "二选一：① 指标卡改名（「L3 错误率」并注明「与维度卡同源，取同一分数」）；② 指标卡合并进维度卡（减少重复卡）。改完跑 panorama 的 vitest（health.test.tsx 23 条）与 tsc；注意别再引入同名 label。"
+    },
     {
       "id": "scheduler-card-wrong-endpoint",
       "status": "open",
