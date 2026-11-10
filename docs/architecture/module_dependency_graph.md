@@ -1441,6 +1441,7 @@ flowchart LR
     agent_modules_api --> agent_rate_limiter
     agent_modules_api -.-> agent_health_dashboard
     agent_modules_api --> agent_system_tools
+    agent_modules_registry --> agent
     agent_monitoring --> agent_monitoring_config_observability
     agent_monitoring_alert_evaluator -.-> agent_logging_utils
     agent_monitoring_alert_evaluator --> agent_monitoring_tracing
@@ -2866,9 +2867,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 734
+- 扫描文件数: 735
 - 模块节点数: 633
-- 依赖边数: 2107
+- 依赖边数: 2108
 - 跨层调用数: 1336
 - 违规调用数: 0
 - 动态 import 数: 1
