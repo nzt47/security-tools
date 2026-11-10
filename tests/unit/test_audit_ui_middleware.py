@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 
@@ -409,3 +410,57 @@ class TestDecoratorOffline:
 
     def test_ui_context_empty_outside_request(self):
         assert get_ui_context() == {}
+
+
+# ════════════════════════════════════════════════════════════
+#  5. 客户端归属（2026-11-10：UA 指纹 + IP 叶子，§11.80）
+# ════════════════════════════════════════════════════════════
+
+
+class TestClientAttribution:
+    """写路由审计要能回答「这条请求是哪个客户端发的」，且不落隐私原文。
+
+    起因（§11.80）：两条 `skill.delete` 在链上只有令牌指纹，无法区分「浏览器页面」与
+    「脚本」；只能靠请求日志的轮询节奏反推。故补 UA 指纹（sha256 前 16 位）+ IP 叶子
+    （掩码/HMAC，裁定 B 不变），下一次可一次点名。
+    """
+
+    UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Playwright/1.50"
+
+    def test_explicit_audit_records_ua_fingerprint(self, app, chain):
+        client = app["app"].test_client()
+        client.post("/api/thing/t1", json={"name": "n"},
+                    headers={"User-Agent": self.UA})
+        flat = _flat(chain.entries()[-1])
+        assert flat["audit_scope"] == "ui_write_route_explicit"
+        assert flat["user_agent_fp"] == hashlib.sha256(
+            self.UA.encode("utf-8")).hexdigest()[:16]
+
+    def test_explicit_audit_has_ip_leaf_fields_but_no_raw_ip(self, app, chain):
+        client = app["app"].test_client()
+        client.post("/api/thing/t2", json={"name": "n"},
+                    headers={"User-Agent": self.UA})
+        flat = _flat(chain.entries()[-1])
+        assert flat["actor_ip_masked"].startswith("127.0.")
+        assert "remote_addr" not in flat
+        assert "127.0.0.1" not in json.dumps(flat, ensure_ascii=False)
+
+    def test_global_wrapper_records_ua_fingerprint(self, app, chain):
+        client = app["app"].test_client()
+        client.post("/api/plain", headers={"User-Agent": self.UA})
+        flat = _flat(chain.entries()[-1])
+        assert flat["audit_scope"] == "ui_write_route"
+        assert flat["user_agent_fp"] == hashlib.sha256(
+            self.UA.encode("utf-8")).hexdigest()[:16]
+
+    def test_raw_user_agent_never_in_chain(self, app, chain):
+        client = app["app"].test_client()
+        client.post("/api/thing/t3", json={"name": "n"},
+                    headers={"User-Agent": self.UA})
+        dumped = json.dumps(_flat(chain.entries()[-1]), ensure_ascii=False)
+        assert self.UA not in dumped
+        assert "Playwright/1.50" not in dumped
+
+    def test_helper_tolerates_missing_request(self):
+        from agent.audit.ui_middleware import _user_agent_fp
+        assert _user_agent_fp(None) == ""

@@ -35,6 +35,12 @@
     `actor_ip_hash`（HMAC-SHA256，密钥经 `CP_IP_HMAC_KEY` / SecretStore；
     **无密钥 → 显式标注 `degraded_no_key`，绝不退化为写原文**）。
 
+【客户端归属（2026-11-10 新增，不破裁定 B）】
+    写路由审计另落 `user_agent_fp` = `sha256(User-Agent)` 前 16 位（**原文不落盘**），
+    显式装饰器路径同时补 `identity_facts()` 的 IP 叶子字段（与全局包装同形）。
+    用途见 §11.80：两条 `skill.delete` 只有令牌指纹、无法区分「浏览器页面 / 脚本」，
+    只能靠请求日志的轮询节奏推断；有 UA 指纹 + 掩码 IP 后可一次点名。
+
 【环境开关】
     AUDIT_UI_ENABLED          UI 写路由审计总开关，默认 1
     AUDIT_UI_SKIP_PREFIXES    额外跳过的路径前缀（逗号分隔）
@@ -67,6 +73,9 @@ _ENV_ENABLED = "AUDIT_UI_ENABLED"
 _ENV_SKIP_PREFIXES = "AUDIT_UI_SKIP_PREFIXES"
 _ENV_MAX_BODY = "AUDIT_UI_MAX_BODY_BYTES"
 
+#: User-Agent 指纹保留的 sha256 十六进制前缀长度（与令牌指纹同长度口径）
+_UA_FP_LEN = 16
+
 #: 计入审计的写方法（GET/HEAD/OPTIONS 为读，不产生审计记录）
 WRITE_METHODS = ("POST", "PUT", "PATCH", "DELETE")
 
@@ -95,6 +104,21 @@ def _max_body_bytes() -> int:
         return max(0, int(os.getenv(_ENV_MAX_BODY, "1048576")))
     except ValueError:
         return 1048576
+
+
+def _user_agent_fp(request: Any) -> str:
+    """User-Agent 指纹（sha256 前 _UA_FP_LEN 位；**原文不落盘**）
+
+    用来回答「这条写请求是哪个客户端发的」（浏览器页面 / 脚本 / 自动化驱动）。
+    无请求上下文或空 UA → 空串（字段如实为空，不伪造）。
+    """
+    try:
+        raw = str(request.headers.get("User-Agent") or "") if request is not None else ""
+    except Exception:  # noqa: BLE001 非请求对象 / 无请求上下文
+        return ""
+    if not raw:
+        return ""
+    return hashlib.sha256(raw.encode("utf-8", "replace")).hexdigest()[:_UA_FP_LEN]
 
 
 def resolve_ui_actor(*, headers: Optional[Dict[str, str]] = None,
@@ -276,6 +300,7 @@ class UIAuditRecorder:
                 "method": method,
                 "path": path,
                 "endpoint": str(request.endpoint or ""),
+                "user_agent_fp": _user_agent_fp(request),
                 "actor": actor,
                 "identity_source": actor_source,
                 "body_hash": self._body_hash(request),
@@ -346,6 +371,8 @@ class UIAuditRecorder:
             "query_keys": info.get("query_keys"),
             # 请求侧身份解析来源（与门面的 actor_source 区分：后者标「谁给的 actor」）
             "identity_source": info.get("identity_source"),
+            # 客户端归属：UA 指纹（原文不落盘）；IP 叶子字段已在下面 ip_facts 里
+            "user_agent_fp": info.get("user_agent_fp"),
             "audit_scope": "ui_write_route",
         }
         # 身份权威度 + PII 叶子字段（裁定 A3/B；**原始 IP 不落盘**）
@@ -487,7 +514,12 @@ def _emit_explicit_audit(action: str, subject: Optional[str],
             "method": request.method,
             "path": request.path,
             "endpoint": str(request.endpoint or ""),
+            "user_agent_fp": _user_agent_fp(request),
         })
+        # 与全局包装同形：显式装饰器路径也补 IP 叶子字段（掩码 + HMAC，原始 IP 不落盘）
+        facts.update(identity_facts(headers=dict(request.headers),
+                                    cookies=dict(request.cookies),
+                                    remote_addr=request.remote_addr or ""))
         body: Dict[str, Any] = {}
         for key in payload_keys:
             if request.is_json:
