@@ -126,6 +126,13 @@ export default function IdentityPromptPanel(props: IdentityPromptPanelProps) {
           {applying ? <Loader2 size={12} className="spin" /> : <Zap size={12} />}
           {applying ? '应用中…' : '应用到运行时'}
         </button>
+        {/* 【2026-11-10】身份提示词是 system message 的稳定前缀段：一改就会让缓存前缀整段失效一次，
+            这里是唯一会「赔一次全价」的动作，必须在按钮旁说清楚（§11.81 新条目 lab-apply-cache-notice）。 */}
+        <span className="pl-id-cache-note"
+          style={{ marginLeft: 8, fontSize: 11, color: '#94a3b8' }}
+          title="身份提示词位于 system message 的稳定前缀：一旦改变，下一次 LLM 调用无法复用旧前缀，整段按未命中计价（只赔一次，之后重新稳定）。">
+          ⓘ 改身份 = 下一次调用整段前缀失效一次（按未命中计价）
+        </span>
         {dirty && <span className="pl-id-dirty">● 有未保存修改</span>}
       </div>
 
