@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-11T00:46:25",
+  "updated_at": "2026-11-11T03:26:01",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
     {
@@ -477,6 +477,14 @@
       "priority": "P3",
       "criteria": "2026-11-08 交接卡：12 个单位 9 ok / 2 warn / 1 never；两项都是「没有数据」而不是故障，却常挂在看板上像告警。",
       "next": "决定：① never（从未产生数据）既不进分子也不进分母（L5：无数据不许折算成 0 或满分）；② 长期记忆「库在但 0 行」= 尚未产出 ⇒ status=never（是否真坏由 scheduler 的 last_run 判断，不重复推断）；③ 工作流 0 条文案改「尚无工作流（0 条）· 无数据，不计分」。落地：unit_monitor.score_detail() + /api/system/units 增 scored_units/no_data_units/health_score_note + 面板显示「（N 项无数据不计分）」；可计分单位为 0 时 score=None ⇒ 显示「无数据」而不是 0 分。现场读数：10 ok / 0 warn / 2 never · 健康分 100.0（10 项计分，2 项无数据不计分）。"
+    },
+    {
+      "id": "alarms-evaluator-wiring",
+      "title": "报警器未接入告警规则评估器（PromQL 规则 × 简单阈值 evaluator 结构不匹配）",
+      "status": "open",
+      "priority": "P3",
+      "criteria": "报警器（§11.88）当前的事件源 = 健康探针降级 / 单位看板 warn|error / 审计链尾部不一致，三处都是已在跑的采集面。**告警规则本身没有接进来**：monitoring/alerts.yml 的 16 条规则是 PromQL（up{job=\"yunshu\"} == 0、resets(up[1h]) > 3、sum(rate(yunshu_http_request_total{status=~\"5..\"}[5m])) ...），而 agent/monitoring/alert_evaluator.py 只认 \"metric 比较 阈值\"（get_metric_value(名字)），且 AlertManager 的规则来源（self._config.groups）默认是空 ⇒ 直接 start() 只会空转，不产生真告警。",
+      "next": "三条路选一（都属于新增数据面，需 Owner 点头）：① 接 Prometheus 查询 API 求值（要部署/联调 Prometheus，但规则零改动）；② 把 16 条规则翻成 evaluator 口径（metric/threshold/comparison），启动 alert_manager 并让它把 firing/resolved 写进 agent/alarms 台账（改动最小，但 PromQL 的表达力会被削平，如 resets/rate）；③ 规则只做「规则表 + 运行态」展示（现状），报警只走探针/单位/审计三条线，明确告诉大家\"规则告警未启用\"。选①或②时，同批补：AlertManager 启动接线（app_server 启动段）、firing/resolved → alarms store 的桥、以及\"同一告警不重复刷未读\"的去重用例。"
     }
   ]
 }
