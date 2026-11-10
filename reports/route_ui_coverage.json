@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-11T03:20:19",
+  "generated_at": "2026-11-11T04:02:46",
   "totals": {
     "routes": 507,
     "live": 507,
@@ -37,14 +37,12 @@
       "记忆与知识": 39
     }
   },
-  "frontend_endpoints": 456,
+  "frontend_endpoints": 454,
   "frontend_unmatched": [
-    "/api/alarms",
     "/api/approval",
     "/api/approval/*/*",
     "/api/assets",
-    "/api/cp",
-    "/api/list"
+    "/api/cp"
   ],
   "intent_file": "config/route_ui_intent.json",
   "domain_file": "config/route_domains.json",
@@ -273,7 +271,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/alarms.ts"
+        "yunshu-ui/src/api/alarms.ts",
+        "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
@@ -298,7 +297,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/alarms.ts"
+        "yunshu-ui/src/api/alarms.ts",
+        "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
@@ -323,7 +323,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/alarms.ts"
+        "yunshu-ui/src/api/alarms.ts",
+        "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
@@ -371,7 +372,7 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/alarms.ts"
+        "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
@@ -396,7 +397,7 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/alarms.ts"
+        "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
@@ -421,7 +422,7 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/alarms.ts"
+        "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
@@ -13004,5 +13005,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "15cad0d489b42a4b"
+  "content_hash": "e7cd3d36473217fb"
 }
