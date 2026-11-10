@@ -134,8 +134,21 @@ def test_start_watcher_registers_dropped_inbox_file(tmp_path):
         while not meta.is_file() and time.monotonic() < deadline:
             time.sleep(0.1)
         assert meta.is_file(), "watcher 未在超时前登记 inbox 新文件"
-        log_text = (kb / "log.md").read_text(encoding="utf-8")
-        assert "ingest | auto" in log_text
+        # 【2026-11-11 修竞态】meta 与 log.md 是两次写入，先后不保证：旧断言"看到 meta 就读
+        # log.md 并立刻断言"在 CI 上抓到一次空 log（AssertionError: ''）—— 判定本身没问题，
+        # 是**读得太早**。改成对"那一行出现"做有界轮询（同一 deadline），判据不变。
+        expected_line = "ingest | auto"
+        log_text = ""
+        while time.monotonic() < deadline:
+            log_path = kb / "log.md"
+            if log_path.is_file():
+                log_text = log_path.read_text(encoding="utf-8")
+                if expected_line in log_text:
+                    break
+            time.sleep(0.1)
+        assert expected_line in log_text, (
+            "watcher 未在超时前把 inbox 登记写进 log.md；实测 log=" + repr(log_text[:200])
+        )
     finally:
         watcher_module.stop_knowledge_watcher()
     assert watcher_module._ACTIVE is None  # stop 后单例已释放

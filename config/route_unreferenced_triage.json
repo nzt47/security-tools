@@ -124,6 +124,10 @@
     "/logs/dashboard/data": {
       "verdict": "keep",
       "evidence": "templates/log_dashboard.html:244 用模板串 fetch 调用"
+    },
+    "/api/alarms/collect": {
+      "verdict": "keep-ops",
+      "evidence": "运维/验收用的一次性触发：POST /api/alarms/collect（需令牌），立即跑一轮报警采集；后台线程每 60s 自己跑（agent/alarms/collector.py::start_collector），前端**不调用**它 —— 所以它在静态扫描里是 unreferenced，这是如实分类，不是漏接线。"
     }
   }
 }
