@@ -1,14 +1,22 @@
 {
-  "updated_at": "2026-11-10T18:30+08:00",
+  "updated_at": "2026-11-10T19:40+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
     {
+      "id": "dependabot-minimatch",
+      "status": "done",
+      "priority": "P2",
+      "title": "dependabot #417 minimatch DoS（GHSA-g3hv-75wg-m249）—— npm overrides 修掉，告警已自动 fixed",
+      "criteria": "受影响区间 >=7.0.0 <11.0.1；树里有 3.1.5 / 5.1.9（不受影响，未动）与 9.0.9 / 10.2.5 / 10.2.6（受影响，10.x 线无修复发布）。修法：yunshu-ui/package.json 加范围限定 overrides minimatch@>=7.0.0 <11.0.1 → 11.0.5（只换受影响副本）。全部是 dev/build 工具链依赖（eslint / typescript-eslint / electron-builder），不进 Flask 运行时产物；Node 25 支持 require(ESM)，minimatch 11 为 ESM-only，实跑通过。验证：npm audit 0 vulnerabilities；npm run lint 0 error（9 条既有 warning）；tsc --noEmit 0 退出；vitest 168 files / 1279 tests 全绿。",
+      "next": "合并后 GitHub 依赖图重算把 alert 417 自动置 fixed（2026-11-10T11:16:22Z），默认分支开放告警 0 条。"
+    },
+    {
       "id": "audit-request-attribution",
-      "status": "open",
+      "status": "done",
       "priority": "P3",
-      "title": "写路由的审计 payload 带调用方归属（remote_addr / UA 摘要），一次 join 就能点名",
-      "criteria": "2026-11-10 18:1x 定位两条 skill.delete 时发现：审计链只有 actor=tok_…（= FLASK_API_TOKEN 指纹）、method/path/status，没有客户端信息；只能靠后端请求日志的「页面轮询 + 删后重取」节奏推断是 UI 会话，无法直接点名是谁（人 / 自动化 / 哪个脚本）。",
-      "next": "在 ui 写路由的审计上下文里补两个非凭据字段：remote_addr 与 user_agent 的 sha256 前 16 位（不落原文，避免 UA 里的个人信息进链）。落点：agent/ui_request_context（或审计装饰器）→ payload；配 1~2 条用例（有/无请求上下文）。注意别改审批链与 payload 契约的既有键。"
+      "title": "写路由审计补「客户端归属」（UA 指纹 + IP 叶子字段）—— 已落地并部署",
+      "criteria": "**2026-11-10 19:1x 落地**（422a1785d）：两条写路径同批补归属字段 ——① user_agent_fp = sha256(User-Agent)[:16]（全局包装 UIAuditRecorder._before_request/_record 与显式装饰器 _emit_explicit_audit 都写；UA 原文不落盘）；② 显式装饰器路径补 identity_facts()：actor_ip_masked / actor_ip_hash / actor_ip_hash_status / actor_type / identity_authority，与全局包装同形。**仍遵守 S4-01 裁定 B**（原始 IP 永不落盘：只掩码 + HMAC；无密钥时如实标 degraded_no_key）。端到端实测（生产 422a1785d）：POST /api/skills-mgmt/__probe_no_such_skill__/intake（UA=yunshu-attribution-probe/1.0）→ 409，落链 seq 83786，user_agent_fp=76143adddffbbe8a（= sha256(UA)[:16]）、actor_ip_masked=127.0.xxx.xxx、actor_ip_hash_status=degraded_no_key、payload 里既无 UA 原文也无原始 IP。用例 +5（test_audit_ui_middleware.py::TestClientAttribution）；该文件 51 条全绿。",
+      "next": "下次再遇到「谁调了这条写路由」：直接看该条审计的 user_agent_fp + actor_ip_masked（浏览器 vs 脚本一次可分）。"
     },
     {
       "id": "derive-fingerprint-guard",
