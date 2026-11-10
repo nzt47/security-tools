@@ -776,6 +776,19 @@ def uninstall_hooks():
     _orig_do_chat = _orig_do_summarize = _orig_get_client = None
 
 
+def summarize_response_for_record(service, response_obj):
+    """summarize 钩子该拿哪个对象去读 usage（2026-11-10，条目 summarize-usage-observability）。
+
+    `LLMService._do_summarize` 对外返回**字符串**（调用方只要文本），真响应对象被留在
+    `service._last_summarize_response`。钩子若把 str 交给 `create_from_api_call`，
+    `extract_usage(str)` 恒判不可用 ⇒ 压缩的 prompt/completion/cache 命中在监控与成本里
+    全看不见（实测 source=summarize 的 usage_* 全是 0）。所以优先用真对象，退回 str 时取暂存。
+    """
+    if response_obj is not None and not isinstance(response_obj, str):
+        return response_obj
+    return getattr(service, "_last_summarize_response", None)
+
+
 def install_hooks():
     """安装 LLMService 钩子"""
     global _orig_do_chat, _orig_do_summarize
@@ -849,7 +862,8 @@ def install_hooks():
                         system_prompt=system_prompt,
                         messages=messages,
                         tools=tools,
-                        response_obj=response_obj,
+                        # 真响应对象（见 summarize_response_for_record）：没有它 usage 恒 0
+                        response_obj=summarize_response_for_record(self, response_obj),
                         model=getattr(self, 'model', ''),
                         provider=getattr(self, 'provider', ''),
                         source="summarize",

@@ -233,6 +233,11 @@ class LLMService:
                 命中（实测 99.8%，见 docs/handoff §11.71）。缺省 None = 旧行为（不带 tools）。
         """
         system_prompt = system_prompt or "请将以下对话总结为核心要点，保留关键决策、问题和结论。要求简洁准确。"
+        # 【2026-11-10】把**真响应对象**留下来给监控读 usage：本方法对外返回 str（调用方
+        #   只要文本），而 llm_monitor 的 summarize 钩子拿到的也是 str ⇒ usage 恒 0、
+        #   压缩的 token/命中既进不了「LLM 缓存命中」卡也进不了成本（交接条目
+        #   summarize-usage-observability）。先清空再在成功分支赋值，异常时不留旧值。
+        self._last_summarize_response = None
         
         client = self._get_client()
         
@@ -251,6 +256,7 @@ class LLMService:
             if tools:
                 kwargs["tools"] = tools
             response = client.chat.completions.create(**kwargs)
+            self._last_summarize_response = response
             result = response.choices[0].message.content.strip()
             logger.info("│ ✓ 摘要生成成功，长度: %d 字符", len(result))
             return result
@@ -263,6 +269,7 @@ class LLMService:
                 messages=messages,
                 max_tokens=max_tokens
             )
+            self._last_summarize_response = response
             result = response.content[0].text.strip()
             logger.info("│ ✓ 摘要生成成功，长度: %d 字符", len(result))
             return result
