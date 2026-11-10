@@ -103,7 +103,10 @@ class TestMainTrackAudit:
         r = reg.set_enabled("d2-main-1", False)
         assert r == {"ok": True, "id": "d2-main-1", "enabled": False,
                      "track": "main"}
-        recs = _records("d2-main-1", ACTION_SET)
+        # 【2026-11-11】链式审计 best-effort（口径：断言落链用有界轮询）——
+        #   同文件的 toggle 用例已按此处置；这两处漏改，CI run 42899502460 在全量单进程里
+        #   实测 `assert 0 == 1`（记录晚一拍，不是没写）。
+        recs = _wait_records(lambda: _records("d2-main-1", ACTION_SET), 1)
         assert len(recs) == 1, f"期望恰好 1 条审计记录，实得 {len(recs)}"
         e = recs[0]
         assert e.action == ACTION_SET
@@ -141,7 +144,7 @@ class TestMainTrackAudit:
         """绕过 SkillRegistry 的调用方（/api/skills-mgmt/<id>/toggle）同样留痕"""
         _make_main(iso_svc, "d2-direct-1")
         iso_svc.set_enabled("d2-direct-1", False)
-        recs = _records("d2-direct-1", ACTION_SET)
+        recs = _wait_records(lambda: _records("d2-direct-1", ACTION_SET), 1)
         assert len(recs) == 1
         body = _body(recs[0])
         assert body["track"] == "main"
@@ -156,7 +159,7 @@ class TestFileTrackAudit:
         r = reg.set_enabled("d2-file-1", False)
         assert r == {"ok": True, "id": "d2-file-1", "enabled": False,
                      "track": "file_track"}
-        recs = _records("d2-file-1", ACTION_SET)
+        recs = _wait_records(lambda: _records("d2-file-1", ACTION_SET), 1)
         assert len(recs) == 1
         body = _body(recs[0])
         assert body["skill_id"] == "d2-file-1"
