@@ -65,6 +65,17 @@ describe('MemoryMaintenance', () => {
     await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/memory/compress', {}))
   })
 
+  it('压缩成功时把摘要版本变化上屏（挡住「成功但版本没动」的假成功）', async () => {
+    baseGets()
+    api.hubPost.mockResolvedValue({ ok: true, version_before: 101, summary_version: 102, scope: 'global', messages_compressed: 100 })
+    render(<MemoryMaintenance />)
+    await screen.findByText('mem_1')
+
+    fireEvent.click(screen.getByRole('button', { name: '触发记忆压缩' }))
+    expect(await screen.findByText(/摘要 v101 → v102/)).toBeTruthy()
+    expect(screen.getByText(/全局摘要/)).toBeTruthy()
+  })
+
   it('长期摘要是盲写：未确认时禁用，确认后才 PUT', async () => {
     baseGets()
     api.hubPut.mockResolvedValue({ ok: true })

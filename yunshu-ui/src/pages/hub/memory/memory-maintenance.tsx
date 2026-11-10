@@ -133,9 +133,19 @@ export default function MemoryMaintenance() {
   const compress = async () => {
     setBusy('compress'); setErr(''); setMsg('')
     try {
-      const r = await hubPost<{ ok?: boolean; error?: string }>(MEMORY_COMPRESS, {})
+      // 【2026-11-10】后端回的是可核实结果（summary_version / version_before / scope）：
+      //   压缩「成功但版本没动」曾经是假成功（写全局读会话），所以把版本变化直接上屏，
+      //   让人一眼看得出这次到底压没压到摘要。
+      const r = await hubPost<{
+        ok?: boolean; error?: string; summary_version?: number; version_before?: number
+        messages_compressed?: number; scope?: string
+      }>(MEMORY_COMPRESS, {})
       if (r?.ok === false) { bad('压缩失败', r); return }
-      setMsg('已触发记忆压缩')
+      const before = r?.version_before
+      const after = r?.summary_version
+      const version = (before != null && after != null) ? `（摘要 v${before} → v${after}）` : ''
+      const scope = r?.scope === 'global' ? ' · 全局摘要' : r?.scope === 'session' ? ' · 本会话摘要' : ''
+      setMsg('已触发记忆压缩' + version + scope)
       await loadReview()
     } catch (e) { fail('压缩失败', e) } finally { setBusy('') }
   }
