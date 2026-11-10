@@ -32,7 +32,7 @@ import json
 import time
 import os
 import threading
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import request, jsonify, Response, stream_with_context
 
 # 导入核心模块
@@ -335,6 +335,42 @@ def _get_error_correlation_stats(hours: int = 24) -> dict:
         result["sentry_enabled"] = False
 
     return result
+
+
+def _merge_alert_runtime_state(groups):
+    """把 alert_evaluator 的**运行态**并进规则表（只增字段，不删既有键）。
+
+    【2026-11-11】此前 /api/observability/alerts 只回规则定义 ⇒ 前端「状态 / 触发时间」两列
+    恒为占位。这里按**告警名**合并 state / activeAt / value / fire_count：
+      · 评估器没跑过、或该规则未被评估 ⇒ **不加字段**（前端继续显示占位，绝不编「未触发」）；
+      · activeAt 取 started_at（firing 起点）或 pending_since（进入 pending 的时刻）。
+
+    Returns:
+        bool —— 是否拿到了运行态（端点把结果作为 runtime_state 一并回给前端）。
+    """
+    live = {}
+    try:
+        from agent.monitoring.alert_evaluator import get_alert_evaluator
+        live = {str(a.get("name")): a for a in get_alert_evaluator().get_alerts()}
+    except Exception as exc:  # noqa: BLE001 运行态不可用不影响规则表
+        logger.debug("读取告警运行态失败: %s", exc)
+        return False
+    for group in groups or ():
+        for rule in group.get("rules") or ():
+            row = live.get(str(rule.get("alert") or rule.get("name") or ""))
+            if not row:
+                continue
+            rule["state"] = row.get("state")
+            rule["value"] = row.get("value")
+            rule["fire_count"] = row.get("fire_count")
+            started = row.get("started_at") or row.get("pending_since")
+            if started:
+                try:
+                    rule["activeAt"] = datetime.fromtimestamp(
+                        float(started), timezone.utc).isoformat()
+                except (TypeError, ValueError):
+                    pass
+    return bool(live)
 
 
 def _get_runtime_metrics():
@@ -1245,9 +1281,12 @@ def register_routes(app, state):
             }
         """
         rules = _load_alert_rules()
+        groups = rules.get("groups", [])
+        runtime_state = _merge_alert_runtime_state(groups)
         return jsonify({
-            "groups": rules.get("groups", []),
-            "timestamp": time.time()
+            "groups": groups,
+            "timestamp": time.time(),
+            "runtime_state": runtime_state,
         })
     
     @app.route("/api/observability/alerts", methods=["POST"])
