@@ -191,6 +191,15 @@ def _trigger_window() -> int:
         return _TRIGGER_WINDOW_FALLBACK
 
 
+def _legacy_pool_snapshot() -> dict:
+    """未分会话历史池读数（冻结口径）。读不到就如实回空对象，不伪造 0。"""
+    try:
+        from agent import legacy_pool
+        return legacy_pool.snapshot()
+    except Exception:  # noqa: BLE001 读数不可用不影响上下文面板
+        return {}
+
+
 @bp.route("/api/context/status")
 @_view(log=False)
 def api_context_status():
@@ -360,6 +369,10 @@ def api_context_status():
         "session_stats": session_stats,
         "context_breakdown": session_stats.get("breakdown") or {},
         "recent_messages": recent,
+        # 未分会话历史池（2026-11-10）：会话分家前的无主消息按「冻结」处理——
+        # 不参与压缩触发/摘要/最近消息窗口，也不再写入；这里如实披露条数与口径，
+        # 让面板能写「N 条 · 已冻结」，而不是让人以为压缩漏了它们（L5：不折算成 0）。
+        "legacy_pool": _legacy_pool_snapshot(),
     })
 
 
@@ -530,16 +543,32 @@ def api_memory_manual():
 @bp.route("/api/memory/compress", methods=["POST"])
 @_view(auth=True, log=True)
 def api_memory_compress():
-    """触发记忆压缩"""
-    from app_server import _Yunshu
+    """触发记忆压缩（记忆运维面板的「触发压缩」按钮）。
+
+    【2026-11-10 修 500】原实现调 `compress()`（**无参**）：`MemoryManager.compress(old_messages)`
+    是摘要器薄封装、必须带消息列表 ⇒ 恒 TypeError
+    （实测 `compress() missing 1 required positional argument: "old_messages"`），
+    面板一直报「压缩失败：操作失败（详见服务日志）（HTTP 500）」。
+    与 2026-10-14 修过的 `/api/context/compress` 是**同一个坑**：那条路由改了走 `compress_now()`，
+    这条没改（当年只补了 legacy 端点存在性测试，没有行为测试）。
+
+    现统一走 `compress_now()`（真正的手动压缩入口），并如实回报可核实的结果：
+    摘要版本前后 / 参与压缩的消息数 / 这次走的是复用前缀还是独立前缀。
+    """
+    from app_server import _Yunshu, logger
     try:
-        import asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(_Yunshu._memory.compress())
-        loop.close()
-        return jsonify({"ok": True})
-    except Exception as e:
+        result = _Yunshu._memory.compress_now()
+        return _ok({
+            "ok": bool(result.get("ok")),
+            "summary_version": result.get("summary_version"),
+            "version_before": result.get("version_before"),
+            "messages_compressed": result.get("messages_compressed"),
+            # 与 /api/context/compress 同一回报口径（可核实，不是猜）
+            "used_prefix": bool(result.get("used_prefix")),
+            "prefix_messages": int(result.get("prefix_messages") or 0),
+        })
+    except Exception as e:  # noqa: BLE001 异常原文只进日志（py/stack-trace-exposure）
+        logger.warning("记忆运维·触发压缩失败: %s", e)
         return _fail(e)
 
 
