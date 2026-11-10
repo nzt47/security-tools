@@ -1,22 +1,22 @@
 {
-  "updated_at": "2026-11-11T00:25+08:00",
+  "updated_at": "2026-11-11T00:46:25",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
     {
       "id": "module-topology-no-autodiscovery",
-      "status": "open",
+      "status": "done",
       "priority": "P2",
       "title": "新模块不会自动出现在「系统监控」—— DOMAINS 是手写静态清单（Owner 提问，新会话任务①）",
       "criteria": "agent/modules_registry.py 的 DOMAINS 是**手写 List[Domain]**（docstring 只写「新增模块只需向 DOMAINS 追加节点声明，前端拓扑自动上图」），没有任何目录扫描/包发现；所以 2026-10 之后新增的能力面（审计链/技能使用/工作流/记忆三件/向量/摄入/转化队列/反馈）一个都没上图。现状实测：6 域 32 节点，全部来自这份清单。",
-      "next": "两条路：① 补清单（快，见 topology-missing-faces）；② 自动发现（治本）：扫 agent/*/__init__.py 或既有 modules 元数据，只对**声明了 status_source 的模块**生成节点，未声明的按「未登记」单列且不参与健康分；必须有白名单/开关，否则任何临时包都会上图。另注意 modules_registry 的 url_map 自检（54 条端点声明）与派生面（route_ui_coverage 等）要同批。"
+      "next": "2026-11-11 落地（Owner 选「自动发现 + 白名单」）：新增 agent/modules_discovery.py —— 只对 agent/*/__init__.py 做 AST 字面量扫描（不 import，避免启动期副作用/循环依赖）。白名单：只有声明了 MODULE_STATUS_SOURCE 的包才生成节点（+ 可选 MODULE_DOMAIN/NAME/DESCRIPTION/METRICS）；只声明名字/描述的包进 「未登记」单列，**不生成节点、不参与健康分**；两者都没有的包（utils/common…）完全忽略。modules_registry.effective_domains() = DOMAINS + 发现节点（手写 path 已覆盖的包不重复上图），get_node / declared_http_endpoints / summary / contract_diff 同批改；/api/modules/topology 只增字段（每节点 origin、autodiscovery 读数、unregistered 列表），domains/overall_health 形状不变；发现节点的状态源由 effective_client_sources 自动接上 client 兜底采集器（否则永远离线）。开关 CP_MODULE_AUTODISCOVERY（默认开、风险级 A、needs_restart，已进 settings/registry.py）。示范接入 3 个真包：observability / workflow_learning / ingestion ⇒ **拓扑 6 域 35 → 38 节点**（3 个自动发现均 healthy/运行中）、未登记 0。测试：test_modules_autodiscovery.py 21 条 + selfcheck 改读 effective_domains（71 条绿）；contract_diff 无 registry_* 漂移。提交 e14b61cba。"
     },
     {
       "id": "health-dashboard-duplicate-l3",
-      "status": "open",
+      "status": "done",
       "priority": "P3",
       "title": "健康仪表盘出现两个「L3 LLM/工具」（维度卡 + 指标卡同名，Owner 提问，新会话任务②）",
       "criteria": "yunshu-ui/src/pages/hub/panorama/health.tsx 里有两处同名标签：① 五层维度卡 PROBE_LAYERS（line ~172 key=l3_llm_tool, label=L3 LLM/工具）；② 指标卡 VITALS（line ~484 key=error-rate, label=L3 LLM/工具，取 probe_details.l3_llm_tool.score）。两者数据同源、含义不同（一个是层得分，一个是错误率指标），但**标签逐字相同** ⇒ 同一屏看两次「L3 LLM/工具」，用户无法区分。",
-      "next": "二选一：① 指标卡改名（「L3 错误率」并注明「与维度卡同源，取同一分数」）；② 指标卡合并进维度卡（减少重复卡）。改完跑 panorama 的 vitest（health.test.tsx 23 条）与 tsc；注意别再引入同名 label。"
+      "next": "2026-11-11 落地（Owner 选「合并进维度卡」）：删掉概览里两张与维度卡同源同名的指标卡（error-rate「L3 LLM/工具」/ task-success「L4 业务成功率」——**L4 是同一种情况**，一并处理），指标卡 9 → 7；原始比率搬进维度卡：L3 显示「错误率 x%」、L4 显示「成功率 x%」，每个分数全页只出现一次。数值来自**后端**结构化字段（agent/health/probes.py 新增 l3 metrics: llm_calls/llm_errors/error_rate、l4 metrics: http_requests/http_errors/success_rate），前端只换算单位、不拆 detail 文本；取不到就整行不渲染。新增纯函数 layerMetricLine()。测试：health.test.tsx 23 → 25；全量 vitest 169 files / 1286 tests 全绿；tsc 0 退出。现场 probe-trend 00:45:20 实测 l4 metrics={http_requests:75,http_errors:0,success_rate:1.0}（L3 待有 LLM 调用后才出错误率 —— 与「无数据」口径一致）。提交 bc0a41ab1。"
     },
     {
       "id": "scheduler-card-wrong-endpoint",
