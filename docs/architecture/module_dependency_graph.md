@@ -2088,6 +2088,7 @@ flowchart LR
     agent_server_routes_routes_logging -.-> agent_utils_singleton_manager
     agent_server_routes_routes_logging -.-> agent_monitoring_replay_storage
     agent_server_routes_routes_logging -.-> agent_error_reporting_config
+    agent_server_routes_routes_logging -.-> agent_monitoring_alert_evaluator
     agent_server_routes_routes_logging -.-> agent_llm_key
     agent_server_routes_routes_logging -.-> agent_monitoring_prometheus
     agent_server_routes_routes_logging -.-> agent_log_system_storage
@@ -2867,7 +2868,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 734
 - 模块节点数: 633
-- 依赖边数: 2106
-- 跨层调用数: 1335
+- 依赖边数: 2107
+- 跨层调用数: 1336
 - 违规调用数: 0
 - 动态 import 数: 1
