@@ -146,6 +146,8 @@ export default function PanoramaMonitor() {
   const disabled = allModules.filter((m) => m.status === 'disabled').length
   // 其余状态（warning/degraded/未知）单列，保证 在线 + 离线 + 未启用 + 其他 = 总数
   const other = allModules.length - online - offline - disabled
+  // 「健康检查项」只数真正的检查行（探针层，带 severity）；issues 文本行照旧上表，但不计入项数。
+  const healthChecks = health.filter((h) => h.severity).length
   // 「异常项」只数真正的低分（warning）：no_data 是「没有数据」，不是异常（L5 口径）。
   const healthIssues = health.filter((h) => h.severity === 'warning').length
 
@@ -219,7 +221,7 @@ export default function PanoramaMonitor() {
             <StatCard label="在线" value={online} icon={<Activity size={16} />} color="text-emerald-400" />
             <StatCard label="离线" value={offline} icon={<Activity size={16} />} color="text-rose-400" />
             <StatCard label="未启用" value={disabled} icon={<Activity size={16} />} color="text-slate-400" />
-            <StatCard label="健康检查项" value={health.length} icon={<Activity size={16} />} />
+            <StatCard label="健康检查项" value={healthChecks} icon={<Activity size={16} />} />
             <StatCard label="异常项" value={healthIssues} icon={<Activity size={16} />} color="text-amber-400" />
           </div>
           {other > 0 && (
