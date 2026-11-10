@@ -34,6 +34,14 @@ const TYPE_OPTIONS = [
   { value: 'alert', label: '安全告警' },
 ]
 
+/** 严重度徽章（报警器台账字段；缺省不渲染，旧数据不会因此变形） */
+const SEVERITY_LABEL: Record<string, string> = { critical: '严重', warning: '警告', info: '提示' }
+const SEVERITY_BADGE: Record<string, string> = {
+  critical: 'bg-danger/10 text-danger',
+  warning: 'bg-warning/10 text-warning',
+  info: 'bg-muted text-muted-foreground',
+}
+
 const TYPE_LABEL: Record<NotificationType, string> = {
   system: '系统公告',
   audit: '审计提醒',
@@ -100,7 +108,7 @@ export default function NotificationCenter() {
   return (
     <PageContainer
       title="消息中心"
-      description="系统通知、审计提醒与安全告警"
+      description="系统运行期报警与恢复记录（与顶栏报警器同一张台账；审批单据请去「审批收件箱」）"
       actions={
         <Button variant="default" onClick={() => void handleMarkAllRead()} disabled={unread === 0 || loading}>
           <CheckCheck className="h-4 w-4" />
@@ -177,6 +185,17 @@ export default function NotificationCenter() {
                     <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${TYPE_BADGE[item.type]}`}>
                       {TYPE_LABEL[item.type] ?? item.type}
                     </span>
+                    {item.severity && (
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${SEVERITY_BADGE[item.severity] ?? 'bg-muted text-muted-foreground'}`}>
+                        {SEVERITY_LABEL[item.severity] ?? item.severity}
+                      </span>
+                    )}
+                    {item.state === 'resolved' && (
+                      <span className="rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success">已恢复</span>
+                    )}
+                    {item.silenced_until && item.state === 'firing' && (
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">静默中</span>
+                    )}
                     <h3 className="text-sm font-medium text-foreground">{item.title}</h3>
                     <span className="ml-auto whitespace-nowrap text-xs text-muted-foreground">{item.createdAt}</span>
                   </div>

@@ -575,6 +575,18 @@ try:
 except Exception as e:
     logger.warning(f"[启动] 模块聚合 API 注册失败: {e}")
 
+# 注册报警器（2026-11-11）：事件台账（data/alarms/）+ 采集线程 + /api/alarms/*
+#   【为什么放这里】与健康采集线程同族——采集类后台线程都在启动段一次性拉起；
+#   注册动作本身不采集，线程首轮在 daemon 里跑，不阻塞启动。
+try:
+    from agent.alarms.api import register_alarms_api
+    from agent.alarms.collector import start_collector as _start_alarm_collector
+
+    register_alarms_api(app)
+    _start_alarm_collector()
+except Exception as _alarm_exc:  # noqa: BLE001 报警器坏不该让服务起不来
+    logger.warning(f"[启动] 报警器注册失败: {_alarm_exc}")
+
 # ════════════════════════════════════════════════════════════
 # Prometheus 监控初始化
 # ════════════════════════════════════════════════════════════

@@ -2975,6 +2975,19 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        " [2026-11-11；agent/modules_discovery.py::enabled / agent/modules_registry.py::effective_domains]",
        owner="agent/modules_discovery.py", needs_restart=True),
 
+    # · 报警器采集开关（默认开；把运行期问题写进事件台账，顶栏铃铛与消息中心读同一张表）
+    # 【风险级 A 的依据】它只**读**既有采集面（健康探针历史 / 单位看板 / 审计链尾部），
+    #   不改任何判定阈值、不触发自愈、不外发；关掉 = 顶栏铃铛停在最后一轮读数。
+    # 【needs_restart=True 的依据】采集线程在 app_server 启动段拉起一次
+    #   （`start_collector()`）；启动时是关的就不会有线程。
+    _a("CP_ALARM_COLLECTOR", CAT_OBSERVABILITY, True,
+       "是否启用「报警器」采集线程：默认开 = 每 60s 把运行期问题（健康层低于阈值 / 单位看板 warn|error / "
+       "审计链尾部核验不一致）写进 data/alarms/ 事件台账，顶栏铃铛与消息中心读同一张表；"
+       "置 0/false/no/off ⇒ 不采集（已有台账仍可读，只是不再更新）。"
+       "数据源不可用的那一轮不报警、也不把旧告警标成恢复"
+       " [2026-11-11；agent/alarms/collector.py::enabled]",
+       owner="agent/alarms/collector.py", needs_restart=True),
+
     # · F3-1 卡：前缀缓存的易变尾簇搬家（每次调用都读 ⇒ 热生效）
     _a("YUNSHU_PROMPT_VOLATILE_TAIL", CAT_ORCHESTRATION, True,
        "是否把易变尾簇从 system message 搬到请求最后一条消息（默认开 = 新顺序，把可缓存"

@@ -34,6 +34,7 @@ import { findNavItem } from './workbench/hubNav';
 import { NavUrlSync } from './workbench/useNavUrlSync';
 import { useInRouterContext } from 'react-router-dom';
 import Toaster from './components/Toaster';
+import AlarmBell from './components/AlarmBell';
 import { renderPanel } from './components/workbench/panels/renderPanel';
 import { startCrossWindowSync } from './electron/sync';
 
@@ -229,6 +230,9 @@ export default function WorkbenchApp() {
           <span className="hidden font-mono text-[11px] text-slate-500 sm:inline">
             {isElectron() ? '拖拽面板到窗口边缘可分离为独立窗口' : '拖拽面板边框拆分 · 布局自动保存'}
           </span>
+          {/* 报警器：系统运行期问题的汇报入口（读 /api/alarms，与消息中心同一张台账）。
+              「查看全部」由这里注入导航动作 —— 组件本身不认识路由。 */}
+          <AlarmBell onOpenAll={() => useWorkbenchNav.getState().setActiveKey('admin/notifications')} />
           <button type="button" className="wb-reset-btn" onClick={resetLayout} title="恢复默认布局">
             <RotateCcw size={13} />
             重置布局

@@ -171,12 +171,35 @@ _AUDIT_LOGS = [
     for i in range(1, 33)
 ]
 
-_NOTIFICATIONS = [
-    {"id": i, "type": ("system", "audit", "approval", "alert")[i % 4],
-     "title": f"通知消息 {i}", "content": f"这是第 {i} 条通知内容",
-     "read": i % 3 == 0, "createdAt": f"2026-08-{ (i % 28) + 1:02d} {(i * 3) % 24:02d}:00:00"}
-    for i in range(1, 21)
-]
+# ── 消息列表的来源（2026-11-11 起）────────────────────────────────────────────
+# 以前这里是 **20 条硬编码演示数据**（"通知消息 1 / 这是第 1 条通知内容"）：admin-only、
+# 没有生产者、重启即丢，前端注释也写着"真实后端接口未实现"。
+# 现在改为**报警器事件台账的投影**（agent/alarms/store.py）：报警器是唯一事实源，
+# 消息中心只是它的列表视图（分页/已读/筛选仍在这一层做）。
+# 【为什么不在这一层新建第二张表】两张表 = 两套未读 = 顶栏与消息中心各说各话。
+NOTIFICATION_TYPE = "alert"
+#: 投影时最多扫多少条报警（消息中心分页在内存里做；台账上限见 store.MAX_ALARMS）
+NOTIFICATION_SCAN_LIMIT = 500
+
+
+def _notification_rows():
+    """报警器台账 → 消息中心的行（字段与旧契约一致：id/type/title/content/read/createdAt；另加 severity）"""
+    from agent.alarms.store import get_store
+    rows = []
+    for alarm in get_store().list(limit=NOTIFICATION_SCAN_LIMIT):
+        rows.append({
+            "id": alarm.get("id"),
+            "type": NOTIFICATION_TYPE,
+            "severity": alarm.get("severity") or "warning",
+            "title": alarm.get("title") or "",
+            "content": alarm.get("detail") or "",
+            "read": bool(alarm.get("read")),
+            "createdAt": alarm.get("last_seen") or alarm.get("first_seen") or "",
+            # 报警器独有字段：页面可按需展示"已恢复/静默中"，但旧消费方忽略也不报错
+            "state": alarm.get("state"),
+            "silenced_until": alarm.get("silenced_until") or "",
+        })
+    return rows
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -810,32 +833,40 @@ def admin_menu_delete(menu_id):
 @bp.route("/api/notification/list", methods=["GET"])
 @_require_admin
 def admin_notification_list():
+    """消息中心列表 = 报警器台账投影（type 目前只有 alert；unreadOnly=true 只看未读）"""
     page = request.args.get("page", 1)
     page_size = request.args.get("pageSize", 10)
-    return _ok(_paginate(_NOTIFICATIONS, page, page_size))
+    type_filter = (request.args.get("type") or "").strip()
+    unread_only = (request.args.get("unreadOnly") or "").strip().lower() in ("1", "true", "yes")
+    rows = _notification_rows()
+    if type_filter and type_filter != NOTIFICATION_TYPE:
+        rows = []           # 报警器只产出 alert 一类；其它类型不再编造演示数据
+    if unread_only:
+        rows = [r for r in rows if not r["read"]]
+    return _ok(_paginate(rows, page, page_size))
 
 
 @bp.route("/api/notification/unread-count", methods=["GET"])
 @_require_admin
 def admin_notification_unread():
-    return _ok({"count": sum(1 for n in _NOTIFICATIONS if not n["read"])})
+    from agent.alarms.store import get_store
+    return _ok({"count": get_store().unread_count()})
 
 
 @bp.route("/api/notification/<int:notif_id>/read", methods=["POST"])
 @_require_admin
 def admin_notification_read(notif_id):
-    for n in _NOTIFICATIONS:
-        if n["id"] == notif_id:
-            n["read"] = True
-            return _ok()
-    return _fail(404, "通知不存在")
+    from agent.alarms.store import get_store
+    if not get_store().mark_read(notif_id):
+        return _fail(404, "通知不存在")
+    return _ok()
 
 
 @bp.route("/api/notification/read-all", methods=["POST"])
 @_require_admin
 def admin_notification_read_all():
-    for n in _NOTIFICATIONS:
-        n["read"] = True
+    from agent.alarms.store import get_store
+    get_store().mark_all_read()
     return _ok()
 
 
@@ -846,8 +877,8 @@ def admin_dashboard_summary():
         "totalUsers": len(_USERS),
         "activeUsers": sum(1 for u in _USERS if u["status"] == 1),
         "totalRoles": len(_ROLES),
-        "totalNotifications": len(_NOTIFICATIONS),
-        "unreadNotifications": sum(1 for n in _NOTIFICATIONS if not n["read"]),
+        "totalNotifications": len(_notification_rows()),
+        "unreadNotifications": sum(1 for n in _notification_rows() if not n["read"]),
         "todayAuditCount": 12,
         "sensorCount": 18,
         "systemStatus": "healthy",
