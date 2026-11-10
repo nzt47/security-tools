@@ -1,14 +1,22 @@
 {
-  "updated_at": "2026-11-10T12:25+08:00",
+  "updated_at": "2026-11-10T18:30+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
     {
-      "id": "derive-fingerprint-guard",
+      "id": "audit-request-attribution",
       "status": "open",
+      "priority": "P3",
+      "title": "写路由的审计 payload 带调用方归属（remote_addr / UA 摘要），一次 join 就能点名",
+      "criteria": "2026-11-10 18:1x 定位两条 skill.delete 时发现：审计链只有 actor=tok_…（= FLASK_API_TOKEN 指纹）、method/path/status，没有客户端信息；只能靠后端请求日志的「页面轮询 + 删后重取」节奏推断是 UI 会话，无法直接点名是谁（人 / 自动化 / 哪个脚本）。",
+      "next": "在 ui 写路由的审计上下文里补两个非凭据字段：remote_addr 与 user_agent 的 sha256 前 16 位（不落原文，避免 UA 里的个人信息进链）。落点：agent/ui_request_context（或审计装饰器）→ payload；配 1~2 条用例（有/无请求上下文）。注意别改审批链与 payload 契约的既有键。"
+    },
+    {
+      "id": "derive-fingerprint-guard",
+      "status": "done",
       "priority": "P2",
-      "title": "全量测试期间 data/ 被静默写入（gh-cli/gstack 被 API 删除）—— 守卫已落地，写入方待按审计链 join",
-      "criteria": "2026-11-10 00:00 事故：一次全量 `pytest tests/unit -p no:randomly` 期间 data/skills_repo/gh-cli（随后 gstack）被删、data/skills_mgmt.json 少行（53→52）、能力清单被重派生、3 个基线测试被改。**2026-11-10 12:2x 在审计链找到直接证据**：两条 `skill.delete`，actor=tok_ffd912584295（= FLASK_API_TOKEN 的指纹）、source=ui、payload.method=DELETE、path=/api/skills-mgmt/gh-cli（seq 83644, 2026-11-09T15:53:40Z）与 path=/api/skills-mgmt/gstack（seq 83693, 16:37:51Z）⇒ 删除来自**带 bearer token 的 HTTP 调用**，不是测试直接删文件（测试内没有这种 DELETE：unit 里仅有 test_audit_integration 的假 svc + 假 id）。两次时间点都落在\"本机跑全量测试 + 后端在跑\"的窗口内。守卫已落地（`tests/conftest.py::_guard_derived_assets` + `tests/unit/test_derived_guard.py`，已在本地用故意改清单的探针验证\"会话结束点名 [modified] data/capability_manifest.json\"）。",
-      "next": "1) 已做：守卫 + 端到端证明（探针跑完即删，清单已还原）。2) 待做：把守卫报告与审计链 join —— 守卫在会话结束点名路径，审计链给出 `skill.delete` 的**时间+actor+path**；两者对时间即可锁定是哪一次运行/哪一段测试。3) 待做：按 `gh api`/`data/audit` 里 `actor_source=ui_request_context` 的调用方特征，检查本机是否有用 .env token 直连 5678 的脚本/后台任务（已知候选：scripts/verify_*、scripts/demo_s2_02_audit.py、scripts/approve_tool_call.ps1、以及 data/_*.py 历史助手）。4) 复现时用：`python -m pytest tests/unit -q -p no:randomly -v > 日志`（-v 才有\"哪个测试在跑\"），出事后用审计链时间对齐日志时间戳。"
+      "title": "全量测试期间 data/ 被静默写入 —— 守卫已落地；写入方已按「请求日志 × 审计链」join 锁定为工作台 UI 会话（两条 DELETE）",
+      "criteria": "2026-11-10 00:00 事故：一次全量 `pytest tests/unit -p no:randomly` 期间 data/skills_repo/gh-cli（随后 gstack）被删、data/skills_mgmt.json 少行（53→52）、能力清单被重派生、3 个基线测试被改。**2026-11-10 12:2x 在审计链找到直接证据**：两条 `skill.delete`，actor=tok_ffd912584295（= FLASK_API_TOKEN 的指纹）、source=ui、payload.method=DELETE、path=/api/skills-mgmt/gh-cli（seq 83644, 2026-11-09T15:53:40Z）与 path=/api/skills-mgmt/gstack（seq 83693, 16:37:51Z）⇒ 删除来自**带 bearer token 的 HTTP 调用**，不是测试直接删文件（测试内没有这种 DELETE：unit 里仅有 test_audit_integration 的假 svc + 假 id）。两次时间点都落在\"本机跑全量测试 + 后端在跑\"的窗口内。守卫已落地（`tests/conftest.py::_guard_derived_assets` + `tests/unit/test_derived_guard.py`，已在本地用故意改清单的探针验证\"会话结束点名 [modified] data/capability_manifest.json\"）。 【2026-11-10 18:1x 收口】按时间 join 结果：两条 skill.delete 的后端请求日志（logs/deploy_spawn_20261109_233817.err.log:4231-4238、logs/deploy_spawn_20261110_003424.err.log:2330-2337）显示**同一个浏览器页面会话**——DELETE 前 9~20s 该页在轮询 GET /api/skills-mgmt/assess/stream（SSE，timeout_sec=20）与 intake/status，DELETE 后同一秒立刻 GET /api/skills-mgmt + /usage/stats + /capability-manifest（前端 mutation 失效重取）。同一个页面会话在 23:50:52/54 点了两次 code-refactor 开关、23:58:13 与 00:00:44 两次 POST intake（均 400 rejected）、23:58:57-00:02:28 做了 suggest-fix/optimize/redraft/versions/bump/rollback、00:29:50/00:32:14/00:35:37 切过 chat 会话。代码侧唯一能发这条 DELETE 的入口是 yunshu-ui/src/components/SkillsMgmt/SkillDetail.tsx:97 handleDelete（带 confirm 文案）⇒ **不是 pytest（单测里没有这条 DELETE，也不打 5678）、不是 .env token 脚本**（data/_del_skill.py 只发一条孤立 DELETE，没有 SSE 轮询与删后重取）。",
+      "next": "已完成（join + 判定）。剩余只有『当时是谁在操作那个页面』——需 Owner 确认（若否认，则下次直接看新增的请求归属字段）。若同类再发：python -X utf8 data/_audit_delete_join.py 可按审计链时间戳列出所有 skill.delete 及其前后 30s 的页面请求，无需重造。附带遗留：00:00:13 的 capability_manifest 重派生与该窗口 3 个基线测试被改，**仍未归因**（/api/capability-manifest 是只读端点，与该 UI 会话无关），如再出现按同样方法查。"
     },
     {
       "id": "skill-script-run-observe",
