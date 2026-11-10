@@ -1,14 +1,14 @@
 {
-  "updated_at": "2026-11-10T20:58+08:00",
+  "updated_at": "2026-11-10T23:50+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
     {
       "id": "diagnostics-histograms-empty",
-      "status": "open",
+      "status": "done",
       "priority": "P3",
-      "title": "诊断页 /api/diagnostics/metrics 的 histograms 仍为 {}（P50/P95/P99 不可见）",
-      "criteria": "agent/monitoring/metrics.py 那个进程内注册表没有任何写入点，所以 histograms 恒空；真实时延在 Prometheus 直方图里：/metrics 实测族名 yunshu_http_request_duration_seconds，标签 method/endpoint/status/le，桶 0.005..10s。本轮已定位族名与标签，但未定位注册点：utils/prometheus_monitor.py 用的是自建 CollectorRegistry（不带 status 标签），与该族不符。",
-      "next": "下轮：按族名反查注册处（grep yunshu_http_request_duration_seconds 或 namespace 前缀拼接），在 agent/monitoring/prometheus.py 加 http_latency_histograms() 做读注册表投影（不新增埋点、不双写），再由 routes_logging._get_runtime_metrics 合并进 histograms；口径：桶内线性插值算 P50/P95/P99，样本数 <20 的端点不报分位，min/max 不报（只有桶边界，报就是猜）。"
+      "title": "诊断页 histograms 恒空 —— 已改为「读 Prometheus 注册表投影」（c54d76b18）",
+      "criteria": "原判据成立：agent/monitoring/metrics.py 的进程内注册表无任何写入点；真实时延在 prometheus_flask_exporter 注册到**默认 REGISTRY** 的 yunshu_http_request_duration_seconds（标签 method/endpoint/status，桶 0.005–10s，prometheus_client 原生 Histogram）。",
+      "next": "已落地：agent/monitoring/prometheus.py 的 http_latency_histograms() 按端点聚合累积桶并做桶内线性插值（与 histogram_quantile 同法）；routes_logging._get_runtime_metrics 合并进 histograms。口径：样本 <20 的端点不报分位、不报 min/max、+Inf 桶只给下界、按样本量取前 8。若将来换掉 prometheus_flask_exporter 的前缀，改 _DIAG_LATENCY_FAMILIES 即可（两种族名都认）。"
     },
     {
       "id": "memory-compress-500",
