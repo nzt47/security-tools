@@ -1,7 +1,15 @@
 {
-  "updated_at": "2026-11-10T19:40+08:00",
+  "updated_at": "2026-11-10T20:20+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
+    {
+      "id": "memory-compress-500",
+      "status": "done",
+      "priority": "P1",
+      "title": "记忆运维「触发压缩」恒 500（compress() 缺参）—— 已修（d2c5a680f / 529801e7e）",
+      "criteria": "2026-11-10 用户实测：会话与配置 → 记忆管理 → 记忆运维 → 触发压缩 ⇒ 「压缩失败：操作失败（详见服务日志）（HTTP 500）」。服务日志原文：MemoryManager.compress() missing 1 required positional argument: old_messages。同一个坑 2026-10-14 在 /api/context/compress 修过，这条没修 —— 因为当年只补了「legacy 端点存在性」测试（url_map），端点存在 ≠ 可用。修法：走 compress_now()；新增 tests/unit/test_memory_compress_route.py 两条行为测试。",
+      "next": "实测（529801e7e）：POST /api/memory/compress → 200，{ok:true, version_before:98, summary_version:99, messages_compressed:100}。附带修掉「ok=true 但版本 0/0」的假成功：compress_now 的版本读数改与写入同键（_compression_session_key），并回报 scope(session/global)。"
+    },
     {
       "id": "dependabot-minimatch",
       "status": "done",
@@ -28,11 +36,11 @@
     },
     {
       "id": "skill-script-run-observe",
-      "status": "open",
+      "status": "done",
       "priority": "P2",
-      "title": "skill_script_run 观察期：现场已开（YAML 默认停用），看是否真有人/模型用",
+      "title": "skill_script_run 观察期结论（2026-11-10 拍板）：维持现场开启、YAML 保持 false",
       "criteria": "§11.78 新增工具：技能 L3 脚本的显式执行点（只补「显式调用」，不做命中即自动执行）。YAML 默认 enabled:false（停用观察口径）；现场通过 /api/tools/toggle 打开（data/tools_config.json，不改仓库）。工具层 L2 逐次确认（effect=execute+risk=high）；执行器内部还有一道 L1 闸门（工具名 skill.<id>）——实测两道路都要过（验收期一次审批 + 原样重试才跑通）。",
-      "next": "观察：①/usage/stats 的 exec_calls 是否随真实使用增长（验收期已实测 1 次成功：scripted-selftest/main.py，exit=0，104ms）；②有没有人抱怨「每次执行都要点确认」；③是否出现脚本超时/输出超限。回滚 = POST /api/tools/toggle {name:skill_script_run,enabled:false}（立即生效）或 YAML 改回 false 并重部署。"
+      "next": "决定：**现场 enabled=true 保留**（data/tools_config.json），YAML 仍 enabled:false —— 干净重建不会自动放开执行面，要用的人在 toggle 里显式打开。依据：唯一一次真实执行成功（scripted-selftest/main.py exit=0/104ms，exec_calls 至今 1）、无「每次都要点确认」的抱怨、无脚本超时/输出超限；两道确认（工具 L2 + 执行器 L1）是设计而非缺陷。回滚 = POST /api/tools/toggle {name:skill_script_run,enabled:false}（立即生效）。观察继续走 /api/skills-mgmt/usage/stats。"
     },
     {
       "id": "c6-remaining",
@@ -350,19 +358,19 @@
     },
     {
       "id": "compress-prefix-enable",
-      "title": "CP_COMPRESS_REUSE_CHAT_PREFIX 已灰度开启（观察中）",
-      "status": "open",
+      "title": "CP_COMPRESS_REUSE_CHAT_PREFIX 观察结论（2026-11-10 拍板）：现场 true、代码默认保持 false",
+      "status": "done",
       "priority": "P2",
       "criteria": "**2026-11-09 已按 Owner 指示开启**（开关中心同一条 API：value=true、applied=True、hot 写入进程 os.environ、source=ui_override；重启后由 bootstrap 重新应用）。现场实测（分支临时部署 pid 69772）：窗口临时 30000 + 新会话 23,800 字消息 ⇒ 手动压缩返回 used_prefix=True / prefix_messages=1（摘要 v94→95，随后已还原）。**验收坑**：窗口 2000/3000 时 used_prefix 恒 False —— 守卫按设计拒绝（前缀 + RETRY_TOKENS 2000 + 余量 1024 > 窗口），验收要窗口 ≥ 前缀 + 3k。",
-      "next": "观察（1~2 周）：①压缩触发频次与摘要长度（输出预算 500 token 触顶，旧路径也触顶）；②手动压缩回执里 used_prefix 是否为 True；③人工看 2~3 次摘要质量（旧路径是「对话续写」，新路径应是结构化摘要）。无回归再决定是否在多机默认开启；回滚 = 面板开关关掉或置 0（热生效，无数据迁移）。"
+      "next": "决定：**现场 ui_override=true 保留**（重启由 bootstrap 重新应用），registry 默认仍 false。依据：提示 87,795 / 命中 87,552 = 99.7%、成本 −81%、摘要从「对话续写」变结构化；但冷缓存 1.85× 的风险不该默认落到所有新环境 —— 「已验证、需显式打开」才与现状相符。回滚 = 置 0（立即生效）。"
     },
     {
       "id": "summarize-usage-observability",
-      "title": "压缩（summarize）调用的 usage 恒 0 ⇒ token/命中不进监控与成本",
-      "status": "open",
+      "title": "压缩（summarize）usage 恒 0 —— 钩子改读真响应对象（11dfde713）",
+      "status": "done",
       "priority": "P3",
       "criteria": "2026-11-09 做 --e2e 时发现：agent/llm_monitor 的 _patched_do_summarize 用 create_from_api_call(response_obj=...) 建记录，但 memory/llm_service._do_summarize 返回的是**文本**而不是响应对象 ⇒ usage_prompt_tokens / prompt_cache_hit_tokens / miss 恒 0（source=summarize、tools 倒是有了）。后果：压缩的 token 与缓存命中在「LLM 缓存命中」卡、成本统计、prometheus 的 llm_tokens_total 里都看不见（这正是当初 §11.67 只能用 --e2e 探针取数的原因）。",
-      "next": "二选一：①_do_summarize 把响应对象挂在 self（如 self._last_summarize_response）供钩子读取（改动最小，但共享状态要防并发）；②_do_summarize 增加一个可选的 on_response 回调参数（显式、无共享状态，但要同步 _do_chat/降级 lambda 三处口径）。修完要复核：概览卡/成本里压缩 token 是否出现、有没有把既有测试的 token 断言打红。"
+      "next": "已落地：_do_summarize 把真响应对象暂存 _last_summarize_response（异常时置 None），llm_monitor.summarize_response_for_record() 供钩子取值 ⇒ extract_usage 拿到真 usage。用例 5 条（test_summarize_usage_observability.py）。验证方式：下一次真实压缩后看 /api/llm-monitor/stats 里 source=summarize 的 usage_prompt_tokens 是否非 0。"
     },
     {
       "id": "ui-vs-trigger-metric",
@@ -400,27 +408,27 @@
     },
     {
       "id": "lab-apply-cache-notice",
-      "title": "提示词实验室 apply 旁标注「改身份=下一次调用整段前缀失效一次」",
-      "status": "open",
+      "title": "提示词实验室 apply 旁标注缓存代价（c257a455e）",
+      "status": "done",
       "priority": "P3",
       "criteria": "实测 2026-11-08：改一行身份 → system prompt 277→281 字、下一次命中 0/3,605（整段前缀作废一次），之后恢复；改回时若旧前缀仍在服务端缓存则不再付全价。",
-      "next": "在 /api/system-prompt/config/apply 的响应与实验室「应用」按钮旁给一句提示（带当前 system prompt 的 token 数与「会作废一次前缀」），只加提示不改行为。"
+      "next": "已落地：「应用到运行时」按钮旁常驻一行「ⓘ 改身份 = 下一次调用整段前缀失效一次（按未命中计价）」，title 里写清「只赔一次，之后重新稳定」。"
     },
     {
       "id": "unscoped-legacy-pool",
-      "title": "未分会话的历史池不再自动压缩（301 条 / 128k token）",
-      "status": "open",
+      "title": "未分会话历史池：决定冻结、不迁移，并在 /api/context/status 与面板如实披露（d3f7fd043）",
+      "status": "done",
       "priority": "P3",
       "criteria": "PR #1518 后维护线程只在「窗口最后一条消息带 session_id」时判定；legacy 301 条（无 session_id）已不再被压，摘要也不再消化它们。",
-      "next": "二选一：一次性迁移（给老行补 session_id，或只保留最近 N 条并归档）或在记忆面板明确标注「历史池已冻结、不再自动压缩」。"
+      "next": "决定：不迁移（把 305 条无主消息搬进某个会话 = 把无关上下文塞给它，比冻着更坏）。落地：agent/legacy_pool.py（只读计数 + 60s 缓存）→ /api/context/status.legacy_pool {available, policy:frozen, legacy_messages:305, legacy_chars, messages_total}；面板在占用率口径下加一行「未分会话历史池 305 条 · 已冻结（不参与压缩/摘要/最近消息）」。"
     },
     {
       "id": "unit-board-no-data",
-      "title": "单位看板两个「无数据」（工作流 0 条 never / 长期记忆 0 行 warn）",
-      "status": "open",
+      "title": "单位看板「无数据」口径（2026-11-10 拍板）：never 不计分，0 行长期记忆归为无数据",
+      "status": "done",
       "priority": "P3",
       "criteria": "2026-11-08 交接卡：12 个单位 9 ok / 2 warn / 1 never；两项都是「没有数据」而不是故障，却常挂在看板上像告警。",
-      "next": "按 L5 口径统一：无数据就显示「无数据」并给下一步入口（去创建工作流 / 去导入记忆），或不把它们计入「必须健康」的判定；别折算成 0 分或绿色满分。"
+      "next": "决定：① never（从未产生数据）既不进分子也不进分母（L5：无数据不许折算成 0 或满分）；② 长期记忆「库在但 0 行」= 尚未产出 ⇒ status=never（是否真坏由 scheduler 的 last_run 判断，不重复推断）；③ 工作流 0 条文案改「尚无工作流（0 条）· 无数据，不计分」。落地：unit_monitor.score_detail() + /api/system/units 增 scored_units/no_data_units/health_score_note + 面板显示「（N 项无数据不计分）」；可计分单位为 0 时 score=None ⇒ 显示「无数据」而不是 0 分。现场读数：10 ok / 0 warn / 2 never · 健康分 100.0（10 项计分，2 项无数据不计分）。"
     }
   ]
 }
