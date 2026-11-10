@@ -12327,7 +12327,7 @@
       "source_layer": "core",
       "target_layer": "utils",
       "import_type": "from_import",
-      "line": 1144,
+      "line": 1158,
       "source_file": "agent/llm_monitor.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -15577,7 +15577,7 @@
       "source_layer": "monitoring",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 240,
+      "line": 246,
       "source_file": "agent/monitoring/unit_probes.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -32434,7 +32434,7 @@
     }
   ],
   "stats": {
-    "total_files": 733,
+    "total_files": 734,
     "total_nodes": 633,
     "total_edges": 2105,
     "cross_layer_edges": 1334,
