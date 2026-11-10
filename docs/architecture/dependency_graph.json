@@ -34,6 +34,78 @@
       "out_degree": 0
     },
     {
+      "path": "agent.alarms",
+      "name": "alarms",
+      "layer": "alarms",
+      "file_path": "agent/alarms/__init__.py",
+      "in_degree": 0,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.alarms.store",
+      "name": "store",
+      "layer": "alarms",
+      "file_path": "",
+      "in_degree": 3,
+      "out_degree": 0
+    },
+    {
+      "path": "agent.alarms.api",
+      "name": "api",
+      "layer": "alarms",
+      "file_path": "agent/alarms/api.py",
+      "in_degree": 0,
+      "out_degree": 4
+    },
+    {
+      "path": "agent.api_envelope",
+      "name": "api_envelope",
+      "layer": "core",
+      "file_path": "",
+      "in_degree": 8,
+      "out_degree": 0
+    },
+    {
+      "path": "agent.server_auth",
+      "name": "server_auth",
+      "layer": "core",
+      "file_path": "",
+      "in_degree": 25,
+      "out_degree": 4
+    },
+    {
+      "path": "agent.alarms.collector",
+      "name": "collector",
+      "layer": "alarms",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 4
+    },
+    {
+      "path": "agent.health.storage",
+      "name": "storage",
+      "layer": "health",
+      "file_path": "",
+      "in_degree": 3,
+      "out_degree": 0
+    },
+    {
+      "path": "agent.monitoring",
+      "name": "monitoring",
+      "layer": "monitoring",
+      "file_path": "",
+      "in_degree": 3,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.audit.chain",
+      "name": "chain",
+      "layer": "audit",
+      "file_path": "",
+      "in_degree": 11,
+      "out_degree": 3
+    },
+    {
       "path": "agent.api_gateway",
       "name": "api_gateway",
       "layer": "core",
@@ -88,14 +160,6 @@
       "file_path": "",
       "in_degree": 18,
       "out_degree": 21
-    },
-    {
-      "path": "agent.audit.chain",
-      "name": "chain",
-      "layer": "audit",
-      "file_path": "agent/audit/chain.py",
-      "in_degree": 10,
-      "out_degree": 3
     },
     {
       "path": "agent.audit.seq_journal",
@@ -954,14 +1018,6 @@
       "out_degree": 0
     },
     {
-      "path": "agent.monitoring",
-      "name": "monitoring",
-      "layer": "monitoring",
-      "file_path": "",
-      "in_degree": 2,
-      "out_degree": 1
-    },
-    {
       "path": "agent.system_prompt_manager",
       "name": "system_prompt_manager",
       "layer": "core",
@@ -1482,28 +1538,12 @@
       "out_degree": 6
     },
     {
-      "path": "agent.health.storage",
-      "name": "storage",
-      "layer": "health",
-      "file_path": "",
-      "in_degree": 2,
-      "out_degree": 0
-    },
-    {
       "path": "agent.health.dashboard",
       "name": "dashboard",
       "layer": "health",
       "file_path": "agent/health/dashboard.py",
       "in_degree": 2,
       "out_degree": 4
-    },
-    {
-      "path": "agent.api_envelope",
-      "name": "api_envelope",
-      "layer": "core",
-      "file_path": "",
-      "in_degree": 7,
-      "out_degree": 0
     },
     {
       "path": "agent.health.health_score",
@@ -2504,14 +2544,6 @@
       "file_path": "",
       "in_degree": 1,
       "out_degree": 1
-    },
-    {
-      "path": "agent.server_auth",
-      "name": "server_auth",
-      "layer": "core",
-      "file_path": "",
-      "in_degree": 24,
-      "out_degree": 4
     },
     {
       "path": "agent.server_routes._errors",
@@ -5101,6 +5133,123 @@
       "import_type": "from_import",
       "line": 1110,
       "source_file": "agent/ab_testing.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.alarms",
+      "target": "agent.alarms.store",
+      "source_layer": "alarms",
+      "target_layer": "alarms",
+      "import_type": "from_import",
+      "line": 11,
+      "source_file": "agent/alarms/__init__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.alarms.api",
+      "target": "agent.alarms.store",
+      "source_layer": "alarms",
+      "target_layer": "alarms",
+      "import_type": "from_import",
+      "line": 21,
+      "source_file": "agent/alarms/api.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.alarms.api",
+      "target": "agent.api_envelope",
+      "source_layer": "alarms",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 28,
+      "source_file": "agent/alarms/api.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.alarms.api",
+      "target": "agent.server_auth",
+      "source_layer": "alarms",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 29,
+      "source_file": "agent/alarms/api.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.alarms.api",
+      "target": "agent.alarms.collector",
+      "source_layer": "alarms",
+      "target_layer": "alarms",
+      "import_type": "from_import",
+      "line": 135,
+      "source_file": "agent/alarms/api.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.alarms.collector",
+      "target": "agent.alarms.store",
+      "source_layer": "alarms",
+      "target_layer": "alarms",
+      "import_type": "from_import",
+      "line": 29,
+      "source_file": "agent/alarms/collector.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.alarms.collector",
+      "target": "agent.health.storage",
+      "source_layer": "alarms",
+      "target_layer": "health",
+      "import_type": "from_import",
+      "line": 170,
+      "source_file": "agent/alarms/collector.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.alarms.collector",
+      "target": "agent.monitoring",
+      "source_layer": "alarms",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 181,
+      "source_file": "agent/alarms/collector.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.alarms.collector",
+      "target": "agent.audit.chain",
+      "source_layer": "alarms",
+      "target_layer": "audit",
+      "import_type": "from_import",
+      "line": 195,
+      "source_file": "agent/alarms/collector.py",
       "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
@@ -24794,7 +24943,7 @@
       "source_layer": "settings",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 3217,
+      "line": 3230,
       "source_file": "agent/settings/registry.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -24807,7 +24956,7 @@
       "source_layer": "settings",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 3337,
+      "line": 3350,
       "source_file": "agent/settings/registry.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -32473,18 +32622,20 @@
     }
   ],
   "stats": {
-    "total_files": 735,
-    "total_nodes": 633,
-    "total_edges": 2108,
-    "cross_layer_edges": 1336,
+    "total_files": 739,
+    "total_nodes": 637,
+    "total_edges": 2117,
+    "cross_layer_edges": 1341,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
       "core": 81,
       "utils": 12,
+      "alarms": 4,
+      "health": 7,
       "monitoring": 32,
-      "tools": 31,
       "audit": 8,
+      "tools": 31,
       "observability": 13,
       "security": 10,
       "evolution": 1,
@@ -32512,7 +32663,6 @@
       "experience_cli": 6,
       "policy": 11,
       "handoff": 1,
-      "health": 7,
       "human_in_the_loop": 5,
       "ingestion": 8,
       "knowledge": 28,

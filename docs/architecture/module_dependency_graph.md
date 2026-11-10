@@ -4,6 +4,12 @@
 flowchart LR
     classDef violation fill:#ff4444,stroke:#cc0000,color:#fff,stroke-width:2px
     classDef crosslayer fill:#fff3cd,stroke:#ffc107,color:#664d03
+    subgraph alarms [alarms]
+        agent_alarms["agent.alarms"]
+        agent_alarms_api["agent.alarms.api"]
+        agent_alarms_collector["agent.alarms.collector"]
+        agent_alarms_store["agent.alarms.store"]
+    end
     subgraph audit [audit]
         agent_audit["agent.audit"]:::crosslayer
         agent_audit_chain["agent.audit.chain"]:::crosslayer
@@ -235,7 +241,7 @@ flowchart LR
         agent_health_health_score["agent.health.health_score"]:::crosslayer
         agent_health_observability["agent.health.observability"]
         agent_health_probes["agent.health.probes"]
-        agent_health_storage["agent.health.storage"]
+        agent_health_storage["agent.health.storage"]:::crosslayer
     end
     subgraph human_in_the_loop [human_in_the_loop]
         agent_human_in_the_loop["agent.human_in_the_loop"]
@@ -754,6 +760,15 @@ flowchart LR
     agent_ab_testing --> agent_logging_utils
     agent_ab_testing -.-> agent_utils_bucketing
     agent_ab_testing -.-> agent_utils_singleton_manager
+    agent_alarms --> agent_alarms_store
+    agent_alarms_api --> agent_alarms_store
+    agent_alarms_api -.-> agent_api_envelope
+    agent_alarms_api -.-> agent_server_auth
+    agent_alarms_api --> agent_alarms_collector
+    agent_alarms_collector --> agent_alarms_store
+    agent_alarms_collector -.-> agent_health_storage
+    agent_alarms_collector -.-> agent_monitoring
+    agent_alarms_collector -.-> agent_audit_chain
     agent_api_gateway --> agent_rate_limiter
     agent_api_gateway -.-> agent_monitoring_tracing
     agent_api_gateway -.-> agent_utils_singleton_manager
@@ -2867,9 +2882,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 735
-- 模块节点数: 633
-- 依赖边数: 2108
-- 跨层调用数: 1336
+- 扫描文件数: 739
+- 模块节点数: 637
+- 依赖边数: 2117
+- 跨层调用数: 1341
 - 违规调用数: 0
 - 动态 import 数: 1
