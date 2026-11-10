@@ -68,13 +68,21 @@ def batch5_client(monkeypatch):
     fake_app_server._Yunshu = _Yunshu
     monkeypatch.setitem(sys.modules, "app_server", fake_app_server)
 
-    # 健康看板：assess() 会真的跑评分器，这里换成最小替身（本文件测的是**响应契约**）
+    # 健康看板：真实评分器会跑五层探针，这里换成最小替身（本文件测的是**响应契约**）
     health_mod = importlib.import_module("agent.health.dashboard")
 
     class _Assessment:
         overall = 0.91
-        dimensions = {"error_rate": 0.0, "response_time": 0.2, "tool_success": 0.98}
+        # 【2026-11-11】不可用的层这里是 None（与真实 HealthScore 同形：无数据不是 0、也不是满分）
+        dimensions = {
+            "l1_process": 1.0, "l2_dependency": 1.0, "l3_llm_tool": None,
+            "l4_business": None, "l5_semantic": None,
+        }
         issues = [{"sensor_name": "disk", "severity": "warning", "score": 0.7}]
+        probe_details = {
+            "l1_process": {"available": True, "score": 1.0, "detail": "mem=61.0% cpu=12.0%"},
+            "l3_llm_tool": {"available": False, "score": None, "detail": "无 LLM 调用记录"},
+        }
 
     class _Assessor:
         @staticmethod
@@ -82,10 +90,20 @@ def batch5_client(monkeypatch):
             return _Assessment()
 
         @staticmethod
+        def assess_with_probes(probes):
+            # 【2026-11-11 必改】路由已改为 assess_with_probes(run_all_probes())（§11.84「3 项假绿」）：
+            #   替身只有 assess() ⇒ 真实请求 500（AttributeError），而本用例测的是**信封与载荷形状**。
+            #   替身必须与真实接口同形，否则守的是一条已经不存在的路径。
+            _Assessor.seen_probes = probes
+            return _Assessment()
+
+        @staticmethod
         def get_history(limit=10):
             return []
 
     monkeypatch.setattr(health_mod, "health_assessor", _Assessor())
+    # 探针本身也替身掉：本用例不关心采集结果，只关心载荷形状（真跑会碰 psutil/磁盘）
+    monkeypatch.setattr(health_mod, "run_all_probes", lambda: {"l1_process": object()})
 
     from flask import Flask
     from agent.api_envelope import install_error_handlers
@@ -140,10 +158,10 @@ class Test运行状态:
 
 class Test健康看板:
     def test_信封与载荷形状(self, batch5_client):
-        """GET /api/health/dashboard：data 仍是那四个键。"""
+        """GET /api/health/dashboard：data 仍是那四个键（+ §11.84 新增的 layers）。"""
         data = _envelope_data(batch5_client, "/api/health/dashboard")
         assert isinstance(data, dict), "data 应为对象，实测 " + repr(type(data).__name__)
-        for key in ("overall_health", "dimensions", "issues", "history"):
+        for key in ("overall_health", "dimensions", "issues", "history", "layers"):
             assert key in data, (
                 "健康看板缺少既有键「" + key + "」⇒ 迁移信封时改变了契约。实测键："
                 + repr(sorted(data.keys()))

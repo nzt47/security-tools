@@ -807,16 +807,42 @@ class TestGetRuntimeMetrics:
         assert "timestamp" in result
 
     def test_empty_metrics_uses_defaults(self):
-        """空指标使用默认值"""
+        """空指标使用默认值（含 Prometheus 投影也为空 —— 投影取不到不能编数）"""
         mock_collector = MagicMock()
         mock_collector.get_all_metrics.return_value = {}
 
-        with patch("agent.server_routes.routes_logging.get_metrics_collector", return_value=mock_collector):
+        # 【2026-11-11 契约变更】_get_runtime_metrics 现在把 Prometheus 注册表的投影
+        #   （counter_snapshot / http_latency_histograms，§11.83/§11.84）合并进 counters/histograms。
+        #   真实注册表里有 prometheus_client 自带的 python_gc_* / process_cpu_seconds_total，
+        #   投影永远非空 ⇒ "空指标 ⇒ 全空" 只在**投影也取不到**时成立。这里把投影显式打空，
+        #   测的仍然是本条用例的原意（collector 空 + 投影空 ⇒ 不编任何数）。
+        with patch("agent.server_routes.routes_logging.get_metrics_collector", return_value=mock_collector), \
+             patch("agent.monitoring.prometheus.counter_snapshot", return_value={}), \
+             patch("agent.monitoring.prometheus.http_latency_histograms", return_value={}):
             result = _get_runtime_metrics()
 
         assert result["histograms"] == {}
         assert result["counters"] == {}
         assert "timestamp" in result
+
+    def test_prometheus_投影并入_counters_与_histograms(self):
+        """投影（真实计数器/直方图）必须并进响应，且不覆盖 collector 已有的同名键。"""
+        mock_collector = MagicMock()
+        mock_collector.get_all_metrics.return_value = {
+            "histograms": {"latency": {"count": 1}},
+            "counters": {"context_assembler_injected_total": 2.0},
+        }
+
+        with patch("agent.server_routes.routes_logging.get_metrics_collector", return_value=mock_collector), \
+             patch("agent.monitoring.prometheus.counter_snapshot", return_value={"llm_calls_total": 3.0}), \
+             patch("agent.monitoring.prometheus.http_latency_histograms",
+                   return_value={"yunshu_http": {"count": 9}}):
+            result = _get_runtime_metrics()
+
+        assert result["counters"]["llm_calls_total"] == 3.0
+        assert result["counters"]["context_assembler_injected_total"] == 2.0
+        assert result["histograms"]["yunshu_http"]["count"] == 9
+        assert result["histograms"]["latency"]["count"] == 1
 
     def test_collector_exception_returns_error(self):
         """collector 抛异常: 返回 error 字典"""
