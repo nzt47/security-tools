@@ -81,13 +81,25 @@ def _scheduler() -> Dict[str, Any]:
     return {"total": len(tasks), "enabled": sum(1 for t in tasks if t.get("enabled"))}
 
 
+def _score_text(units: Dict[str, Any]) -> str:
+    """健康分文案：无数据（never）不计分 ⇒ 可计分单位为 0 时**不显示 0 分**。"""
+    score = units.get("score")
+    if score in (None, ""):
+        return "无数据（不计分）"
+    no_data = units.get("no_data") or 0
+    if no_data:
+        return "%s（%s 项无数据不计分）" % (score, no_data)
+    return str(score)
+
+
 def _units() -> Dict[str, Any]:
     data = _get("/api/system/units")
     if not data:
         return {}
     summary = data.get("summary") or {}
     return {"ok": summary.get("ok"), "warn": summary.get("warn"),
-            "never": summary.get("never"), "score": data.get("health_score")}
+            "never": summary.get("never"), "score": data.get("health_score"),
+            "scored": data.get("scored_units"), "no_data": data.get("no_data_units")}
 
 
 def _tools() -> Dict[str, Any]:
@@ -289,7 +301,7 @@ def render_card(state: Dict[str, Any]) -> str:
                                     "、".join(tools.get("disabled") or []) or "（无）"),
         "- 单位看板：%s ok / %s warn / %s never · %s" % (
             units.get("ok", "-"), units.get("warn", "-"), units.get("never", "-"),
-            units.get("score", "-")),
+            _score_text(units)),
         "- 审计：%s 条" % (state.get("audit_rows") if state.get("audit_rows") is not None else "-"),
         "- 自检：%s" % _render_selfcheck(state.get("selfcheck") or {}),
         "- 下一步：%s" % _render_next(state.get("next") or {}),

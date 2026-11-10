@@ -32,7 +32,11 @@ interface UnitsResp {
   ok?: boolean
   units?: UnitRow[]
   summary?: Record<string, number>
-  health_score?: number
+  /** null = 没有任何可计分单位（全是「无数据」）⇒ 显示「无数据」而不是 0 分 */
+  health_score?: number | null
+  scored_units?: number
+  no_data_units?: number
+  health_score_note?: string
   generated_at?: string
   cached?: boolean
   error?: string
@@ -113,8 +117,18 @@ export default function UnitStatus() {
         <Activity size={14} className="text-cyan-400" />
         <span className="text-sm font-medium text-slate-200">功能单位工作状况</span>
         {data?.health_score != null && (
-          <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[11px] text-slate-300">
+          <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[11px] text-slate-300"
+            title={data.health_score_note}>
             健康分 {data.health_score}
+            {(data.no_data_units ?? 0) > 0 && (
+              <span className="ml-1 text-slate-500">（{data.no_data_units} 项无数据不计分）</span>
+            )}
+          </span>
+        )}
+        {data != null && data.health_score == null && (
+          <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[11px] text-slate-400"
+            title={data.health_score_note}>
+            健康分：无数据（不计分）
           </span>
         )}
         {STATUS_ORDER.map((s) => (

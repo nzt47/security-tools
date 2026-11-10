@@ -229,7 +229,13 @@ def probe_workflows() -> Dict[str, Any]:
         items = list(items.values())
     items = items if isinstance(items, list) else []
     enabled = sum(1 for w in items if isinstance(w, dict) and w.get("enabled", True))
-    return {"status": "ok" if items else "never",
+    # 0 条 = 无数据（还没产出过），不是「0 分」也不是故障：不计分，页面上说清楚
+    if not items:
+        return {"status": "never",
+                "summary": "尚无工作流（0 条）· 无数据，不计分",
+                "metrics": {"total": 0, "enabled": 0, "no_data": True},
+                "last_activity": _mtime(_p("data/learned_workflows.json"))}
+    return {"status": "ok",
             "summary": "%d 条工作流（启用 %d）" % (len(items), enabled),
             "metrics": {"total": len(items), "enabled": enabled},
             "last_activity": _mtime(_p("data/learned_workflows.json"))}
@@ -285,12 +291,18 @@ def probe_memory_longterm() -> Dict[str, Any]:
     if rows is None:
         return {"status": "never", "summary": "长期记忆库不存在",
                 "issues": ["data/memory/long_term.db 不可读"]}
-    status = "ok" if rows else "warn"
-    issues = [] if rows else ["长期记忆 0 行（短期→长期提升链路没有产出）"]
-    return {"status": status,
+    # 库在但 0 行 = 无数据（提升链路还没产出），不是「0 分」：不计分，只留一条提示
+    # （是否真的坏了由 scheduler 单位看「提升任务 last_run」判断，不在这里重复推断）
+    if not rows:
+        return {"status": "never",
+                "summary": "长期记忆 0 行（尚未产出）· 无数据，不计分",
+                "metrics": {"long_term": 0, "user_profile": profile or 0, "no_data": True},
+                "issues": ["长期记忆 0 行：短期→长期提升链路暂无产出（无数据，不计分）"],
+                "last_activity": _mtime(_p("data/memory/long_term.db"))}
+    return {"status": "ok",
             "summary": "长期记忆 %d 行 · 用户画像 %d 行" % (rows, profile or 0),
             "metrics": {"long_term": rows, "user_profile": profile or 0},
-            "issues": issues, "last_activity": _mtime(_p("data/memory/long_term.db"))}
+            "issues": [], "last_activity": _mtime(_p("data/memory/long_term.db"))}
 
 
 def probe_memory_reflection() -> Dict[str, Any]:

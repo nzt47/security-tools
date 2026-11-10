@@ -40,10 +40,15 @@ def register_routes(app, state=None):
             raw = (request.args.get("family") or "").strip()
             families = [f.strip() for f in raw.split(",") if f.strip()] or None
             payload = unit_monitor.collect(refresh=refresh, families=families)
+            detail = unit_monitor.score_detail(payload["units"])
             return jsonify({
                 "ok": True,
                 **payload,
-                "health_score": unit_monitor.health_score(payload["units"]),
+                # 无数据单位（never）不进分母：score 可能是 None，页面显示「无数据」
+                "health_score": detail["score"],
+                "scored_units": detail["scored"],
+                "no_data_units": detail["no_data"],
+                "health_score_note": "无数据（从未产生数据）的单位不计分：不进分子也不进分母",
             })
         except Exception as exc:  # noqa: BLE001
             logger.warning("[units] 采集失败: %s", exc)

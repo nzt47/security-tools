@@ -161,9 +161,32 @@ def _summarize(units: List[Dict[str, Any]]) -> Dict[str, int]:
     return out
 
 
-def health_score(units: List[Dict[str, Any]]) -> float:
-    """粗略健康分（0–100）：ok=1 / warn=0.6 / never=0.4 / off=0 / error=0。"""
-    if not units:
-        return 0.0
-    weight = {"ok": 1.0, "warn": 0.6, "never": 0.4, "off": 0.0, "error": 0.0}
-    return round(100.0 * sum(weight.get(u["status"], 0.0) for u in units) / len(units), 1)
+#: 计分权重（**不含 never**：无数据折算成分数就是「把没数据当 0 或当满分」，L5 口径禁止）。
+SCORE_WEIGHTS = {"ok": 1.0, "warn": 0.6, "off": 0.0, "error": 0.0}
+
+#: 无数据状态：不进分子也不进分母，单列出来让页面自己说「无数据」。
+NO_DATA_STATUSES = ("never",)
+
+
+def score_detail(units: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """健康分明细：只对**有数据**的单位取加权平均。
+
+    【口径（2026-11-10，L5）】`never` = 从来没产生过数据（工作流 0 条、长期记忆 0 行…）。
+    这种单位既不该算 0 分（像故障），也不该算满分（像正常）—— **不进分母**，
+    并在返回里单列 `no_data`，页面据此显示「无数据（不计分）」。
+
+    Returns: {"score": float|None, "scored": int, "no_data": int}；
+    可计分单位数为 0 时 score=None（页面显示无数据，而不是 0 分）。
+    """
+    scored = [u for u in units if u.get("status") not in NO_DATA_STATUSES]
+    no_data = len(units) - len(scored)
+    if not scored:
+        return {"score": None, "scored": 0, "no_data": no_data}
+    total = sum(SCORE_WEIGHTS.get(str(u.get("status")), 0.0) for u in scored)
+    return {"score": round(100.0 * total / len(scored), 1),
+            "scored": len(scored), "no_data": no_data}
+
+
+def health_score(units: List[Dict[str, Any]]) -> Optional[float]:
+    """健康分（0–100）：ok=1 / warn=0.6 / off=0 / error=0；**never 不计分**（见 score_detail）。"""
+    return score_detail(units)["score"]
