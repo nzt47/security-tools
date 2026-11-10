@@ -1142,7 +1142,7 @@ flowchart LR
     agent_health_probes -.-> agent_logging_utils
     agent_health_probes -.-> agent_monitoring_metrics
     agent_health_probes -.-> agent_monitoring_prometheus
-    agent_health_probes -.-> agent_monitoring_metrics
+    agent_health_probes -.-> agent_monitoring_prometheus
     agent_health_probes -.-> agent_feedback
     agent_health_probes -.-> agent_circuit_breaker
     agent_human_in_the_loop --> agent_human_in_the_loop_takeover_queue
