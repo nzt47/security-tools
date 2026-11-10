@@ -176,6 +176,11 @@ DOMAINS: List[Domain] = [
                    type="module", status_source="api:/api/context/status",
                    actions=["compress_context"],
                    description="三层记忆组装旁路注入，异常静默降级"),
+        # 【2026-11-11】补「记忆压缩/摘要」：单位看板有读数，系统监控此前看不到这一面。
+        ModuleNode("memory.compress", "记忆压缩/摘要", "memory/storage.py",
+                   type="service", status_source="api:/api/memory/overview",
+                   metrics=["summary_version", "message_count"],
+                   description="摘要版本与消息总量（压缩产物；不删消息，只写摘要）"),
         ModuleNode("knowledge.base", "知识库", "agent/knowledge/",
                    type="service", status_source="api:/api/knowledge/*",
                    description="知识卡片、向量索引、语义搜索、工作流"),
@@ -203,6 +208,10 @@ DOMAINS: List[Domain] = [
                    type="service", status_source="api:/api/skills",
                    actions=["toggle_skill"],
                    description="技能加载/启停/参数"),
+        # 【2026-11-11】补「技能使用台账」：命中/加载/执行与工具调用都在这里，系统监控此前看不到。
+        ModuleNode("action.usage", "技能使用台账", "agent/skills_mgmt/usage_log.py",
+                   type="module", status_source="api:/api/skills-mgmt/usage/stats",
+                   description="近 7 日命中/加载/执行与工具调用计数（按来源分列）"),
         ModuleNode("action.extensions", "扩展系统", "agent/extensions/",
                    type="service", status_source="api:/api/extensions/list",
                    actions=["toggle_extension"],
@@ -263,6 +272,10 @@ DOMAINS: List[Domain] = [
                    type="service", status_source="api:/logs/api/stats",
                    metrics=["log_count"],
                    description="多维度采集、分析、内省、Web 看板"),
+        # 【2026-11-11】补「审计链」：交接卡自检的 0 断点就来自它，但系统监控此前看不到。
+        ModuleNode("ops.audit", "审计链", "agent/audit/chain.py",
+                   type="service", status_source="api:/api/audit/logs",
+                   description="链式审计台账（UI 与 Agent 同表；断点/验签看交接卡自检）"),
         ModuleNode("ops.safety", "安全守护", "agent/safety_guard.py",
                    type="service", status_source="api:/api/safety/alerts",
                    actions=["add_keyword"],

@@ -212,6 +212,9 @@ CLIENT_STATUS_SOURCES: Dict[str, str] = {
     "/api/permission/status": "/api/permission/status",
     "/api/tools/health": "/api/tools/health",
     "/api/skills": "/api/skills",
+    # 【2026-11-11】技能使用台账与审计链（系统监控补的 3 个节点用）：实测带 X-API-Token 均 200
+    "/api/skills-mgmt/usage/stats": "/api/skills-mgmt/usage/stats",
+    "/api/audit/logs": "/api/audit/logs?limit=1",
     "/api/extensions/list": "/api/extensions/list",
     "/api/process/list": "/api/process/list",
     "/api/llm/instances": "/api/llm/instances",
