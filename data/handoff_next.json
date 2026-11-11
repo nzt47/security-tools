@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-12T01:10:32+08:00",
+  "updated_at": "2026-11-12T02:05:00+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
     {
@@ -536,19 +536,35 @@
     },
     {
       "id": "sensor-learning-watch-dirs",
-      "status": "open",
+      "status": "done",
       "priority": "P2",
       "title": "给感知侧学习配 watch_dirs（Owner 2026-11-12 指定）",
       "criteria": "感知侧学习已开启（config learning.sensor_learning.enabled=true），但 sensor.watch_dirs 为空 ⇒ FileWatcher 未启动；且真正产生变化的 ChangeDetector.collect() 在本部署没有周期调用方（只在 sensor_server.py / sensor/main.py / 测试里被调），实测 novelty_memory.jsonl 里 5 条全是 behavior_drift，hardware_change / process_change / file_change 各 0 条 ⇒ 感知侧学习目前「开了但近乎空转」。",
-      "next": "① 先查证 config.yaml 的 sensor.watch_dirs 是否真被读到：lifecycle_manager 用 self._config.get(\"sensor\", {})，而 Config 默认 watch_dirs=None 且**不读 config.yaml**（老坑）。读不到就走 env/Config 覆盖或改 lifecycle 读取路径（改代码必须同步 agent/settings/registry.py）。\n② 监听目录别包含 data/learning（否则草稿写入又触发事件 = 自激）；建议外部输入面（data/inbox、knowledge/、~/.Yunshu/inbox），具体与 Owner 对一眼。\n③ 验收：启动日志有 [BodySensor] 正在初始化 FileWatcher，监听目录: …；在监听目录建/改文件 ⇒ novelty_memory.jsonl 出现 event_type=file_change；filewatch 传感器有读数；无自激。\n④ 可选（需 Owner 点头）：把 ChangeDetector.collect() 挂成 interval 任务，否则只有文件监听也不够（硬件/进程变化没有 diff 触发）。"
+      "next": "2026-11-12 落地（提交 82e292c98，部署 4c4514e6f，已验证）：\n① 查证结论：`Config` 确不读 config.yaml（DEFAULT→env→overrides），而 lifecycle 从 Config 取 watch_dirs、默认恒 None ⇒ 该键此前是死键。\n② 新增 `agent/sensor_config.py`（叶子模块）：env `SENSOR_WATCH_DIRS` > Config overrides > `config.yaml: sensor.watch_dirs` > 默认（knowledge、data/inbox）；相对路径按仓库根展开、大小写不敏感去重、**强制剔除 data/learning**（监听学习产物=自激）与仓库根。config.yaml 新增 sensor 段（头部接线说明同步）、.env.example 补 3 行、registry 登记 SENSOR_WATCH_DIRS(config_path=sensor.watch_dirs, needs_restart=True)。\n③ 原「可选」项也做了（Owner「该做的一次性全做」授权）：新增 `agent/learning/perception_cycle.py` —— 每 5 min drain FileWatcher 缓冲区并聚合成**一条** file_change（0.30 低置信→只写记忆，复用既有 make_learning_hook），每 30 min 跑一次 `ChangeDetector.collect()`（WMI 重活，避免进程增减噪音），每轮落 `data/learning/perception_status.json`（最后 tick/最后文件事件/监听目录/watcher 状态）。BodySensor 新增 `ensure_passive_sensors()`（只初始化 ChangeDetector+FileWatcher，不启动 EventMonitor）。\n④ 现场验收（01:54:34 第二轮 tick）：启动日志 `[BodySensor] 正在初始化 FileWatcher，监听目录: [...knowledge, ...data/inbox]`；往 data/inbox 建/改文件后 `novelty_memory.jsonl` 出现 `event_type=file_change / confidence=0.3 / level=low / \"文件变更 2 项（新增 1 / 修改 1）\"`；`coverage.perception.watcher_running=true` 且 last_file_event_at 同步；`perception_status.json` ticks 递增、change_detect_ran 按 30 min 节流（第二轮为 false）。\n⑤ 无自激：watch_dirs 不含 data/learning；file_events_total 只随投递文件增长（2 条 = created+modified），学习产物写入不产生事件。\n⑥ 回滚：`SENSOR_WATCH_DIRS` 空 + config.yaml `sensor.watch_dirs: []` ⇒ 走默认；`SENSOR_PERCEPTION_ENABLED=false` ⇒ 重启后不再注册周期任务。\n⑦ 已知代价：首轮快照 diff 实测约 29s（WMI 设备+服务+进程全量枚举，本机空闲内存仅 ~5GB），30 min 一次；若观察到拖慢心跳见新条目 `perception-snapshot-cost`。"
     },
     {
       "id": "domain-perception-monitoring-audit",
-      "status": "open",
+      "status": "done",
       "priority": "P2",
       "title": "复核「全域感知 / 全域监控」并给出自动化清单（Owner 2026-11-12 指定）",
       "criteria": "Owner 问：现在真的能做到全域感知、全域监控了吗？开发出新功能也能自动被感知和监控吗？§11.94 C 节已考证结论：① 感知面做不到 —— 18 个传感器 enabled 但无周期采集/无 diff 触发，FileWatcher 未启，感知侧学习只有漂移事件；② 监控面不全域 —— 健康五层/单位看板 12/拓扑 38/审计/调度有读数，但规则 16 条只 6 可求值（up×3 需外部 Prometheus、security/hallucination/eval 缺样本），CI 事件源因 status.json 超 2h 未同步而 checked=false（实际离线），另缺外部存活/日志聚合/外发通道；③ 新功能只有拓扑能自动上图（需声明 MODULE_STATUS_SOURCE），单位看板/规则/事件源/传感器全是手写。",
-      "next": "先引用 §11.94 C 节（别重新考证），再按候选清单逐项与 Owner 确认要不要做，并至少交付：\n① 感知/监控覆盖矩阵（面 × 有无读数 × 是否自动 × 缺口原因）落成文档或端点读数；\n② 把两个静默缺口变成可见：CI 最后同步时间、感知最后事件时间（别让「过期」= 无声）；\n③ 新功能上线检查清单（拓扑声明 / 单位注册 / 规则 + 指标 / 埋点 / 传感器 / 文档派生）。\n候选自动化（按价值排序，均需 Owner 点头）：CI 同步周期化（30 分钟）→ 感知周期化（ChangeDetector 5 分钟）→ 单位看板包级自动登记 → 缺埋点报表增强 → 外部端口存活（新数据面）。"
+      "next": "2026-11-12 交付（提交 82e292c98 / 2b30194ae / 4c4514e6f，部署 4c4514e6f，已验证）：\n① 覆盖矩阵 + 新功能上线检查清单：`docs/handoff/覆盖矩阵与上线检查清单.md`（面 × 有无读数 × 是否自动 × 缺口原因；六项上线检查：拓扑声明/单位注册/规则+指标/埋点/传感器/文档派生）。\n② 两个「静默缺口」变可见：`/api/alarms/coverage` 新增 `ci`（last_sync_at / age_seconds / stale>2h / runs）与 `perception`（watch_dirs / watcher_running / last_file_event_at+age / last_change_at / last_novelty_at+age / long_silent），告警 Tab 顶部覆盖卡片新增一行（共用 formatAge，null→「—」而不是「刚刚」）。\n③ 候选自动化逐项决定（Owner 授权\"由你分析后替我确定\"）：\n   ✅ CI 同步周期化（30 min；gh 失败只记警告不抛异常，避免每 30 min 一条\"计划任务失败\"噪音）——现场 01:50:04 首次同步成功，coverage.ci.stale=false、六源 checked 全 true；\n   ✅ 感知周期化（见上条）；\n   ✅ 缺埋点报表：`coverage.rules.blocked` 已逐条给缺失指标名（16 条 6 可求值 / 10 blocked 不变），本轮补的是\"最后同步/最后事件\"两个时间读数；\n   ❌ 单位看板包级自动登记：会改健康分分母（新增单位默认 never/ok 各半）且需\"包声明自己是单位\"新协议 ⇒ 先做可见缺口，未动（单位看板仍 12 个）；\n   ❌ 外部端口存活 / 日志异常聚合：新数据面，须 Owner 明确点头（§11.89 方案 C 边界）。\n④ 现场：调度 17→19（感知周期采集 300s / CI 状态同步 1800s）；六源 checked 全 true（含 ci/units）。"
+    },
+    {
+      "id": "perception-snapshot-cost",
+      "status": "open",
+      "priority": "P3",
+      "title": "感知快照 diff 首轮耗时约 29s（WMI 全量枚举）—— 观察是否拖慢心跳/调度",
+      "criteria": "2026-11-12 部署 4c4514e6f 后首轮感知 tick 从 01:49:32 跑到 01:50:01（约 29s），耗时集中在 ChangeDetector._capture_snapshot 的 WMI 设备（Win32_PnPEntity）+ 服务（Win32_Service）+ 进程枚举；本机空闲内存仅 ~5GB 时更慢。当前节流 30 min 一次，diff 在 TaskScheduler 的 tick 线程里同步执行。",
+      "next": "① 先取证：读 logs 里「系统心跳」相邻两次 last_run 的间隔，确认有没有被推迟 >60s（心跳任务与本任务同线程）。② 若确实拖慢，改法优先级：先降频（1800→3600）→ 再把 devices/services 分片（隔轮各采其一）→ 最后才考虑把 diff 放到独立线程（注意与 alarm collector 的线程边界，别引入第三份单例）。判据：心跳 last_run 间隔离散度不增大 + novelty 事件不丢（file_change/process_change 计数连续）。"
+    },
+    {
+      "id": "full-domain-remaining-decisions",
+      "status": "open",
+      "priority": "P3",
+      "title": "全域感知/监控剩余三项需 Owner 决策（单位自动登记 / 外部端口存活 / 日志异常聚合）",
+      "criteria": "本轮按\"该做的一次性全做\"补齐了 CI 周期化、感知周期化与两个静默缺口读数；覆盖矩阵（docs/handoff/覆盖矩阵与上线检查清单.md §5）里还有三项**故意没做**：① 单位看板包级自动登记（会改健康分分母 + 需新声明协议）；② 外部端口存活（新数据面，与 §11.89 方案 C\"不引入外部服务\"边界相邻）；③ 日志异常聚合（需新的日志读源与基线口径）。",
+      "next": "逐项与 Owner 确认后再动：\n① 单位自动登记：若做，先定\"包如何声明自己是单位\"（复用 MODULE_STATUS_SOURCE 还是新 MODULE_UNIT），并接受健康分分母变化；\n② 外部端口存活：只做本机 TCP 连接探测（不引 Prometheus），up{} 类规则仍保持 no_data；\n③ 日志异常聚合：先定读哪几个日志、基线窗口与\"异常\"判据，避免变成第二个噪音源。"
     }
   ]
 }
