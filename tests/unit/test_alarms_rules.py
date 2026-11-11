@@ -126,3 +126,86 @@ class TestCoverage:
         assert cov["rules_total"] == 16
         assert 0 <= cov["rules_evaluable"] <= 16
         assert cov["rules_evaluable"] + cov["rules_blocked"] == 16
+
+class Test延迟规则排除非交互端点:
+    """2026-11-11：P99/P95 必须排除"耗时 ≠ 交互延迟"的端点（Owner 授权「分析后决定」）。
+
+    【现场依据】实测本部署：modules.topology 一次 3.2s（健康仪表盘 60s 自动刷新一直在踩）、
+    health.probe_trend 1.4s、SSE 评估流一次 10s+（histogram 记的是连接存活时长）。不排除的话，
+    "打开监控页 / 开着评估流"就必然 P99>3s —— 那不是用户请求慢，是扫描量与长连接被算进了延迟。
+
+    判据（三条互为反证）：
+      ① 慢的只有被排除的端点 ⇒ **ok**（规则不该响）；
+      ② 无排除时同样的数据 ⇒ **firing**（证明是"排除"起的作用，不是数据本身不触发）；
+      ③ 普通交互端点真的慢（约 5s）⇒ 仍然 **firing**（排除集不许把该盯的也吞掉）。
+    """
+
+    _BUCKET = "yunshu_http_request_duration_seconds_bucket"
+    _CHAT = "plugins.chat.api_chat"
+    _STREAM = "api_skills_mgmt_assess_stream"
+    _TOPO = "modules.topology"
+
+    def _snap(self, endpoint: str, counts: dict) -> dict:
+        return {key(self._BUCKET, le=le, endpoint=endpoint, method="GET", status="200"): value
+                for le, value in counts.items()}
+
+    def _store(self, *, stream_slow: bool = False, topo_slow: bool = False,
+               chat_slow: bool = False):
+        """两个采样点（100s / 400s）：交互端点 +20 次；被排除端点各来几发慢请求。
+
+        【为什么两端都要写**全量桶**】直方图的 bucket 是**累计计数器**：某个 le 的序列在窗口
+        起点缺席时，求值器会按 0 起算（把历史累计当成本轮增量），数字会虚高。现实里
+        prometheus_client 从第一次观测起就会导出所有 le，所以夹具也必须两端同形 —— 2026-11-11
+        第一版夹具漏了 le="5.0" 的起点，导致"慢请求 20 次"被算成 120 次。
+        """
+        buckets = ("0.05", "0.1", "5.0", "10.0", "+Inf")
+        chat_before = {le: 100 for le in buckets}
+        if chat_slow:
+            chat_after = {"0.05": 100, "0.1": 100, "5.0": 120, "10.0": 120, "+Inf": 120}
+        else:
+            chat_after = {le: 120 for le in buckets}
+        stream_before = {le: 0 for le in ("10.0", "+Inf")}
+        stream_after = {"10.0": 0, "+Inf": 5 if stream_slow else 0}
+        topo_before = {le: 0 for le in ("5.0", "+Inf")}
+        topo_after = {"5.0": 0, "+Inf": 4 if topo_slow else 0}
+        store = SampleStore()
+        store.record({**self._snap(self._CHAT, chat_before),
+                      **self._snap(self._STREAM, stream_before),
+                      **self._snap(self._TOPO, topo_before)}, now=100.0)
+        store.record({**self._snap(self._CHAT, chat_after),
+                      **self._snap(self._STREAM, stream_after),
+                      **self._snap(self._TOPO, topo_after)}, now=400.0)
+        return store
+
+    @staticmethod
+    def _real_rule(alert: str) -> dict:
+        return next(r for r in rule_engine.load_rules() if r["alert"] == alert)
+
+    def _eval_twice(self, rule: dict, store) -> str:
+        """跑两轮（第二轮跨过 for 时长）取最终状态 —— for 是"连续成立够久才 firing"。"""
+        rule_engine.reset_states()
+        rule_engine.evaluate_all([rule], store, now=400.0)
+        states = rule_engine.evaluate_all([rule], store, now=1001.0)
+        return states[0].state
+
+    def test_流式端点慢时_P99_不告警(self):
+        state = self._eval_twice(self._real_rule("YunshuHighLatencyP99"),
+                                 self._store(stream_slow=True))
+        assert state == "ok", "SSE 的连接时长不是响应延迟，不能把 P99 抬到告警"
+
+    def test_拓扑重建慢时_P95_不告警(self):
+        state = self._eval_twice(self._real_rule("YunshuHighLatencyP95"),
+                                 self._store(topo_slow=True))
+        assert state == "ok", "按需重扫描端点的耗时是扫描量，不能算进交互延迟"
+
+    def test_不做排除时同样的数据会_firing(self):
+        """反证：同一份数据，换成不带排除的表达式就必须 firing（否则前两条测的是"数据不触发"）。"""
+        raw = ("histogram_quantile(0.99, "
+               "sum(rate(yunshu_http_request_duration_seconds_bucket[5m])) by (le)) > 3")
+        state = self._eval_twice(_rule("NoFilter", raw), self._store(stream_slow=True))
+        assert state == "firing", "反证失败：不排除时流式端点应把 P99 抬高到阈值以上"
+
+    def test_普通交互端点慢仍然告警(self):
+        state = self._eval_twice(self._real_rule("YunshuHighLatencyP99"),
+                                 self._store(chat_slow=True))
+        assert state == "firing", "排除集不许把该盯的交互端点也吞掉"

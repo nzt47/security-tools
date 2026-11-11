@@ -91,9 +91,17 @@ groups:
       - alert: YunshuHighLatencyP99
         # 修复说明：原 yunshu:latency_p99:5m 录制规则依赖未注册的 yunshu_interaction_duration_duration_seconds
         # 改用 prometheus_flask_exporter 暴露的 yunshu_http_request_duration_seconds_bucket 直接计算
+        #
+        # 【2026-11-11 口径修正：排除"耗时≠交互延迟"的三类端点】实测（本部署）：
+        #   · 流式端点（SSE，如 api_skills_mgmt_assess_stream）：histogram 里记的是**连接存活时长**，
+        #     一次评估流 10s+ 是设计如此，算进 P99 等于"开着评估页就必然告警"；
+        #   · modules.topology：按需重建 38 节点健康（实测 3.2s/次），健康仪表盘 60s 自动刷新会一直踩；
+        #   · system_tools.api_process_list / health.probe_trend：进程枚举与五层历史聚合（1.4s+）。
+        #   这些都属"扫描量"而非"交互延迟"。排除后 P99 才回答"用户请求慢不慢"。
+        #   想单独盯这些端点，用上方的定向规则或看诊断页分位数，别塞进全局 P99。
         expr: |
           histogram_quantile(0.99,
-            sum(rate(yunshu_http_request_duration_seconds_bucket[5m])) by (le)
+            sum(rate(yunshu_http_request_duration_seconds_bucket{endpoint!~".*stream.*|modules\.topology|system_tools\.api_process_list|health\.probe_trend"}[5m])) by (le)
           ) > 3
         for: 5m
         labels:
@@ -109,9 +117,11 @@ groups:
 
       - alert: YunshuHighLatencyP95
         # 修复说明：同 YunshuHighLatencyP99，使用实际暴露的 histogram 指标
+        # 【2026-11-11 口径修正】排除口径与 P99 完全一致（流式 / 拓扑重建 / 进程枚举 / 探针历史聚合），
+        # 见 P99 上方注释；两条规则必须同一排除集，否则"P99 正常而 P95 告警"会自相矛盾。
         expr: |
           histogram_quantile(0.95,
-            sum(rate(yunshu_http_request_duration_seconds_bucket[5m])) by (le)
+            sum(rate(yunshu_http_request_duration_seconds_bucket{endpoint!~".*stream.*|modules\.topology|system_tools\.api_process_list|health\.probe_trend"}[5m])) by (le)
           ) > 5
         for: 10m
         labels:

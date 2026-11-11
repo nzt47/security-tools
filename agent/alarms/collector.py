@@ -9,6 +9,8 @@
 2. 功能单位看板（agent/monitoring/unit_monitor.py）→ `warn`/`error` 的单位报警；
    `never`（从未产生数据）**不报警**，`off`（已关闭）不报警 —— 后者可能是有意为之，
    拿它报警会把"设计如此"变成噪音（需要时由 Owner 显式调 `UNIT_ALARM_STATUSES`）。
+   **探针超时**（`UNIT_TIMEOUT_MARK`）同样不报警：那是"无法判定"，不是故障；而且这一轮
+   既不报警、也不判恢复（逐键 keep）—— 见该常量上方的现场依据。
 3. 审计链（agent/audit/chain.py）→ 尾部窗口重算不一致 = critical。
 4. 告警规则（monitoring/alerts.yml，16 条 PromQL）→ 由 `agent/alarms/rules.py` 在本进程求值：
    能算的算（5xx 比例 / P99 / 内存 / CPU …），算不了的如实标 no_data / warming / unsupported。
@@ -55,6 +57,14 @@ HEALTH_CRITICAL_SCORE = 0.5
 
 #: 单位看板里算"有问题"的状态（never/off 不报警，理由见模块 docstring）
 UNIT_ALARM_STATUSES = ("warn", "error")
+
+#: 「探针超时」的判据关键字（unit_monitor._run_probe 在 2s 未返回时的固定文案）。
+#: 【为什么不报警（2026-11-11，Owner 授权）】探针超时 = **无法判定**，不是"单位坏了"：
+#:   实测 reason/audit 两个探针常态 1.5–7.6ms，13:39:58 那次是进程被别的活占住
+#:   （两个相邻探针连续超时 ⇒ 单次 ≥4s 停顿），下一轮就自愈。把它记成 critical 会让
+#:   「报警器」变成"每重启一次/每卡一下就给 Owner 刷三条假故障"（04:51 冷启动那三条就是）。
+#:   口径与 L5 一致：**测不到 ≠ 正常，也 ≠ 故障** ⇒ 本轮既不报警、也不把旧告警判恢复。
+UNIT_TIMEOUT_MARK = "探测超时"
 
 #: 审计链尾部核验窗口（条）与最小间隔（秒）
 AUDIT_TAIL_WINDOW = 500
@@ -152,8 +162,31 @@ def health_candidates(point: Optional[dict]) -> List[dict]:
     return out
 
 
+def unit_is_timeout(unit: dict) -> bool:
+    """这个单位本轮是不是"探针超时"（= 无法判定，不是故障；见 UNIT_TIMEOUT_MARK 注释）"""
+    if str(unit.get("summary") or "").strip().startswith(UNIT_TIMEOUT_MARK):
+        return True
+    for issue in unit.get("issues") or []:
+        if str(issue).startswith(UNIT_TIMEOUT_MARK):
+            return True
+    return False
+
+
+def unit_timeout_keys(units_payload: Optional[dict]) -> List[str]:
+    """本轮"探针超时"的单位键 —— 用于 keep（既不报警，也不判恢复）。"""
+    if not units_payload:
+        return []
+    out: List[str] = []
+    for unit in units_payload.get("units") or []:
+        if not isinstance(unit, dict):
+            continue
+        if unit_is_timeout(unit):
+            out.append("unit." + str(unit.get("id") or unit.get("name") or "单位"))
+    return out
+
+
 def unit_candidates(units_payload: Optional[dict]) -> List[dict]:
-    """功能单位看板：warn / error 的单位报警（never / off 不报警）。"""
+    """功能单位看板：warn / error 的单位报警（never / off / **探针超时** 不报警）。"""
     if not units_payload:
         return []
     out: List[dict] = []
@@ -161,6 +194,8 @@ def unit_candidates(units_payload: Optional[dict]) -> List[dict]:
         status = str(unit.get("status") or "")
         if status not in UNIT_ALARM_STATUSES:
             continue
+        if unit_is_timeout(unit):
+            continue  # 无法判定：不报警（keep 语义在 collect_once 里补）
         severity = SEVERITY_CRITICAL if status == "error" else SEVERITY_WARNING
         name = str(unit.get("name") or unit.get("id") or "单位")
         issues = unit.get("issues") or []
@@ -489,6 +524,8 @@ def collect_once(store: Optional[AlarmStore] = None, *,
 
     candidates: Dict[str, dict] = {}
     checked: Dict[str, bool] = {}
+    #: 逐键 keep（比"整源 keep"更细）：目前只有「单位探针超时」用它 —— 见 UNIT_TIMEOUT_MARK
+    keep_keys: set = set()
     for name, reader in readers.items():
         try:
             payload = reader()
@@ -501,6 +538,8 @@ def collect_once(store: Optional[AlarmStore] = None, *,
             rows = health_candidates(payload)  # type: ignore[arg-type]
         elif name == "units":
             rows = unit_candidates(payload)  # type: ignore[arg-type]
+            # 探针超时的单位：本轮**保留**它已有的告警（不因为"测不到"就判恢复）
+            keep_keys.update(unit_timeout_keys(payload))  # type: ignore[arg-type]
         elif name == "rules":
             rows = rule_candidates(payload)  # type: ignore[arg-type]
         elif name == "scheduler":
@@ -514,7 +553,7 @@ def collect_once(store: Optional[AlarmStore] = None, *,
 
     # 【关键】只在"该源确实有数据"时才允许它 resolve 旧告警：
     #   数据源不可用时传空 candidates 会让旧告警被误判为恢复（伪造"已恢复"）。
-    keep = set()
+    keep = set(keep_keys)
     for name, prefix in (("health", "health."), ("units", "unit."), ("audit", "audit."),
                          ("rules", "rule."), ("scheduler", "scheduler."), ("ci", "ci.")):
         if not checked.get(name):

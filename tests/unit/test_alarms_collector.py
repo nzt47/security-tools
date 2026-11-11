@@ -224,3 +224,67 @@ class TestConfig:
         monkeypatch.setenv(collector.ENV_FLAG, "0")
         assert collector.enabled() is False
         assert collector.start_collector() is None, "关掉时不该起线程"
+
+class TestUnitProbeTimeout:
+    """探针超时 = **无法判定**，不是故障（2026-11-11，Owner 授权「分析后决定」）。
+
+    【现场依据】13:39:58 台账记了 2 条 critical（unit.runtime.audit / unit.memory.longterm，
+    detail=探测超时），60 秒后自愈；实测这两个探针常态 1.5–7.6ms —— 那一刻是进程被别的活占住
+    （两个相邻探针连续超时 ⇒ 单次 ≥4s 停顿）。04:51 冷启动那 3 条同族。判据：
+      ① 超时不产生报警（否则每次重启/卡顿都给 Owner 刷假 critical）；
+      ② 超时也不判恢复（旧告警保持 firing —— 与"数据源不可用"同一条 keep 语义）；
+      ③ 真错误（非超时）照旧报警，且仍是 critical。
+    """
+
+    _TIMEOUT_UNIT = {
+        "id": "runtime.audit", "name": "审计链", "status": "error",
+        "summary": "探测超时", "issues": ["探测超时：超过 2.0s 未返回"],
+    }
+
+    def test_探针超时不产生候选(self):
+        assert collector.unit_candidates({"units": [self._TIMEOUT_UNIT]}) == []
+        assert collector.unit_timeout_keys({"units": [self._TIMEOUT_UNIT]}) == ["unit.runtime.audit"]
+
+    def test_真错误仍然报警且是_critical(self):
+        rows = collector.unit_candidates({"units": [{
+            "id": "tools.registry", "name": "工具登记", "status": "error",
+            "summary": "RuntimeError: boom", "issues": ["RuntimeError: boom"],
+        }]})
+        assert rows and rows[0]["severity"] == "critical"
+        assert rows[0]["key"] == "unit.tools.registry"
+
+    def test_超时保留旧告警而不判恢复(self, store):
+        # 先让这条告警处于 firing
+        collect_once(store, sources={
+            "health": lambda: {"probe_details": {}},
+            "units": lambda: {"units": [{"id": "runtime.audit", "name": "审计链",
+                                         "status": "error", "summary": "审计库不可读"}]},
+            "audit": lambda: {"ok": True},
+        })
+        assert store.list()[0]["state"] == STATE_FIRING
+
+        # 下一轮该单位**探针超时**（无法判定）：既不上报新告警，也不把它标恢复
+        stats = collect_once(store, sources={
+            "health": lambda: {"probe_details": {}},
+            "units": lambda: {"units": [self._TIMEOUT_UNIT]},
+            "audit": lambda: {"ok": True},
+        })
+        assert stats["resolved"] == 0
+        assert "unit.runtime.audit" in stats["kept"]
+        assert store.list()[0]["state"] == STATE_FIRING
+
+    def test_超时后恢复正常则照常恢复(self, store):
+        collect_once(store, sources={
+            "health": lambda: {"probe_details": {}},
+            "units": lambda: {"units": [{"id": "runtime.audit", "name": "审计链",
+                                         "status": "error", "summary": "审计库不可读"}]},
+            "audit": lambda: {"ok": True},
+        })
+        stats = collect_once(store, sources={
+            "health": lambda: {"probe_details": {}},
+            "units": lambda: {"units": [{"id": "runtime.audit", "name": "审计链",
+                                         "status": "ok", "summary": "83,892 条"}]},
+            "audit": lambda: {"ok": True},
+        })
+        assert stats["resolved"] == 1
+        assert store.list()[0]["state"] == STATE_RESOLVED

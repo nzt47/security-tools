@@ -233,13 +233,19 @@ learning:
     dry_run: true
     # 生命周期迁移审计日志（JSONL：skill_id/from_status/to_status/闲置天数）
     audit_file: ./data/skill_lifecycle_audit.jsonl
-  # TASK-06：感知侧新颖性学习管道开关（安全底线，默认开启——2026-08-14 由观察模式转入正式采集）
-  # true（正式采集）：低/中置信 NoveltyEvent → 记忆（novelty_memory.jsonl），高置信 → 审计 + 建议草稿
-  # （novelty_suggestions/，仅 DRAFT，绝不注册技能——供 TASK-04 审核链消费）
-  # false（观察模式）：ChangeDetector/行为漂移全链路零学习副作用（仅既有日志）
+  # TASK-06：感知侧新颖性学习管道开关
+  # 【2026-11-11 Owner 决定：开启】此前 472490f0c（2026-08-15）在"正式采集验证完成"后把开关
+  # 退回观察模式（false），但上面的注释没跟着改，仍写着"默认开启——2026-08-14 转入正式采集"，
+  # 值与注释自相矛盾（是**陈旧注释**，不是配置写错）。本轮按 Owner 指示开启并改正注释。
+  # true（正式采集）：低/中置信 NoveltyEvent → 记忆（novelty_memory.jsonl）；
+  #   高置信 → 审计（novelty_audit.jsonl）+ 建议草稿（novelty_suggestions/，
+  #   **仅 DRAFT，绝不注册技能**——供 TASK-04 审核链消费）。
+  # false（观察模式）：ChangeDetector / 行为漂移全链路零学习副作用（仅既有日志）。
+  # 生效方式：**热**（novelty_hooks._sensor_learning_enabled() 每次事件重新取值：
+  #   env > 本文件 > 硬编码默认）；回滚 = 改回 false，或设置中心把 SENSOR_LEARNING_ENABLED 置 false。
   # 环境变量 SENSOR_LEARNING_ENABLED 覆盖此值
   sensor_learning:
-    enabled: false
+    enabled: true
     # 行为漂移判定阈值（周级基线相对偏差均值；默认 0.3）
     # 环境变量 SENSOR_LEARNING_DRIFT_THRESHOLD 覆盖此值
     drift_threshold: 0.3
