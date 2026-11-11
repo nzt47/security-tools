@@ -255,6 +255,22 @@ class LLMMonitor:
         # TASK-S2-03：UTC 成本埋点 + 模型降级事件（best-effort，绝不阻断监控主路径）
         self._emit_observability(interaction)
 
+        # 报警器埋点（2026-11-11）：`yunshu_llm_calls_total{provider,model,status}`。
+        # 【为什么在 record() 而不是各条调用链】record() 是**所有** LLM 交互的唯一收口：
+        #   chat / summarize 走 `_patched_do_*`，而本部署的对话主链路走的是
+        #   `_wrap_get_client_for_tool_calling` 的 client.create 包装（source=tool_calling）
+        #   —— 2026-11-11 实测：真实聊一轮后只有 tool_calling 记录，钩子处打点收不到。
+        #   收口在 record() 才能"每种 source 都算"，且未来新增链路自动覆盖。
+        try:
+            from agent.monitoring import alarm_metrics as _alarm_metrics
+            _alarm_metrics.record_llm_call(
+                str(interaction.provider or ""),
+                str(interaction.model or ""),
+                not bool(interaction.error),
+            )
+        except Exception:  # noqa: BLE001 埋点失败不得影响监控主链路
+            pass
+
     def _emit_observability(self, interaction: LLMInteraction) -> None:
         """把一次 LLM 交互接入 events.v1（§6.6 cost / P7.1-18 model.degraded）
 
@@ -849,18 +865,7 @@ def install_hooks():
                         _record_llm_call("chat", not error)
                     except Exception:  # noqa: BLE001 打点失败不影响主链路
                         pass
-                # 报警器埋点（2026-11-11）：`yunshu_llm_calls_total{provider,model,status}`
-                # —— alerts.yml 的 YunshuLLMCallSpike 规则就靠这一族；这里记的是**真实调用**
-                # （成功/失败都记，失败按 status=error，规则据此算错误率）。
-                try:
-                    from agent.monitoring import alarm_metrics as _alarm_metrics
-                    _alarm_metrics.record_llm_call(
-                        str(getattr(self, "provider", "") or ""),
-                        str(getattr(self, "model", "") or ""),
-                        not error,
-                    )
-                except Exception:  # noqa: BLE001 埋点失败不影响主链路
-                    pass
+
 
         def _patched_do_summarize(self, messages, max_tokens=500, system_prompt="", tools=None):
             # 【2026-11-08】tools 必须**透传**：压缩复用对话前缀时，tools 段是前缀的一部分，
@@ -898,16 +903,7 @@ def install_hooks():
                         _record_llm_call("summarize", not error)
                     except Exception:  # noqa: BLE001
                         pass
-                # 报警器埋点：压缩调用同样是一次真实 LLM 调用（口径与 chat 一致）
-                try:
-                    from agent.monitoring import alarm_metrics as _alarm_metrics
-                    _alarm_metrics.record_llm_call(
-                        str(getattr(self, "provider", "") or ""),
-                        str(getattr(self, "model", "") or ""),
-                        not error,
-                    )
-                except Exception:  # noqa: BLE001
-                    pass
+
 
         LLMService._do_chat = _patched_do_chat
         LLMService._do_summarize = _patched_do_summarize
