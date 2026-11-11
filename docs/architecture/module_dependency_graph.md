@@ -8,6 +8,9 @@ flowchart LR
         agent_alarms["agent.alarms"]
         agent_alarms_api["agent.alarms.api"]
         agent_alarms_collector["agent.alarms.collector"]
+        agent_alarms_promql["agent.alarms.promql"]
+        agent_alarms_rules["agent.alarms.rules"]:::crosslayer
+        agent_alarms_samples["agent.alarms.samples"]
         agent_alarms_store["agent.alarms.store"]
     end
     subgraph audit [audit]
@@ -764,11 +767,21 @@ flowchart LR
     agent_alarms_api --> agent_alarms_store
     agent_alarms_api -.-> agent_api_envelope
     agent_alarms_api -.-> agent_server_auth
+    agent_alarms_api --> agent_alarms
+    agent_alarms_api --> agent_alarms
     agent_alarms_api --> agent_alarms_collector
+    agent_alarms_api --> agent_alarms_collector
+    agent_alarms_api --> agent_alarms_samples
     agent_alarms_collector --> agent_alarms_store
     agent_alarms_collector -.-> agent_health_storage
     agent_alarms_collector -.-> agent_monitoring
+    agent_alarms_collector --> agent_alarms
+    agent_alarms_collector --> agent_alarms_samples
+    agent_alarms_collector --> agent_alarms_rules
     agent_alarms_collector -.-> agent_audit_chain
+    agent_alarms_promql --> agent_alarms_samples
+    agent_alarms_rules --> agent_alarms_promql
+    agent_alarms_rules --> agent_alarms_samples
     agent_api_gateway --> agent_rate_limiter
     agent_api_gateway -.-> agent_monitoring_tracing
     agent_api_gateway -.-> agent_utils_singleton_manager
@@ -2105,6 +2118,7 @@ flowchart LR
     agent_server_routes_routes_logging -.-> agent_monitoring_replay_storage
     agent_server_routes_routes_logging -.-> agent_error_reporting_config
     agent_server_routes_routes_logging -.-> agent_monitoring_alert_evaluator
+    agent_server_routes_routes_logging -.-> agent_alarms_rules
     agent_server_routes_routes_logging -.-> agent_llm_key
     agent_server_routes_routes_logging -.-> agent_monitoring_prometheus
     agent_server_routes_routes_logging -.-> agent_log_system_storage
@@ -2882,9 +2896,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 739
-- 模块节点数: 637
-- 依赖边数: 2117
-- 跨层调用数: 1341
+- 扫描文件数: 742
+- 模块节点数: 640
+- 依赖边数: 2128
+- 跨层调用数: 1342
 - 违规调用数: 0
 - 动态 import 数: 1
