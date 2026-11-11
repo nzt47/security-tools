@@ -1,19 +1,19 @@
 {
-  "generated_at": "2026-11-11T12:48:23",
+  "generated_at": "2026-11-11T18:20:22",
   "totals": {
     "routes": 509,
     "live": 509,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 450,
+    "ui": 452,
     "cli_script": 15,
     "runtime_only": 11,
-    "unreferenced": 33,
+    "unreferenced": 31,
     "live_by_category": {
-      "ui": 450,
+      "ui": 452,
       "cli_script": 15,
       "runtime_only": 11,
-      "unreferenced": 33
+      "unreferenced": 31
     },
     "by_intent": {
       "should_be_in_ui": 422,
@@ -37,7 +37,7 @@
       "记忆与知识": 39
     }
   },
-  "frontend_endpoints": 454,
+  "frontend_endpoints": 456,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -276,7 +276,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/alarms/api.py:150"
+        "agent/alarms/api.py:168"
       ],
       "description": "确认（ack）：表示\"人已知悉\"，与已读分开记（谁、何时）",
       "description_source": "handler",
@@ -302,7 +302,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/alarms/api.py:134"
+        "agent/alarms/api.py:152"
       ],
       "description": "标记一条已读",
       "description_source": "handler",
@@ -328,7 +328,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/alarms/api.py:161"
+        "agent/alarms/api.py:179"
       ],
       "description": "静默 N 分钟（默认 60；上限 24h）。不改状态、不删除，到期自动重新计入未读。",
       "description_source": "handler",
@@ -351,7 +351,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/alarms/api.py:173"
+        "agent/alarms/api.py:191"
       ],
       "description": "手动跑一轮采集（诊断/验收用；后台线程正常情况下每分钟自己跑）",
       "description_source": "handler",
@@ -367,11 +367,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/alarms/api.py:108"
@@ -424,7 +426,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/alarms/api.py:143"
+        "agent/alarms/api.py:161"
       ],
       "description": "全部标记已读",
       "description_source": "handler",
@@ -440,11 +442,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/alarms/api.py:91"
@@ -1532,7 +1536,7 @@
         "scripts/probe_prefix_cache_interaction.py"
       ],
       "where": [
-        "plugins/chat.py:2889"
+        "plugins/chat.py:2895"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
@@ -6813,7 +6817,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:2847"
+        "plugins/chat.py:2853"
       ],
       "description": "提示词实验室「真实接口」的后端代理（2026-10-14 修 404）。",
       "description_source": "handler",
@@ -7346,6 +7350,7 @@
         "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [
+        "agent/alarms/collector.py",
         "scripts/handoff_snapshot.py"
       ],
       "where": [
@@ -13053,5 +13058,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "ea402d481e70b05a"
+  "content_hash": "09308313e354d46a"
 }
