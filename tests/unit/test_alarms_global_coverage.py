@@ -128,6 +128,30 @@ class TestBusinessBridge:
         monkeypatch.setattr(bm, "get_business_metrics_collector", boom)
         assert snapshot_business_metrics() == {}
 
+    def test_技能评估与幻觉发射点能被采样环看到(self):
+        """端到端（进程内）：`emit_eval_score_metric` → 业务指标层 → 采样投影。
+
+        这两族（`yunshu_skill_hallucination_total` / `yunshu_skill_eval_score`）本来就有
+        真实写入点（技能执行后的评估回执），缺的只是"报警器能不能看见"。这里不 mock 任何
+        一层：真调发射函数，再真读采样投影 —— 看见即说明桥接生效、规则不再永远 no_data。
+        """
+        from agent.skills_mgmt.observability import emit_eval_score_metric
+
+        emit_eval_score_metric("test-alarm-skill", {
+            "task_success": True,
+            "instruction_followed": True,
+            "hallucination_detected": True,
+            "score": 0.42,
+        })
+        values = snapshot_business_metrics()
+        names = {key[0] for key in values}
+        assert "yunshu_skill_hallucination_total" in names
+        assert "yunshu_skill_eval_score" in names
+        # 规则要的是 {quantile="0.5"} 这一条（业务指标层按分位数投影导出）
+        quantile_keys = [k for k in values if k[0] == "yunshu_skill_eval_score"
+                         and dict(k[1]).get("quantile") == "0.5"]
+        assert quantile_keys, "缺少 quantile=0.5 投影 ⇒ SkillEvalScoreLow 规则取不到值"
+
     def test_采样合并注册表优先(self, monkeypatch):
         monkeypatch.setattr(samples, "snapshot_registry",
                             lambda: {_series_key("a_total", {}): 1.0})
