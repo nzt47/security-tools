@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-11T12:19:12",
+  "updated_at": "2026-11-11T12:49:33",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
     {
@@ -493,6 +493,22 @@
       "priority": "P3",
       "criteria": "failures_baseline.txt 已于 2026-09-28 收缩到 0 条（只允许收缩）⇒ 「失败基线回归」job 对**单条 flaky** 零容忍：整轮 2.5 万条里只要 1 条时序抖动就会让 master 红。2026-11-11 一夜之间实测到三处，都不是回归：① test_memory_comparison 的 refcount 首轮 ±1（已改两轮稳态比较）；② test_knowledge_watcher 等 meta 就读 log.md（已改有界轮询）；③ test_skill_registry_audit 两处漏了 _wait_records（同文件 toggle 用例早就改过）——已补。口径里本来就写着「链式审计 best-effort ⇒ 断言落链用有界轮询」，但历史上是**逐条打补丁**改的，没有机械守卫 ⇒ 下一处仍会漏。",
       "next": "2026-11-11 落地（Owner 授权：按最佳方案执行）：**不用**①AST 守卫（实测全仓 45 处「链式断言未轮询」，其中多数是同步写路径、本来就该立即断言 —— 一刀切会造 45 条误报，而误报会让门禁被无视）也**不用**②重跑机制（会掩盖真回归）；改为**治本**：审计链 append 的『先 put 再 ++_enqueue_count』顺序使 flush() 可能读到旧 target ⇒ 立即返回 ⇒ 读路径看不到刚写的记录。修法（agent/audit/chain.py::append ②）：计数与入队放进同一临界区、计数先于入队 ⇒ 任何在 append 返回后开始的 flush 都必然等到提交（read-your-writes 成立）。新增 tests/unit/test_audit_read_your_writes.py 3 条（200 次追加逐次读、8 线程×10 并发、count 与 entries 口径一致）。此前三处逐条补丁（refcount 两轮稳态 / watcher 等 log 行 / audit 两处 _wait_records）保留作为第二道防线。"
+    },
+    {
+      "id": "alarms-coverage-in-ui",
+      "title": "把报警器的「覆盖/盲区」读数接进告警 Tab（现在只有 /api/alarms/coverage 端点）",
+      "status": "open",
+      "priority": "P3",
+      "criteria": "§11.89 新增了 GET /api/alarms/coverage（事件源清单 + 规则覆盖率 + 上一轮采集统计）与 GET /api/alarms/rules（逐条规则状态）。目前只有规则运行态通过 /api/observability/alerts 进了「健康仪表盘·告警」Tab；**覆盖/盲区读数还没有 UI 入口**，只在排障时手工调端点，并在 config/route_unreferenced_triage.json 登记为 keep-ops。",
+      "next": "在「告警」Tab 顶部加一块「监控覆盖」：事件源四行（health/units/rules/audit，各带本轮 checked）、规则覆盖率（evaluable / blocked + 逐条原因）、采样环点数；算不了的规则要能一眼看出「缺哪个指标」。接线后把 config/route_unreferenced_triage.json 里 /api/alarms/coverage 与 /api/alarms/rules 两条 keep-ops 删掉（接了 UI 就不再是 unreferenced），并在干净 worktree 重派生 reports/route_ui_coverage.json。⚠️ 前端新增端点字面量必须写进 src/api/endpoints.ts（React 侧 /api 字面量必须为 0）。"
+    },
+    {
+      "id": "alarms-global-coverage",
+      "title": "报警器要变「全域」还差三件事（补埋点 / 上 Prometheus / 调度与 CI 入源）",
+      "status": "open",
+      "priority": "P3",
+      "criteria": "Owner 2026-11-11 问「报警器是全域感知、全域监控吗？」——实测**不是**，盲区已写进 /api/alarms/coverage 与 §11.89 A：① 外部服务存活（up{job=…}）只有 Prometheus 采得到；② LLM 调用量 / 工具失败率 / 安全拦截 / 技能幻觉率 / 技能评分**本部署没有埋点**（alerts.yml 里 10 条规则因此是 no_data：yunshu_llm_calls_total、yunshu_tool_call_total、yunshu_security_blocks_total、yunshu_skill_hallucination_total、yunshu_skill_eval_score）；③ 计划任务失败/堆积、CI 与部署失败、日志异常聚合、报警外发通道都还没有进事件台账。",
+      "next": "三条路（可分开做，都要 Owner 点）：① **补埋点**（代码侧）：把上述 5 个指标接到真实执行点（LLM 调用/工具调用/安全拦截/幻觉判定/技能评分），补完这 10 条规则会自动从 blocked 变 evaluable；② **上 Prometheus**（部署侧）：让它 scrape 本进程 /metrics，则 up{} 类规则与外发都能用；③ **扩事件源**：把调度失败（/api/scheduler/overview 的 last_run/错误）、CI 结果、日志异常聚合各接一个 reader 进 agent/alarms/collector.py（每个 reader 须遵守「数据源不可用不报警也不判恢复」的 keep 语义）。"
     }
   ]
 }

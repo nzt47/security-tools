@@ -1,29 +1,29 @@
 {
-  "generated_at": "2026-11-11T04:02:46",
+  "generated_at": "2026-11-11T12:48:23",
   "totals": {
-    "routes": 507,
-    "live": 507,
+    "routes": 509,
+    "live": 509,
     "dead_copy": 0,
     "dead_definitions": 0,
     "ui": 450,
     "cli_script": 15,
     "runtime_only": 11,
-    "unreferenced": 31,
+    "unreferenced": 33,
     "live_by_category": {
       "ui": 450,
       "cli_script": 15,
       "runtime_only": 11,
-      "unreferenced": 31
+      "unreferenced": 33
     },
     "by_intent": {
       "should_be_in_ui": 422,
       "should_not_be_in_ui": 73,
-      "unclassified": 12
+      "unclassified": 14
     },
     "by_domain": {
       "页面入口": 7,
       "分身与主线": 20,
-      "观测与诊断": 81,
+      "观测与诊断": 83,
       "系统与配置": 46,
       "治理与审批": 42,
       "资产与文件": 19,
@@ -276,7 +276,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/alarms/api.py:107"
+        "agent/alarms/api.py:150"
       ],
       "description": "确认（ack）：表示\"人已知悉\"，与已读分开记（谁、何时）",
       "description_source": "handler",
@@ -302,7 +302,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/alarms/api.py:91"
+        "agent/alarms/api.py:134"
       ],
       "description": "标记一条已读",
       "description_source": "handler",
@@ -328,7 +328,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/alarms/api.py:118"
+        "agent/alarms/api.py:161"
       ],
       "description": "静默 N 分钟（默认 60；上限 24h）。不改状态、不删除，到期自动重新计入未读。",
       "description_source": "handler",
@@ -351,9 +351,32 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/alarms/api.py:130"
+        "agent/alarms/api.py:173"
       ],
       "description": "手动跑一轮采集（诊断/验收用；后台线程正常情况下每分钟自己跑）",
+      "description_source": "handler",
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false,
+      "domain": "观测与诊断"
+    },
+    {
+      "path": "/api/alarms/coverage",
+      "norm": "/api/alarms/coverage",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/alarms/api.py:108"
+      ],
+      "description": "报警器覆盖读数：事件源清单 + 规则覆盖率 + 上一轮采集统计。",
       "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
@@ -401,9 +424,32 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/alarms/api.py:100"
+        "agent/alarms/api.py:143"
       ],
       "description": "全部标记已读",
+      "description_source": "handler",
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false,
+      "domain": "观测与诊断"
+    },
+    {
+      "path": "/api/alarms/rules",
+      "norm": "/api/alarms/rules",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/alarms/api.py:91"
+      ],
+      "description": "规则求值状态 + 覆盖率（哪些规则真能算、哪些因为没指标/没样本算不了）",
       "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
@@ -2522,7 +2568,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:727"
+        "agent/server_routes/routes_logging.py:759"
       ],
       "description": "获取配置状态摘要（需要认证）",
       "description_source": "handler",
@@ -2547,7 +2593,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:785"
+        "agent/server_routes/routes_logging.py:817"
       ],
       "description": "获取异常关联统计",
       "description_source": "handler",
@@ -2575,7 +2621,7 @@
         "scripts/verify_loader_degradation_startup.py"
       ],
       "where": [
-        "agent/server_routes/routes_logging.py:757"
+        "agent/server_routes/routes_logging.py:789"
       ],
       "description": "综合健康检查",
       "description_source": "handler",
@@ -2600,7 +2646,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:696"
+        "agent/server_routes/routes_logging.py:728"
       ],
       "description": "LLM 连通性自检（POST：会向 LLM 端点发起一次最小真实调用）",
       "description_source": "handler",
@@ -2625,7 +2671,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:943"
+        "agent/server_routes/routes_logging.py:975"
       ],
       "description": "获取最近日志记录（需要认证）",
       "description_source": "handler",
@@ -2650,7 +2696,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:919"
+        "agent/server_routes/routes_logging.py:951"
       ],
       "description": "获取运行时指标（需要认证）",
       "description_source": "handler",
@@ -2675,7 +2721,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:663"
+        "agent/server_routes/routes_logging.py:695"
       ],
       "description": "获取已注册工具清单",
       "description_source": "handler",
@@ -2700,7 +2746,7 @@
         "scripts/observability_post_deploy.py"
       ],
       "where": [
-        "agent/server_routes/routes_logging.py:808"
+        "agent/server_routes/routes_logging.py:840"
       ],
       "description": "获取当前追踪上下文",
       "description_source": "handler",
@@ -2723,7 +2769,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:833"
+        "agent/server_routes/routes_logging.py:865"
       ],
       "description": "从请求头提取追踪上下文",
       "description_source": "handler",
@@ -2748,7 +2794,7 @@
         "scripts/observability_post_deploy.py"
       ],
       "where": [
-        "agent/server_routes/routes_logging.py:886"
+        "agent/server_routes/routes_logging.py:918"
       ],
       "description": "生成追踪上下文请求头",
       "description_source": "handler",
@@ -5781,7 +5827,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1560"
+        "agent/server_routes/routes_logging.py:1592"
       ],
       "description": "获取可观测性端点访问日志（需要认证）",
       "description_source": "handler",
@@ -5806,7 +5852,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1605"
+        "agent/server_routes/routes_logging.py:1637"
       ],
       "description": "获取访问统计信息（需要认证）",
       "description_source": "handler",
@@ -5830,10 +5876,12 @@
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
-      "non_ui_refs": [],
+      "non_ui_refs": [
+        "agent/alarms/rules.py"
+      ],
       "where": [
-        "agent/server_routes/routes_logging.py:1270",
-        "agent/server_routes/routes_logging.py:1292"
+        "agent/server_routes/routes_logging.py:1302",
+        "agent/server_routes/routes_logging.py:1324"
       ],
       "description": "获取告警规则列表（需要认证）",
       "description_source": "handler",
@@ -5859,8 +5907,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1348",
-        "agent/server_routes/routes_logging.py:1397"
+        "agent/server_routes/routes_logging.py:1380",
+        "agent/server_routes/routes_logging.py:1429"
       ],
       "description": "更新告警规则（需要认证）",
       "description_source": "handler",
@@ -5883,7 +5931,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1421"
+        "agent/server_routes/routes_logging.py:1453"
       ],
       "description": "验证告警规则表达式（需要认证）",
       "description_source": "handler",
@@ -5909,10 +5957,10 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1092",
-        "agent/server_routes/routes_logging.py:969"
+        "agent/server_routes/routes_logging.py:1001",
+        "agent/server_routes/routes_logging.py:1124"
       ],
-      "description": "推送日志（需要认证）",
+      "description": "查询日志（需要认证）",
       "description_source": "handler",
       "intent": "should_not_be_in_ui",
       "intent_area": "可观测性",
@@ -5933,7 +5981,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1062"
+        "agent/server_routes/routes_logging.py:1094"
       ],
       "description": "获取日志标签列表（需要认证）",
       "description_source": "handler",
@@ -5956,7 +6004,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1171"
+        "agent/server_routes/routes_logging.py:1203"
       ],
       "description": "实时日志流（需要认证）",
       "description_source": "handler",
@@ -5981,7 +6029,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1138"
+        "agent/server_routes/routes_logging.py:1170"
       ],
       "description": "获取可观测性状态（需要认证）",
       "description_source": "handler",
@@ -6006,7 +6054,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1451"
+        "agent/server_routes/routes_logging.py:1483"
       ],
       "description": "获取追踪数据列表（需要认证）",
       "description_source": "handler",
@@ -6031,7 +6079,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1490"
+        "agent/server_routes/routes_logging.py:1522"
       ],
       "description": "获取追踪详情（需要认证）",
       "description_source": "handler",
@@ -12607,7 +12655,7 @@
         "agent/log_system/dashboard.py"
       ],
       "where": [
-        "agent/server_routes/routes_logging.py:1520"
+        "agent/server_routes/routes_logging.py:1552"
       ],
       "description": "可观测性仪表盘：重定向到统一工作台（2026-10-03 legacy 收敛续作）。",
       "description_source": "handler",
@@ -12918,7 +12966,7 @@
         "scripts/monitoring_longrun/gen_derived_config.py"
       ],
       "where": [
-        "agent/server_routes/routes_logging.py:1236"
+        "agent/server_routes/routes_logging.py:1268"
       ],
       "description": "Prometheus 格式指标导出",
       "description_source": "handler",
@@ -13005,5 +13053,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "e7cd3d36473217fb"
+  "content_hash": "ea402d481e70b05a"
 }

@@ -128,6 +128,14 @@
     "/api/alarms/collect": {
       "verdict": "keep-ops",
       "evidence": "运维/验收用的一次性触发：POST /api/alarms/collect（需令牌），立即跑一轮报警采集；后台线程每 60s 自己跑（agent/alarms/collector.py::start_collector），前端**不调用**它 —— 所以它在静态扫描里是 unreferenced，这是如实分类，不是漏接线。"
+    },
+    "/api/alarms/rules": {
+      "verdict": "keep-ops",
+      "evidence": "诊断读数：规则状态 + 覆盖率（哪些规则真能算、哪些因指标不存在算不了）。同一份运行态已经通过 /api/observability/alerts 的 state/evaluable/state_reason 供「健康仪表盘·告警」Tab 消费（有 UI 引用），本端点是给排障/验收直接查明细用的（agent/alarms/api.py::alarms_rules）。"
+    },
+    "/api/alarms/coverage": {
+      "verdict": "keep-ops",
+      "evidence": "诊断读数：事件源清单 + 规则缺口 + 上一轮采集统计（agent/alarms/api.py::alarms_coverage）。**尚未接进 UI** —— 计划把「看得到什么/看不到什么」这块渲染到告警 Tab（已登记 handoff_next alarms-coverage-in-ui，接线后应把本条从这里删除）。在那之前它是运维/验收用的只读端点。"
     }
   }
 }
