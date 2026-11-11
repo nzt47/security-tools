@@ -14,6 +14,10 @@
    能算的算（5xx 比例 / P99 / 内存 / CPU …），算不了的如实标 no_data / warming / unsupported。
    全链核验很贵（8 万条），这里只验尾部 `AUDIT_TAIL_WINDOW` 条且**每小时最多一次**；
    全量核验仍由 `scripts/handoff_snapshot.py` 的交接卡负责，两者不互相替代。
+5. 计划任务（2026-11-11）→ `data/task_history.jsonl` 里近 6 小时 `status=failed` 的记录
+   （读执行历史，不触发执行；同一任务多次失败合并成一条，次数与最后一条错误进 detail）。
+6. CI 结果（2026-11-11）→ `data/ci/status.json`（`scripts/sync_ci_status.py` 用 gh 同步）。
+   采集线程**不联网、不起子进程**：文件缺失或超过 2 小时未同步 ⇒ 本轮回"不可用"（不报警也不判恢复）。
 
 【纪律】
 - 单轮失败只记日志，不中断循环（与健康采集线程同族）；
@@ -22,10 +26,12 @@
 """
 from __future__ import annotations
 
+import json
 import logging
 import os
 import threading
 import time
+from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
 from agent.alarms.store import (
@@ -221,6 +227,16 @@ def read_rule_states() -> Optional[List[dict]]:
         from agent.alarms import rules
         from agent.alarms.samples import get_sample_store
         get_sample_store().record()
+        # 【keep 语义】配了外部 Prometheus 但这一轮拉不到 ⇒ 规则源本轮**整体不可用**
+        #   （返回 None ⇒ 采集层保留所有 rule.* 旧告警）。否则 `up{}` 规则会从 firing
+        #   掉成 no_data，被当成"已恢复"—— 那是伪造恢复。
+        try:
+            from agent.alarms import prometheus_source
+            if prometheus_source.configured() and prometheus_source.last_ok() is not True:
+                logger.warning("报警器：Prometheus 本轮不可用，规则源整体保留旧告警")
+                return None
+        except Exception:  # noqa: BLE001 外部源模块坏了按"未配置"处理
+            pass
         return [state.to_dict() for state in rules.evaluate_all()]
     except Exception as exc:  # noqa: BLE001 规则引擎坏掉不影响其它源
         logger.warning("报警器：规则求值失败（%s）", type(exc).__name__)
@@ -252,6 +268,163 @@ def rule_candidates(states: Optional[List[dict]]) -> List[dict]:
             annotations=dict(raw.get("labels") or {}),
         ))
     return candidates(parsed)
+
+
+#: 调度失败的回看窗口（秒）与历史条数上限
+SCHEDULER_FAILURE_WINDOW_SEC = 6 * 3600
+SCHEDULER_HISTORY_LIMIT = 200
+
+#: 计划任务失败时 detail 里最多带多少字符的错误文本（超长会污染台账，且可能带路径细节）
+SCHEDULER_ERROR_TAIL = 160
+
+
+def read_scheduler_failures() -> Optional[List[dict]]:
+    """近 6 小时**失败**的计划任务执行记录（读执行历史；不触发任何执行）。
+
+    【为什么读历史文件而不是任务字典】`TaskScheduler` 的任务 dict 只有 `last_run`，
+    失败没有落成字段；真正带 `status=failed` 与 `error` 的是 `data/task_history.jsonl`
+    （`_append_history` 每条执行都写）。读它 = 读真实执行结果，且不会为报警多跑一遍任务。
+
+    数据源不可用（文件不存在/读失败）⇒ None ⇒ 该源本轮跳过（不报警、也不判恢复）。
+    """
+    try:
+        from agent.task_scheduler import get_scheduler
+        records = get_scheduler().get_history(limit=SCHEDULER_HISTORY_LIMIT)
+    except Exception as exc:  # noqa: BLE001 调度器不可用不等于"任务都正常"
+        logger.warning("报警器：调度历史读取失败（%s）", type(exc).__name__)
+        return None
+    if not isinstance(records, list):
+        return None
+    cutoff = time.time() - SCHEDULER_FAILURE_WINDOW_SEC
+    failed: List[dict] = []
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        if str(record.get("status") or "") != "failed":
+            continue
+        if not _recent_enough(record.get("start_time"), cutoff):
+            continue
+        failed.append(record)
+    return failed
+
+
+def _recent_enough(start_time: object, cutoff_ts: float) -> bool:
+    """`start_time`（ISO 文本）是否晚于 cutoff；解析不了按"算近期"处理（宁报不吞）。"""
+    text = str(start_time or "").strip()
+    if not text:
+        return True
+    try:
+        from datetime import datetime  # noqa: PLC0415 只在本函数用
+        moment = datetime.fromisoformat(text)
+        return moment.timestamp() >= cutoff_ts
+    except Exception:  # noqa: BLE001 解析失败不当作"很久以前"
+        return True
+
+
+def scheduler_candidates(failures: Optional[List[dict]]) -> List[dict]:
+    """调度失败记录 → 报警候选（同一任务窗口内多次失败只报一条，次数进 detail）。"""
+    if not failures:
+        return []
+    grouped: Dict[str, dict] = {}
+    for record in failures:
+        name = str(record.get("name") or record.get("task_id") or "计划任务")
+        row = grouped.setdefault(name, {
+            "key": "scheduler." + name,
+            "kind": "scheduler",
+            "severity": SEVERITY_WARNING,
+            "title": "计划任务失败：" + name,
+            "detail": "",
+            "subject": str(record.get("task_id") or name),
+            "source": "/api/scheduler/overview",
+            "_count": 0,
+            "_last_error": "",
+            "_type": str(record.get("type") or ""),
+        })
+        row["_count"] += 1
+        row["_last_error"] = str(record.get("error") or "")[:SCHEDULER_ERROR_TAIL]
+    out: List[dict] = []
+    for row in grouped.values():
+        count = int(row.pop("_count", 0))
+        error = str(row.pop("_last_error", ""))
+        task_type = str(row.pop("_type", ""))
+        bits = [str(SCHEDULER_FAILURE_WINDOW_SEC // 3600) + " 小时内失败 " + str(count) + " 次"]
+        if task_type:
+            bits.append(task_type)
+        if error:
+            bits.append(error)
+        row["detail"] = "；".join(bits)
+        out.append(row)
+    return out
+
+
+#: CI 状态文件（由 `scripts/sync_ci_status.py` 用 gh 同步；报警器只读文件、不联网）
+CI_STATUS_FILE = Path(__file__).resolve().parents[2] / "data" / "ci" / "status.json"
+
+#: CI 状态的最大陈旧时长（秒）：超过就按"数据源不可用"处理（不拿旧结论冒充当前）
+CI_MAX_AGE_SEC = 2 * 3600
+
+#: 算"失败"的结论（cancelled 不算：取消可能是人工/并发覆盖，不是失败）
+CI_FAILED_CONCLUSIONS = ("failure", "timed_out", "startup_failure")
+
+
+def read_ci_status() -> Optional[dict]:
+    """读 CI 最近一次同步结果（文件由 `scripts/sync_ci_status.py` 写出）。
+
+    【为什么读文件、不在采集线程里跑 gh】采集线程每 60s 一轮，子进程 + 网络会让
+    "报警器"变成新的不稳定源；gh 的调用放在显式同步脚本里（可人工跑、可挂调度任务），
+    本函数只读结果。文件缺失 = 没同步过 ⇒ None（该源本轮跳过，不报警也不判恢复）。
+    """
+    try:
+        raw = json.loads(CI_STATUS_FILE.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return None
+    except Exception as exc:  # noqa: BLE001 文件坏了按不可用处理
+        logger.warning("报警器：CI 状态读取失败（%s）", type(exc).__name__)
+        return None
+    if not isinstance(raw, dict):
+        return None
+    synced_at = str(raw.get("synced_at") or "")
+    if not _recent_enough(synced_at, time.time() - CI_MAX_AGE_SEC):
+        logger.info("报警器：CI 状态已过期（synced_at=%s），本轮跳过", synced_at)
+        return None
+    return raw
+
+
+def ci_candidates(payload: Optional[dict]) -> List[dict]:
+    """CI 结果 → 报警候选（**每个工作流只报最新一次**，避免历史失败刷屏）。"""
+    if not payload:
+        return []
+    runs = payload.get("runs") or []
+    if not isinstance(runs, list):
+        return []
+    latest: Dict[str, dict] = {}
+    for run in runs:
+        if not isinstance(run, dict):
+            continue
+        name = str(run.get("workflow") or run.get("name") or "CI")
+        stamp = str(run.get("created_at") or "")
+        if name not in latest or stamp > str(latest[name].get("created_at") or ""):
+            latest[name] = run
+    out: List[dict] = []
+    for name, run in latest.items():
+        conclusion = str(run.get("conclusion") or "")
+        if conclusion not in CI_FAILED_CONCLUSIONS:
+            continue
+        out.append({
+            "key": "ci." + name,
+            "kind": "ci",
+            "severity": SEVERITY_WARNING,
+            "title": "CI 失败：" + name,
+            "detail": "；".join(b for b in (
+                conclusion,
+                str(run.get("branch") or ""),
+                str(run.get("title") or "")[:SCHEDULER_ERROR_TAIL],
+                str(run.get("url") or ""),
+            ) if b),
+            "subject": name,
+            "source": "data/ci/status.json",
+        })
+    return out
 
 
 def read_audit_verification() -> Optional[dict]:
@@ -300,6 +473,10 @@ def collect_once(store: Optional[AlarmStore] = None, *,
         "units": read_units,
         "audit": read_audit_verification,
         "rules": read_rule_states,
+        # 2026-11-11（alarms-global-coverage ③）：调度失败与 CI 结果进事件源。
+        # 两者都**只读本地状态**（执行历史文件 / gh 同步出的状态文件），采集线程不联网、不起子进程。
+        "scheduler": read_scheduler_failures,
+        "ci": read_ci_status,
     }
     if sources:
         readers.update(sources)
@@ -326,6 +503,10 @@ def collect_once(store: Optional[AlarmStore] = None, *,
             rows = unit_candidates(payload)  # type: ignore[arg-type]
         elif name == "rules":
             rows = rule_candidates(payload)  # type: ignore[arg-type]
+        elif name == "scheduler":
+            rows = scheduler_candidates(payload)  # type: ignore[arg-type]
+        elif name == "ci":
+            rows = ci_candidates(payload)  # type: ignore[arg-type]
         else:
             rows = audit_candidate(payload)  # type: ignore[arg-type]
         for row in rows:
@@ -335,7 +516,7 @@ def collect_once(store: Optional[AlarmStore] = None, *,
     #   数据源不可用时传空 candidates 会让旧告警被误判为恢复（伪造"已恢复"）。
     keep = set()
     for name, prefix in (("health", "health."), ("units", "unit."), ("audit", "audit."),
-                         ("rules", "rule.")):
+                         ("rules", "rule."), ("scheduler", "scheduler."), ("ci", "ci.")):
         if not checked.get(name):
             keep |= {k for k in _firing_keys(target) if k.startswith(prefix)}
 

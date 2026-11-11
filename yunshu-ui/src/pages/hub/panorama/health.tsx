@@ -54,6 +54,12 @@ import {
   RefreshCw, ShieldCheck, Sparkles, UserCog, Zap,
 } from 'lucide-react'
 import { getDashboardSummary, validateDashboardSummary, type DashboardSummaryData } from '@/api/dashboard'
+import {
+  getAlarmCoverage,
+  getAlarmRules,
+  type AlarmCoverage,
+  type AlarmRulesPayload,
+} from '@/api/alarms'
 import { Badge, Card, ErrorBox, Loading, PageHeader, hubGet } from '../components/ui'
 import { getEnvelope } from '@/api/envelope'
 import { downloadFile } from '../../../utils/system'
@@ -61,6 +67,8 @@ import HealthVitals from './health-vitals'
 import UnitStatus from './unit-status'
 import OpsDiagnostics from './ops-diagnostics'
 import {
+  ALARMS_COVERAGE,
+  ALARMS_RULES,
   DIAGNOSTICS_METRICS,
   HEALTH_PROBE_TREND,
   HEARTBEAT,
@@ -381,6 +389,8 @@ export function downsample<T>(rows: T[], cap = 240): T[] {
 export type SourceKey =
   | 'heartbeat' | 'heartbeatStatus' | 'heartbeatHistory' | 'probeTrend'
   | 'metrics' | 'alerts' | 'schedulerTasks' | 'schedulerHistory'
+  // 2026-11-11（alarms-coverage-in-ui）：监控覆盖 / 规则覆盖率进「告警」Tab
+  | 'alarmCoverage' | 'alarmRules'
 
 // 展示用标签**引用端点常量**，不重复写路径字面量：
 //   ① 路径只有一处真值（改后端路径时不会漏改标签）；
@@ -395,6 +405,8 @@ export const SOURCE_LABELS: Record<SourceKey, string> = {
   alerts: OBSERVABILITY_ALERTS,
   schedulerTasks: SCHEDULER_OVERVIEW,
   schedulerHistory: SCHEDULER_HISTORY,
+  alarmCoverage: ALARMS_COVERAGE,
+  alarmRules: ALARMS_RULES,
 }
 
 function errText(reason: unknown): string {
@@ -586,6 +598,127 @@ type TabKey = (typeof TABS)[number]['key']
 // ═══════════════════════════════════════════════════════════════
 //  主组件
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+//  「监控覆盖」块（2026-11-11 alarms-coverage-in-ui）
+// ═══════════════════════════════════════════════════════════════
+/** 事件源本轮是否读到数据（读到 / 本轮不可用 / 冷启动跳过 / 未知）
+ *
+ * 【为什么不能只显示"有 6 个源"】"有源"不等于"这一轮读到了"。采集层对不可用的源
+ * 采取 keep 语义（既不报警、也不判恢复）—— 页面上必须看得见哪一格是空的，否则
+ * 会把"没在监控"读成"一切正常"（与 L5 同口径）。
+ */
+function sourceState(srcId: string, coverage?: AlarmCoverage):
+  { label: string; color: 'green' | 'red' | 'amber' | 'slate' } {
+  const last = coverage?.last_collect
+  if (!last) return { label: '未知（还没采集过）', color: 'slate' }
+  const checked = last.checked ?? {}
+  if (!(srcId in checked)) {
+    return last.warmup && srcId === 'units'
+      ? { label: '冷启动跳过', color: 'slate' }
+      : { label: '本轮未采', color: 'slate' }
+  }
+  return checked[srcId]
+    ? { label: '本轮已读', color: 'green' }
+    : { label: '本轮不可用', color: 'red' }
+}
+
+/** 监控覆盖面板：事件源逐条状态 + 规则可求值性 + 采样环点数 + 外部 Prometheus */
+export function AlarmCoverageBlock({
+  coverage, rules, error,
+}: {
+  coverage?: AlarmCoverage
+  rules?: AlarmRulesPayload
+  error?: string
+}) {
+  const cov = coverage?.rules ?? rules?.coverage
+  const blocked = cov?.blocked ?? []
+  const samples = rules?.samples ?? null
+  const prom = coverage?.prometheus
+  if (error && !coverage && !rules) {
+    return (
+      <Card title="监控覆盖（数据源 /api/alarms/coverage · /api/alarms/rules）">
+        <InlineError text={error} />
+      </Card>
+    )
+  }
+  const stateCounts = cov
+    ? Object.entries(cov.by_state ?? {})
+      .map(([k, v]) => (ALERT_STATE_LABEL[k] ?? k) + ' ' + String(v))
+      .join(' / ')
+    : ''
+  return (
+    <Card
+      title="监控覆盖（它到底看得到什么）"
+      actions={
+        <span className="text-[11px] text-slate-500">
+          {cov ? String(cov.rules_total) + ' 条规则' : MISSING}
+        </span>
+      }
+      className="mb-3"
+    >
+      <div data-testid="alarm-coverage" className="space-y-3">
+        {/* 汇总行写成**单个文本节点**（不是拆成多段表达式）：一是读屏/断言不会被切碎，
+            二是这行是"16 条规则里到底几条真的在算"的唯一读数，不该藏在卡片标题区。 */}
+        <div data-testid="alarm-coverage-summary" className="text-xs text-slate-300">
+          {'规则可求值 ' + (cov ? cov.rules_evaluable + '/' + cov.rules_total : MISSING)
+            + ' · 算不了 ' + (cov ? String(cov.rules_blocked) : MISSING)}
+        </div>
+        <div className="grid gap-2 md:grid-cols-2">
+          {(coverage?.sources ?? []).map((s) => {
+            const st = sourceState(s.id, coverage)
+            return (
+              <div key={s.id} className="rounded-lg border border-slate-800 px-3 py-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm text-slate-200">{s.name}</span>
+                  <Badge color={st.color}>{st.label}</Badge>
+                </div>
+                <div className="mt-1 text-[11px] text-slate-500">{s.detail}</div>
+              </div>
+            )
+          })}
+          {!coverage && <div className="text-xs text-slate-500">事件源清单取不到（{MISSING}）</div>}
+        </div>
+
+        <div className="text-[11px] text-slate-500">
+          采样环：{samples == null ? MISSING : String(samples) + ' 个点'}
+          {' （'}窗口类规则 rate / increase / 分位数需要 ≥2 个点；
+          {samples != null && samples < 2 ? '当前不足，规则会报「样本不足」' : '当前够用'}
+          {stateCounts ? ' · 状态分布：' + stateCounts : ''}
+          {'）'}
+        </div>
+
+        {blocked.length > 0 && (
+          <div data-testid="alarm-coverage-blocked"
+            className="rounded-lg border border-amber-900/40 bg-amber-950/20 px-3 py-2">
+            <div className="text-xs text-amber-300">
+              算不了的 {blocked.length} 条（缺指标 / 样本不足 / 需 Prometheus —— 不是「正常」）
+            </div>
+            <ul className="mt-1 space-y-0.5">
+              {blocked.map((b) => (
+                <li key={b.alert} className="text-[11px] text-slate-400">
+                  <span className="font-mono text-slate-300">{b.alert}</span>
+                  {' · '}{b.state_label ?? ALERT_STATE_LABEL[b.state] ?? b.state}
+                  {b.reason ? ' · ' + b.reason : ''}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div data-testid="alarm-coverage-prometheus" className="text-[11px] text-slate-500">
+          外部 Prometheus：{prom
+            ? (prom.configured
+              ? '已配置（最近一轮' + (prom.last_ok === true ? '可用' : prom.last_ok === false
+                ? '不可用 ⇒ 规则源本轮保留旧告警' : '未拉取') + '）'
+              : '未配置 ⇒ up{job=...} 类规则只能报「无数据」')
+            : MISSING}
+          {prom?.detail ? ' · ' + prom.detail : ''}
+        </div>
+      </div>
+    </Card>
+  )
+}
+
 export default function PanoramaHealth() {
   const [data, setData] = useState<Partial<Record<SourceKey, unknown>>>({})
   const [errors, setErrors] = useState<Partial<Record<SourceKey, string>>>({})
@@ -628,6 +761,12 @@ export default function PanoramaHealth() {
         },
       },
       { key: 'schedulerHistory', run: () => hubGet<SchedulerHistory>(SCHEDULER_HISTORY + '?limit=20') },
+      // 【2026-11-11】告警 Tab 顶部的「监控覆盖」：两个只读端点各管一段 ——
+      //   · /api/alarms/coverage：事件源清单 + 上一轮采集（哪个源本轮读不到）+ 可选 Prometheus
+      //   · /api/alarms/rules   ：逐条规则状态/原因 + 覆盖率 + 采样环点数
+      // 都走 alarms.ts 的裸 fetch（与铃铛同一条链路：401 只降级、不把人踢下线）。
+      { key: 'alarmCoverage', run: () => getAlarmCoverage() },
+      { key: 'alarmRules', run: () => getAlarmRules() },
     ]
     const settled = await Promise.allSettled(tasks.map((t) => t.run()))
     const next: Partial<Record<SourceKey, unknown>> = {}
@@ -671,6 +810,8 @@ export default function PanoramaHealth() {
   const alerts = data.alerts as AlertsData | undefined
   const schedulerTasks = data.schedulerTasks as SchedulerTasks | undefined
   const schedulerHistory = data.schedulerHistory as SchedulerHistory | undefined
+  const alarmCoverage = data.alarmCoverage as AlarmCoverage | undefined
+  const alarmRules = data.alarmRules as AlarmRulesPayload | undefined
 
   const points = useMemo(() => {
     const raw = Array.isArray(probeTrend?.points) ? probeTrend.points : []
@@ -1229,6 +1370,13 @@ export default function PanoramaHealth() {
           {/* ══════════ 告警 ══════════ */}
           {tab === 'alerts' && (
             <div data-testid="panel-alerts">
+              {/* 顶部「监控覆盖」：把 /api/alarms/coverage 与 /api/alarms/rules 的读数接进页面
+                  （2026-11-11）—— 之前只有端点和排障时的手工调用，使用者看不到盲区。 */}
+              <AlarmCoverageBlock
+                coverage={alarmCoverage}
+                rules={alarmRules}
+                error={errors.alarmCoverage || errors.alarmRules}
+              />
               {errors.alerts ? <InlineError text={errors.alerts} /> : alertRules.length === 0 ? (
                 <Empty text="暂无告警规则" />
               ) : (
@@ -1277,6 +1425,9 @@ export default function PanoramaHealth() {
                 状态与触发时间来自**报警器的本进程规则引擎**（agent/alarms/rules.py，解析 alerts.yml 的
                 PromQL 子集求值）与 alert_evaluator 的运行态（runtime_state={String(alerts?.runtime_state ?? false)}）；
                 算不了的规则标「无数据 / 样本不足 / 需 Prometheus」并给原因，**不写成「未触发」**。
+                监控覆盖（/api/alarms/coverage + /api/alarms/rules）见本页顶部：事件源逐条「本轮已读 / 不可用」、
+                规则可求值数与逐条原因、采样环点数、外部 Prometheus 是否配置 —— 数据源不可用的那一轮
+                既不报警也不判恢复（keep），所以「本轮不可用」必须看得见。
               </div>
             </div>
           )}

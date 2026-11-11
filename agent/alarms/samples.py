@@ -15,7 +15,9 @@
   刚重启后前 5 分钟就是这种状态，这是诚实的，不是故障。
 - `histogram_quantile`：按 bucket 上界线性插值（与 Prometheus 同法），`+Inf` 桶存在时
   若落在最后有限桶之外，返回最后一个有限上界并注明（不编具体值）。
-- 只认 **prometheus_client 默认 REGISTRY**：与应用内其它"模拟指标"表无关。
+- 采集面 = **prometheus_client 默认 REGISTRY** + **业务指标层投影**（`snapshot_business_metrics`，
+  2026-11-11 补：`yunshu_tool_call_total` / `yunshu_skill_hallucination_total` /
+  `yunshu_skill_eval_score` 三族的真实写入点在业务指标层，不在注册表里）。
 """
 from __future__ import annotations
 
@@ -69,6 +71,95 @@ def snapshot_registry() -> Dict[SeriesKey, float]:
     return out
 
 
+#: 业务指标层参与采样的族（只认 alerts.yml 真正引用的那几族，**不全量并**：
+#: 业务指标里有 40 族，全并进采样环会让每轮快照多出几千个序列，而规则只用得到这几个）。
+BUSINESS_ALERT_FAMILIES = (
+    "yunshu_tool_call_total",
+    "yunshu_skill_hallucination_total",
+    "yunshu_skill_eval_score",
+    "yunshu_skill_eval_score_sum",
+    "yunshu_skill_eval_score_count",
+)
+
+
+def _parse_exposition(text: str) -> Dict[SeriesKey, float]:
+    """把 Prometheus 文本导出解析成 {序列键: 值}（只认 `name{labels} value` 行）。
+
+    不引第三方解析器：这里需要的是"能读回自己刚导出的那几行"，不是通用兼容层；
+    解析不了的行直接跳过（宁可少一个序列，也不编一个值）。
+    """
+    import re  # noqa: PLC0415 只在本函数用
+
+    label_re = re.compile(r'([a-zA-Z_][a-zA-Z0-9_]*)="([^"]*)"')
+    out: Dict[SeriesKey, float] = {}
+    for raw in (text or "").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        try:
+            body, value_text = line.rsplit(" ", 1)
+            value = float(value_text)
+        except ValueError:
+            continue
+        if value != value or value in (float("inf"), float("-inf")):  # NaN / Inf 不入环
+            continue
+        if "{" in body and body.endswith("}"):
+            name, _, label_text = body[:-1].partition("{")
+            labels = {k: v for k, v in label_re.findall(label_text)}
+        else:
+            name, labels = body, {}
+        if name not in BUSINESS_ALERT_FAMILIES and not name.startswith("yunshu_"):
+            continue
+        out[_series_key(name, labels)] = value
+    return out
+
+
+def snapshot_business_metrics() -> Dict[SeriesKey, float]:
+    """把**业务指标层**的投影并进采样面（2026-11-11，为 `alarms-global-coverage` 的埋点缺口收口）。
+
+    【为什么是读、不是写】`yunshu_tool_call_total` / `yunshu_skill_hallucination_total` /
+    `yunshu_skill_eval_score` 三族在 `agent/monitoring/business_metrics.py` 里已有**真实写入点**
+    （工具执行点、`emit_eval_score_metric`），并通过 `/api/business/prometheus` 对外暴露；
+    但那个收集器是**自管理字典**，不在 prometheus_client 默认 REGISTRY 里 ⇒ 本进程求值
+    永远看不到它们（于是 3 条规则长期报 no_data）。这里读同一份投影（`export_prometheus()`），
+    既不复制一份数字，也不改业务指标的写入路径。
+
+    【口径】只并 `BUSINESS_ALERT_FAMILIES`（规则真正引用的族）；族不存在/导出失败 ⇒ 空字典，
+    规则照旧报 no_data（不把"没埋点"读成"正常"）。
+    """
+    try:
+        from agent.monitoring.business_metrics import (  # noqa: PLC0415 延迟 import：避免启动期环
+            get_business_metrics_collector,
+        )
+        text = get_business_metrics_collector().export_prometheus()
+    except Exception as exc:  # noqa: BLE001 业务指标层不可用 ⇒ 本族本轮缺失
+        logger.debug("采样：业务指标导出失败（%s）", type(exc).__name__)
+        return {}
+    return _parse_exposition(text)
+
+
+def snapshot_all() -> Dict[SeriesKey, float]:
+    """本轮采样 = 默认注册表 + 业务指标投影（注册表优先，同键不覆盖）。
+
+    `SampleStore.record()` 缺省走这里；只要一方有数据，规则就能求值。
+    """
+    values = snapshot_registry()
+    for key, value in snapshot_business_metrics().items():
+        values.setdefault(key, value)
+    # 外部 Prometheus（可选，`CP_PROMETHEUS_URL`）：只补 `up{}` 一类"只有它采得到"的序列。
+    # 注册表与业务指标层优先（同键不覆盖）；拉取失败由 prometheus_source 记成"本轮不可用"。
+    try:
+        from agent.alarms.prometheus_source import configured, fetch_up  # noqa: PLC0415 延迟 import：避免环
+        if configured():
+            external = fetch_up()
+            if external:
+                for key, value in external.items():
+                    values.setdefault(key, value)
+    except Exception as exc:  # noqa: BLE001 外部源坏掉不影响本地族的采样
+        logger.debug("采样：Prometheus 合并失败（%s）", type(exc).__name__)
+    return values
+
+
 def parse_range(text: str) -> Optional[float]:
     """`5m` / `1h` / `30s` → 秒；无法解析返回 None（调用方据此报"不支持的窗口"）"""
     text = (text or "").strip()
@@ -97,7 +188,7 @@ class SampleStore:
     def record(self, values: Optional[Dict[SeriesKey, float]] = None, *, now: Optional[float] = None) -> int:
         """记录一个采样点（缺省自己拍注册表）；返回点内序列数。"""
         ts = time.monotonic() if now is None else float(now)
-        snap = snapshot_registry() if values is None else values
+        snap = snapshot_all() if values is None else values
         with self._lock:
             self._samples.append((ts, dict(snap)))
             cutoff = ts - self._window

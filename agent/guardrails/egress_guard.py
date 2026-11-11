@@ -220,6 +220,14 @@ class EgressGuard:
     def block_result(cls, decision: Any, url: str = "") -> Dict[str, Any]:
         """拦截结果（与 ``HttpClient._error_result`` 同形，调用方可直接返回）"""
         evidence = getattr(decision, "evidence", {}) or {}
+        # 报警器埋点（2026-11-11）：真实出站拦截 = `yunshu_security_blocks_total{level="critical"}`。
+        # 只写**静态**标签（护栏名/等级/分类）—— 策略 id、主机、secret_kinds 属敏感/高基数信号，
+        # 进标签会让指标本身变成泄露面（口径：告警内容不含真凭据/原始 IP）。
+        try:
+            from agent.monitoring import alarm_metrics as _alarm_metrics
+            _alarm_metrics.record_security_block("guardrails.egress", "critical", "network")
+        except Exception:  # noqa: BLE001 埋点失败不得影响拦截结果
+            pass
         return {
             "ok": False,
             "status_code": None,

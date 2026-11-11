@@ -582,6 +582,13 @@ def check_url(url: Any, *, resolve: bool = True) -> SsrfVerdict:
 
 def block_result(verdict: SsrfVerdict, url: str = "") -> Dict[str, Any]:
     """拦截结果（与 `HttpClient._error_result` 同形，调用方可直接返回）"""
+    # 报警器埋点（2026-11-11）：SSRF 拦截 = `yunshu_security_blocks_total{level="critical"}`。
+    # 只写静态标签：host / category / note 不进标签（高基数且属敏感定位信息）。
+    try:
+        from agent.monitoring import alarm_metrics as _alarm_metrics
+        _alarm_metrics.record_security_block("guardrails.ssrf", "critical", "network")
+    except Exception:  # noqa: BLE001 埋点失败不得影响拦截结果
+        pass
     return {
         "ok": False,
         "status_code": None,

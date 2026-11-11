@@ -11,8 +11,10 @@
  */
 import { getApiToken } from '@/lib/apiToken'
 import {
+  ALARMS_COVERAGE,
   ALARMS_LIST,
   ALARMS_READ_ALL,
+  ALARMS_RULES,
   ALARMS_UNREAD,
   alarmAck,
   alarmRead,
@@ -123,6 +125,81 @@ export function ackAlarm(id: number, by = 'owner'): Promise<{ id: number; acked:
     method: 'POST',
     body: JSON.stringify({ by }),
   })
+}
+
+// ── 监控覆盖 / 规则覆盖率（2026-11-11，alarms-coverage-in-ui）──────────────
+//  这两条读数此前只有端点、没有 UI 入口（只能在排障时手工调），于是"到底看得到什么、
+//  看不到什么"对使用者不可见。现在接进健康仪表盘的「告警」Tab 顶部。
+//  口径：算不了的规则如实列原因（缺哪个指标 / 样本不足 / 需 Prometheus），
+//  **不写成「未触发」**——与 L5「没测到不等于正常」同一条。
+
+/** 事件源（六条） */
+export interface AlarmCoverageSource {
+  id: string
+  name: string
+  detail: string
+}
+
+export interface AlarmRuleBlocked {
+  alert: string
+  state: string
+  state_label?: string
+  reason?: string
+}
+
+export interface AlarmRulesCoverage {
+  rules_total: number
+  rules_evaluable: number
+  rules_blocked: number
+  by_state: Record<string, number>
+  blocked: AlarmRuleBlocked[]
+}
+
+export interface AlarmCoverage {
+  sources: AlarmCoverageSource[]
+  rules: AlarmRulesCoverage
+  /** 上一轮采集：各源是否真的读到了数据（false = 本轮不可用 ⇒ 该源不报警也不判恢复） */
+  last_collect?: {
+    checked?: Record<string, boolean>
+    raised?: number
+    resolved?: number
+    kept?: string[]
+    warmup?: boolean
+  }
+  /** 外部 Prometheus（可选）：未配置时为 {configured:false, ...} */
+  prometheus?: {
+    configured: boolean
+    last_ok: boolean | null
+    detail: string
+  } | null
+}
+
+export interface AlarmRuleState {
+  alert: string
+  expr?: string
+  severity?: string
+  state?: string
+  state_label?: string
+  value?: number | null
+  reason?: string
+  evaluated_at?: number
+}
+
+export interface AlarmRulesPayload {
+  rules: AlarmRuleState[]
+  coverage: AlarmRulesCoverage
+  /** 采样环点数（窗口类规则要有两个点以上才算得出来） */
+  samples?: number | null
+}
+
+/** 监控覆盖：事件源清单 + 上一轮采集统计 + 可选 Prometheus 状态 */
+export function getAlarmCoverage(): Promise<AlarmCoverage> {
+  return call<AlarmCoverage>(ALARMS_COVERAGE)
+}
+
+/** 规则求值状态：逐条 state/reason + 覆盖率 + 采样环点数 */
+export function getAlarmRules(): Promise<AlarmRulesPayload> {
+  return call<AlarmRulesPayload>(ALARMS_RULES)
 }
 
 /** 静默 N 分钟（不改状态、不删除；到期自动重新计入未读） */

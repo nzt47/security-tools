@@ -940,6 +940,15 @@ def _deny(func_name: str, reason: str) -> Dict[str, Any]:
     """
     message = "工具 %s 被集中式工具闸门拒绝: %s" % (func_name, reason)
     logger.warning("[tool_gate] %s", message)
+    # 报警器埋点（2026-11-11）：硬拒绝 = `yunshu_security_blocks_total{level="warning"}`。
+    # 【为什么是 warning 而不是 critical】这是**治理边界**（工具未登记/被停用/权限不足），
+    # 不是入侵信号；critical 留给出站与 SSRF 护栏（那才是真安全事件）。
+    # 规则标签只写静态值：func_name / reason 不进标签（后者可能带参数细节，且高基数）。
+    try:
+        from agent.monitoring import alarm_metrics as _alarm_metrics
+        _alarm_metrics.record_security_block("tool_gate.deny", "warning", "permission")
+    except Exception:  # noqa: BLE001 埋点失败不得影响拒绝结果
+        pass
     return {
         "ok": False,
         "blocked": True,

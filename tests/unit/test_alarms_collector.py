@@ -172,6 +172,9 @@ class TestWarmup:
         monkeypatch.setattr(collector, "read_audit_verification", lambda: {"ok": True})
         monkeypatch.setattr(collector, "read_units",
                             lambda: seen.__setitem__("units", seen["units"] + 1) or {"units": []})
+        # 2026-11-11：新增的调度/CI 事件源读**本机运行时文件**，判据必须与机器状态无关
+        monkeypatch.setattr(collector, "read_scheduler_failures", lambda: [])
+        monkeypatch.setattr(collector, "read_ci_status", lambda: None)
 
         stats = collect_once(store)          # sources=None ⇒ 真实采集路径
 
@@ -186,6 +189,9 @@ class TestWarmup:
         monkeypatch.setattr(collector, "read_audit_verification", lambda: {"ok": True})
         monkeypatch.setattr(collector, "read_units",
                             lambda: {"units": [{"id": "skills", "name": "技能", "status": "warn"}]})
+        # 同上：调度/CI 两个新源与"这一台机器"无关，钉成空以保持断言确定
+        monkeypatch.setattr(collector, "read_scheduler_failures", lambda: [])
+        monkeypatch.setattr(collector, "read_ci_status", lambda: None)
 
         stats = collect_once(store)
 

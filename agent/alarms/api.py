@@ -120,12 +120,30 @@ def alarms_coverage():
             {"id": "units", "name": "功能单位看板", "detail": "12 个单位，只报 warn/error（never/off 不报）"},
             {"id": "rules", "name": "告警规则（alerts.yml）", "detail": "16 条 PromQL 子集在本进程求值"},
             {"id": "audit", "name": "审计链", "detail": "尾部 500 条重算不一致 = critical（每小时最多一次）"},
+            {"id": "scheduler", "name": "计划任务",
+             "detail": "近 6 小时执行历史里 status=failed 的任务（读 data/task_history.jsonl）"},
+            {"id": "ci", "name": "CI 结果",
+             "detail": "data/ci/status.json（由 scripts/sync_ci_status.py 同步 gh 结果）；超过 2 小时未同步按不可用"},
         ]
-        return _ok({
+        coverage = {
             "sources": sources,
             "rules": rule_engine.coverage(),
             "last_collect": last_stats(),
-        })
+        }
+        # 外部 Prometheus（可选）：没配置就如实说"未配置"，配置了给最近一轮是否可用。
+        try:
+            from agent.alarms import prometheus_source
+            coverage["prometheus"] = {
+                "configured": prometheus_source.configured(),
+                "url_set": bool(prometheus_source.configured()),
+                "last_ok": prometheus_source.last_ok(),
+                "detail": ("已配置：每轮拉一次 instant up，供 up{job=...} 类规则求值"
+                           if prometheus_source.configured()
+                           else "未配置（CP_PROMETHEUS_URL 为空）：up{} 类规则只能报 no_data"),
+            }
+        except Exception:  # noqa: BLE001 外部源模块坏了不影响其余覆盖读数
+            coverage["prometheus"] = None
+        return _ok(coverage)
     except Exception as exc:  # noqa: BLE001
         logger.error("报警器覆盖读数失败: %s", type(exc).__name__)
         return jsonify({"code": 500, "message": _ERR_TEXT, "data": None}), 500

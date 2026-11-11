@@ -1561,6 +1561,12 @@ def _record_tool_usage(tool_name: str, result_text: object, latency_ms: float,
         usage_log.record_tool(str(tool_name or ""), success=success,
                               latency_ms=float(latency_ms or 0.0),
                               error_code=code, source=source)
+        # 报警器埋点（2026-11-11）：`yunshu_tool_call_total{success}` —— alerts.yml 的
+        # YunshuToolFailureRate 规则靠这一族算失败率。写在**同一个真实执行点**（台账旁边），
+        # 而不是另起一处，避免"台账记了、指标没记"两套数字。
+        from agent.monitoring import alarm_metrics as _alarm_metrics
+        _alarm_metrics.record_tool_call(str(tool_name or ""), success,
+                                        duration=float(latency_ms or 0.0) / 1000.0)
     except Exception:  # noqa: BLE001 观测失败不拖垮主链路
         pass
 

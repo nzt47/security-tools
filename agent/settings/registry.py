@@ -2988,6 +2988,17 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        " [2026-11-11；agent/alarms/collector.py::enabled]",
        owner="agent/alarms/collector.py", needs_restart=True),
 
+    # · 外部 Prometheus（可选）：只有它采得到 up{}，没有它那 5 条规则只能标 no_data
+    # 【为什么默认空】不配置 = 完全不参与（不造假 up、不假装在监控）；配了才有 up{} 求值。
+    #   每轮采集只在配了的时候查一次 instant up（3s 超时）；查不到 ⇒ 规则源本轮整体按
+    #   "不可用"处理（保留旧告警，不判恢复）。
+    _a("CP_PROMETHEUS_URL", CAT_OBSERVABILITY, "",
+       "外部 Prometheus 的 HTTP 地址（如 http://127.0.0.1:9090）；空 = 不启用。"
+       "启用后报警器每轮额外拉一次 instant up，让 up{job=...} 类规则（5 条）从 no_data 变可求值；"
+       "只拉 up，不代理其它族。拉取失败的那一轮规则源整体保留旧告警"
+       " [2026-11-11；agent/alarms/prometheus_source.py]",
+       owner="agent/alarms/prometheus_source.py"),
+
     # · F3-1 卡：前缀缓存的易变尾簇搬家（每次调用都读 ⇒ 热生效）
     _a("YUNSHU_PROMPT_VOLATILE_TAIL", CAT_ORCHESTRATION, True,
        "是否把易变尾簇从 system message 搬到请求最后一条消息（默认开 = 新顺序，把可缓存"

@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 
 import PanoramaHealth, {
+  AlarmCoverageBlock,
   MISSING, NO_PROBE_DATA, PROBE_LAYERS, SOURCE_LABELS,
   buildHistoryCsv, downsample, heartbeatStatusText, historyRows, layerMetricLine, levelOf,
   metricRows, overviewCards, probeScoreText, secondsToMs,
@@ -100,6 +101,40 @@ const ALERTS: AlertsData = {
   timestamp: 1792062295.8,
 }
 
+// ── 报警器覆盖读数（2026-11-11 实测形状：/api/alarms/coverage · /api/alarms/rules）──
+const COVERAGE = {
+  sources: [
+    { id: 'health', name: '健康五层探针', detail: 'L1/L2/L3/L4 低于阈值报警；L5 无数据不报警' },
+    { id: 'units', name: '功能单位看板', detail: '12 个单位，只报 warn/error（never/off 不报）' },
+    { id: 'rules', name: '告警规则（alerts.yml）', detail: '16 条 PromQL 子集在本进程求值' },
+    { id: 'audit', name: '审计链', detail: '尾部 500 条重算不一致 = critical（每小时最多一次）' },
+    { id: 'scheduler', name: '计划任务', detail: '近 6 小时执行历史里 status=failed 的任务' },
+    { id: 'ci', name: 'CI 结果', detail: 'data/ci/status.json；超过 2 小时未同步按不可用' },
+  ],
+  rules: {
+    rules_total: 16, rules_evaluable: 11, rules_blocked: 5,
+    by_state: { ok: 10, firing: 1, no_data: 5 },
+    blocked: [{ alert: 'YunshuSkillEvalScoreLow', state: 'no_data', state_label: '无数据（指标不存在或未自增）', reason: '无序列: yunshu_skill_eval_score' }],
+  },
+  last_collect: {
+    checked: { health: true, units: false, rules: true, audit: true, scheduler: true, ci: false },
+    raised: 1, resolved: 0, kept: [], warmup: false,
+  },
+  prometheus: { configured: false, last_ok: null, detail: '未配置（CP_PROMETHEUS_URL 为空）：up{} 类规则只能报 no_data' },
+}
+
+const RULES = {
+  rules: [{ alert: 'YunshuHighErrorRate', state: 'ok', state_label: '正常' }],
+  coverage: {
+    rules_total: 16, rules_evaluable: 11, rules_blocked: 5,
+    by_state: { ok: 10, firing: 1, no_data: 5 },
+    blocked: [{ alert: 'YunshuServiceDown', state: 'no_data', state_label: '无数据（指标不存在或未自增）', reason: '无序列: up' }],
+  },
+  samples: 42,
+}
+// 【为什么 blocked 里不用 YunshuServiceDown】告警规则表里已经有同名规则；同名两处会让
+// 既有用例的 getByText 命中多个节点（这次就撞了）。用一个规则表里没有、只在覆盖读数里出现的名字。
+
 // ── fetch 打桩 ────────────────────────────────────────────────
 const fetchMock = vi.fn()
 
@@ -124,6 +159,9 @@ function installRoutesPassThrough(url: string) {
   if (url === '/api/observability/alerts') return fakeResponse(ALERTS, false)
   if (url === '/api/scheduler/overview') return fakeResponse({ code: 200, data: { tasks: [], count: 0 }, message: '' }, false)
   if (url.startsWith('/api/scheduler/history')) return fakeResponse({ history: [{ name: '系统心跳', status: 'success', duration_ms: 0, start_time: '2026-10-15T19:04:51.832102' }] }, false)
+  // 2026-11-11：告警 Tab 顶部的「监控覆盖」两条只读端点（/api/alarms/* 走裸 fetch + 信封）
+  if (url === '/api/alarms/coverage') return fakeResponse(COVERAGE, true)
+  if (url === '/api/alarms/rules') return fakeResponse(RULES, true)
   throw new Error('unexpected url: ' + url)
 }
 
@@ -552,5 +590,68 @@ describe('L1~L5 数据来源标注与「端点未返回」说明', () => {
     expect(l5.originDetail).toContain('开发随记')
     expect(l5.originDetail).toContain('样本')
     expect(probeScoreText(null)).toBe(NO_PROBE_DATA)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════
+//  报警器「监控覆盖」接进告警 Tab（2026-11-11 alarms-coverage-in-ui）
+// ═══════════════════════════════════════════════════════════════
+describe('告警 Tab 的监控覆盖块', () => {
+  it('告警 Tab 顶部显示事件源 / 规则可求值性 / 采样环 / Prometheus 状态', async () => {
+    render(<PanoramaHealth />)
+    await screen.findByTestId('panel-overview')
+    fireEvent.click(screen.getByTestId('tab-alerts'))
+    const block = await screen.findByTestId('alarm-coverage')
+
+    // 六个事件源都列出来（含 2026-11-11 新增的计划任务与 CI）
+    for (const name of ['健康五层探针', '功能单位看板', '告警规则（alerts.yml）', '审计链', '计划任务', 'CI 结果']) {
+      expect(within(block).getByText(name)).toBeTruthy()
+    }
+    // 本轮读到的源与读不到的源必须**分别**显示（不可用 ≠ 正常）
+    expect(within(block).getAllByText('本轮已读').length).toBe(4)
+    expect(within(block).getAllByText('本轮不可用').length).toBe(2)
+
+    // 规则可求值数 / 算不了数（不是「16 条都在监控」）
+    expect(within(block).getByText(/可求值 11\/16/)).toBeTruthy()
+    expect(within(block).getByText(/算不了 5/)).toBeTruthy()
+
+    // 算不了的规则逐条给原因（缺哪个指标），不写成「未触发」
+    const blocked = await screen.findByTestId('alarm-coverage-blocked')
+    expect(within(blocked).getByText('YunshuSkillEvalScoreLow')).toBeTruthy()
+    expect(within(blocked).getByText(/无序列: yunshu_skill_eval_score/)).toBeTruthy()
+
+    // 采样环点数（窗口类规则需要 ≥2 点）
+    expect(within(block).getByText(/42 个点/)).toBeTruthy()
+
+    // 外部 Prometheus 未配置时如实说明 up{} 类规则只能报无数据
+    const prom = screen.getByTestId('alarm-coverage-prometheus')
+    expect(prom.textContent).toContain('未配置')
+    expect(prom.textContent).toContain('无数据')
+  })
+
+  it('组件级：Prometheus 已配置可用 + 无 blocked 时不渲染告警块', () => {
+    render(
+      <AlarmCoverageBlock
+        coverage={{
+          sources: [{ id: 'rules', name: '告警规则（alerts.yml）', detail: '16 条' }],
+          rules: { rules_total: 16, rules_evaluable: 16, rules_blocked: 0, by_state: { ok: 16 }, blocked: [] },
+          last_collect: { checked: { rules: true }, raised: 0, resolved: 0, kept: [], warmup: false },
+          prometheus: { configured: true, last_ok: true, detail: '已配置：每轮拉一次 instant up' },
+        }}
+        rules={{ rules: [], coverage: { rules_total: 16, rules_evaluable: 16, rules_blocked: 0, by_state: { ok: 16 }, blocked: [] }, samples: 3 }}
+      />,
+    )
+    expect(screen.getByTestId('alarm-coverage')).toBeTruthy()
+    expect(screen.queryByTestId('alarm-coverage-blocked')).toBeNull()
+    const prom = screen.getByTestId('alarm-coverage-prometheus')
+    expect(prom.textContent).toContain('已配置')
+    expect(prom.textContent).toContain('可用')
+    expect(screen.getByText(/3 个点/)).toBeTruthy()
+  })
+
+  it('组件级：两条端点都失败时上屏错误而不是显示成「一切正常」', () => {
+    render(<AlarmCoverageBlock error="HTTP 500" />)
+    expect(screen.getByText(/HTTP 500/)).toBeTruthy()
+    expect(screen.queryByTestId('alarm-coverage')).toBeNull()
   })
 })

@@ -849,6 +849,18 @@ def install_hooks():
                         _record_llm_call("chat", not error)
                     except Exception:  # noqa: BLE001 打点失败不影响主链路
                         pass
+                # 报警器埋点（2026-11-11）：`yunshu_llm_calls_total{provider,model,status}`
+                # —— alerts.yml 的 YunshuLLMCallSpike 规则就靠这一族；这里记的是**真实调用**
+                # （成功/失败都记，失败按 status=error，规则据此算错误率）。
+                try:
+                    from agent.monitoring import alarm_metrics as _alarm_metrics
+                    _alarm_metrics.record_llm_call(
+                        str(getattr(self, "provider", "") or ""),
+                        str(getattr(self, "model", "") or ""),
+                        not error,
+                    )
+                except Exception:  # noqa: BLE001 埋点失败不影响主链路
+                    pass
 
         def _patched_do_summarize(self, messages, max_tokens=500, system_prompt="", tools=None):
             # 【2026-11-08】tools 必须**透传**：压缩复用对话前缀时，tools 段是前缀的一部分，
@@ -886,6 +898,16 @@ def install_hooks():
                         _record_llm_call("summarize", not error)
                     except Exception:  # noqa: BLE001
                         pass
+                # 报警器埋点：压缩调用同样是一次真实 LLM 调用（口径与 chat 一致）
+                try:
+                    from agent.monitoring import alarm_metrics as _alarm_metrics
+                    _alarm_metrics.record_llm_call(
+                        str(getattr(self, "provider", "") or ""),
+                        str(getattr(self, "model", "") or ""),
+                        not error,
+                    )
+                except Exception:  # noqa: BLE001
+                    pass
 
         LLMService._do_chat = _patched_do_chat
         LLMService._do_summarize = _patched_do_summarize

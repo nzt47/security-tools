@@ -39,6 +39,10 @@ export const ALARMS_LIST = '/api/alarms/list';
 export const ALARMS_UNREAD = '/api/alarms/unread-count';
 /** 全部标记已读 */
 export const ALARMS_READ_ALL = '/api/alarms/read-all';
+/** 监控覆盖读数：事件源清单 + 上一轮采集统计 + 可选外部 Prometheus 状态（只读） */
+export const ALARMS_COVERAGE = '/api/alarms/coverage';
+/** 规则求值状态：逐条 state/state_reason + 覆盖率 + 采样环点数（只读） */
+export const ALARMS_RULES = '/api/alarms/rules';
 export const alarmRead = (alarmId: number) => `/api/alarms/${alarmId}/read`;
 export const alarmAck = (alarmId: number) => `/api/alarms/${alarmId}/ack`;
 export const alarmSilence = (alarmId: number) => `/api/alarms/${alarmId}/silence`;
