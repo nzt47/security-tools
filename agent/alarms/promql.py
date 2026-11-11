@@ -273,13 +273,25 @@ def _series_match(key: SeriesKey, labels: Dict[str, Tuple[str, str]]) -> bool:
 
 
 def _select(expr: Expr, snapshot: Dict[SeriesKey, float]) -> Dict[SeriesKey, float]:
+    """按名字+标签筛选。
+
+    【两个"空"必须区分开（2026-11-11 现场实测踩到）】
+    · 指标族**根本不存在** ⇒ 抛 NoData（如 up / yunshu_tool_call_total：本部署没有这些埋点）；
+    · 指标族存在、只是**这个标签子集没有样本** ⇒ 返回空 dict（如 `status=~"5.."`：从来没有 5xx）。
+      后者不是"没监控"，而是"这一子集的增量为 0" —— 调用方（sum/rate）按 0 处理，
+      否则 "`健康时不报" 会被显示成 "无数据"，让人误以为 5xx 比例没在监控。
+    """
     out = {}
+    family_present = False
     for key, value in snapshot.items():
         if key[0] != expr.name:
             continue
+        family_present = True
         if expr.labels and not _series_match(key, expr.labels):
             continue
         out[key] = value
+    if not family_present:
+        raise NoData("无序列: " + expr.name)
     return out
 
 
@@ -341,7 +353,7 @@ class Evaluator:
         if node.kind == "selector":
             series = _select(node, snapshot)
             if not series:
-                raise NoData("无序列: " + node.name)
+                raise NoData("无匹配序列: " + node.name + str(sorted(node.labels)))
             if node.range_sec is not None:
                 # 区间选择器只能在函数里用；裸用当作 unsupported
                 raise EvalError("区间选择器需在 rate/increase/resets 内使用")
@@ -391,7 +403,8 @@ class Evaluator:
             value = self._eval(inner, snapshot)
             if isinstance(value, Vector):
                 if not value:
-                    raise NoData("聚合前无序列")
+                    # 空向量 = "指标族存在、该子集无样本" ⇒ 增量为 0（不是"无数据"）
+                    return 0.0
                 values = list(value.values())
                 return sum(values) if name == "sum" else max(values)
             return value
@@ -404,7 +417,9 @@ class Evaluator:
                 raise EvalError(name + " 需要 [窗口]")
             series = _select(selector, snapshot)
             if not series:
-                raise NoData("无序列: " + selector.name)
+                if name == "resets":
+                    return 0.0
+                return Vector()      # 空子集 ⇒ 增量为 0（sum 之后是 0.0）
             if name == "resets":
                 # 本仓规则里 resets 只用于 up{job=...}（单序列）⇒ 直接给标量
                 total = 0
@@ -460,7 +475,7 @@ class Evaluator:
             raise EvalError("rate 需要 [窗口]")
         series = _select(selector, snapshot)
         if not series:
-            raise NoData("无序列: " + selector.name)
+            raise NoData("无匹配序列: " + selector.name)
         edges = self._store.window_edges(window)
         if edges is None:
             raise Warming("窗口样本不足（直方图）")

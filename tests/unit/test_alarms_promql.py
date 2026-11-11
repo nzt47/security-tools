@@ -141,6 +141,38 @@ class TestHistogramQuantile:
         assert out["status"] == STATUS_NO_DATA
 
 
+class TestEmptySubsetVersusMissingFamily:
+    """两个"空"必须区分（2026-11-11 现场：健康时 5xx 比例被显示成"无数据"）。
+
+    · 指标族存在、`status=~"5.."` 子集没有样本 ⇒ 增量 0 ⇒ **ok（0 错误率）**；
+    · 指标族根本不存在（如 yunshu_tool_call_total）⇒ **no_data**（没有埋点）。
+    """
+
+    def test_子集为空按_0_处理并判_ok(self):
+        s2 = key("yunshu_http_request_total", status="200", method="GET", endpoint="/a")
+        store = store_with([(0.0, {s2: 0.0}), (300.0, {s2: 50.0})])
+        out = evaluate_expression(
+            "sum(rate(yunshu_http_request_total{status=~\"5..\"}[5m]))"
+            " / clamp_min(sum(rate(yunshu_http_request_total[5m])), 1e-9) > 0.05", store)
+        assert out["status"] == STATUS_OK, out
+        assert out["value"] == pytest.approx(0.0)
+
+    def test_1m_增量在无_5xx_时为_0(self):
+        s2 = key("yunshu_http_request_total", status="200", method="GET", endpoint="/a")
+        store = store_with([(0.0, {s2: 0.0}), (60.0, {s2: 30.0})])
+        out = evaluate_expression(
+            'sum(increase(yunshu_http_request_total{status=~"5.."}[1m])) > 10', store)
+        assert out["status"] == STATUS_OK and out["value"] == pytest.approx(0.0)
+
+    def test_指标族不存在仍是_no_data(self):
+        s2 = key("yunshu_http_request_total", status="200")
+        store = store_with([(0.0, {s2: 0.0}), (60.0, {s2: 30.0})])
+        out = evaluate_expression(
+            'sum(increase(yunshu_tool_call_total{success="True"}[1m])) > 10', store)
+        assert out["status"] == STATUS_NO_DATA
+        assert "yunshu_tool_call_total" in out["reason"]
+
+
 class TestUnsupported:
     def test_未知函数报_unsupported(self):
         out = evaluate_expression("predict_linear(yunshu_memory_usage_percent[1h], 60) > 85")
