@@ -231,8 +231,13 @@ def test_learning_hook_memory_failure_isolated(tmp_path, monkeypatch):
     # memory_dir 指向"文件下的子路径" → mkdir 必失败 → _memory_record 兜底
     blocking = tmp_path / "blocker"
     blocking.write_text("x", encoding="utf-8")
+    # 【必须给 audit_path】高置信事件（device_added）会走 _audit_record；不给就用**默认真路径**
+    #   data/learning/novelty_audit.jsonl —— 单测会往运行期学习台账里写"设备接入: b / 设备移除: a"
+    #   这类合成记录（2026-11-11 22:5x 实测：跑一次本文件，真实台账多 2 行）。
+    #   感知侧学习开启后这是真实可见的污染（观察模式下钩子短路，所以以前没人发现）。
     hook = nh.make_learning_hook(memory_dir=str(blocking / "sub"),
-                                 draft_dir=str(tmp_path / "drafts"))
+                                 draft_dir=str(tmp_path / "drafts"),
+                                 audit_path=str(tmp_path / "audit.jsonl"))
     hook([_change("file_modified")])  # 不抛异常
 
     # 感知采集主链路（ChangeDetector.collect）在钩子异常时零影响

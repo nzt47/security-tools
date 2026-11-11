@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-11T18:57:00+08:00",
+  "updated_at": "2026-11-11T22:56:21+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
     {
@@ -512,27 +512,27 @@
     },
     {
       "id": "unit-probe-timeout-counted-as-critical",
-      "status": "open",
+      "status": "done",
       "priority": "P3",
       "title": "单位探针 2s 超时被记成 critical 告警（消息中心 6 条里 2 条是这种）",
       "criteria": "2026-11-11 现场：13:39:58 台账记了 2 条 critical（unit.runtime.audit 审计链 / unit.memory.longterm 长期记忆，detail=探测超时），13:40:58 自愈。实测这两个探针常态只要 1.5~7.6ms（/api/system/units?refresh=1 的 probe_ms），所以超时不是单位坏，而是那一刻进程被别的活占住（两个探针相邻、连续超时 ⇒ 单次 ≥4s 的停顿），而 unit_monitor 的 _DEFAULT_PROBE_TIMEOUT=2.0s、超时即 status=error ⇒ collector 按 error 记 critical。同族噪声：04:51 冷启动那 3 条（WARMUP_SEC=90 已覆盖冷启动，但不覆盖「运行期短暂卡顿」）。",
-      "next": "三条路（都需 Owner 点，属报警器口径变更）：① 把「探测超时」与「单位真 error」分开 —— 超时记 no_data/unknown（不进 critical，且遵守「不可用不判恢复」）；② 连续 N 轮（如 2 轮）异常才上报，单轮超时只留痕；③ 只降低超时的严重度（error→warn）并把 probe_ms 写进 detail，让人一眼看出是卡顿不是故障。倾向 ①+②：超时本质是「无法判定」，与 L5「无数据不算正常也不算故障」同一条口径。"
+      "next": "2026-11-11 落地（Owner 授权「分析后决定」）：定为**无法判定**，不是故障。\n· agent/alarms/collector.py 新增 UNIT_TIMEOUT_MARK=\"探测超时\" + unit_is_timeout()/unit_timeout_keys()；\n  unit_candidates 跳过超时单位；collect_once 把这些键加进**逐键 keep** ⇒ 既不报警、也不判恢复\n  （与「数据源不可用」同一条口径）。真错误（非超时）照旧 critical。\n· 不选「连续 N 轮才报」：超时本质是信息缺失，靠计数兜底仍会在每次启动/卡顿时制造噪音。\n· 测试 4 条：超时不产生候选 / 真错误仍 critical / 超时保留旧告警不判恢复 / 恢复后照常 resolve。"
     },
     {
       "id": "p99-rule-includes-sse-and-heavy-endpoints",
-      "status": "open",
+      "status": "done",
       "priority": "P3",
       "title": "P99 规则把 SSE 长连接与重端点都算进 HTTP 时延 ⇒ 打开监控页就必然 firing",
       "criteria": "2026-11-11 现场：rule.YunshuHighLatencyP99 从 13:00:48 一直 firing 到 15:35:11（count 77，detail 实测最高 10s）。归因（按 /metrics 的 endpoint 标签逐条核对）：>1s 的请求集中在 api_skills_mgmt_assess_stream（8 次全部 >10s，那是 SSE 长连接，本身就长）、system_tools.api_process_list（11 次全部 >1s）、modules.topology（11 次全部 >1s）、health.probe_trend（9 次全部 >1s）；真正偶发的是 /api/version（16 次里 2 次 >1s，它每次跑 git status 扫 ~900 个未跟踪文件）。⇒ 只要有人打开系统监控/进程列表/评估流，5m 窗口的 P99 就 >3s，规则必然报。",
-      "next": "三选一（需 Owner 点）：① 规则侧排除流式端点（histogram 加 endpoint 维度过滤，SSE 不计）；② 给规则加最小样本门槛（如 5m 内 ≥30 次请求才算 P99，否则 warming）；③ 给 /api/version 的 dirty 扫描加短缓存或 --untracked-files=no（它是重端点里唯一可优化的）。注意：这不影响「报警器全域」的正确性 —— 规则如实报了真实时延，问题是口径把长连接算进了延迟。"
+      "next": "2026-11-11 落地（Owner 授权「分析后决定」）：改**规则口径**而不是调阈值。\n· monitoring/alerts.yml 的 YunshuHighLatencyP99 / P95 加同一排除集：\n  endpoint!~\" .*stream.* | modules\\.topology | system_tools\\.api_process_list | health\\.probe_trend \"（无空格）。\n  理由逐条写进注释：SSE 的 histogram 是**连接存活时长**；topology 实测 3.2s/次且页 60s 自动刷新；\n  process_list / probe_trend 是进程枚举与五层历史聚合（扫描量≠交互延迟）。\n· 阈值与 for 不变；要盯这些端点用定向规则或诊断页分位数，别塞进全局 P99。\n· 测试 3 条互为反证：只有被排除端点慢 ⇒ ok；无排除时同数据 ⇒ firing；普通交互端点慢 ⇒ 仍 firing。\n  （夹具两端写全量桶 —— 直方图 bucket 是累计计数器，起点缺席会被按 0 起算而虚高。）"
     },
     {
       "id": "perception-learning-switch-off",
-      "status": "open",
+      "status": "done",
       "priority": "P3",
       "title": "「感知侧学习」拓扑显示未启用 —— 是现场开关 false，不是坏（等 Owner 决定要不要开）",
       "criteria": "2026-11-11 Owner 问「感知侧学习模块为什么没有启用」。查证：拓扑节点 learning.novelty 的 status_source 是 config:learning.sensor_learning.enabled，而 config.yaml:242 = false ⇒ 节点如实显示 disabled/未启用。这个 false 是**有意**的：472490f0c（2026-08-15）「TASK-06 开关恢复观察模式 — true→false（并行 rebase 剥离后重建）」，docs/zh/智能体学习机制重构计划/TASK-06_变更说明.md 也写「false（2026-08-15 正式采集验证后恢复观察模式）」，.env.example 同步 false。但 config.yaml:236 的注释仍写「默认开启——2026-08-14 由观察模式转入正式采集」⇒ 注释与值矛盾（陈旧注释）。开关本身是 hot 生效（novelty_hooks._sensor_learning_enabled 每次事件都读 env→config），设置中心「学习与进化」里可切，风险级 A、needs_restart=false。副作用（开=true 后）：低/中置信 NoveltyEvent → 写 data/learning/novelty_memory（JSONL）；高置信 → 审计 + 建议草稿（data/learning/novelty_suggestions/，只产 DRAFT，绝不注册技能）；行为漂移周级检测。",
-      "next": "等 Owner 拍板：① 开（设置中心切 SENSOR_LEARNING_ENABLED=true，或改 config.yaml sensor_learning.enabled: true 再重启）—— 我会同批把 config.yaml:236 的陈旧注释改成与值一致，并把「开之后第一周观察什么」写进交接；② 继续观察模式（保持 false），只修注释。附注：data/learning/novelty_audit.jsonl 里 2026-11-10 20:10 / 2026-11-11 02:38 的三条是**单测写入的合成事件**（设备 a/b），不是真实学习 —— 观察模式下运行期不会写它。"
+      "next": "2026-11-11 按 Owner 指示**开启**：config.yaml learning.sensor_learning.enabled: false → true，\n并把那段自相矛盾的注释重写（旧注释写「默认开启——2026-08-14 转入正式采集」，实际值在 472490f0c（2026-08-15）\n已退回观察模式；新注释写明谁在何时为什么改过、true/false 行为、hot 生效方式、回滚方式）。\n.env.example 同步 SENSOR_LEARNING_ENABLED=true（新环境不再落回 false）。\n现场验证（部署 eeecf66c8 后）：设置中心 SENSOR_LEARNING_ENABLED=True（source=config, effect=hot）；\n拓扑节点 learning.novelty = **healthy / 已启用**；调度任务 16 → **17**（行为漂移检测 注册上了）。\n⚠ 两点如实记录：① novelty 钩子本身是 hot（每次事件重新取值），但 behavior_drift 的周级任务在\n  **启动时** schedule() 判定开关（关就返回 disabled 不注册）⇒ 真正生效需要一次重启（本次部署已完成）；\n  ② 本部署 sensor.watch_dirs 为空 ⇒ FileWatcher 未启动，当前事件源是 ChangeDetector 的快照对比\n  （硬件/进程/目录树），不是文件监听。若要监听目录，需配 watch_dirs（另一件事，未做）。\n回滚：config 改回 false（或设置中心置 false）——钩子立即停；周级任务要重启才消失。"
     }
   ]
 }
