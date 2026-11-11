@@ -128,13 +128,26 @@ class TestBusinessBridge:
         monkeypatch.setattr(bm, "get_business_metrics_collector", boom)
         assert snapshot_business_metrics() == {}
 
-    def test_技能评估与幻觉发射点能被采样环看到(self):
+    def test_技能评估与幻觉发射点能被采样环看到(self, monkeypatch):
         """端到端（进程内）：`emit_eval_score_metric` → 业务指标层 → 采样投影。
 
         这两族（`yunshu_skill_hallucination_total` / `yunshu_skill_eval_score`）本来就有
         真实写入点（技能执行后的评估回执），缺的只是"报警器能不能看见"。这里不 mock 任何
         一层：真调发射函数，再真读采样投影 —— 看见即说明桥接生效、规则不再永远 no_data。
         """
+        from agent.skills_mgmt import observability as obs
+
+        # 【为什么要把写出侧钉到同一个收集器实例】obs 在 **import 期**缓存了
+        #   `_metrics = get_business_metrics_collector()`；同分片里若有别的用例换了/
+        #   换了可用性标记（或收集器被重置），写出侧与 `snapshot_business_metrics()`
+        #   读到的就不是一个对象 —— 2026-11-11 CI shard3 实测：集合里有几十个
+        #   yunshu_skill_* 族，唯独我们这两族没有（写进了旧实例）。
+        #   生产里本来只有一个全局单例，这里显式钉住，既复现真实关系又不依赖测试顺序。
+        import agent.monitoring.business_metrics as bm
+        collector = bm.get_business_metrics_collector()
+        monkeypatch.setattr(obs, "_metrics", collector, raising=False)
+        monkeypatch.setattr(obs, "_METRICS_AVAILABLE", True, raising=False)
+
         from agent.skills_mgmt.observability import emit_eval_score_metric
 
         emit_eval_score_metric("test-alarm-skill", {

@@ -302,7 +302,10 @@ class TestContractAndBestEffort:
         d_on.pop("id"), d_off.pop("id")
         assert d_on == d_off
         # 审计关闭时 skill.update 确实没写（反向对照，证明断言读的是真实链）
-        assert len(_records("d4-contract-a", ACTION_UPDATE)) == 1
+        # 【有界轮询】链式审计是 best-effort（见 _wait_count 注释）：CI 全量并发时
+        #   「落链慢一拍」会让立即断言读到 0 条（2026-11-11 失败基线闸实测：
+        #   AssertionError: assert 0 == 1）。判据不变：超时后仍必须恰好 1 条。
+        assert len(_wait_count(lambda: _records("d4-contract-a", ACTION_UPDATE), 1)) == 1
         assert _records("d4-contract-b", ACTION_UPDATE) == []
 
     def test_audit_failure_does_not_break_update(self, iso_svc, monkeypatch,

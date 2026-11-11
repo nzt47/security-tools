@@ -17,6 +17,24 @@ import pytest
 from agent.server_routes import routes_logging as rl
 
 
+@pytest.fixture(autouse=True)
+def _no_rule_engine_states():
+    """隔离报警器的**规则引擎**运行态（2026-11-11 CI 实测）。
+
+    `_merge_alert_runtime_state` 有**两个**运行态来源：alert_evaluator（live）与
+    报警器本进程规则引擎（`agent/alarms/rules._states`，local）。本文件测的是前者
+    「拿不到时不要编状态」，但 `_states` 是**模块级全局**：同分片里只要先跑过
+    `test_alarms_rules` 之类的用例，local 就非空 ⇒ `runtime_state` 必然是 True，
+    用例变红（2026-11-11 两轮 CI 都是这条：`assert True is False`，且它在上一轮
+    §11.89 的 master 上就已经红）。这里把规则引擎状态清空并还原，判据不变：
+    「两个来源都没有运行态时，规则表原样返回」。
+    """
+    from agent.alarms import rules as rule_engine
+    rule_engine.reset_states()
+    yield
+    rule_engine.reset_states()
+
+
 def _rules():
     return [
         {"name": "g1", "rules": [
