@@ -33,6 +33,7 @@ import logging
 import os
 import threading
 import time
+from collections import deque
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
@@ -313,20 +314,55 @@ SCHEDULER_HISTORY_LIMIT = 200
 SCHEDULER_ERROR_TAIL = 160
 
 
+def _read_task_history(limit: int) -> Optional[List[dict]]:
+    """直接读 `data/task_history.jsonl` 的尾部 N 条（**不碰调度器单例**）。
+
+    【为什么必须直接读文件（2026-11-12 修，失败基线闸实证）】原实现是
+    `get_scheduler().get_history(...)` —— `get_scheduler()` 会**在任何进程里把
+    TaskScheduler 建出来**（连注册 7 条维护作业）。这与 §11.93 修掉的
+    `unit_probes.probe_scheduler()` 是同一类伤：**读路径不得有创建副作用**。
+    现场后果：报警采集线程（被某个用例启动后未停）每 60s 读一次 ⇒ 在
+    `test_task_scheduler_singleton.py::test_heartbeat_check_does_not_initialize_singleton`
+    断言前把单例建出来 ⇒ `assert not is_initialized('task_scheduler')` 翻红。
+    历史本来就是文件（`_append_history` 逐条追加），直接读即可，不需要实例。
+
+    数据源不可用（读失败）⇒ None ⇒ 该源本轮跳过（不报警、也不判恢复）；
+    文件不存在 ⇒ 空列表（"还没有执行历史"不是"读不到"）。
+    """
+    try:
+        from agent.task_scheduler import TASK_HISTORY_FILE
+        if not TASK_HISTORY_FILE.exists():
+            return []
+        with open(TASK_HISTORY_FILE, "r", encoding="utf-8") as f:
+            # deque(maxlen) 只留尾部 N 行：历史文件可能很大，不必全量进内存
+            tail_lines = deque(f, maxlen=max(1, int(limit)))
+    except Exception as exc:  # noqa: BLE001 读失败 ≠ "任务都正常"
+        logger.warning("报警器：调度历史读取失败（%s）", type(exc).__name__)
+        return None
+    records: List[dict] = []
+    for line in tail_lines:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            records.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    records.reverse()  # 与 get_history 同序：最新在前
+    return records
+
+
 def read_scheduler_failures() -> Optional[List[dict]]:
-    """近 6 小时**失败**的计划任务执行记录（读执行历史；不触发任何执行）。
+    """近 6 小时**失败**的计划任务执行记录（读执行历史；不触发任何执行、不创建单例）。
 
     【为什么读历史文件而不是任务字典】`TaskScheduler` 的任务 dict 只有 `last_run`，
     失败没有落成字段；真正带 `status=failed` 与 `error` 的是 `data/task_history.jsonl`
     （`_append_history` 每条执行都写）。读它 = 读真实执行结果，且不会为报警多跑一遍任务。
 
-    数据源不可用（文件不存在/读失败）⇒ None ⇒ 该源本轮跳过（不报警、也不判恢复）。
+    数据源不可用（读失败）⇒ None ⇒ 该源本轮跳过（不报警、也不判恢复）。
     """
-    try:
-        from agent.task_scheduler import get_scheduler
-        records = get_scheduler().get_history(limit=SCHEDULER_HISTORY_LIMIT)
-    except Exception as exc:  # noqa: BLE001 调度器不可用不等于"任务都正常"
-        logger.warning("报警器：调度历史读取失败（%s）", type(exc).__name__)
+    records = _read_task_history(SCHEDULER_HISTORY_LIMIT)
+    if records is None:
         return None
     if not isinstance(records, list):
         return None

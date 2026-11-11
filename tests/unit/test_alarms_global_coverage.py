@@ -299,32 +299,62 @@ class TestSchedulerSource:
         assert collector.scheduler_candidates([]) == []
         assert collector.scheduler_candidates(None) == []
 
-    def test_只取窗口内失败(self, monkeypatch):
+    def test_只取窗口内失败(self, monkeypatch, tmp_path):
         recent = (datetime.now() - timedelta(minutes=5)).isoformat(timespec="seconds")
         old = (datetime.now() - timedelta(hours=10)).isoformat(timespec="seconds")
         monkeypatch.setattr(collector, "SCHEDULER_FAILURE_WINDOW_SEC", 3600)
 
-        class _Sched:
-            def get_history(self, limit=100):
-                return [
-                    {"name": "新失败", "status": "failed", "start_time": recent},
-                    {"name": "旧失败", "status": "failed", "start_time": old},
-                    {"name": "成功", "status": "success", "start_time": recent},
-                ]
-
         import agent.task_scheduler as ts
-        monkeypatch.setattr(ts, "get_scheduler", lambda: _Sched())
+        history = tmp_path / "task_history.jsonl"
+        rows = [
+            {"name": "新失败", "status": "failed", "start_time": recent},
+            {"name": "旧失败", "status": "failed", "start_time": old},
+            {"name": "成功", "status": "success", "start_time": recent},
+        ]
+        history.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
+        monkeypatch.setattr(ts, "TASK_HISTORY_FILE", history)
+
         got = collector.read_scheduler_failures()
         assert [r["name"] for r in got] == ["新失败"]
 
-    def test_调度器不可用返回_None(self, monkeypatch):
+    def test_读调度失败不创建任务调度器单例(self, monkeypatch, tmp_path):
+        """★ 读路径不得有创建副作用（2026-11-12 失败基线闸实证）
+
+        报警采集线程每 60s 读一次调度历史；若读取点调 `get_scheduler()`，就会在**任何**
+        进程里把 TaskScheduler 建出来（连注册 7 条维护作业），把同进程里
+        `test_heartbeat_check_does_not_initialize_singleton` 的断言翻成 True。
+        """
+        import agent.task_scheduler as ts
+        from agent.utils.singleton_manager import is_initialized
+
+        history = tmp_path / "task_history.jsonl"
+        history.write_text(json.dumps({
+            "name": "x", "status": "failed",
+            "start_time": datetime.now().isoformat(timespec="seconds"),
+        }) + "\n", encoding="utf-8")
+        monkeypatch.setattr(ts, "TASK_HISTORY_FILE", history)
+
+        ts.reset_scheduler()
+        try:
+            rows = collector.read_scheduler_failures()
+            assert [r["name"] for r in rows] == ["x"]
+            assert not is_initialized("task_scheduler")   # ★ 不得凭空建单例
+        finally:
+            ts.reset_scheduler()
+
+    def test_读失败返回_None(self, monkeypatch, tmp_path):
         import agent.task_scheduler as ts
 
-        def boom():
-            raise RuntimeError("scheduler down")
-
-        monkeypatch.setattr(ts, "get_scheduler", boom)
+        # 目录当文件：exists() 为真、open() 必失败 ⇒ 走"数据源不可用"分支
+        monkeypatch.setattr(ts, "TASK_HISTORY_FILE", tmp_path)
         assert collector.read_scheduler_failures() is None
+
+    def test_历史文件缺失按空列表(self, monkeypatch, tmp_path):
+        """文件不存在 ≠ 读不到：还没跑过任务时不该让调度源整源 keep。"""
+        import agent.task_scheduler as ts
+
+        monkeypatch.setattr(ts, "TASK_HISTORY_FILE", tmp_path / "absent.jsonl")
+        assert collector.read_scheduler_failures() == []
 
 
 class TestCiSource:
