@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-11T05:25:31",
+  "updated_at": "2026-11-11T12:19:12",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
     {
@@ -481,18 +481,18 @@
     {
       "id": "alarms-evaluator-wiring",
       "title": "报警器未接入告警规则评估器（PromQL 规则 × 简单阈值 evaluator 结构不匹配）",
-      "status": "open",
+      "status": "done",
       "priority": "P3",
       "criteria": "报警器（§11.88）当前的事件源 = 健康探针降级 / 单位看板 warn|error / 审计链尾部不一致，三处都是已在跑的采集面。**告警规则本身没有接进来**：monitoring/alerts.yml 的 16 条规则是 PromQL（up{job=\"yunshu\"} == 0、resets(up[1h]) > 3、sum(rate(yunshu_http_request_total{status=~\"5..\"}[5m])) ...），而 agent/monitoring/alert_evaluator.py 只认 \"metric 比较 阈值\"（get_metric_value(名字)），且 AlertManager 的规则来源（self._config.groups）默认是空 ⇒ 直接 start() 只会空转，不产生真告警。",
-      "next": "三条路选一（都属于新增数据面，需 Owner 点头）：① 接 Prometheus 查询 API 求值（要部署/联调 Prometheus，但规则零改动）；② 把 16 条规则翻成 evaluator 口径（metric/threshold/comparison），启动 alert_manager 并让它把 firing/resolved 写进 agent/alarms 台账（改动最小，但 PromQL 的表达力会被削平，如 resets/rate）；③ 规则只做「规则表 + 运行态」展示（现状），报警只走探针/单位/审计三条线，明确告诉大家\"规则告警未启用\"。选①或②时，同批补：AlertManager 启动接线（app_server 启动段）、firing/resolved → alarms store 的桥、以及\"同一告警不重复刷未读\"的去重用例。"
+      "next": "2026-11-11 落地（Owner 授权：全面分析后按最佳方案执行）：选**方案 C** —— 新增 agent/alarms/promql.py（PromQL 子集解析/求值：选择器、标签正则、区间、rate/increase/resets、sum/max/by(le)、clamp_min、histogram_quantile、四则与比较）+ agent/alarms/samples.py（每轮 60s 采样环，算窗口差值/分位数；窗口不足报 warming 而不是 0）+ agent/alarms/rules.py（读 monitoring/alerts.yml 的 16 条规则原样求值，按 for 时长状态机 firing/pending）。为什么不是 A（部署 Prometheus）或 B（手工翻成阈值）：A 为 16 条规则再引入一个外部服务；B 会丢掉 rate/clamp_min/分位数 —— 那正是 5xx 比例与 P99 的全部内容。结果如实：本部署的注册表里只有 6 条规则的指标存在（http 5xx 比例/1m 增量、P95/P99、内存、CPU），其余 10 条引用的 up / llm_calls / tool_call / security_blocks / hallucination / eval_score 不存在（外部 Prometheus 采集 或 本仓根本没埋点）⇒ 求值器标 no_data/unsupported 并给原因，经 /api/observability/alerts 运行态（新增 evaluable + state_reason）与 /api/alarms/coverage 如实暴露。规则告警已进入事件台账（kind=rule，key=rule.<alert>）。测试：promql 15 + rules 9 + api 14。**后续（未做，需 Owner 决定）**：要给 llm_calls/tool_call/security/hallucination/eval 这五类补埋点，或上 Prometheus；报警器本身不再改口径。"
     },
     {
       "id": "baseline-gate-flaky-assertions",
       "title": "失败基线回归（0 条容忍）对 flaky 断言零余地：同类断言落链要按口径用有界轮询",
-      "status": "open",
+      "status": "done",
       "priority": "P3",
       "criteria": "failures_baseline.txt 已于 2026-09-28 收缩到 0 条（只允许收缩）⇒ 「失败基线回归」job 对**单条 flaky** 零容忍：整轮 2.5 万条里只要 1 条时序抖动就会让 master 红。2026-11-11 一夜之间实测到三处，都不是回归：① test_memory_comparison 的 refcount 首轮 ±1（已改两轮稳态比较）；② test_knowledge_watcher 等 meta 就读 log.md（已改有界轮询）；③ test_skill_registry_audit 两处漏了 _wait_records（同文件 toggle 用例早就改过）——已补。口径里本来就写着「链式审计 best-effort ⇒ 断言落链用有界轮询」，但历史上是**逐条打补丁**改的，没有机械守卫 ⇒ 下一处仍会漏。",
-      "next": "两条路（需 Owner 点）：① 写一个 AST 守卫：测试里出现 \"调用审计 API 后立刻 assert 链记录数\" 的形态就红，逼作者用 _wait_records/_wait_count（一次投入，长期止漏）；② 或者给该 job 加「同一 flaky nodeid 在 master 上重跑一次仍红才算红」的机制（降低噪声，但要防它掩盖真回归）。在此之前：遇到该 job 红，先按 nodeid 判断是「时序抖动」还是「真回归」，不要动 failures_baseline.txt。"
+      "next": "2026-11-11 落地（Owner 授权：按最佳方案执行）：**不用**①AST 守卫（实测全仓 45 处「链式断言未轮询」，其中多数是同步写路径、本来就该立即断言 —— 一刀切会造 45 条误报，而误报会让门禁被无视）也**不用**②重跑机制（会掩盖真回归）；改为**治本**：审计链 append 的『先 put 再 ++_enqueue_count』顺序使 flush() 可能读到旧 target ⇒ 立即返回 ⇒ 读路径看不到刚写的记录。修法（agent/audit/chain.py::append ②）：计数与入队放进同一临界区、计数先于入队 ⇒ 任何在 append 返回后开始的 flush 都必然等到提交（read-your-writes 成立）。新增 tests/unit/test_audit_read_your_writes.py 3 条（200 次追加逐次读、8 线程×10 并发、count 与 entries 口径一致）。此前三处逐条补丁（refcount 两轮稳态 / watcher 等 log 行 / audit 两处 _wait_records）保留作为第二道防线。"
     }
   ]
 }
