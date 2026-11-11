@@ -129,6 +129,12 @@ export interface AlertRule {
   // 实测未返回：老页的「状态 / 触发时间」两列只能标注端点未返回
   state?: string
   activeAt?: string
+  /** 该规则本轮是否真的求出了值（false = 无数据 / 样本不足 / 需 Prometheus） */
+  evaluable?: boolean
+  /** 不可求值时的原因（如"无序列: up"） */
+  state_reason?: string
+  value?: number
+  fire_count?: number
 }
 export interface AlertGroup { name?: string; interval?: string; rules?: AlertRule[] }
 export interface AlertsData {
@@ -201,6 +207,22 @@ export const LEVEL_TEXT: Record<Level, string> = {
 }
 const LEVEL_BADGE: Record<Level, 'green' | 'amber' | 'red' | 'slate'> = {
   excellent: 'green', good: 'green', fair: 'amber', warning: 'amber', critical: 'red',
+}
+
+/**
+ * 告警运行态的中文标签（2026-11-11）。
+ * 由报警器本进程规则引擎给出：能算的给 firing/pending/ok，算不了的给 no_data/warming/unsupported。
+ * **不给"正常"以外的降级**：无数据就是"无数据"，不是"未触发"。
+ */
+export const ALERT_STATE_LABEL: Record<string, string> = {
+  firing: '触发中',
+  pending: '待确认（未满 for）',
+  ok: '正常',
+  resolved: '已恢复',
+  no_data: '无数据（指标不存在）',
+  warming: '样本不足（刚启动）',
+  unsupported: '需 Prometheus',
+  error: '求值异常',
 }
 
 /** 百分制分数 → 等级（老页 getDimLevel 的同一套阈值，纯展示分级、非后端判定） */
@@ -1236,8 +1258,12 @@ export default function PanoramaHealth() {
                               {r.annotations?.impact && <div className="text-[11px] text-slate-600">影响：{r.annotations.impact}</div>}
                             </td>
                             <td className="px-3 py-2 font-mono text-[11px] text-slate-500">{r.expr || '-'}</td>
-                            {/* 实测规则无 state / activeAt：如实标注，不把「有规则」当成「已触发」 */}
-                            <td className="px-3 py-2 text-xs text-slate-500">{r.state ? (r.state === 'firing' ? '触发' : r.state) : MISSING}</td>
+                            {/* 实测规则无 state / activeAt：如实标注，不把「有规则」当成「已触发」。
+                                不可求值的规则给中文态（无数据 / 样本不足 / 需 Prometheus），
+                                悬浮看原因 —— 与 L5 同口径：没测到不等于正常。 */}
+                            <td className="px-3 py-2 text-xs text-slate-500" title={r.state_reason || undefined}>
+                              {r.state ? (ALERT_STATE_LABEL[r.state] ?? r.state) : MISSING}
+                            </td>
                             <td className="px-3 py-2 text-xs text-slate-500">{r.activeAt ? fmtTime(r.activeAt) : MISSING}</td>
                           </tr>
                         )
@@ -1248,8 +1274,9 @@ export default function PanoramaHealth() {
               )}
               <div className="mt-2 text-[11px] text-slate-600">
                 共 {alerts?.groups?.length ?? 0} 个告警组 / {alertRules.length} 条规则；
-                状态与触发时间来自 alert_evaluator 的**运行态**（runtime_state={String(alerts?.runtime_state ?? false)}），
-                评估器没跑过 / 该规则没被评估的行仍显示占位（不编「未触发」）。
+                状态与触发时间来自**报警器的本进程规则引擎**（agent/alarms/rules.py，解析 alerts.yml 的
+                PromQL 子集求值）与 alert_evaluator 的运行态（runtime_state={String(alerts?.runtime_state ?? false)}）；
+                算不了的规则标「无数据 / 样本不足 / 需 Prometheus」并给原因，**不写成「未触发」**。
               </div>
             </div>
           )}

@@ -354,10 +354,42 @@ def _merge_alert_runtime_state(groups):
         live = {str(a.get("name")): a for a in get_alert_evaluator().get_alerts()}
     except Exception as exc:  # noqa: BLE001 运行态不可用不影响规则表
         logger.debug("读取告警运行态失败: %s", exc)
+
+    # 【2026-11-11】第二来源：报警器的**本进程规则引擎**（agent/alarms/rules.py）。
+    #   它直接解析 alerts.yml 的 PromQL 子集在本地求值 ⇒ 是这套部署里唯一真正在跑的评估面。
+    #   evaluable=False 时（no_data / warming / unsupported）**照样给 state**，并带上原因 ——
+    #   这条与"拿不到运行态就不加 state"不冲突：这里不是"不知道"，而是"知道它不可求值"。
+    local = {}
+    try:
+        from agent.alarms.rules import runtime_states
+        local = runtime_states()
+    except Exception as exc:  # noqa: BLE001 报警器未启用/未导入不影响规则表
+        logger.debug("读取报警器规则运行态失败: %s", exc)
+
+    if not live and not local:
         return False
+
     for group in groups or ():
         for rule in group.get("rules") or ():
-            row = live.get(str(rule.get("alert") or rule.get("name") or ""))
+            name = str(rule.get("alert") or rule.get("name") or "")
+            mine = local.get(name)
+            if mine:
+                rule["state"] = mine.get("state")
+                if mine.get("value") is not None:
+                    rule["value"] = mine.get("value")
+                rule["evaluable"] = mine.get("state") in ("firing", "pending", "ok")
+                reason = mine.get("reason") or ""
+                if reason:
+                    rule["state_reason"] = reason
+                started = mine.get("since")
+                if started:
+                    try:
+                        rule["activeAt"] = datetime.fromtimestamp(
+                            float(started), timezone.utc).isoformat()
+                    except (TypeError, ValueError):
+                        pass
+                continue
+            row = live.get(name)
             if not row:
                 continue
             rule["state"] = row.get("state")
@@ -370,7 +402,7 @@ def _merge_alert_runtime_state(groups):
                         float(started), timezone.utc).isoformat()
                 except (TypeError, ValueError):
                     pass
-    return bool(live)
+    return bool(live or local)
 
 
 def _get_runtime_metrics():

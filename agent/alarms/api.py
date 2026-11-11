@@ -88,6 +88,49 @@ def alarms_unread():
         return jsonify({"code": 500, "message": _ERR_TEXT, "data": None}), 500
 
 
+@alarms_bp.route("/rules", methods=["GET"])
+def alarms_rules():
+    """规则求值状态 + 覆盖率（哪些规则真能算、哪些因为没指标/没样本算不了）"""
+    try:
+        from agent.alarms import rules as rule_engine
+        payload = {"rules": rule_engine.snapshot(), "coverage": rule_engine.coverage()}
+        try:
+            from agent.alarms.samples import get_sample_store
+            payload["samples"] = get_sample_store().size()
+        except Exception:  # noqa: BLE001 采样环读不到不影响规则状态
+            payload["samples"] = None
+        return _ok(payload)
+    except Exception as exc:  # noqa: BLE001
+        logger.error("报警器规则状态读取失败: %s", type(exc).__name__)
+        return jsonify({"code": 500, "message": _ERR_TEXT, "data": None}), 500
+
+
+@alarms_bp.route("/coverage", methods=["GET"])
+def alarms_coverage():
+    """报警器覆盖读数：事件源清单 + 规则覆盖率 + 上一轮采集统计。
+
+    回答"它到底看得到什么、看不到什么"——看不到的部分**如实列出来**，
+    而不是让页面上一片绿（L5：没有测量不等于没有问题）。
+    """
+    try:
+        from agent.alarms import rules as rule_engine
+        from agent.alarms.collector import last_stats
+        sources = [
+            {"id": "health", "name": "健康五层探针", "detail": "L1/L2/L3/L4 低于阈值报警；L5 无数据不报警"},
+            {"id": "units", "name": "功能单位看板", "detail": "12 个单位，只报 warn/error（never/off 不报）"},
+            {"id": "rules", "name": "告警规则（alerts.yml）", "detail": "16 条 PromQL 子集在本进程求值"},
+            {"id": "audit", "name": "审计链", "detail": "尾部 500 条重算不一致 = critical（每小时最多一次）"},
+        ]
+        return _ok({
+            "sources": sources,
+            "rules": rule_engine.coverage(),
+            "last_collect": last_stats(),
+        })
+    except Exception as exc:  # noqa: BLE001
+        logger.error("报警器覆盖读数失败: %s", type(exc).__name__)
+        return jsonify({"code": 500, "message": _ERR_TEXT, "data": None}), 500
+
+
 @alarms_bp.route("/<int:alarm_id>/read", methods=["POST"])
 @require_token
 def alarms_mark_read(alarm_id: int):

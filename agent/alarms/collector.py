@@ -10,6 +10,8 @@
    `never`（从未产生数据）**不报警**，`off`（已关闭）不报警 —— 后者可能是有意为之，
    拿它报警会把"设计如此"变成噪音（需要时由 Owner 显式调 `UNIT_ALARM_STATUSES`）。
 3. 审计链（agent/audit/chain.py）→ 尾部窗口重算不一致 = critical。
+4. 告警规则（monitoring/alerts.yml，16 条 PromQL）→ 由 `agent/alarms/rules.py` 在本进程求值：
+   能算的算（5xx 比例 / P99 / 内存 / CPU …），算不了的如实标 no_data / warming / unsupported。
    全链核验很贵（8 万条），这里只验尾部 `AUDIT_TAIL_WINDOW` 条且**每小时最多一次**；
    全量核验仍由 `scripts/handoff_snapshot.py` 的交接卡负责，两者不互相替代。
 
@@ -74,6 +76,13 @@ _TRUTHY = frozenset({"1", "true", "yes", "on", "enable", "enabled"})
 
 _thread: Optional[threading.Thread] = None
 _lock = threading.Lock()
+
+#: 上一轮采集统计（/api/alarms/coverage 用来回答"最近看没看到东西"）
+_last_stats: Dict[str, object] = {}
+
+
+def last_stats() -> Dict[str, object]:
+    return dict(_last_stats)
 
 #: 进程启动时刻（monotonic；测试可 monkeypatch）
 _started_at: float = time.monotonic()
@@ -201,6 +210,50 @@ def read_units() -> Optional[dict]:
         return None
 
 
+def read_rule_states() -> Optional[List[dict]]:
+    """求值 alerts.yml 的全部规则（并把本轮到采样环里）。
+
+    【为什么在这里 record】`rate/increase/histogram_quantile` 要窗口两端的样本；
+    采样点就挂在"每轮采集"这个节拍上（60s），与健康采集同频，不额外起线程。
+    注册表读不到时 record 会记一个空快照 —— 求值随即报 no_data，而不是报 0。
+    """
+    try:
+        from agent.alarms import rules
+        from agent.alarms.samples import get_sample_store
+        get_sample_store().record()
+        return [state.to_dict() for state in rules.evaluate_all()]
+    except Exception as exc:  # noqa: BLE001 规则引擎坏掉不影响其它源
+        logger.warning("报警器：规则求值失败（%s）", type(exc).__name__)
+        return None
+
+
+def rule_candidates(states: Optional[List[dict]]) -> List[dict]:
+    """求值结果 → 报警候选（只取 firing）"""
+    if not states:
+        return []
+    try:
+        from agent.alarms.rules import RuleState, STATUS_FIRING, candidates
+    except Exception:  # noqa: BLE001
+        return []
+    parsed = []
+    for raw in states:
+        if raw.get("state") != STATUS_FIRING:
+            continue
+        parsed.append(RuleState(
+            alert=str(raw.get("alert") or ""),
+            expr=str(raw.get("expr") or ""),
+            severity=str(raw.get("severity") or "warning"),
+            state=STATUS_FIRING,
+            value=raw.get("value"),
+            reason=str(raw.get("reason") or ""),
+            since=float(raw.get("since") or 0.0),
+            for_sec=float(raw.get("for_sec") or 0.0),
+            evaluated_at=float(raw.get("evaluated_at") or 0.0),
+            annotations=dict(raw.get("labels") or {}),
+        ))
+    return candidates(parsed)
+
+
 def read_audit_verification() -> Optional[dict]:
     """审计链尾部核验（每小时最多一次；其余轮次复用上次结果）"""
     global _last_audit_at, _last_audit_ok
@@ -246,6 +299,7 @@ def collect_once(store: Optional[AlarmStore] = None, *,
         "health": read_health_point,
         "units": read_units,
         "audit": read_audit_verification,
+        "rules": read_rule_states,
     }
     if sources:
         readers.update(sources)
@@ -270,6 +324,8 @@ def collect_once(store: Optional[AlarmStore] = None, *,
             rows = health_candidates(payload)  # type: ignore[arg-type]
         elif name == "units":
             rows = unit_candidates(payload)  # type: ignore[arg-type]
+        elif name == "rules":
+            rows = rule_candidates(payload)  # type: ignore[arg-type]
         else:
             rows = audit_candidate(payload)  # type: ignore[arg-type]
         for row in rows:
@@ -278,11 +334,15 @@ def collect_once(store: Optional[AlarmStore] = None, *,
     # 【关键】只在"该源确实有数据"时才允许它 resolve 旧告警：
     #   数据源不可用时传空 candidates 会让旧告警被误判为恢复（伪造"已恢复"）。
     keep = set()
-    for name, prefix in (("health", "health."), ("units", "unit."), ("audit", "audit.")):
+    for name, prefix in (("health", "health."), ("units", "unit."), ("audit", "audit."),
+                         ("rules", "rule.")):
         if not checked.get(name):
             keep |= {k for k in _firing_keys(target) if k.startswith(prefix)}
 
     stats = target.reconcile(candidates, keep=keep)
+    global _last_stats
+    _last_stats = {"checked": checked, "raised": stats["raised"],
+                   "resolved": stats["resolved"], "kept": sorted(keep), "warmup": warmup}
     return {"checked": checked, "raised": stats["raised"],
             "resolved": stats["resolved"], "kept": sorted(keep), "warmup": warmup}
 

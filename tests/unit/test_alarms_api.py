@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from agent.alarms.samples import SampleStore
 from agent.alarms.store import AlarmStore, reset_store
 
 
@@ -83,6 +84,43 @@ class TestReadEndpoints:
     def test_缺store文件时返回空列表(self, client):
         payload = _data(client.get("/api/alarms/list"))
         assert payload["items"] == [] and payload["total"] == 0
+
+
+class TestRulesEndpoints:
+    def test_规则状态与覆盖率(self, client):
+        from agent.alarms import rules as rule_engine
+        from agent.alarms.samples import SampleStore, _series_key
+
+        rule_engine.reset_states()
+        store = SampleStore()
+        store.record({_series_key("yunshu_memory_usage_percent", {}): 99.0}, now=100.0)
+        rule_engine.evaluate_all(
+            [{"alert": "MemHigh", "expr": "yunshu_memory_usage_percent > 85", "for": "0m",
+              "severity": "critical", "labels": {}, "annotations": {"summary": "内存高"},
+              "group": "t"}],
+            store, now=100.0)
+
+        payload = _data(client.get("/api/alarms/rules"))
+        assert payload["coverage"]["rules_total"] == 1
+        assert payload["coverage"]["rules_evaluable"] == 1
+        assert payload["rules"][0]["alert"] == "MemHigh"
+        assert payload["rules"][0]["state"] == "firing"
+        assert payload["samples"] is not None
+        rule_engine.reset_states()
+
+    def test_覆盖读数列出事件源与规则缺口(self, client):
+        from agent.alarms import rules as rule_engine
+
+        rule_engine.reset_states()
+        store = SampleStore()
+        store.record({}, now=100.0)
+        rule_engine.evaluate_all(store=store, now=100.0)
+        payload = _data(client.get("/api/alarms/coverage"))
+        ids = {row["id"] for row in payload["sources"]}
+        assert {"health", "units", "rules", "audit"} <= ids
+        assert payload["rules"]["rules_total"] == 16
+        assert payload["rules"]["rules_blocked"] >= 0
+        rule_engine.reset_states()
 
 
 class TestWriteEndpoints:
