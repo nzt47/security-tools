@@ -94,6 +94,23 @@ def _set_enabled_records(skill_id):
             if e.subject == subject]
 
 
+def _wait_set_enabled(skill_id, want, *, timeout: float = 3.0, interval: float = 0.05):
+    """有界轮询到"恰好 want 条"启停记录，返回最后一次读到的列表。
+
+    【为什么要轮询（2026-11-11 CI 实测）】审计链读路径有"刚提交却被读成空"的窗口
+    （chain.entries 的注释里记着同一类空窗）：失败基线闸的全量顺序跑里，
+    test_undo_produces_no_enable_audit_record 的 after 偶发读到 0 条（assert 0 == 1），
+    而同一断言在分片跑/单跑恒绿。判据不变：超时后仍必须恰好 want 条（真丢记录照样红）。
+    """
+    import time as _time
+    deadline = _time.monotonic() + timeout
+    rows = _set_enabled_records(skill_id)
+    while len(rows) != want and _time.monotonic() < deadline:
+        _time.sleep(interval)
+        rows = _set_enabled_records(skill_id)
+    return rows
+
+
 def _body(entry):
     """审计条目的业务载荷（门面会把业务载荷嵌一层 payload）"""
     inner = entry.payload.get("payload")
@@ -203,14 +220,14 @@ class TestCase1ExistingDstKeepsGovernance:
         merge_id = _merge(svc, "f9-c1b-src", "f9-c1b-dst")["merge_id"]
         svc.set_enabled("f9-c1b-dst", False)
 
-        before = _set_enabled_records("f9-c1b-dst")
+        before = _wait_set_enabled("f9-c1b-dst", 1)
         assert len(before) == 1, f"操作员停用应恰好 1 条启停记录，实得 {len(before)}"
         assert _body(before[0])["enabled"] is False
         assert _body(before[0])["previous_enabled"] is True
 
         svc.undo_merge(merge_id)
 
-        after = _set_enabled_records("f9-c1b-dst")
+        after = _wait_set_enabled("f9-c1b-dst", 1)
         assert len(after) == 1, \
             "撤销合并产生了额外启停记录：治理状态本不该被改动"
         assert svc.get("f9-c1b-dst").enabled is False
