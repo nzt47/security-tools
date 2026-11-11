@@ -240,8 +240,10 @@ class TestPrometheusSource:
         monkeypatch.setattr(prometheus_source.urllib.request, "urlopen",
                             lambda url, timeout=None: _FakeResponse(body))
         got = prometheus_source.fetch_up()
-        assert got[_series_key("up", {"job": "yunshu", "instance": "127.0.0.1:5678"})] == 1.0
-        assert got[_series_key("up", {"job": "prometheus", "instance": "127.0.0.1:9090"})] == 0.0
+        # fetch_up 只回原始数据 (指标名, 标签, 值)：序列键由采样环拼（避免与 samples 成环）
+        by_job = {(name, labels.get("job")): value for name, labels, value in got}
+        assert by_job[("up", "yunshu")] == 1.0
+        assert by_job[("up", "prometheus")] == 0.0
         assert prometheus_source.last_ok() is True
 
     def test_拉不到记不可用(self, monkeypatch):

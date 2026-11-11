@@ -151,10 +151,10 @@ def snapshot_all() -> Dict[SeriesKey, float]:
     try:
         from agent.alarms.prometheus_source import configured, fetch_up  # noqa: PLC0415 延迟 import：避免环
         if configured():
-            external = fetch_up()
-            if external:
-                for key, value in external.items():
-                    values.setdefault(key, value)
+            # fetch_up 只回 [(指标名, 标签, 值)]：**键由采样环自己拼**，这样本模块
+            # 单向依赖外部源，不会成环（架构规则 no_circular_dependency，2026-11-12）
+            for name, labels, value in fetch_up() or []:
+                values.setdefault(_series_key(name, labels), value)
     except Exception as exc:  # noqa: BLE001 外部源坏掉不影响本地族的采样
         logger.debug("采样：Prometheus 合并失败（%s）", type(exc).__name__)
     return values

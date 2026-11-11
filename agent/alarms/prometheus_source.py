@@ -30,9 +30,7 @@ import logging
 import os
 import urllib.parse
 import urllib.request
-from typing import Dict, Optional
-
-from agent.alarms.samples import SeriesKey, _series_key
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -67,13 +65,19 @@ def reset_state() -> None:
     _last_ok = None
 
 
-def fetch_up() -> Optional[Dict[SeriesKey, float]]:
-    """查 instant `up` → {序列键: 值}。
+def fetch_up() -> Optional[List[Tuple[str, Dict[str, str], float]]]:
+    """查 instant `up` → [(指标名, 标签, 值)]（**只回原始数据，不构造采样环的序列键**）。
+
+    【为什么不再回 {序列键: 值}（2026-11-12）】原实现 import 了
+    `agent.alarms.samples` 的 `SeriesKey/_series_key` 来拼键，而 samples 又（延迟）
+    import 本模块来合并外部样本 ⇒ 依赖成环，架构规则校验判 no_circular_dependency
+    高严重度（CI「架构规则校验」自 34f1d4509 起一直红）。修法是把依赖方向理顺：
+    **本模块只负责取数，键由采样环（samples）自己拼**。
 
     Returns:
         - 未配置 ⇒ `None`（不参与；与"不可用"共用返回值，由调用方先用 :func:`configured` 判断）
         - 配置了但查询失败/超时/返回体不认识 ⇒ `None`（本轮不可用，调用方保留旧告警）
-        - 成功 ⇒ 字典（可能为空：Prometheus 在跑但还没有 target —— 那也是**真的没有**）
+        - 成功 ⇒ 列表（可能为空：Prometheus 在跑但还没有 target —— 那也是**真的没有**）
     """
     global _last_ok
     if not configured():
@@ -94,7 +98,7 @@ def fetch_up() -> Optional[Dict[SeriesKey, float]]:
         _last_ok = False
         logger.warning("Prometheus 返回体不认识（缺 data.result）：本轮按不可用处理")
         return None
-    out: Dict[SeriesKey, float] = {}
+    out: List[Tuple[str, Dict[str, str], float]] = []
     for row in result:
         if not isinstance(row, dict):
             continue
@@ -105,7 +109,7 @@ def fetch_up() -> Optional[Dict[SeriesKey, float]]:
             continue
         name = str(metric.get("__name__") or UP_QUERY)
         labels = {str(k): str(v) for k, v in metric.items() if k != "__name__"}
-        out[_series_key(name, labels)] = value
+        out.append((name, labels, value))
     _last_ok = True
     return out
 
