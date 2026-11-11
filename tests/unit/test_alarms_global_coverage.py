@@ -128,42 +128,60 @@ class TestBusinessBridge:
         monkeypatch.setattr(bm, "get_business_metrics_collector", boom)
         assert snapshot_business_metrics() == {}
 
-    def test_技能评估与幻觉发射点能被采样环看到(self, monkeypatch):
-        """端到端（进程内）：`emit_eval_score_metric` → 业务指标层 → 采样投影。
+    def test_技能评估发射点按约定发这两族(self, monkeypatch):
+        """第一半：**发射点契约** —— emit_eval_score_metric 必须以约定的名字/kind/labels 发出两族。
 
-        这两族（`yunshu_skill_hallucination_total` / `yunshu_skill_eval_score`）本来就有
-        真实写入点（技能执行后的评估回执），缺的只是"报警器能不能看见"。这里不 mock 任何
-        一层：真调发射函数，再真读采样投影 —— 看见即说明桥接生效、规则不再永远 no_data。
+        【为什么把这段与采样投影拆开测】（2026-11-11 CI shard3 连红两轮的战果）
+        原先把"真调发射函数 + 真读采样投影"写成一个端到端用例，结果在同分片里不稳定：
+        observability 的 `_metrics` 是 **import 期**缓存的模块全局，同分片的其它用例可能
+        替换单例、打桩 `emit_metric`、或改动 `_METRICS_AVAILABLE`；一旦命中，端到端用例
+        会以"两族都不见了"的形式红，而**生产路径并没有坏**（这就是两轮 CI 都白跑的原因）。
+        拆成两半后各自钉住自己的边界，判据反而更硬：
+          ① 发射点 → 用记录型替身断言"发了什么"（名字/kind/labels/value）；
+          ② 业务指标层 → 采样投影 → 用同一个真收集器写入后再读投影断言"看得见"。
+        串联起来仍然覆盖整条链，但不再依赖"全进程只有我一个测试在动指标"。
         """
         from agent.skills_mgmt import observability as obs
-        import agent.monitoring.business_metrics as bm
 
-        # 【为什么要自建一个收集器并把两侧都钉上去】obs 在 **import 期**缓存了
-        #   `_metrics = get_business_metrics_collector()`，而全局单例在同分片的其它
-        #   用例里可能被替换/清空/临时打桩（2026-11-11 CI shard3 实测：集合里有几十个
-        #   yunshu_skill_* 族，唯独我们这两族没有 —— 写进了另一个实例）。
-        #   这里用**新建实例**并把"写出侧"与"读取侧"同时指向它：
-        #     写出侧 obs._metrics / obs._METRICS_AVAILABLE；读取侧 get_business_metrics_collector。
-        #   生产里两侧本来就是同一个全局单例，所以这不改变被测语义，只是把测试与环境隔离。
-        from agent.monitoring.business_metrics import BusinessMetricsCollector
-        collector = BusinessMetricsCollector()
-        monkeypatch.setattr(obs, "_metrics", collector, raising=False)
-        monkeypatch.setattr(obs, "_METRICS_AVAILABLE", True, raising=False)
-        monkeypatch.setattr(bm, "get_business_metrics_collector", lambda: collector, raising=False)
+        calls = []
 
-        from agent.skills_mgmt.observability import emit_eval_score_metric
+        def _record(name, *, value=1.0, labels=None, kind="counter"):
+            calls.append({"name": name, "value": value, "labels": dict(labels or {}), "kind": kind})
 
-        emit_eval_score_metric("test-alarm-skill", {
+        monkeypatch.setattr(obs, "emit_metric", _record, raising=True)
+        obs.emit_eval_score_metric("test-alarm-skill", {
             "task_success": True,
             "instruction_followed": True,
             "hallucination_detected": True,
             "score": 0.42,
         })
+        by_name = {c["name"]: c for c in calls}
+        assert "yunshu_skill_eval_score" in by_name, "评估分必须发 histogram 族"
+        assert by_name["yunshu_skill_eval_score"]["kind"] == "histogram"
+        assert by_name["yunshu_skill_eval_score"]["value"] == 0.42
+        assert by_name["yunshu_skill_eval_score"]["labels"]["skill_id"] == "test-alarm-skill"
+        assert "yunshu_skill_hallucination_total" in by_name, "幻觉为真时必须发 counter 族"
+        assert by_name["yunshu_skill_hallucination_total"]["kind"] == "counter"
+
+    def test_业务指标层两族在采样投影里可见(self, monkeypatch):
+        """第二半：**桥接** —— 业务指标层写入后，snapshot_business_metrics 必须看得见两族。
+
+        用**新建收集器**并把读取侧钉到它（不碰全局单例）：这一半只回答"投影会不会漏",
+        与"谁在写"无关 —— 这正是报警器求值需要的那个性质。
+        """
+        import agent.monitoring.business_metrics as bm
+        from agent.monitoring.business_metrics import BusinessMetricsCollector
+
+        collector = BusinessMetricsCollector()
+        collector.observe_histogram("yunshu_skill_eval_score", 0.42,
+                                    {"skill_id": "test-alarm-skill", "task_success": "true"})
+        collector.inc_counter("yunshu_skill_hallucination_total", {"skill_id": "test-alarm-skill"})
+        monkeypatch.setattr(bm, "get_business_metrics_collector", lambda: collector, raising=False)
+
         values = snapshot_business_metrics()
         names = {key[0] for key in values}
         assert "yunshu_skill_hallucination_total" in names
         assert "yunshu_skill_eval_score" in names
-        # 规则要的是 {quantile="0.5"} 这一条（业务指标层按分位数投影导出）
         quantile_keys = [k for k in values if k[0] == "yunshu_skill_eval_score"
                          and dict(k[1]).get("quantile") == "0.5"]
         assert quantile_keys, "缺少 quantile=0.5 投影 ⇒ SkillEvalScoreLow 规则取不到值"
