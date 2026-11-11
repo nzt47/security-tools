@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-11T12:49:33",
+  "updated_at": "2026-11-11T18:35:34+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
     {
@@ -497,18 +497,42 @@
     {
       "id": "alarms-coverage-in-ui",
       "title": "把报警器的「覆盖/盲区」读数接进告警 Tab（现在只有 /api/alarms/coverage 端点）",
-      "status": "open",
+      "status": "done",
       "priority": "P3",
       "criteria": "§11.89 新增了 GET /api/alarms/coverage（事件源清单 + 规则覆盖率 + 上一轮采集统计）与 GET /api/alarms/rules（逐条规则状态）。目前只有规则运行态通过 /api/observability/alerts 进了「健康仪表盘·告警」Tab；**覆盖/盲区读数还没有 UI 入口**，只在排障时手工调端点，并在 config/route_unreferenced_triage.json 登记为 keep-ops。",
-      "next": "在「告警」Tab 顶部加一块「监控覆盖」：事件源四行（health/units/rules/audit，各带本轮 checked）、规则覆盖率（evaluable / blocked + 逐条原因）、采样环点数；算不了的规则要能一眼看出「缺哪个指标」。接线后把 config/route_unreferenced_triage.json 里 /api/alarms/coverage 与 /api/alarms/rules 两条 keep-ops 删掉（接了 UI 就不再是 unreferenced），并在干净 worktree 重派生 reports/route_ui_coverage.json。⚠️ 前端新增端点字面量必须写进 src/api/endpoints.ts（React 侧 /api 字面量必须为 0）。"
+      "next": "2026-11-11 落地（Owner：「两条 open 都做」）：health.tsx 新增 AlarmCoverageBlock，渲染在「告警」Tab 顶部 —— ① 六个事件源逐条「本轮已读 / 本轮不可用 / 冷启动跳过」（读 /api/alarms/coverage 的 last_collect.checked，与采集层 keep 语义对齐：不可用的源既不报警也不判恢复，所以必须看得见）；② 规则可求值数（如 11/16）+ 算不了逐条原因（缺哪个指标 / 样本不足 / 需 Prometheus，读 /api/alarms/rules 的 coverage.blocked）；③ 采样环点数（窗口类规则的先决条件）；④ 外部 Prometheus 状态（configured / last_ok）。两条端点常量收口到 src/api/endpoints.ts（ALARMS_COVERAGE / ALARMS_RULES），alarms.ts 只引用常量；config/route_unreferenced_triage.json 里这两条的 keep-ops 已删除（已接 UI），干净 worktree 重派生 route_ui_coverage（unreferenced 33→31、ui 450→452、frontend_endpoints 454→456）。测试：health.test.tsx 25→28（覆盖块渲染 / 组件级 Prometheus 可用 / 两条端点都失败上屏）。提交 daae9258b + 1c2986dd4。"
     },
     {
       "id": "alarms-global-coverage",
       "title": "报警器要变「全域」还差三件事（补埋点 / 上 Prometheus / 调度与 CI 入源）",
-      "status": "open",
+      "status": "done",
       "priority": "P3",
       "criteria": "Owner 2026-11-11 问「报警器是全域感知、全域监控吗？」——实测**不是**，盲区已写进 /api/alarms/coverage 与 §11.89 A：① 外部服务存活（up{job=…}）只有 Prometheus 采得到；② LLM 调用量 / 工具失败率 / 安全拦截 / 技能幻觉率 / 技能评分**本部署没有埋点**（alerts.yml 里 10 条规则因此是 no_data：yunshu_llm_calls_total、yunshu_tool_call_total、yunshu_security_blocks_total、yunshu_skill_hallucination_total、yunshu_skill_eval_score）；③ 计划任务失败/堆积、CI 与部署失败、日志异常聚合、报警外发通道都还没有进事件台账。",
-      "next": "三条路（可分开做，都要 Owner 点）：① **补埋点**（代码侧）：把上述 5 个指标接到真实执行点（LLM 调用/工具调用/安全拦截/幻觉判定/技能评分），补完这 10 条规则会自动从 blocked 变 evaluable；② **上 Prometheus**（部署侧）：让它 scrape 本进程 /metrics，则 up{} 类规则与外发都能用；③ **扩事件源**：把调度失败（/api/scheduler/overview 的 last_run/错误）、CI 结果、日志异常聚合各接一个 reader 进 agent/alarms/collector.py（每个 reader 须遵守「数据源不可用不报警也不判恢复」的 keep 语义）。"
+      "next": "2026-11-11 落地（Owner：「两条 open 都做」），三件事都做了：\n① 补埋点（接到真实执行点，不造数）：新增 agent/monitoring/alarm_metrics.py（只对**已注册**的族自增，不新建 ⇒ 不会让 app_server 的 Counter 撞名起不来；失败全吞）。\n   · yunshu_llm_calls_total{provider,model,status} ← 收口在 LLMMonitor.record()：**所有** LLM 交互的唯一落点。【踩坑】先写在 _patched_do_chat/_patched_do_summarize 两个钩子上，实测无效 —— 本部署对话主链路走的是 _wrap_get_client_for_tool_calling 的 client.create 包装（source=tool_calling），根本不经过那两个钩子（实测 5 条记录全是 tool_calling）；收口到 record() 后立刻出现 series（d68b25c8e）。\n   · yunshu_tool_call_total{success} ← plugins/chat.py::_record_tool_usage（与工具台账同一处，避免两套数字）；实测聊两轮后 read_file / search_files 两条 series。\n   · yunshu_security_blocks_total{rule,level,category} ← tool_gate._deny（治理边界=warning）与 guardrails egress/ssrf 的 block_result（真安全事件=critical）；标签只放静态值（策略 id/host/secret 不进标签）。当前 0 次拦截 ⇒ 该族还没有 series，规则如实 no_data（不造假 0）。\n   · yunshu_skill_hallucination_total / yunshu_skill_eval_score 本来就有真实写入点（skills_mgmt.observability.emit_eval_score_metric → business_metrics），缺的是「报警器看不看得见」；samples.py 新增 snapshot_business_metrics() 把业务指标层的导出投影并进采样环（只并规则引用的族）。新增端到端用例：真调 emit_eval_score_metric 再读投影，断言两族与 {quantile=\"0.5\"} 可见。\n② 上 Prometheus（可选外部源，零外部依赖时行为不变）：新增 agent/alarms/prometheus_source.py + CP_PROMETHEUS_URL（默认空=完全不参与；已进 settings/registry）。配置后每轮拉一次 instant up，up{job=...} 5 条规则从 no_data 变可求值；只拉 up。keep 语义：配置了但这一轮拉不到 ⇒ read_rule_states 返回 None ⇒ 规则源整体保留旧告警（否则 up 规则会从 firing 掉成 no_data，被当成已恢复=伪造恢复）。新增 deploy/monitoring/prometheus/prometheus.local.yml（本机单进程：job=yunshu:127.0.0.1:5678 + job=prometheus）。实测（用本地 stub 提供 up 向量验证接线）：配置后 11/16 可求值，ServiceDown/PrometheusDown=ok、GrafanaDown=pending（up=0 且未满 for）—— 链路通。真实 Prometheus 二进制尚在下载（网络 ~20-40KB/s），装好后把 CP_PROMETHEUS_URL 指到 http://127.0.0.1:9090 即可，代码侧无需再改。\n③ 事件源扩容：collector 新增 scheduler（data/task_history.jsonl 近 6 小时 status=failed，同任务多次失败合并成一条）与 ci（data/ci/status.json）两个只读源；采集线程不联网、不起子进程 —— CI 结果由新增 scripts/sync_ci_status.py 用 gh 同步（已修 Windows 下 gh 输出 gbk 解码崩溃）。文件缺失或超过 2 小时未同步 ⇒ 该源本轮不可用（keep）。两个源的 keep 前缀（scheduler. / ci.）已接入 reconcile。/api/alarms/coverage 增 prometheus 读数与两条新源。\n现状读数（部署 d68b25c8e 后）：sources 6 条全部 checked=true；prometheus.configured=false（等二进制）；rules 7 evaluable / 9 blocked（no_data 8 + warming 1）；采样环 8 点。测试：test_alarms_global_coverage.py 24 条；alarm/promql/rules/api/store 全绿；前端 170 files / 1298 tests 全绿。"
+    },
+    {
+      "id": "unit-probe-timeout-counted-as-critical",
+      "status": "open",
+      "priority": "P3",
+      "title": "单位探针 2s 超时被记成 critical 告警（消息中心 6 条里 2 条是这种）",
+      "criteria": "2026-11-11 现场：13:39:58 台账记了 2 条 critical（unit.runtime.audit 审计链 / unit.memory.longterm 长期记忆，detail=探测超时），13:40:58 自愈。实测这两个探针常态只要 1.5~7.6ms（/api/system/units?refresh=1 的 probe_ms），所以超时不是单位坏，而是那一刻进程被别的活占住（两个探针相邻、连续超时 ⇒ 单次 ≥4s 的停顿），而 unit_monitor 的 _DEFAULT_PROBE_TIMEOUT=2.0s、超时即 status=error ⇒ collector 按 error 记 critical。同族噪声：04:51 冷启动那 3 条（WARMUP_SEC=90 已覆盖冷启动，但不覆盖「运行期短暂卡顿」）。",
+      "next": "三条路（都需 Owner 点，属报警器口径变更）：① 把「探测超时」与「单位真 error」分开 —— 超时记 no_data/unknown（不进 critical，且遵守「不可用不判恢复」）；② 连续 N 轮（如 2 轮）异常才上报，单轮超时只留痕；③ 只降低超时的严重度（error→warn）并把 probe_ms 写进 detail，让人一眼看出是卡顿不是故障。倾向 ①+②：超时本质是「无法判定」，与 L5「无数据不算正常也不算故障」同一条口径。"
+    },
+    {
+      "id": "p99-rule-includes-sse-and-heavy-endpoints",
+      "status": "open",
+      "priority": "P3",
+      "title": "P99 规则把 SSE 长连接与重端点都算进 HTTP 时延 ⇒ 打开监控页就必然 firing",
+      "criteria": "2026-11-11 现场：rule.YunshuHighLatencyP99 从 13:00:48 一直 firing 到 15:35:11（count 77，detail 实测最高 10s）。归因（按 /metrics 的 endpoint 标签逐条核对）：>1s 的请求集中在 api_skills_mgmt_assess_stream（8 次全部 >10s，那是 SSE 长连接，本身就长）、system_tools.api_process_list（11 次全部 >1s）、modules.topology（11 次全部 >1s）、health.probe_trend（9 次全部 >1s）；真正偶发的是 /api/version（16 次里 2 次 >1s，它每次跑 git status 扫 ~900 个未跟踪文件）。⇒ 只要有人打开系统监控/进程列表/评估流，5m 窗口的 P99 就 >3s，规则必然报。",
+      "next": "三选一（需 Owner 点）：① 规则侧排除流式端点（histogram 加 endpoint 维度过滤，SSE 不计）；② 给规则加最小样本门槛（如 5m 内 ≥30 次请求才算 P99，否则 warming）；③ 给 /api/version 的 dirty 扫描加短缓存或 --untracked-files=no（它是重端点里唯一可优化的）。注意：这不影响「报警器全域」的正确性 —— 规则如实报了真实时延，问题是口径把长连接算进了延迟。"
+    },
+    {
+      "id": "perception-learning-switch-off",
+      "status": "open",
+      "priority": "P3",
+      "title": "「感知侧学习」拓扑显示未启用 —— 是现场开关 false，不是坏（等 Owner 决定要不要开）",
+      "criteria": "2026-11-11 Owner 问「感知侧学习模块为什么没有启用」。查证：拓扑节点 learning.novelty 的 status_source 是 config:learning.sensor_learning.enabled，而 config.yaml:242 = false ⇒ 节点如实显示 disabled/未启用。这个 false 是**有意**的：472490f0c（2026-08-15）「TASK-06 开关恢复观察模式 — true→false（并行 rebase 剥离后重建）」，docs/zh/智能体学习机制重构计划/TASK-06_变更说明.md 也写「false（2026-08-15 正式采集验证后恢复观察模式）」，.env.example 同步 false。但 config.yaml:236 的注释仍写「默认开启——2026-08-14 由观察模式转入正式采集」⇒ 注释与值矛盾（陈旧注释）。开关本身是 hot 生效（novelty_hooks._sensor_learning_enabled 每次事件都读 env→config），设置中心「学习与进化」里可切，风险级 A、needs_restart=false。副作用（开=true 后）：低/中置信 NoveltyEvent → 写 data/learning/novelty_memory（JSONL）；高置信 → 审计 + 建议草稿（data/learning/novelty_suggestions/，只产 DRAFT，绝不注册技能）；行为漂移周级检测。",
+      "next": "等 Owner 拍板：① 开（设置中心切 SENSOR_LEARNING_ENABLED=true，或改 config.yaml sensor_learning.enabled: true 再重启）—— 我会同批把 config.yaml:236 的陈旧注释改成与值一致，并把「开之后第一周观察什么」写进交接；② 继续观察模式（保持 false），只修注释。附注：data/learning/novelty_audit.jsonl 里 2026-11-10 20:10 / 2026-11-11 02:38 的三条是**单测写入的合成事件**（设备 a/b），不是真实学习 —— 观察模式下运行期不会写它。"
     }
   ]
 }
