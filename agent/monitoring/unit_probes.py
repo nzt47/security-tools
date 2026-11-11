@@ -242,9 +242,25 @@ def probe_workflows() -> Dict[str, Any]:
 
 
 def probe_scheduler() -> Dict[str, Any]:
+    """调度单位（**只读**：绝不为了看一眼就把 TaskScheduler 单例创建出来）。
+
+    【为什么必须非创建式】**单位看板是被报警器每 60s 拉一次的**，而 unit_monitor 在
+    app_server 里由报警采集线程驱动；若这里调 get_scheduler()，就会在**任何**进程里
+    凭空创建调度器（连带注册 7 条维护作业）。2026-11-11 实测到的后果：
+    test_task_scheduler_singleton::test_heartbeat_check_does_not_initialize_singleton
+    （断言"心跳不初始化单例"）在 CI 全量顺序下偶发红 —— 采集线程在用例执行期间把单例
+    建了出来，而那是**另一个线程的副作用**，与心跳无关。
+    口径：**读探针不得有创建副作用**；没初始化就如实说"未初始化"，不替人建一个。
+    """
     try:
         from agent.task_scheduler import get_scheduler
-        sched = get_scheduler()
+        from agent.utils.singleton_manager import get_singleton, is_initialized
+        if not is_initialized("task_scheduler"):
+            return {"status": "off", "summary": "调度器未初始化（本进程还没创建过）",
+                    "metrics": {"total": 0, "enabled": 0, "never_run": 0, "uninitialized": True},
+                    "issues": ["调度器单例未初始化：读探针不创建单例（生产由启动流程创建）"],
+                    "last_activity": None}
+        sched = get_singleton("task_scheduler")
         tasks = sched.list_tasks() if sched is not None else []
     except Exception as exc:  # noqa: BLE001
         return {"status": "error", "summary": "调度器不可用: %s" % exc}

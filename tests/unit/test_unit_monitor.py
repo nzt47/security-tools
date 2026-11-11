@@ -231,3 +231,32 @@ def test_probe_ingestion_ignores_stray_dir_but_says_so(tmp_path, monkeypatch):
     assert r["metrics"] == {"drafts": 1, "ignored_dirs": 1}
     assert "非草稿目录" in r["summary"]
     assert "1 条" in r["summary"]
+
+def test_probe_scheduler_does_not_create_singleton():
+    """读探针不得有创建副作用（2026-11-11 CI 实测）。
+
+    报警采集线程每 60s 拉一次单位看板；若调度探针为了"看一眼"就 get_scheduler()，
+    它会在任何进程里凭空创建 TaskScheduler（并注册 7 条维护作业）——
+    test_task_scheduler_singleton::test_heartbeat_check_does_not_initialize_singleton
+    因此在全量顺序下偶发红（采集线程在用例执行期间把单例建了出来，与心跳无关）。
+    判据：未初始化时探针返回 off + 说清原因，且**单例仍未初始化**。
+    """
+    from agent.task_scheduler import get_scheduler, reset_scheduler
+    from agent.utils.singleton_manager import is_initialized
+
+    reset_scheduler()
+    assert not is_initialized("task_scheduler")
+
+    data = up.probe_scheduler()
+
+    assert data["status"] == "off"
+    assert "未初始化" in data["summary"]
+    assert data["metrics"]["uninitialized"] is True
+    assert not is_initialized("task_scheduler"), "读探针不能把调度器单例创建出来"
+
+    # 已初始化时照常读数（生产路径不受影响）
+    get_scheduler()
+    data2 = up.probe_scheduler()
+    assert data2["status"] in ("ok", "off")
+    assert data2["metrics"].get("total", 0) >= 0
+    reset_scheduler()
