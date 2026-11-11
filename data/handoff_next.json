@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-11T22:56:21+08:00",
+  "updated_at": "2026-11-12T01:10:32+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
     {
@@ -533,6 +533,22 @@
       "title": "「感知侧学习」拓扑显示未启用 —— 是现场开关 false，不是坏（等 Owner 决定要不要开）",
       "criteria": "2026-11-11 Owner 问「感知侧学习模块为什么没有启用」。查证：拓扑节点 learning.novelty 的 status_source 是 config:learning.sensor_learning.enabled，而 config.yaml:242 = false ⇒ 节点如实显示 disabled/未启用。这个 false 是**有意**的：472490f0c（2026-08-15）「TASK-06 开关恢复观察模式 — true→false（并行 rebase 剥离后重建）」，docs/zh/智能体学习机制重构计划/TASK-06_变更说明.md 也写「false（2026-08-15 正式采集验证后恢复观察模式）」，.env.example 同步 false。但 config.yaml:236 的注释仍写「默认开启——2026-08-14 由观察模式转入正式采集」⇒ 注释与值矛盾（陈旧注释）。开关本身是 hot 生效（novelty_hooks._sensor_learning_enabled 每次事件都读 env→config），设置中心「学习与进化」里可切，风险级 A、needs_restart=false。副作用（开=true 后）：低/中置信 NoveltyEvent → 写 data/learning/novelty_memory（JSONL）；高置信 → 审计 + 建议草稿（data/learning/novelty_suggestions/，只产 DRAFT，绝不注册技能）；行为漂移周级检测。",
       "next": "2026-11-11 按 Owner 指示**开启**：config.yaml learning.sensor_learning.enabled: false → true，\n并把那段自相矛盾的注释重写（旧注释写「默认开启——2026-08-14 转入正式采集」，实际值在 472490f0c（2026-08-15）\n已退回观察模式；新注释写明谁在何时为什么改过、true/false 行为、hot 生效方式、回滚方式）。\n.env.example 同步 SENSOR_LEARNING_ENABLED=true（新环境不再落回 false）。\n现场验证（部署 eeecf66c8 后）：设置中心 SENSOR_LEARNING_ENABLED=True（source=config, effect=hot）；\n拓扑节点 learning.novelty = **healthy / 已启用**；调度任务 16 → **17**（行为漂移检测 注册上了）。\n⚠ 两点如实记录：① novelty 钩子本身是 hot（每次事件重新取值），但 behavior_drift 的周级任务在\n  **启动时** schedule() 判定开关（关就返回 disabled 不注册）⇒ 真正生效需要一次重启（本次部署已完成）；\n  ② 本部署 sensor.watch_dirs 为空 ⇒ FileWatcher 未启动，当前事件源是 ChangeDetector 的快照对比\n  （硬件/进程/目录树），不是文件监听。若要监听目录，需配 watch_dirs（另一件事，未做）。\n回滚：config 改回 false（或设置中心置 false）——钩子立即停；周级任务要重启才消失。"
+    },
+    {
+      "id": "sensor-learning-watch-dirs",
+      "status": "open",
+      "priority": "P2",
+      "title": "给感知侧学习配 watch_dirs（Owner 2026-11-12 指定）",
+      "criteria": "感知侧学习已开启（config learning.sensor_learning.enabled=true），但 sensor.watch_dirs 为空 ⇒ FileWatcher 未启动；且真正产生变化的 ChangeDetector.collect() 在本部署没有周期调用方（只在 sensor_server.py / sensor/main.py / 测试里被调），实测 novelty_memory.jsonl 里 5 条全是 behavior_drift，hardware_change / process_change / file_change 各 0 条 ⇒ 感知侧学习目前「开了但近乎空转」。",
+      "next": "① 先查证 config.yaml 的 sensor.watch_dirs 是否真被读到：lifecycle_manager 用 self._config.get(\"sensor\", {})，而 Config 默认 watch_dirs=None 且**不读 config.yaml**（老坑）。读不到就走 env/Config 覆盖或改 lifecycle 读取路径（改代码必须同步 agent/settings/registry.py）。\n② 监听目录别包含 data/learning（否则草稿写入又触发事件 = 自激）；建议外部输入面（data/inbox、knowledge/、~/.Yunshu/inbox），具体与 Owner 对一眼。\n③ 验收：启动日志有 [BodySensor] 正在初始化 FileWatcher，监听目录: …；在监听目录建/改文件 ⇒ novelty_memory.jsonl 出现 event_type=file_change；filewatch 传感器有读数；无自激。\n④ 可选（需 Owner 点头）：把 ChangeDetector.collect() 挂成 interval 任务，否则只有文件监听也不够（硬件/进程变化没有 diff 触发）。"
+    },
+    {
+      "id": "domain-perception-monitoring-audit",
+      "status": "open",
+      "priority": "P2",
+      "title": "复核「全域感知 / 全域监控」并给出自动化清单（Owner 2026-11-12 指定）",
+      "criteria": "Owner 问：现在真的能做到全域感知、全域监控了吗？开发出新功能也能自动被感知和监控吗？§11.94 C 节已考证结论：① 感知面做不到 —— 18 个传感器 enabled 但无周期采集/无 diff 触发，FileWatcher 未启，感知侧学习只有漂移事件；② 监控面不全域 —— 健康五层/单位看板 12/拓扑 38/审计/调度有读数，但规则 16 条只 6 可求值（up×3 需外部 Prometheus、security/hallucination/eval 缺样本），CI 事件源因 status.json 超 2h 未同步而 checked=false（实际离线），另缺外部存活/日志聚合/外发通道；③ 新功能只有拓扑能自动上图（需声明 MODULE_STATUS_SOURCE），单位看板/规则/事件源/传感器全是手写。",
+      "next": "先引用 §11.94 C 节（别重新考证），再按候选清单逐项与 Owner 确认要不要做，并至少交付：\n① 感知/监控覆盖矩阵（面 × 有无读数 × 是否自动 × 缺口原因）落成文档或端点读数；\n② 把两个静默缺口变成可见：CI 最后同步时间、感知最后事件时间（别让「过期」= 无声）；\n③ 新功能上线检查清单（拓扑声明 / 单位注册 / 规则 + 指标 / 埋点 / 传感器 / 文档派生）。\n候选自动化（按价值排序，均需 Owner 点头）：CI 同步周期化（30 分钟）→ 感知周期化（ChangeDetector 5 分钟）→ 单位看板包级自动登记 → 缺埋点报表增强 → 外部端口存活（新数据面）。"
     }
   ]
 }
