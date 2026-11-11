@@ -8,6 +8,7 @@ flowchart LR
         agent_alarms["agent.alarms"]
         agent_alarms_api["agent.alarms.api"]
         agent_alarms_collector["agent.alarms.collector"]
+        agent_alarms_prometheus_source["agent.alarms.prometheus_source"]
         agent_alarms_promql["agent.alarms.promql"]
         agent_alarms_rules["agent.alarms.rules"]:::crosslayer
         agent_alarms_samples["agent.alarms.samples"]
@@ -121,6 +122,7 @@ flowchart LR
         agent_search_aggregator["agent.search_aggregator"]:::crosslayer
         agent_search_performance_monitor["agent.search_performance_monitor"]
         agent_security_utils["agent.security_utils"]
+        agent_sensor_config["agent.sensor_config"]:::crosslayer
         agent_server_auth["agent.server_auth"]:::crosslayer
         agent_server_port_guard["agent.server_port_guard"]
         agent_session_manager["agent.session_manager"]:::crosslayer
@@ -301,6 +303,7 @@ flowchart LR
     subgraph learning [learning]
         agent_learning_behavior_drift["agent.learning.behavior_drift"]:::crosslayer
         agent_learning_novelty_hooks["agent.learning.novelty_hooks"]:::crosslayer
+        agent_learning_perception_cycle["agent.learning.perception_cycle"]:::crosslayer
     end
     subgraph lines [lines]
         agent_lines["agent.lines"]:::crosslayer
@@ -369,11 +372,13 @@ flowchart LR
     end
     subgraph monitoring [monitoring]
         agent_monitoring["agent.monitoring"]:::crosslayer
+        agent_monitoring_alarm_metrics["agent.monitoring.alarm_metrics"]
         agent_monitoring_alert_evaluator["agent.monitoring.alert_evaluator"]:::crosslayer
         agent_monitoring_alert_manager["agent.monitoring.alert_manager"]:::crosslayer
         agent_monitoring_alert_notifier["agent.monitoring.alert_notifier"]
         agent_monitoring_business_metrics["agent.monitoring.business_metrics"]:::crosslayer
         agent_monitoring_chaos_injector["agent.monitoring.chaos_injector"]
+        agent_monitoring_ci_status["agent.monitoring.ci_status"]:::crosslayer
         agent_monitoring_config_observability["agent.monitoring.config_observability"]
         agent_monitoring_cost_brake["agent.monitoring.cost_brake"]:::crosslayer
         agent_monitoring_decorators["agent.monitoring.decorators"]
@@ -768,20 +773,27 @@ flowchart LR
     agent_alarms_api -.-> agent_api_envelope
     agent_alarms_api -.-> agent_server_auth
     agent_alarms_api --> agent_alarms
+    agent_alarms_api -.-> agent_learning_perception_cycle
+    agent_alarms_api -.-> agent_monitoring_ci_status
     agent_alarms_api --> agent_alarms
     agent_alarms_api --> agent_alarms_collector
     agent_alarms_api --> agent_alarms_collector
     agent_alarms_api --> agent_alarms_samples
+    agent_alarms_api --> agent_alarms
     agent_alarms_collector --> agent_alarms_store
     agent_alarms_collector -.-> agent_health_storage
     agent_alarms_collector -.-> agent_monitoring
     agent_alarms_collector --> agent_alarms
     agent_alarms_collector --> agent_alarms_samples
     agent_alarms_collector --> agent_alarms_rules
+    agent_alarms_collector -.-> agent_task_scheduler
     agent_alarms_collector -.-> agent_audit_chain
+    agent_alarms_collector --> agent_alarms
     agent_alarms_promql --> agent_alarms_samples
     agent_alarms_rules --> agent_alarms_promql
     agent_alarms_rules --> agent_alarms_samples
+    agent_alarms_samples -.-> agent_monitoring_business_metrics
+    agent_alarms_samples --> agent_alarms_prometheus_source
     agent_api_gateway --> agent_rate_limiter
     agent_api_gateway -.-> agent_monitoring_tracing
     agent_api_gateway -.-> agent_utils_singleton_manager
@@ -1120,6 +1132,7 @@ flowchart LR
     agent_guardrails_egress_chain -.-> agent_observability_events
     agent_guardrails_egress_guard -.-> agent_policy_egress
     agent_guardrails_egress_guard --> agent_guardrails_egress_chain
+    agent_guardrails_egress_guard -.-> agent_monitoring
     agent_guardrails_egress_guard -.-> agent_audit_facade
     agent_guardrails_egress_guard -.-> agent_policy_egress
     agent_guardrails_foreign_taint -.-> agent_audit_facade
@@ -1148,6 +1161,7 @@ flowchart LR
     agent_guardrails_output_schema -.-> agent_graceful_degrade
     agent_guardrails_output_schema -.-> agent_logging_utils
     agent_guardrails_safe_render --> agent_guardrails_foreign_taint
+    agent_guardrails_ssrf_guard -.-> agent_monitoring
     agent_guardrails_ssrf_guard -.-> agent_audit_facade
     agent_guardrails_untrusted_ingest -.-> agent_lines_models
     agent_guardrails_untrusted_ingest --> agent_guardrails_foreign_taint
@@ -1312,6 +1326,9 @@ flowchart LR
     agent_learning_behavior_drift --> agent_learning_novelty_hooks
     agent_learning_behavior_drift -.-> agent_task_scheduler
     agent_learning_behavior_drift -.-> agent_task_scheduler
+    agent_learning_perception_cycle --> agent_learning_novelty_hooks
+    agent_learning_perception_cycle -.-> agent_task_scheduler
+    agent_learning_perception_cycle -.-> agent_task_scheduler
     agent_learning_budget --> agent_circuit_breaker
     agent_learning_budget --> agent_rate_limiter
     agent_learning_budget -.-> agent_monitoring_metrics
@@ -1335,6 +1352,7 @@ flowchart LR
     agent_llm_monitor --> agent_logging_utils
     agent_llm_monitor -.-> agent_utils_singleton_manager
     agent_llm_monitor -.-> agent_observability_events
+    agent_llm_monitor -.-> agent_monitoring
     agent_llm_monitor -.-> agent_observability
     agent_llm_monitor -.-> agent_observability
     agent_llm_monitor -.-> agent_utils_singleton_manager
@@ -1471,6 +1489,7 @@ flowchart LR
     agent_modules_api --> agent_system_tools
     agent_modules_registry --> agent
     agent_monitoring --> agent_monitoring_config_observability
+    agent_monitoring_alarm_metrics --> agent_monitoring_business_metrics
     agent_monitoring_alert_evaluator -.-> agent_logging_utils
     agent_monitoring_alert_evaluator --> agent_monitoring_tracing
     agent_monitoring_alert_evaluator --> agent_monitoring_metrics
@@ -1502,6 +1521,8 @@ flowchart LR
     agent_monitoring_chaos_injector -.-> agent_logging_utils
     agent_monitoring_chaos_injector -.-> agent_utils_singleton_manager
     agent_monitoring_chaos_injector --> agent_monitoring_observability_config
+    agent_monitoring_ci_status -.-> agent_task_scheduler
+    agent_monitoring_ci_status -.-> agent_task_scheduler
     agent_monitoring_config_observability --> agent_monitoring_observability_config
     agent_monitoring_config_observability --> agent_monitoring_tracing
     agent_monitoring_config_observability --> agent_monitoring_prometheus
@@ -1589,6 +1610,7 @@ flowchart LR
     agent_monitoring_unit_probes -.-> agent_skills_mgmt_file_store
     agent_monitoring_unit_probes -.-> agent_skills_mgmt
     agent_monitoring_unit_probes -.-> agent_task_scheduler
+    agent_monitoring_unit_probes -.-> agent_utils_singleton_manager
     agent_multi_tenant -.-> agent_monitoring_tracing
     agent_network -.-> agent_network_config
     agent_network --> agent_network_config_validator
@@ -1640,6 +1662,7 @@ flowchart LR
     agent_orchestrator_lifecycle_manager --> agent_orchestrator_turn_state
     agent_orchestrator_lifecycle_manager -.-> agent_monitoring_tracing
     agent_orchestrator_lifecycle_manager -.-> agent_digital_life
+    agent_orchestrator_lifecycle_manager -.-> agent_sensor_config
     agent_orchestrator_lifecycle_manager -.-> agent_tools_core_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_file_tools_reg
     agent_orchestrator_lifecycle_manager -.-> agent_tools_web_tools
@@ -2644,6 +2667,7 @@ flowchart LR
     agent_tool_fewshot_store -.-> agent_utils_sensitive_data_filter
     agent_tool_gate --> agent_permission_system
     agent_tool_gate -.-> agent_subagent_sandbox
+    agent_tool_gate -.-> agent_monitoring
     agent_tool_gate -.-> agent_observability_trace_v2
     agent_tool_gate --> agent_tool_approval
     agent_tool_gate --> agent_approval_surface
@@ -2896,9 +2920,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 742
-- 模块节点数: 640
-- 依赖边数: 2128
-- 跨层调用数: 1342
+- 扫描文件数: 747
+- 模块节点数: 645
+- 依赖边数: 2147
+- 跨层调用数: 1356
 - 违规调用数: 0
 - 动态 import 数: 1
