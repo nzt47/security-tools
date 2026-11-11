@@ -2058,18 +2058,29 @@ class AuditChain:
                         key=f"seq={seq}")
 
             # ② 交接给后台批量入库（队满 ≠ 丢数据：记录已在日志里）
-            try:
-                self._queue.put_nowait(entry)
-                with self._count_lock:
-                    self._enqueue_count += 1
-                    self._inflight_seq.add(int(seq))
-            except queue_module.Full:
-                self._note_queue_full(entry)
-                self._journal_needs_drain = True
-            except Exception as e:  # noqa: BLE001 其它异常 → ring buffer（不丢记录）
-                self._buffer_failed(entry)
-                self._journal_needs_drain = True
-                logger.warning("审计记录入队失败，已降级 ring buffer（seq=%s）", seq)
+            # 【2026-11-11 修 flush 的欠等竞态】原顺序是「先 put 再 ++_enqueue_count」：
+            #   若 `flush()` 恰好落在两者之间，它读到的 target 还是**旧值** ⇒ 立刻
+            #   返回 True，而记录仍在队列里没入库 ⇒ 读路径（entries/tail_entries 的
+            #   read-your-writes 屏障）读不到刚写的那条。实测表现就是
+            #   `test_skill_registry_audit ... assert 0 == 1` 这类"偶发 0 条"。
+            #   计数器与入队必须在**同一个临界区**内、且计数先于可见性完成：
+            #   这样任何在 append 返回之后开始的 flush 都必然等到这条提交。
+            with self._count_lock:
+                self._enqueue_count += 1
+                self._inflight_seq.add(int(seq))
+                try:
+                    self._queue.put_nowait(entry)
+                except queue_module.Full:
+                    self._enqueue_count -= 1
+                    self._inflight_seq.discard(int(seq))
+                    self._note_queue_full(entry)
+                    self._journal_needs_drain = True
+                except Exception as e:  # noqa: BLE001 其它异常 → ring buffer（不丢记录）
+                    self._enqueue_count -= 1
+                    self._inflight_seq.discard(int(seq))
+                    self._buffer_failed(entry)
+                    self._journal_needs_drain = True
+                    logger.warning("审计记录入队失败，已降级 ring buffer（seq=%s）", seq)
         return entry
 
     def _write_to_db(self, records: List[AuditEntry]) -> None:
