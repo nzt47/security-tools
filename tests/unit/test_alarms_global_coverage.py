@@ -136,17 +136,20 @@ class TestBusinessBridge:
         一层：真调发射函数，再真读采样投影 —— 看见即说明桥接生效、规则不再永远 no_data。
         """
         from agent.skills_mgmt import observability as obs
-
-        # 【为什么要把写出侧钉到同一个收集器实例】obs 在 **import 期**缓存了
-        #   `_metrics = get_business_metrics_collector()`；同分片里若有别的用例换了/
-        #   换了可用性标记（或收集器被重置），写出侧与 `snapshot_business_metrics()`
-        #   读到的就不是一个对象 —— 2026-11-11 CI shard3 实测：集合里有几十个
-        #   yunshu_skill_* 族，唯独我们这两族没有（写进了旧实例）。
-        #   生产里本来只有一个全局单例，这里显式钉住，既复现真实关系又不依赖测试顺序。
         import agent.monitoring.business_metrics as bm
-        collector = bm.get_business_metrics_collector()
+
+        # 【为什么要自建一个收集器并把两侧都钉上去】obs 在 **import 期**缓存了
+        #   `_metrics = get_business_metrics_collector()`，而全局单例在同分片的其它
+        #   用例里可能被替换/清空/临时打桩（2026-11-11 CI shard3 实测：集合里有几十个
+        #   yunshu_skill_* 族，唯独我们这两族没有 —— 写进了另一个实例）。
+        #   这里用**新建实例**并把"写出侧"与"读取侧"同时指向它：
+        #     写出侧 obs._metrics / obs._METRICS_AVAILABLE；读取侧 get_business_metrics_collector。
+        #   生产里两侧本来就是同一个全局单例，所以这不改变被测语义，只是把测试与环境隔离。
+        from agent.monitoring.business_metrics import BusinessMetricsCollector
+        collector = BusinessMetricsCollector()
         monkeypatch.setattr(obs, "_metrics", collector, raising=False)
         monkeypatch.setattr(obs, "_METRICS_AVAILABLE", True, raising=False)
+        monkeypatch.setattr(bm, "get_business_metrics_collector", lambda: collector, raising=False)
 
         from agent.skills_mgmt.observability import emit_eval_score_metric
 
