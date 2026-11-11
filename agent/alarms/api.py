@@ -105,12 +105,36 @@ def alarms_rules():
         return jsonify({"code": 500, "message": _ERR_TEXT, "data": None}), 500
 
 
+def _perception_gap() -> dict:
+    """感知面「最后事件时间」读数（只读状态文件；异常只回固定文案）。"""
+    try:
+        from agent.learning.perception_cycle import gap_summary
+        return gap_summary()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("报警器：感知覆盖读数失败（%s）", type(exc).__name__)
+        return {"available": False, "detail": "感知覆盖读数不可用（详见服务日志）"}
+
+
+def _ci_gap() -> dict:
+    """CI 事件源「最后同步时间」读数（只读 status.json；不联网）。"""
+    try:
+        from agent.monitoring.ci_status import gap_summary
+        return gap_summary()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("报警器：CI 覆盖读数失败（%s）", type(exc).__name__)
+        return {"available": False, "detail": "CI 覆盖读数不可用（详见服务日志）"}
+
+
 @alarms_bp.route("/coverage", methods=["GET"])
 def alarms_coverage():
-    """报警器覆盖读数：事件源清单 + 规则覆盖率 + 上一轮采集统计。
+    """报警器覆盖读数：事件源清单 + 规则覆盖率 + 上一轮采集统计 + 两个"静默缺口"。
 
     回答"它到底看得到什么、看不到什么"——看不到的部分**如实列出来**，
     而不是让页面上一片绿（L5：没有测量不等于没有问题）。
+
+    2026-11-12 追加两个"过期即静默"的读数（此前只能靠人翻日志发现）：
+    - `ci`：data/ci/status.json 的最后同步时间与是否已超 2h 阈值；
+    - `perception`：感知周期采集的最后 tick / 最后文件事件 / 监听目录 / watcher 是否在跑。
     """
     try:
         from agent.alarms import rules as rule_engine
@@ -123,7 +147,8 @@ def alarms_coverage():
             {"id": "scheduler", "name": "计划任务",
              "detail": "近 6 小时执行历史里 status=failed 的任务（读 data/task_history.jsonl）"},
             {"id": "ci", "name": "CI 结果",
-             "detail": "data/ci/status.json（由 scripts/sync_ci_status.py 同步 gh 结果）；超过 2 小时未同步按不可用"},
+             "detail": "data/ci/status.json（由 scripts/sync_ci_status.py 或 30 分钟周期任务同步 gh 结果）；"
+                       "超过 2 小时未同步按不可用（最后同步时间见 coverage.ci）"},
         ]
         coverage = {
             "sources": sources,
@@ -143,6 +168,12 @@ def alarms_coverage():
             }
         except Exception:  # noqa: BLE001 外部源模块坏了不影响其余覆盖读数
             coverage["prometheus"] = None
+        # 【两个"静默缺口"（2026-11-12）】此前这两处过期都是**无声的**：
+        # ① CI 源离线时 last_collect.checked.ci=false 只说"本轮没读到"，不说"上次同步是几点"；
+        # ② 感知面只有 enabled 开关，没有"最后一次事件是什么时候" ⇒ "没在感知"读起来像"没变化"。
+        # 两个读数都只读本地文件、不联网、不创建任何实例；读不到就 available=false（不假装正常）。
+        coverage["perception"] = _perception_gap()
+        coverage["ci"] = _ci_gap()
         return _ok(coverage)
     except Exception as exc:  # noqa: BLE001
         logger.error("报警器覆盖读数失败: %s", type(exc).__name__)

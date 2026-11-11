@@ -582,6 +582,14 @@ class TestConfigPathMatchesSourceReadSite:
             r'"storage_path":\s*os\.environ\.get\(\s*"EVOLUTION_STORAGE_PATH"\s*,\s*'
             r'str\(cfg\.get\("(?P<leaf>[a-z_]+)"',
         ),
+        # ── 感知文件监听：sensor_config._config_yaml_watch_dirs() 读 sensor.watch_dirs ──
+        # 【2026-11-12】该键此前是死键（Config 不解析 YAML，lifecycle 却从 Config 取），
+        # 现在由 agent/sensor_config.py 直读 config.yaml；路径由源码机械提取（段 + 叶子）。
+        "SENSOR_WATCH_DIRS": (
+            "agent/sensor_config.py",
+            r'cfg.get\("(?P<sec>[a-z_]+)"\)[\s\S]*?'
+            r'sensor\.get\("(?P<leaf>[a-z_]+)"\)',
+        ),
         # ── 感知侧学习：novelty_hooks._cfg_value() 读 learning.sensor_learning.<key> ──
         "SENSOR_LEARNING_ENABLED": (
             "agent/learning/novelty_hooks.py",
@@ -651,7 +659,8 @@ class TestConfigPathMatchesSourceReadSite:
         "CP_SLO_SCHEDULE_ENABLED",
         "PLANNING_WIRE_ENABLED", "PLANNING_WIRE_MIN_COMPLEXITY",
         "PLANNING_WIRE_TIMEOUT_SECONDS",
-        # L1 依据读取点补登记（9）
+        # L1 依据读取点补登记（10；2026-11-12 增 SENSOR_WATCH_DIRS）
+        "SENSOR_WATCH_DIRS",
         "EVOLUTION_ENABLED", "EVOLUTION_LLM_GENERATE", "EVOLUTION_STORAGE_PATH",
         "SENSOR_LEARNING_ENABLED", "SENSOR_LEARNING_DRIFT_THRESHOLD",
         "SENSOR_LEARNING_BASELINE_RETENTION_WEEKS", "SENSOR_LEARNING_DRAFT_DIR",
@@ -712,6 +721,7 @@ class TestConfigPathMatchesSourceReadSite:
         assert set(self._CODE_CONFIG_PATH_PATTERNS) == {
             "EVOLUTION_ENABLED", "EVOLUTION_LLM_GENERATE",
             "EVOLUTION_STORAGE_PATH",
+            "SENSOR_WATCH_DIRS",
             "SENSOR_LEARNING_ENABLED", "SENSOR_LEARNING_DRIFT_THRESHOLD",
             "SENSOR_LEARNING_BASELINE_RETENTION_WEEKS",
             "SENSOR_LEARNING_DRAFT_DIR", "SENSOR_LEARNING_AUDIT_FILE",

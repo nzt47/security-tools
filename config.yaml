@@ -6,7 +6,7 @@
 #     DEFAULT → 环境变量 → overrides；memory / planning / behavior / features 等节在运行态
 #     来自**代码常量**，改本文件对它们无效。
 #   · 另有一批子系统**各自直读**本文件（env > config.yaml > 代码默认），改了就生效：
-#     autonomy.* / retention.* / slo_report.* / learning.*（budget、sensor_learning、evolver、
+#     autonomy.* / retention.* / slo_report.* / sensor.watch_dirs / learning.*（budget、sensor_learning、evolver、
 #     lifecycle、precipitate、feedback_agent、experience_persist）/ skills_mgmt.*（assess、cleanup、
 #     scale）/ features.* / orchestrator.*（semantic_layer、reject、workflow_learning_layer、learning）/
 #     planning.wire_* / llm.model、llm.fallback_chain / workflow_learning.matcher / arch_rules.* /
@@ -101,6 +101,22 @@ llm:
   temperature: 0.7
   max_tokens: 2000
   api_key: ${OPENAI_API_KEY}
+sensor:
+  # 感知·文件监听目录（2026-11-12 接线）
+  # 【为什么以前配了不生效】中心配置 Config **从不解析 config.yaml**（取值链只有
+  #   DEFAULT → 环境变量 → overrides），而 LifecycleManager 恰是用 Config 的 sensor 段
+  #   取 watch_dirs ⇒ 本键当年是死键，FileWatcher 永不启动。现在由
+  #   agent/sensor_config.resolve_watch_dirs 直读本文件（env > Config overrides > 本文件 > 默认）。
+  # 环境变量 SENSOR_WATCH_DIRS（逗号/分号分隔）覆盖此值；**改后需重启**
+  #   （watchdog 的 Observer 在启动期按目录建 watch，热改不会重新 schedule）。
+  # 纪律：**不要**把 data/learning 或仓库根放进来 —— 前者监听学习产物会自激
+  #   （每轮感知给自己造一条文件变更），后者递归全仓会淹没事件缓冲区；
+  #   两者都会被 resolve_watch_dirs 强制剔除并记 warning。
+  # 只放"外部输入面"：knowledge（知识库，人或吞噬管线写）、data/inbox（人工投递箱）。
+  # 留空（watch_dirs: []）⇒ 走代码默认 DEFAULT_WATCH_DIRS，与本段注释一致。
+  watch_dirs:
+    - ./knowledge
+    - ./data/inbox
 learning:
   # TASK(集成): ContextAssembler 旁路注入（D2D3 替代方案 CEL 框架）
   # 观察模式已开启（2026-08-12，集成验证通过后）：system prompt 追加三层记忆组装产物；

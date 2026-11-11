@@ -253,13 +253,22 @@ class LifecycleManager:
         logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._initialize_core_systems.log', 'message': '%s' % ('=' * 80,)}))
 
         # ── 1. 我的身体：感知层 ──
+        # 【2026-11-12 修正：watch_dirs 此前是死键】`self._config` 是 Config 的合并字典，
+        #   而 Config **从不解析 config.yaml**（见 config.py 顶部与其中 _load_from_env 的
+        #   实测注释），sensor.watch_dirs 的默认值又恒为 None ⇒ 在 config.yaml 里配监听目录
+        #   也不会被读到，FileWatcher 永不启动（"感知侧学习开了但近乎空转"的直接原因）。
+        #   现在按本仓惯例走 `agent/sensor_config.resolve_watch_dirs`：
+        #   env SENSOR_WATCH_DIRS > Config overrides > config.yaml: sensor.watch_dirs > 默认。
+        #   该函数还会剔除 data/learning（监听学习产物 = 自激）并去重/展开。
         sensor_cfg = self._config.get("sensor", {})
+        from agent.sensor_config import resolve_watch_dirs
+        watch_dirs = resolve_watch_dirs(sensor_cfg)
         self.body = BodySensor(
-            watch_dirs=sensor_cfg.get("watch_dirs"),
+            watch_dirs=watch_dirs or None,
             enable_change_detection=sensor_cfg.get("enable_change_detection", True),
             enable_event_monitor=sensor_cfg.get("enable_event_monitor", True),
         )
-        logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._initialize_core_systems.bodysensor', 'message': '[ok] 身体（BodySensor）已激活'}))
+        logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._initialize_core_systems.bodysensor', 'message': '[ok] 身体（BodySensor）已激活；文件监听目录 %d 个: %s' % (len(watch_dirs), ', '.join(watch_dirs) or '（未配置，FileWatcher 不启动）')}))
 
         # TASK-06 学习钩子旁路挂载（默认观察模式零副作用；挂载失败仅日志，不影响感知初始化）
         try:

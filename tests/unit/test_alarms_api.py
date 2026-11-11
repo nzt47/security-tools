@@ -117,9 +117,18 @@ class TestRulesEndpoints:
         rule_engine.evaluate_all(store=store, now=100.0)
         payload = _data(client.get("/api/alarms/coverage"))
         ids = {row["id"] for row in payload["sources"]}
-        assert {"health", "units", "rules", "audit"} <= ids
+        assert {"health", "units", "rules", "audit", "scheduler", "ci"} <= ids
         assert payload["rules"]["rules_total"] == 16
         assert payload["rules"]["rules_blocked"] >= 0
+        # 两个「静默缺口」（2026-11-12）：过期不能是无声的 —— 读数必须在响应里且**是形状**，
+        # 读不到时也要 available=false + 说明，而不是整个键消失（前端据此显示"无读数"）。
+        for key in ("ci", "perception"):
+            gap = payload[key]
+            assert isinstance(gap, dict), key
+            assert isinstance(gap["available"], bool), key
+            assert isinstance(gap.get("detail"), str) and gap["detail"], key
+        assert "max_age_seconds" in payload["ci"]
+        assert "watch_dirs" in payload["perception"]
         rule_engine.reset_states()
 
 

@@ -1142,6 +1142,18 @@ _cfg = Config(overrides=load_subagent_config_overrides())
 _Yunshu = DigitalLife(_cfg.merged)
 _Yunshu.start()
 
+# 感知周期采集接线（2026-11-12）：把**同一个** BodySensor 交给周期任务
+# （agent/learning/perception_cycle.py）。为什么必须显式接线：该任务要 drain
+# FileWatcher 缓冲区、并按节流跑 ChangeDetector.collect()；如果自己 new 一个
+# BodySensor，就会变成"第二个监听器 + 第二个快照基准"，两边各记各的事件。
+# 接线失败不阻断启动：感知周期任务会在首轮 tick 里如实报 no_body（可见，不静默）。
+try:
+    from agent.learning.perception_cycle import attach_body as _attach_perception_body
+    _attach_perception_body(_Yunshu.body)
+    print("[启动] 感知周期采集已接线（BodySensor → perception_cycle）")
+except Exception as _perception_e:
+    print(f"[启动] 感知周期采集接线失败（不阻断启动）: {_perception_e}")
+
 # 知识库卡片存储接线（任务6）：知识库 API 路由的 CardStore 事实源。
 # 默认布局 knowledge/wiki（AGENTS.md 契约）；wiki 目录缺失时 CardStore 写入自动建目录。
 try:
@@ -2730,6 +2742,24 @@ if __name__ == "__main__":
             print(f"✅ TASK-05 学习类定时任务注册: {learning_tasks}")
         except Exception as e:
             print(f"⚠️ TASK-05 学习类定时任务注册失败（不阻断主流程）: {e}")
+        # 感知周期采集（2026-11-12）：把"感知面到底有没有在动"从静默变成有输入 ——
+        # ChangeDetector.collect() 与 FileWatcher 在本部署此前**没有周期调用方**
+        # （只在 sensor_server.py / sensor/main.py / 测试里被调），所以感知侧学习
+        # 只有周级漂移事件。这里按 5 分钟 drain 文件事件 + 30 分钟跑一次快照 diff；
+        # 开关 SENSOR_PERCEPTION_ENABLED 关闭时 register 返回 disabled（零副作用）。
+        try:
+            from agent.learning.perception_cycle import register_perception_scheduler
+            print(f"✅ 感知周期采集任务注册: {register_perception_scheduler(scheduler)}")
+        except Exception as e:
+            print(f"⚠️ 感知周期采集任务注册失败（不阻断主流程）: {e}")
+        # CI 状态同步（2026-11-12）：报警器的 ci 事件源读 data/ci/status.json，
+        # 超过 2h 未同步即按不可用 —— 实测 2026-11-11 18:14 后无人同步 ⇒ CI 覆盖实际离线。
+        # 30 分钟一次（阈值的 1/4），gh 失败只记警告、不抛异常（不制造"计划任务失败"噪音）。
+        try:
+            from agent.monitoring.ci_status import register_ci_sync_scheduler
+            print(f"✅ CI 状态同步任务注册: {register_ci_sync_scheduler(scheduler)}")
+        except Exception as e:
+            print(f"⚠️ CI 状态同步任务注册失败（不阻断主流程）: {e}")
         # 技能冲突自动处置：每日产一份「建议停用 / 保持 / 待人工」计划（只写计划，不动手）
         try:
             from agent.skills_mgmt.conflict_auto import register_scheduler as _reg_conflict

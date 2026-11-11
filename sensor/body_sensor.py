@@ -311,6 +311,25 @@ class BodySensor:
         self._ensure_file_watcher()
         elapsed = (time.time() - all_start) * 1000
         logger.info("[BodySensor] 所有懒加载模块初始化完成，总耗时: %.3fms", elapsed)
+
+    def ensure_passive_sensors(self):
+        """初始化「被动感知」两个模块（ChangeDetector + FileWatcher），**不启动** EventMonitor。
+
+        【为什么单列一个入口（2026-11-12）】周期感知任务
+        （`agent/learning/perception_cycle.py`）需要快照 diff 与文件事件，但**不该**
+        顺带启动实时硬件事件监听：EventMonitor 会起后台线程 + WMI 查询，属于另一条链路
+        （谁要实时插拔事件，谁显式调 `initialize_all()`）。把"被动两个"与"主动监听"
+        分开，周期任务才能在最小副作用下真正把 `watch_dirs` / 快照 diff 跑起来。
+
+        Returns:
+            {"change_detector": bool, "file_watcher": bool}（各自是否已就绪）
+        """
+        self._ensure_change_detector()
+        self._ensure_file_watcher()
+        return {
+            "change_detector": self.change_detector is not None,
+            "file_watcher": self.file_watcher is not None,
+        }
     
     def establish_baseline(self):
         """建立变更检测基准快照——在 start() 时调用"""

@@ -77,15 +77,26 @@ class TestDigitalLifeInitialization:
         assert digital_life._v2_distillation == False
 
     @patch('agent.orchestrator.lifecycle_manager.BodySensor')
-    def test_init_body_sensor(self, mock_sensor):
-        """测试身体传感器初始化"""
+    def test_init_body_sensor(self, mock_sensor, monkeypatch):
+        """测试身体传感器初始化
+
+        2026-11-12：lifecycle 不再把 config 里的 watch_dirs 原样透传，而是先过
+        `agent/sensor_config.resolve_watch_dirs`（绝对路径 + 去重 + 剔除 data/learning）。
+        ⇒ 断言值必须**用同一个解析函数**算，写死字符串会让"规范化"看起来像回归。
+        """
+        from pathlib import Path
+
         from agent.digital_life import DigitalLife
-        
+        from agent.sensor_config import resolve_watch_dirs
+
+        monkeypatch.delenv("SENSOR_WATCH_DIRS", raising=False)
         config = {"sensor": {"watch_dirs": ["/test"]}}
         digital_life = DigitalLife(config)
-        
+
+        expected = resolve_watch_dirs({"watch_dirs": ["/test"]})
+        assert expected == [str(Path("/test").resolve())]
         mock_sensor.assert_called_once_with(
-            watch_dirs=["/test"],
+            watch_dirs=expected,
             enable_change_detection=True,
             enable_event_monitor=True
         )

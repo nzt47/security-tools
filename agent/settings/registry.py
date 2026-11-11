@@ -1344,6 +1344,34 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        "（agent/learning/novelty_hooks.py:107-118）",
        owner="agent/learning/novelty_hooks.py",
        config_path="learning.sensor_learning.baseline_retention_weeks"),
+
+    # ── 感知采集（2026-11-12）：watch_dirs + 周期采集 ──
+    # 【为什么要登记】三项读取点都是 2026-11-12 新增的（agent/sensor_config.py、
+    #   agent/learning/perception_cycle.py）。零缺口门（scripts/scan_settings.py --check）
+    #   会把未登记的 env 读取点判红，CI 的「设置注册表」作业同口径。
+    # 【为什么 watch_dirs 需要重启】FileWatcher 的 watchdog Observer 在启动期按目录
+    #   建 watch（sensor/body_sensor.py::_init_file_watcher），热改白名单不会重新 schedule。
+    _a("SENSOR_WATCH_DIRS", CAT_LEARNING, None,
+       "感知文件监听的目录清单（逗号或分号分隔）；优先级 env > Config overrides > "
+       "config.yaml sensor.watch_dirs > 默认（knowledge、data/inbox）。"
+       "data/learning/ 会被强制剔除（监听学习产物 = 自激：每轮感知给自己造一条文件变更）。"
+       "空/全部被剔除 ⇒ FileWatcher 不启动（覆盖读数会如实显示 watcher_running=false）"
+       "（agent/sensor_config.py）",
+       owner="agent/sensor_config.py",
+       config_path="sensor.watch_dirs", needs_restart=True),
+    _a("SENSOR_PERCEPTION_ENABLED", CAT_LEARNING, True,
+       "感知周期采集总开关（默认开）：关掉后文件事件不再 drain、快照 diff 不再跑，"
+       "感知侧学习只剩周级行为漂移事件（agent/learning/perception_cycle.py）",
+       owner="agent/learning/perception_cycle.py"),
+    _a("SENSOR_PERCEPTION_INTERVAL_SECONDS", CAT_LEARNING, 300,
+       "感知周期采集间隔（秒，默认 300 = 5 分钟，最小 30）：每轮 drain FileWatcher 缓冲区；"
+       "改动在下一次注册时生效（agent/learning/perception_cycle.py::tick_seconds）",
+       owner="agent/learning/perception_cycle.py"),
+    _a("SENSOR_CHANGE_DETECT_INTERVAL_SECONDS", CAT_LEARNING, 1800,
+       "快照 diff（ChangeDetector.collect）节流（秒，默认 1800 = 30 分钟，最小 60）："
+       "设备/进程枚举是 WMI 重活，过密只会把 novelty 记忆刷成进程增减噪音"
+       "（agent/learning/perception_cycle.py::change_detect_seconds）",
+       owner="agent/learning/perception_cycle.py"),
     # 【L5（2026-09-23）】补登记 config_path：三项都在 orchestrator.py 里读
     #   config.yaml（config 段见各条描述），此前留空 ⇒ UI 只显示 default。
     _a("LEARNING_REFLECTION_PERSIST", CAT_LEARNING, True,
@@ -2998,6 +3026,20 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        "只拉 up，不代理其它族。拉取失败的那一轮规则源整体保留旧告警"
        " [2026-11-11；agent/alarms/prometheus_source.py]",
        owner="agent/alarms/prometheus_source.py"),
+
+    # · CI 事件源同步（2026-11-12）：报警器读 data/ci/status.json，>2h 未同步即按不可用
+    # 【为什么要有周期任务】2026-11-11 18:14 之后再没人同步 ⇒ CI 覆盖实际离线 7h，
+    #   而这一状态在页面上只是 checked.ci=false（"本轮没读到"），看不出"上次是几点"。
+    _a("CP_CI_SYNC_ENABLED", CAT_OBSERVABILITY, True,
+       "CI 运行结论周期同步开关（默认开）：每 30 分钟跑一次 gh run list 写 "
+       "data/ci/status.json，供报警器 CI 事件源判读；关闭后文件会逐渐过期（>2h 判不可用）"
+       "（agent/monitoring/ci_status.py）",
+       owner="agent/monitoring/ci_status.py"),
+    _a("CP_CI_SYNC_INTERVAL_SECONDS", CAT_OBSERVABILITY, 1800,
+       "CI 运行结论同步间隔（秒，默认 1800 = 30 分钟 = 2h 离线阈值的 1/4，最小 300）："
+       "gh 失败只记警告、不抛异常（不制造「计划任务失败」噪音）"
+       "（agent/monitoring/ci_status.py::interval_seconds）",
+       owner="agent/monitoring/ci_status.py"),
 
     # · F3-1 卡：前缀缓存的易变尾簇搬家（每次调用都读 ⇒ 热生效）
     _a("YUNSHU_PROMPT_VOLATILE_TAIL", CAT_ORCHESTRATION, True,

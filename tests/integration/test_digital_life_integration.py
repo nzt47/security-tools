@@ -231,10 +231,16 @@ class TestConstructionAndConfiguration:
                 assert digital_life._v2_persona is False
                 assert digital_life._v2_distillation is False
 
-    def test_init_with_sensor_config(self):
-        """测试带传感器配置的初始化"""
+    def test_init_with_sensor_config(self, monkeypatch):
+        """测试带传感器配置的初始化
+
+        2026-11-12：watch_dirs 先过 `agent/sensor_config.resolve_watch_dirs`
+        （相对路径按仓库根展开、去重、剔除 data/learning）⇒ 断言用同一函数算期望值。
+        """
         from agent.digital_life import DigitalLife
-        
+        from agent.sensor_config import resolve_watch_dirs
+
+        monkeypatch.delenv("SENSOR_WATCH_DIRS", raising=False)
         config = {
             'sensor': {
                 'watch_dirs': ['./data'],
@@ -242,12 +248,13 @@ class TestConstructionAndConfiguration:
                 'enable_event_monitor': False
             }
         }
-        
+
         with patch('agent.orchestrator.lifecycle_manager.BodySensor') as mock_body:
             digital_life = DigitalLife(config=config)
             mock_body.assert_called_once()
             call_kwargs = mock_body.call_args
-            assert call_kwargs[1]['watch_dirs'] == ['./data']
+            assert call_kwargs[1]['watch_dirs'] == resolve_watch_dirs(
+                {'watch_dirs': ['./data']})
             assert call_kwargs[1]['enable_event_monitor'] is False
 
     def test_init_with_health_check_interval(self):

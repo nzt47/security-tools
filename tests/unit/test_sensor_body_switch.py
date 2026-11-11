@@ -518,7 +518,13 @@ class TestBodySensorLazyWiring:
         assert body.event_monitor is existing
 
     def test_ensure_file_watcher_without_watch_dirs_does_nothing(self, body):
-        """`watch_dirs=None` ⇒ 永不创建 FileWatcher（config.yaml 当前无 sensor.watch_dirs）。"""
+        """`watch_dirs=None` ⇒ 不创建 FileWatcher。
+
+        【2026-11-12 更新】此前注释写"config.yaml 当前无 sensor.watch_dirs"——现在有了
+        （`sensor.watch_dirs: [./knowledge, ./data/inbox]`）。但 BodySensor 这一层的约定
+        不变：**构造参数为准**，None 就是没配；解析/兜底在生命周期侧
+        （`agent/sensor_config.resolve_watch_dirs`），BodySensor 不自己读配置。
+        """
         body._ensure_file_watcher()
         assert body.file_watcher is None
 
