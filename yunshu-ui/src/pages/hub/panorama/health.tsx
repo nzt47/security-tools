@@ -58,8 +58,11 @@ import {
   getAlarmCoverage,
   getAlarmRules,
   type AlarmCoverage,
+  type AlarmCoverageCi,
+  type AlarmCoveragePerception,
   type AlarmRulesPayload,
 } from '@/api/alarms'
+import { formatAge } from '@/utils/format'
 import { Badge, Card, ErrorBox, Loading, PageHeader, hubGet } from '../components/ui'
 import { getEnvelope } from '@/api/envelope'
 import { downloadFile } from '../../../utils/system'
@@ -622,6 +625,30 @@ function sourceState(srcId: string, coverage?: AlarmCoverage):
     : { label: '本轮不可用', color: 'red' }
 }
 
+/** 静默缺口①：CI 事件源最后同步时间（过期就是过期，不写成"正常"）
+ *
+ * 【为什么要单独一行】采集层对"文件过期"的处理是 keep（既不报警也不判恢复），
+ * 页面上只剩 checked.ci=false —— 读起来像"这一轮没数据"，而不是"CI 已经离线 7 小时"。
+ */
+function ciGapText(ci?: AlarmCoverageCi | null): string {
+  if (!ci) return MISSING
+  if (!ci.available) return '从未同步 ⇒ CI 事件源不可用'
+  const hours = Math.round((ci.max_age_seconds ?? 0) / 3600)
+  return formatAge(ci.age_seconds) + (ci.stale
+    ? `（已超 ${hours}h 阈值 ⇒ 按不可用处理）`
+    : `（阈值 ${hours}h 内）`)
+}
+
+/** 静默缺口②：感知周期采集的最后事件时间（"没在感知"不能读成"没变化"） */
+function perceptionGapText(p?: AlarmCoveragePerception | null): string {
+  if (!p) return MISSING
+  if (!p.available) return '还没有读数（任务未注册或刚启动）'
+  const dirs = (p.watch_dirs ?? []).length
+  const watcher = p.watcher_running ? `监听 ${dirs} 个目录` : 'FileWatcher 未运行'
+  return `${watcher} · 最近文件事件 ${formatAge(p.last_file_event_age_seconds)}`
+    + ` · 最近感知事件（记忆） ${formatAge(p.last_novelty_age_seconds)}`
+}
+
 /** 监控覆盖面板：事件源逐条状态 + 规则可求值性 + 采样环点数 + 外部 Prometheus */
 export function AlarmCoverageBlock({
   coverage, rules, error,
@@ -713,6 +740,19 @@ export function AlarmCoverageBlock({
               : '未配置 ⇒ up{job=...} 类规则只能报「无数据」')
             : MISSING}
           {prom?.detail ? ' · ' + prom.detail : ''}
+        </div>
+
+        {/* 两个「静默缺口」（2026-11-12）：此前过期是**无声的**，只能靠人翻文件/日志发现 */}
+        <div data-testid="alarm-coverage-silent-gaps"
+          className="rounded-lg border border-slate-800 px-3 py-2 text-[11px] text-slate-400">
+          <div data-testid="alarm-coverage-ci-gap">
+            {'CI 最后同步：' + ciGapText(coverage?.ci)}
+            {coverage?.ci?.detail ? ' · ' + coverage.ci.detail : ''}
+          </div>
+          <div data-testid="alarm-coverage-perception-gap">
+            {'感知最后事件：' + perceptionGapText(coverage?.perception)}
+            {coverage?.perception?.detail ? ' · ' + coverage.perception.detail : ''}
+          </div>
         </div>
       </div>
     </Card>

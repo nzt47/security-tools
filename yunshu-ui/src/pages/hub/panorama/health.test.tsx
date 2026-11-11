@@ -121,6 +121,20 @@ const COVERAGE = {
     raised: 1, resolved: 0, kept: [], warmup: false,
   },
   prometheus: { configured: false, last_ok: null, detail: '未配置（CP_PROMETHEUS_URL 为空）：up{} 类规则只能报 no_data' },
+  // 两个「静默缺口」（2026-11-12）：CI 最后同步 / 感知最后事件（实测形状）
+  ci: {
+    available: true, last_sync_at: '2026-11-11T18:14:54+08:00', age_seconds: 25344,
+    stale: true, max_age_seconds: 7200, runs: 10,
+    detail: '最后同步 7.0 小时前 > 阈值 2 小时 ⇒ CI 事件源按不可用处理',
+  },
+  perception: {
+    available: true, watch_dirs: ['./knowledge', './data/inbox'], watcher_running: true,
+    last_tick_at: '2026-11-12T01:20:00+08:00', last_tick_age_seconds: 120,
+    last_file_event_at: '2026-11-12T01:10:00+08:00', last_file_event_age_seconds: 600,
+    last_change_at: '2026-11-12T01:20:00+08:00',
+    last_novelty_at: '2026-11-12T01:18:00+08:00', last_novelty_age_seconds: 300,
+    long_silent: false, detail: '监听 2 个目录，运行中；最近一次文件事件 10 分钟前',
+  },
 }
 
 const RULES = {
@@ -627,6 +641,16 @@ describe('告警 Tab 的监控覆盖块', () => {
     const prom = screen.getByTestId('alarm-coverage-prometheus')
     expect(prom.textContent).toContain('未配置')
     expect(prom.textContent).toContain('无数据')
+
+    // 两个「静默缺口」（2026-11-12）：过期就是过期 —— CI 7 小时未同步要写明"已超阈值"，
+    // 感知要给出"监听 N 个目录 + 最近事件多久前"，而不是只显示一个 enabled 开关。
+    const gaps = screen.getByTestId('alarm-coverage-silent-gaps')
+    expect(gaps.textContent).toContain('CI 最后同步')
+    expect(gaps.textContent).toContain('7 小时前')
+    expect(gaps.textContent).toContain('已超 2h 阈值')
+    expect(gaps.textContent).toContain('感知最后事件')
+    expect(gaps.textContent).toContain('监听 2 个目录')
+    expect(gaps.textContent).toContain('10 分钟前')
   })
 
   it('组件级：Prometheus 已配置可用 + 无 blocked 时不渲染告警块', () => {
@@ -647,6 +671,46 @@ describe('告警 Tab 的监控覆盖块', () => {
     expect(prom.textContent).toContain('已配置')
     expect(prom.textContent).toContain('可用')
     expect(screen.getByText(/3 个点/)).toBeTruthy()
+  })
+
+  it('组件级：静默缺口没有读数时如实显示"从未同步 / 还没有读数"，不写成正常', () => {
+    render(
+      <AlarmCoverageBlock
+        coverage={{
+          sources: [],
+          rules: { rules_total: 16, rules_evaluable: 16, rules_blocked: 0, by_state: { ok: 16 }, blocked: [] },
+          last_collect: { checked: { ci: false }, raised: 0, resolved: 0, kept: [], warmup: false },
+          // 后端读得到文件但从未同步 / 感知任务还没跑过 ⇒ available=false + 说明
+          ci: { available: false, stale: true },
+          perception: { available: false },
+        }}
+      />,
+    )
+    const gaps = screen.getByTestId('alarm-coverage-silent-gaps')
+    expect(gaps.textContent).toContain('从未同步')
+    expect(gaps.textContent).toContain('还没有读数')
+    expect(gaps.textContent).not.toContain('刚刚')
+  })
+
+  it('组件级：感知 watcher 未运行 / 长期无事件时点明原因，不写成「一切正常」', () => {
+    render(
+      <AlarmCoverageBlock
+        coverage={{
+          sources: [],
+          rules: { rules_total: 16, rules_evaluable: 16, rules_blocked: 0, by_state: { ok: 16 }, blocked: [] },
+          last_collect: { checked: {}, raised: 0, resolved: 0, kept: [], warmup: false },
+          ci: { available: true, age_seconds: 120, stale: false, max_age_seconds: 7200, runs: 3 },
+          perception: {
+            available: true, watch_dirs: [], watcher_running: false,
+            last_file_event_age_seconds: null, long_silent: false,
+            detail: 'FileWatcher 未运行（watch_dirs 为空或目录都被剔除）⇒ 文件变化不会被感知',
+          },
+        }}
+      />,
+    )
+    const gaps = screen.getByTestId('alarm-coverage-silent-gaps')
+    expect(gaps.textContent).toContain('FileWatcher 未运行')
+    expect(gaps.textContent).toContain('2 分钟前')
   })
 
   it('组件级：两条端点都失败时上屏错误而不是显示成「一切正常」', () => {

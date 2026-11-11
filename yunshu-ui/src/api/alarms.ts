@@ -172,6 +172,38 @@ export interface AlarmCoverage {
     last_ok: boolean | null
     detail: string
   } | null
+  /** 静默缺口①（2026-11-12）：CI 事件源的最后同步时间 —— 过期就是过期，不写成"正常" */
+  ci?: AlarmCoverageCi | null
+  /** 静默缺口②（2026-11-12）：感知周期采集的最后事件时间 —— "没在感知"不能读成"没变化" */
+  perception?: AlarmCoveragePerception | null
+}
+
+/** CI 事件源覆盖读数（后端 /api/alarms/coverage.ci） */
+export interface AlarmCoverageCi {
+  available: boolean
+  last_sync_at?: string | null
+  age_seconds?: number | null
+  /** true = 超过 2h 阈值（采集层据此把 CI 源当"不可用"，既不报警也不判恢复） */
+  stale: boolean
+  max_age_seconds?: number
+  runs?: number
+  detail?: string
+}
+
+/** 感知周期采集覆盖读数（后端 /api/alarms/coverage.perception） */
+export interface AlarmCoveragePerception {
+  available: boolean
+  watch_dirs?: string[]
+  watcher_running?: boolean
+  last_tick_at?: string | null
+  last_tick_age_seconds?: number | null
+  last_file_event_at?: string | null
+  last_file_event_age_seconds?: number | null
+  last_change_at?: string | null
+  last_novelty_at?: string | null
+  last_novelty_age_seconds?: number | null
+  long_silent?: boolean
+  detail?: string
 }
 
 export interface AlarmRuleState {

@@ -4,6 +4,7 @@
  * - formatDate：日期格式化（YYYY/MM/DD/HH/mm/ss 占位）
  * - formatBytes：字节 → 人类可读（B/KB/MB/GB）
  * - formatNumber：千分位数字
+ * - formatAge：距今秒数 → 中文相对时间（刚刚 / N 分钟前 / N 小时前 / N 天前）
  */
 
 function pad2(n: number): string {
@@ -57,3 +58,24 @@ export function formatNumber(n: number): string {
   const grouped = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
   return decimalPart === undefined ? grouped : `${grouped}.${decimalPart}`
 }
+
+/**
+ * 距今秒数 → 中文相对时间。
+ *
+ * 【为什么要一个共用实现】"最后同步是几点 / 最后事件是几点"这类读数散落在多个面板，
+ * 各写一份就会出现"3 分钟前"和"0.05 小时前"两套口径（本仓已有两处本地实现，
+ * 新增读数统一走这里）。
+ *
+ * 口径：null/undefined/负数/非有限值 **不返回 0**，返回 '—'（L5：没读到 ≠ 刚刚发生）；
+ * 60s 内 '刚刚'，60 分钟 '/ N 分钟前'，24 小时 '/ N 小时前'，否则 '/ N 天前'。
+ */
+export function formatAge(seconds: number | null | undefined): string {
+  if (seconds == null || !Number.isFinite(seconds) || seconds < 0) return '—'
+  if (seconds < 60) return '刚刚'
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes} 分钟前`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours} 小时前`
+  return `${Math.floor(hours / 24)} 天前`
+}
+

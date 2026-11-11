@@ -2,7 +2,7 @@
  * format 工具单元测试（零依赖纯函数，TZ 无关：使用本地时间构造 Date）
  */
 import { describe, it, expect } from 'vitest'
-import { formatDate, formatBytes, formatNumber } from './format'
+import { formatAge, formatDate, formatBytes, formatNumber } from './format'
 
 describe('formatDate', () => {
   it('默认 pattern：YYYY-MM-DD HH:mm:ss（本地时间）', () => {
@@ -35,6 +35,25 @@ describe('formatBytes', () => {
   it('非法输入回退 0 B', () => {
     expect(formatBytes(-1)).toBe('0 B')
     expect(formatBytes(Number.NaN)).toBe('0 B')
+  })
+})
+
+describe('formatAge', () => {
+  it('按秒数分档：刚刚 / 分钟 / 小时 / 天', () => {
+    expect(formatAge(0)).toBe('刚刚')
+    expect(formatAge(59)).toBe('刚刚')
+    expect(formatAge(60)).toBe('1 分钟前')
+    expect(formatAge(600)).toBe('10 分钟前')
+    expect(formatAge(3600)).toBe('1 小时前')
+    expect(formatAge(25344)).toBe('7 小时前')
+    expect(formatAge(86400 * 2)).toBe('2 天前')
+  })
+
+  it('没有读数时回退「—」而不是「刚刚」（无数据不许折算成 0）', () => {
+    expect(formatAge(null)).toBe('—')
+    expect(formatAge(undefined)).toBe('—')
+    expect(formatAge(Number.NaN)).toBe('—')
+    expect(formatAge(-5)).toBe('—')
   })
 })
 
