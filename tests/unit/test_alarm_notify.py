@@ -155,6 +155,16 @@ def test_no_enabled_channel_is_not_a_failure(tmp_path):
     assert notify.load_cursor(tmp_path / "cur.json") == 1
 
 
+def test_status_reports_last_round(tmp_path):
+    rec = _Recorder()
+    cur = tmp_path / "cur.json"
+    notify.dispatch_pending(events_path=_events(tmp_path, [_ev()]),
+                            cursor_path=cur, dispatcher=rec)
+    st = notify.status(cursor_path=cur, events_path=_events(tmp_path, [_ev()]))
+    assert st["last_round"]["sent"] == 1
+    assert st["last_round"]["at"]
+
+
 def test_status_reports_queued(tmp_path):
     path = _events(tmp_path, [_ev(), _ev(id=2, key="k2")])
     cur = tmp_path / "cur.json"

@@ -262,14 +262,45 @@ def dispatch_pending(*, store: Any = None,
                 logger.debug("[AlarmNotify] 未安装/未启用任何出站通道，本轮只推进游标")
         else:
             stats["failed"] += 1
-            logger.info("[AlarmNotify] 未发出（reason=%s）", result.get("reason") or "")
+            # 【别每条都 INFO】2026-11-12 实测：通道装了两个但都没配置（webhook_url/smtp_server 空），
+            # 每条事件一条 INFO ⇒ 每分钟 5 条噪音。这里降到 debug，另由下面的节流 warning 汇总。
+            logger.debug("[AlarmNotify] 未发出（reason=%s）", result.get("reason") or "")
 
     stats["cursor"] = consumed
     save_cursor(consumed, cursor_path)
-    if stats["sent"] or stats["failed"]:
-        logger.info("[AlarmNotify] 本轮 考虑 %d / 发出 %d / 跳过 %d / 失败 %d",
-                    stats["considered"], stats["sent"], stats["skipped"], stats["failed"])
+    _record_round(stats)
+    if stats["failed"] and not stats["sent"]:
+        _warn_failure_throttled(stats)
     return stats
+
+
+#: 最近一轮外发统计（内存；供 /api/alarms/coverage 的 notify 读数披露"到底发没发出去"）
+_last_round: Dict[str, Any] = {}
+#: 失败 warning 的节流（同一状态每 30 分钟最多一条）
+_FAILURE_LOG_INTERVAL_SEC = 1800
+_last_failure_log_at: float = 0.0
+
+
+def _record_round(stats: Dict[str, Any]) -> None:
+    global _last_round
+    _last_round = {
+        "at": _iso(time.time()),
+        "considered": stats.get("considered", 0),
+        "sent": stats.get("sent", 0),
+        "skipped": stats.get("skipped", 0),
+        "failed": stats.get("failed", 0),
+    }
+
+
+def _warn_failure_throttled(stats: Dict[str, Any]) -> None:
+    """通道装了但发不出去时，每 30 分钟警告一次（而不是每条事件一条）。"""
+    global _last_failure_log_at
+    now = time.time()
+    if now - _last_failure_log_at < _FAILURE_LOG_INTERVAL_SEC:
+        return
+    _last_failure_log_at = now
+    logger.warning("[AlarmNotify] 外发失败：本轮 %d 条全部未发出（通道已安装但可能未配置；"
+                   "详见 /api/alarms/coverage 的 notify.last_round）", stats.get("failed", 0))
 
 
 def status(cursor_path: Optional[Path] = None,
@@ -284,7 +315,9 @@ def status(cursor_path: Optional[Path] = None,
         "cursor_lines": cursor,
         "event_lines": len(events),
         "queued": queued,
+        "last_round": dict(_last_round) if _last_round else None,
         "channel_switch": "CP_CHANNEL_EVENT_ALERTS",
+        "channel_master_switch": "CP_CHANNEL_EVENTS",
     }
 
 
