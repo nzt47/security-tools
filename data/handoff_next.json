@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-12T23:40:00+08:00",
+  "updated_at": "2026-11-13T01:00:00+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
     {
@@ -629,6 +629,14 @@
       "title": "「日期平移守卫」工作流长期 failure（步骤名自己写着 S11-08 遗留=failure）—— 又一个'全绿'口径的例外",
       "criteria": "2026-11-12 实测：该工作流在 42031743549 / 42220337292 / 42368848752 / 42477299355 / 42627839293 / 42823621279 / 43021079337 / 43228959810（a2a3374ec）**连续 8 个提交 failure**，失败步骤为「慢档日期敏感面（--runslow；S11-08 遗留=failure」与「定向日期敏感面（常规档）」；同一提交的其它 18 个工作流 success。⇒ 与覆盖缺口/外发无关，属历史遗留。",
       "next": "两件事：① 判据——要么在 workflow 里把慢档臂显式标注为 continue-on-error（并把常规档臂修绿），要么删掉这条工作流；② 若要真修：先看「定向日期敏感面（常规档）」那条失败用例（它才是常规档，比慢档更该优先）。修不动就保持 open，但交接卡/文档里'绿'必须限定为 required 工作流。"
+    },
+    {
+      "id": "no-console-popups",
+      "status": "open",
+      "priority": "P2",
+      "title": "启动与定时任务别再弹黑色终端窗口（Owner 2026-11-13 指定，下一会话新任务）",
+      "criteria": "两个来源都要查：\n① 启动器：桌面「云枢一键启动.lnk」→ start_yunshu.bat、「云枢看护.lnk」→ start_watchdog.bat，两者都是 .bat，双击必开控制台；看护还是 30s 探活常驻循环，窗口会一直挂着（口径要求：看护只做手动快捷方式，不注册计划任务 —— 这一条不变）。\n② 定时任务：task_scheduler 的 python_func 任务在进程内跑（不弹窗），但**会 spawn 子进程**的任务在 Windows 上会闪黑窗 —— 已知：CI 状态同步（30 min）跑 gh（agent/monitoring/ci_status.py::sync_once）；deploy/桌面脚本跑 npm/python；感知/日志基线等纯进程内任务不弹。\n③ 另需确认机器上有没有 yunshu 相关的 Windows 计划任务（Get-ScheduledTask 里查 yunshu/watchdog）：有就说明有人（或旧轮次）注册过，按口径删掉或改成登录时静默，**不要新增计划任务**。",
+      "next": "取证 → 修 → 验收（三层，别只改 .bat 就收工）：\n1) 取证：Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" 看后端是谁拉起的（ParentProcessId/CommandLine）；Get-Process conhost 计数在 30 分钟边界前后对比（或临时用 pythonw 拉起再观察）；Get-ScheduledTask | Where TaskName -like '*yunshu*'。\n2) 启动器：start_yunshu.bat / start_watchdog.bat 改成不开窗（PowerShell -WindowStyle Hidden 包一层 / VBS 的 WScript.Shell.Run 0 / start \"\" /min 三选一），桌面 .lnk 指向隐藏启动器；脚本必须自己退出（别把窗口挂在 while 循环里等）。看护探活日志仍要落 logs/（别用 pythonw 把日志一起吞掉）。\n3) 子进程：Windows 上所有 subprocess.run/Popen（gh / npm / python 脚本）统一走叶子函数（如 agent/utils/proc.py::run_hidden），带 creationflags=CREATE_NO_WINDOW（+ startinfo.sw_hide）；该 flag 只在 sys.platform=='win32' 时生效（CI 是 Linux，别把 flag 传进去）；数字字面量提成模块常量（硬编码门禁会拦）。\n4) 验收：连续观察 ≥2 个 30 分钟边界 + 一次重启：无窗口闪现、conhost 不新增；data/task_history.jsonl 仍正常记录；/api/version 三处一致；若新增 env 必须进 agent/settings/registry.py（scan_settings --check 零缺口）。"
     }
   ]
 }
