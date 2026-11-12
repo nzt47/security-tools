@@ -661,6 +661,7 @@ export function AlarmCoverageBlock({
   const blocked = cov?.blocked ?? []
   const samples = rules?.samples ?? null
   const prom = coverage?.prometheus
+  const gaps = coverage?.gaps
   if (error && !coverage && !rules) {
     return (
       <Card title="监控覆盖（数据源 /api/alarms/coverage · /api/alarms/rules）">
@@ -740,6 +741,38 @@ export function AlarmCoverageBlock({
               : '未配置 ⇒ up{job=...} 类规则只能报「无数据」')
             : MISSING}
           {prom?.detail ? ' · ' + prom.detail : ''}
+        </div>
+
+        {/* 覆盖缺口（2026-11-12，monitoring-gap-detector）：新增能力有没有被感知/监控/告警覆盖。
+            口径：没跑过 ⇒ 「读数不可用」，不写 0 条（L5：没测到 ≠ 0 条）。 */}
+        <div data-testid="alarm-coverage-gaps"
+          className={'rounded-lg border px-3 py-2 text-[11px] '
+            + (gaps?.count ? 'border-amber-900/40 bg-amber-950/20 text-amber-200'
+              : 'border-slate-800 text-slate-400')}>
+          <div className="flex items-center justify-between gap-2">
+            <span data-testid="alarm-coverage-gaps-summary">
+              {'未覆盖能力：' + (gaps && gaps.count != null ? String(gaps.count) : MISSING)}
+            </span>
+            {gaps?.pushed ? (
+              <span className="text-[10px] text-slate-500">{'已外发提示 ' + gaps.pushed + ' 条'}</span>
+            ) : null}
+          </div>
+          <div className="mt-1 text-slate-500">
+            {gaps?.detail || '自检还没跑过（每小时一轮）'}
+            {gaps?.degraded ? ' · ⚠ 有输入面读不到（本轮清单不完整）' : ''}
+            {gaps?.stale ? ' · ⚠ 自检已停摆' : ''}
+          </div>
+          {(gaps?.gaps ?? []).length > 0 && (
+            <ul className="mt-1 space-y-0.5">
+              {(gaps?.gaps ?? []).slice(0, 5).map((g) => (
+                <li key={g.kind + ':' + g.id} className="text-slate-400">
+                  <span className="font-mono text-slate-300">{g.kind}</span>
+                  {' · '}{g.id}
+                  {g.why ? ' · ' + g.why : ''}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         {/* 两个「静默缺口」（2026-11-12）：此前过期是**无声的**，只能靠人翻文件/日志发现 */}

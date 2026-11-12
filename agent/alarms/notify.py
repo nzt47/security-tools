@@ -26,6 +26,10 @@
 环境变量（均已进 agent/settings/registry.py）：
     CP_ALARM_NOTIFY_ENABLED    总开关（默认 true；通道没装时 dispatch 返回 no_enabled_channel）
     CP_ALARM_NOTIFY_WARNING    是否也外发 warning（默认 false）
+
+【一条刻意的例外（2026-11-12）】`dispatch_gaps`（覆盖缺口首现提示）**不受**
+`CP_ALARM_NOTIFY_WARNING` 过滤：它由调用方按 `kind:id` 指纹去重、每条缺口一辈子只走
+一次，不是"每轮都会响"的告警。把"新能力没人监控"压成不发，等于让这条线继续静默。
 """
 from __future__ import annotations
 
@@ -303,6 +307,66 @@ def _warn_failure_throttled(stats: Dict[str, Any]) -> None:
                    "详见 /api/alarms/coverage 的 notify.last_round）", stats.get("failed", 0))
 
 
+#: 覆盖缺口外发：warning 级、每条只推一次（去重在调用方，见 agent/monitoring/coverage_gaps.py）
+GAP_SEVERITY = "warning"
+GAP_KEY_LABEL = "coverage_gap"
+
+#: 每轮最多推几条缺口（与 MAX_PER_ROUND 分开：缺口是"第一次出现"的一次性提示，不该挤占告警配额）
+MAX_GAP_PER_ROUND = 5
+
+
+def dispatch_gaps(gaps: List[Dict[str, Any]], *, dispatcher: Optional[Callable[..., Dict[str, Any]]] = None,
+                  limit: int = MAX_GAP_PER_ROUND) -> Dict[str, Any]:
+    """把「首次出现的覆盖缺口」经出站通道推一次（**warning 级，不受 include_warning 过滤**）。
+
+    【为什么这里能绕过"默认只发 critical"】那条口径防的是**告警风暴**（warning 数量天然多、
+    每轮都会响）。覆盖缺口是**一次性提示**：调用方按 ``kind:id`` 指纹去重，同一处缺口
+    在它消失之前只会走到这里一次。把它也压成 critical 会谎报严重程度；压成"不发"则等于
+    把"新能力没人监控"这件事继续留在暗处（Owner 明确要求"首次出现经外发推一次，warning 级"）。
+
+    Args:
+        gaps: [{kind, id, why, fix}]（coverage_gaps.refresh 传入，最多 MAX_GAP_PER_ROUND 条）
+        dispatcher: 注入发送器（测试用；缺省 = channel_bridge.dispatch_alert 的真实现）
+        limit: 本轮最多推几条（超出的不记指纹，调用方下一轮继续）
+
+    Returns:
+        {"ok": bool, "attempted": n, "sent": [kind:id], "failed": [kind:id], "reason": str}
+        —— **永不抛**（外发是旁路，通道坏不影响自检与台账）。
+    """
+    out: Dict[str, Any] = {"ok": True, "attempted": 0, "sent": [], "failed": [], "reason": ""}
+    if not enabled():
+        out["ok"] = False
+        out["reason"] = "disabled"
+        return out
+    rows = [g for g in (gaps or []) if isinstance(g, dict)][:max(1, int(limit))]
+    if not rows:
+        return out
+    send = dispatcher or _default_dispatcher()
+    for gap in rows:
+        out["attempted"] += 1
+        fp = "%s:%s" % (gap.get("kind") or "", gap.get("id") or "")
+        alert = {
+            "name": "覆盖缺口：%s" % str(gap.get("id") or ""),
+            "severity": GAP_SEVERITY,
+            "message": ("%s。建议：%s" % (str(gap.get("why") or ""), str(gap.get("fix") or "")))[:240],
+            "labels": {"kind": GAP_KEY_LABEL, "surface": str(gap.get("kind") or "")},
+        }
+        try:
+            result = send(alert, "firing") or {}
+        except Exception as exc:  # noqa: BLE001 通道实现各异，一律不外抛
+            out["failed"].append(fp)
+            logger.warning("[AlarmNotify] 缺口外发失败（%s）", type(exc).__name__)
+            continue
+        if result.get("ok") and result.get("sent"):
+            out["sent"].append(fp)
+        else:
+            out["failed"].append(fp)
+            out["reason"] = str(result.get("reason") or "not_sent")
+            logger.debug("[AlarmNotify] 缺口未发出（reason=%s）", out["reason"])
+    out["ok"] = not out["failed"]
+    return out
+
+
 def status(cursor_path: Optional[Path] = None,
            events_path: Optional[Path] = None) -> Dict[str, Any]:
     """覆盖读数用（只读）：开关 + 游标 + 待发条数 + 事件总数。"""
@@ -322,7 +386,7 @@ def status(cursor_path: Optional[Path] = None,
 
 
 __all__: List[str] = [
-    "ENV_ENABLED", "ENV_INCLUDE_WARNING", "MAX_PER_ROUND",
+    "ENV_ENABLED", "ENV_INCLUDE_WARNING", "MAX_PER_ROUND", "MAX_GAP_PER_ROUND",
     "enabled", "include_warning", "load_cursor", "save_cursor", "read_events",
-    "pending", "dispatch_pending", "status",
+    "pending", "dispatch_pending", "dispatch_gaps", "status",
 ]

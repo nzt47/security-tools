@@ -176,6 +176,35 @@ export interface AlarmCoverage {
   ci?: AlarmCoverageCi | null
   /** 静默缺口②（2026-11-12）：感知周期采集的最后事件时间 —— "没在感知"不能读成"没变化" */
   perception?: AlarmCoveragePerception | null
+  /** 覆盖缺口自检（2026-11-12，monitoring-gap-detector）：新增能力有没有被感知/监控/告警覆盖 */
+  gaps?: AlarmCoverageGaps | null
+}
+
+/** 覆盖缺口（后端 /api/alarms/coverage.gaps；每小时自检一轮，页面只读结果） */
+export interface AlarmCoverageGap {
+  /** package / unit / sensor / scheduler / route / tool */
+  kind: string
+  id: string
+  /** 为什么算缺口（可解释判据，不是"猜"） */
+  why: string
+  /** 建议补哪一处 */
+  fix: string
+}
+
+export interface AlarmCoverageGaps {
+  /** 有状态文件才算可用；false 时 count 为 null（**不是 0**，L5：没测到 ≠ 0 条） */
+  available: boolean
+  count: number | null
+  by_kind?: Record<string, number>
+  gaps?: AlarmCoverageGap[]
+  truncated?: boolean
+  /** true = 有输入面读不到 ⇒ 本轮清单不完整 */
+  degraded?: boolean
+  generated_at?: string | null
+  age_seconds?: number | null
+  stale?: boolean
+  pushed?: number
+  detail?: string
 }
 
 /** CI 事件源覆盖读数（后端 /api/alarms/coverage.ci） */

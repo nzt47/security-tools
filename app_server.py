@@ -2760,6 +2760,14 @@ if __name__ == "__main__":
             print(f"✅ CI 状态同步任务注册: {register_ci_sync_scheduler(scheduler)}")
         except Exception as e:
             print(f"⚠️ CI 状态同步任务注册失败（不阻断主流程）: {e}")
+        # 覆盖缺口自检（2026-11-12，monitoring-gap-detector）：每小时扫一遍"声明面"（包/单位/
+        # 传感器/调度/路由/工具），把"新增了但没人感知/监控/告警"的能力列出来；**只报不注册**
+        # （register_gap_scheduler 只加一条周期任务，不改单位/规则/探针）。
+        try:
+            from agent.monitoring.coverage_gaps import register_gap_scheduler
+            print(f"✅ 覆盖缺口自检任务注册: {register_gap_scheduler(scheduler)}")
+        except Exception as e:
+            print(f"⚠️ 覆盖缺口自检任务注册失败（不阻断主流程）: {e}")
         # 日志异常基线采样（2026-11-12 v2）：30 分钟把"尾窗 ERROR 密度"写成一个样本，
         # 供单位 ops.logs 的"相对基线"判据使用（探针只读，不写基线）。
         try:

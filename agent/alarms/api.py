@@ -135,6 +135,21 @@ def _ci_gap() -> dict:
         return {"available": False, "detail": "CI 覆盖读数不可用（详见服务日志）"}
 
 
+def _coverage_gaps() -> dict:
+    """覆盖缺口自检读数（只读状态文件；**不触发**自检、不外发）。
+
+    2026-11-12（monitoring-gap-detector）：回答"新增了但没人感知/监控/告警的能力有哪些"。
+    这里只读上一轮结果 —— 拉一次页面不该等于跑一次全仓扫描（也不该顺手往外推消息）。
+    """
+    try:
+        from agent.monitoring.coverage_gaps import summary as gap_summary
+        return gap_summary()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("报警器：覆盖缺口读数失败（%s）", type(exc).__name__)
+        return {"available": False, "count": None, "gaps": [],
+                "detail": "覆盖缺口读数不可用（详见服务日志）"}
+
+
 @alarms_bp.route("/coverage", methods=["GET"])
 def alarms_coverage():
     """报警器覆盖读数：事件源清单 + 规则覆盖率 + 上一轮采集统计 + 两个"静默缺口"。
@@ -145,6 +160,11 @@ def alarms_coverage():
     2026-11-12 追加两个"过期即静默"的读数（此前只能靠人翻日志发现）：
     - `ci`：data/ci/status.json 的最后同步时间与是否已超 2h 阈值；
     - `perception`：感知周期采集的最后 tick / 最后文件事件 / 监听目录 / watcher 是否在跑。
+
+    2026-11-12 追加 `gaps`（覆盖缺口自检，monitoring-gap-detector）：
+    count / by_kind / 逐条 {kind,id,why,fix} / surfaces（每个输入面读到了什么）/ degraded。
+    口径：gap=0 只说"这一轮没发现新缺口"，**不说**"全域覆盖已完成"——读不到的输入面
+    会进 degraded，规则算不了的 10 条仍在 rules.blocked 里单列（不在 gaps 里重复计数）。
     """
     try:
         from agent.alarms import rules as rule_engine
@@ -186,6 +206,9 @@ def alarms_coverage():
         coverage["ci"] = _ci_gap()
         # 告警外发（2026-11-12）：开关 / 游标 / 待发条数（读不到就 available=false）
         coverage["notify"] = _notify_status()
+        # 覆盖缺口（2026-11-12，monitoring-gap-detector）：新增能力有没有被感知/监控/告警覆盖。
+        # **只读状态文件**（自检由每小时周期任务跑）—— 打开告警页不该触发一次全仓扫描。
+        coverage["gaps"] = _coverage_gaps()
         return _ok(coverage)
     except Exception as exc:  # noqa: BLE001
         logger.error("报警器覆盖读数失败: %s", type(exc).__name__)

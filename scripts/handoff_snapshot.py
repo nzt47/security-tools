@@ -111,6 +111,22 @@ def _tools() -> Dict[str, Any]:
     return {"total": len(rows), "disabled": disabled}
 
 
+def _coverage_gaps() -> Dict[str, Any]:
+    """覆盖缺口自检读数（/api/alarms/coverage.gaps；2026-11-12，monitoring-gap-detector）。
+
+    【为什么进卡片】"未覆盖 N"是"全域监控还差哪些"的唯一机器读数 —— 它不该只活在页面里
+    （交接的人第一眼看卡片就要知道还有几条，以及各自属于哪个面）。
+    """
+    data = _get("/api/alarms/coverage")
+    gaps = ((data or {}).get("data") or {}).get("gaps") or {}
+    if not isinstance(gaps, dict):
+        return {}
+    return {"count": gaps.get("count"), "by_kind": gaps.get("by_kind") or {},
+            "available": gaps.get("available"), "detail": gaps.get("detail") or "",
+            "degraded": bool(gaps.get("degraded")),
+            "ids": [str(g.get("id") or "") for g in (gaps.get("gaps") or [])][:5]}
+
+
 def _version() -> Dict[str, Any]:
     data = _get("/api/version")
     if not data:
@@ -233,6 +249,7 @@ def collect() -> Dict[str, Any]:
         "units": _units(),
         "tools": _tools(),
         "audit_rows": _audit_rows(),
+        "coverage_gaps": _coverage_gaps(),
         "selfcheck": _self_checks(),
         "next": _next_actions(),
     }
@@ -261,6 +278,25 @@ def _render_selfcheck(sc: Dict[str, Any]) -> str:
     if bad:
         parts.append("⚠ 未通过: " + "、".join(bad))
     return "；".join(parts) or "（未跑）"
+
+
+def _render_gaps(gaps: Dict[str, Any]) -> str:
+    """把覆盖缺口压成一行：未覆盖 N（各面）+ 前几条 id。
+
+    口径：读不到 ⇒ 显式写「读数不可用」，**不写 0**（L5：没测到不等于 0 条）。
+    """
+    if not gaps or gaps.get("count") is None:
+        return "未覆盖：读数不可用（%s）" % (gaps.get("detail") or "自检还没跑过")
+    count = gaps.get("count")
+    by_kind = gaps.get("by_kind") or {}
+    parts = ["未覆盖 %s" % count]
+    if by_kind:
+        parts.append("（%s）" % " / ".join("%s %s" % (k, v) for k, v in sorted(by_kind.items())))
+    if count and gaps.get("ids"):
+        parts.append("：" + "、".join(gaps["ids"]))
+    if gaps.get("degraded"):
+        parts.append(" ⚠ 有输入面读不到")
+    return "".join(parts)
 
 
 def _render_next(nxt: Dict[str, Any]) -> str:
@@ -303,6 +339,7 @@ def render_card(state: Dict[str, Any]) -> str:
             units.get("ok", "-"), units.get("warn", "-"), units.get("never", "-"),
             _score_text(units)),
         "- 审计：%s 条" % (state.get("audit_rows") if state.get("audit_rows") is not None else "-"),
+        "- 覆盖：%s" % _render_gaps(state.get("coverage_gaps") or {}),
         "- 自检：%s" % _render_selfcheck(state.get("selfcheck") or {}),
         "- 下一步：%s" % _render_next(state.get("next") or {}),
         "",

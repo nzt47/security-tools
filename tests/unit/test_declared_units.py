@@ -87,7 +87,8 @@ def test_register_declared_units_builds_units_and_is_idempotent():
     n = declared_units.register_declared_units()
     assert n >= 3
     ids = {u.id for u in unit_monitor.registered()}
-    assert {"perception.cycle", "alarms.collector", "ops.ports", "ops.logs"} <= ids
+    assert {"perception.cycle", "alarms.collector", "ops.ports", "ops.logs",
+            "ops.coverage_gaps"} <= ids
     # 幂等：再登记一次不会翻倍
     declared_units.register_declared_units()
     assert len(unit_monitor.registered()) == n

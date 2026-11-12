@@ -171,3 +171,59 @@ def test_status_reports_queued(tmp_path):
     notify.save_cursor(1, cur)
     st = notify.status(cursor_path=cur, events_path=path)
     assert st["queued"] == 1 and st["event_lines"] == 2 and st["cursor_lines"] == 1
+
+
+# ════════════════════════════════════════════════════════════
+#  ⑦ 覆盖缺口首现提示（2026-11-12，monitoring-gap-detector）
+#     —— 唯一**不受** CP_ALARM_NOTIFY_WARNING 过滤的 warning：调用方按指纹去重，
+#     每处缺口一辈子只走一次，不构成"每轮都响"的噪音；压成不发等于让它继续静默。
+# ════════════════════════════════════════════════════════════
+
+def _gap(gap_id="agent/lonely/", kind="package"):
+    return {"kind": kind, "id": gap_id,
+            "why": "声明了模块元数据但没有状态源", "fix": "补 MODULE_STATUS_SOURCE"}
+
+
+def test_dispatch_gaps_sends_warning_even_when_warning_filter_off():
+    rec = _Recorder()
+    out = notify.dispatch_gaps([_gap()], dispatcher=rec)
+    assert out["sent"] == ["package:agent/lonely/"]
+    assert out["failed"] == []
+    (alert, transition), = rec.calls
+    assert transition == "firing"
+    assert alert["severity"] == "warning"
+    assert alert["labels"]["kind"] == notify.GAP_KEY_LABEL
+    assert "补 MODULE_STATUS_SOURCE" in alert["message"]
+
+
+def test_dispatch_gaps_respects_limit():
+    rec = _Recorder()
+    rows = [_gap("x%d" % i) for i in range(notify.MAX_GAP_PER_ROUND + 3)]
+    out = notify.dispatch_gaps(rows, dispatcher=rec)
+    assert out["attempted"] == notify.MAX_GAP_PER_ROUND
+    assert len(rec.calls) == notify.MAX_GAP_PER_ROUND
+
+
+def test_dispatch_gaps_counts_no_channel_as_failed():
+    """没通道 ≠ 发出去了：调用方据此**不记指纹**，配好通道后还能收到第一次提示。"""
+    rec = _Recorder(result={"ok": True, "sent": [], "reason": "no_enabled_channel"})
+    out = notify.dispatch_gaps([_gap()], dispatcher=rec)
+    assert out["sent"] == [] and out["failed"] == ["package:agent/lonely/"]
+    assert out["ok"] is False
+    assert out["reason"] == "no_enabled_channel"
+
+
+def test_dispatch_gaps_swallows_dispatcher_exception():
+    def boom(alert, transition):
+        raise RuntimeError("channel exploded")
+
+    out = notify.dispatch_gaps([_gap()], dispatcher=boom)
+    assert out["failed"] == ["package:agent/lonely/"]
+    assert out["ok"] is False
+
+
+def test_dispatch_gaps_disabled_by_env(monkeypatch):
+    monkeypatch.setenv(notify.ENV_ENABLED, "false")
+    rec = _Recorder()
+    out = notify.dispatch_gaps([_gap()], dispatcher=rec)
+    assert out["reason"] == "disabled" and rec.calls == []

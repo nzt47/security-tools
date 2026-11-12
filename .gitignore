@@ -437,6 +437,9 @@ data/learning/
 data/inbox/*
 !data/inbox/.gitkeep
 data/ci/
+# 监控侧运行期状态（2026-11-12）：日志异常基线样本 + 覆盖缺口自检结果（每小时刷新的机器读数，
+#   不是源码资产；它们各自的"口径"在模块 docstring 与覆盖矩阵文档里）
+data/monitoring/
 data/approval_records.jsonl
 data/manager_notifications.json
 data/manager_users.json

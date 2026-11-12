@@ -3065,6 +3065,19 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        "空 = 不探任何端口（单位状态 never，不计分）。只做 TCP connect，不发应用层请求、"
        "不抓指标；连不上记 warn（逐条 target），不回对端地址（agent/monitoring/port_probe.py）",
        owner="agent/monitoring/port_probe.py"),
+    # · 覆盖缺口自检（2026-11-12，monitoring-gap-detector）：每小时把"新增了但没人
+    #   感知/监控/告警"的能力列出来；**只报不注册**（真正补哪一处由人决定）
+    _a("CP_COVERAGE_GAP_ENABLED", CAT_OBSERVABILITY, True,
+       "覆盖缺口自检总开关（默认开）：关掉后不再注册「覆盖缺口自检」周期任务，"
+       "单位 ops.coverage_gaps 会因状态文件过期而停在旧读数"
+       "（agent/monitoring/coverage_gaps.py）",
+       owner="agent/monitoring/coverage_gaps.py"),
+    _a("CP_COVERAGE_GAP_INTERVAL_SECONDS", CAT_OBSERVABILITY, 3600,
+       "覆盖缺口自检周期（秒，默认 3600 = 1 小时，最小 300）：扫包声明/单位/传感器/"
+       "调度/路由/工具六个声明面，落 data/monitoring/coverage_gaps.json；"
+       "同一缺口只在首次出现时经外发推一次（warning）"
+       "（agent/monitoring/coverage_gaps.py::interval_seconds）",
+       owner="agent/monitoring/coverage_gaps.py"),
     _a("CP_CI_SYNC_INTERVAL_SECONDS", CAT_OBSERVABILITY, 1800,
        "CI 运行结论同步间隔（秒，默认 1800 = 30 分钟 = 2h 离线阈值的 1/4，最小 300）："
        "gh 失败只记警告、不抛异常（不制造「计划任务失败」噪音）"

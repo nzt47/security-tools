@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-12T18:20:00+08:00",
+  "updated_at": "2026-11-12T20:05:00+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
     {
@@ -584,11 +584,11 @@
     },
     {
       "id": "monitoring-gap-detector",
-      "status": "open",
+      "status": "done",
       "priority": "P2",
       "title": "新功能：自动检测「还没被感知/监控/告警覆盖」的能力并提示补上（Owner 2026-11-12 指定）",
       "criteria": "Owner 原话：「全域感知，全域监控，及时报警还差哪些没做要补上。做一个新功能：检测还没有被感知监控的能及时补上。」\n现状（§11.97 已考证，别重新考古）：监控面有六事件源 + 两处静默缺口读数 + 17 个单位（12 手写 + 5 声明）+\n拓扑声明式；感知面有 watch_dirs/周期 diff/CI 同步；但\"新增了什么能力、它有没有被覆盖\"仍靠人肉对拍。\n典型缺口来源：新包只写了 MODULE_NAME 没写状态源；新工具没有调用埋点；新路由没进 route_domains/triage；\n新指标没有规则引用；新传感器 enabled 但没人周期 collect；新后台任务没进调度。",
-      "next": "设计方向（下一会话先与 Owner 对一眼再动手）：\n1) 输入面（全部只读、声明式优先）：包声明（MODULE_*，含 MODULE_UNITS）、工具注册表（data/tool_index.json +\n   工具 YAML）、路由表（config/route_domains.json + Flask url_map）、调度任务（/api/scheduler/overview）、\n   传感器注册表（/api/sensors）、告警规则引用的指标族（monitoring/alerts.yml）、健康层/审计链。\n2) 判定：一条能力只要**没有任何**感知（sensor/filewatch/快照分片）、监控（单位/健康层）、告警（规则/事件源/单位 warn）\n   路径覆盖 ⇒ 记一条 gap（{kind, id, why, 建议补哪一处}）。判据要可解释，不许\"猜\"。\n3) 交付：GET /api/alarms/coverage.gaps（数量 + 逐条）；单位 ops.coverage_gaps（gap=0 ok / >0 warn，逐条 issue）；\n   每小时周期任务刷新 + 指纹去重（同一 gap 首次出现经外发推一次，warning 级）；交接卡与\n   docs/handoff/覆盖矩阵与上线检查清单.md 增加\"未覆盖 N\"。\n4) 明确**不做**：不自动注册单位/规则/探针（会改健康分分母、且属另一件事，须 Owner 点头）；不引入外部服务。\n5) 测试：对拍夹具（缺状态源的新包 / 无埋点的新工具 / 无规则引用的新指标各一条），以及\"全部覆盖 ⇒ 0 gap\"。"
+      "next": "2026-11-12 落地（第六十一轮，monitoring-gap-detector）：新增 agent/monitoring/coverage_gaps.py —— 六个声明面 × 判据（模块 docstring 有完整表）：package（MODULE_* 有元数据但无状态源且无单位；状态源不在 route_domains 前缀里）· unit（MODULE_UNIT(S) 的 probe 静态解析不到；声明非法被忽略）· sensor（sensor/*.py 里 *Sensor 类没有一个带 collect()）· scheduler（def register_*scheduler 无调用点；活体任务被停用）· route（route_domains 前缀在活体路由报告里零命中，支持 /* 通配）· tool（tool_index 条目在 tool_definitions 下没有同名 YAML）。**只报不注册**：不自动加单位/规则/探针（会改健康分分母）。不重复计数：规则 blocked 仍在 coverage.rules.blocked；工具 YAML→索引由 sync_tool_index --check 守门；路由 UI 标注由 route_ui_coverage 守门（三条都写进 gaps.excluded[]）。交付：① GET /api/alarms/coverage.gaps（available/count/by_kind/gaps[{kind,id,why,fix}]/degraded/surfaces/excluded；只读状态文件，拉页面不触发扫描）；② 单位 ops.coverage_gaps（gap=0 ok，>0 warn 逐条 issue，超 3 个周期没跑=停摆 warn；never 不计分）；③ 周期任务「覆盖缺口自检」每小时（CP_COVERAGE_GAP_ENABLED / CP_COVERAGE_GAP_INTERVAL_SECONDS 均进 registry）+ 指纹 kind:id 去重（首现经 notify.dispatch_gaps 推一次 warning，不受 CP_ALARM_NOTIFY_WARNING 过滤；推送成功才记指纹，没通道下轮重试，缺口消失后指纹修剪、再出现会再推）；④ 交接卡新增「覆盖：未覆盖 N」行 + 覆盖矩阵文档 §5.1/§4.6 + 前端告警 Tab 「未覆盖能力」块。测试：tests/unit/test_coverage_gaps.py 27 条（六类判据各一条 + 全绿 0 gap + 首现去重/失败重试/消失后再现 + summary/unit_probe/注册幂等/degraded）+ test_alarm_notify 新增 5 条 dispatch_gaps。首轮实测：未覆盖 2 条（见另两条 open：ocr-sensor-collect-contract / route-domains-voice-stale）。"
     },
     {
       "id": "alarm-channel-credentials",
@@ -597,6 +597,22 @@
       "title": "告警外发通道已安装但未配置（webhook_url / smtp_server 为空）⇒ 外发实际发不出去",
       "criteria": "agent/extensions 里 webhook 与 email_smtp 两个通道 status=installed、enabled=true，但 config 里\nwebhook_url 与 smtp_server 都是空串。告警外发（agent/alarms/notify.py）已接线并每轮尝试，\n结果体现在 /api/alarms/coverage.notify.last_round.failed。",
       "next": "需要 Owner 提供：webhook URL（或 SMTP 服务器/账号/收件人）。填在通道配置（界面或 .env，不进日志）。\n填好后验证：制造一条合成 critical 告警（或等一条真实 critical），确认 coverage.notify.last_round.sent>0、\n且通道侧真的收到；再检查 notify.cursor_lines 单调递增、无重复发送。\n若 Owner 选择\"只站内、不外发\"，则把 CP_ALARM_NOTIFY_ENABLED=false 并在此条写清决定（避免半接线状态）。"
+    },
+    {
+      "id": "ocr-sensor-collect-contract",
+      "status": "open",
+      "priority": "P3",
+      "title": "OCR 传感器有类无 collect() ⇒ 自发现静默跳过，OCR 这一路感知等于不存在（覆盖缺口自检首轮发现）",
+      "criteria": "sensor/registry.py 的发现契约是「类名以 Sensor 结尾 + 有 collect()」；sensor/ocr_sensor.py 的 OcrSensor 只有 capture_screen/recognize（实测 /api/sensors 的 18 项里没有 ocr）。不满足契约时注册表**只是不出现**：没有 warning、没有红点 ⇒ 看起来有、其实没有。",
+      "next": "两条路，需 Owner 选：① 给 OcrSensor 补 collect() 返回 SensorReading（注意它自己 config 里 enabled=false，且屏幕截取是敏感动作 ⇒ 要确认是否真开）；② 明确「OCR 不是传感器」，把文件挪出 sensor/ 或改名（避免下次又被当成缺口）。改完 ops.coverage_gaps 应回到 gap=0。"
+    },
+    {
+      "id": "route-domains-voice-stale",
+      "status": "open",
+      "priority": "P3",
+      "title": "config/route_domains.json 声明了 /api/voice，但活体路由里一条都没有（功能区表陈旧）",
+      "criteria": "全仓 grep 只有 scripts 注释提到 /api/voice；reports/route_ui_coverage.json 的 509 条活体路由里 0 条命中该前缀。tests/unit/test_route_ui_coverage.py 只守「每条路由都有功能区」，不守「每个前缀都有路由」⇒ 这条此前没有任何守卫会红，是覆盖缺口自检首个 route 类发现。",
+      "next": "删掉该前缀（或补回 voice 路由），然后**在干净 worktree 重派生** reports/route_ui_coverage.json（route_domains.json 是它的输入之一，content_hash 会变，主工作区直接改会让守卫红）。"
     }
   ]
 }

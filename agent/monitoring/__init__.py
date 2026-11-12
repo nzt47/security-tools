@@ -45,6 +45,9 @@ MODULE_UNITS = [
     {"id": "ops.logs", "label": "日志异常聚合", "family": "ops",
      "probe": "agent.monitoring.log_anomaly:unit_probe",
      "description": "logs/*.log 尾窗 ERROR 密度（≥20 条且 ≥5% ⇒ warn）"},
+    {"id": "ops.coverage_gaps", "label": "覆盖缺口自检", "family": "ops",
+     "probe": "agent.monitoring.coverage_gaps:unit_probe",
+     "description": "新增能力是否被感知/监控/告警覆盖（每小时自检；gap=0 ok，>0 warn）"},
 ]
 
 # ════════════════════════════════════════════════════════════════════════════

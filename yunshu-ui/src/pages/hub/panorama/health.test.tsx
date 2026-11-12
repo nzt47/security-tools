@@ -713,6 +713,50 @@ describe('告警 Tab 的监控覆盖块', () => {
     expect(gaps.textContent).toContain('2 分钟前')
   })
 
+  it('组件级：覆盖缺口逐条上屏（kind · id · why），并把"读数不可用"与"0 条"分开', () => {
+    // 2026-11-12（monitoring-gap-detector）：新增能力有没有被感知/监控/告警覆盖。
+    // 口径：没跑过 ⇒ 「读数不可用」+ MISSING，不写 0 条（没测到 ≠ 0 条）。
+    const { unmount } = render(
+      <AlarmCoverageBlock
+        coverage={{
+          sources: [],
+          rules: { rules_total: 16, rules_evaluable: 16, rules_blocked: 0, by_state: { ok: 16 }, blocked: [] },
+          last_collect: { checked: {}, raised: 0, resolved: 0, kept: [], warmup: false },
+          gaps: {
+            available: true, count: 2, by_kind: { sensor: 1, route: 1 },
+            gaps: [
+              { kind: 'sensor', id: 'sensor/ocr_sensor.py', why: '定义了 OcrSensor 但没有 collect()', fix: '补 collect()' },
+              { kind: 'route', id: '/api/voice', why: '功能区前缀没有活体路由命中', fix: '改前缀或重派生报告' },
+            ],
+            pushed: 1, detail: '未覆盖 2 条（route 1 / sensor 1）', generated_at: '2026-11-12T19:00:00+08:00',
+          },
+        }}
+      />,
+    )
+    const block = screen.getByTestId('alarm-coverage-gaps')
+    expect(screen.getByTestId('alarm-coverage-gaps-summary').textContent).toContain('2')
+    expect(block.textContent).toContain('sensor')
+    expect(block.textContent).toContain('sensor/ocr_sensor.py')
+    expect(block.textContent).toContain('没有 collect()')
+    expect(block.textContent).toContain('/api/voice')
+    expect(block.textContent).toContain('已外发提示 1 条')
+    unmount()
+
+    render(
+      <AlarmCoverageBlock
+        coverage={{
+          sources: [],
+          rules: { rules_total: 16, rules_evaluable: 16, rules_blocked: 0, by_state: { ok: 16 }, blocked: [] },
+          last_collect: { checked: {}, raised: 0, resolved: 0, kept: [], warmup: false },
+          gaps: { available: false, count: null, detail: '自检还没跑过' },
+        }}
+      />,
+    )
+    const unknown = screen.getByTestId('alarm-coverage-gaps-summary').textContent ?? ''
+    expect(unknown).toContain('—')
+    expect(unknown).not.toContain('0')
+  })
+
   it('组件级：两条端点都失败时上屏错误而不是显示成「一切正常」', () => {
     render(<AlarmCoverageBlock error="HTTP 500" />)
     expect(screen.getByText(/HTTP 500/)).toBeTruthy()
