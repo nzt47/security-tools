@@ -1,0 +1,84 @@
+{
+  "verified_at": "2026-11-12T21:30:06+0800",
+  "why": "Owner 2026-11-12：alarm-channel-credentials 需要先证明外发链路真的能发出去（不等真实地址）",
+  "how": "在 127.0.0.1 上起本地 HTTP 接收器，把 webhook 通道临时指向 http://localhost:PORT/alarm，用一条合成 critical 告警走完整的台账→游标→channel_bridge→HTTP 链路；验证后配置已还原（URL 置空、状态 installed）",
+  "firing_round": {
+    "notify": {
+      "enabled": true,
+      "include_warning": false,
+      "cursor_lines": 313,
+      "event_lines": 313,
+      "queued": 0,
+      "last_round": null,
+      "channel_switch": "CP_CHANNEL_EVENT_ALERTS",
+      "channel_master_switch": "CP_CHANNEL_EVENTS"
+    },
+    "received": 1
+  },
+  "resolved_round": {
+    "notify": {
+      "enabled": true,
+      "include_warning": false,
+      "cursor_lines": 314,
+      "event_lines": 314,
+      "queued": 0,
+      "last_round": null,
+      "channel_switch": "CP_CHANNEL_EVENT_ALERTS",
+      "channel_master_switch": "CP_CHANNEL_EVENTS"
+    },
+    "received": 2
+  },
+  "received_bodies": [
+    {
+      "text": "[云枢告警][critical]外发链路验证（合成，可忽略） 触发（firing）\n说明 验证 webhook 出站：合成 critical，验证后自动 resolved\n标签 kind=verify",
+      "source": "yunshu"
+    },
+    {
+      "text": "[云枢告警][critical]外发链路验证（合成，可忽略） 恢复（resolved）\n标签 kind=verify",
+      "source": "yunshu"
+    }
+  ],
+  "restored": {
+    "webhook_url_empty": true,
+    "status": "installed",
+    "checked_at": "2026-11-12T21:30:20+08:00"
+  },
+  "note": "真实地址仍未提供：webhook_url / smtp_server 为空 ⇒ 本条目保持 open（只差填地址）",
+  "backend_reading": {
+    "source": "/api/alarms/coverage.notify（验证后从运行进程读，不是脚本进程内的内存）",
+    "last_round": {
+      "at": "2026-11-12T21:30:02+08:00",
+      "considered": 1,
+      "failed": 0,
+      "sent": 1,
+      "skipped": 0
+    },
+    "cursor_lines": 314,
+    "event_lines": 314,
+    "queued": 0
+  },
+  "gap_push_round": {
+    "at": "2026-11-12T21:34:36+0800",
+    "dispatch_result": {
+      "ok": true,
+      "attempted": 1,
+      "sent": [
+        "verify:synthetic-gap-probe"
+      ],
+      "failed": [],
+      "reason": ""
+    },
+    "received": 1,
+    "bodies": [
+      {
+        "text": "[云枢告警][warning]覆盖缺口：synthetic-gap-probe 触发（firing）\n说明 外发链路验证：缺口首现提示（合成，可忽略）。建议：无需处理\n标签 kind=coverage_gap surface=verify",
+        "source": "yunshu"
+      }
+    ],
+    "restored": {
+      "webhook_url_empty": true,
+      "status": "installed"
+    }
+  },
+  "note_on_last_round": "firing_round / resolved_round 里的 notify.last_round 为 null：那是脚本进程内的内存读数；运行进程的真实读数在 backend_reading（considered=1 / sent=1 / failed=0）。2026-11-12 21:23–21:24 的首轮验证另收到 3 条 POST（firing / 缺口首现提示 warning / resolved），当时的 last_round 读数同样是 sent=1；接收器日志随临时文件清理，本文件保留两次复验的正文。"
+}

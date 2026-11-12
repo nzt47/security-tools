@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-12T21:20:00+08:00",
+  "updated_at": "2026-11-12T21:55:00+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
     {
@@ -596,7 +596,7 @@
       "priority": "P3",
       "title": "告警外发通道已安装但未配置（webhook_url / smtp_server 为空）⇒ 外发实际发不出去",
       "criteria": "agent/extensions 里 webhook 与 email_smtp 两个通道 status=installed、enabled=true，但 config 里\nwebhook_url 与 smtp_server 都是空串。告警外发（agent/alarms/notify.py）已接线并每轮尝试，\n结果体现在 /api/alarms/coverage.notify.last_round.failed。",
-      "next": "需要 Owner 提供：webhook URL（或 SMTP 服务器/账号/收件人）。填在通道配置（界面或 .env，不进日志）。\n填好后验证：制造一条合成 critical 告警（或等一条真实 critical），确认 coverage.notify.last_round.sent>0、\n且通道侧真的收到；再检查 notify.cursor_lines 单调递增、无重复发送。\n若 Owner 选择\"只站内、不外发\"，则把 CP_ALARM_NOTIFY_ENABLED=false 并在此条写清决定（避免半接线状态）。"
+      "next": "机制已实证（2026-11-12 21:23–21:30），只剩真实地址：本地回环接收器 + 临时指向 webhook_url ⇒ 合成 critical 告警走完 台账→events 游标→channel_bridge→HTTP：收到 firing / 缺口首现提示(warning) / resolved 三条 POST，coverage.notify.last_round = {considered:1, sent:1, failed:0}；随后配置已还原（webhook_url 置空、status 回 installed）。证据 docs/handoff/evidence/channel_verify_20261112.json。待 Owner：把真实 webhook URL（或 SMTP 服务器/账号/收件人）写进 .env 或通道界面（别贴进对话）；填好后复核 coverage.notify.last_round.sent>0 与通道侧确实收到，本条目即可 done。"
     },
     {
       "id": "ocr-sensor-collect-contract",
@@ -616,11 +616,11 @@
     },
     {
       "id": "ci-observability-e2e-prometheus-fails",
-      "status": "open",
+      "status": "done",
       "priority": "P3",
       "title": "「可观测性质量保障」工作流自 2026-11-11 起持续 failure（Docker 起 Prometheus 容器失败）—— 与代码无关，但'CI 全绿'这句话必须写清是哪些工作流",
       "criteria": "实测 gh run view 43203052194 --json jobs：除「可观测性端到端验证」（失败步骤『启动 Prometheus 容器（checkout 后启动，避免 mount 失败）』）与「可观测性质量门禁」（随之失败）外，其余 19 个 job 全 success（6 个覆盖率分片 / 混沌 / Pact / 边界覆盖 / 可见性报告 都绿）。该工作流在 e661aec9c(11-11 18:32) / 55fc38233 / 32e18d4c9 / 9c2f9cce3 上均为 failure ⇒ 不是某一轮引入的。报警器 ci 事件源因此长期有一条 warning『CI 失败：可观测性质量保障』。",
-      "next": "两件事分开：① CI 侧——查该 job 的 docker run/pull 失败原因（runner 无 docker、镜像拉不到、mount 冲突），属基础设施；② 若短期内修不动，就在交接卡/文档里把'绿'限定为 required 工作流 + 明确这条是已知红，别让'全绿'继续是局部事实（§11.95 的教训）。修改后再看 gh run list --workflow '可观测性质量保障'。"
+      "next": "2026-11-12 修复（两个真因都在我们自己的 YAML，不是 runner）：① monitoring/alerts.yml 的 P99/P95 排除集用了单反斜杠+点 ⇒ Go/PromQL 非法转义 ⇒ Prometheus 拒载整个规则文件（unknown escape sequence U+002E），改成一个双反斜杠+点；并在 agent/alarms/promql.py 加 unquote()（非法转义直接 ValueError ⇒ 该条报 unsupported），守门 tests/unit/test_prometheus_rule_escaping.py。② CI 只挂 prometheus.yml+alerts.yml，而 prometheus.yml 的 rule_files 有 13 项 ⇒ 容器内缺文件即启动失败；改为按 docker-compose.monitoring.yml 逐项挂 10 个 -v（整目录 :ro 再往里挂文件会因只读挂载建不了挂载点而失败，openat ... read-only file system，exit 125）。验证：a2a3374ec 的「可观测性端到端验证」job = success（这正是原先红的那个 job）；整工作流结论待覆盖率分片收尾。"
     }
   ]
 }
