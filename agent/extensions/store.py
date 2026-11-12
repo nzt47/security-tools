@@ -129,14 +129,23 @@ class ExtensionStore:
     def update_status(
         self, ext_type: ExtensionType, ext_id: str,
         status: ExtensionStatus, config: Optional[Dict] = None,
+        enabled: Optional[bool] = None,
     ) -> bool:
-        """更新扩展状态和配置"""
+        """更新扩展状态和配置。
+
+        【enabled 与 status 必须同步（2026-11-12 现场 bug）】此前 `toggle` 只改 `status`，
+        而**真正决定发不发**的是 `enabled`（ChannelInstaller.send_message / channel_bridge
+        都读它）⇒ 界面上点「停用」只改了标签，通道照发；再点一次还是同一个状态，
+        于是"停用按钮不起作用"。这里一次写入两个字段，让"一条扩展只有一处真相"。
+        """
         data = self._load()
         key = self._get_key(ext_type)
         for item in data[key]:
             if item.get("ext_id") == ext_id:
                 item["status"] = status.value if isinstance(status, ExtensionStatus) else status
                 item["updated_at"] = __import__("datetime").datetime.now().isoformat()
+                if enabled is not None:
+                    item["enabled"] = bool(enabled)
                 if status == ExtensionStatus.INSTALLED and not item.get("installed_at"):
                     item["installed_at"] = item["updated_at"]
                 if config:

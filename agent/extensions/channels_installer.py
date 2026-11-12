@@ -32,6 +32,13 @@ from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
+#: SMTP 缺省端口（STARTTLS 惯用 587）与隐式 TLS 端口（465）
+SMTP_DEFAULT_PORT = 587
+SMTP_SSL_PORT = 465
+#: SMTP 连接/读写超时（秒）：不设超时时 smtplib 会一直挂着，采集线程会被一封发不出去的邮件拖住
+SMTP_TIMEOUT_SEC = 15
+
+
 def _trace_id():
     """生成 trace_id"""
     return uuid.uuid4().hex[:16]
@@ -62,6 +69,22 @@ class ChannelInstaller:
         return self._handlers.get(channel_id)
 
     # ── 通道管理 ──
+
+    @staticmethod
+    def is_channel_enabled(row: Dict) -> bool:
+        """一条通道"现在会不会发"（**唯一判据**，别各处自己拼）。
+
+        口径：`enabled` 为真 **且** 状态不是 uninstalled/disabled。为什么两个都看：
+        历史数据里出现过"status=disabled 但 enabled 还是 True"（toggle 只改 status 的遗留），
+        只看 enabled 会让用户的「停用」无效；只看 status 又会把"刚装、没启用过"误判成停用。
+        """
+        if not row:
+            return False
+        if row.get("enabled", True) is False:
+            return False
+        return str(row.get("status") or "") not in (
+            ExtensionStatus.UNINSTALLED.value, ExtensionStatus.DISABLED.value,
+        )
 
     def list_installed_channels(self) -> List[Dict]:
         """列出所有已安装的通道"""
@@ -133,11 +156,15 @@ class ChannelInstaller:
             "email_smtp": {
                 "channel_type": "smtp",
                 "smtp_server": "",
-                "smtp_port": 587,
+                # 587 = STARTTLS；465 = 隐式 TLS（use_ssl 不写时按端口推断，见 _handle_smtp）
+                "smtp_port": SMTP_DEFAULT_PORT,
                 "smtp_username": "",
                 "smtp_password": "",
                 "use_tls": True,
+                # 可选 use_ssl：不写时按端口推断（465 ⇒ 隐式 TLS）；写了则显式优先
                 "from_address": "",
+                # 收件人：报警外发不带 to 参数，只认这个键（多个用逗号分隔）
+                "default_to": "",
             },
         }
 
@@ -177,7 +204,9 @@ class ChannelInstaller:
 
         new_enabled = enabled if enabled is not None else not existing.get("enabled", True)
         status = ExtensionStatus.ENABLED if new_enabled else ExtensionStatus.DISABLED
-        self._store.update_status(ExtensionType.CHANNEL, channel_id, status)
+        # enabled 与 status 一次写两个：前者才是"发不发"的判据（见 store.update_status 注释）
+        self._store.update_status(ExtensionType.CHANNEL, channel_id, status,
+                                  enabled=new_enabled)
 
         action = "已启用" if new_enabled else "已禁用"
         return True, f"{action} 通道: {channel_id}", new_enabled
@@ -201,7 +230,7 @@ class ChannelInstaller:
         if not existing:
             return False, f"通道不存在: {channel_id}"
 
-        if not existing.get("enabled", True):
+        if not self.is_channel_enabled(existing):
             return False, f"通道已禁用: {channel_id}"
 
         handler = self._handlers.get(channel_id)
@@ -257,7 +286,17 @@ class ChannelInstaller:
 
     @staticmethod
     def _handle_smtp(config: Dict, message: str, **kwargs) -> str:
-        """SMTP 默认处理器"""
+        """SMTP 默认处理器（两条传输：STARTTLS 587 / 隐式 TLS 465）。
+
+        【为什么必须支持 465（2026-11-12 现场实证）】配好 139 邮箱后发送失败：
+        `smtp.139.com:587` 从本机 **连接超时**，而 `:465` 通（同机到 qq:587 / 163:465 都通 ⇒
+        不是出网被封，是这个服务端的 587 不可达）。原实现只有 `SMTP()+starttls()`，
+        465 的隐式 TLS 根本连不上 ⇒ 用户"配好了却发不出去"，且报错只是 WinError 10060。
+
+        口径：`use_ssl` 显式优先；未写时按端口推断（465 ⇒ 隐式 TLS）。`use_tls` 仅对
+        STARTTLS 分支有效（SMTP_SSL 下不再 starttls）。超时用模块常量，避免无超时长期挂住
+        采集线程（默认 `smtplib` 没有超时）。
+        """
         import smtplib
         from email.mime.text import MIMEText
 
@@ -269,12 +308,21 @@ class ChannelInstaller:
         msg["Subject"] = kwargs.get("subject", "来自云枢的消息")
         msg["From"] = config.get("from_address", "")
         msg["To"] = kwargs.get("to", config.get("default_to", ""))
+        if not str(msg["To"]).strip():
+            raise ValueError("收件人未配置（通道配置 default_to，或发送时传 to）")
 
-        port = config.get("smtp_port", 587)
-        use_tls = config.get("use_tls", True)
+        port = int(config.get("smtp_port") or SMTP_DEFAULT_PORT)
+        use_tls = bool(config.get("use_tls", True))
+        use_ssl = config.get("use_ssl")
+        implicit_ssl = use_tls and (bool(use_ssl) if use_ssl is not None
+                                    else port == SMTP_SSL_PORT)
 
-        with smtplib.SMTP(smtp_server, port) as server:
-            if use_tls:
+        if implicit_ssl:
+            client = smtplib.SMTP_SSL(smtp_server, port, timeout=SMTP_TIMEOUT_SEC)
+        else:
+            client = smtplib.SMTP(smtp_server, port, timeout=SMTP_TIMEOUT_SEC)
+        with client as server:
+            if use_tls and not implicit_ssl:
                 server.starttls()
             username = config.get("smtp_username", "")
             password = config.get("smtp_password", "")
@@ -291,12 +339,17 @@ class ChannelInstaller:
         builtin_channels = BUILTIN_EXTENSIONS.get("channel", [])
         installed = self.list_installed_channels()
         installed_ids = {s.get("ext_id") for s in installed}
+        # 模板卡片要对"装了吗 / 现在发不发"给出**同一处真相**：此前模板只带 installed，
+        # 界面上 `b.enabled` 恒 undefined ⇒ 装好的通道永远显示"已装（未启用）"（2026-11-12 实测）。
+        state = {s.get("ext_id"): s for s in installed}
 
         available = []
         for s in builtin_channels:
+            row = state.get(s["id"]) or {}
             available.append({
                 **s,
                 "installed": s["id"] in installed_ids,
+                "enabled": self.is_channel_enabled(row) if row else False,
                 "type": "channel",
             })
 

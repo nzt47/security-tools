@@ -217,16 +217,18 @@ def render_alert(alert: Any, transition: str) -> str:
 
 def _enabled_channels(installer: Any) -> List[Dict[str, Any]]:
     """已安装且 enabled 的通道（disabled 的一律不发）"""
+    from agent.extensions.channels_installer import ChannelInstaller  # 延迟 import：避免模块级互引
+
     rows = installer.list_installed_channels() or []
     out: List[Dict[str, Any]] = []
     for row in rows:
         if not isinstance(row, dict):
             continue
-        if row.get("status") == "uninstalled":
-            continue
-        if row.get("enabled", True) is False:
-            continue
         if not row.get("ext_id"):
+            continue
+        # 【一处真相】状态与 enabled 都要看：历史数据里存在"status=disabled 但 enabled=True"
+        # （旧 toggle 只改 status），只看 enabled 会让用户点的「停用」无效（2026-11-12 现场）。
+        if not ChannelInstaller.is_channel_enabled(row):
             continue
         out.append(row)
     return out
