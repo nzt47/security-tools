@@ -173,8 +173,9 @@ def test_slow_sections_only_on_slow_cadence(tmp_path):
     body = _Body(watcher=_Watcher([]), detector=detector)
     status = tmp_path / "s.json"
 
+    # 首轮：启动时 lifecycle 刚做过全量 baseline ⇒ 首轮只刷便宜分片（不白花 3–4s 重采设备）
     pc.run_perception_tick(body=body, now=NOW, hook=lambda c: None, status_path=status)
-    assert detector.sections[0] == list(pc.FAST_SECTIONS) + list(pc.SLOW_SECTIONS)
+    assert detector.sections[0] == list(pc.FAST_SECTIONS)
 
     # 30 分钟后：便宜分片刷新，贵分片还没到期
     pc.run_perception_tick(body=body, now=NOW + pc.change_detect_seconds() + 1,

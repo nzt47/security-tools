@@ -356,7 +356,15 @@ def run_perception_tick(*, body: Optional[Any] = None, now: Optional[float] = No
     due = last_detect is None or (ts - float(last_detect)) >= change_detect_seconds()
     if detector is not None and due:
         last_slow = _state.get("last_slow_detect_at")
-        slow_due = last_slow is None or (ts - float(last_slow)) >= change_detect_slow_seconds()
+        if last_slow is None:
+            # 【首轮不采贵分片】启动时 lifecycle 刚做过一次**全量** establish_baseline，
+            # 设备/磁盘的快照是新的；再在首轮（通常是启动后 1–2 分钟）重采一次 = 白花 3–4s
+            # （实测冷启动首轮 9.4s，其中 WMI 设备占大头）。把 slow 的计时从此刻起算。
+            with _lock:
+                _state["last_slow_detect_at"] = ts
+            slow_due = False
+        else:
+            slow_due = (ts - float(last_slow)) >= change_detect_slow_seconds()
         sections = list(FAST_SECTIONS) + (list(SLOW_SECTIONS) if slow_due else [])
         try:
             changes = detector.collect(sections=sections) or []
