@@ -168,7 +168,6 @@ flowchart LR
         agent_digestion_generation["agent.digestion.generation"]
         agent_digestion_internalize["agent.digestion.internalize"]:::crosslayer
         agent_digestion_isolation["agent.digestion.isolation"]:::crosslayer
-        agent_digestion_isolation_worker["agent.digestion.isolation_worker"]
         agent_digestion_judge_runtime["agent.digestion.judge_runtime"]
         agent_digestion_probe["agent.digestion.probe"]
         agent_digestion_real_capture["agent.digestion.real_capture"]
@@ -967,7 +966,6 @@ flowchart LR
     agent_digestion_internalize -.-> agent_task_scheduler
     agent_digestion_isolation -.-> agent_utils
     agent_digestion_isolation -.-> agent_subagent_sandbox
-    agent_digestion_isolation_worker -.-> agent_utils
     agent_digestion_judge_runtime -.-> agent_monitoring_cost_brake
     agent_digestion_judge_runtime -.-> agent_observability
     agent_digestion_judge_runtime -.-> agent_observability_model_degrade
@@ -2978,8 +2976,8 @@ flowchart LR
 
 ## 统计信息
 - 扫描文件数: 753
-- 模块节点数: 656
-- 依赖边数: 2193
-- 跨层调用数: 1394
+- 模块节点数: 655
+- 依赖边数: 2192
+- 跨层调用数: 1393
 - 违规调用数: 0
 - 动态 import 数: 1
