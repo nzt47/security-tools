@@ -58,7 +58,17 @@ if not errorlevel 1 goto backend_up
 
 echo  [1/2] Starting backend detached+hidden (cold start usually takes 60-90s)...
 if not exist "%PWSH%" goto no_powershell
-"%PWSH%" -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "Start-Process -FilePath 'python' -ArgumentList 'app_server.py' -WorkingDirectory '%ROOT%' -WindowStyle Hidden -RedirectStandardOutput '%LOGDIR%\backend_boot.out.log' -RedirectStandardError '%LOGDIR%\backend_boot.err.log'" >> "%LOG%" 2>&1
+REM  Unique boot log names: a fixed name can still be held by a previous boot
+REM  (Start-Process then fails with ERROR_SHARING_VIOLATION).
+set "BOOT=%RANDOM%%RANDOM%"
+set "BOOTOUT=%LOGDIR%\backend_boot_%BOOT%.out.log"
+set "BOOTERR=%LOGDIR%\backend_boot_%BOOT%.err.log"
+REM  No ">> %LOG%" here on purpose: the hidden launcher (scripts\yunshu_launch.vbs)
+REM  already redirects this whole script into logs\launcher_<mode>.log; opening the
+REM  same file a second time inside the batch fails with ERROR_SHARING_VIOLATION
+REM  ("the process cannot access the file because it is being used by another
+REM  process") and the backend would never start.
+"%PWSH%" -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "Start-Process -FilePath 'python' -ArgumentList 'app_server.py' -WorkingDirectory '%ROOT%' -WindowStyle Hidden -RedirectStandardOutput '%BOOTOUT%' -RedirectStandardError '%BOOTERR%'"
 goto wait_backend
 
 :no_powershell
@@ -74,7 +84,7 @@ echo  [2/2] Waiting for http://127.0.0.1:5678/api/health ...
 :wait_loop
 set /a _tries+=1
 if %_tries% gtr 90 (
-    echo  [WARN] Backend not ready after ~180s. Check logs\backend_boot.err.log .
+    echo  [WARN] Backend not ready after ~180s. Check logs\backend_boot_*.err.log .
     goto open_browser
 )
 curl -s -f -o nul --max-time 2 http://127.0.0.1:5678/api/health >nul 2>&1
@@ -88,6 +98,6 @@ echo  OK backend is ready.
 start "" "%URL%"
 echo.
 echo  Opened: %URL%
-echo  Backend logs: %LOGDIR%\backend_boot.out.log / .err.log
+echo  Backend logs: logs\backend_boot_*.out.log / .err.log
 echo.
 exit /b 0

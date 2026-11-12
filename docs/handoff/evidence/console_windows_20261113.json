@@ -1,0 +1,78 @@
+{
+  "round": "§11.102（2026-11-13 01:0x–02:0x）",
+  "task": "启动时和定时任务不要再弹黑色终端窗口（handoff_next: no-console-popups）",
+  "verifier": "scripts/verify_no_console_windows.py（--control / --sync / --watch）；本文件里所有数字都可用它复跑",
+  "forensics": {
+    "backend_started_by": "deploy_workbench.spawn_backend / watchdog_yunshu.spawn_backend（DETACHED_PROCESS|CREATE_NEW_PROCESS_GROUP）⇒ 后端自身没有控制台",
+    "mechanism": "无控制台的父进程 spawn 控制台子程序（gh / python / git）时，Windows 会给子进程新分配一个可见控制台",
+    "before_shortcuts": {
+      "云枢一键启动.lnk": "TargetPath=C:\\Users\\Administrator\\agent\\start_yunshu.bat（.bat 是控制台程序 ⇒ 双击必开 cmd 窗口；脚本内再 start 一个 cmd /k 后端窗口）",
+      "云枢看护.lnk": "TargetPath=C:\\Users\\Administrator\\agent\\start_watchdog.bat（30s 探活常驻 ⇒ 窗口一直挂着）"
+    },
+    "after_shortcuts": {
+      "云枢一键启动.lnk": "TargetPath=C:\\Windows\\System32\\wscript.exe; Arguments=\"C:\\Users\\Administrator\\agent\\scripts\\yunshu_launch.vbs\" start_yunshu",
+      "云枢看护.lnk": "TargetPath=C:\\Windows\\System32\\wscript.exe; Arguments=\"C:\\Users\\Administrator\\agent\\scripts\\yunshu_launch.vbs\" watchdog"
+    },
+    "scheduled_tasks_yunshu_or_watchdog": 0
+  },
+  "ab_probe": {
+    "control_bare_subprocess_run": {
+      "ts": "2026-11-13T01:31:12+08:00",
+      "parent_console_hwnd": 0,
+      "commands": [
+        "gh --version",
+        "gh repo view --json nameWithOwner"
+      ],
+      "visible_consoles_seen": [
+        {
+          "hwnd": 5703428,
+          "pid": 12164,
+          "image": "gh.exe",
+          "wndclass": "ConsoleWindowClass"
+        },
+        {
+          "hwnd": 21234538,
+          "pid": 9772,
+          "image": "gh.exe",
+          "wndclass": "ConsoleWindowClass"
+        }
+      ],
+      "visible_console_count": 2,
+      "note": "这就是巡检/CI 同步每 30 分钟闪的那一下：子进程就是 gh.exe 本身"
+    },
+    "guarded_ci_status_sync_once": {
+      "ts": "2026-11-13T01:31:14+08:00",
+      "parent_console_hwnd": 0,
+      "sync_result": "written（runs=10，2.8s，两次 gh 调用）",
+      "visible_consoles_seen": [],
+      "visible_console_count": 0
+    }
+  },
+  "launcher_acceptance": {
+    "chain": "wscript.exe scripts\\yunshu_launch.vbs start_yunshu → cmd（隐藏）→ powershell Start-Process -WindowStyle Hidden → python app_server.py",
+    "sampler": "scripts/verify_no_console_windows.py --watch 200（200ms 采样）",
+    "cold_start_window": {
+      "start": "2026-11-13T01:29:09+08:00",
+      "seconds": 200,
+      "sightings": 0
+    },
+    "backend_pid": 5040,
+    "health_after_start": 200,
+    "launcher_log": "logs/launcher_start_yunshu.log（含 'OK backend is ready' 与 'Opened: http://127.0.0.1:5678/chat'）",
+    "boot_logs": [
+      "logs/backend_boot_3100817401.out|err.log",
+      "logs/backend_boot_3154621416.out|err.log"
+    ],
+    "note": "冷启动全链路 0 个可见控制台窗口；同一窗口期内 01:30:10 的『CI 状态同步』周期任务也跑了一轮（gh 两次调用、6.7s），同样 0 sighting"
+  },
+  "watchdog_acceptance": {
+    "chain": "wscript.exe scripts\\yunshu_launch.vbs watchdog → cmd（隐藏）→ python scripts\\watchdog_yunshu.py",
+    "result": "pid 17208 起、logs/watchdog_yunshu.jsonl 写入 watchdog_start + health_check(healthy)、logs/watchdog_console.log 与 logs/launcher_watchdog.log 都有内容、0 sighting",
+    "cleanup": "验收后已停止看护并删除 logs/watchdog_yunshu.lock（口径：看护只做手动快捷方式、不注册计划任务）"
+  },
+  "known_pitfalls": [
+    "bat 里再写一次 >> \"%LOG%\" 会与 VBS 的外层重定向撞车：ERROR_SHARING_VIOLATION（『另一个程序正在使用此文件』），后端根本起不来 —— 这是本轮第一次实测失败的原因",
+    "WScript/cmd 按 ANSI 读 .vbs/.bat：UTF-8 中文注释的字节对被 GBK 吃掉后会吞掉下一个字节（含 CR/LF）⇒ 实测 VBS 在 invalid procedure call 处直接失败。这两个文件保持纯 ASCII",
+    "pythonw 不是解法：它只作用于启动器，且会把 stdout/stderr 吞掉；真因是子进程被分配控制台"
+  ]
+}

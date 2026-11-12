@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-13T01:00:00+08:00",
+  "updated_at": "2026-11-13T01:32:30+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
     {
@@ -632,11 +632,20 @@
     },
     {
       "id": "no-console-popups",
-      "status": "open",
+      "status": "done",
       "priority": "P2",
       "title": "启动与定时任务别再弹黑色终端窗口（Owner 2026-11-13 指定，下一会话新任务）",
       "criteria": "两个来源都要查：\n① 启动器：桌面「云枢一键启动.lnk」→ start_yunshu.bat、「云枢看护.lnk」→ start_watchdog.bat，两者都是 .bat，双击必开控制台；看护还是 30s 探活常驻循环，窗口会一直挂着（口径要求：看护只做手动快捷方式，不注册计划任务 —— 这一条不变）。\n② 定时任务：task_scheduler 的 python_func 任务在进程内跑（不弹窗），但**会 spawn 子进程**的任务在 Windows 上会闪黑窗 —— 已知：CI 状态同步（30 min）跑 gh（agent/monitoring/ci_status.py::sync_once）；deploy/桌面脚本跑 npm/python；感知/日志基线等纯进程内任务不弹。\n③ 另需确认机器上有没有 yunshu 相关的 Windows 计划任务（Get-ScheduledTask 里查 yunshu/watchdog）：有就说明有人（或旧轮次）注册过，按口径删掉或改成登录时静默，**不要新增计划任务**。",
-      "next": "取证 → 修 → 验收（三层，别只改 .bat 就收工）：\n1) 取证：Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" 看后端是谁拉起的（ParentProcessId/CommandLine）；Get-Process conhost 计数在 30 分钟边界前后对比（或临时用 pythonw 拉起再观察）；Get-ScheduledTask | Where TaskName -like '*yunshu*'。\n2) 启动器：start_yunshu.bat / start_watchdog.bat 改成不开窗（PowerShell -WindowStyle Hidden 包一层 / VBS 的 WScript.Shell.Run 0 / start \"\" /min 三选一），桌面 .lnk 指向隐藏启动器；脚本必须自己退出（别把窗口挂在 while 循环里等）。看护探活日志仍要落 logs/（别用 pythonw 把日志一起吞掉）。\n3) 子进程：Windows 上所有 subprocess.run/Popen（gh / npm / python 脚本）统一走叶子函数（如 agent/utils/proc.py::run_hidden），带 creationflags=CREATE_NO_WINDOW（+ startinfo.sw_hide）；该 flag 只在 sys.platform=='win32' 时生效（CI 是 Linux，别把 flag 传进去）；数字字面量提成模块常量（硬编码门禁会拦）。\n4) 验收：连续观察 ≥2 个 30 分钟边界 + 一次重启：无窗口闪现、conhost 不新增；data/task_history.jsonl 仍正常记录；/api/version 三处一致；若新增 env 必须进 agent/settings/registry.py（scan_settings --check 零缺口）。"
+      "next": "2026-11-13 落地（第六十三轮，提交 233a790b7，部署 233a790b7，证据 docs/handoff/evidence/console_windows_20261113.json）。\n先取证再改（三条实测，不是猜）：① 后端由 deploy/watchdog 用 DETACHED_PROCESS 拉起 ⇒ 自身没有控制台；② 这种父进程 spawn 控制台程序（gh/python/git）时 Windows 会给子进程**新分配一个可见控制台**（探针：GetConsoleWindow 非 0、IsWindowVisible=true、类 ConsoleWindowClass；加 CREATE_NO_WINDOW 后为 0）；③ 两个桌面 .lnk 直接指向 .bat（WindowStyle=1）⇒ 双击必开 cmd；Get-ScheduledTask 里 yunshu/watchdog 相关 0 条（本轮也不注册）。\n三层修法：① 启动器 —— scripts/yunshu_launch.vbs（wscript，Run(cmd,0,False) 隐藏拉起 .bat，stdout/stderr 重定向到 logs/launcher_<mode>.log），两个 .lnk 改指向它，重建入口 scripts/make_desktop_shortcuts.py；② 脚本 —— start_yunshu.bat 用 Start-Process -WindowStyle Hidden 分离拉起后端（logs/backend_boot_<id>.out|err.log），删 cmd /k 与 pause；start_watchdog.bat 重定向 logs/watchdog_console.log（不用 pythonw，JSONL 留痕照旧）；③ 子进程 —— 新叶子模块 agent/utils/proc.py（run/popen/check_output + hidden_kwargs，Windows 注入 CREATE_NO_WINDOW+隐藏 STARTUPINFO，非 Windows 返回空字典，调用方 creationflags 优先），agent/ 下 39 处 spawn 收敛到它，mcp_services/mcp_client.py 补 CREATE_NO_WINDOW；守门 tests/unit/test_proc_hidden_window.py 12 条（含 AST 全仓哨兵）。\n验收：A/B 探针 —— 对照臂（裸 subprocess.run）2 个可见控制台窗口（image=gh.exe）；真实 ci_status.sync_once 0 个。冷启动经桌面链（wscript→隐藏 cmd→Start-Process）200s/200ms 采样 0 sighting、/api/health=200、launcher 日志有 OK backend is ready；同期 01:30:10 的『CI 状态同步』也在采样窗口内（0 sightings）。看护同链隐藏启动 0 sighting，验收后已停并删锁。\n坑：bat 里二次 >> %LOG% 会与外层重定向撞 ERROR_SHARING_VIOLATION（第一次实测失败真因）；.vbs/.bat 必须纯 ASCII（GBK 会吞掉下一个字节含 CR/LF）；「没看到窗口」不是证据 —— 采样器必须跑在无控制台父进程里，且 --control 必须 >0 才算仪器有效。",
+      "done_at": "2026-11-13T01:35:00+08:00"
+    },
+    {
+      "id": "legacy-vbs-launcher-stale",
+      "status": "open",
+      "priority": "P3",
+      "title": "docs/zh/启动云枢.vbs 是旧的重复启动器（无引用、硬编码 python 路径、打开 /:5678 而不是 /chat、会先 taskkill 占 5678 的进程）",
+      "criteria": "全仓 grep 启动云枢.vbs 0 处引用；脚本内 Const PYTHON_PATH 硬编码 C:\\Users\\Administrator\\...\\Python312\\python.exe、最后打开 http://127.0.0.1:5678（不带 /chat）、启动前 netstat+taskkill 清端口。2026-11-13 的 no-console-popups 已用 scripts/yunshu_launch.vbs + 两个桌面 .lnk 覆盖同一职责，且口径（/chat）与它不一致 ⇒ 保留它等于留一个「看起来能用但口径错」的入口。",
+      "next": "建议删除 docs/zh/启动云枢.vbs（本轮不在任务面内，未动；security-tools/docs/zh/ 下另有一份同内容副本，属另一个目录，删除前确认无人引用）。删除不涉及路由/UI 入口，不需要重派生 route_ui_coverage。"
     }
   ]
 }
