@@ -80,5 +80,38 @@
       "status": "installed"
     }
   },
-  "note_on_last_round": "firing_round / resolved_round 里的 notify.last_round 为 null：那是脚本进程内的内存读数；运行进程的真实读数在 backend_reading（considered=1 / sent=1 / failed=0）。2026-11-12 21:23–21:24 的首轮验证另收到 3 条 POST（firing / 缺口首现提示 warning / resolved），当时的 last_round 读数同样是 sent=1；接收器日志随临时文件清理，本文件保留两次复验的正文。"
+  "note_on_last_round": "firing_round / resolved_round 里的 notify.last_round 为 null：那是脚本进程内的内存读数；运行进程的真实读数在 backend_reading（considered=1 / sent=1 / failed=0）。2026-11-12 21:23–21:24 的首轮验证另收到 3 条 POST（firing / 缺口首现提示 warning / resolved），当时的 last_round 读数同样是 sent=1；接收器日志随临时文件清理，本文件保留两次复验的正文。",
+  "smtp_round": {
+    "at": "2026-11-12T23:39:38+0800",
+    "why": "Owner 配好 139 邮箱后通道仍发不出去（WinError 10060）；排查后确定是端口/传输方式问题",
+    "diagnosis": {
+      "probe_smtp.139.com:587": "TimeoutError（连接超时）",
+      "probe_smtp.139.com:465": "ok",
+      "probe_smtp.139.com:25": "ok",
+      "control_smtp.qq.com:587": "ok（⇒ 不是本机出网被封，是该服务端 587 不可达）",
+      "conclusion": "原实现只有 SMTP()+starttls()（587）；改为支持 465 隐式 TLS（use_ssl 未写时按端口推断）"
+    },
+    "manual_send": {
+      "via": "POST /api/extensions/channels/send",
+      "channel": "email_smtp",
+      "ok": true,
+      "message": "邮件已发送到 13539371839@139.com"
+    },
+    "synthetic_critical": {
+      "channel_state": {
+        "email_smtp": "status=enabled, enabled=True",
+        "webhook": "status=disabled, enabled=False（地址为空，避免每次报警白试）"
+      },
+      "notify_last_round": {
+        "at": "2026-11-12T23:37:58+08:00",
+        "considered": 1,
+        "sent": 1,
+        "failed": 0,
+        "skipped": 0
+      },
+      "cursor_lines": 315,
+      "event_lines": 315
+    },
+    "also_fixed": "通道「停用」按钮无效：toggle 只写 status，而\"发不发\"读 enabled；新增 ChannelInstaller.is_channel_enabled 作为唯一判据，toggle 一次写两个字段，模板卡片带 enabled（此前恒 undefined ⇒ 永远显示\"已装（未启用）\"）"
+  }
 }

@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-12T22:02:00+08:00",
+  "updated_at": "2026-11-12T23:40:00+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
     {
@@ -592,11 +592,11 @@
     },
     {
       "id": "alarm-channel-credentials",
-      "status": "open",
+      "status": "done",
       "priority": "P3",
       "title": "告警外发通道已安装但未配置（webhook_url / smtp_server 为空）⇒ 外发实际发不出去",
       "criteria": "agent/extensions 里 webhook 与 email_smtp 两个通道 status=installed、enabled=true，但 config 里\nwebhook_url 与 smtp_server 都是空串。告警外发（agent/alarms/notify.py）已接线并每轮尝试，\n结果体现在 /api/alarms/coverage.notify.last_round.failed。",
-      "next": "机制已实证（2026-11-12 21:23–21:30），只剩真实地址：本地回环接收器 + 临时指向 webhook_url ⇒ 合成 critical 告警走完 台账→events 游标→channel_bridge→HTTP：收到 firing / 缺口首现提示(warning) / resolved 三条 POST，coverage.notify.last_round = {considered:1, sent:1, failed:0}；随后配置已还原（webhook_url 置空、status 回 installed）。证据 docs/handoff/evidence/channel_verify_20261112.json。待 Owner：把真实 webhook URL（或 SMTP 服务器/账号/收件人）写进 .env 或通道界面（别贴进对话）；填好后复核 coverage.notify.last_round.sent>0 与通道侧确实收到，本条目即可 done。"
+      "next": "2026-11-12 收口（Owner 已填 139 邮箱）：① 实测 smtp.139.com:587 **连接超时**、:465 通 （同机 qq:587 / 163:465 都通 ⇒ 不是出网被封）⇒ _handle_smtp 增加 465 隐式 TLS 支持（use_ssl 显式优先、未写时按端口推断；SMTP_TIMEOUT_SEC=15；收件人为空在建连接前就报错）。② 顺手修掉「停用按钮无效」：toggle 只写 status 而'发不发'读 enabled ⇒ 新增 ChannelInstaller.is_channel_enabled 作为唯一判据，toggle 一次写 enabled+status，模板卡片带 enabled（此前恒 undefined ⇒ 永远显示'已装（未启用）'）。现场：email_smtp 已启用（465）、webhook 停用（地址为空）；手动发送 ok；合成 critical 告警后 coverage.notify.last_round = {considered:1, sent:1, failed:0}（23:37:58）。证据 docs/handoff/evidence/channel_verify_20261112.json 的 smtp_round。后续只差 webhook：拿到 URL 后在通道页填上并启用即可。"
     },
     {
       "id": "ocr-sensor-collect-contract",
