@@ -1372,6 +1372,12 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        "设备/进程枚举是 WMI 重活，过密只会把 novelty 记忆刷成进程增减噪音"
        "（agent/learning/perception_cycle.py::change_detect_seconds）",
        owner="agent/learning/perception_cycle.py"),
+    _a("SENSOR_CHANGE_DETECT_SLOW_INTERVAL_SECONDS", CAT_LEARNING, 3600,
+       "快照 diff 的**贵分片**（设备 WMI / 磁盘分区扫描）刷新间隔（秒，默认 3600，最小 300）："
+       "便宜分片（进程/服务/注册表/环境/系统信息，实测 ~0.5s）仍按上一项 30 分钟一轮；"
+       "本项决定设备插拔这类重活多久看一次（agent/learning/perception_cycle.py::"
+       "change_detect_slow_seconds）",
+       owner="agent/learning/perception_cycle.py"),
     # 【L5（2026-09-23）】补登记 config_path：三项都在 orchestrator.py 里读
     #   config.yaml（config 段见各条描述），此前留空 ⇒ UI 只显示 default。
     _a("LEARNING_REFLECTION_PERSIST", CAT_LEARNING, True,
@@ -3035,6 +3041,12 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        "data/ci/status.json，供报警器 CI 事件源判读；关闭后文件会逐渐过期（>2h 判不可用）"
        "（agent/monitoring/ci_status.py）",
        owner="agent/monitoring/ci_status.py"),
+    # · 外部端口存活（2026-11-12）：TCP connect → 单位看板 ops.ports（不引入 Prometheus）
+    _a("CP_PORT_PROBES", CAT_OBSERVABILITY, "",
+       "要探活的 host:port 列表（逗号/分号分隔，如 127.0.0.1:11434;10.0.0.5:5432）；"
+       "空 = 不探任何端口（单位状态 never，不计分）。只做 TCP connect，不发应用层请求、"
+       "不抓指标；连不上记 warn（逐条 target），不回对端地址（agent/monitoring/port_probe.py）",
+       owner="agent/monitoring/port_probe.py"),
     _a("CP_CI_SYNC_INTERVAL_SECONDS", CAT_OBSERVABILITY, 1800,
        "CI 运行结论同步间隔（秒，默认 1800 = 30 分钟 = 2h 离线阈值的 1/4，最小 300）："
        "gh 失败只记警告、不抛异常（不制造「计划任务失败」噪音）"

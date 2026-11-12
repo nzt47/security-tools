@@ -1552,8 +1552,41 @@ class TestListProcesses:
 class TestListServices:
     """服务枚举：Windows/Linux/Darwin 三分支 + 逐行解析。"""
 
-    def test_windows_branch(self, cd, monkeypatch):
+    def test_windows_prefers_psutil_fast_path(self, cd, monkeypatch):
+        """Windows 优先 psutil（0.23s vs WMI 5.8s），值归一化成 WMI 同形写法。"""
         monkeypatch.setattr(cd_mod, "SYSTEM", "Windows")
+
+        class _Svc:
+            def __init__(self, info):
+                self._info = info
+
+            def as_dict(self):
+                return self._info
+
+        class _Psutil:
+            @staticmethod
+            def win_service_iter():
+                return [
+                    _Svc({"name": "Spooler", "status": "running", "start_type": "automatic"}),
+                    _Svc({"name": "XblAuth", "status": "stopped", "start_type": "manual"}),
+                ]
+
+        monkeypatch.setitem(sys.modules, "psutil", _Psutil)
+        assert cd._list_services() == [
+            {"name": "Spooler", "state": "Running", "start_mode": "Auto"},
+            {"name": "XblAuth", "state": "Stopped", "start_mode": "Manual"},
+        ]
+
+    def test_windows_falls_back_to_wmi(self, cd, monkeypatch):
+        """psutil 不可用（或接口变了）⇒ 回退 WMI，形状不变。"""
+        monkeypatch.setattr(cd_mod, "SYSTEM", "Windows")
+
+        class _Psutil:
+            @staticmethod
+            def win_service_iter():
+                raise RuntimeError("psutil broken")
+
+        monkeypatch.setitem(sys.modules, "psutil", _Psutil)
 
         class Svc:
             def __init__(self, n, s, m):
@@ -1571,6 +1604,7 @@ class TestListServices:
 
     def test_windows_without_wmi_returns_empty(self, cd, monkeypatch):
         monkeypatch.setattr(cd_mod, "SYSTEM", "Windows")
+        monkeypatch.setitem(sys.modules, "psutil", None)
         monkeypatch.setitem(sys.modules, "wmi", None)
         assert cd._list_services() == []
 

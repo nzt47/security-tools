@@ -52,9 +52,11 @@ class _Detector:
     def __init__(self, changes=None):
         self.changes = list(changes or [])
         self.calls = 0
+        self.sections = []          # 每次 collect 传进来的分片（None = 全量）
 
-    def collect(self):
+    def collect(self, sections=None):
         self.calls += 1
+        self.sections.append(None if sections is None else list(sections))
         out, self.changes = self.changes, []
         return out
 
@@ -94,6 +96,7 @@ def _clean_state(monkeypatch):
     pc._state.update({
         "ticks": 0, "last_tick_at": None, "last_file_event_at": None,
         "last_change_at": None, "last_change_detect_at": None,
+        "last_slow_detect_at": None,
         "file_events_total": 0, "change_events_total": 0,
     })
     pc._body = None
@@ -162,6 +165,28 @@ def test_change_detect_is_throttled(tmp_path):
         body=body, now=NOW + pc.change_detect_seconds() + 1.0,
         hook=lambda c: None, status_path=status)
     assert third["diff_ran"] is True and detector.calls == 2
+
+
+def test_slow_sections_only_on_slow_cadence(tmp_path):
+    """★ 贵分片（设备/磁盘）按 1h 刷新，便宜分片按 30min —— 别让 WMI 每轮都跑"""
+    detector = _Detector([])
+    body = _Body(watcher=_Watcher([]), detector=detector)
+    status = tmp_path / "s.json"
+
+    pc.run_perception_tick(body=body, now=NOW, hook=lambda c: None, status_path=status)
+    assert detector.sections[0] == list(pc.FAST_SECTIONS) + list(pc.SLOW_SECTIONS)
+
+    # 30 分钟后：便宜分片刷新，贵分片还没到期
+    pc.run_perception_tick(body=body, now=NOW + pc.change_detect_seconds() + 1,
+                           hook=lambda c: None, status_path=status)
+    assert detector.sections[1] == list(pc.FAST_SECTIONS)
+
+    # 1 小时后：贵分片到期，重新一起采
+    pc.run_perception_tick(body=body, now=NOW + pc.change_detect_slow_seconds() + 2,
+                           hook=lambda c: None, status_path=status)
+    assert detector.sections[2] == list(pc.FAST_SECTIONS) + list(pc.SLOW_SECTIONS)
+    saved = json.loads(status.read_text(encoding="utf-8"))
+    assert "devices" in saved["change_detect_sections"]
 
 
 def test_no_body_is_reported_not_raised(tmp_path):

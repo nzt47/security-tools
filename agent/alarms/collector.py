@@ -51,6 +51,9 @@ __version__ = "1.0.0"
 #: 采集间隔（秒）：与健康采集线程同频（探针 60s 一轮，再快也拿不到新数据）
 COLLECT_INTERVAL = 60
 
+#: 单位看板判"采集线程停摆"的周期数（超过 3 轮没跑 = 停摆）
+UNIT_STALE_ROUNDS = 3
+
 #: 低于该分数才算"降级"（与健康仪表盘 levelOf 的 good 阈值同源：0.8）
 HEALTH_DEGRADE_SCORE = 0.8
 #: 低于该分数算 critical（float 判断，不做四舍五入，避免 0.795 被当成 0.8）
@@ -597,7 +600,7 @@ def collect_once(store: Optional[AlarmStore] = None, *,
 
     stats = target.reconcile(candidates, keep=keep)
     global _last_stats
-    _last_stats = {"checked": checked, "raised": stats["raised"],
+    _last_stats = {"at": time.time(), "checked": checked, "raised": stats["raised"],
                    "resolved": stats["resolved"], "kept": sorted(keep), "warmup": warmup}
     return {"checked": checked, "raised": stats["raised"],
             "resolved": stats["resolved"], "kept": sorted(keep), "warmup": warmup}
@@ -605,6 +608,49 @@ def collect_once(store: Optional[AlarmStore] = None, *,
 
 def _firing_keys(store: AlarmStore) -> List[str]:
     return [row["key"] for row in store.list(state="firing", limit=1000)]
+
+
+def unit_probe(now: Optional[float] = None) -> Dict[str, object]:
+    """单位看板探针（只读）：报警采集线程还在不在跑、上一轮读到了几个源。
+
+    【为什么不在"某个源不可用"时报 warn】源不可用有它自己的 keep 语义（既不报警也不判恢复），
+    再让本单位的 warn 经"单位看板 → 报警候选"绕一圈，就会把"CI 过期"变成第二条告警 ——
+    那正是 §11.91 花力气消掉的噪音。这里只盯**采集本身停摆**（上一轮超过 3 个周期）。
+    """
+    import time as _time
+
+    stats = last_stats()
+    if not stats:
+        return {"status": "never", "summary": "报警器还没跑过任何一轮采集",
+                "metrics": {}, "issues": [], "last_activity": None}
+    at = stats.get("at")
+    age = None
+    if isinstance(at, (int, float)):
+        age = max(0.0, float(now if now is not None else _time.time()) - float(at))
+    checked = stats.get("checked") or {}
+    if not isinstance(checked, dict):
+        checked = {}
+    read = sum(1 for v in checked.values() if v)
+    stalled = age is not None and age > COLLECT_INTERVAL * UNIT_STALE_ROUNDS
+    issues = []
+    if stalled:
+        issues.append("采集已停摆：上一轮在 %.0f 分钟前（阈值 %d 个周期）"
+                      % (age / 60.0, UNIT_STALE_ROUNDS))
+    return {
+        "status": "warn" if stalled else "ok",
+        "summary": "上一轮：%d/%d 个源已读；上报 %s / 恢复 %s" % (
+            read, len(checked), stats.get("raised"), stats.get("resolved")),
+        "metrics": {
+            "sources_read": read,
+            "sources_total": len(checked),
+            "raised": stats.get("raised"),
+            "resolved": stats.get("resolved"),
+            "kept": len(stats.get("kept") or []),
+            "last_round_age_seconds": None if age is None else round(age, 1),
+        },
+        "issues": issues,
+        "last_activity": None,
+    }
 
 
 # ════════════════════════════════════════════════════════════

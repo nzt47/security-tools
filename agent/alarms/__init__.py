@@ -16,3 +16,15 @@ from agent.alarms.store import (  # noqa: F401
 )
 
 __all__ = ["Alarm", "AlarmStore", "get_store", "reset_store"]
+
+# ── 包自声明：「报警采集线程」是一个功能单位（2026-11-12）──────────────
+# 只写字面量（启动期不 import collector）；probe 见 agent/alarms/collector.py::unit_probe
+MODULE_UNITS = [
+    {
+        "id": "alarms.collector",
+        "label": "报警采集线程",
+        "family": "ops",
+        "probe": "agent.alarms.collector:unit_probe",
+        "description": "六条事件源每 60s 一轮：已读源数 / 上报 / 恢复 / 停摆检测",
+    },
+]

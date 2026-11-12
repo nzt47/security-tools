@@ -418,6 +418,9 @@ def discovery_summary() -> dict:
         "scanned_packages": result.scanned_packages,
         "discovered": len(result.declared),
         "unregistered": len(result.unregistered),
+        # 单位声明（2026-11-12）：与拓扑节点**互相独立**的两张清单，各自计数
+        "declared_units": len(result.units),
+        "invalid_units": len(result.invalid_units),
     }
 
 

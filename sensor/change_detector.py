@@ -54,6 +54,63 @@ REGISTRY_HIVE_MAP = {
 }
 
 
+#: 快照分片 → 采集方法名（供 collect(sections=...) 做"贵/便宜分开采"）。
+#: 便宜组（进程/服务/注册表/环境/系统信息）实测 ~0.5s；贵组（WMI 设备 ~2–3s、
+#: 磁盘分区设备扫描 ~0.8s）只在低频轮次里采 —— 见 agent/learning/perception_cycle.py。
+SNAPSHOT_SECTIONS = {
+    "devices": "_list_devices",
+    "disk_partitions": "_list_disk_partitions",
+    "processes": "_list_processes",
+    "services": "_list_services",
+    "system_info": "_get_system_info",
+    "registry": "_capture_registry",
+    "environment": "_capture_environment",
+}
+
+
+def _snapshot_hash(snapshot):
+    """快照摘要（16 位 sha256）。只做"同不同"的粗判，不参与 diff 判据。"""
+    return hashlib.sha256(
+        json.dumps(snapshot, default=str, sort_keys=True).encode()
+    ).hexdigest()[:16]
+
+
+#: psutil 服务状态/启动类型 → WMI 同形写法（保持与历史变更记录一致）
+_PSUTIL_SERVICE_STATE = {
+    "running": "Running", "stopped": "Stopped", "paused": "Paused",
+    "start_pending": "Start Pending", "stop_pending": "Stop Pending",
+    "pause_pending": "Pause Pending", "continue_pending": "Continue Pending",
+    "unknown": "Unknown",
+}
+_PSUTIL_SERVICE_START = {
+    "automatic": "Auto", "manual": "Manual", "disabled": "Disabled",
+    "boot": "Boot", "system": "System",
+}
+
+
+def _psutil_windows_services():
+    """用 psutil 枚举 Windows 服务（失败返回 None，由调用方回退 WMI）。
+
+    【为什么要有这条快路（2026-11-12）】WMI 的 Win32_Service 实测 5.8s/次（322 个服务），
+    是整轮快照里最贵的一段；psutil.win_service_iter + as_dict 只要 ~0.23s。
+    """
+    try:
+        import psutil
+        out = []
+        for svc in psutil.win_service_iter():
+            info = svc.as_dict()
+            out.append({
+                "name": info.get("name", ""),
+                "state": _PSUTIL_SERVICE_STATE.get(str(info.get("status") or "").lower(),
+                                                   info.get("status") or ""),
+                "start_mode": _PSUTIL_SERVICE_START.get(str(info.get("start_type") or "").lower(),
+                                                        info.get("start_type") or ""),
+            })
+        return out
+    except Exception:  # noqa: BLE001 psutil 不可用/接口变了 ⇒ 交给 WMI 分支
+        return None
+
+
 class ChangeDetector:
     """变更检测传感器，负责监测身体变化并产生免疫记忆"""
 
@@ -88,11 +145,18 @@ class ChangeDetector:
         logging.info("已建立变更检测基准快照。")
         return self._baseline
 
-    def collect(self):
+    def collect(self, sections=None):
         """
-        采集自基准快照以来的所有变更。
+        采集自上次检查以来的所有变更。
         返回 SensorReading 列表。
-        首次调用时自动建立基准。
+        首次调用时自动建立基准（**全量**）。
+
+        Args:
+            sections: 只刷新并对比哪几个分片（见 SNAPSHOT_SECTIONS）。
+                None（默认）= 全量，与历史行为逐字一致。
+                给子集时：未列出的分片沿用上次快照（因此不会产生假的"没变/变了"），
+                只有列出的分片可能产生 diff。用途见 agent/learning/perception_cycle.py：
+                进程/服务/注册表每 5 分钟看一次，设备/磁盘（WMI 重活）每小时看一次。
         """
         if self._baseline is None:
             self.set_baseline()
@@ -101,8 +165,16 @@ class ChangeDetector:
                 "变更检测基准已建立（免疫系统初始化）", self._category
             )]
 
-        current = self._capture_snapshot()
-        changes = self._compare_snapshots(self._last_check or self._baseline, current)
+        previous = self._last_check or self._baseline
+        if sections is None:
+            current = self._capture_snapshot()
+        else:
+            # 增量刷新：其余分片沿用旧值 ⇒ 对比结果里只可能出现被刷新的分片的变更
+            current = dict(previous)
+            current.update(self._capture_snapshot(sections=sections))
+            current["timestamp"] = datetime.now().isoformat()
+            current["hash"] = _snapshot_hash(current)
+        changes = self._compare_snapshots(previous, current)
         self._last_check = current
 
         results = []
@@ -139,21 +211,23 @@ class ChangeDetector:
         except Exception as e:  # noqa: BLE001 钩子异常兜底
             logging.warning(f"学习钩子触发失败（感知主链路不受影响）: {e}")
 
-    def _capture_snapshot(self):
-        """捕获当前时刻的完整快照"""
+    def _capture_snapshot(self, sections=None):
+        """捕获快照。
+
+        Args:
+            sections: 只采哪几个分片（None = 全量）。未知分片名**直接抛 ValueError**：
+                静默忽略会让调用方以为"采过了"，而本模块的产物正是"变化事件"，
+                漏采等于悄悄伪造"没有变化"。
+        """
+        names = tuple(SNAPSHOT_SECTIONS) if sections is None else tuple(sections)
+        unknown = [name for name in names if name not in SNAPSHOT_SECTIONS]
+        if unknown:
+            raise ValueError("未知快照分片: " + ", ".join(unknown))
         snapshot = {}
-        snapshot["timestamp"] = __import__('datetime').datetime.now().isoformat()
-        snapshot["devices"] = self._list_devices()
-        snapshot["disk_partitions"] = self._list_disk_partitions()
-        snapshot["processes"] = self._list_processes()
-        snapshot["services"] = self._list_services()
-        snapshot["system_info"] = self._get_system_info()
-        snapshot["registry"] = self._capture_registry()
-        snapshot["environment"] = self._capture_environment()
-        # 生成快照摘要哈希
-        snapshot["hash"] = hashlib.sha256(
-            json.dumps(snapshot, default=str, sort_keys=True).encode()
-        ).hexdigest()[:16]
+        snapshot["timestamp"] = datetime.now().isoformat()
+        for name in names:
+            snapshot[name] = getattr(self, SNAPSHOT_SECTIONS[name])()
+        snapshot["hash"] = _snapshot_hash(snapshot)
         return snapshot
 
     def _compare_snapshots(self, old, new):
@@ -249,6 +323,11 @@ class ChangeDetector:
         services = []
         try:
             if SYSTEM == "Windows":
+                # 快路 psutil（~0.23s）；不可用时回退 WMI（~5.8s，见 _psutil_windows_services）
+                fast = _psutil_windows_services()
+                if fast is not None:
+                    services.extend(fast)
+                    return services
                 try:
                     import wmi
                     c = wmi.WMI()

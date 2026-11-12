@@ -31,6 +31,23 @@
 """
 
 # ════════════════════════════════════════════════════════════════════════════
+#  包自声明：「监控面」的三个功能单位（2026-11-12）
+# ════════════════════════════════════════════════════════════════════════════
+# 只写**字面量**：启动期不 import 任何子模块；probe 在单位看板真正调它时才 import。
+# 声明格式与登记逻辑见 agent/modules_discovery.py / agent/monitoring/declared_units.py。
+MODULE_UNITS = [
+    {"id": "ops.ci_sync", "label": "CI 状态同步", "family": "ops",
+     "probe": "agent.monitoring.ci_status:unit_probe",
+     "description": "gh → data/ci/status.json（30 分钟）；过期则报警器按不可用处理"},
+    {"id": "ops.ports", "label": "外部端口存活", "family": "ops",
+     "probe": "agent.monitoring.port_probe:unit_probe",
+     "description": "TCP connect 配置的 host:port（不做应用层请求、不引入 Prometheus）"},
+    {"id": "ops.logs", "label": "日志异常聚合", "family": "ops",
+     "probe": "agent.monitoring.log_anomaly:unit_probe",
+     "description": "logs/*.log 尾窗 ERROR 密度（≥20 条且 ≥5% ⇒ warn）"},
+]
+
+# ════════════════════════════════════════════════════════════════════════════
 #  PEP 562 模块级懒加载
 # ════════════════════════════════════════════════════════════════════════════
 # Why: monitoring 下 7 个子模块在顶层相互依赖较少, 但部分子模块(如 prometheus)

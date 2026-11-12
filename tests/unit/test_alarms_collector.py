@@ -32,6 +32,23 @@ def store(tmp_path: Path) -> AlarmStore:
     return AlarmStore(tmp_path / "state.json", tmp_path / "events.jsonl")
 
 
+@pytest.fixture(autouse=True)
+def _hermetic_optional_sources(monkeypatch):
+    """默认源不许读真实运行期文件（本文件只测「一轮采集」的编排逻辑）。
+
+    【2026-11-12 实证】CI 状态文件被周期任务刷新后，"真实的" ci.failed 候选混进了
+    `collect_once(sources={health,units,audit})`，把 raised 从 2 顶成 3 —— 这类用例
+    必须自带边界：**注入的 sources 之外，其余默认源一律置空**。
+    真实读者的行为由 test_alarms_global_coverage.py 单独覆盖。
+    """
+    monkeypatch.setattr(collector, "read_ci_status", lambda: None)
+    monkeypatch.setattr(collector, "read_scheduler_failures", lambda: None)
+    monkeypatch.setattr(collector, "read_rule_states", lambda: None)
+    monkeypatch.setattr(collector, "read_audit_verification", lambda: {"ok": True})
+    monkeypatch.setattr(collector, "read_health_point", lambda: None)
+    monkeypatch.setattr(collector, "read_units", lambda: None)
+
+
 def _point(**layers):
     return {"probe_details": {k: {"score": v[0], "detail": v[1]} for k, v in layers.items()}}
 

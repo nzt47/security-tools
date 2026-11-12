@@ -56,8 +56,19 @@ TASK_NAME = "感知周期采集"
 
 #: tick 间隔（秒）：文件事件 drain 很便宜，5 分钟一轮足够把"刚发生的变化"变成事件
 DEFAULT_TICK_SECONDS = 300
-#: 快照 diff 节流（秒）：WMI 设备/进程枚举是重活，30 分钟一次才不会被噪音淹没
+#: 快照 diff 节流（秒）：进程/服务/注册表这组便宜（<1s），30 分钟一次足够
 DEFAULT_CHANGE_DETECT_SECONDS = 1800
+
+#: 便宜分片（每轮 diff 都刷新）：实测合计 ~0.5–0.7s
+#: （_list_processes 0.3s + psutil 服务 0.23s + 注册表/环境/系统信息 ~0.05s）
+FAST_SECTIONS = ("processes", "services", "registry", "environment", "system_info")
+
+#: 贵分片（低频轮次才刷新）：WMI Win32_PnPEntity 实测 2.2–3.1s、磁盘分区扫描 0.8s。
+#: 首版把它们和便宜组放一起，导致每 30 分钟阻塞调度线程 ~25–29s（实测 duration_ms 43499 峰值）。
+SLOW_SECTIONS = ("devices", "disk_partitions")
+
+#: 贵分片刷新间隔（秒）：设备插拔/磁盘挂载本来就稀疏，一小时一次足够
+DEFAULT_CHANGE_DETECT_SLOW_SECONDS = 3600
 
 #: 状态文件（运行期状态；data/learning/ 已在 .gitignore）
 STATUS_REL_PATH = "data/learning/perception_status.json"
@@ -70,9 +81,14 @@ LONG_SILENT_SECONDS = 24 * 3600
 #: 读 novelty 记忆尾行时最多回看的字节数（文件可能很大，只取尾部）
 TAIL_READ_BYTES = 8192
 
+#: 单位看板判"感知停摆"的阈值：超过 3 个 tick 周期（且不少于 15 分钟）才算停摆
+UNIT_STALE_TICKS = 3
+UNIT_STALE_MIN_SECONDS = 900
+
 ENV_ENABLED = "SENSOR_PERCEPTION_ENABLED"
 ENV_TICK_SECONDS = "SENSOR_PERCEPTION_INTERVAL_SECONDS"
 ENV_CHANGE_SECONDS = "SENSOR_CHANGE_DETECT_INTERVAL_SECONDS"
+ENV_CHANGE_SLOW_SECONDS = "SENSOR_CHANGE_DETECT_SLOW_INTERVAL_SECONDS"
 
 _TRUTHY = frozenset({"1", "true", "yes", "on", "enable", "enabled"})
 _FALSY = frozenset({"0", "false", "no", "off", "disable", "disabled"})
@@ -99,6 +115,7 @@ _state: Dict[str, Any] = {
     "last_file_event_at": None,
     "last_change_at": None,
     "last_change_detect_at": None,
+    "last_slow_detect_at": None,
     "file_events_total": 0,
     "change_events_total": 0,
 }
@@ -127,8 +144,15 @@ def tick_seconds() -> int:
 
 
 def change_detect_seconds() -> int:
-    """快照 diff 节流（秒；最小 60s）。"""
+    """便宜分片 diff 节流（秒；最小 60s）。"""
     return _env_int(ENV_CHANGE_SECONDS, DEFAULT_CHANGE_DETECT_SECONDS, minimum=60)
+
+
+def change_detect_slow_seconds() -> int:
+    """贵分片（设备/磁盘）刷新间隔（秒；最小 300s，且不小于便宜组间隔）。"""
+    return max(change_detect_seconds(),
+               _env_int(ENV_CHANGE_SLOW_SECONDS, DEFAULT_CHANGE_DETECT_SLOW_SECONDS,
+                        minimum=300))
 
 
 def _env_int(name: str, default: int, *, minimum: int) -> int:
@@ -321,17 +345,28 @@ def run_perception_tick(*, body: Optional[Any] = None, now: Optional[float] = No
     status["last_file_event_at"] = _iso(_state.get("last_file_event_at"))
 
     # 3) 快照 diff（按节流；ChangeDetector 自己的学习钩子会处理硬件/进程变更）
+    #
+    # 【贵/便宜分开采（2026-11-12）】首版每个 diff 轮次都全量采集，实测每 30 分钟
+    # 阻塞调度线程 25–29s（task_history 里 43499ms 峰值），把同线程的「系统心跳」
+    # 顶成 90s 一次。现在：便宜组（进程/服务/注册表/环境/系统信息）每轮都刷，
+    # 贵组（WMI 设备 2–3s、磁盘分区 0.8s）按 change_detect_slow_seconds 低频刷新。
     detector = getattr(target, "change_detector", None)
     status["change_detector_ready"] = detector is not None
     last_detect = _state.get("last_change_detect_at")
     due = last_detect is None or (ts - float(last_detect)) >= change_detect_seconds()
     if detector is not None and due:
+        last_slow = _state.get("last_slow_detect_at")
+        slow_due = last_slow is None or (ts - float(last_slow)) >= change_detect_slow_seconds()
+        sections = list(FAST_SECTIONS) + (list(SLOW_SECTIONS) if slow_due else [])
         try:
-            changes = detector.collect() or []
+            changes = detector.collect(sections=sections) or []
             summary["diff_ran"] = True
             status["change_detect_ran"] = True
+            status["change_detect_sections"] = sections
             with _lock:
                 _state["last_change_detect_at"] = ts
+                if slow_due:
+                    _state["last_slow_detect_at"] = ts
                 if changes:
                     _state["last_change_at"] = ts
                     _state["change_events_total"] += len(changes)
@@ -339,8 +374,10 @@ def run_perception_tick(*, body: Optional[Any] = None, now: Optional[float] = No
             summary["classified"] = _classify_count(changes)
             status["changes"] = len(changes)
             if changes:
-                logger.info("[Perception] 快照 diff %d 条（分类后 %d 条事件）",
-                            len(changes), summary["classified"])
+                logger.info("[Perception] 快照 diff %d 条（分片 %s；分类后 %d 条事件）",
+                            len(changes), ",".join(sections), summary["classified"])
+            else:
+                logger.debug("[Perception] 快照 diff 无变更（分片 %s）", ",".join(sections))
         except Exception as exc:  # noqa: BLE001 WMI/枚举失败只记日志
             logger.warning("[Perception] 快照 diff 失败（%s）", type(exc).__name__)
     status["last_change_at"] = _iso(_state.get("last_change_at"))
@@ -462,6 +499,46 @@ def gap_summary(*, status_path: Optional[Path] = None,
     }
 
 
+def unit_probe(*, status_path: Optional[Path] = None,
+               now: Optional[float] = None) -> Dict[str, Any]:
+    """单位看板探针（**只读**）：感知周期采集在不在动。
+
+    【为什么它必须只读】探针每 60s 被报警采集线程调一次；任何 get_scheduler /
+    get_singleton 都会把"看一眼"变成"建一个"（§11.93 / §11.95 两次实证）。
+    这里只读 perception_status.json 与 novelty 记忆尾部。
+    """
+    gap = gap_summary(status_path=status_path, now=now)
+    if not gap.get("available"):
+        return {"status": "never",
+                "summary": "还没有感知周期读数（任务未注册或刚启动）",
+                "metrics": {}, "issues": [], "last_activity": None}
+    running = bool(gap.get("watcher_running"))
+    tick_age = gap.get("last_tick_age_seconds")
+    status = "ok"
+    issues: List[str] = []
+    stale_after = max(UNIT_STALE_MIN_SECONDS, tick_seconds() * UNIT_STALE_TICKS)
+    if not running:
+        status = "warn"
+        issues.append("FileWatcher 未运行（watch_dirs 为空或目录都被剔除）⇒ 文件变化不会被感知")
+    elif tick_age is not None and tick_age > stale_after:
+        status = "warn"
+        issues.append("最近一次 tick 已过去 %.0f 分钟（超过 %d 个周期）"
+                      % (tick_age / 60.0, UNIT_STALE_TICKS))
+    return {
+        "status": status,
+        "summary": str(gap.get("detail") or ""),
+        "metrics": {
+            "watch_dirs": len(gap.get("watch_dirs") or []),
+            "watcher_running": running,
+            "last_tick_age_seconds": None if tick_age is None else round(float(tick_age), 1),
+            "last_file_event_age_seconds": gap.get("last_file_event_age_seconds"),
+            "last_novelty_age_seconds": gap.get("last_novelty_age_seconds"),
+        },
+        "issues": issues,
+        "last_activity": gap.get("last_tick_at"),
+    }
+
+
 # ════════════════════════════════════════════════════════════
 #  调度注册（与 BehaviorDriftScheduler 同款：开关关闭 ⇒ disabled，零副作用）
 # ════════════════════════════════════════════════════════════
@@ -512,7 +589,9 @@ def unschedule_perception_scheduler(scheduler: Optional[Any] = None) -> bool:
 
 __all__: List[str] = [
     "TASK_NAME", "ENV_ENABLED", "ENV_TICK_SECONDS", "ENV_CHANGE_SECONDS",
-    "STATUS_REL_PATH", "enabled", "tick_seconds", "change_detect_seconds",
+    "ENV_CHANGE_SLOW_SECONDS", "STATUS_REL_PATH", "FAST_SECTIONS", "SLOW_SECTIONS",
+    "enabled", "tick_seconds", "change_detect_seconds", "change_detect_slow_seconds",
     "attach_body", "attached_body", "run_perception_tick", "read_status",
-    "gap_summary", "register_perception_scheduler", "unschedule_perception_scheduler",
+    "gap_summary", "unit_probe", "register_perception_scheduler",
+    "unschedule_perception_scheduler",
 ]

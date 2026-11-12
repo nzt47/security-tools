@@ -262,6 +262,28 @@ def gap_summary(*, out_path: Optional[Path] = None,
     }
 
 
+def unit_probe(*, out_path: Optional[Path] = None,
+               now: Optional[float] = None) -> Dict[str, Any]:
+    """单位看板探针（只读、不联网）：CI 状态同步在不在动、读到的状态新不新。"""
+    gap = gap_summary(out_path=out_path, now=now)
+    if not gap.get("available"):
+        return {"status": "never", "summary": str(gap.get("detail") or ""),
+                "metrics": {"runs": 0}, "issues": [], "last_activity": None}
+    stale = bool(gap.get("stale"))
+    return {
+        "status": "warn" if stale else "ok",
+        "summary": str(gap.get("detail") or ""),
+        "metrics": {
+            "runs": int(gap.get("runs") or 0),
+            "age_seconds": None if gap.get("age_seconds") is None
+            else round(float(gap["age_seconds"]), 1),
+            "max_age_seconds": STALE_MAX_AGE_SECONDS,
+        },
+        "issues": ["CI 状态已过期：采集层按不可用处理（既不报警也不判恢复）"] if stale else [],
+        "last_activity": gap.get("last_sync_at"),
+    }
+
+
 # ════════════════════════════════════════════════════════════
 #  调度注册
 # ════════════════════════════════════════════════════════════
@@ -312,5 +334,6 @@ def unschedule_ci_sync_scheduler(scheduler: Optional[Any] = None) -> bool:
 __all__: List[str] = [
     "TASK_NAME", "ENV_ENABLED", "ENV_INTERVAL_SECONDS", "STALE_MAX_AGE_SECONDS",
     "enabled", "interval_seconds", "build_payload", "sync_once", "read_status",
-    "gap_summary", "register_ci_sync_scheduler", "unschedule_ci_sync_scheduler",
+    "gap_summary", "unit_probe", "register_ci_sync_scheduler",
+    "unschedule_ci_sync_scheduler",
 ]

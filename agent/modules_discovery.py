@@ -63,6 +63,10 @@ DECL_PREFIX = "MODULE_"
 
 #: 唯一"算数"的声明键：没有它就不是已登记节点
 STATUS_SOURCE_KEY = "MODULE_STATUS_SOURCE"
+
+#: 单位声明键（2026-11-12）：单个 dict 或 dict 列表，让包同时声明"我是个功能单位"
+UNIT_KEY = "MODULE_UNIT"
+UNITS_KEY = "MODULE_UNITS"
 NAME_KEY = "MODULE_NAME"
 DESCRIPTION_KEY = "MODULE_DESCRIPTION"
 DOMAIN_KEY = "MODULE_DOMAIN"
@@ -81,6 +85,10 @@ DOMAIN_IDS: Tuple[str, ...] = (
 
 #: 未登记原因（给人和前端看的一句实话）
 REASON_NO_STATUS_SOURCE = "声明了模块元数据但未声明 MODULE_STATUS_SOURCE（无状态源 ⇒ 不生成节点、不参与健康分）"
+
+#: 单位声明被忽略的原因（给人和前端看的一句实话）
+REASON_UNIT_BAD_SHAPE = "MODULE_UNIT/MODULE_UNITS 必须含 id(str) 与 probe('模块:函数')，否则不登记"
+REASON_UNIT_BAD_PROBE = "MODULE_UNIT.probe 必须是 '模块路径:函数名'（延迟 import，启动期不执行）"
 
 
 def enabled() -> bool:
@@ -117,10 +125,32 @@ class DiscoveredModule:
 
 
 @dataclass(frozen=True)
+class DeclaredUnit:
+    """包自己声明的「功能单位」（拓扑之外的第二张清单）。
+
+    Attributes:
+        package: 包名（agent/<package> 的最后一段）
+        unit_id: 单位 ID（与手写 Unit 同一命名空间，重复登记时后写覆盖）
+        label: 展示名
+        family: 前端按 family 过滤用的族（缺省 "module"）
+        probe: "模块路径:函数名"（**调用时才 import**，启动期零副作用）
+        description: 一句话
+    """
+    package: str
+    unit_id: str
+    label: str
+    family: str = "module"
+    probe: str = ""
+    description: str = ""
+
+
+@dataclass(frozen=True)
 class DiscoveryResult:
     """一次扫描的完整结果（不可变，便于缓存与断言）。"""
     declared: Tuple[DiscoveredModule, ...] = ()
     unregistered: Tuple[Dict[str, str], ...] = ()
+    units: Tuple[DeclaredUnit, ...] = ()
+    invalid_units: Tuple[Dict[str, str], ...] = ()
     scanned_packages: int = 0
     root: str = ""
 
@@ -205,6 +235,56 @@ def _module_from_declarations(package: str, decls: Dict[str, object]) -> Optiona
     )
 
 
+def _valid_unit_probe(probe: str) -> bool:
+    """probe 必须是 '模块路径:函数名'（两边都非空）。"""
+    if ":" not in probe:
+        return False
+    module, _, attr = probe.partition(":")
+    return bool(module.strip()) and bool(attr.strip())
+
+
+def _unit_from_entry(package: str, entry: object) -> Tuple[Optional[DeclaredUnit], str]:
+    """一条单位声明 → (DeclaredUnit, 失败原因)。"""
+    if not isinstance(entry, dict):
+        return None, REASON_UNIT_BAD_SHAPE
+    unit_id = _as_text(entry.get("id"))
+    probe = _as_text(entry.get("probe"))
+    if not unit_id or not probe:
+        return None, REASON_UNIT_BAD_SHAPE
+    if not _valid_unit_probe(probe):
+        return None, REASON_UNIT_BAD_PROBE
+    return DeclaredUnit(
+        package=package,
+        unit_id=unit_id,
+        label=_as_text(entry.get("label")) or unit_id,
+        family=_as_text(entry.get("family")) or "module",
+        probe=probe,
+        description=_as_text(entry.get("description")),
+    ), ""
+
+
+def _units_from_declarations(package: str, decls: Dict[str, object],
+                             invalid: List[Dict[str, str]]) -> List[DeclaredUnit]:
+    """从 MODULE_UNIT（dict）/ MODULE_UNITS（list）取出单位声明（逐条校验）。"""
+    raw: List[object] = []
+    single = decls.get(UNIT_KEY)
+    if single is not None:
+        raw.append(single)
+    many = decls.get(UNITS_KEY)
+    if isinstance(many, (list, tuple)):
+        raw.extend(many)
+    elif many is not None:
+        raw.append(many)
+    out: List[DeclaredUnit] = []
+    for entry in raw:
+        unit, reason = _unit_from_entry(package, entry)
+        if unit is None:
+            invalid.append({"package": "agent/" + package + "/", "reason": reason})
+            continue
+        out.append(unit)
+    return out
+
+
 # ════════════════════════════════════════════════════════════
 #  扫描
 # ════════════════════════════════════════════════════════════
@@ -259,6 +339,8 @@ def scan(root: Optional[Path] = None, use_cache: bool = True) -> DiscoveryResult
 
     declared: List[DiscoveredModule] = []
     unregistered: List[Dict[str, str]] = []
+    units: List[DeclaredUnit] = []
+    invalid_units: List[Dict[str, str]] = []
     packages = _candidate_packages(base)
     for pkg in packages:
         try:
@@ -266,7 +348,11 @@ def scan(root: Optional[Path] = None, use_cache: bool = True) -> DiscoveryResult
         except OSError as exc:
             logger.warning("模块自动发现：读取 %s 失败（%s）", pkg.name, type(exc).__name__)
             continue
-        module = _module_from_declarations(pkg.name, parse_declarations(source))
+        decls = parse_declarations(source)
+        # 单位声明与拓扑声明**互相独立**：只声明单位、不声明状态源的包
+        # 不该因此进"未登记"（那是拓扑的事，这里只是另一张清单）
+        units.extend(_units_from_declarations(pkg.name, decls, invalid_units))
+        module = _module_from_declarations(pkg.name, decls)
         if module is None:
             continue
         if not module.has_status_source:
@@ -290,6 +376,8 @@ def scan(root: Optional[Path] = None, use_cache: bool = True) -> DiscoveryResult
     result = DiscoveryResult(
         declared=tuple(declared),
         unregistered=tuple(unregistered),
+        units=tuple(units),
+        invalid_units=tuple(invalid_units),
         scanned_packages=len(packages),
         root=str(base),
     )

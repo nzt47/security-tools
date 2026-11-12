@@ -88,10 +88,16 @@ def test_health_score_weights():
 
 
 def test_register_all_exposes_the_expected_units():
+    """12 个手写单位 + 5 个包自声明单位（2026-11-12 起）都在看板上。
+
+    【为什么把 17 写死】这是"新功能能不能自动进看板"的哨兵：包声明解析/登记链一旦坏掉，
+    数量会掉回 12 —— 写死数字才会红，写 >= 12 会让它静默退化。
+    """
     n = up.register_all()
-    assert n == 12
+    assert n == 17
     ids = {u.id for u in um.registered()}
     assert {"runtime.service", "skills.usage", "memory.compress", "scheduler.tasks"} <= ids
+    assert {"perception.cycle", "alarms.collector", "ops.ci_sync", "ops.ports", "ops.logs"} <= ids
 
 
 def test_probe_memory_compress_flags_empty_summary(tmp_path, monkeypatch):

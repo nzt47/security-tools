@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sqlite3
 import time
@@ -17,6 +18,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .unit_monitor import Unit, register
+
+logger = logging.getLogger(__name__)
 
 _ROOT = Path(__file__).resolve().parent.parent.parent
 _PROCESS_START = time.time()
@@ -383,8 +386,20 @@ def _all() -> List[Unit]:
 
 
 def register_all() -> int:
-    """登记全部内置单位（幂等）。返回登记后总数。"""
+    """登记全部内置单位 + 包自声明单位（幂等）。返回登记后总数。
+
+    【两类来源（2026-11-12）】
+    1. 本文件 _all() 里**手写**的 12 个单位（历史方式，不删）；
+    2. 包自己声明（agent/<pkg>/__init__.py 的 MODULE_UNITS）⇒ 新功能上线只要在
+       自己的包里写一条声明，就会自动进看板（agent/monitoring/declared_units.py）。
+       声明是**字面量**、probe 是"调用时才 import"的字符串：启动期零副作用。
+    """
     for unit in _all():
         register(unit)
+    try:
+        from .declared_units import register_declared_units
+        register_declared_units()
+    except Exception as exc:  # noqa: BLE001 声明登记失败不该拖垮手写单位
+        logger.warning("[units] 包声明单位登记失败（%s）", type(exc).__name__)
     from .unit_monitor import registered
     return len(registered())
