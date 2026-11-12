@@ -69,8 +69,15 @@ describe('HubChannelsPanel', () => {
     expect(screen.getByText(/通道（2 个 · 已装 1 · 启用 0）/)).toBeTruthy()
     expect(screen.getByRole('button', { name: '配置通道 email_smtp' })).toBeTruthy()
     expect(screen.getByText('已装（未启用）')).toBeTruthy()
-    expect(screen.getByRole('button', { name: '切换通道 email_smtp' }).textContent).toContain('启用')
-    expect(screen.getByRole('button', { name: '卸载通道 email_smtp' })).toBeTruthy()
+    const toggle = screen.getByRole('button', { name: '切换通道 email_smtp' })
+    expect(toggle.textContent).toContain('启用')
+    // 停用态下「启用」= 下一步该点的动作 ⇒ 必须高亮（Owner 2026-11-13）
+    expect(toggle.className).toContain('bg-emerald-500/10')
+    expect(toggle.className).toContain('text-emerald-300')
+    expect(screen.getByRole('button', { name: '安装通道 webhook' }).className)
+      .toContain('bg-emerald-500/10')
+    expect(screen.getByRole('button', { name: '卸载通道 email_smtp' }).className)
+      .not.toContain('bg-emerald-500/10')
     expect(screen.getByText('未安装')).toBeTruthy()
     expect(screen.queryByText(/self_reflection/)).toBeNull()
     // 已装的不给安装按钮；未装的给

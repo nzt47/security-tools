@@ -41,6 +41,10 @@ import {
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
+/** 「下一步该点的那个」按钮（安装 / 启用）：整段独立写，不拼 BTN ——
+ *  否则 border-slate-700 与 border-emerald-600 同时在 class 里，谁生效取决于样式表顺序，
+ *  看起来就会"有时候高亮有时候不高亮"（2026-11-13 Owner：启用按钮应高亮）。 */
+const BTN_PRIMARY = 'inline-flex items-center gap-1 rounded-md border border-emerald-600/70 bg-emerald-500/10 px-2 py-1 text-[11px] font-medium text-emerald-300 transition-colors hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50'
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 
 interface BuiltinChannel {
@@ -385,7 +389,7 @@ export default function HubChannelsPanel() {
                     {!row && (
                       <button
                         type="button"
-                        className={BTN}
+                        className={BTN_PRIMARY}
                         onClick={() => void install(id)}
                         disabled={loading}
                         aria-label={'安装通道 ' + id}
@@ -404,7 +408,14 @@ export default function HubChannelsPanel() {
                     >
                       <Settings2 size={11} /> {editing ? '收起配置' : '配置'}
                     </button>
-                    <button type="button" className={BTN} onClick={() => void toggleInstalled(row)} disabled={loading} aria-label={'切换通道 ' + id}>
+                    {/* 停用态下「启用」是下一步该点的动作 ⇒ 高亮；已启用的「停用」保持中性（避免误点） */}
+                    <button
+                      type="button"
+                      className={row.enabled ? BTN : BTN_PRIMARY}
+                      onClick={() => void toggleInstalled(row)}
+                      disabled={loading}
+                      aria-label={'切换通道 ' + id}
+                    >
                       {busy === 'toggle:' + id ? <Loader2 size={11} className="animate-spin" /> : null} {row.enabled ? '停用' : '启用'}
                     </button>
                     <button type="button" className={BTN} onClick={() => setConfirmUninstall(isConfirm ? '' : id)} disabled={loading} aria-label={'卸载通道 ' + id}>
