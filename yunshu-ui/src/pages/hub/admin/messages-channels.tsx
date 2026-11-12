@@ -22,7 +22,7 @@
  *         /api/extensions/toggle（启停）、/api/extensions/uninstall（卸载，force 只在二次确认后传 true）、
  *         /api/extensions/channels/send（仅手动调试）
  */
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   CheckCircle2, Download, Loader2, PlugZap, Send, Settings2, SlidersHorizontal, Trash2,
 } from 'lucide-react'
@@ -58,6 +58,14 @@ interface ExtRow {
   enabled?: boolean
   /** 通道配置（webhook URL / SMTP 口令等）；/api/extensions/list 原样返回 */
   config?: Record<string, unknown>
+}
+
+/** 合并视图的一行：内置模板 ∪ 已装通道（装了的带 installed 行） */
+interface ChannelRow {
+  id: string
+  name: string
+  description: string
+  installed?: ExtRow
 }
 
 /** 「开关中心」条目里本卡片用到的字段（GET /api/cp/settings 的 items[]） */
@@ -233,6 +241,32 @@ export default function HubChannelsPanel() {
     } finally { setBusy('') }
   }
 
+  /** 合并视图（2026-11-13）：内置模板 ∪ 已装通道，同 id 只出现一行。
+   *  已装但不在模板里的（手工装/自定义）追加在末尾 —— 否则"装了却在列表里看不到"。 */
+  const merged = useMemo<ChannelRow[]>(() => {
+    const byId = new Map(installed.map((r) => [r.ext_id ?? '', r]))
+    const seen = new Set<string>()
+    const rows: ChannelRow[] = []
+    for (const b of builtin) {
+      const id = b.id ?? ''
+      if (!id || seen.has(id)) continue
+      seen.add(id)
+      rows.push({ id, name: b.name ?? id, description: b.description ?? '', installed: byId.get(id) })
+    }
+    for (const r of installed) {
+      const id = r.ext_id ?? ''
+      if (!id || seen.has(id)) continue
+      seen.add(id)
+      rows.push({ id, name: r.name ?? id, description: '', installed: r })
+    }
+    // 已装且启用的排最前（日常要看的就是它们），未装的沉底；同组内保持模板顺序
+    const rank = (row: ChannelRow) => (row.installed ? (row.installed.enabled ? 0 : 1) : 2)
+    return rows
+      .map((row, index) => ({ row, index }))
+      .sort((a, b) => rank(a.row) - rank(b.row) || a.index - b.index)
+      .map((item) => item.row)
+  }, [builtin, installed])
+
   /** 手动发送的通道改成**下拉选**（2026-11-12：此前是自由文本框，用户填 "1" 会得到
    *  "通道不存在: 1" —— channel_id 是 email_smtp 这种标识符，不是序号）。
    *  规则：已装列表变化时，若当前选择不在列表里就自动选第一条（只有一条通道时零操作）。 */
@@ -317,10 +351,17 @@ export default function HubChannelsPanel() {
         </div>
       </div>
 
+
+      {/* 【2026-11-13 合并】原来是「内置通道模板」+「已装通道」两张卡片，同一个通道会出现两次
+          （模板行显示"已装（未启用）"、已装行再显示一遍配置/启停/卸载）—— 一列到底更好读：
+          未装的给「安装」，装了的直接带「配置/启停/卸载」。 */}
       <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
         <div className="mb-2 flex flex-wrap items-center gap-2">
-          <h3 className="text-xs font-semibold text-slate-200">内置通道模板（{builtin.length}）</h3>
-          <span className="text-[10px] text-slate-500">安装后可在此页调试发送；通道 id 见左侧</span>
+          <Settings2 size={12} className="text-cyan-400" />
+          <h3 className="text-xs font-semibold text-slate-200">
+            {'通道（' + merged.length + ' 个 · 已装 ' + installed.length + ' · 启用 ' + installed.filter((c) => c.enabled).length + '）'}
+          </h3>
+          <span className="text-[10px] text-slate-500">未装的点「安装」；装了的在这里配置 / 启停 / 卸载</span>
           <button
             type="button"
             className={BTN + ' ml-auto'}
@@ -331,61 +372,40 @@ export default function HubChannelsPanel() {
             {busy === 'load' ? <Loader2 size={11} className="animate-spin" /> : null} 刷新
           </button>
         </div>
-        {builtin.length === 0 && busy !== 'load' && (
-          <div className="text-[11px] text-slate-500">没有可安装的内置通道模板。</div>
+        {merged.length === 0 && busy !== 'load' && (
+          <div className="text-[11px] text-slate-500">没有可用的通道模板。</div>
         )}
         <div className="flex flex-col gap-1">
-          {builtin.map((b) => {
-            const id = b.id ?? ''
-            return (
-              <div key={'channel-' + id} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
-                <span className="font-mono text-[10px] text-cyan-300">{id}</span>
-                <span className="text-slate-300">{b.name ?? ''}</span>
-                <span className="truncate text-[10px] text-slate-500">{b.description ?? ''}</span>
-                <span className="ml-auto flex items-center gap-1.5">
-                  {b.enabled
-                    ? <span className="text-[10px] text-emerald-400">已启用</span>
-                    : b.installed
-                      ? <span className="text-[10px] text-slate-400">已装（未启用）</span>
-                      : (
-                        <button
-                          type="button"
-                          className={BTN}
-                          onClick={() => void install(id)}
-                          disabled={loading}
-                          aria-label={'安装通道 ' + id}
-                        >
-                          {busy === 'install:' + id ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />} 安装
-                        </button>
-                      )}
-                </span>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-        <div className="mb-2 flex flex-wrap items-center gap-2">
-          <Settings2 size={12} className="text-cyan-400" />
-          <h3 className="text-xs font-semibold text-slate-200">已装通道（{installed.length}）</h3>
-          <span className="text-[10px] text-slate-500">配置 / 启停 / 卸载 都在这里（原「扩展市场」的三个动作已搬来）</span>
-        </div>
-        {installed.length === 0 && <div className="text-[11px] text-slate-500">还没有已装通道。</div>}
-        <div className="flex flex-col gap-1">
-          {installed.map((row) => {
-            const id = row.ext_id ?? ''
+          {merged.map((item) => {
+            const id = item.id
+            const row = item.installed
             const isConfirm = confirmUninstall === id
             const editing = configTarget?.ext_id === id
             return (
               <div key={'installed-' + id} className="flex flex-col gap-1 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-mono text-[10px] text-cyan-300">{id}</span>
-                  <span className="text-slate-300">{row.name ?? ''}</span>
-                  <span className={'text-[10px] ' + (row.enabled ? 'text-emerald-400' : 'text-slate-500')}>
-                    {row.enabled ? '启用' : '停用'}
+                  <span className="text-slate-300">{row?.name || item.name}</span>
+                  {item.description ? (
+                    <span className="truncate text-[10px] text-slate-500">{item.description}</span>
+                  ) : null}
+                  <span className={'text-[10px] ' + (!row ? 'text-slate-500' : row.enabled ? 'text-emerald-400' : 'text-amber-300')}>
+                    {!row ? '未安装' : row.enabled ? '已启用' : '已装（未启用）'}
                   </span>
                   <span className="ml-auto flex items-center gap-1.5">
+                    {!row && (
+                      <button
+                        type="button"
+                        className={BTN}
+                        onClick={() => void install(id)}
+                        disabled={loading}
+                        aria-label={'安装通道 ' + id}
+                      >
+                        {busy === 'install:' + id ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />} 安装
+                      </button>
+                    )}
+                    {row && (
+                    <>
                     <button
                       type="button"
                       className={BTN}
@@ -401,9 +421,11 @@ export default function HubChannelsPanel() {
                     <button type="button" className={BTN} onClick={() => setConfirmUninstall(isConfirm ? '' : id)} disabled={loading} aria-label={'卸载通道 ' + id}>
                       <Trash2 size={11} /> 卸载
                     </button>
+                    </>
+                    )}
                   </span>
                 </div>
-                {isConfirm && (
+                {row && isConfirm && (
                   <div className="flex flex-wrap items-center gap-2 rounded-sm border border-red-900/50 bg-red-500/5 px-2 py-1">
                     <span className="text-[10px] text-red-300">
                       卸载对「文件轨独占」的扩展是不可逆删除（force=true 才允许）。确定？
@@ -420,7 +442,7 @@ export default function HubChannelsPanel() {
                     <button type="button" className={BTN} onClick={() => setConfirmUninstall('')}>取消</button>
                   </div>
                 )}
-                {editing && (
+                {row && editing && (
                   <div className="flex flex-col gap-1">
                     <textarea
                       className={INPUT + ' h-40 font-mono text-[11px]'}
@@ -452,7 +474,7 @@ export default function HubChannelsPanel() {
           </span>
         </div>
         <div className="mb-2 text-[10px] text-slate-500">
-          已装通道 {installed.filter((c) => c.enabled).length} 条启用（配置 / 启停 / 卸载见上方「已装通道」卡片）
+          已装通道 {installed.filter((c) => c.enabled).length} 条启用（配置 / 启停 / 卸载见上方「通道」列表）
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <select

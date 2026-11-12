@@ -62,12 +62,16 @@ describe('HubChannelsPanel', () => {
     expect(screen.getByText(/监控告警（触发 \/ 恢复）/)).toBeTruthy()
     expect(screen.getByText(/只供本页「手动发送（调试）」/)).toBeTruthy()
     // 已装通道来自 /api/extensions/list 且只取 ext_type=channel（现在按行展示 + 三个动作）
-    // 内置模板行与已装行都会出现 email_smtp ⇒ 用动作按钮定位"已装行"
+    // 【2026-11-13 合并】内置模板与已装通道合成一列：同一个 id 只出现一行，
+    // 未装的给「安装」、装了的给「配置/启停/卸载」；状态徽标只有一处（不再两张卡片各说一遍）。
+    expect(screen.queryByText(/内置通道模板/)).toBeNull()
+    expect(screen.queryByText(/已装通道（/)).toBeNull()
+    expect(screen.getByText(/通道（2 个 · 已装 1 · 启用 0）/)).toBeTruthy()
     expect(screen.getByRole('button', { name: '配置通道 email_smtp' })).toBeTruthy()
-    expect(screen.getByText('停用')).toBeTruthy()
-    expect(screen.getByRole('button', { name: '配置通道 email_smtp' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: '切换通道 email_smtp' })).toBeTruthy()
+    expect(screen.getByText('已装（未启用）')).toBeTruthy()
+    expect(screen.getByRole('button', { name: '切换通道 email_smtp' }).textContent).toContain('启用')
     expect(screen.getByRole('button', { name: '卸载通道 email_smtp' })).toBeTruthy()
+    expect(screen.getByText('未安装')).toBeTruthy()
     expect(screen.queryByText(/self_reflection/)).toBeNull()
     // 已装的不给安装按钮；未装的给
     expect(screen.queryByRole('button', { name: '安装通道 email_smtp' })).toBeNull()
