@@ -1202,8 +1202,8 @@ class ContainerExecutor(IsolationExecutor):
         started = time.perf_counter()
         try:
             proc = _proc.popen(argv, stdin=subprocess.PIPE,
-                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                    text=True, encoding="utf-8", errors="replace")
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                               text=True, encoding="utf-8", errors="replace")
         except Exception as exc:  # noqa: BLE001
             return IsolationResult(
                 level=self.level, job_id=str(payload.get("job_id") or ""),

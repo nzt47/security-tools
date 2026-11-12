@@ -106,7 +106,7 @@ def _subprocess_runner(argv: List[str]) -> Tuple[int, str, str]:
     （工作流名/标题）会直接抛 UnicodeDecodeError（2026-11-11 实测踩到）。
     """
     proc = _proc.run(argv, cwd=str(_repo_root()), capture_output=True, text=True,
-                          encoding="utf-8", errors="replace", timeout=GH_TIMEOUT_SEC)
+                     encoding="utf-8", errors="replace", timeout=GH_TIMEOUT_SEC)
     return proc.returncode, proc.stdout or "", proc.stderr or ""
 
 
