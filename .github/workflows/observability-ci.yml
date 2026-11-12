@@ -634,13 +634,21 @@ jobs:
             exit 1
           fi
           docker rm -f prometheus 2>/dev/null || true
-          # 同时挂载 prometheus.yml 和 alerts.yml
-          # prometheus.yml 中 rule_files: ["alerts.yml"] 要求 alerts.yml 在同目录下
+          # 【2026-11-12 修复】挂载必须**与 docker-compose.monitoring.yml 逐项对齐**：
+          #   prometheus.yml 的 rule_files 列了 14 个文件；只挂 prometheus.yml + alerts.yml 时，
+          #   其余 12 个在容器内不存在 ⇒ Prometheus 直接启动失败（本仓 prometheus.yml 第 59-60 行
+          #   自己写过这条判据）。改法：整个 monitoring/ 挂成 /etc/prometheus（覆盖绝大多数相对路径），
+          #   再按 compose 的**目标路径**补三个仓库目录结构与 /etc/prometheus 不一致的文件：
+          #     · monitoring/prometheus/rules/  → /etc/prometheus/rules（compose 就是这么挂的）
+          #     · monitoring/prometheus/alert_rules.yml → /etc/prometheus/alert_rules.yml
+          #     · monitoring/alerts/skill_retrieval_alerts.yml → /etc/prometheus/skill_retrieval_alerts.yml
           docker run -d \
             --name prometheus \
             -p 9090:9090 \
-            -v "$CONFIG_FILE:/etc/prometheus/prometheus.yml" \
-            -v "$ALERT_FILE:/etc/prometheus/alerts.yml" \
+            -v "${{ github.workspace }}/monitoring:/etc/prometheus:ro" \
+            -v "${{ github.workspace }}/monitoring/prometheus/rules:/etc/prometheus/rules:ro" \
+            -v "${{ github.workspace }}/monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro" \
+            -v "${{ github.workspace }}/monitoring/alerts/skill_retrieval_alerts.yml:/etc/prometheus/skill_retrieval_alerts.yml:ro" \
             prom/prometheus:latest
           echo "等待 Prometheus 就绪..."
           for i in {1..30}; do

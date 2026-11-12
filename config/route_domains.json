@@ -16,8 +16,7 @@
         "/api/news",
         "/api/projects",
         "/api/session-groups",
-        "/api/sessions",
-        "/api/voice"
+        "/api/sessions"
       ]
     },
     {

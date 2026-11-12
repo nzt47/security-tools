@@ -188,6 +188,56 @@ class OcrSensor:
     assert "OcrSensor" in gap["why"]
 
 
+def test_sensor_with_on_demand_contract_is_not_a_gap(tmp_path):
+    """声明 SENSOR_CONTRACT="on_demand" 的模块不要求 collect()（屏幕 OCR 就是这种：按需触发）。
+
+    【为什么不是"豁免清单"】这是**模块自己**的声明，写在同一份源码里、跟类放一起；
+    覆盖缺口自检只认这一个常量，不改任何注册表。
+    """
+    root = _repo(tmp_path)
+    _write(root / "sensor" / "ocr_sensor.py", '''
+SENSOR_CONTRACT = "on_demand"
+
+
+class OcrSensor:
+    def capture_screen(self):
+        return None
+''')
+    report = cg.collect(root=root)
+    assert "sensor" not in _kinds(report)
+    assert report["surfaces"]["sensors"]["on_demand"] == 1
+
+
+def test_unknown_sensor_contract_value_is_a_gap(tmp_path):
+    root = _repo(tmp_path)
+    _write(root / "sensor" / "weekly_sensor.py", '''
+SENSOR_CONTRACT = "weekly"
+
+
+class WeeklySensor:
+    def run(self):
+        return None
+''')
+    report = cg.collect(root=root)
+    gap = next(g for g in report["gaps"] if g["kind"] == "sensor")
+    assert "SENSOR_CONTRACT" in gap["why"]
+    assert "on_demand" in gap["fix"]
+
+
+def test_periodic_contract_still_requires_collect(tmp_path):
+    root = _repo(tmp_path)
+    _write(root / "sensor" / "broken_sensor.py", '''
+SENSOR_CONTRACT = "periodic"
+
+
+class BrokenSensor:
+    def run(self):
+        return None
+''')
+    report = cg.collect(root=root)
+    assert "sensor" in _kinds(report)
+
+
 def test_non_sensor_module_is_not_a_gap(tmp_path):
     """没有 ``*Sensor`` 类的文件（TTS 引擎之类）不归传感器检查管。"""
     root = _repo(tmp_path)

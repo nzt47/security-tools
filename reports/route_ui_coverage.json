@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-11T18:20:22",
+  "generated_at": "2026-11-12T21:14:07",
   "totals": {
     "routes": 509,
     "live": 509,
@@ -63,7 +63,7 @@
         "scripts/_check_page.py"
       ],
       "where": [
-        "app_server.py:2028"
+        "app_server.py:2040"
       ],
       "description": "首页：重定向到统一工作台（2026-10-03 R0-b legacy 收敛）。",
       "description_source": "handler",
@@ -276,7 +276,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/alarms/api.py:168"
+        "agent/alarms/api.py:234"
       ],
       "description": "确认（ack）：表示\"人已知悉\"，与已读分开记（谁、何时）",
       "description_source": "handler",
@@ -302,7 +302,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/alarms/api.py:152"
+        "agent/alarms/api.py:218"
       ],
       "description": "标记一条已读",
       "description_source": "handler",
@@ -328,7 +328,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/alarms/api.py:179"
+        "agent/alarms/api.py:245"
       ],
       "description": "静默 N 分钟（默认 60；上限 24h）。不改状态、不删除，到期自动重新计入未读。",
       "description_source": "handler",
@@ -351,7 +351,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/alarms/api.py:191"
+        "agent/alarms/api.py:257"
       ],
       "description": "手动跑一轮采集（诊断/验收用；后台线程正常情况下每分钟自己跑）",
       "description_source": "handler",
@@ -374,11 +374,13 @@
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
-      "non_ui_refs": [],
-      "where": [
-        "agent/alarms/api.py:108"
+      "non_ui_refs": [
+        "scripts/handoff_snapshot.py"
       ],
-      "description": "报警器覆盖读数：事件源清单 + 规则覆盖率 + 上一轮采集统计。",
+      "where": [
+        "agent/alarms/api.py:153"
+      ],
+      "description": "报警器覆盖读数：事件源清单 + 规则覆盖率 + 上一轮采集统计 + 两个\"静默缺口\"。",
       "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
@@ -426,7 +428,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/alarms/api.py:161"
+        "agent/alarms/api.py:227"
       ],
       "description": "全部标记已读",
       "description_source": "handler",
@@ -3875,7 +3877,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:1706"
+        "app_server.py:1718"
       ],
       "description": "混合检索器（embedding worker）健康状态（**只读**；永不 500）。",
       "description_source": "handler",
@@ -6480,7 +6482,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:1365"
+        "app_server.py:1377"
       ],
       "description": "插件元信息 manifest（插件化机制 T1.1）",
       "description_source": "handler",
@@ -6507,7 +6509,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:1371"
+        "app_server.py:1383"
       ],
       "description": "刷新插件清单（动态装载 T4.1）：扫描 plugins/ 目录重建注册表，无需重启进程。",
       "description_source": "handler",
@@ -11120,7 +11122,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2184"
+        "app_server.py:2196"
       ],
       "description": "测试端点：测试除法运算（正常情况）",
       "description_source": "handler",
@@ -11145,7 +11147,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2160"
+        "app_server.py:2172"
       ],
       "description": "测试端点：触发除零错误以验证堆栈捕获",
       "description_source": "handler",
@@ -11170,7 +11172,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2173"
+        "app_server.py:2185"
       ],
       "description": "测试端点：触发空指针错误以验证堆栈捕获",
       "description_source": "handler",
@@ -12635,7 +12637,7 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2075"
+        "app_server.py:2087"
       ],
       "description": "云枢 React SPA 入口（build:flask 同步自 yunshu-ui/dist → templates/yunshu.html）。",
       "description_source": "handler",
@@ -12996,7 +12998,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2139"
+        "app_server.py:2151"
       ],
       "description": "[简易] 用户行为回放页面",
       "description_source": "handler",
@@ -13021,7 +13023,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2131"
+        "app_server.py:2143"
       ],
       "description": "搜索引擎状态监控页面",
       "description_source": "handler",
@@ -13047,7 +13049,7 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2112"
+        "app_server.py:2124"
       ],
       "description": "云枢 Web 应用 — 感知底座 + 数字生命对话",
       "description_source": "module",

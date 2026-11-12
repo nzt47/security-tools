@@ -110,6 +110,16 @@ KINDS: Tuple[str, ...] = (
 SENSOR_CLASS_SUFFIX = "Sensor"
 SENSOR_COLLECT_METHOD = "collect"
 
+#: 传感器**声明式口径**（2026-11-12）：模块级 SENSOR_CONTRACT 常量
+#:   periodic（缺省）= 必须 collect()，否则自发现跳过 = 缺口；
+#:   on_demand      = 感知由显式调用方驱动（如屏幕 OCR），**不要求** collect()。
+#: 为什么需要它：给 OcrSensor 补一个 collect() 会让自发现每 60s 截一次屏（隐私/开销），
+#: 但"看着像传感器却没 collect()"确实需要有人给出一句解释 —— 让模块自己声明，比豁免清单好。
+SENSOR_CONTRACT_KEY = "SENSOR_CONTRACT"
+SENSOR_CONTRACT_PERIODIC = "periodic"
+SENSOR_CONTRACT_ON_DEMAND = "on_demand"
+SENSOR_CONTRACTS: Tuple[str, ...] = (SENSOR_CONTRACT_PERIODIC, SENSOR_CONTRACT_ON_DEMAND)
+
 #: 扫描时跳过的文件（聚合器本身不是"一种感觉"；测试文件不参与生产注册）
 SENSOR_SKIP_FILES = frozenset({"body_sensor.py", "__init__.py"})
 _TEST_FILE_PREFIX = "test_"
@@ -250,6 +260,23 @@ def _defines_top_level(path: Path, name: str) -> Optional[bool]:
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and node.name == name:
             return True
     return False
+
+
+def _module_str_constant(tree: ast.Module, name: str) -> str:
+    """取模块顶层某个字符串字面量常量（取不到/不是字面量 ⇒ 空串；**不 import**）。"""
+    for node in tree.body:
+        target: Optional[ast.AST] = None
+        value: Optional[ast.AST] = None
+        if isinstance(node, ast.Assign) and len(node.targets) == 1:
+            target, value = node.targets[0], node.value
+        elif isinstance(node, ast.AnnAssign) and node.value is not None:
+            target, value = node.target, node.value
+        if target is None or value is None:
+            continue
+        if isinstance(target, ast.Name) and target.id == name \
+                and isinstance(value, ast.Constant) and isinstance(value.value, str):
+            return value.value.strip()
+    return ""
 
 
 def _prefix_matches(prefix: str, path: str) -> bool:
@@ -408,6 +435,7 @@ def check_sensors(root: Path) -> Tuple[List[Dict[str, str]], Dict[str, Any]]:
         surfaces["reason"] = "missing"
         return gaps, surfaces
     found = 0
+    exempt = 0
     for path in files:
         source = _read_text(path)
         if source is None:
@@ -435,13 +463,27 @@ def check_sensors(root: Path) -> Tuple[List[Dict[str, str]], Dict[str, Any]]:
         if with_collect:
             continue
         names = "、".join(node.name for node in classes)
+        contract = _module_str_constant(tree, SENSOR_CONTRACT_KEY)
+        if contract == SENSOR_CONTRACT_ON_DEMAND:
+            exempt += 1  # 模块自己声明"按需驱动"，不是漏了 collect()（见常量注释）
+            continue
+        if contract and contract not in SENSOR_CONTRACTS:
+            gaps.append(make_gap(
+                KIND_SENSOR, "sensor/" + path.name,
+                "SENSOR_CONTRACT=%s 不是已知取值（%s）⇒ 无法判定它是周期传感器还是按需引擎"
+                % (contract, " / ".join(SENSOR_CONTRACTS)),
+                "把该常量改成 on_demand（有显式调用方、不需要周期采集）或删掉它并补 collect()",
+            ))
+            continue
         gaps.append(make_gap(
             KIND_SENSOR, "sensor/" + path.name,
             "定义了 %s 但没有 collect() ⇒ SensorRegistry 自发现会跳过它，该感知能力等于不存在"
             % names,
-            "给 %s 补 collect()（返回 SensorReading），或把非传感器文件挪出 sensor/" % names,
+            "给 %s 补 collect()（返回 SensorReading），或声明 SENSOR_CONTRACT=\"on_demand\""
+            "（按需驱动），或把非传感器文件挪出 sensor/" % names,
         ))
-    surfaces.update({"ok": True, "available": True, "files": len(files), "sensor_classes": found})
+    surfaces.update({"ok": True, "available": True, "files": len(files),
+                     "sensor_classes": found, "on_demand": exempt})
     return gaps, surfaces
 
 

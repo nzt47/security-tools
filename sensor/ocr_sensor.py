@@ -37,6 +37,18 @@ except ImportError:
     HAS_TESSERACT = False
     pytesseract = None
 
+# ════════════════════════════════════════════════════════════════════════════
+#  声明式口径：本模块**不是** SensorRegistry 的周期传感器（2026-11-12）
+# ════════════════════════════════════════════════════════════════════════════
+# 自发现契约是「类名以 Sensor 结尾 + 有 collect()」（sensor/registry.py）。本类的调用方都是
+# **按需**触发：lifetrace/enhanced_recorder.py（记录时截屏）、agent/orchestrator/voice_vision.py
+# （问"屏幕上是啥"时截屏）、lifecycle_manager（显式开关）。给它补一个 collect() 只会让它被自发现
+# 每分钟截一次屏 —— 隐私与开销都不该这么付。
+# 所以这里写一条**声明**（不是豁免清单）：覆盖缺口自检读到 SENSOR_CONTRACT="on_demand" 就
+# 明白"这个文件看着像传感器，但它的感知是按需驱动的，不是漏了 collect()"。
+# 取值只有两种会被认：periodic（默认，必须 collect()）/ on_demand（按需，显式调用方驱动）。
+SENSOR_CONTRACT = "on_demand"
+
 
 class OcrSensor:
     """屏幕内容 OCR 识别传感器"""

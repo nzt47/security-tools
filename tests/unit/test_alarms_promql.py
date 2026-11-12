@@ -186,3 +186,40 @@ class TestUnsupported:
         store = store_with([(0.0, {key("a"): 1.0}), (300.0, {key("a"): 1.0})])
         out = evaluate_expression("sum(rate(a[5m])) / 0 > 1", store)
         assert out["status"] == STATUS_UNSUPPORTED
+
+class TestStringEscaping:
+    """PromQL 双引号字符串转义（2026-11-12 真实故障：单个反斜杠 + 点让 Prometheus 拒载整个文件）。
+
+    【判据】应用内求值器必须与 Prometheus/Go 同语义：合法转义按 Go 还原，**非法转义直接
+    报 unsupported**（而不是"本地能算就算"——那会让"线上加载不了"的规则在本地显示正常）。
+    """
+
+    def test_两个反斜杠还原成一个_正则里的字面点(self):
+        from agent.alarms.promql import unquote
+
+        assert unquote('"modules\\\\.topology"') == "modules\\.topology"
+
+    def test_非法转义抛_ValueError(self):
+        from agent.alarms.promql import unquote
+
+        with pytest.raises(ValueError):
+            unquote('"modules\\.topology"')
+
+    def test_引号转义(self):
+        from agent.alarms.promql import unquote
+
+        assert unquote('"a\\\"b"') == 'a"b'
+
+    def test_选择器标签值走同一套还原(self):
+        from agent.alarms.promql import parse
+
+        expr = parse('x{endpoint!~".*|modules\\\\.topology"}')
+        op, expected = expr.labels["endpoint"]
+        assert op == "!~"
+        assert expected == ".*|modules\\.topology", "标签值也要还原（否则排除集语义漂移）"
+
+    def test_非法转义的选择器在求值时报_unsupported(self):
+        store = store_with([(0.0, {key("x"): 1.0}), (60.0, {key("x"): 2.0})])
+        out = evaluate_expression('sum(rate(x{endpoint!~"modules\\.topology"}[1m])) > 0.1', store)
+        assert out["status"] == STATUS_UNSUPPORTED
+        assert "非法转义" in out["reason"]

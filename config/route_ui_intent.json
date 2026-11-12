@@ -718,16 +718,7 @@
       "area": "可视化工作流",
       "note": "可视化工作流：保存/草稿。"
     },
-    "/api/voice": {
-      "intent": "should_be_in_ui",
-      "area": "语音",
-      "note": "语音：识别/状态。"
-    },
-    "/api/voice/*": {
-      "intent": "should_be_in_ui",
-      "area": "语音",
-      "note": "语音：识别/状态。"
-    },
+
     "/logs/dashboard": {
       "intent": "should_be_in_ui",
       "area": "日志中心",

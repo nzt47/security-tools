@@ -91,6 +91,78 @@ def tokenize(expr: str) -> List[Token]:
     return tokens
 
 
+#: PromQL（= Go）双引号字符串里**合法**的简单转义字符（其余一律非法，见 unquote）
+_SIMPLE_ESCAPES = {
+    "a": "\a", "b": "\b", "f": "\f", "n": "\n", "r": "\r", "t": "\t", "v": "\v",
+    "\\": "\\", '"': '"',
+}
+
+
+def _hex_value(body: str, start: int, width: int) -> int:
+    chunk = body[start:start + width]
+    if len(chunk) != width:
+        raise ValueError("转义序列不完整")
+    try:
+        return int(chunk, 16)
+    except ValueError:
+        raise ValueError("非法的十六进制转义")
+
+
+def unquote(text: str) -> str:
+    """把 PromQL 双引号字符串还原成实际内容（**与 Prometheus/Go 同语义**）。
+
+    【为什么必须有这一层（2026-11-12 现场实证）】monitoring/alerts.yml 的两条延迟规则曾用
+    "单反斜杠 + 点" 表示正则里的字面点 —— 在 Go/PromQL 里那是**非法转义**，Prometheus 直接
+    拒绝加载**整个规则文件**（现场日志 unknown escape sequence U+002E；CI 的 observability
+    e2e 因此红了一天多）。本模块此前用 strip(chr(34)) 不还原转义 ⇒ "本地算得出、真实
+    Prometheus 加载不了"，判据与线上不一致。
+
+    现在：合法转义按 Go 规则还原（两个反斜杠 → 一个，正则里的字面点），**非法转义直接
+    ValueError** ⇒ 该条如实报 unsupported，而不是"本地能算就算"。
+    """
+    body = text
+    if len(body) >= 2 and body[0] == '"' and body[-1] == '"':
+        body = body[1:-1]
+    out: List[str] = []
+    i = 0
+    size = len(body)
+    while i < size:
+        char = body[i]
+        if char != "\\":
+            out.append(char)
+            i += 1
+            continue
+        i += 1
+        if i >= size:
+            raise ValueError("字符串以反斜杠结尾")
+        esc = body[i]
+        if esc in _SIMPLE_ESCAPES:
+            out.append(_SIMPLE_ESCAPES[esc])
+            i += 1
+            continue
+        if esc == "x":
+            out.append(chr(_hex_value(body, i + 1, 2)))
+            i += 3
+            continue
+        if esc == "u":
+            out.append(chr(_hex_value(body, i + 1, 4)))
+            i += 5
+            continue
+        if esc == "U":
+            out.append(chr(_hex_value(body, i + 1, 8)))
+            i += 9
+            continue
+        if esc in "01234567":
+            chunk = body[i:i + 3]
+            if len(chunk) != 3 or any(item not in "01234567" for item in chunk):
+                raise ValueError("非法的八进制转义")
+            out.append(chr(int(chunk, 8)))
+            i += 3
+            continue
+        raise ValueError("非法转义: 反斜杠 + " + esc)
+    return "".join(out)
+
+
 @dataclass
 class Expr:
     kind: str                     # number | selector | call | binary | unary
@@ -216,7 +288,7 @@ class _Parser:
                 if op.text not in ("=", "=~", "!=", "!~"):
                     raise ValueError("不支持的标签匹配符: " + op.text)
                 raw = self._next()
-                labels[label.text] = (op.text, raw.text.strip('"'))
+                labels[label.text] = (op.text, unquote(raw.text))
                 if self._accept(","):
                     continue
                 self._expect("}")

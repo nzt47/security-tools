@@ -99,9 +99,13 @@ groups:
         #   · system_tools.api_process_list / health.probe_trend：进程枚举与五层历史聚合（1.4s+）。
         #   这些都属"扫描量"而非"交互延迟"。排除后 P99 才回答"用户请求慢不慢"。
         #   想单独盯这些端点，用上方的定向规则或看诊断页分位数，别塞进全局 P99。
+        # 【2026-11-12 转义修正（真实故障）】双引号 PromQL 字符串按 Go 规则转义：两个反斜杠 + 点
+        #   才是"字面点"；单个反斜杠 + 点是**非法转义** ⇒ Prometheus 拒绝加载**整个规则文件**
+        #   （现场日志：unknown escape sequence U+002E "."），CI 的 observability e2e 因此红了
+        #   一天多。改回单反斜杠 = 把这条真实告警重新打哑，别动。
         expr: |
           histogram_quantile(0.99,
-            sum(rate(yunshu_http_request_duration_seconds_bucket{endpoint!~".*stream.*|modules\.topology|system_tools\.api_process_list|health\.probe_trend"}[5m])) by (le)
+            sum(rate(yunshu_http_request_duration_seconds_bucket{endpoint!~".*stream.*|modules\\.topology|system_tools\\.api_process_list|health\\.probe_trend"}[5m])) by (le)
           ) > 3
         for: 5m
         labels:
@@ -119,9 +123,10 @@ groups:
         # 修复说明：同 YunshuHighLatencyP99，使用实际暴露的 histogram 指标
         # 【2026-11-11 口径修正】排除口径与 P99 完全一致（流式 / 拓扑重建 / 进程枚举 / 探针历史聚合），
         # 见 P99 上方注释；两条规则必须同一排除集，否则"P99 正常而 P95 告警"会自相矛盾。
+        # 【2026-11-12】转义同上：两个反斜杠 + 点（单反斜杠会被 Prometheus 判非法转义而整文件拒载）。
         expr: |
           histogram_quantile(0.95,
-            sum(rate(yunshu_http_request_duration_seconds_bucket{endpoint!~".*stream.*|modules\.topology|system_tools\.api_process_list|health\.probe_trend"}[5m])) by (le)
+            sum(rate(yunshu_http_request_duration_seconds_bucket{endpoint!~".*stream.*|modules\\.topology|system_tools\\.api_process_list|health\\.probe_trend"}[5m])) by (le)
           ) > 5
         for: 10m
         labels:

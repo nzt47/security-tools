@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-12T20:20:00+08:00",
+  "updated_at": "2026-11-12T21:20:00+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
     {
@@ -600,19 +600,19 @@
     },
     {
       "id": "ocr-sensor-collect-contract",
-      "status": "open",
+      "status": "done",
       "priority": "P3",
       "title": "OCR 传感器有类无 collect() ⇒ 自发现静默跳过，OCR 这一路感知等于不存在（覆盖缺口自检首轮发现）",
       "criteria": "sensor/registry.py 的发现契约是「类名以 Sensor 结尾 + 有 collect()」；sensor/ocr_sensor.py 的 OcrSensor 只有 capture_screen/recognize（实测 /api/sensors 的 18 项里没有 ocr）。不满足契约时注册表**只是不出现**：没有 warning、没有红点 ⇒ 看起来有、其实没有。",
-      "next": "两条路，需 Owner 选：① 给 OcrSensor 补 collect() 返回 SensorReading（注意它自己 config 里 enabled=false，且屏幕截取是敏感动作 ⇒ 要确认是否真开）；② 明确「OCR 不是传感器」，把文件挪出 sensor/ 或改名（避免下次又被当成缺口）。改完 ops.coverage_gaps 应回到 gap=0。"
+      "next": "2026-11-12 修正（选②的中间路线）：sensor/ocr_sensor.py 增加模块级声明 SENSOR_CONTRACT = \"on_demand\" （类名与 4 个调用方都不动：lifetrace/enhanced_recorder.py、agent/orchestrator/voice_vision.py、agent/digital_life.py、lifecycle_manager）。为什么不是补 collect()：那会让 SensorRegistry 自发现把屏幕 OCR 变成每 60s 一次的周期采集（隐私 + 开销），而它的真实调用面全是按需触发。覆盖缺口自检读取该常量：on_demand ⇒ 不要求 collect()（surfaces.sensors.on_demand 计数）；periodic/缺省 ⇒ 仍要求 collect()；未知取值 ⇒ 记缺口（不静默放行）。测试：test_coverage_gaps.py 新增 3 条（on_demand 不算缺口 / 未知值算缺口 / periodic 仍要求 collect）。现场：ops.coverage_gaps 从『未覆盖 2 条』回到 ok。"
     },
     {
       "id": "route-domains-voice-stale",
-      "status": "open",
+      "status": "done",
       "priority": "P3",
       "title": "config/route_domains.json 声明了 /api/voice，但活体路由里一条都没有（功能区表陈旧）",
       "criteria": "全仓 grep 只有 scripts 注释提到 /api/voice；reports/route_ui_coverage.json 的 509 条活体路由里 0 条命中该前缀。tests/unit/test_route_ui_coverage.py 只守「每条路由都有功能区」，不守「每个前缀都有路由」⇒ 这条此前没有任何守卫会红，是覆盖缺口自检首个 route 类发现。",
-      "next": "删掉该前缀（或补回 voice 路由），然后**在干净 worktree 重派生** reports/route_ui_coverage.json（route_domains.json 是它的输入之一，content_hash 会变，主工作区直接改会让守卫红）。"
+      "next": "2026-11-12 修正：config/route_domains.json 删掉 \"/api/voice\" 前缀、config/route_ui_intent.json 删掉 \"/api/voice\" 与 \"/api/voice/*\" 两条标注（该组路由 2026-10-20 已删，triage 台账有记录），并在**干净 worktree**（.worktrees/route-derive，copy 两份 config 后）重派生 reports/route_ui_coverage.json：content_hash 09308313e354d46a，509 活体路由不变，主工作区 --check 通过；test_route_ui_coverage.py 48 条全绿。覆盖缺口自检 count 0。"
     },
     {
       "id": "ci-observability-e2e-prometheus-fails",
