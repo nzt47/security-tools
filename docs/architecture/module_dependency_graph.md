@@ -1072,6 +1072,7 @@ flowchart LR
     agent_extensions_base -.-> agent_logging_utils
     agent_extensions_channel_bridge -.-> agent_logging_utils
     agent_extensions_channel_bridge --> agent_extensions_channels_installer
+    agent_extensions_channel_bridge --> agent_extensions_channels_installer
     agent_extensions_channel_bridge --> agent_extensions_store
     agent_extensions_channel_bridge --> agent_extensions_channels_installer
     agent_extensions_channel_bridge --> agent_extensions_store
@@ -2946,7 +2947,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 752
 - 模块节点数: 650
-- 依赖边数: 2166
+- 依赖边数: 2167
 - 跨层调用数: 1368
 - 违规调用数: 0
 - 动态 import 数: 1
