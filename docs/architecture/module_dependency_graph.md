@@ -75,6 +75,7 @@ flowchart LR
         agent_autonomy["agent.autonomy"]:::crosslayer
         agent_behavior_controller["agent.behavior_controller"]:::crosslayer
         agent_browser_remote["agent.browser_remote"]
+        agent_build_info["agent.build_info"]
         agent_chat_limits["agent.chat_limits"]:::crosslayer
         agent_circuit_breaker["agent.circuit_breaker"]:::crosslayer
         agent_code_review["agent.code_review"]:::crosslayer
@@ -167,6 +168,7 @@ flowchart LR
         agent_digestion_generation["agent.digestion.generation"]
         agent_digestion_internalize["agent.digestion.internalize"]:::crosslayer
         agent_digestion_isolation["agent.digestion.isolation"]:::crosslayer
+        agent_digestion_isolation_worker["agent.digestion.isolation_worker"]
         agent_digestion_judge_runtime["agent.digestion.judge_runtime"]
         agent_digestion_probe["agent.digestion.probe"]
         agent_digestion_real_capture["agent.digestion.real_capture"]
@@ -401,6 +403,7 @@ flowchart LR
         agent_monitoring_search["agent.monitoring.search"]:::crosslayer
         agent_monitoring_self_healer["agent.monitoring.self_healer"]
         agent_monitoring_sensitive_data_filter["agent.monitoring.sensitive_data_filter"]:::crosslayer
+        agent_monitoring_slo_report_scheduler["agent.monitoring.slo_report_scheduler"]
         agent_monitoring_trace_http_client["agent.monitoring.trace_http_client"]
         agent_monitoring_tracing["agent.monitoring.tracing"]:::crosslayer
         agent_monitoring_tracing_cache["agent.monitoring.tracing_cache"]
@@ -498,6 +501,7 @@ flowchart LR
         agent_repair_budget["agent.repair.budget"]
         agent_repair_delegate["agent.repair.delegate"]
         agent_repair_diagnose["agent.repair.diagnose"]
+        agent_repair_gitio["agent.repair.gitio"]
         agent_repair_guardrails["agent.repair.guardrails"]
         agent_repair_locate["agent.repair.locate"]
         agent_repair_models["agent.repair.models"]
@@ -602,6 +606,7 @@ flowchart LR
         agent_skills_mgmt_feedback_agent["agent.skills_mgmt.feedback_agent"]
         agent_skills_mgmt_few_shot_injector["agent.skills_mgmt.few_shot_injector"]
         agent_skills_mgmt_file_store["agent.skills_mgmt.file_store"]:::crosslayer
+        agent_skills_mgmt_git_sync["agent.skills_mgmt.git_sync"]
         agent_skills_mgmt_index_cache["agent.skills_mgmt.index_cache"]
         agent_skills_mgmt_layered["agent.skills_mgmt.layered"]
         agent_skills_mgmt_learning_scheduler["agent.skills_mgmt.learning_scheduler"]
@@ -718,6 +723,7 @@ flowchart LR
         agent_tools_test_tools["agent.tools.test_tools"]:::crosslayer
         agent_tools_tool_generator["agent.tools.tool_generator"]:::crosslayer
         agent_tools_web_tools["agent.tools.web_tools"]:::crosslayer
+        agent_tools_win_bash["agent.tools.win_bash"]
         agent_tools_workspace_tools["agent.tools.workspace_tools"]:::crosslayer
     end
     subgraph ui_panels [ui_panels]
@@ -843,6 +849,7 @@ flowchart LR
     agent_autonomy -.-> agent_lines_models
     agent_behavior_controller --> agent_logging_utils
     agent_browser_remote -.-> agent_guardrails_ssrf_guard
+    agent_build_info -.-> agent_utils
     agent_caching_multi_level_cache -.-> agent_logging_utils
     agent_caching_multi_level_cache -.-> agent_monitoring_observability_config
     agent_caching_observability -.-> agent_logging_utils
@@ -851,6 +858,7 @@ flowchart LR
     agent_capregistry_invoke -.-> agent_tool_gate
     agent_capregistry_invoke -.-> agent_tools
     agent_capregistry_invoke -.-> agent_tool_gate
+    agent_capregistry_loader -.-> agent_utils
     agent_capregistry_loader --> agent
     agent_capregistry_loader --> agent
     agent_capregistry_loader -.-> agent_web_http_client
@@ -957,7 +965,9 @@ flowchart LR
     agent_digestion_internalize -.-> agent_observability_trace_v2
     agent_digestion_internalize -.-> agent_descriptors_registry
     agent_digestion_internalize -.-> agent_task_scheduler
+    agent_digestion_isolation -.-> agent_utils
     agent_digestion_isolation -.-> agent_subagent_sandbox
+    agent_digestion_isolation_worker -.-> agent_utils
     agent_digestion_judge_runtime -.-> agent_monitoring_cost_brake
     agent_digestion_judge_runtime -.-> agent_observability
     agent_digestion_judge_runtime -.-> agent_observability_model_degrade
@@ -1082,7 +1092,9 @@ flowchart LR
     agent_extensions_channels_installer -.-> agent_logging_utils
     agent_extensions_dependency_manager -.-> agent_monitoring_tracing
     agent_extensions_dependency_manager -.-> agent_logging_utils
+    agent_extensions_dependency_manager -.-> agent_utils
     agent_extensions_installer -.-> agent_logging_utils
+    agent_extensions_installer -.-> agent_utils
     agent_extensions_manager --> agent_extensions_base
     agent_extensions_manager --> agent_extensions_store
     agent_extensions_manager --> agent_extensions_skills_installer
@@ -1096,6 +1108,7 @@ flowchart LR
     agent_extensions_mcp_installer --> agent_extensions_installer
     agent_extensions_mcp_installer --> agent_extensions_store
     agent_extensions_mcp_installer -.-> agent_logging_utils
+    agent_extensions_mcp_installer -.-> agent_utils
     agent_extensions_observability -.-> agent_logging_utils
     agent_extensions_observability -.-> agent_monitoring_business_metrics
     agent_extensions_plugins_installer --> agent_extensions_base
@@ -1104,6 +1117,7 @@ flowchart LR
     agent_extensions_plugins_installer -.-> agent_logging_utils
     agent_extensions_sandbox -.-> agent_monitoring_tracing
     agent_extensions_sandbox -.-> agent_logging_utils
+    agent_extensions_sandbox -.-> agent_utils
     agent_extensions_security_check_skill --> agent_extensions_security_checker
     agent_extensions_security_check_skill -.-> agent_logging_utils
     agent_extensions_security_check_skill --> agent_extensions_security_checker
@@ -1393,6 +1407,7 @@ flowchart LR
     agent_log_system_storage -.-> agent_logging_utils
     agent_logging_utils -.-> agent_utils_singleton_manager
     agent_logging_utils -.-> agent_utils
+    agent_maintenance_zero_token_jobs -.-> agent_utils
     agent_mcp_executor -.-> agent_utils_singleton_manager
     agent_mcp_executor --> agent_tool_router
     agent_mcp_executor --> agent_tool_router
@@ -1487,6 +1502,7 @@ flowchart LR
     agent_memory_import_targets -.-> agent_knowledge_schema
     agent_memory_import_targets -.-> agent_knowledge_card
     agent_memory_optimized --> agent_logging_utils
+    agent_memory_optimized -.-> agent_utils
     agent_model_router_adapters -.-> agent_logging_utils
     agent_model_router_cost_tracker -.-> agent_observability_events
     agent_model_router_cost_tracker -.-> agent_audit_facade
@@ -1534,6 +1550,7 @@ flowchart LR
     agent_monitoring_chaos_injector -.-> agent_logging_utils
     agent_monitoring_chaos_injector -.-> agent_utils_singleton_manager
     agent_monitoring_chaos_injector --> agent_monitoring_observability_config
+    agent_monitoring_ci_status -.-> agent_utils
     agent_monitoring_ci_status -.-> agent_task_scheduler
     agent_monitoring_ci_status -.-> agent_task_scheduler
     agent_monitoring_config_observability --> agent_monitoring_observability_config
@@ -1610,6 +1627,7 @@ flowchart LR
     agent_monitoring_search --> agent_monitoring_observability_config
     agent_monitoring_self_healer --> agent_monitoring_tracing
     agent_monitoring_self_healer -.-> agent_logging_utils
+    agent_monitoring_self_healer -.-> agent_utils
     agent_monitoring_self_healer -.-> agent_utils_singleton_manager
     agent_monitoring_self_healer -.-> agent_circuit_breaker
     agent_monitoring_self_healer --> agent_monitoring_observability_config
@@ -1619,6 +1637,7 @@ flowchart LR
     agent_monitoring_self_healer -.-> agent_self_healing_policy
     agent_monitoring_sensitive_data_filter -.-> agent_utils_sensitive_data_filter
     agent_monitoring_sensitive_data_filter -.-> agent_utils_singleton_manager
+    agent_monitoring_slo_report_scheduler -.-> agent_utils
     agent_monitoring_trace_http_client -.-> agent_logging_utils
     agent_monitoring_trace_http_client --> agent_monitoring_tracing
     agent_monitoring_tracing -.-> agent_logging_utils
@@ -1945,9 +1964,11 @@ flowchart LR
     agent_repair_diagnose --> agent_repair_models
     agent_repair_diagnose --> agent_repair_policy
     agent_repair_diagnose --> agent_repair_trace
+    agent_repair_diagnose -.-> agent_utils
     agent_repair_diagnose -.-> agent_eval
     agent_repair_diagnose -.-> agent_eval
     agent_repair_diagnose -.-> agent_audit_facade
+    agent_repair_gitio -.-> agent_utils
     agent_repair_guardrails --> agent_repair_models
     agent_repair_guardrails --> agent_repair_policy
     agent_repair_locate --> agent_repair
@@ -2397,6 +2418,7 @@ flowchart LR
     agent_skills_mgmt_evolution_scheduler -.-> agent_task_scheduler
     agent_skills_mgmt_exceptions -.-> agent_logging_utils
     agent_skills_mgmt_executor -.-> agent_logging_utils
+    agent_skills_mgmt_executor -.-> agent_utils
     agent_skills_mgmt_executor -.-> agent_audit_chain
     agent_skills_mgmt_executor -.-> agent_audit_facade
     agent_skills_mgmt_executor -.-> agent_tool_gate
@@ -2409,6 +2431,7 @@ flowchart LR
     agent_skills_mgmt_feedback_agent -.-> agent_task_scheduler
     agent_skills_mgmt_few_shot_injector -.-> agent_logging_utils
     agent_skills_mgmt_file_store -.-> agent_logging_utils
+    agent_skills_mgmt_git_sync -.-> agent_utils
     agent_skills_mgmt_index_cache -.-> agent_logging_utils
     agent_skills_mgmt_layered --> agent_skills_mgmt_capability_cards
     agent_skills_mgmt_layered --> agent_skills_mgmt_skill_md_schema
@@ -2631,6 +2654,7 @@ flowchart LR
     agent_system_tools -.-> agent_tools_process_tools
     agent_system_tools -.-> agent_tools_task_tools
     agent_system_tools -.-> agent_tools_shell_tools
+    agent_system_tools -.-> agent_utils
     agent_task_planner_dag -.-> agent_logging_utils
     agent_task_planner_enhanced_dag -.-> agent_logging_utils
     agent_task_planner_enhanced_dag --> agent_task_planner_dag
@@ -2640,6 +2664,7 @@ flowchart LR
     agent_task_planner_observability -.-> agent_monitoring_business_metrics
     agent_task_planner_planner -.-> agent_logging_utils
     agent_task_scheduler --> agent_logging_utils
+    agent_task_scheduler -.-> agent_utils
     agent_task_scheduler -.-> agent_utils_singleton_manager
     agent_task_scheduler -.-> agent_observability_acr
     agent_task_scheduler --> agent_permission_system
@@ -2717,11 +2742,13 @@ flowchart LR
     agent_tool_router -.-> agent_evolution_injector
     agent_tool_router -.-> agent_monitoring_tracing
     agent_tool_router_hybrid --> agent_logging_utils
+    agent_tool_router_hybrid -.-> agent_utils
     agent_tool_router_hybrid -.-> agent_observability_tool_trace
     agent_tool_router_hybrid --> agent_tool_router
     agent_tool_router_hybrid -.-> agent_monitoring_prometheus
     agent_tool_router_hybrid -.-> agent_orchestrator_routing_observability
     agent_tool_router_reranker --> agent_logging_utils
+    agent_tool_router_reranker -.-> agent_utils
     agent_tool_router_reranker -.-> agent_utils_singleton_manager
     agent_tool_schema_pruner -.-> agent_capregistry
     agent_tools -.-> agent_rate_limiter
@@ -2811,7 +2838,9 @@ flowchart LR
     agent_tools_file_tools_reg -.-> agent_diff_tools
     agent_tools_file_tools_reg -.-> agent_policy_taint
     agent_tools_git_tools --> agent
+    agent_tools_git_tools -.-> agent_utils
     agent_tools_lint_tools --> agent
+    agent_tools_lint_tools -.-> agent_utils
     agent_tools_mcp_connector --> agent
     agent_tools_mcp_connector -.-> agent_guardrails
     agent_tools_notify_tools --> agent
@@ -2833,6 +2862,7 @@ flowchart LR
     agent_tools_skill_tools --> agent
     agent_tools_skill_tools -.-> agent_state_manager
     agent_tools_software_tools --> agent
+    agent_tools_software_tools -.-> agent_utils
     agent_tools_software_tools -.-> agent_audit_facade
     agent_tools_subagent_tools --> agent
     agent_tools_subagent_tools -.-> agent_subagent_delegation
@@ -2853,12 +2883,14 @@ flowchart LR
     agent_tools_task_tools -.-> agent_task_scheduler
     agent_tools_task_tools -.-> agent_task_scheduler
     agent_tools_test_tools --> agent
+    agent_tools_test_tools -.-> agent_utils
     agent_tools_tool_generator --> agent
     agent_tools_tool_generator -.-> agent_logging_utils
     agent_tools_web_tools --> agent
     agent_tools_web_tools -.-> agent_web
     agent_tools_web_tools -.-> agent_network_config
     agent_tools_web_tools -.-> agent_search_aggregator
+    agent_tools_win_bash -.-> agent_utils
     agent_tools_prompt_guard --> agent
     agent_tools_prompt_guard -.-> agent_lines
     agent_ui_panels_data --> agent_ui_panels_schema
@@ -2945,9 +2977,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 752
-- 模块节点数: 650
-- 依赖边数: 2167
-- 跨层调用数: 1368
+- 扫描文件数: 753
+- 模块节点数: 656
+- 依赖边数: 2193
+- 跨层调用数: 1394
 - 违规调用数: 0
 - 动态 import 数: 1
