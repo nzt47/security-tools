@@ -381,6 +381,7 @@ flowchart LR
         agent_monitoring_ci_status["agent.monitoring.ci_status"]:::crosslayer
         agent_monitoring_config_observability["agent.monitoring.config_observability"]
         agent_monitoring_cost_brake["agent.monitoring.cost_brake"]:::crosslayer
+        agent_monitoring_declared_units["agent.monitoring.declared_units"]
         agent_monitoring_decorators["agent.monitoring.decorators"]
         agent_monitoring_error_reporter["agent.monitoring.error_reporter"]
         agent_monitoring_llm_monitor["agent.monitoring.llm_monitor"]:::crosslayer
@@ -403,6 +404,7 @@ flowchart LR
         agent_monitoring_tracing_config["agent.monitoring.tracing_config"]
         agent_monitoring_tracing_perf["agent.monitoring.tracing_perf"]
         agent_monitoring_tracing_sampling["agent.monitoring.tracing_sampling"]
+        agent_monitoring_unit_monitor["agent.monitoring.unit_monitor"]
         agent_monitoring_unit_probes["agent.monitoring.unit_probes"]
         agent_monitoring_utils["agent.monitoring.utils"]
     end
@@ -1533,6 +1535,8 @@ flowchart LR
     agent_monitoring_cost_brake -.-> agent_utils_atomic_write
     agent_monitoring_cost_brake -.-> agent_audit_facade
     agent_monitoring_cost_brake -.-> agent_utils_atomic_write
+    agent_monitoring_declared_units --> agent
+    agent_monitoring_declared_units --> agent_monitoring_unit_monitor
     agent_monitoring_decorators --> agent_monitoring_metrics
     agent_monitoring_decorators --> agent_monitoring_tracing
     agent_monitoring_decorators --> agent_monitoring_error_reporter
@@ -2920,9 +2924,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 747
-- 模块节点数: 645
-- 依赖边数: 2147
+- 扫描文件数: 750
+- 模块节点数: 647
+- 依赖边数: 2149
 - 跨层调用数: 1356
 - 违规调用数: 0
 - 动态 import 数: 1
