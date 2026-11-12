@@ -137,8 +137,8 @@ def run_git_readonly(args: Sequence[str], *, cwd: str, timeout: float = DEFAULT_
     # 转义成八进制（`"docs/\346\226\207..."`），既不可读也无法与仓库相对路径比较。
     # 用 `-c` 传入是 git 的官方全局选项写法（非子命令，不绕过白名单判定）。
     try:
-        proc = _proc.run(
-            ["git", "-c", "core.quotepath=false", *[str(a) for a in args]],
+        proc = subprocess.run(
+            ["git", "-c", "core.quotepath=false", *[str(a) for a in args]], **_proc.hidden_kwargs(),
             cwd=str(cwd), capture_output=True,
             text=True, encoding="utf-8", errors="replace", timeout=float(timeout),
             env=full_env)
@@ -378,8 +378,8 @@ def create_local_branch(repo_root: str, name: str, *, start_point: str = "HEAD",
     full_env = dict(os.environ)
     full_env["GIT_TERMINAL_PROMPT"] = "0"
     try:
-        proc = _proc.run(
-            ["git", "branch", str(name), str(start_point)], cwd=str(repo_root),
+        proc = subprocess.run(
+            ["git", "branch", str(name), str(start_point)], **_proc.hidden_kwargs(), cwd=str(repo_root),
             capture_output=True, text=True, encoding="utf-8", errors="replace",
             timeout=float(timeout), env=full_env)
     except (OSError, subprocess.TimeoutExpired) as exc:

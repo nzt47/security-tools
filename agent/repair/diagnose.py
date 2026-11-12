@@ -196,9 +196,9 @@ class SubprocessExecutor:
         full_env.setdefault("PYTHONUTF8", "1")
         full_env.setdefault("PYTHONIOENCODING", "utf-8")
         try:
-            proc = _proc.run(args, cwd=str(cwd), capture_output=True, text=True,
-                             encoding="utf-8", errors="replace",
-                             timeout=float(timeout), env=full_env)
+            proc = subprocess.run(args, **_proc.hidden_kwargs(), cwd=str(cwd), capture_output=True, text=True,
+                                  encoding="utf-8", errors="replace",
+                                  timeout=float(timeout), env=full_env)
         except FileNotFoundError as exc:
             return ProbeOutput(argv=tuple(args), exit_code=-1, stderr=str(exc),
                                duration_ms=(time.perf_counter() - started) * 1000.0,

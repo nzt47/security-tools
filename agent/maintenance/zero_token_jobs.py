@@ -29,6 +29,7 @@ import functools
 import json
 import logging
 import os
+import subprocess
 import sys
 import time
 import urllib.request
@@ -159,8 +160,8 @@ def _tail(text: str, limit: int = 400) -> str:
 def _run_shell(argv: List[str], timeout: int = SHELL_TIMEOUT) -> Tuple[bool, str]:
     """跑一条只读 CLI；返回 (是否成功, 末行摘要)。绝不抛。"""
     try:
-        proc = _proc.run(
-            argv,
+        proc = subprocess.run(
+            argv, **_proc.hidden_kwargs(),
             cwd=REPO_ROOT,
             capture_output=True,
             text=True,

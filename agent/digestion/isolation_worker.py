@@ -39,11 +39,14 @@ import sys
 import time
 import traceback
 from typing import Any, Dict, List, Optional, Tuple
-from agent.utils import proc as _proc
 
 # ════════════════════════════════════════════════════════════
 #  常量（与 agent.digestion.isolation / sandbox 逐字对齐）
 # ════════════════════════════════════════════════════════════
+
+#: Windows「不分配控制台」标志（0x08000000）—— 本文件是 **stdlib-only**，不能 import
+#: agent.utils.proc（容器里只挂载本文件 + 标准库），故就地取常量；非 Windows 传 0。
+_NO_WINDOW = 0x08000000 if sys.platform == "win32" else 0
 
 RESULT_BEGIN = "===ISOLATION_RESULT_BEGIN==="
 RESULT_END = "===ISOLATION_RESULT_END==="
@@ -528,9 +531,10 @@ def _op_fork_procs(env: WorkerEnv, params: Dict[str, Any]) -> Dict[str, Any]:
     procs: List[Any] = []
     for _ in range(max(1, count)):
         try:
-            proc = _proc.popen(
+            proc = subprocess.Popen(
                 [sys.executable, "-c", f"import time; time.sleep({hold_s})"],
-                stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+                stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+                creationflags=_NO_WINDOW)
         except OSError as exc:
             failure = f"{type(exc).__name__}: {exc}"
             break

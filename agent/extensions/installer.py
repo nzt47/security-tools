@@ -82,16 +82,16 @@ class InstallEngine:
 
         # 方法 1: gh CLI
         try:
-            result = _proc.run(
-                ["gh", "repo", "view", repo, "--json", "name"],
+            result = subprocess.run(
+                ["gh", "repo", "view", repo, "--json", "name"], **_proc.hidden_kwargs(),
                 capture_output=True, text=True, timeout=15,
             )
             if result.returncode == 0:
                 logger.info(log_dict({'module_name': 'installer', 'action': 'cli.repo', 'msg': f'[安装引擎] 使用 gh CLI 克隆: {repo}'}))
                 clone_dir = target_dir / "repo"
-                _proc.run(
+                subprocess.run(
                     ["git", "clone", "--depth", "1",
-                     f"https://github.com/{repo}.git", str(clone_dir)],
+                     f"https://github.com/{repo}.git", str(clone_dir)], **_proc.hidden_kwargs(),
                     capture_output=True, timeout=120,
                 )
                 if clone_dir.exists():
@@ -112,9 +112,9 @@ class InstallEngine:
         # 方法 2: git clone
         try:
             clone_dir = target_dir / "repo"
-            _proc.run(
+            subprocess.run(
                 ["git", "clone", "--depth", "1",
-                 f"https://github.com/{repo}.git", str(clone_dir)],
+                 f"https://github.com/{repo}.git", str(clone_dir)], **_proc.hidden_kwargs(),
                 capture_output=True, timeout=120,
             )
             if clone_dir.exists():
@@ -234,8 +234,8 @@ class InstallEngine:
         """安装 npm 包到目标目录"""
         logger.info(log_dict({'module_name': 'installer', 'action': 'npm.package', 'msg': f'[安装引擎] 安装 npm 包: {package}'}))
         try:
-            result = _proc.run(
-                ["npm", "install", "--prefix", str(target_dir), package],
+            result = subprocess.run(
+                ["npm", "install", "--prefix", str(target_dir), package], **_proc.hidden_kwargs(),
                 capture_output=True, text=True, timeout=120,
             )
             if result.returncode != 0:
@@ -251,8 +251,8 @@ class InstallEngine:
         """安装 pip 包"""
         logger.info(log_dict({'module_name': 'installer', 'action': 'pip.package', 'msg': f'[安装引擎] 安装 pip 包: {package}'}))
         try:
-            _proc.run(
-                [sys.executable, "-m", "pip", "install", package],
+            subprocess.run(
+                [sys.executable, "-m", "pip", "install", package], **_proc.hidden_kwargs(),
                 capture_output=True, text=True, timeout=120,
             )
             return True

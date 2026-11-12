@@ -192,8 +192,8 @@ class GitSync:
         cmd = ["git", *args]
         env = {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
         try:
-            result = _proc.run(
-                cmd,
+            result = subprocess.run(
+                cmd, **_proc.hidden_kwargs(),
                 cwd=str(self._repo_path),
                 env=env,
                 capture_output=True,

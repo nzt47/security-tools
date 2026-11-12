@@ -511,8 +511,8 @@ class SelfHealer:
                 # 显式重启命令（跨平台；字符串按 shell 执行，列表按 argv 执行）
                 try:
                     logger.info(log_dict({'module_name': 'self_healer', 'action': 'restart_service.run_command', 'heal_action': 'restart_service', 'service_name': service_name, 'restart_command': restart_command if isinstance(restart_command, str) else list(restart_command), 'timeout_seconds': self._restart_timeout}))
-                    result = _proc.run(
-                        restart_command,
+                    result = subprocess.run(
+                        restart_command, **_proc.hidden_kwargs(),
                         shell=isinstance(restart_command, str),
                         capture_output=True,
                         text=True,
@@ -551,8 +551,8 @@ class SelfHealer:
                 # Linux：探测 systemctl / service
                 for cmd_prefix in (["systemctl", "restart"], ["service", "restart"]):
                     try:
-                        result = _proc.run(
-                            cmd_prefix + [service_name],
+                        result = subprocess.run(
+                            cmd_prefix + [service_name], **_proc.hidden_kwargs(),
                             capture_output=True,
                             text=True,
                             timeout=self._restart_timeout
@@ -911,8 +911,8 @@ class SelfHealer:
             # 尝试释放内存（仅 Linux）
             if os.name == "posix":
                 try:
-                    _proc.run(
-                        ["sync"],
+                    subprocess.run(
+                        ["sync"], **_proc.hidden_kwargs(),
                         capture_output=True,
                         timeout=self._sync_timeout
                     )

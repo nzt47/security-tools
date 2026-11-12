@@ -405,8 +405,8 @@ def _run_embedding_probe(model_name: str) -> bool:
         "print('PROBE_OK')"
     )
     try:
-        result = _proc.run(
-            [sys.executable, "-c", probe_script],
+        result = subprocess.run(
+            [sys.executable, "-c", probe_script], **_proc.hidden_kwargs(),
             capture_output=True,
             text=True,
             timeout=_PROBE_TIMEOUT,
@@ -1363,8 +1363,8 @@ class EmbeddingIndex:
         之间就不可能再插进另一个线程的 encode 请求。
         """
         try:
-            self._proc = _proc.popen(
-                [sys.executable, "-c", _WORKER_SCRIPT_EMBEDDING, self._model_name],
+            self._proc = subprocess.Popen(
+                [sys.executable, "-c", _WORKER_SCRIPT_EMBEDDING, self._model_name], **_proc.hidden_kwargs(),
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,

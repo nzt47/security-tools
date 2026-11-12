@@ -292,8 +292,8 @@ def software_install(package_id: str = "", *, confirm: bool = False) -> Dict[str
     log_tail = ""
     denied = ""
     try:
-        proc = _proc.run(
-            argv,
+        proc = subprocess.run(
+            argv, **_proc.hidden_kwargs(),
             capture_output=True,
             text=True,
             encoding="utf-8",

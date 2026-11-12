@@ -105,8 +105,8 @@ def _subprocess_runner(argv: List[str]) -> Tuple[int, str, str]:
     【必须显式 utf-8】Windows 默认按本地代码页（gbk）解码子进程输出，gh 的中文
     （工作流名/标题）会直接抛 UnicodeDecodeError（2026-11-11 实测踩到）。
     """
-    proc = _proc.run(argv, cwd=str(_repo_root()), capture_output=True, text=True,
-                     encoding="utf-8", errors="replace", timeout=GH_TIMEOUT_SEC)
+    proc = subprocess.run(argv, **_proc.hidden_kwargs(), cwd=str(_repo_root()), capture_output=True, text=True,
+                          encoding="utf-8", errors="replace", timeout=GH_TIMEOUT_SEC)
     return proc.returncode, proc.stdout or "", proc.stderr or ""
 
 

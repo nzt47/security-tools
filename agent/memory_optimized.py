@@ -83,8 +83,8 @@ def _probe_import(code: str) -> bool:
     if _CHROMADB_IMPORT_OK is not None:
         return _CHROMADB_IMPORT_OK
     try:
-        proc = _proc.run(
-            [sys.executable, "-c", code],
+        proc = subprocess.run(
+            [sys.executable, "-c", code], **_proc.hidden_kwargs(),
             timeout=_CHROMADB_IMPORT_TIMEOUT,
             capture_output=True,
         )

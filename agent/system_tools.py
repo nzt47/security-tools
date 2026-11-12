@@ -211,8 +211,9 @@ def get_clipboard():
     except Exception:
         # pyperclip 在无 xclip/xsel 的 Linux CI 会抛 PyperclipException（非 ImportError）
         try:
-            result = _proc.run(
-                ["powershell", "-Command", "Get-Clipboard"],
+            import subprocess
+            result = subprocess.run(
+                ["powershell", "-Command", "Get-Clipboard"], **_proc.hidden_kwargs(),
                 capture_output=True, text=True, timeout=3,
             )
             return {"ok": True, "content": result.stdout[:10000]}
@@ -232,8 +233,9 @@ def set_clipboard(text):
     except Exception:
         # 同 get_clipboard：覆盖 PyperclipException
         try:
-            _proc.run(
-                ["powershell", "-Command", f"Set-Clipboard -Value '{text[:5000]}'"],
+            import subprocess
+            subprocess.run(
+                ["powershell", "-Command", f"Set-Clipboard -Value '{text[:5000]}'"], **_proc.hidden_kwargs(),
                 capture_output=True, timeout=3,
             )
             return {"ok": True}

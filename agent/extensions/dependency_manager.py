@@ -9,6 +9,7 @@
 
 import json
 import logging
+import subprocess
 import sys
 from typing import Dict, Any, List, Optional, Tuple
 from pathlib import Path
@@ -231,8 +232,8 @@ class DependencyManager:
             
             try:
                 logger.info(log_dict({'module_name': 'dependency_manager', 'action': 'pkg_spec', 'msg': f'安装依赖: {pkg_spec}'}))
-                result = _proc.run(
-                    [sys.executable, "-m", "pip", "install", pkg_spec],
+                result = subprocess.run(
+                    [sys.executable, "-m", "pip", "install", pkg_spec], **_proc.hidden_kwargs(),
                     capture_output=True,
                     text=True,
                     timeout=120

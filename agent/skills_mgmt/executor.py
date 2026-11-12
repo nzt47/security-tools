@@ -241,8 +241,8 @@ class SkillExecutor:
         logger.info(log_dict({'module_name': 'executor', 'action': 'execute.start', 'skill_id': skill_id, 'script_name': script_name, 'timeout': use_timeout, 'params_keys': list(params.keys()), 'has_output_schema': bool(output_schema)}))
 
         try:
-            proc = _proc.run(
-                [self.python_exe, "-u", str(script_path)],
+            proc = subprocess.run(
+                [self.python_exe, "-u", str(script_path)], **_proc.hidden_kwargs(),
                 input=stdin_data,
                 capture_output=True,
                 text=True,

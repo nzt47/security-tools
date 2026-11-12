@@ -394,8 +394,8 @@ def register_all(dl):
 
             started = time.time()
             try:
-                proc = _proc.run(
-                    argv,
+                proc = subprocess.run(
+                    argv, **_proc.hidden_kwargs(),
                     cwd=repo_root,
                     capture_output=True,
                     text=True,

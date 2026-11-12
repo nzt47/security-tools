@@ -300,8 +300,8 @@ class ToolReranker:
             try:
                 import time
                 t0 = time.time()
-                self._proc = _proc.popen(
-                    [sys.executable, "-c", _WORKER_SCRIPT, self.model_name, str(self.max_length)],
+                self._proc = subprocess.Popen(
+                    [sys.executable, "-c", _WORKER_SCRIPT, self.model_name, str(self.max_length)], **_proc.hidden_kwargs(),
                     stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,

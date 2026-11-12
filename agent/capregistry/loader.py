@@ -411,8 +411,8 @@ class _JsonRpcProcess:
         self._closed = False
         # stderr 送 DEVNULL：stdio 的 stdout 是**协议流**，日志混进来即报废
         # （yunshu_mcp_server 自己已经把日志固定到 stderr，这里再兜一层）
-        self._proc = _proc.popen(  # noqa: S603  argv 完全由本仓库常量构造
-            list(argv), cwd=cwd or _REPO_ROOT, stdin=subprocess.PIPE,
+        self._proc = subprocess.Popen(  # noqa: S603  argv 完全由本仓库常量构造
+            list(argv), **_proc.hidden_kwargs(), cwd=cwd or _REPO_ROOT, stdin=subprocess.PIPE,
             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
             text=True, encoding="utf-8", errors="replace", bufsize=1,
             env=dict(env) if env is not None else None)

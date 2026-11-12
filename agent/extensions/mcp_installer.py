@@ -310,8 +310,8 @@ class McpInstaller:
                     return False, "stdio 模式未配置命令"
                 import subprocess
                 try:
-                    result = _proc.run(
-                        [command] + service.get("args", []),
+                    result = subprocess.run(
+                        [command] + service.get("args", []), **_proc.hidden_kwargs(),
                         capture_output=True, text=True, timeout=10,
                     )
                     return True, f"进程已启动 (exit code: {result.returncode})"

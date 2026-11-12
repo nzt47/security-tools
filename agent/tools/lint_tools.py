@@ -275,8 +275,8 @@ def run_lint(path: Any = ".", tool: Any = "auto",
 
     started = time.time()
     try:
-        proc = _proc.run(  # noqa: S603 argv 列表 + shell=False
-            argv,
+        proc = subprocess.run(  # noqa: S603 argv 列表 + shell=False
+            argv, **_proc.hidden_kwargs(),
             cwd=_repo_root(),
             capture_output=True,
             text=True,

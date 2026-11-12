@@ -91,9 +91,9 @@ def is_wsl_bash(*, use_cache: bool = True) -> bool:
         return _WSL_PROBE["wsl"]
     verdict = False
     try:
-        proc = _proc.run(["bash", "-c", "uname -r"], shell=False,
-                         capture_output=True, text=True,
-                         timeout=WSL_PROBE_TIMEOUT_SEC)
+        proc = subprocess.run(["bash", "-c", "uname -r"], **_proc.hidden_kwargs(), shell=False,
+                              capture_output=True, text=True,
+                              timeout=WSL_PROBE_TIMEOUT_SEC)
         verdict = "microsoft" in (proc.stdout or "").lower()
     except Exception:  # noqa: BLE001 没有 bash / 权限 / 超时 ⇒ 当不是 WSL
         verdict = False

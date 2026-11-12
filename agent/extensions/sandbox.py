@@ -191,8 +191,8 @@ class PluginSandbox:
         try:
             env = {**os.environ, **context.env_vars}
             
-            result = _proc.run(
-                command,
+            result = subprocess.run(
+                command, **_proc.hidden_kwargs(),
                 cwd=work_dir,
                 env=env,
                 capture_output=True,

@@ -257,8 +257,8 @@ def register_all(dl):
             env["GIT_TERMINAL_PROMPT"] = "0"  # 禁止交互式凭据提示挂住工具
 
             try:
-                proc = _proc.run(
-                    full_argv,
+                proc = subprocess.run(
+                    full_argv, **_proc.hidden_kwargs(),
                     cwd=cwd,
                     capture_output=True,
                     text=True,
