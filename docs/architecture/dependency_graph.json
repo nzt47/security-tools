@@ -38,7 +38,7 @@
       "name": "alarms",
       "layer": "alarms",
       "file_path": "agent/alarms/__init__.py",
-      "in_degree": 5,
+      "in_degree": 6,
       "out_degree": 1
     },
     {
@@ -46,7 +46,7 @@
       "name": "store",
       "layer": "alarms",
       "file_path": "",
-      "in_degree": 3,
+      "in_degree": 4,
       "out_degree": 0
     },
     {
@@ -55,7 +55,7 @@
       "layer": "alarms",
       "file_path": "agent/alarms/api.py",
       "in_degree": 0,
-      "out_degree": 11
+      "out_degree": 12
     },
     {
       "path": "agent.api_envelope",
@@ -82,6 +82,14 @@
       "out_degree": 3
     },
     {
+      "path": "agent.alarms.notify",
+      "name": "notify",
+      "layer": "alarms",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 4
+    },
+    {
       "path": "agent.monitoring.ci_status",
       "name": "ci_status",
       "layer": "monitoring",
@@ -95,7 +103,7 @@
       "layer": "alarms",
       "file_path": "",
       "in_degree": 2,
-      "out_degree": 9
+      "out_degree": 10
     },
     {
       "path": "agent.alarms.samples",
@@ -134,7 +142,7 @@
       "name": "task_scheduler",
       "layer": "core",
       "file_path": "",
-      "in_degree": 29,
+      "in_degree": 31,
       "out_degree": 17
     },
     {
@@ -144,6 +152,30 @@
       "file_path": "",
       "in_degree": 11,
       "out_degree": 3
+    },
+    {
+      "path": "agent.extensions.channel_bridge",
+      "name": "channel_bridge",
+      "layer": "extensions",
+      "file_path": "",
+      "in_degree": 3,
+      "out_degree": 5
+    },
+    {
+      "path": "agent.extensions.channels_installer",
+      "name": "channels_installer",
+      "layer": "extensions",
+      "file_path": "",
+      "in_degree": 4,
+      "out_degree": 4
+    },
+    {
+      "path": "agent.extensions.store",
+      "name": "store",
+      "layer": "extensions",
+      "file_path": "",
+      "in_degree": 11,
+      "out_degree": 2
     },
     {
       "path": "agent.alarms.promql",
@@ -1114,14 +1146,6 @@
       "out_degree": 2
     },
     {
-      "path": "agent.extensions.store",
-      "name": "store",
-      "layer": "extensions",
-      "file_path": "",
-      "in_degree": 10,
-      "out_degree": 2
-    },
-    {
       "path": "agent.extensions.base",
       "name": "base",
       "layer": "extensions",
@@ -1336,22 +1360,6 @@
       "file_path": "",
       "in_degree": 3,
       "out_degree": 7
-    },
-    {
-      "path": "agent.extensions.channel_bridge",
-      "name": "channel_bridge",
-      "layer": "extensions",
-      "file_path": "agent/extensions/channel_bridge.py",
-      "in_degree": 2,
-      "out_degree": 5
-    },
-    {
-      "path": "agent.extensions.channels_installer",
-      "name": "channels_installer",
-      "layer": "extensions",
-      "file_path": "",
-      "in_degree": 3,
-      "out_degree": 4
     },
     {
       "path": "agent.extensions.installer",
@@ -2720,6 +2728,14 @@
       "file_path": "",
       "in_degree": 1,
       "out_degree": 5
+    },
+    {
+      "path": "agent.monitoring.log_anomaly",
+      "name": "log_anomaly",
+      "layer": "monitoring",
+      "file_path": "agent/monitoring/log_anomaly.py",
+      "in_degree": 0,
+      "out_degree": 2
     },
     {
       "path": "agent.monitoring.observability_optimizations",
@@ -5298,11 +5314,24 @@
     },
     {
       "source": "agent.alarms.api",
+      "target": "agent.alarms.notify",
+      "source_layer": "alarms",
+      "target_layer": "alarms",
+      "import_type": "from_import",
+      "line": 121,
+      "source_file": "agent/alarms/api.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.alarms.api",
       "target": "agent.monitoring.ci_status",
       "source_layer": "alarms",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 121,
+      "line": 131,
       "source_file": "agent/alarms/api.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5315,7 +5344,7 @@
       "source_layer": "alarms",
       "target_layer": "alarms",
       "import_type": "from_import",
-      "line": 140,
+      "line": 150,
       "source_file": "agent/alarms/api.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -5328,7 +5357,7 @@
       "source_layer": "alarms",
       "target_layer": "alarms",
       "import_type": "from_import",
-      "line": 141,
+      "line": 151,
       "source_file": "agent/alarms/api.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -5341,7 +5370,7 @@
       "source_layer": "alarms",
       "target_layer": "alarms",
       "import_type": "from_import",
-      "line": 227,
+      "line": 239,
       "source_file": "agent/alarms/api.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -5367,7 +5396,7 @@
       "source_layer": "alarms",
       "target_layer": "alarms",
       "import_type": "from_import",
-      "line": 160,
+      "line": 170,
       "source_file": "agent/alarms/api.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -5484,9 +5513,74 @@
       "source_layer": "alarms",
       "target_layer": "alarms",
       "import_type": "from_import",
+      "line": 605,
+      "source_file": "agent/alarms/collector.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.alarms.collector",
+      "target": "agent.alarms",
+      "source_layer": "alarms",
+      "target_layer": "alarms",
+      "import_type": "from_import",
       "line": 273,
       "source_file": "agent/alarms/collector.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.alarms.notify",
+      "target": "agent.extensions.channel_bridge",
+      "source_layer": "alarms",
+      "target_layer": "extensions",
+      "import_type": "from_import",
+      "line": 177,
+      "source_file": "agent/alarms/notify.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.alarms.notify",
+      "target": "agent.alarms.store",
+      "source_layer": "alarms",
+      "target_layer": "alarms",
+      "import_type": "from_import",
+      "line": 225,
+      "source_file": "agent/alarms/notify.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.alarms.notify",
+      "target": "agent.extensions.channels_installer",
+      "source_layer": "alarms",
+      "target_layer": "extensions",
+      "import_type": "from_import",
+      "line": 184,
+      "source_file": "agent/alarms/notify.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.alarms.notify",
+      "target": "agent.extensions.store",
+      "source_layer": "alarms",
+      "target_layer": "extensions",
+      "import_type": "from_import",
+      "line": 185,
+      "source_file": "agent/alarms/notify.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -15314,6 +15408,32 @@
       "import_type": "from_import",
       "line": 457,
       "source_file": "agent/monitoring/error_reporter.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.monitoring.log_anomaly",
+      "target": "agent.task_scheduler",
+      "source_layer": "monitoring",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 319,
+      "source_file": "agent/monitoring/log_anomaly.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.monitoring.log_anomaly",
+      "target": "agent.task_scheduler",
+      "source_layer": "monitoring",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 339,
+      "source_file": "agent/monitoring/log_anomaly.py",
       "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
@@ -25426,7 +25546,7 @@
       "source_layer": "settings",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 3295,
+      "line": 3313,
       "source_file": "agent/settings/registry.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -25439,7 +25559,7 @@
       "source_layer": "settings",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 3415,
+      "line": 3433,
       "source_file": "agent/settings/registry.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -33118,20 +33238,21 @@
     }
   ],
   "stats": {
-    "total_files": 750,
-    "total_nodes": 647,
-    "total_edges": 2149,
-    "cross_layer_edges": 1356,
+    "total_files": 751,
+    "total_nodes": 649,
+    "total_edges": 2157,
+    "cross_layer_edges": 1361,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
       "core": 82,
       "utils": 12,
-      "alarms": 8,
+      "alarms": 9,
       "learning": 3,
-      "monitoring": 36,
+      "monitoring": 37,
       "health": 7,
       "audit": 8,
+      "extensions": 16,
       "tools": 31,
       "observability": 13,
       "security": 10,
@@ -33155,7 +33276,6 @@
       "subagent": 39,
       "self_healing": 6,
       "model_router": 4,
-      "extensions": 16,
       "eval": 9,
       "experience_cli": 6,
       "policy": 11,

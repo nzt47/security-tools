@@ -8,6 +8,7 @@ flowchart LR
         agent_alarms["agent.alarms"]
         agent_alarms_api["agent.alarms.api"]
         agent_alarms_collector["agent.alarms.collector"]
+        agent_alarms_notify["agent.alarms.notify"]
         agent_alarms_prometheus_source["agent.alarms.prometheus_source"]
         agent_alarms_promql["agent.alarms.promql"]
         agent_alarms_rules["agent.alarms.rules"]:::crosslayer
@@ -202,7 +203,7 @@ flowchart LR
         agent_extensions["agent.extensions"]
         agent_extensions_base["agent.extensions.base"]:::crosslayer
         agent_extensions_channel_bridge["agent.extensions.channel_bridge"]:::crosslayer
-        agent_extensions_channels_installer["agent.extensions.channels_installer"]
+        agent_extensions_channels_installer["agent.extensions.channels_installer"]:::crosslayer
         agent_extensions_dependency_manager["agent.extensions.dependency_manager"]
         agent_extensions_installer["agent.extensions.installer"]
         agent_extensions_manager["agent.extensions.manager"]:::crosslayer
@@ -385,6 +386,7 @@ flowchart LR
         agent_monitoring_decorators["agent.monitoring.decorators"]
         agent_monitoring_error_reporter["agent.monitoring.error_reporter"]
         agent_monitoring_llm_monitor["agent.monitoring.llm_monitor"]:::crosslayer
+        agent_monitoring_log_anomaly["agent.monitoring.log_anomaly"]
         agent_monitoring_loki["agent.monitoring.loki"]:::crosslayer
         agent_monitoring_metrics["agent.monitoring.metrics"]:::crosslayer
         agent_monitoring_observability_config["agent.monitoring.observability_config"]:::crosslayer
@@ -776,6 +778,7 @@ flowchart LR
     agent_alarms_api -.-> agent_server_auth
     agent_alarms_api --> agent_alarms
     agent_alarms_api -.-> agent_learning_perception_cycle
+    agent_alarms_api --> agent_alarms_notify
     agent_alarms_api -.-> agent_monitoring_ci_status
     agent_alarms_api --> agent_alarms
     agent_alarms_api --> agent_alarms_collector
@@ -791,6 +794,11 @@ flowchart LR
     agent_alarms_collector -.-> agent_task_scheduler
     agent_alarms_collector -.-> agent_audit_chain
     agent_alarms_collector --> agent_alarms
+    agent_alarms_collector --> agent_alarms
+    agent_alarms_notify -.-> agent_extensions_channel_bridge
+    agent_alarms_notify --> agent_alarms_store
+    agent_alarms_notify -.-> agent_extensions_channels_installer
+    agent_alarms_notify -.-> agent_extensions_store
     agent_alarms_promql --> agent_alarms_samples
     agent_alarms_rules --> agent_alarms_promql
     agent_alarms_rules --> agent_alarms_samples
@@ -1547,6 +1555,8 @@ flowchart LR
     agent_monitoring_error_reporter -.-> agent_error_handler
     agent_monitoring_error_reporter -.-> agent_utils_singleton_manager
     agent_monitoring_error_reporter -.-> agent_error_reporting_config
+    agent_monitoring_log_anomaly -.-> agent_task_scheduler
+    agent_monitoring_log_anomaly -.-> agent_task_scheduler
     agent_monitoring_loki -.-> agent_logging_utils
     agent_monitoring_loki -.-> agent_utils_singleton_manager
     agent_monitoring_loki --> agent_monitoring_observability_config
@@ -2924,9 +2934,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 750
-- 模块节点数: 647
-- 依赖边数: 2149
-- 跨层调用数: 1356
+- 扫描文件数: 751
+- 模块节点数: 649
+- 依赖边数: 2157
+- 跨层调用数: 1361
 - 违规调用数: 0
 - 动态 import 数: 1
