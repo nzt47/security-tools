@@ -1,8 +1,11 @@
 /**
  * 功能单位工作状况 —— 「每个能力单位有没有在工作、最近一次动过没、有没有红」的统一视图。
  * ================================================================
- * 数据来自 GET /api/system/units（后端 unit_monitor 聚合 12 个探测单位：服务进程 / 审计链 /
- * 技能资产 / 技能使用 / 工具 / 工作流 / 调度 / 记忆压缩 / 长期记忆 / 反思经验 / 向量 / 吞噬草稿）。
+ * 数据来自 GET /api/system/units：后端 unit_monitor 聚合 12 个**手写**单位
+ * （服务进程 / 审计链 / 技能资产 / 技能使用 / 工具 / 工作流 / 调度 / 记忆压缩 / 长期记忆 /
+ * 反思经验 / 向量 / 吞噬草稿）+ 若干**包声明**单位（agent/<pkg>/__init__.py 的 MODULE_UNITS，
+ * 2026-11-12 起；例：ops.ports / ops.logs / ops.ci_sync / perception.cycle / alarms.collector）。
+ * 前端不写死数量：以接口返回的 summary.total 为准。
  *
  * 【口径】后端只归一只读快照，前端不重算：状态五档 ok/warn/off/never/error 直接上屏；
  * 每个单位的 issues 逐条显示（例如「摘要 v88 是 0 字节」「长期记忆 0 行」），
@@ -58,6 +61,10 @@ const FAMILY_LABEL: Record<string, string> = {
   scheduler: '调度',
   memory: '记忆',
   ingestion: '吞噬',
+  // 2026-11-12：包声明单位的族（未知族原先直接显示英文 id，读起来像内部字段）
+  ops: '运维观测',
+  perception: '感知',
+  module: '包声明',
 }
 
 const STATUS_ORDER: UnitStatus[] = ['ok', 'warn', 'off', 'never', 'error']
