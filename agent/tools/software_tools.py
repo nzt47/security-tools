@@ -41,6 +41,7 @@ import time
 from typing import Any, Dict, Iterator, List, Optional
 
 from agent import tools as _tools
+from agent.utils import proc as _proc
 
 logger = logging.getLogger(__name__)
 
@@ -291,7 +292,7 @@ def software_install(package_id: str = "", *, confirm: bool = False) -> Dict[str
     log_tail = ""
     denied = ""
     try:
-        proc = subprocess.run(
+        proc = _proc.run(
             argv,
             capture_output=True,
             text=True,

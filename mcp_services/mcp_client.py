@@ -256,9 +256,15 @@ class MCPClient:
 
         try:
             # Windows兼容：使用CREATE_NEW_PROCESS_GROUP避免子进程问题
+            # 【2026-11-13 无窗口】再叠加 CREATE_NO_WINDOW：本服务的工作台后端是用
+            # DETACHED_PROCESS 拉起的（自身没有控制台），只给 CREATE_NEW_PROCESS_GROUP 时
+            # Windows 会给 MCP 子进程**新分配一个可见控制台** ⇒ 每次连 MCP 都闪一下黑窗。
+            # 注意：本包（mcp_services）不依赖 agent.*，故此处就地取常量，不 import
+            # agent.utils.proc（跨包依赖比三个常量更贵）。
             creation_flags = 0
             if os.name == 'nt':
-                creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP
+                creation_flags = (subprocess.CREATE_NEW_PROCESS_GROUP
+                                  | getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000))
 
             # 启动进程
             self.process = await asyncio.create_subprocess_exec(

@@ -9,7 +9,6 @@
 
 import json
 import logging
-import subprocess
 import sys
 from typing import Dict, Any, List, Optional, Tuple
 from pathlib import Path
@@ -27,6 +26,7 @@ except ImportError:  # pragma: no cover
 
 from agent.monitoring.tracing import get_trace_id
 from agent.logging_utils import log_dict
+from agent.utils import proc as _proc
 
 logger = logging.getLogger(__name__)
 
@@ -231,7 +231,7 @@ class DependencyManager:
             
             try:
                 logger.info(log_dict({'module_name': 'dependency_manager', 'action': 'pkg_spec', 'msg': f'安装依赖: {pkg_spec}'}))
-                result = subprocess.run(
+                result = _proc.run(
                     [sys.executable, "-m", "pip", "install", pkg_spec],
                     capture_output=True,
                     text=True,

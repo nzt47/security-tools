@@ -23,6 +23,7 @@ import shutil
 import subprocess
 
 from agent import tools as _tools
+from agent.utils import proc as _proc
 
 logger = logging.getLogger(__name__)
 
@@ -256,7 +257,7 @@ def register_all(dl):
             env["GIT_TERMINAL_PROMPT"] = "0"  # 禁止交互式凭据提示挂住工具
 
             try:
-                proc = subprocess.run(
+                proc = _proc.run(
                     full_argv,
                     cwd=cwd,
                     capture_output=True,

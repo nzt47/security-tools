@@ -33,6 +33,7 @@ from enum import Enum
 # set_trace_id 用于后台线程 trace_id 传递（ContextVar 不自动继承到子线程）
 from agent.monitoring.tracing import get_trace_id, set_trace_id
 from agent.logging_utils import log_dict
+from agent.utils import proc as _proc
 
 logger = logging.getLogger(__name__)
 
@@ -510,7 +511,7 @@ class SelfHealer:
                 # 显式重启命令（跨平台；字符串按 shell 执行，列表按 argv 执行）
                 try:
                     logger.info(log_dict({'module_name': 'self_healer', 'action': 'restart_service.run_command', 'heal_action': 'restart_service', 'service_name': service_name, 'restart_command': restart_command if isinstance(restart_command, str) else list(restart_command), 'timeout_seconds': self._restart_timeout}))
-                    result = subprocess.run(
+                    result = _proc.run(
                         restart_command,
                         shell=isinstance(restart_command, str),
                         capture_output=True,
@@ -550,7 +551,7 @@ class SelfHealer:
                 # Linux：探测 systemctl / service
                 for cmd_prefix in (["systemctl", "restart"], ["service", "restart"]):
                     try:
-                        result = subprocess.run(
+                        result = _proc.run(
                             cmd_prefix + [service_name],
                             capture_output=True,
                             text=True,
@@ -910,7 +911,7 @@ class SelfHealer:
             # 尝试释放内存（仅 Linux）
             if os.name == "posix":
                 try:
-                    subprocess.run(
+                    _proc.run(
                         ["sync"],
                         capture_output=True,
                         timeout=self._sync_timeout

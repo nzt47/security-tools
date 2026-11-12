@@ -29,11 +29,11 @@ import functools
 import json
 import logging
 import os
-import subprocess
 import sys
 import time
 import urllib.request
 from typing import Any, Dict, List, Optional, Tuple
+from agent.utils import proc as _proc
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +159,7 @@ def _tail(text: str, limit: int = 400) -> str:
 def _run_shell(argv: List[str], timeout: int = SHELL_TIMEOUT) -> Tuple[bool, str]:
     """跑一条只读 CLI；返回 (是否成功, 末行摘要)。绝不抛。"""
     try:
-        proc = subprocess.run(
+        proc = _proc.run(
             argv,
             cwd=REPO_ROOT,
             capture_output=True,

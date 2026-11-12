@@ -22,6 +22,7 @@ from enum import Enum
 
 from agent.monitoring.tracing import get_trace_id
 from agent.logging_utils import log_dict
+from agent.utils import proc as _proc
 
 logger = logging.getLogger(__name__)
 
@@ -190,7 +191,7 @@ class PluginSandbox:
         try:
             env = {**os.environ, **context.env_vars}
             
-            result = subprocess.run(
+            result = _proc.run(
                 command,
                 cwd=work_dir,
                 env=env,

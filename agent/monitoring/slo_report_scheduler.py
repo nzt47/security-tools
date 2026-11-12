@@ -21,11 +21,11 @@ from __future__ import annotations
 import json
 import logging
 import os
-import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
+from agent.utils import proc as _proc
 
 logger = logging.getLogger(__name__)
 
@@ -132,7 +132,7 @@ def _default_runner(cmd: list, cwd: Path, timeout: int) -> Dict[str, Any]:
     env = dict(os.environ)
     env.setdefault("PYTHONIOENCODING", "utf-8")
     env.setdefault("PYTHONUTF8", "1")
-    proc = subprocess.run(  # noqa: S603 固定脚本路径 + 参数列表，无 shell
+    proc = _proc.run(  # noqa: S603 固定脚本路径 + 参数列表，无 shell
         cmd, cwd=str(cwd), capture_output=True, text=True,
         timeout=timeout, env=env,
     )

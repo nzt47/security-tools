@@ -49,6 +49,7 @@ from collections import OrderedDict
 from agent.logging_utils import log_dict
 
 import warnings
+from agent.utils import proc as _proc
 warnings.warn(
     "memory_optimized 模块已废弃，请使用 memory.vector_store.VectorStore (sqlite-vec/chromadb 后端)",
     DeprecationWarning,
@@ -82,7 +83,7 @@ def _probe_import(code: str) -> bool:
     if _CHROMADB_IMPORT_OK is not None:
         return _CHROMADB_IMPORT_OK
     try:
-        proc = subprocess.run(
+        proc = _proc.run(
             [sys.executable, "-c", code],
             timeout=_CHROMADB_IMPORT_TIMEOUT,
             capture_output=True,

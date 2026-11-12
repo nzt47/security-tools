@@ -45,6 +45,7 @@ import time
 from typing import Any, Optional, Tuple
 
 from agent import tools as _tools
+from agent.utils import proc as _proc
 
 logger = logging.getLogger(__name__)
 
@@ -274,7 +275,7 @@ def run_lint(path: Any = ".", tool: Any = "auto",
 
     started = time.time()
     try:
-        proc = subprocess.run(  # noqa: S603 argv 列表 + shell=False
+        proc = _proc.run(  # noqa: S603 argv 列表 + shell=False
             argv,
             cwd=_repo_root(),
             capture_output=True,

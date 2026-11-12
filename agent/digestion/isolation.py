@@ -62,6 +62,7 @@ import tempfile
 import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
+from agent.utils import proc as _proc
 
 logger = logging.getLogger("agent.digestion.isolation")
 
@@ -385,7 +386,7 @@ def probe_docker(*, env: Optional[Dict[str, str]] = None, cli: str = "",
 def _run_quiet(argv: Sequence[str], timeout_s: float) -> Tuple[int, str, str]:
     """跑一条探测命令（返回 rc/stdout/stderr；**任何异常都转成 rc=-1**）"""
     try:
-        proc = subprocess.run(list(argv), capture_output=True, timeout=timeout_s)
+        proc = _proc.run(list(argv), capture_output=True, timeout=timeout_s)
     except FileNotFoundError as exc:
         return -1, "", f"FileNotFoundError: {exc}"
     except subprocess.TimeoutExpired:
@@ -1029,7 +1030,7 @@ class SubprocessHardenedExecutor(IsolationExecutor):
         #: 作业级墙钟覆盖（探针靠它把"超时 kill"这一条测出来：忙转秒数 > 本值）
         job_timeout = _job_timeout(payload, self.quota)
         try:
-            proc = subprocess.Popen(
+            proc = _proc.popen(
                 argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE, cwd=work_root, env=env,
                 preexec_fn=preexec,  # 仅 POSIX 非 None（Windows 返回 None）
@@ -1200,7 +1201,7 @@ class ContainerExecutor(IsolationExecutor):
         payload = self._job_for(job, work_root="/work", source_root="/src")
         started = time.perf_counter()
         try:
-            proc = subprocess.Popen(argv, stdin=subprocess.PIPE,
+            proc = _proc.popen(argv, stdin=subprocess.PIPE,
                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                     text=True, encoding="utf-8", errors="replace")
         except Exception as exc:  # noqa: BLE001

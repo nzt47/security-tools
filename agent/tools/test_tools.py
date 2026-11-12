@@ -25,6 +25,7 @@ import sys
 import time
 
 from agent import tools as _tools
+from agent.utils import proc as _proc
 
 logger = logging.getLogger(__name__)
 
@@ -393,7 +394,7 @@ def register_all(dl):
 
             started = time.time()
             try:
-                proc = subprocess.run(
+                proc = _proc.run(
                     argv,
                     cwd=repo_root,
                     capture_output=True,

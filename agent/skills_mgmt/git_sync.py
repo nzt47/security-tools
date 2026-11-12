@@ -17,6 +17,7 @@ import threading
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from agent.utils import proc as _proc
 
 __all__ = [
     "GitSync",
@@ -191,7 +192,7 @@ class GitSync:
         cmd = ["git", *args]
         env = {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
         try:
-            result = subprocess.run(
+            result = _proc.run(
                 cmd,
                 cwd=str(self._repo_path),
                 env=env,

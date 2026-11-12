@@ -44,6 +44,7 @@ import subprocess
 import threading
 from typing import Optional
 from agent.logging_utils import log_dict
+from agent.utils import proc as _proc
 
 logger = logging.getLogger(__name__)
 
@@ -404,7 +405,7 @@ def _run_embedding_probe(model_name: str) -> bool:
         "print('PROBE_OK')"
     )
     try:
-        result = subprocess.run(
+        result = _proc.run(
             [sys.executable, "-c", probe_script],
             capture_output=True,
             text=True,
@@ -1362,7 +1363,7 @@ class EmbeddingIndex:
         之间就不可能再插进另一个线程的 encode 请求。
         """
         try:
-            self._proc = subprocess.Popen(
+            self._proc = _proc.popen(
                 [sys.executable, "-c", _WORKER_SCRIPT_EMBEDDING, self._model_name],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,

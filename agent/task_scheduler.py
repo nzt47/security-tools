@@ -22,6 +22,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable, Dict, List, Any, Optional
 from agent.logging_utils import log_dict
+from agent.utils import proc as _proc
 
 logger = logging.getLogger(__name__)
 
@@ -596,7 +597,7 @@ class TaskScheduler:
                     # 保留 shell=True 的取舍：命令可能含管道/重定向/内建等 shell 语法，
                     # 改 shell=False 会把整串当单个 argv[0]、破坏既有用法；本任务的目的是
                     # 补上执行前的权限闸门，而不是重写执行方式（闸门在 Popen 之前生效）。
-                    proc = subprocess.Popen(
+                    proc = _proc.popen(
                         command,
                         shell=True,
                         stdout=subprocess.PIPE,

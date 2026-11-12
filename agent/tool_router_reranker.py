@@ -35,6 +35,7 @@ import threading
 from pathlib import Path
 from typing import Any, Optional
 from agent.logging_utils import log_dict
+from agent.utils import proc as _proc
 
 logger = logging.getLogger("agent.tool_router_reranker")
 
@@ -299,7 +300,7 @@ class ToolReranker:
             try:
                 import time
                 t0 = time.time()
-                self._proc = subprocess.Popen(
+                self._proc = _proc.popen(
                     [sys.executable, "-c", _WORKER_SCRIPT, self.model_name, str(self.max_length)],
                     stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE,

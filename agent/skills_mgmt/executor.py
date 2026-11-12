@@ -49,6 +49,7 @@ from .exceptions import (
     ErrorCode,
 )
 from agent.logging_utils import log_dict
+from agent.utils import proc as _proc
 
 
 def _trace_id() -> str:
@@ -240,7 +241,7 @@ class SkillExecutor:
         logger.info(log_dict({'module_name': 'executor', 'action': 'execute.start', 'skill_id': skill_id, 'script_name': script_name, 'timeout': use_timeout, 'params_keys': list(params.keys()), 'has_output_schema': bool(output_schema)}))
 
         try:
-            proc = subprocess.run(
+            proc = _proc.run(
                 [self.python_exe, "-u", str(script_path)],
                 input=stdin_data,
                 capture_output=True,

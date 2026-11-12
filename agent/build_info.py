@@ -23,11 +23,11 @@ import json
 import logging
 import os
 import re
-import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
+from agent.utils import proc as _proc
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ _BACKEND_CACHE: Optional[Dict[str, Any]] = None
 def _run(cmd, cwd: Path, timeout: float = 10.0) -> Tuple[Optional[str], str]:
     """跑一条外部命令，返回 (stdout, error)；失败不抛异常。"""
     try:
-        proc = subprocess.run(
+        proc = _proc.run(
             list(cmd), cwd=str(cwd), capture_output=True, text=True,
             timeout=timeout, encoding="utf-8", errors="replace",
         )

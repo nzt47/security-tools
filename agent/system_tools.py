@@ -53,6 +53,7 @@ from agent.tools.task_tools import (
 from agent.tools.shell_tools import (
     execute_shell, _detect_shell, _truncate_output,
 )
+from agent.utils import proc as _proc
 
 
 # ════════════════════════════════════════════════════════════
@@ -210,8 +211,7 @@ def get_clipboard():
     except Exception:
         # pyperclip 在无 xclip/xsel 的 Linux CI 会抛 PyperclipException（非 ImportError）
         try:
-            import subprocess
-            result = subprocess.run(
+            result = _proc.run(
                 ["powershell", "-Command", "Get-Clipboard"],
                 capture_output=True, text=True, timeout=3,
             )
@@ -232,8 +232,7 @@ def set_clipboard(text):
     except Exception:
         # 同 get_clipboard：覆盖 PyperclipException
         try:
-            import subprocess
-            subprocess.run(
+            _proc.run(
                 ["powershell", "-Command", f"Set-Clipboard -Value '{text[:5000]}'"],
                 capture_output=True, timeout=3,
             )

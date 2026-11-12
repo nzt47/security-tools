@@ -35,6 +35,7 @@ import os
 import re
 import subprocess
 from typing import Dict, List, Optional, Sequence, Union
+from agent.utils import proc as _proc
 
 #: 盘符开头的绝对路径
 _WIN_ABS = re.compile(r"^(?P<drive>[A-Za-z]):[\\/](?P<rest>.*)$")
@@ -90,7 +91,7 @@ def is_wsl_bash(*, use_cache: bool = True) -> bool:
         return _WSL_PROBE["wsl"]
     verdict = False
     try:
-        proc = subprocess.run(["bash", "-c", "uname -r"], shell=False,
+        proc = _proc.run(["bash", "-c", "uname -r"], shell=False,
                               capture_output=True, text=True,
                               timeout=WSL_PROBE_TIMEOUT_SEC)
         verdict = "microsoft" in (proc.stdout or "").lower()

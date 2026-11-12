@@ -25,6 +25,7 @@ from agent.extensions.base import (
 from agent.extensions.installer import InstallEngine
 from agent.extensions.store import ExtensionStore
 from agent.logging_utils import log_dict
+from agent.utils import proc as _proc
 
 logger = logging.getLogger(__name__)
 
@@ -309,7 +310,7 @@ class McpInstaller:
                     return False, "stdio 模式未配置命令"
                 import subprocess
                 try:
-                    result = subprocess.run(
+                    result = _proc.run(
                         [command] + service.get("args", []),
                         capture_output=True, text=True, timeout=10,
                     )

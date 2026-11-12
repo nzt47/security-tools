@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
 from urllib.parse import urlparse
 from agent.logging_utils import log_dict
+from agent.utils import proc as _proc
 
 logger = logging.getLogger(__name__)
 
@@ -81,14 +82,14 @@ class InstallEngine:
 
         # 方法 1: gh CLI
         try:
-            result = subprocess.run(
+            result = _proc.run(
                 ["gh", "repo", "view", repo, "--json", "name"],
                 capture_output=True, text=True, timeout=15,
             )
             if result.returncode == 0:
                 logger.info(log_dict({'module_name': 'installer', 'action': 'cli.repo', 'msg': f'[安装引擎] 使用 gh CLI 克隆: {repo}'}))
                 clone_dir = target_dir / "repo"
-                subprocess.run(
+                _proc.run(
                     ["git", "clone", "--depth", "1",
                      f"https://github.com/{repo}.git", str(clone_dir)],
                     capture_output=True, timeout=120,
@@ -111,7 +112,7 @@ class InstallEngine:
         # 方法 2: git clone
         try:
             clone_dir = target_dir / "repo"
-            subprocess.run(
+            _proc.run(
                 ["git", "clone", "--depth", "1",
                  f"https://github.com/{repo}.git", str(clone_dir)],
                 capture_output=True, timeout=120,
@@ -233,7 +234,7 @@ class InstallEngine:
         """安装 npm 包到目标目录"""
         logger.info(log_dict({'module_name': 'installer', 'action': 'npm.package', 'msg': f'[安装引擎] 安装 npm 包: {package}'}))
         try:
-            result = subprocess.run(
+            result = _proc.run(
                 ["npm", "install", "--prefix", str(target_dir), package],
                 capture_output=True, text=True, timeout=120,
             )
@@ -250,7 +251,7 @@ class InstallEngine:
         """安装 pip 包"""
         logger.info(log_dict({'module_name': 'installer', 'action': 'pip.package', 'msg': f'[安装引擎] 安装 pip 包: {package}'}))
         try:
-            subprocess.run(
+            _proc.run(
                 [sys.executable, "-m", "pip", "install", package],
                 capture_output=True, text=True, timeout=120,
             )

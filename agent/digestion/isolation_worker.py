@@ -39,6 +39,7 @@ import sys
 import time
 import traceback
 from typing import Any, Dict, List, Optional, Tuple
+from agent.utils import proc as _proc
 
 # ════════════════════════════════════════════════════════════
 #  常量（与 agent.digestion.isolation / sandbox 逐字对齐）
@@ -527,7 +528,7 @@ def _op_fork_procs(env: WorkerEnv, params: Dict[str, Any]) -> Dict[str, Any]:
     procs: List[Any] = []
     for _ in range(max(1, count)):
         try:
-            proc = subprocess.Popen(
+            proc = _proc.popen(
                 [sys.executable, "-c", f"import time; time.sleep({hold_s})"],
                 stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         except OSError as exc:

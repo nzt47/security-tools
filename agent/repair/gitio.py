@@ -27,6 +27,7 @@ import re
 import subprocess
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from agent.utils import proc as _proc
 
 #: 允许的**只读** git 子命令白名单（未登记 → 拒绝）
 READONLY_SUBCOMMANDS: Tuple[str, ...] = (
@@ -136,7 +137,7 @@ def run_git_readonly(args: Sequence[str], *, cwd: str, timeout: float = DEFAULT_
     # 转义成八进制（`"docs/\346\226\207..."`），既不可读也无法与仓库相对路径比较。
     # 用 `-c` 传入是 git 的官方全局选项写法（非子命令，不绕过白名单判定）。
     try:
-        proc = subprocess.run(
+        proc = _proc.run(
             ["git", "-c", "core.quotepath=false", *[str(a) for a in args]],
             cwd=str(cwd), capture_output=True,
             text=True, encoding="utf-8", errors="replace", timeout=float(timeout),
@@ -377,7 +378,7 @@ def create_local_branch(repo_root: str, name: str, *, start_point: str = "HEAD",
     full_env = dict(os.environ)
     full_env["GIT_TERMINAL_PROMPT"] = "0"
     try:
-        proc = subprocess.run(
+        proc = _proc.run(
             ["git", "branch", str(name), str(start_point)], cwd=str(repo_root),
             capture_output=True, text=True, encoding="utf-8", errors="replace",
             timeout=float(timeout), env=full_env)

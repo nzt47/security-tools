@@ -53,6 +53,7 @@ from agent.repair.models import (
 )
 from agent.repair.policy import ANCHOR_LAYER, RepairPolicy
 from agent.repair.trace import RepairRunLogger
+from agent.utils import proc as _proc
 
 logger = logging.getLogger("agent.repair.diagnose")
 
@@ -195,7 +196,7 @@ class SubprocessExecutor:
         full_env.setdefault("PYTHONUTF8", "1")
         full_env.setdefault("PYTHONIOENCODING", "utf-8")
         try:
-            proc = subprocess.run(args, cwd=str(cwd), capture_output=True, text=True,
+            proc = _proc.run(args, cwd=str(cwd), capture_output=True, text=True,
                                   encoding="utf-8", errors="replace",
                                   timeout=float(timeout), env=full_env)
         except FileNotFoundError as exc:
