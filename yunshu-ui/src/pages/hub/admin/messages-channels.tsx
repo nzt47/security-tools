@@ -98,8 +98,10 @@ export default function HubChannelsPanel() {
   const [msg, setMsg] = useState('')
   const [builtin, setBuiltin] = useState<BuiltinChannel[]>([])
   const [installed, setInstalled] = useState<ExtRow[]>([])
-  const [channelId, setChannelId] = useState('')
-  const [channelMsg, setChannelMsg] = useState('')
+  // 逐行测试发送（2026-11-13）：不再有单独的通道选择器 —— 发送框挂在通道那一行，
+  // 通道 id 由行决定（彻底消掉"填 1 被当成通道 id"的歧义），且只有启用时才能输入。
+  const [drafts, setDrafts] = useState<Record<string, string>>({})
+  const [sendBusyId, setSendBusyId] = useState('')
   // 事件出站开关（读开关中心同一份登记表；失败单独提示，不拖垮通道列表）
   const [eventItems, setEventItems] = useState<Record<string, SettingItem>>({})
   const [eventErr, setEventErr] = useState('')
@@ -226,19 +228,22 @@ export default function HubChannelsPanel() {
     } finally { setBusy('') }
   }
 
-  const send = async () => {
-    setBusy('send'); setErr(''); setMsg('')
+  /** 就地测试发送：通道 id 由行决定（不再让用户手填/选择通道） */
+  const sendTo = async (id: string) => {
+    const text = (drafts[id] ?? '').trim()
+    if (!id || !text) return
+    setSendBusyId(id); setErr(''); setMsg('')
     try {
       const r = await hubPost<{ ok?: boolean; error?: string; message?: string }>(EXTENSIONS_CHANNELS_SEND, {
-        channel_id: channelId.trim(),
-        message: channelMsg.trim(),
+        channel_id: id,
+        message: text,
       })
       if (r?.ok === false) { setErr('发送失败：' + (r.error || r.message || '后端返回 ok=false')); return }
       setMsg('已发送' + (r?.message ? '：' + r.message : ''))
-      setChannelMsg('')
+      setDrafts((prev) => ({ ...prev, [id]: '' }))
     } catch (e) {
       setErr('发送失败：' + (e instanceof Error ? e.message : String(e)))
-    } finally { setBusy('') }
+    } finally { setSendBusyId('') }
   }
 
   /** 合并视图（2026-11-13）：内置模板 ∪ 已装通道，同 id 只出现一行。
@@ -266,22 +271,6 @@ export default function HubChannelsPanel() {
       .sort((a, b) => rank(a.row) - rank(b.row) || a.index - b.index)
       .map((item) => item.row)
   }, [builtin, installed])
-
-  /** 手动发送的通道改成**下拉选**（2026-11-12：此前是自由文本框，用户填 "1" 会得到
-   *  "通道不存在: 1" —— channel_id 是 email_smtp 这种标识符，不是序号）。
-   *  规则：已装列表变化时，若当前选择不在列表里就自动选第一条（只有一条通道时零操作）。 */
-  useEffect(() => {
-    const ids = installed.map((c) => c.ext_id ?? '').filter(Boolean)
-    if (ids.length === 0) {
-      if (channelId) setChannelId('')
-      return
-    }
-    if (ids.includes(channelId)) return
-    // 优先选**已启用**的那条：装了两个通道、第一个恰好停用时，默认选停用的会让人
-    // 一点"发送"就吃"通道已禁用"（真实数据里 webhook 停用、email_smtp 启用就是这种顺序）
-    const enabledIds = installed.filter((c) => c.enabled).map((c) => c.ext_id ?? '').filter(Boolean)
-    setChannelId(enabledIds[0] ?? ids[0])
-  }, [installed, channelId])
 
   const loading = busy !== ''
 
@@ -361,7 +350,7 @@ export default function HubChannelsPanel() {
           <h3 className="text-xs font-semibold text-slate-200">
             {'通道（' + merged.length + ' 个 · 已装 ' + installed.length + ' · 启用 ' + installed.filter((c) => c.enabled).length + '）'}
           </h3>
-          <span className="text-[10px] text-slate-500">未装的点「安装」；装了的在这里配置 / 启停 / 卸载</span>
+          <span className="text-[10px] text-slate-500">未装的点「安装」；装了的在这里配置 / 启停 / 卸载 / 就地发一条测试消息</span>
           <button
             type="button"
             className={BTN + ' ml-auto'}
@@ -425,6 +414,28 @@ export default function HubChannelsPanel() {
                     )}
                   </span>
                 </div>
+                {row && (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <input
+                      className={INPUT + ' w-64 text-[11px]'}
+                      placeholder={row.enabled ? '发一条测试消息…' : '启用后可测试发送'}
+                      value={drafts[id] ?? ''}
+                      onChange={(e) => setDrafts((prev) => ({ ...prev, [id]: e.target.value }))}
+                      disabled={loading || !row.enabled}
+                      aria-label={'测试消息 ' + id}
+                    />
+                    <button
+                      type="button"
+                      className={BTN_EM}
+                      onClick={() => void sendTo(id)}
+                      disabled={loading || !row.enabled || !(drafts[id] ?? '').trim()}
+                      aria-label={'发送测试消息 ' + id}
+                    >
+                      {sendBusyId === id ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />} 发送
+                    </button>
+                    {!row.enabled && <span className="text-[10px] text-slate-500">先「启用」再测试发送</span>}
+                  </div>
+                )}
                 {row && isConfirm && (
                   <div className="flex flex-wrap items-center gap-2 rounded-sm border border-red-900/50 bg-red-500/5 px-2 py-1">
                     <span className="text-[10px] text-red-300">
@@ -465,47 +476,6 @@ export default function HubChannelsPanel() {
         </div>
       </div>
 
-      <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-        <div className="mb-2 flex items-center gap-2">
-          <Send size={12} className="text-cyan-400" />
-          <h3 className="text-xs font-semibold text-slate-200">手动发送（调试）</h3>
-          <span className="text-[10px] text-slate-500">
-            只列**已装**通道；标「已停用」的会被后端拒绝（先在上方启用）
-          </span>
-        </div>
-        <div className="mb-2 text-[10px] text-slate-500">
-          已装通道 {installed.filter((c) => c.enabled).length} 条启用（配置 / 启停 / 卸载见上方「通道」列表）
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <select
-            className={INPUT + ' w-64'}
-            value={channelId}
-            onChange={(e) => setChannelId(e.target.value)}
-            aria-label="通道 id"
-            disabled={loading || installed.length === 0}
-          >
-            <option value="">{installed.length === 0 ? '还没有已装通道' : '选择通道'}</option>
-            {installed.map((c) => {
-              const id = c.ext_id ?? ''
-              return (
-                <option key={'send-' + id} value={id}>
-                  {(c.name ? c.name + '（' + id + '）' : id) + (c.enabled ? '' : ' · 已停用')}
-                </option>
-              )
-            })}
-          </select>
-          <input className={INPUT + ' w-72'} placeholder="消息内容" value={channelMsg} onChange={(e) => setChannelMsg(e.target.value)} aria-label="通道消息内容" />
-          <button
-            type="button"
-            className={BTN_EM}
-            onClick={() => void send()}
-            disabled={loading || channelId.trim() === '' || channelMsg.trim() === ''}
-            aria-label="发送通道消息"
-          >
-            {busy === 'send' ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />} 发送
-          </button>
-        </div>
-      </div>
     </div>
   )
 }

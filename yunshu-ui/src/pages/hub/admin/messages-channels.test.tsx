@@ -94,62 +94,50 @@ describe('HubChannelsPanel', () => {
     expect(await screen.findByText(/已安装通道 webhook/)).toBeTruthy()
   })
 
-  it('手动发送：通道是**下拉选**（不是手填 id），缺内容时按钮不可用；填齐后提交 channel_id + message', async () => {
-    setup()
-    api.hubPost.mockResolvedValue({ ok: true, message: 'ok' })
+  it('测试发送挂在通道那一行：启用才可输入，缺内容时按钮不可用；提交的 channel_id 就是行 id', async () => {
+    api.hubGet.mockImplementation(async (url: string) => {
+      if (url === '/api/extensions/discover') return { ok: true, builtin_channels: [] }
+      if (url === '/api/extensions/list') {
+        return { ok: true, extensions: [{ ext_id: 'email_smtp', ext_type: 'channel', name: '邮件通道', enabled: true }] }
+      }
+      return { ok: true }
+    })
+    api.hubPost.mockResolvedValue({ ok: true, message: '邮件已发送' })
     render(<HubChannelsPanel />)
-    await screen.findByText('Webhook 通道')
 
-    const btn = screen.getByRole('button', { name: '发送通道消息' }) as HTMLButtonElement
-    const picker = screen.getByLabelText('通道 id') as HTMLSelectElement
-    // 已装通道自动选中（只有一条 email_smtp）⇒ 用户不需要记住 channel_id
-    await waitFor(() => expect(picker.value).toBe('email_smtp'))
+    const input = (await screen.findByLabelText('测试消息 email_smtp')) as HTMLInputElement
+    expect(input.disabled).toBe(false) // 启用的通道可以直接输
+    const btn = screen.getByRole('button', { name: '发送测试消息 email_smtp' }) as HTMLButtonElement
     expect(btn.disabled).toBe(true) // 没有内容时不能发
-    // 停用的通道在下拉里要标出来（选了也会被后端拒绝：'通道已禁用'）
-    expect(picker.textContent).toContain('已停用')
 
-    fireEvent.change(screen.getByLabelText('通道消息内容'), { target: { value: 'hello' } })
+    fireEvent.change(input, { target: { value: 'hello' } })
     expect(btn.disabled).toBe(false)
     fireEvent.click(btn)
     await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/extensions/channels/send', {
       channel_id: 'email_smtp', message: 'hello',
     }))
+    expect(await screen.findByText(/已发送/)).toBeTruthy()
   })
 
-  it('手动发送：默认选**已启用**的通道（列表里第一条是停用的也不选它）', async () => {
-    api.hubGet.mockImplementation(async (url: string) => {
-      if (url === '/api/extensions/discover') return { ok: true, builtin_channels: [] }
-      if (url === '/api/extensions/list') {
-        return {
-          ok: true,
-          extensions: [
-            { ext_id: 'webhook', ext_type: 'channel', name: 'Webhook 通道', enabled: false },
-            { ext_id: 'email_smtp', ext_type: 'channel', name: '邮件通道', enabled: true },
-          ],
-        }
-      }
-      return { ok: true }
-    })
+  it('停用的通道：输入框禁用 + 提示「先启用」，按钮不可用', async () => {
+    setup()
     render(<HubChannelsPanel />)
-    const picker = (await screen.findByLabelText('通道 id')) as HTMLSelectElement
-    await waitFor(() => expect(picker.value).toBe('email_smtp'))
-    expect(picker.textContent).toContain('webhook')
-    expect(picker.textContent).toContain('已停用')
-  })
-
-  it('手动发送：没有已装通道时下拉禁用、按钮不可用（不让人往空列表里发）', async () => {
-    api.hubGet.mockImplementation(async (url: string) => {
-      if (url === '/api/extensions/discover') return { ok: true, builtin_channels: [] }
-      if (url === '/api/extensions/list') return { ok: true, extensions: [] }
-      return { ok: true }
-    })
-    render(<HubChannelsPanel />)
-    const picker = (await screen.findByLabelText('通道 id')) as HTMLSelectElement
-    await waitFor(() => expect(picker.disabled).toBe(true))
-    expect(picker.textContent).toContain('还没有已装通道')
-    const btn = screen.getByRole('button', { name: '发送通道消息' }) as HTMLButtonElement
+    await screen.findByText('Webhook 通道')
+    const input = (await screen.findByLabelText('测试消息 email_smtp')) as HTMLInputElement
+    expect(input.disabled).toBe(true)
+    expect(input.placeholder).toContain('启用后可测试发送')
+    const btn = screen.getByRole('button', { name: '发送测试消息 email_smtp' }) as HTMLButtonElement
     expect(btn.disabled).toBe(true)
+    expect(screen.getByText('先「启用」再测试发送')).toBeTruthy()
   })
+
+  it('未安装的模板行：没有测试发送框（先装再发）', async () => {
+    setup()
+    render(<HubChannelsPanel />)
+    await screen.findByText('Webhook 通道')
+    expect(screen.queryByLabelText('测试消息 webhook')).toBeNull()
+  })
+
 
   // ── 事件出站开关（#1221）：就地切换，写的是开关中心同一个 POST 端点 ──
 
