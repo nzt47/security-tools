@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-12T02:05:00+08:00",
+  "updated_at": "2026-11-12T12:30:00+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
     {
@@ -552,19 +552,35 @@
     },
     {
       "id": "perception-snapshot-cost",
-      "status": "open",
+      "status": "done",
       "priority": "P3",
       "title": "感知快照 diff 首轮耗时约 29s（WMI 全量枚举）—— 观察是否拖慢心跳/调度",
       "criteria": "2026-11-12 部署 4c4514e6f 后首轮感知 tick 从 01:49:32 跑到 01:50:01（约 29s），耗时集中在 ChangeDetector._capture_snapshot 的 WMI 设备（Win32_PnPEntity）+ 服务（Win32_Service）+ 进程枚举；本机空闲内存仅 ~5GB 时更慢。当前节流 30 min 一次，diff 在 TaskScheduler 的 tick 线程里同步执行。",
-      "next": "① 先取证：读 logs 里「系统心跳」相邻两次 last_run 的间隔，确认有没有被推迟 >60s（心跳任务与本任务同线程）。② 若确实拖慢，改法优先级：先降频（1800→3600）→ 再把 devices/services 分片（隔轮各采其一）→ 最后才考虑把 diff 放到独立线程（注意与 alarm collector 的线程边界，别引入第三份单例）。判据：心跳 last_run 间隔离散度不增大 + novelty 事件不丢（file_change/process_change 计数连续）。"
+      "next": "2026-11-12 落地（本轮；部署后按 §11.96 验收）：\n① 取证（昨夜 90 次 perception 运行）：91 次 0–66ms；每 30 分钟一次 24–29s（峰值 43499ms），\n   同线程「系统心跳」被顶到 90s 一次 —— 与\"WMI 全量枚举\"假设吻合，不是抖动。\n② 分片（sensor/change_detector.py）：新增 SNAPSHOT_SECTIONS + collect(sections=...)；\n   未列出的分片沿用上次快照（不会伪造 diff）；未知分片名直接 ValueError（漏采=伪造\"没有变化\"）。\n③ 分频（agent/learning/perception_cycle.py）：便宜分片（processes/services/registry/\n   environment/system_info，实测 ~0.5–0.7s）每 30 分钟；贵分片（devices WMI 2.2–3.1s、\n   disk_partitions 0.8s）每 1 小时（SENSOR_CHANGE_DETECT_SLOW_INTERVAL_SECONDS，默认 3600）。\n④ 顺带把 Windows 服务枚举从 WMI（5.8s/322 个）换成 psutil.win_service_iter（0.23s），\n   值归一化成 WMI 同形（Running/Auto）；psutil 不可用自动回退 WMI。\n⑤ 预期：30 分钟边界 ~1s、1 小时边界 ~4s（不再 25–29s）。验收看 task_history 里\n   「系统心跳」间隔中位数仍 ≈60s、perception 的 duration_ms 峰值 ≤5s。"
     },
     {
       "id": "full-domain-remaining-decisions",
-      "status": "open",
+      "status": "done",
       "priority": "P3",
       "title": "全域感知/监控剩余三项需 Owner 决策（单位自动登记 / 外部端口存活 / 日志异常聚合）",
       "criteria": "本轮按\"该做的一次性全做\"补齐了 CI 周期化、感知周期化与两个静默缺口读数；覆盖矩阵（docs/handoff/覆盖矩阵与上线检查清单.md §5）里还有三项**故意没做**：① 单位看板包级自动登记（会改健康分分母 + 需新声明协议）；② 外部端口存活（新数据面，与 §11.89 方案 C\"不引入外部服务\"边界相邻）；③ 日志异常聚合（需新的日志读源与基线口径）。",
-      "next": "逐项与 Owner 确认后再动：\n① 单位自动登记：若做，先定\"包如何声明自己是单位\"（复用 MODULE_STATUS_SOURCE 还是新 MODULE_UNIT），并接受健康分分母变化；\n② 外部端口存活：只做本机 TCP 连接探测（不引 Prometheus），up{} 类规则仍保持 no_data；\n③ 日志异常聚合：先定读哪几个日志、基线窗口与\"异常\"判据，避免变成第二个噪音源。"
+      "next": "2026-11-12 按 Owner「都要做，由你安排」全部落地（见 §11.96）：\n① 单位看板自动登记（声明式，不改健康分分母）：包 __init__.py 写\n   MODULE_UNITS = [{\"id\",\"label\",\"family\",\"probe\":\"模块:函数\"}]；modules_discovery 用 AST 解析\n   （启动期不 import），probe 在被调用时才 import；返回 never 不计分。\n   已声明 5 个：perception.cycle / alarms.collector / ops.ci_sync / ops.ports / ops.logs\n   ⇒ 单位看板 12 → 17（test_unit_monitor 的数量哨兵同步改成 17）。\n② 外部端口存活：agent/monitoring/port_probe.py —— 对 CP_PORT_PROBES 的 host:port 做\n   TCP connect（0.6s 超时，只握手不发应用层请求）；空 = never；连不上 = warn + 逐条 target。\n   不引入 Prometheus、不抓指标（§11.89 方案 C 边界不变）；.env 里配了本服务端口自证。\n③ 日志异常聚合：agent/monitoring/log_anomaly.py —— logs/*.log 尾窗（5000 行）ERROR 密度，\n   ≥20 条且 ≥5% 才 warn；只读、不写基线、不轮转；不读 *.jsonl。\n④ 仍故意没做：告警外发通道（IM/邮件）—— 需要定发给谁/哪些级别/怎么去重，已登记新 open 条目。\n⑤ 回归：alarms 相关用例改成「默认源置空」的密封测试（CI 文件变新鲜后真实候选混进来那次的教训）。"
+    },
+    {
+      "id": "alarm-notify-channel",
+      "status": "open",
+      "priority": "P3",
+      "title": "告警外发通道（IM/邮件/Webhook）仍未做 —— 先定\"发给谁、哪些级别、怎么去重\"",
+      "criteria": "报警器目前只有站内（顶栏铃铛 / 消息中心）。扩展通道 channel_bridge 已有 task.failed 通知，但那是\"任务事件\"，不是告警状态机（没有 firing/resolved/reopen 语义）。要接外发必须先定：① 哪些 severity 外发（建议 critical 立即、warning 汇总）；② 去重/静默是否沿用 alarm store 的 silence；③ 凭据只从 .env 读、不进日志。",
+      "next": "Owner 定通道与级别后再做。实现建议：新 agent/alarms/notify.py 订阅 store 的 reconcile 结果（不新造事件源），发送失败只记日志、不阻塞采集线程；判绿要有\"失败不外泄凭据\"的用例。"
+    },
+    {
+      "id": "log-anomaly-time-series-baseline",
+      "status": "open",
+      "priority": "P3",
+      "title": "日志异常聚合 v1 是尾窗密度启发式 —— 抓不到「缓慢恶化」",
+      "criteria": "agent/monitoring/log_anomaly.py 当前只判\"尾窗里 ERROR ≥20 条且 ≥5%\"：能抓突发/持续爆炸，但每天多 1 条这种缓慢恶化不会报。升级需要按分钟分桶 + 与过去 N 个窗口的中位数比较，并且要一个写基线的周期任务（探针必须只读）。",
+      "next": "若 Owner 认为需要：加 30 分钟周期任务写 data/monitoring/log_anomaly_baseline.json（保留最近 48 窗口），探针只读基线算倍数；阈值与最小样本写测试，先观察一周再收紧。"
     }
   ]
 }
