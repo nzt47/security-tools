@@ -5,9 +5,9 @@ flowchart LR
     classDef violation fill:#ff4444,stroke:#cc0000,color:#fff,stroke-width:2px
     classDef crosslayer fill:#fff3cd,stroke:#ffc107,color:#664d03
     subgraph alarms [alarms]
-        agent_alarms["agent.alarms"]
+        agent_alarms["agent.alarms"]:::crosslayer
         agent_alarms_api["agent.alarms.api"]
-        agent_alarms_collector["agent.alarms.collector"]
+        agent_alarms_collector["agent.alarms.collector"]:::crosslayer
         agent_alarms_notify["agent.alarms.notify"]
         agent_alarms_prometheus_source["agent.alarms.prometheus_source"]
         agent_alarms_promql["agent.alarms.promql"]
@@ -382,6 +382,7 @@ flowchart LR
         agent_monitoring_ci_status["agent.monitoring.ci_status"]:::crosslayer
         agent_monitoring_config_observability["agent.monitoring.config_observability"]
         agent_monitoring_cost_brake["agent.monitoring.cost_brake"]:::crosslayer
+        agent_monitoring_coverage_gaps["agent.monitoring.coverage_gaps"]:::crosslayer
         agent_monitoring_declared_units["agent.monitoring.declared_units"]
         agent_monitoring_decorators["agent.monitoring.decorators"]
         agent_monitoring_error_reporter["agent.monitoring.error_reporter"]
@@ -780,6 +781,7 @@ flowchart LR
     agent_alarms_api -.-> agent_learning_perception_cycle
     agent_alarms_api --> agent_alarms_notify
     agent_alarms_api -.-> agent_monitoring_ci_status
+    agent_alarms_api -.-> agent_monitoring_coverage_gaps
     agent_alarms_api --> agent_alarms
     agent_alarms_api --> agent_alarms_collector
     agent_alarms_api --> agent_alarms_collector
@@ -1543,6 +1545,14 @@ flowchart LR
     agent_monitoring_cost_brake -.-> agent_utils_atomic_write
     agent_monitoring_cost_brake -.-> agent_audit_facade
     agent_monitoring_cost_brake -.-> agent_utils_atomic_write
+    agent_monitoring_coverage_gaps --> agent
+    agent_monitoring_coverage_gaps --> agent
+    agent_monitoring_coverage_gaps -.-> agent_utils_singleton_manager
+    agent_monitoring_coverage_gaps -.-> agent_alarms
+    agent_monitoring_coverage_gaps -.-> agent_alarms_collector
+    agent_monitoring_coverage_gaps -.-> agent_alarms
+    agent_monitoring_coverage_gaps -.-> agent_task_scheduler
+    agent_monitoring_coverage_gaps -.-> agent_task_scheduler
     agent_monitoring_declared_units --> agent
     agent_monitoring_declared_units --> agent_monitoring_unit_monitor
     agent_monitoring_decorators --> agent_monitoring_metrics
@@ -2934,9 +2944,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 751
-- 模块节点数: 649
-- 依赖边数: 2157
-- 跨层调用数: 1361
+- 扫描文件数: 752
+- 模块节点数: 650
+- 依赖边数: 2166
+- 跨层调用数: 1368
 - 违规调用数: 0
 - 动态 import 数: 1
