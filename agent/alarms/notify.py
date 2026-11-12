@@ -320,7 +320,7 @@ def dispatch_gaps(gaps: List[Dict[str, Any]], *, dispatcher: Optional[Callable[.
     """把「首次出现的覆盖缺口」经出站通道推一次（**warning 级，不受 include_warning 过滤**）。
 
     【为什么这里能绕过"默认只发 critical"】那条口径防的是**告警风暴**（warning 数量天然多、
-    每轮都会响）。覆盖缺口是**一次性提示**：调用方按 ``kind:id`` 指纹去重，同一处缺口
+    每轮都会响）。覆盖缺口是**一次性提示**：调用方按 `kind:id` 指纹去重，同一处缺口
     在它消失之前只会走到这里一次。把它也压成 critical 会谎报严重程度；压成"不发"则等于
     把"新能力没人监控"这件事继续留在暗处（Owner 明确要求"首次出现经外发推一次，warning 级"）。
 
