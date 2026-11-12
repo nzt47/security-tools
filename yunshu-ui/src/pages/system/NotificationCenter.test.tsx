@@ -53,9 +53,9 @@ describe('消息中心页', () => {
     expect(screen.getByText('检测到异常登录行为')).toBeInTheDocument()
     // 未读计数展示
     expect(screen.getByText(/条未读通知/)).toBeInTheDocument()
-    // 类型徽章（select 选项中也有同名文本，需用 getAllByText）
-    expect(screen.getAllByText('系统公告').length).toBeGreaterThanOrEqual(2)
-    expect(screen.getAllByText('审计提醒').length).toBeGreaterThanOrEqual(2)
+    // 类型徽章在每行渲染一次即可（2026-11-13 起下拉只保留"安全告警"，不再有同名选项）
+    expect(screen.getByText('系统公告')).toBeInTheDocument()
+    expect(screen.getByText('审计提醒')).toBeInTheDocument()
     // 默认参数：type/unreadOnly 空值转 undefined
     expect(mockGetNotifications).toHaveBeenCalledWith(
       expect.objectContaining({ page: 1, pageSize: 10 }),
@@ -112,6 +112,36 @@ describe('消息中心页', () => {
     fireEvent.click(screen.getByRole('button', { name: '全部已读' }))
     await waitFor(() => expect(mockMarkAllRead).toHaveBeenCalled())
     await waitFor(() => expect(screen.getByText('没有未读通知')).toBeInTheDocument())
+  })
+
+it('T7 类型下拉：默认显示「全部类型」且**可再次选回全部**（占位项不禁用）', async () => {
+    renderList()
+    await screen.findByText('系统例行维护公告')
+    const select = screen.getByRole('combobox') as HTMLSelectElement
+    expect(select.value).toBe('')
+    const all = screen.getByRole('option', { name: '全部类型' }) as HTMLOptionElement
+    expect(all.disabled).toBe(false), '选过一次类型后必须能回到全部'
+    expect(screen.getByRole('option', { name: '安全告警' })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: '系统公告' })).toBeNull()
+    expect(screen.getByText(/类型目前只有/)).toBeInTheDocument()
+  })
+
+  it('T8 带筛选且无结果：空态说明当前筛选，而不是干巴巴「暂无数据」', async () => {
+    mockGetNotifications.mockResolvedValue({ list: [], total: 0 })
+    renderList()
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'alert' } })
+    fireEvent.click(screen.getByRole('button', { name: '查询' }))
+    expect(await screen.findByText(/没有匹配的消息/)).toBeInTheDocument()
+    expect(screen.getByText(/换个条件或点「重置」/)).toBeInTheDocument()
+  })
+
+  it('T9 全部已读后当前列表行也变已读（红点/按钮不再残留）', async () => {
+    mockMarkAllRead.mockResolvedValue(null)
+    renderList()
+    await screen.findByText('系统例行维护公告')
+    expect(screen.getAllByRole('button', { name: '标记已读' }).length).toBe(1)
+    fireEvent.click(screen.getByRole('button', { name: '全部已读' }))
+    await waitFor(() => expect(screen.queryByRole('button', { name: '标记已读' })).toBeNull())
   })
 
   it('T6 分页：下一页参数正确、末页禁用', async () => {

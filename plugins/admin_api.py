@@ -182,6 +182,25 @@ NOTIFICATION_TYPE = "alert"
 NOTIFICATION_SCAN_LIMIT = 500
 
 
+def _notification_sort_ts(text) -> float:
+    """createdAt → 可排序时间戳（解析失败按 0 = 沉到最后，绝不抛）。
+
+    【为什么需要】台账内部的顺序服务的是"报警面板"（firing 先、严重度先、时间升序），
+    直接拿来当消息列表会看起来像乱序：11/12 21:28 的记录排在 11/12 12:20 之后。
+    消息中心的语义是"新的在上面"，所以在**投影层**按时间倒序重排，不改台账自身顺序
+    （台账还被报警器/顶栏/采集层共用）。
+    """
+    from datetime import datetime
+
+    raw = str(text or "").strip()
+    if not raw:
+        return 0.0
+    try:
+        return datetime.fromisoformat(raw).timestamp()
+    except ValueError:
+        return 0.0
+
+
 def _notification_rows():
     """报警器台账 → 消息中心的行（字段与旧契约一致：id/type/title/content/read/createdAt；另加 severity）"""
     from agent.alarms.store import get_store
@@ -199,6 +218,8 @@ def _notification_rows():
             "state": alarm.get("state"),
             "silenced_until": alarm.get("silenced_until") or "",
         })
+    # 新消息置顶（Owner 2026-11-13）：投影层按 last_seen 倒序，台账自身顺序不动
+    rows.sort(key=lambda row: _notification_sort_ts(row.get("createdAt")), reverse=True)
     return rows
 
 

@@ -58,6 +58,22 @@ class TestNotificationProjection:
         store.mark_read(alarm.id)
         assert _rows()[0]["read"] is True
 
+    def test_新消息置顶_按时间倒序而不是按严重度(self, store):
+        """消息中心的语义是"新的在上面"；台账内部的 firing→severity→时间升序 顺序不能直接用。
+
+        【为什么要一条能区分两种排序的夹具】旧顺序先按严重度：若都用 critical 就测不出来。
+        这里让"最旧的一条最严重"，倒序正确时它必须排最后。"""
+        from datetime import datetime, timezone
+
+        base = datetime(2026, 11, 12, 10, 0, 0, tzinfo=timezone.utc)
+        store.raise_alarm("k.old", kind="unit", severity="critical", title="旧-最严重", now=base)
+        store.raise_alarm("k.mid", kind="unit", severity="warning", title="中",
+                          now=base.replace(hour=12))
+        store.raise_alarm("k.new", kind="unit", severity="info", title="新",
+                          now=base.replace(hour=14))
+
+        assert [row["title"] for row in _rows()] == ["新", "中", "旧-最严重"]
+
     def test_未读数与台账同源(self, store):
         from plugins.admin_api import admin_notification_unread  # noqa: F401  (导入即证明接线在)
 

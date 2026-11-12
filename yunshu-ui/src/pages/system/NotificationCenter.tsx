@@ -26,13 +26,11 @@ interface NotificationQuery {
   unreadOnly: boolean
 }
 
-const TYPE_OPTIONS = [
-  { value: '', label: '全部类型' },
-  { value: 'system', label: '系统公告' },
-  { value: 'audit', label: '审计提醒' },
-  { value: 'approval', label: '审批任务' },
-  { value: 'alert', label: '安全告警' },
-]
+// 【2026-11-13 收口】消息中心 = 报警器台账投影，后端只产出 alert 一类
+// （见 plugins/admin_api.py::NOTIFICATION_TYPE）。此前这里列了 system/audit/approval
+// 三个选项，选了必然空列表 —— 看起来像"筛选坏了"。只保留真正有数据的类型；
+// "全部类型"由 Select 的占位项承担（placeholderOptionDisabled={false} 才可选回去）。
+const TYPE_OPTIONS = [{ value: 'alert', label: '安全告警' }]
 
 /** 严重度徽章（报警器台账字段；缺省不渲染，旧数据不会因此变形） */
 const SEVERITY_LABEL: Record<string, string> = { critical: '严重', warning: '警告', info: '提示' }
@@ -95,11 +93,14 @@ export default function NotificationCenter() {
     }
   }
 
-  /** 全部标记已读：成功后本地清空未读态 */
+  /** 全部标记已读：成功后本地清空未读态，**并同步当前列表的行状态** */
   const handleMarkAllRead = async () => {
     try {
       await markAllNotificationsRead()
       setUnread(0)
+      // 【2026-11-13】此前只把计数清零，列表里的红点与「标记已读」按钮还在原处 ——
+      // 用户看到的是"点了全部已读，但每行还标着未读"，只能刷新才恢复。
+      setList((rows) => rows.map((r) => ({ ...r, read: true })))
     } catch {
       // 错误提示已由 request.ts 统一处理
     }
@@ -136,6 +137,9 @@ export default function NotificationCenter() {
           options={TYPE_OPTIONS}
           value={typeInput}
           onChange={(v) => setTypeInput(v as NotificationType | '')}
+          placeholder="全部类型"
+          placeholderOptionDisabled={false}
+          aria-label="消息类型"
           className="w-32"
         />
         <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-foreground">
@@ -163,6 +167,9 @@ export default function NotificationCenter() {
         >
           重置
         </Button>
+        <span className="text-xs text-muted-foreground">
+          新消息置顶；类型目前只有「安全告警」（审批单据在「审批收件箱」）
+        </span>
       </div>
 
       {/* 通知列表 */}
@@ -170,7 +177,13 @@ export default function NotificationCenter() {
         {loading ? (
           <Loading />
         ) : list.length === 0 ? (
-          <Empty />
+          <Empty
+            description={
+              (query.type || query.unreadOnly)
+                ? '没有匹配的消息（当前带筛选：类型「安全告警」/仅看未读 —— 换个条件或点「重置」）'
+                : undefined
+            }
+          />
         ) : (
           <ul className="divide-y divide-border">
             {list.map((item) => (
