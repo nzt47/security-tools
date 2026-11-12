@@ -3041,6 +3041,24 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        "data/ci/status.json，供报警器 CI 事件源判读；关闭后文件会逐渐过期（>2h 判不可用）"
        "（agent/monitoring/ci_status.py）",
        owner="agent/monitoring/ci_status.py"),
+    # · 告警外发（2026-11-12）：复用 channel_bridge.dispatch_alert；默认只发 critical
+    _a("CP_ALARM_NOTIFY_ENABLED", CAT_OBSERVABILITY, True,
+       "告警外发总开关（默认开）：报警台账的 firing/reopen/resolved 变化会经已安装的"
+       "出站通道（webhook/SMTP/IM）发出；通道没装时只推进游标、不报错。"
+       "静默（silence）期间不发；每轮最多 5 条（agent/alarms/notify.py）",
+       owner="agent/alarms/notify.py"),
+    _a("CP_ALARM_NOTIFY_WARNING", CAT_OBSERVABILITY, False,
+       "是否也外发 warning 级告警（默认关）：warning 数量天然多，全外发会变成噪音源；"
+       "建议先对某个通道观察一段时间再开（agent/alarms/notify.py）",
+       owner="agent/alarms/notify.py"),
+
+    # · 日志异常基线采样（2026-11-12 v2）：探针只读基线，周期任务写基线
+    _a("CP_LOG_BASELINE_INTERVAL_SECONDS", CAT_OBSERVABILITY, 1800,
+       "日志异常基线采样间隔（秒，默认 1800 = 30 分钟，最小 300）：写 "
+       "data/monitoring/log_anomaly_baseline.json（最多 96 样本 ≈ 48h），供 ops.logs 的"
+       "「当前密度 ≥ 基线中位数 × 3」判据使用（agent/monitoring/log_anomaly.py）",
+       owner="agent/monitoring/log_anomaly.py"),
+
     # · 外部端口存活（2026-11-12）：TCP connect → 单位看板 ops.ports（不引入 Prometheus）
     _a("CP_PORT_PROBES", CAT_OBSERVABILITY, "",
        "要探活的 host:port 列表（逗号/分号分隔，如 127.0.0.1:11434;10.0.0.5:5432）；"

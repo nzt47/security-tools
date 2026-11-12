@@ -599,6 +599,14 @@ def collect_once(store: Optional[AlarmStore] = None, *,
             keep |= {k for k in _firing_keys(target) if k.startswith(prefix)}
 
     stats = target.reconcile(candidates, keep=keep)
+    # 告警外发（2026-11-12）：把本轮产生的 firing/reopen/resolved 接到已安装的出站通道。
+    # 旁路：任何失败只记日志，绝不影响台账与采集线程（dispatch_alert 自己也永不抛）。
+    try:
+        from agent.alarms import notify as alarm_notify
+        if alarm_notify.enabled():
+            alarm_notify.dispatch_pending(store=target)
+    except Exception as exc:  # noqa: BLE001 外发是旁路
+        logger.warning("报警器：外发失败（%s）", type(exc).__name__)
     global _last_stats
     _last_stats = {"at": time.time(), "checked": checked, "raised": stats["raised"],
                    "resolved": stats["resolved"], "kept": sorted(keep), "warmup": warmup}

@@ -2760,6 +2760,13 @@ if __name__ == "__main__":
             print(f"✅ CI 状态同步任务注册: {register_ci_sync_scheduler(scheduler)}")
         except Exception as e:
             print(f"⚠️ CI 状态同步任务注册失败（不阻断主流程）: {e}")
+        # 日志异常基线采样（2026-11-12 v2）：30 分钟把"尾窗 ERROR 密度"写成一个样本，
+        # 供单位 ops.logs 的"相对基线"判据使用（探针只读，不写基线）。
+        try:
+            from agent.monitoring.log_anomaly import register_baseline_scheduler
+            print(f"✅ 日志异常基线采样任务注册: {register_baseline_scheduler(scheduler)}")
+        except Exception as e:
+            print(f"⚠️ 日志异常基线采样任务注册失败（不阻断主流程）: {e}")
         # 技能冲突自动处置：每日产一份「建议停用 / 保持 / 待人工」计划（只写计划，不动手）
         try:
             from agent.skills_mgmt.conflict_auto import register_scheduler as _reg_conflict

@@ -115,6 +115,16 @@ def _perception_gap() -> dict:
         return {"available": False, "detail": "感知覆盖读数不可用（详见服务日志）"}
 
 
+def _notify_status() -> dict:
+    """告警外发读数（只读：把 events.jsonl 行数与游标对一下，不发送任何东西）。"""
+    try:
+        from agent.alarms.notify import status
+        return status()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("报警器：外发读数失败（%s）", type(exc).__name__)
+        return {"available": False, "detail": "外发读数不可用（详见服务日志）"}
+
+
 def _ci_gap() -> dict:
     """CI 事件源「最后同步时间」读数（只读 status.json；不联网）。"""
     try:
@@ -174,6 +184,8 @@ def alarms_coverage():
         # 两个读数都只读本地文件、不联网、不创建任何实例；读不到就 available=false（不假装正常）。
         coverage["perception"] = _perception_gap()
         coverage["ci"] = _ci_gap()
+        # 告警外发（2026-11-12）：开关 / 游标 / 待发条数（读不到就 available=false）
+        coverage["notify"] = _notify_status()
         return _ok(coverage)
     except Exception as exc:  # noqa: BLE001
         logger.error("报警器覆盖读数失败: %s", type(exc).__name__)

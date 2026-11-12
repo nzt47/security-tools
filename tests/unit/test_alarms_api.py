@@ -129,6 +129,10 @@ class TestRulesEndpoints:
             assert isinstance(gap.get("detail"), str) and gap["detail"], key
         assert "max_age_seconds" in payload["ci"]
         assert "watch_dirs" in payload["perception"]
+        nf = payload["notify"]
+        assert isinstance(nf, dict)
+        assert isinstance(nf["enabled"], bool)
+        assert isinstance(nf["queued"], int) and nf["queued"] >= 0
         rule_engine.reset_states()
 
 

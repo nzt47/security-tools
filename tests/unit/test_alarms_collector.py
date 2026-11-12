@@ -47,6 +47,11 @@ def _hermetic_optional_sources(monkeypatch):
     monkeypatch.setattr(collector, "read_audit_verification", lambda: {"ok": True})
     monkeypatch.setattr(collector, "read_health_point", lambda: None)
     monkeypatch.setattr(collector, "read_units", lambda: None)
+    # 告警外发（2026-11-12）也是"默认源"：不 patch 的话会去读**生产**的
+    # data/alarms/events.jsonl 并推进游标（测试污染生产台账）
+    from agent.alarms import notify as alarm_notify
+    monkeypatch.setattr(alarm_notify, "dispatch_pending",
+                        lambda **kw: {"status": "disabled"})
 
 
 def _point(**layers):
