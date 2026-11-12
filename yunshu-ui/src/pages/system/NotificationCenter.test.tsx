@@ -114,13 +114,13 @@ describe('消息中心页', () => {
     await waitFor(() => expect(screen.getByText('没有未读通知')).toBeInTheDocument())
   })
 
-it('T7 类型下拉：默认显示「全部类型」且**可再次选回全部**（占位项不禁用）', async () => {
+  it('T7 类型下拉：默认显示「全部类型」且**可再次选回全部**（占位项不禁用）', async () => {
     renderList()
     await screen.findByText('系统例行维护公告')
     const select = screen.getByRole('combobox') as HTMLSelectElement
     expect(select.value).toBe('')
     const all = screen.getByRole('option', { name: '全部类型' }) as HTMLOptionElement
-    expect(all.disabled).toBe(false), '选过一次类型后必须能回到全部'
+    expect(all.disabled).toBe(false) // 选过一次类型后必须能回到全部
     expect(screen.getByRole('option', { name: '安全告警' })).toBeInTheDocument()
     expect(screen.queryByRole('option', { name: '系统公告' })).toBeNull()
     expect(screen.getByText(/类型目前只有/)).toBeInTheDocument()
