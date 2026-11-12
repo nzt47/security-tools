@@ -634,21 +634,28 @@ jobs:
             exit 1
           fi
           docker rm -f prometheus 2>/dev/null || true
-          # 【2026-11-12 修复】挂载必须**与 docker-compose.monitoring.yml 逐项对齐**：
-          #   prometheus.yml 的 rule_files 列了 14 个文件；只挂 prometheus.yml + alerts.yml 时，
-          #   其余 12 个在容器内不存在 ⇒ Prometheus 直接启动失败（本仓 prometheus.yml 第 59-60 行
-          #   自己写过这条判据）。改法：整个 monitoring/ 挂成 /etc/prometheus（覆盖绝大多数相对路径），
-          #   再按 compose 的**目标路径**补三个仓库目录结构与 /etc/prometheus 不一致的文件：
-          #     · monitoring/prometheus/rules/  → /etc/prometheus/rules（compose 就是这么挂的）
-          #     · monitoring/prometheus/alert_rules.yml → /etc/prometheus/alert_rules.yml
-          #     · monitoring/alerts/skill_retrieval_alerts.yml → /etc/prometheus/skill_retrieval_alerts.yml
+          # 【2026-11-12 修复一】挂载必须与 docker-compose.monitoring.yml 逐项对齐：
+          #   prometheus.yml 的 rule_files 列了 13 个文件；只挂 prometheus.yml + alerts.yml 时，
+          #   其余 11 个在容器内不存在 ⇒ Prometheus 直接启动失败（本仓 prometheus.yml 第 59-60 行
+          #   自己写过这条判据：列了却不在容器里 = 起不来）。
+          # 【为什么逐个文件挂、不整目录挂】实测（2026-11-12）：先把 monitoring/ 整目录挂成
+          #   /etc/prometheus:ro 再往里挂单个文件时，Docker 需要在只读挂载里创建挂载点 ⇒
+          #   "openat alert_rules.yml: read-only file system"，容器起不来（exit 125）。
+          #   故按 docker-compose.monitoring.yml 的挂载清单**逐项对齐**（目标路径必须与
+          #   prometheus.yml 的 rule_files 一字不差）：13 项规则文件 + 1 个 rules 目录。
           docker run -d \
             --name prometheus \
             -p 9090:9090 \
-            -v "${{ github.workspace }}/monitoring:/etc/prometheus:ro" \
+            -v "${{ github.workspace }}/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro" \
+            -v "${{ github.workspace }}/monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro" \
             -v "${{ github.workspace }}/monitoring/prometheus/rules:/etc/prometheus/rules:ro" \
-            -v "${{ github.workspace }}/monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro" \
+            -v "${{ github.workspace }}/monitoring/health_recording_rules.yml:/etc/prometheus/health_recording_rules.yml:ro" \
+            -v "${{ github.workspace }}/monitoring/health_alerts.yml:/etc/prometheus/health_alerts.yml:ro" \
+            -v "${{ github.workspace }}/monitoring/recording_rules.yml:/etc/prometheus/recording_rules.yml:ro" \
+            -v "${{ github.workspace }}/monitoring/alerts_production.yml:/etc/prometheus/alerts_production.yml:ro" \
+            -v "${{ github.workspace }}/monitoring/circuit_breaker_alerts.yml:/etc/prometheus/circuit_breaker_alerts.yml:ro" \
             -v "${{ github.workspace }}/monitoring/alerts/skill_retrieval_alerts.yml:/etc/prometheus/skill_retrieval_alerts.yml:ro" \
+            -v "${{ github.workspace }}/monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro" \
             prom/prometheus:latest
           echo "等待 Prometheus 就绪..."
           for i in {1..30}; do
