@@ -233,6 +233,22 @@ export default function HubChannelsPanel() {
     } finally { setBusy('') }
   }
 
+  /** 手动发送的通道改成**下拉选**（2026-11-12：此前是自由文本框，用户填 "1" 会得到
+   *  "通道不存在: 1" —— channel_id 是 email_smtp 这种标识符，不是序号）。
+   *  规则：已装列表变化时，若当前选择不在列表里就自动选第一条（只有一条通道时零操作）。 */
+  useEffect(() => {
+    const ids = installed.map((c) => c.ext_id ?? '').filter(Boolean)
+    if (ids.length === 0) {
+      if (channelId) setChannelId('')
+      return
+    }
+    if (ids.includes(channelId)) return
+    // 优先选**已启用**的那条：装了两个通道、第一个恰好停用时，默认选停用的会让人
+    // 一点"发送"就吃"通道已禁用"（真实数据里 webhook 停用、email_smtp 启用就是这种顺序）
+    const enabledIds = installed.filter((c) => c.enabled).map((c) => c.ext_id ?? '').filter(Boolean)
+    setChannelId(enabledIds[0] ?? ids[0])
+  }, [installed, channelId])
+
   const loading = busy !== ''
 
   return (
@@ -431,13 +447,31 @@ export default function HubChannelsPanel() {
         <div className="mb-2 flex items-center gap-2">
           <Send size={12} className="text-cyan-400" />
           <h3 className="text-xs font-semibold text-slate-200">手动发送（调试）</h3>
-          <span className="text-[10px] text-slate-500">需要已安装并启用的通道</span>
+          <span className="text-[10px] text-slate-500">
+            只列**已装**通道；标「已停用」的会被后端拒绝（先在上方启用）
+          </span>
         </div>
         <div className="mb-2 text-[10px] text-slate-500">
           已装通道 {installed.filter((c) => c.enabled).length} 条启用（配置 / 启停 / 卸载见上方「已装通道」卡片）
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <input className={INPUT + ' w-52'} placeholder="channel_id" value={channelId} onChange={(e) => setChannelId(e.target.value)} aria-label="通道 id" />
+          <select
+            className={INPUT + ' w-64'}
+            value={channelId}
+            onChange={(e) => setChannelId(e.target.value)}
+            aria-label="通道 id"
+            disabled={loading || installed.length === 0}
+          >
+            <option value="">{installed.length === 0 ? '还没有已装通道' : '选择通道'}</option>
+            {installed.map((c) => {
+              const id = c.ext_id ?? ''
+              return (
+                <option key={'send-' + id} value={id}>
+                  {(c.name ? c.name + '（' + id + '）' : id) + (c.enabled ? '' : ' · 已停用')}
+                </option>
+              )
+            })}
+          </select>
           <input className={INPUT + ' w-72'} placeholder="消息内容" value={channelMsg} onChange={(e) => setChannelMsg(e.target.value)} aria-label="通道消息内容" />
           <button
             type="button"
