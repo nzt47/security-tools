@@ -656,7 +656,7 @@ def check_rules_surface(root: Path) -> Tuple[List[Dict[str, str]], Dict[str, Any
 
 
 def check_event_sources() -> Tuple[List[Dict[str, str]], Dict[str, Any]]:
-    """告警事件源面（只读上一轮采集统计）：六个源本轮到底读到了几个。
+    """告警事件源面（只读上一轮采集统计）：本轮到底读到了几个源。
 
     【为什么这是"输入面"而不是 gap】某个源本轮不可用有它自己的 keep 语义（既不报警也不判
     恢复），由 ``/api/alarms/coverage.last_collect`` 负责披露；这里只是让缺口报告能回答
