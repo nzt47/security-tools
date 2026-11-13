@@ -314,9 +314,15 @@ class ExtensionManager:
     def send_channel_message(
         self, channel_id: str, message: str, **kwargs
     ) -> Dict:
-        """通过通道发送消息"""
+        """通过通道发送消息（**手动/界面路径**）。
+
+        【2026-11-13】手动发送开一次瞬时重试（retry_transient=True）：现场一次 TLS 握手
+        超时（_ssl.c:983）在同一分钟手工探针只要 103ms ⇒ 是抖动，重试一次即可；
+        报警外发**不**走这里（channel_bridge 自己按次数重试），避免两层重试叠加拖住采集线程。
+        """
         channel_inst = self._get_installer(ExtensionType.CHANNEL)
-        success, msg = channel_inst.send_message(channel_id, message, **kwargs)
+        success, msg = channel_inst.send_message(channel_id, message,
+                                                 retry_transient=True, **kwargs)
         return {"ok": success, "message": msg}
 
     # ════════════════════════════════════════════════════════════

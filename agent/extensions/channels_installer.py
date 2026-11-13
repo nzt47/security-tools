@@ -17,6 +17,7 @@
 """
 
 import json
+import time
 import uuid
 import logging
 from pathlib import Path
@@ -35,8 +36,20 @@ logger = logging.getLogger(__name__)
 #: SMTP 缺省端口（STARTTLS 惯用 587）与隐式 TLS 端口（465）
 SMTP_DEFAULT_PORT = 587
 SMTP_SSL_PORT = 465
-#: SMTP 连接/读写超时（秒）：不设超时时 smtplib 会一直挂着，采集线程会被一封发不出去的邮件拖住
-SMTP_TIMEOUT_SEC = 15
+#: SMTP 连接/读写超时（秒）：不设超时时 smtplib 会一直挂着，采集线程会被一封发不出去的邮件拖住。
+#: 【2026-11-13 由 15 调到 25】现场一次「TLS 握手超时」(_ssl.c:983) —— 同一分钟手工探针
+#: 握手只要 103ms，说明是**瞬时抖动**；15s 对「一次 SYN 重传 + TLS 重试」的预算太紧。
+SMTP_TIMEOUT_SEC = 25
+#: 手动发送（界面「测试发送」）遇到瞬时网络错误时的重试次数与退避（秒）。
+#: 只给手动路径用：报警外发另有 channel_bridge 自己的重试，两层叠起来会把采集线程拖太久。
+SEND_RETRY_ATTEMPTS = 2
+SEND_RETRY_BACKOFF_SEC = 0.8
+#: 对外失败文案（**只给类别与下一步，不回异常原文** —— 原文进日志；原文进响应体是
+#: py/stack-trace-exposure，且 _ssl.c:983 这种文字对用户没有任何可操作信息）
+SEND_ERR_TLS = "邮件服务器 TLS 握手超时（网络抖动或被中间设备拦截），已自动重试一次；请稍后再发"
+SEND_ERR_TIMEOUT = "连接邮件服务器超时，已自动重试一次；请检查出网/代理后重试"
+SEND_ERR_AUTH = "邮件服务器拒绝登录（账号或授权码不对），详见服务日志"
+SEND_ERR_GENERIC = "发送失败（原因见服务日志）"
 
 
 def _trace_id():
@@ -213,8 +226,30 @@ class ChannelInstaller:
 
     # ── 消息发送 ──
 
+    @staticmethod
+    def _is_transient_send_error(exc: BaseException) -> bool:
+        """瞬时网络错误（值得立刻重试一次）：TLS 握手/连接超时、连接被断。"""
+        import smtplib
+        import socket
+        import ssl
+        return isinstance(exc, (ssl.SSLError, socket.timeout, TimeoutError,
+                                ConnectionError, smtplib.SMTPServerDisconnected))
+
+    @staticmethod
+    def _send_error_reason(exc: BaseException) -> str:
+        """异常 → 对外文案（类别 + 下一步）。**不包含异常原文**。"""
+        import smtplib
+        import ssl
+        if isinstance(exc, smtplib.SMTPAuthenticationError):
+            return SEND_ERR_AUTH
+        if isinstance(exc, ssl.SSLError) or "handshake" in str(exc).lower():
+            return SEND_ERR_TLS
+        if isinstance(exc, (TimeoutError, ConnectionError, smtplib.SMTPServerDisconnected)):
+            return SEND_ERR_TIMEOUT
+        return SEND_ERR_GENERIC
+
     def send_message(
-        self, channel_id: str, message: str, **kwargs
+        self, channel_id: str, message: str, *, retry_transient: bool = False, **kwargs
     ) -> Tuple[bool, str]:
         """通过指定通道发送消息
 
@@ -242,14 +277,23 @@ class ChannelInstaller:
         if not handler:
             return False, f"通道无处理器: {channel_id} (type={channel_type})"
 
-        try:
-            config = existing.get("config", {})
-            result = handler(config, message, **kwargs)
-            logger.info(log_dict({'module_name': 'channels_installer', 'action': 'channel_id', 'msg': f'[通道安装器] 消息发送成功: {channel_id}'}))
-            return True, f"消息已发送: {result}"
-        except Exception as e:
-            logger.error(log_dict({'module_name': 'channels_installer', 'action': 'channel_id', 'msg': f'[通道安装器] 消息发送失败: {channel_id}: {e}'}))
-            return False, f"发送失败: {e}"
+        config = existing.get("config", {})
+        attempts = SEND_RETRY_ATTEMPTS if retry_transient else 1
+        last_exc: Optional[BaseException] = None
+        for attempt in range(attempts):
+            try:
+                result = handler(config, message, **kwargs)
+                logger.info(log_dict({'module_name': 'channels_installer', 'action': 'channel_id', 'msg': f'[通道安装器] 消息发送成功: {channel_id}'}))
+                return True, f"消息已发送: {result}"
+            except Exception as e:  # noqa: BLE001 通道实现各异，失败要如实回给调用方
+                last_exc = e
+                # 原文只进日志（响应里只给类别 + 下一步，见 _send_error_reason）
+                logger.error(log_dict({'module_name': 'channels_installer', 'action': 'channel_id',
+                                       'msg': f'[通道安装器] 消息发送失败: {channel_id}: {type(e).__name__}: {e}'}))
+                if not retry_transient or not self._is_transient_send_error(e) or attempt + 1 >= attempts:
+                    break
+                time.sleep(SEND_RETRY_BACKOFF_SEC)
+        return False, self._send_error_reason(last_exc) if last_exc is not None else SEND_ERR_GENERIC
 
     def _get_default_handler(self, channel_type: str) -> Optional[Callable]:
         """获取默认通道处理器"""
