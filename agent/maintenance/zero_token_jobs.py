@@ -278,8 +278,18 @@ def _load_pending() -> Dict[str, Any]:
     return {"date": _today(), "keys": list(dict.fromkeys(keys))}
 
 
+#: 仓库根（**真实**路径，不受 REPO_ROOT 被用例改写影响）——用于"测试期不许写生产排队文件"的判据
+_TRUE_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
 def _save_pending(state: Dict[str, Any]) -> None:
     path = _pending_path()
+    # 【2026-11-13 实测的坑】早期用例直接调 run_job（没加 force），闸门把 3 条作业写进了**生产**的
+    # data/maintenance/zero_token_pending.json。用例本该把它们指到 tmp（patch z.REPO_ROOT），
+    # 但只要有人忘了，就会污染真实排队。这里加一道闸：测试进程 + 目标是真实仓库 ⇒ 不写。
+    if os.environ.get("PYTEST_CURRENT_TEST") and os.path.abspath(path).startswith(_TRUE_REPO_ROOT + os.sep):
+        logger.debug("[zero-token] 测试进程不写生产排队文件: %s", path)
+        return
     try:
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="utf-8") as handle:
