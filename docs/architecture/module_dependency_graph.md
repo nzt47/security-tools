@@ -368,6 +368,7 @@ flowchart LR
         agent_memory_import_service["agent.memory_import.service"]
         agent_memory_import_summarize["agent.memory_import.summarize"]
         agent_memory_import_targets["agent.memory_import.targets"]
+        agent_memory_import_transcript["agent.memory_import.transcript"]
     end
     subgraph model_router [model_router]
         agent_model_router_adapters["agent.model_router.adapters"]:::crosslayer
@@ -563,6 +564,7 @@ flowchart LR
         agent_server_routes_routes_llm_monitor["agent.server_routes.routes_llm_monitor"]
         agent_server_routes_routes_logging["agent.server_routes.routes_logging"]
         agent_server_routes_routes_memory_import["agent.server_routes.routes_memory_import"]
+        agent_server_routes_routes_memory_sessions["agent.server_routes.routes_memory_sessions"]
         agent_server_routes_routes_process_distill["agent.server_routes.routes_process_distill"]
         agent_server_routes_routes_replay["agent.server_routes.routes_replay"]
         agent_server_routes_routes_semantic_config["agent.server_routes.routes_semantic_config"]
@@ -1516,6 +1518,7 @@ flowchart LR
     agent_memory_import_targets -.-> agent_knowledge_card
     agent_memory_import_targets -.-> agent_knowledge_schema
     agent_memory_import_targets -.-> agent_knowledge_card
+    agent_memory_import_transcript -.-> agent_audit_facade
     agent_memory_optimized --> agent_logging_utils
     agent_memory_optimized -.-> agent_utils
     agent_model_router_adapters -.-> agent_logging_utils
@@ -2221,6 +2224,11 @@ flowchart LR
     agent_server_routes_routes_memory_import -.-> agent_memory_import_readers
     agent_server_routes_routes_memory_import -.-> agent_memory_import_readers
     agent_server_routes_routes_memory_import -.-> agent_memory_import
+    agent_server_routes_routes_memory_sessions -.-> agent_api_envelope
+    agent_server_routes_routes_memory_sessions -.-> agent_memory_import
+    agent_server_routes_routes_memory_sessions -.-> agent_memory_import_models
+    agent_server_routes_routes_memory_sessions -.-> agent_server_auth
+    agent_server_routes_routes_memory_sessions --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_process_distill -.-> agent_server_auth
     agent_server_routes_routes_process_distill --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_process_distill --> agent_server_routes__errors
@@ -2994,9 +3002,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 759
-- 模块节点数: 659
-- 依赖边数: 2207
-- 跨层调用数: 1403
+- 扫描文件数: 762
+- 模块节点数: 661
+- 依赖边数: 2213
+- 跨层调用数: 1408
 - 违规调用数: 0
 - 动态 import 数: 1
