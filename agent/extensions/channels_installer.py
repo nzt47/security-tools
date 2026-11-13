@@ -253,17 +253,21 @@ class ChannelInstaller:
         """异常 → 投递台账的**类别**（与 _send_error_reason 同判据，台账只存类别不存原文）。"""
         import smtplib
         import ssl
-        from agent.extensions import channel_health as health  # 延迟 import：避免包级循环
+        # 【按子模块 import，别写 from agent.extensions import ...】后者会触发包 __init__
+        # （它 import manager → manager import 本模块），arch_rules 的循环依赖检查会红。
+        from agent.extensions.channel_health import (
+            CODE_AUTH, CODE_DISCONNECTED, CODE_OTHER, CODE_TIMEOUT, CODE_TLS,
+        )
 
         if isinstance(exc, smtplib.SMTPAuthenticationError):
-            return health.CODE_AUTH
+            return CODE_AUTH
         if isinstance(exc, ssl.SSLError) or "handshake" in str(exc).lower():
-            return health.CODE_TLS
+            return CODE_TLS
         if isinstance(exc, smtplib.SMTPServerDisconnected):
-            return health.CODE_DISCONNECTED
+            return CODE_DISCONNECTED
         if isinstance(exc, (TimeoutError, ConnectionError)):
-            return health.CODE_TIMEOUT
-        return health.CODE_OTHER
+            return CODE_TIMEOUT
+        return CODE_OTHER
 
     @classmethod
     def _record_delivery(cls, channel_id: str, *, success: bool,
@@ -274,11 +278,11 @@ class ChannelInstaller:
         `send_message`；在调用方各记一次会漏（2026-11-12 的教训：同一件事两处写点必漂）。
         """
         try:
-            from agent.extensions import channel_health
+            from agent.extensions.channel_health import record_failure, record_success
             if success:
-                channel_health.record_success(channel_id)
+                record_success(channel_id)
             else:
-                channel_health.record_failure(channel_id, cls._send_error_code(exc))
+                record_failure(channel_id, cls._send_error_code(exc))
         except Exception as e:  # noqa: BLE001 记账坏掉不能让"发消息"失败
             logger.debug(log_dict({'module_name': 'channels_installer',
                                    'action': 'channel_health_record_failed',

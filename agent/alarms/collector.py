@@ -534,8 +534,8 @@ def ci_candidates(payload: Optional[dict]) -> List[dict]:
 def read_channel_health() -> Optional[dict]:
     """读投递台账与通道启用状态；任一读不到 ⇒ None（源不可用，不报警也不判恢复）。"""
     try:
-        from agent.extensions import channel_health
-        snap = channel_health.snapshot()
+        from agent.extensions.channel_health import snapshot
+        snap = snapshot()
     except Exception as exc:  # noqa: BLE001 台账坏了不影响其它源
         logger.warning("报警器：通道投递台账读取失败（%s）", type(exc).__name__)
         return None
