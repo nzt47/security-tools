@@ -56,7 +56,8 @@ def _no_outbound(monkeypatch):
     from agent.alarms import notify as alarm_notify
     monkeypatch.setattr(alarm_notify, "dispatch_pending", lambda **kw: {"status": "disabled"})
     for name in ("read_health_point", "read_units", "read_audit_verification",
-                 "read_rule_states", "read_scheduler_failures", "read_ci_status"):
+                 "read_rule_states", "read_scheduler_failures", "read_ci_status",
+                 "read_dependency_probe"):
         monkeypatch.setattr(collector, name, lambda: None)
 
 

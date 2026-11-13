@@ -99,9 +99,12 @@ class TestRegister:
         assert all(c["day_of_week"] is None for c in calls)
         assert all(callable(c["func"]) for c in calls)
         # 2026-11-13：多注册一条「维护·空闲补跑」（空闲闸门的补跑线程）
-        assert [i["name"] for i in intervals] == ["维护·空闲补跑"]
-        assert intervals[0]["interval_seconds"] == z.DRAIN_INTERVAL_SEC
-        assert intervals[0]["zero_token"] is True
+        # 2026-11-13：再注册一条「维护·记忆整理」（6h 空闲轮询）
+        assert [i["name"] for i in intervals] == ["维护·记忆整理", "维护·空闲补跑"]
+        by_name = {i["name"]: i for i in intervals}
+        assert by_name["维护·空闲补跑"]["interval_seconds"] == z.DRAIN_INTERVAL_SEC
+        assert by_name["维护·记忆整理"]["interval_seconds"] == z.CONSOLIDATION_INTERVAL_SEC
+        assert all(i["zero_token"] is True for i in intervals)
 
     def test_开关可关闭(self, monkeypatch):
         monkeypatch.setenv("ZERO_TOKEN_JOBS_ENABLED", "0")

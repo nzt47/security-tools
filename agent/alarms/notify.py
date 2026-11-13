@@ -208,6 +208,12 @@ def dispatch_pending(*, store: Any = None,
         stats["status"] = "disabled"
         return stats
 
+    # 上一轮攒下的 warning 摘要先补发（每小时最多一条；见 dispatch_warning_digest）
+    # 【必须用调用方的 dispatcher】否则单测会绕过注入、真的走 channel_bridge 发邮件
+    _flush_digest(stats, dispatcher)
+    # 本轮新出现的 warning 先攒进摘要（不再逐条压死在站内）
+    digest_state = load_digest() if warning_digest_enabled() else None
+
     events = read_events(events_path)
     cursor = load_cursor(cursor_path)
     todo = pending(events, cursor)
@@ -243,7 +249,11 @@ def dispatch_pending(*, store: Any = None,
         if transition is None:
             stats["skipped"] += 1
             continue
-        if str(record.get("severity") or "") not in allowed:
+        severity = str(record.get("severity") or "")
+        if severity not in allowed:
+            if (digest_state is not None and severity == "warning"
+                    and str(record.get("key") or "") not in silenced_keys):
+                _append_digest(digest_state, record)
             stats["skipped"] += 1
             continue
         if str(record.get("key") or "") in silenced_keys:
@@ -272,6 +282,8 @@ def dispatch_pending(*, store: Any = None,
 
     stats["cursor"] = consumed
     save_cursor(consumed, cursor_path)
+    if digest_state is not None:
+        save_digest(digest_state)
     _record_round(stats)
     if stats["failed"] and not stats["sent"]:
         _warn_failure_throttled(stats)
@@ -296,6 +308,22 @@ def _record_round(stats: Dict[str, Any]) -> None:
     }
 
 
+def _flush_digest(stats: Dict[str, Any],
+                  dispatcher: Optional[Callable[..., Dict[str, Any]]] = None) -> None:
+    """到点就把攒下的 warning 合并发出（**永不抛**，失败只进 stats）。"""
+    if not warning_digest_enabled():
+        return
+    try:
+        state = load_digest()
+        if not (state.get("pending") or []):
+            return
+        result = dispatch_warning_digest(dispatcher=dispatcher or _default_dispatcher())
+        if result.get("sent") or result.get("items"):
+            stats["digest"] = result
+    except Exception as exc:  # noqa: BLE001 摘要失败不影响逐条外发
+        stats["digest"] = {"sent": False, "reason": type(exc).__name__}
+
+
 def _warn_failure_throttled(stats: Dict[str, Any]) -> None:
     """通道装了但发不出去时，每 30 分钟警告一次（而不是每条事件一条）。"""
     global _last_failure_log_at
@@ -305,6 +333,131 @@ def _warn_failure_throttled(stats: Dict[str, Any]) -> None:
     _last_failure_log_at = now
     logger.warning("[AlarmNotify] 外发失败：本轮 %d 条全部未发出（通道已安装但可能未配置；"
                    "详见 /api/alarms/coverage 的 notify.last_round）", stats.get("failed", 0))
+
+
+# ── warning 摘要（2026-11-13）──────────────────────────────────
+# 【为什么】默认只外发 critical，warning 全压在站内 —— 用户不盯页面时，"单位 warn /
+# CI 失败 / P99 抖动"这类 warning 等于没有。逐条发又会变成噪音源（§11.104 的顾虑）。
+# 折中：**每小时最多一条汇总**，只列"新增/仍在"的 warning 键与次数，静默优先。
+ENV_WARNING_DIGEST = "CP_ALARM_NOTIFY_WARNING_DIGEST"
+DIGEST_REL_PATH = "data/alarms/warning_digest.json"
+#: 两条摘要之间的最小间隔（秒）
+DIGEST_INTERVAL_SEC = 3600
+#: 一条摘要里最多列几条（超出的只给数量，避免长邮件）
+DIGEST_MAX_ITEMS = 20
+#: 摘要标题前缀（与逐条告警区分开，收件人一眼知道这是汇总）
+DIGEST_TITLE = "告警摘要（warning）"
+
+
+def warning_digest_enabled() -> bool:
+    raw = (os.environ.get(ENV_WARNING_DIGEST) or "").strip().lower()
+    if not raw:
+        return True
+    return raw in _TRUTHY
+
+
+def _digest_path(path: Optional[Path] = None) -> Path:
+    return Path(path) if path is not None else _root() / DIGEST_REL_PATH
+
+
+def load_digest(path: Optional[Path] = None) -> Dict[str, Any]:
+    """读摘要待发状态（缺失/坏文件 ⇒ 空）。"""
+    try:
+        raw = json.loads(_digest_path(path).read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {"pending": [], "last_sent_at": None, "last_attempt_at": None}
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("[AlarmNotify] 摘要状态读取失败（%s），按空处理", type(exc).__name__)
+        return {"pending": [], "last_sent_at": None, "last_attempt_at": None}
+    if not isinstance(raw, dict):
+        return {"pending": [], "last_sent_at": None, "last_attempt_at": None}
+    raw.setdefault("pending", [])
+    raw.setdefault("last_sent_at", None)
+    raw.setdefault("last_attempt_at", None)
+    if not isinstance(raw["pending"], list):
+        raw["pending"] = []
+    return raw
+
+
+def save_digest(state: Dict[str, Any], path: Optional[Path] = None) -> None:
+    target = _digest_path(path)
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        tmp = target.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(state, ensure_ascii=False, indent=1), encoding="utf-8")
+        os.replace(str(tmp), str(target))
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("[AlarmNotify] 摘要状态写入失败（%s）", type(exc).__name__)
+
+
+def _parse_iso(value: Any) -> Optional[float]:
+    text = str(value or "")
+    if not text:
+        return None
+    try:
+        from datetime import datetime
+        return datetime.fromisoformat(text).timestamp()
+    except ValueError:
+        return None
+
+
+def _append_digest(state: Dict[str, Any], record: Dict[str, Any]) -> None:
+    key = str(record.get("key") or "")
+    if not key:
+        return
+    for item in state["pending"]:
+        if item.get("key") == key:
+            item["count"] = int(item.get("count") or 0) + 1
+            item["last_at"] = record.get("at")
+            return
+    state["pending"].append({"key": key, "title": str(record.get("title") or key),
+                             "severity": str(record.get("severity") or "warning"),
+                             "count": 1, "first_at": record.get("at"),
+                             "last_at": record.get("at")})
+
+
+def dispatch_warning_digest(*, dispatcher: Callable[..., Dict[str, Any]],
+                            path: Optional[Path] = None,
+                            now: Optional[float] = None,
+                            interval: float = DIGEST_INTERVAL_SEC) -> Dict[str, Any]:
+    """到点就把累积的 warning 合并成一条发出去（**永不抛**）。"""
+    out: Dict[str, Any] = {"sent": False, "items": 0, "reason": ""}
+    state = load_digest(path)
+    pending = state.get("pending") or []
+    if not pending:
+        return out
+    ts = time.time() if now is None else float(now)
+    last_attempt = _parse_iso(state.get("last_attempt_at"))
+    if last_attempt is not None and ts - last_attempt < float(interval):
+        out["reason"] = "throttled"
+        return out
+    shown = pending[:DIGEST_MAX_ITEMS]
+    lines = ["%s ×%d（最近 %s）" % (item.get("title") or item.get("key"),
+                                    int(item.get("count") or 1),
+                                    str(item.get("last_at") or "")[11:19])
+             for item in shown]
+    if len(pending) > len(shown):
+        lines.append("…另有 %d 条（完整清单见告警页）" % (len(pending) - len(shown)))
+    alert = SimpleNamespace(name=DIGEST_TITLE, severity="warning",
+                            message="；".join(lines)[:240],
+                            labels={"kind": "digest", "count": str(len(pending))})
+    try:
+        result = dispatcher(alert, "firing") or {}
+    except Exception as exc:  # noqa: BLE001 通道坏了不影响台账
+        state["last_attempt_at"] = _iso(ts)
+        save_digest(state, path)
+        out["reason"] = "failed:" + type(exc).__name__
+        return out
+    state["last_attempt_at"] = _iso(ts)
+    if result.get("ok") and (result.get("sent") or result.get("reason") == "no_enabled_channel"):
+        state["pending"] = []
+        state["last_sent_at"] = _iso(ts)
+        out.update({"sent": bool(result.get("sent")), "items": len(pending),
+                    "reason": result.get("reason") or "sent"})
+    else:
+        out["reason"] = str(result.get("reason") or "not_sent")
+    save_digest(state, path)
+    return out
 
 
 #: 覆盖缺口外发：warning 级、每条只推一次（去重在调用方，见 agent/monitoring/coverage_gaps.py）

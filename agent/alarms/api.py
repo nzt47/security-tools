@@ -14,7 +14,9 @@ notification 是"消息中心的历史门面"（分页/已读），alarms 是"�
 """
 from __future__ import annotations
 
+import json
 import logging
+from pathlib import Path
 
 from flask import Blueprint, jsonify, request
 
@@ -64,12 +66,14 @@ def alarms_list():
         if state is not None and state not in STATES:
             state = None
         unread_only = (request.args.get("unread_only") or "").strip() in ("1", "true", "yes")
+        # review=unacked：只看「已恢复但没人确认」的条目（复核清单）
+        unacked_only = (request.args.get("review") or "").strip().lower() == "unacked"
         kind = (request.args.get("kind") or "").strip() or None
         limit = _int_arg("limit", LIST_LIMIT_DEFAULT, minimum=1, maximum=LIST_LIMIT_MAX)
         offset = _int_arg("offset", 0, minimum=0, maximum=10_000)
         store = get_store()
         rows = store.list(state=state, unread_only=unread_only, kind=kind,
-                          limit=limit, offset=offset)
+                          unacked_only=unacked_only, limit=limit, offset=offset)
         return _ok({"items": rows, "limit": limit, "offset": offset,
                     "total": store.count(state=state), "summary": store.summary()})
     except Exception as exc:  # noqa: BLE001 端点不因单次读失败而崩
@@ -117,6 +121,55 @@ def _perception_gap() -> dict:
     except Exception as exc:  # noqa: BLE001
         logger.warning("报警器：感知覆盖读数失败（%s）", type(exc).__name__)
         return {"available": False, "detail": "感知覆盖读数不可用（详见服务日志）"}
+
+
+def _probe_readout() -> dict:
+    """依赖探测最近一轮（只读快照；没跑过 ⇒ available=false）。"""
+    try:
+        from agent.monitoring import dependency_probe
+        snap = dependency_probe.snapshot()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("报警器：依赖探测读数失败（%s）", type(exc).__name__)
+        return {"available": False, "detail": "依赖探测读数不可用（详见服务日志）"}
+    if not snap:
+        return {"available": False, "detail": "还没有探测读数（服务刚启动或没有可探目标）"}
+    return {
+        "available": True,
+        "at": snap.get("at"),
+        "targets": snap.get("targets", 0),
+        "ok": bool(snap.get("ok")),
+        "results": snap.get("results") or [],
+        "detail": "只做 TCP/TLS 握手（不发信、不登录）；15 分钟一轮",
+    }
+
+
+#: 审计全链核验报告（每日作业写 data/maintenance/audit/audit_verify_*.json）
+_AUDIT_FULL_DIR = Path(__file__).resolve().parents[2] / "data" / "maintenance" / "audit"
+
+
+def _audit_full_readout() -> dict:
+    """最近一次「审计全链核验」结果（只读报告文件；没有 ⇒ available=false）。"""
+    try:
+        reports = sorted(_AUDIT_FULL_DIR.glob("audit_verify_*.json"))
+    except OSError:
+        reports = []
+    if not reports:
+        return {"available": False, "detail": "还没有跑过全链核验（每日作业 11:20）"}
+    try:
+        payload = json.loads(reports[-1].read_text(encoding="utf-8"))
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("报警器：审计核验报告读取失败（%s）", type(exc).__name__)
+        return {"available": False, "detail": "审计核验报告不可读（详见服务日志）"}
+    result = payload.get("result") or {}
+    return {
+        "available": True,
+        "at": payload.get("at"),
+        "exit_code": payload.get("exit_code"),
+        "gates": result.get("gates") or {},
+        "warns": len(result.get("warns") or []),
+        "fails": len(result.get("fails") or []),
+        "detail": "完整性三门（G2 全链重算 / G3 日根 / G4 口径）；G1 治理门另见审计面板",
+    }
 
 
 def _notify_status() -> dict:
@@ -183,6 +236,9 @@ def alarms_coverage():
             {"id": "ci", "name": "CI 结果",
              "detail": "data/ci/status.json（由 scripts/sync_ci_status.py 或 30 分钟周期任务同步 gh 结果）；"
                        "超过 2 小时未同步按不可用（最后同步时间见 coverage.ci）"},
+            {"id": "probe", "name": "依赖主动探测",
+             "detail": "已启用通道（SMTP/webhook）与 LLM 端点的 TCP/TLS 握手，15 分钟一轮；"
+                       "不发信、不登录；失败按类别报警（data/monitoring/dependency_probe.json）"},
             {"id": "channel", "name": "出站通道投递",
              "detail": "发送收口 ChannelInstaller.send_message 的成功/失败台账；"
                        "连续失败即报 critical，再成功发送一次自动恢复（停止使用该通道则不再报）"},
@@ -210,6 +266,8 @@ def alarms_coverage():
         # ② 感知面只有 enabled 开关，没有"最后一次事件是什么时候" ⇒ "没在感知"读起来像"没变化"。
         # 两个读数都只读本地文件、不联网、不创建任何实例；读不到就 available=false（不假装正常）。
         coverage["perception"] = _perception_gap()
+        coverage["probes"] = _probe_readout()
+        coverage["audit_full"] = _audit_full_readout()
         coverage["ci"] = _ci_gap()
         # 告警外发（2026-11-12）：开关 / 游标 / 待发条数（读不到就 available=false）
         coverage["notify"] = _notify_status()

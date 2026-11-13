@@ -208,33 +208,70 @@ def candidates(states: Optional[List[RuleState]] = None) -> List[dict]:
     return rows
 
 
+#: 只有外部 Prometheus scrape 才会产生的序列：本进程永远不生产它们（方案 C）。
+#: 【为什么单列（2026-11-13）】"10 条规则算不出来"里混着两种完全不同的原因：
+#:   - 3 条需要 up{} ⇒ 方案 C 下**永远不会评估**，是"设计如此"，不是故障；
+#:   - 7 条引用的进程内指标在重启/无流量时没有序列 ⇒ 是"暂时没有数据"。
+#: 混成一个数字会让人以为规则坏了 10 条，进而把整条规则面静音。拆开后：
+#: rules_blocked 只报**本可以评估、但这一轮没数据**的，rules_external 单独披露。
+EXTERNAL_SERIES = ("up",)
+
+#: 从"无序列: xxx"里取序列名（求值器的固定文案；取不到返回空串）
+_MISSING_PREFIX = "无序列: "
+
+
+def _missing_series(reason: str) -> str:
+    text = str(reason or "")
+    if not text.startswith(_MISSING_PREFIX):
+        return ""
+    return text[len(_MISSING_PREFIX):].strip()
+
+
 def coverage() -> Dict[str, object]:
-    """规则覆盖率：多少条**真的能求值**、多少条因为指标不存在/窗口不足算不了。
+    """规则覆盖率：多少条**真的能求值**、多少条算不了、以及**为什么**算不了。
 
     【为什么要有这个读数】"规则表里有 16 条"不等于"16 个面在被监控"。
-    本仓实测：16 条里只有 6 条的指标在本进程注册表里存在；其余 10 条引用的
-    up / llm_calls / tool_call / security_blocks / hallucination / eval_score
-    要么由外部 Prometheus 采集，要么本部署根本没有埋点。把这件事做成**接口读数**，
-    才不会重演"图上一片规则、实际一条也不会响"。
+    2026-11-13 复核时 16 条里只有 6 条能求值、10 条 blocked —— 其中 3 条是
+    up{}（方案 C 不接外部 Prometheus，按设计永远不会评估），另外 7 条是进程内
+    指标这一轮没有序列。把两者混成一个数字会让"设计如此"看起来像"全坏了"。
     """
     states = snapshot()
     by_state: Dict[str, int] = {}
     blocked = []
+    external = []
+    blocked_by_state: Dict[str, int] = {}
+    missing_metrics: Dict[str, int] = {}
     for row in states:
         state = str(row.get("state") or "")
         by_state[state] = by_state.get(state, 0) + 1
-        if state not in (STATUS_FIRING, STATE_PENDING, STATUS_OK):
-            blocked.append({"alert": row.get("alert"),
-                            "state": state,
-                            "state_label": STATUS_LABELS.get(state, state),
-                            "reason": row.get("reason") or ""})
+        if state in (STATUS_FIRING, STATE_PENDING, STATUS_OK):
+            continue
+        reason = str(row.get("reason") or "")
+        entry = {"alert": row.get("alert"),
+                 "state": state,
+                 "state_label": STATUS_LABELS.get(state, state),
+                 "reason": reason}
+        series = _missing_series(reason)
+        if series in EXTERNAL_SERIES:
+            entry["external"] = True
+            entry["why"] = "需要外部 Prometheus 的 up{}（方案 C 不接入，按设计不评估）"
+            external.append(entry)
+            continue
+        blocked.append(entry)
+        blocked_by_state[state] = blocked_by_state.get(state, 0) + 1
+        if series:
+            missing_metrics[series] = missing_metrics.get(series, 0) + 1
     evaluable = by_state.get(STATUS_FIRING, 0) + by_state.get(STATE_PENDING, 0) + by_state.get(STATUS_OK, 0)
     return {
         "rules_total": len(states),
         "rules_evaluable": evaluable,
         "rules_blocked": len(blocked),
+        "rules_external": len(external),
         "by_state": by_state,
         "blocked": blocked,
+        "blocked_by_state": blocked_by_state,
+        "missing_metrics": missing_metrics,
+        "external": external,
     }
 
 

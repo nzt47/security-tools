@@ -71,6 +71,24 @@ interface Consolidation {
   candidates?: ConsolidationCandidate[]
   notes?: string[]
   scanned_at?: string
+  /** v2（2026-11-13）：agent_memory 一路的完全重复、词面近重复、可省估算 */
+  agent_memory?: {
+    available?: boolean
+    total?: number
+    unique_contents?: number
+    duplicate_entries?: number
+    groups_total?: number
+    redundant_chars?: number
+    note?: string
+  }
+  near_duplicate_groups?: number
+  near_duplicate_candidates?: Array<{
+    similarity?: number
+    preview_a?: string
+    preview_b?: string
+    session?: string
+  }>
+  savings?: { estimated_redundant_chars?: number; estimated_tokens?: number; basis?: string }
 }
 
 interface ReviewResp {
@@ -383,6 +401,13 @@ export default function MemoryMaintenance() {
               <span className="text-slate-500">还没跑过 full 审查 —— 点「执行审查」</span>
             )}
           </div>
+          {consolidation && (
+            <div data-testid="consolidation-v2" className="mt-1 text-[10px] text-slate-400">
+              agent_memory {consolidation.agent_memory?.total ?? 0} 条 / 完全重复 {consolidation.agent_memory?.duplicate_entries ?? 0} 条
+              （{consolidation.agent_memory?.groups_total ?? 0} 组）· 词面近重复 {consolidation.near_duplicate_groups ?? 0} 组
+              · 可省（估算）{consolidation.savings?.estimated_redundant_chars ?? 0} 字符 ≈ {consolidation.savings?.estimated_tokens ?? 0} tokens
+            </div>
+          )}
           {consolidation?.candidates?.length ? (
             <ul className="space-y-0.5">
               {consolidation.candidates.slice(0, 3).map((c, i) => (

@@ -145,6 +145,7 @@ def scan(messages_path: Optional[str] = None, *, window_sec: float = DEFAULT_WIN
                     "last_ts": ts,
                     "content_sha256_12": _digest(text),
                     "preview": _preview(text),
+                    "chars": len(text),
                     "reason": "no_response_repeat",
                 }
                 groups[key] = group
@@ -156,8 +157,14 @@ def scan(messages_path: Optional[str] = None, *, window_sec: float = DEFAULT_WIN
 
     candidates = sorted(groups.values(), key=lambda g: (-g["count"], str(g["last_ts"])))
     repeat_lines = sum(g["count"] - 1 for g in candidates)
+    repeat_redundant_chars = sum((g["count"] - 1) * int(g.get("chars") or 0) for g in candidates)
 
     frozen = sum(1 for r in rows if not str(r.get("session_id") or "").strip())
+
+    # v2：两路额外扫描（都只读、零 token、不删）
+    agent_mem = scan_agent_memory()
+    near_dups = near_duplicate_candidates(rows)
+    estimated_redundant_chars = repeat_redundant_chars + int(agent_mem.get("redundant_chars") or 0)
 
     result: Dict[str, Any] = {
         "scanned_at": datetime.now().astimezone().isoformat(timespec="seconds"),
@@ -174,14 +181,165 @@ def scan(messages_path: Optional[str] = None, *, window_sec: float = DEFAULT_WIN
             "count": frozen,
             "note": "无 session_id 的历史池：按口径冻结（不迁移、不参与摘要），只统计条数",
         },
+        # ── v2（2026-11-13）：让"整理"有量化收益，而不只是把 3 组候选贴上去 ──
+        "agent_memory": {
+            "available": bool(agent_mem.get("available")),
+            "total": int(agent_mem.get("total") or 0),
+            "unique_contents": int(agent_mem.get("unique_contents") or 0),
+            "duplicate_entries": int(agent_mem.get("duplicate_entries") or 0),
+            "redundant_chars": int(agent_mem.get("redundant_chars") or 0),
+            "groups_total": int(agent_mem.get("groups_total") or 0),
+            "groups": agent_mem.get("groups") or [],
+            "note": agent_mem.get("note") or "",
+        },
+        "near_duplicate_groups": len(near_dups),
+        "near_duplicate_candidates": near_dups,
+        "savings": {
+            "estimated_redundant_chars": estimated_redundant_chars,
+            "estimated_tokens": int(round(estimated_redundant_chars / CHARS_PER_TOKEN)),
+            "basis": "仅估算『最近一次重复之后多出来的那份』的字符量，按 %.0f 字符≈1 token 折算；"
+                     "删除仍需人工确认，这里不代替决策" % CHARS_PER_TOKEN,
+        },
         "notes": [
             "只报告不删除：删除必须走人工 confirm",
             "同内容重复不等于噪音（例如『继续』×17 是用户真的说了 17 次）；本报告只把"
             "『时间窗内重复且中间没有任何回复』列为候选",
             "预览截断到 %d 字、内容只留 sha256 前 12 位（不落全文）" % PREVIEW_CHARS,
+            "v2 另扫两路：agent_memory.json 的完全重复、同会话 1 小时内的词面近重复"
+            "（字符二元组 Jaccard ≥ %.2f）；都没有删除动作" % NEAR_DUP_JACCARD,
         ],
     }
     return result
+
+
+
+
+# ── v2（2026-11-13）：agent_memory 一路 + 词面近重复 + 节省量估算 ──────────────
+#: 学习/传感器事件写进记忆的那一路（与对话分开治理，见 §11.103 F-2 分类②）
+DEFAULT_AGENT_MEMORY_REL = os.path.join("data", "memory", "agent_memory.json")
+#: 近重复判定：字符二元组 Jaccard ≥ 该值才算（只在同会话、1 小时窗内比较）
+NEAR_DUP_JACCARD = 0.85
+#: 只比较长度 ≥ 该值的文本（太短的一句话相似度高但没有整理价值）
+NEAR_DUP_MIN_CHARS = 40
+#: 每个候选组最多比较多少条（防 O(n²) 失控）
+NEAR_DUP_MAX_ROWS = 400
+#: 估算 token：中文 ≈ 1 字 1 token 的上界，这里按 **2 字符≈1 token** 保守估
+CHARS_PER_TOKEN = 2.0
+
+
+def _bigrams(text: str) -> set:
+    flat = "".join(str(text).split())
+    if len(flat) < 2:
+        return set()
+    return {flat[i:i + 2] for i in range(len(flat) - 1)}
+
+
+def _jaccard(a: set, b: set) -> float:
+    if not a or not b:
+        return 0.0
+    inter = len(a & b)
+    return inter / float(len(a) + len(b) - inter)
+
+
+def scan_agent_memory(path: Optional[str] = None, *, max_groups: int = 20) -> Dict[str, Any]:
+    """扫描 agent_memory.json 的**完全重复**条目（只读；只报 hash/预览/次数）。"""
+    root = _repo_root()
+    target = path or os.path.join(root, DEFAULT_AGENT_MEMORY_REL)
+    try:
+        with open(target, "r", encoding="utf-8", errors="replace") as handle:
+            raw = json.load(handle)
+    except (OSError, ValueError):
+        return {"available": False, "total": 0, "unique_contents": 0,
+                "duplicate_entries": 0, "groups": [], "reason": "read_failed"}
+    rows = raw if isinstance(raw, list) else (raw.get("memories") or [])
+    if not isinstance(rows, list):
+        return {"available": False, "total": 0, "unique_contents": 0,
+                "duplicate_entries": 0, "groups": [], "reason": "bad_shape"}
+    groups: Dict[str, Dict[str, Any]] = {}
+    chars_by_hash: Dict[str, int] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        text = _content(row)
+        if not text:
+            continue
+        digest = _digest(text)
+        chars_by_hash[digest] = len(text)
+        group = groups.get(digest)
+        if group is None:
+            groups[digest] = {"sha256_12": digest, "count": 1, "preview": _preview(text),
+                              "chars": len(text), "reason": "agent_memory_exact_repeat"}
+        else:
+            group["count"] += 1
+    candidates = [g for g in groups.values() if g["count"] > 1]
+    candidates.sort(key=lambda g: (-g["count"], -g["chars"]))
+    duplicate_entries = sum(g["count"] - 1 for g in candidates)
+    redundant = sum((g["count"] - 1) * g["chars"] for g in candidates)
+    return {
+        "available": True,
+        "total": len(rows),
+        "unique_contents": len(groups),
+        "duplicate_entries": duplicate_entries,
+        "redundant_chars": redundant,
+        "groups": candidates[:max_groups],
+        "groups_total": len(candidates),
+        "note": "内容相同不等于噪音；这里只报计数与 sha256 前 12 位，删除永远人工确认",
+    }
+
+
+def near_duplicate_candidates(rows: List[Dict[str, Any]], *,
+                              window_sec: float = 3600.0,
+                              threshold: float = NEAR_DUP_JACCARD,
+                              max_rows: int = NEAR_DUP_MAX_ROWS,
+                              max_candidates: int = MAX_CANDIDATES) -> List[Dict[str, Any]]:
+    """同会话、时间窗内**词面高度相似**的助手消息（字符二元组 Jaccard）。
+
+    【为什么不用 embedding】本地没有常驻向量服务，调外部 embedding = 花 token + 外发内容；
+    整理是每日/空闲的旁路，用可解释的词面相似度先给"候选"，判断仍由人做。
+    """
+    picked: List[Tuple[int, str, str, Optional[float]]] = []
+    for idx, row in enumerate(rows[:max_rows]):
+        role = str(row.get("role") or "").strip().lower()
+        if role not in _ASSISTANT_ROLES:
+            continue
+        text = _content(row)
+        if len(text) < NEAR_DUP_MIN_CHARS:
+            continue
+        picked.append((idx, str(row.get("session_id") or ""), text,
+                       _parse_ts(row.get("timestamp") or row.get("ts"))))
+    out: List[Dict[str, Any]] = []
+    seen: set = set()
+    for i in range(len(picked)):
+        idx_a, sid_a, text_a, ts_a = picked[i]
+        grams_a = _bigrams(text_a)
+        if not grams_a:
+            continue
+        for j in range(i + 1, len(picked)):
+            idx_b, sid_b, text_b, ts_b = picked[j]
+            if sid_a != sid_b:
+                continue
+            if ts_a is not None and ts_b is not None and abs(ts_b - ts_a) > window_sec:
+                continue
+            pair = (idx_a, idx_b)
+            if pair in seen:
+                continue
+            score = _jaccard(grams_a, _bigrams(text_b))
+            if score < threshold:
+                continue
+            seen.add(pair)
+            out.append({
+                "reason": "lexical_near_duplicate",
+                "session": sid_a[:12],
+                "similarity": round(score, 3),
+                "chars": min(len(text_a), len(text_b)),
+                "sha256_12_a": _digest(text_a),
+                "sha256_12_b": _digest(text_b),
+                "preview_a": _preview(text_a),
+                "preview_b": _preview(text_b),
+            })
+            if len(out) >= max_candidates:
+                return out
+    return out
 
 
 def write_report(result: Dict[str, Any], out_dir: Optional[str] = None) -> str:
@@ -244,6 +402,15 @@ def main(argv=None) -> int:
         for item in result["candidates"][:5]:
             print("  x%-3d %-9s %s  %s" % (item["count"], item["role"],
                                            item["content_sha256_12"], item["preview"]))
+        mem = result.get("agent_memory") or {}
+        print("agent_memory: %d 条 / 唯一 %d / 完全重复 %d 条（%d 组）"
+              % (mem.get("total", 0), mem.get("unique_contents", 0),
+                 mem.get("duplicate_entries", 0), mem.get("groups_total", 0)))
+        print("词面近重复: %d 组（同会话 1h 内，Jaccard ≥ %.2f）"
+              % (result.get("near_duplicate_groups", 0), NEAR_DUP_JACCARD))
+        savings = result.get("savings") or {}
+        print("可省（估算）: %d 字符 ≈ %d tokens（只估算，不删除）"
+              % (savings.get("estimated_redundant_chars", 0), savings.get("estimated_tokens", 0)))
     return 0
 
 

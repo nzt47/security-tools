@@ -50,6 +50,8 @@ export interface AlarmSummary {
   unread: number
   firing: number
   resolved: number
+  /** 已恢复但没人 ack（恢复是自动翻的，复核才是人的动作） */
+  resolved_unacked?: number
   firing_by_severity: Record<string, number>
 }
 

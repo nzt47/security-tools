@@ -125,7 +125,9 @@ class TestCoverage:
         cov = rule_engine.coverage()
         assert cov["rules_total"] == 16
         assert 0 <= cov["rules_evaluable"] <= 16
-        assert cov["rules_evaluable"] + cov["rules_blocked"] == 16
+        # 2026-11-13：up{} 类规则单列 external（方案 C 永不评估），不再算进 blocked
+        assert (cov["rules_evaluable"] + cov["rules_blocked"]
+                + cov["rules_external"]) == 16
 
 class Test延迟规则排除非交互端点:
     """2026-11-11：P99/P95 必须排除"耗时 ≠ 交互延迟"的端点（Owner 授权「分析后决定」）。

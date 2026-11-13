@@ -555,6 +555,55 @@ def read_channel_health() -> Optional[dict]:
             "updated_at": snap.get("updated_at")}
 
 
+#: 依赖面主动探测（2026-11-13）：只做 TCP/TLS 握手，不发信、不登录。
+#: 【为什么它不在"采集线程不联网"那条纪律里】那条纪律针对的是"每 60s 拉一次外部状态"；
+#: 这里的目标是**用户自己配的端点**、15 分钟一轮、超时 6s，而且探测跑在独立线程里，
+#: 采集线程只读快照 —— 网络慢不会把告警采集卡住。
+PROBE_KEY_PREFIX = "probe."
+
+
+def read_dependency_probe() -> Optional[dict]:
+    """读最近一轮依赖探测快照；还没跑过 ⇒ None（源不可用，不报警也不判恢复）。"""
+    try:
+        from agent.monitoring import dependency_probe
+        dependency_probe.start()  # 幂等；任何入口先跑一轮，避免"从来没测过"
+        return dependency_probe.snapshot()
+    except Exception as exc:  # noqa: BLE001 探测模块坏了不影响其它源
+        logger.warning("报警器：依赖探测读取失败（%s）", type(exc).__name__)
+        return None
+
+
+def probe_candidates(payload: Optional[dict]) -> List[dict]:
+    """探测失败 → 报警候选。
+
+    级别：通道类（告警发不出去 = 运维链路断）critical；其它端点 warning。
+    恢复：下一轮探测成功即没有候选 ⇒ 自动 resolve（与"已自动恢复"的语义一致）。
+    """
+    if not payload:
+        return []
+    from agent.monitoring.dependency_probe import CODE_LABELS, CODE_OTHER
+
+    out: List[dict] = []
+    for row in payload.get("results") or []:
+        if not isinstance(row, dict) or row.get("ok"):
+            continue
+        target_id = str(row.get("id") or "target").replace(":", ".")
+        kind = str(row.get("kind") or "target")
+        code = str(row.get("code") or "") or CODE_OTHER
+        label = CODE_LABELS.get(code, CODE_LABELS[CODE_OTHER])
+        out.append({
+            "key": PROBE_KEY_PREFIX + target_id,
+            "kind": "probe",
+            "severity": SEVERITY_CRITICAL if kind == "channel" else SEVERITY_WARNING,
+            "title": "依赖探测失败：" + target_id,
+            "detail": "%s 连不上：%s（耗时 %sms）。这是只做握手的探针，没发信也没登录。" % (
+                kind, label, row.get("ms", "—")),
+            "subject": target_id,
+            "source": "data/monitoring/dependency_probe.json",
+        })
+    return out
+
+
 def _short_ts(value: object) -> str:
     """ISO 时间戳压成 `YYYY-MM-DD HH:MM:SS`（台账里的值本来就是本地时区）。"""
     text = str(value or "")
@@ -653,6 +702,8 @@ def collect_once(store: Optional[AlarmStore] = None, *,
         # 2026-11-13（channel-delivery-alarm）：出站通道投递失败必须能被看见 ——
         # 此前"邮件发不出去"只回一行文案，铃铛不响（Owner 现场质疑）。
         "channel": read_channel_health,
+        # 依赖面主动探测（2026-11-13）：通道能发 ≠ 端点连得上；这一路回答"现在连得上吗"
+        "probe": read_dependency_probe,
     }
     if sources:
         readers.update(sources)
@@ -691,6 +742,8 @@ def collect_once(store: Optional[AlarmStore] = None, *,
             rows = ci_candidates(payload)  # type: ignore[arg-type]
         elif name == "channel":
             rows = channel_candidates(payload)  # type: ignore[arg-type]
+        elif name == "probe":
+            rows = probe_candidates(payload)  # type: ignore[arg-type]
         else:
             rows = audit_candidate(payload)  # type: ignore[arg-type]
         for row in rows:
@@ -701,7 +754,7 @@ def collect_once(store: Optional[AlarmStore] = None, *,
     keep = set(keep_keys)
     for name, prefix in (("health", "health."), ("units", "unit."), ("audit", "audit."),
                          ("rules", "rule."), ("scheduler", "scheduler."), ("ci", "ci."),
-                         ("channel", "channel.")):
+                         ("channel", "channel."), ("probe", PROBE_KEY_PREFIX)):
         if not checked.get(name):
             keep |= {k for k in _firing_keys(target) if k.startswith(prefix)}
 

@@ -66,6 +66,9 @@ export default function AlarmBell({ onOpenAll }: AlarmBellProps) {
   // 【2026-11-13】firing = 仍在发生的条数（含已读）。"暂无未读" ≠ "系统正常"：
   //   全部已读后 firing 仍可能 >0，旧文案「暂无未读报警（系统运行正常）」是误导。
   const [firing, setFiring] = useState(0)
+  // 【2026-11-13】resolved 是**自动**翻的（下一轮没再报出来），不代表有人看过根因。
+  //   resolved_unacked = "已恢复但没人确认" ⇒ 空态要把它说出来，避免绿色读成"已处理"。
+  const [resolvedUnacked, setResolvedUnacked] = useState(0)
   const [items, setItems] = useState<AlarmItem[]>([])
   const [open, setOpen] = useState(false)
   const [error, setError] = useState('')
@@ -80,6 +83,7 @@ export default function AlarmBell({ onOpenAll }: AlarmBellProps) {
       if (!mounted.current) return
       setUnread(Math.max(0, Number(countRes?.unread ?? 0)))
       setFiring(Math.max(0, Number(countRes?.summary?.firing ?? 0)))
+      setResolvedUnacked(Math.max(0, Number(countRes?.summary?.resolved_unacked ?? 0)))
       setItems(Array.isArray(listRes?.items) ? listRes.items : [])
       setError('')
     } catch (reason: unknown) {
@@ -87,6 +91,7 @@ export default function AlarmBell({ onOpenAll }: AlarmBellProps) {
       // 失败要上屏（不显示假未读）；保留上一轮 items 会造成"看起来还在"的错觉，故清空
       setUnread(0)
       setFiring(0)
+      setResolvedUnacked(0)
       setItems([])
       setError(errText(reason))
     }
@@ -185,7 +190,9 @@ export default function AlarmBell({ onOpenAll }: AlarmBellProps) {
             <p data-testid="alarm-empty" className="py-4 text-center text-[11px] text-slate-500">
               {firing > 0
                 ? '暂无未读报警 —— 但仍有 ' + firing + ' 条未恢复（见消息中心的告警记录）'
-                : '暂无未读报警'}
+                : resolvedUnacked > 0
+                  ? '暂无未读报警 —— ' + resolvedUnacked + ' 条已恢复但未复核（恢复是自动的，复核才是处理）'
+                  : '暂无未读报警'}
             </p>
           )}
 

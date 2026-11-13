@@ -395,6 +395,7 @@ class AlarmStore:
 
     def list(self, *, state: Optional[str] = None, unread_only: bool = False,
              kind: Optional[str] = None, limit: int = 200, offset: int = 0,
+             unacked_only: bool = False,
              now: Optional[datetime] = None) -> List[Dict[str, object]]:
         with self._lock:
             self._ensure_loaded()
@@ -405,6 +406,9 @@ class AlarmStore:
                 if kind and alarm.kind != kind:
                     continue
                 if unread_only and (alarm.read or alarm.silenced(now)):
+                    continue
+                # 「已恢复但没确认」——绿色「已自动恢复」不等于有人看过根因（§11.103 E）
+                if unacked_only and alarm.acked:
                     continue
                 rows.append(alarm.to_dict())
             return rows[offset:offset + limit]
@@ -434,6 +438,9 @@ class AlarmStore:
                 "unread": self.unread_count(now),
                 "firing": by_state.get(STATE_FIRING, 0),
                 "resolved": by_state.get(STATE_RESOLVED, 0),
+                # 「已恢复待复核」= resolved 且没人 ack 过。恢复是自动翻的，复核是人的动作。
+                "resolved_unacked": sum(1 for a in self._alarms.values()
+                                        if a.state == STATE_RESOLVED and not a.acked),
                 "firing_by_severity": by_severity,
             }
 

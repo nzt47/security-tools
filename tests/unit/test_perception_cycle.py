@@ -243,6 +243,18 @@ def test_gap_summary_reports_ages(tmp_path):
     assert gap["last_novelty_age_seconds"] == 100.0
 
 
+def test_gap_summary_declares_perception_scope(tmp_path):
+    """感知面要把"刻意不采"的面写出来（隐私面不能是静默盲区）。"""
+    _write_status(tmp_path / "s.json", ts="2026-11-13T10:00:00+08:00", file_event=None)
+    gap = pc.gap_summary(status_path=tmp_path / "s.json", memory_dir=str(tmp_path), now=NOW)
+    scope = gap["scope"]
+    assert scope["watch_dirs"] == ["/k"]
+    assert any("SENSOR_WATCH_DIRS" in item for item in scope["configurable_via"])
+    surfaces = {item["surface"] for item in scope["excluded"]}
+    assert "剪贴板" in surfaces and "邮件与浏览历史" in surfaces
+    assert all(item["decision"] for item in scope["excluded"])
+
+
 def test_gap_summary_marks_long_silence_only_when_known(tmp_path):
     status = tmp_path / "s.json"
     _write_status(status, ts="1970-01-01T00:00:00+00:00",

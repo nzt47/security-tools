@@ -3051,6 +3051,11 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        "是否也外发 warning 级告警（默认关）：warning 数量天然多，全外发会变成噪音源；"
        "建议先对某个通道观察一段时间再开（agent/alarms/notify.py）",
        owner="agent/alarms/notify.py"),
+    _a("CP_ALARM_NOTIFY_WARNING_DIGEST", CAT_OBSERVABILITY, True,
+       "warning 摘要外发（默认开）：不再逐条发，而是**每小时最多一条**汇总，"
+       "列出积压的 warning 键与次数；留空=开，0/false/no/off 关闭。"
+       "30 分钟内无新增不发（agent/alarms/notify.py dispatch_warning_digest）",
+       owner="agent/alarms/notify.py"),
 
     # · 日志异常基线采样（2026-11-12 v2）：探针只读基线，周期任务写基线
     _a("CP_LOG_BASELINE_INTERVAL_SECONDS", CAT_OBSERVABILITY, 1800,

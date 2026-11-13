@@ -37,6 +37,33 @@ def _raise(store: AlarmStore, key="health.l3_llm_tool", **kw):
     return store.raise_alarm(key, now=T0, **args)
 
 
+class TestResolvedReview:
+    """「已恢复」是自动翻的；复核是人的动作（2026-11-13）。"""
+
+    def test_恢复未确认计入_resolved_unacked(self, store):
+        _raise(store)
+        store.resolve("health.l3_llm_tool", now=T0)
+        summary = store.summary()
+        assert summary["resolved"] == 1
+        assert summary["resolved_unacked"] == 1
+
+    def test_确认后不再计入(self, store):
+        alarm = _raise(store)
+        store.resolve("health.l3_llm_tool", now=T0)
+        store.ack(alarm.id, by="owner")
+        assert store.summary()["resolved_unacked"] == 0
+
+    def test_unacked_only_只回未确认(self, store):
+        a = _raise(store)
+        _raise(store, key="unit.skills", kind="unit", title="技能异常")
+        store.resolve("health.l3_llm_tool", now=T0)
+        store.resolve("unit.skills", now=T0)
+        store.ack(a.id, by="owner")
+
+        rows = store.list(state=STATE_RESOLVED, unacked_only=True)
+        assert [r["key"] for r in rows] == ["unit.skills"]
+
+
 class TestRaiseAndDedupe:
     def test_首次上报生成_firing_且未读(self, store):
         alarm = _raise(store)

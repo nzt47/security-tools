@@ -60,6 +60,8 @@ IDLE_TIMEOUT_SEC = 300.0
 IDLE_MAX_CPU_PERCENT = 20.0
 #: 排队补跑的检查间隔（秒）——调度器里注册成 interval 任务
 DRAIN_INTERVAL_SEC = 600
+#: 空闲记忆整理的间隔（秒）：6 小时一轮；不空闲就跳过（不排队——整理过期没有"必须在今天做"的语义）
+CONSOLIDATION_INTERVAL_SEC = 6 * 3600
 #: 兜底时刻（小时）：到这个点还没跑就**强制**跑一次（不能让"忙"变成"今天不做"）
 FALLBACK_HOUR = WORK_WINDOW_END
 #: 待办文件（运行期状态；gitignore 的 data/ 下）
@@ -134,6 +136,28 @@ JOBS: List[Dict[str, Any]] = [
         "json": {"days": 7, "max_skills": 3},
         # 零 token（聚类 + 模板生成，不调 LLM）；**只写草稿**，登记/启用仍在转化队列。
         "note": "把最近 7 天记忆聚类后只产草稿（source=learning）；不注册、不启用",
+    },
+    {
+        "key": "audit_full_verify",
+        "name": "维护·审计全链核验",
+        "hour": 11,
+        "minute": 20,
+        "kind": "shell",
+        "argv": [
+            sys.executable, "scripts/audit_chain_verify_job.py", "--json",
+        ],
+        "note": "完整性三门（G2 全链重算 / G3 日根 / G4 口径）；G1 属治理门，报告写 data/maintenance/audit",
+    },
+    {
+        "key": "memory_longterm_archive",
+        "name": "维护·长期记忆归档",
+        "hour": 12,
+        "minute": 20,
+        "kind": "shell",
+        "argv": [
+            sys.executable, "-m", "agent.memory.ltm_archive", "--json",
+        ],
+        "note": "把非空压缩摘要 upsert 进 long_term.db（零 token、只读源文件）",
     },
     {
         "key": "health_snapshot",
@@ -325,6 +349,27 @@ def idle_state() -> Dict[str, Any]:
                 "degraded": True, "idle_seconds": None, "cpu_percent": None}
 
 
+def consolidation_tick() -> Dict[str, Any]:
+    """空闲时跑一次记忆整理（只读、只报告），不空闲就跳过。永不抛。"""
+    idle = idle_state()
+    if not idle.get("is_idle"):
+        logger.info("[zero-token] 记忆整理跳过：当前不空闲（%s）", idle.get("reason"))
+        return {"ok": True, "skipped": True, "reason": idle.get("reason") or "busy"}
+    try:
+        from agent.memory.consolidation import scan, write_report
+        result = scan()
+        path = write_report(result)
+        savings = result.get("savings") or {}
+        return {"ok": True, "skipped": False, "report": path,
+                "no_response_groups": result.get("no_response_repeat_groups", 0),
+                "agent_memory_duplicates": (result.get("agent_memory") or {}).get("duplicate_entries", 0),
+                "near_duplicate_groups": result.get("near_duplicate_groups", 0),
+                "estimated_tokens": savings.get("estimated_tokens", 0)}
+    except Exception as exc:  # noqa: BLE001 整理失败只记日志，不影响调度线程
+        logger.warning("[zero-token] 记忆整理失败（%s）", type(exc).__name__)
+        return {"ok": False, "detail": type(exc).__name__}
+
+
 def drain_pending() -> Dict[str, Any]:
     """把排队的作业在空闲时补跑一次；到 FALLBACK_HOUR 之后强制跑。永不抛。"""
     state = _load_pending()
@@ -443,8 +488,18 @@ def register_zero_token_jobs(scheduler: Any) -> List[str]:
             # UI 上标注「零 token」，并记录归属模块（谁注册的、出问题找谁）
             zero_token=True,
             owner="agent/maintenance/zero_token_jobs.py",
+            zero_token_note=job.get("note", ""),
         )
         registered.append(job["key"])
+    # 空闲记忆整理（2026-11-13）：每 6 小时一次，**只在空闲时**跑；只读扫描 + 报告，
+    # 不删除任何东西（口径见 agent/memory/consolidation.py）。不排队：整理没有"今天必须做"。
+    scheduler.add_interval_task(
+        name="维护·记忆整理",
+        func=consolidation_tick,
+        interval_seconds=CONSOLIDATION_INTERVAL_SEC,
+        zero_token=True,
+        owner="agent/maintenance/zero_token_jobs.py",
+    )
     # 空闲补跑：每 10 分钟看一眼排队里的作业（到点不空闲就排队，见 run_job / drain_pending）
     scheduler.add_interval_task(
         name="维护·空闲补跑",

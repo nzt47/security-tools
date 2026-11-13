@@ -450,6 +450,32 @@ def _age_seconds(iso_text: Optional[str], now: float) -> Optional[float]:
         return None
 
 
+#: 感知面「刻意不采」的清单（2026-11-13）：把隐私面从"静默盲区"变成"显式决定"。
+#: 口径：感知面负责**文件输入**；系统指标归 health 五层，外设归 BodySensor。
+PERCEPTION_EXCLUDED = (
+    {"surface": "剪贴板",
+     "why": "常含口令/验证码/私密文本，采了就必须加密与留存治理",
+     "decision": "不采"},
+    {"surface": "邮件与浏览历史",
+     "why": "隐私 + 需要外部凭据与服务授权；本机不接",
+     "decision": "不采"},
+    {"surface": "桌面窗口标题/截屏",
+     "why": "会记录用户正在看什么；sensor/window_sensor 只在显式调用时采，不做常驻",
+     "decision": "按需（不常驻）"},
+)
+
+
+def _scope_block(watch_dirs: List[str]) -> Dict[str, Any]:
+    """感知面的范围读数：监听哪些目录、还能怎么加、哪些面刻意不采。"""
+    return {
+        "watch_dirs": list(watch_dirs or []),
+        "configurable_via": ["SENSOR_WATCH_DIRS（环境变量，逗号/分号分隔）",
+                             "config.yaml: sensor.watch_dirs"],
+        "excluded": [dict(item) for item in PERCEPTION_EXCLUDED],
+        "note": "感知面 = 文件输入面；系统指标由 health 五层采集、外设由 BodySensor 采集",
+    }
+
+
 def gap_summary(*, status_path: Optional[Path] = None,
                 memory_dir: Optional[str] = None,
                 now: Optional[float] = None) -> Dict[str, Any]:
@@ -465,6 +491,7 @@ def gap_summary(*, status_path: Optional[Path] = None,
         return {
             "available": False,
             "watch_dirs": [],
+            "scope": _scope_block([]),
             "watcher_running": False,
             "last_tick_at": None,
             "last_file_event_at": None,
@@ -493,6 +520,7 @@ def gap_summary(*, status_path: Optional[Path] = None,
     return {
         "available": True,
         "watch_dirs": dirs,
+        "scope": _scope_block(dirs),
         "watcher_running": running,
         "last_tick_at": status.get("ts"),
         "last_tick_age_seconds": tick_age,

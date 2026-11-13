@@ -136,6 +136,24 @@ class TestRulesEndpoints:
         rule_engine.reset_states()
 
 
+class TestReviewFilter:
+    def test_review_unacked_只回未复核(self, client, store):
+        a = _seed(store)
+        _seed(store, key="unit.skills", kind="unit", severity="warning", title="技能异常")
+        store.resolve(a.key)
+        store.resolve("unit.skills")
+        store.ack(a.id, by="owner")
+
+        payload = _data(client.get("/api/alarms/list?review=unacked&state=resolved"))
+        assert [row["key"] for row in payload["items"]] == ["unit.skills"]
+        assert payload["summary"]["resolved_unacked"] == 1
+
+    def test_review_参数未知时不改变结果(self, client, store):
+        _seed(store)
+        payload = _data(client.get("/api/alarms/list?review=whatever"))
+        assert payload["total"] == 1
+
+
 class TestWriteEndpoints:
     def test_已读_确认_静默(self, client, store):
         alarm = _seed(store)
