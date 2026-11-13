@@ -238,6 +238,9 @@ docs/observability/boundary_coverage_report.md
 *.db-journal
 agent/data/tool_trace.db
 data/memory/long_term.db
+# 【2026-11-14】外部会话「全话」迁移的运行时状态：会话指纹台账 + 每次报告。
+# 报告只有计数、台账只是 mtime/size；没有版本可回，写坏按源重扫即可重建。
+data/memory/import_sessions/
 data/skill_vectors/
 
 # 跨进程锁 / 预留日志（TASK-S8-02）：与所保护的运行时库同生命周期。
