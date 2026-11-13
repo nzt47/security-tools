@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-13T22:35:51+08:00",
+ "updated_at": "2026-11-14T00:32:01+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -691,6 +691,14 @@
    "title": "单位 workflows.store 恒 never：0 条工作流（产品未使用，不是监控缺口）",
    "criteria": "2026-11-13 复核：GET /api/system/units 里 workflows.store = never「尚无工作流（0 条）· 无数据，不计分」。按口径 never 不计分；本轮把 memory.longterm 从 never 变成 ok（压缩摘要归档进 long_term.db，2 行），但工作流没有任何内置/示例条目，单位永远不会有数据。 【2026-11-13 落地】① 探针 bug：probe_workflows 只认 {\"workflows\":[...]} 包装，而仓库落盘是扁平 {id:{...}} ⇒ 有 9 条也恒读 0（这就是 never 的真正原因，已修，并新增两种形态的用例）；② 首批 4 条**只读模板**补种：tpl-repo-overview / tpl-todo-scan / tpl-lint-check / tpl-memory-recall（enabled=False + draft，落库≠上线）；③ 新增零 token 作业「维护·工作流模板补种」13:20（幂等只补缺）。",
    "next": "已收口。要加模板：往 agent/workflow_learning/templates.py 的 BUILTIN_TEMPLATES 追加，再跑 python -m agent.workflow_learning.templates --seed --json；启用/删除仍由人决定。"
+  },
+  {
+   "id": "agent-session-migration",
+   "status": "open",
+   "priority": "P2",
+   "title": "把 Trae / Claude / DeepSeek Harness 的会话迁进云枢，作为云枢的「全话」（完整转录，不是提炼批次）",
+   "criteria": "2026-11-14 复核：已有 agent/memory_import（readers/claude.py、readers/trae.py、readers/leveldb.py；service.preview/commit；targets 只写知识卡片/长期记忆），**没有**把完整转录写成云枢会话的路径。三种源：①Claude ~/.claude/**/*.jsonl（本机 72 文件/53MB）；②DSH ~/.dsh/sessions/<slug>/<uuid>/session.jsonl.zstd（本机 agent 项目 511 个会话，python zstandard 0.25.0 可用）；③Trae %APPDATA%/Trae、Trae CN、~/.trae（reader 已在）。全话落点应是 data/messages.jsonl （带 session_id ⇒ 不进未分会话冻结池），字段 role/content/timestamp/session_id + source/imported_at/原会话 id。",
+   "next": "建议顺序 DSH → Claude → Trae：①agent/memory_import/readers/dsh.py 解 zstd jsonl 产出统一 TranscriptMessage；②agent/memory_import/transcript.py 幂等写 data/messages.jsonl（key=import:<source>:<session_id>:<n>，先 redact，dry-run 只报计数）；③POST /api/memory/import/sessions {source,dry_run} + 最近报告；④记忆运维页卡片。口径：只读源、不删不改、零 token、凭据进 redact 不进日志、重跑只补新增、单文件上限。"
   }
  ]
 }
