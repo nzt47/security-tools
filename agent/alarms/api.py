@@ -175,7 +175,7 @@ def alarms_coverage():
         from agent.alarms.collector import last_stats
         sources = [
             {"id": "health", "name": "健康五层探针", "detail": "L1/L2/L3/L4 低于阈值报警；L5 无数据不报警"},
-            {"id": "units", "name": "功能单位看板", "detail": "12 个单位，只报 warn/error（never/off 不报）"},
+            {"id": "units", "name": "功能单位看板", "detail": "全部单位，只报 warn/error（never/off 不报）"},
             {"id": "rules", "name": "告警规则（alerts.yml）", "detail": "16 条 PromQL 子集在本进程求值"},
             {"id": "audit", "name": "审计链", "detail": "尾部 500 条重算不一致 = critical（每小时最多一次）"},
             {"id": "scheduler", "name": "计划任务",
@@ -183,6 +183,9 @@ def alarms_coverage():
             {"id": "ci", "name": "CI 结果",
              "detail": "data/ci/status.json（由 scripts/sync_ci_status.py 或 30 分钟周期任务同步 gh 结果）；"
                        "超过 2 小时未同步按不可用（最后同步时间见 coverage.ci）"},
+            {"id": "channel", "name": "出站通道投递",
+             "detail": "发送收口 ChannelInstaller.send_message 的成功/失败台账；"
+                       "连续失败即报 critical，再成功发送一次自动恢复（停止使用该通道则不再报）"},
         ]
         coverage = {
             "sources": sources,

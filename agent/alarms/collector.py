@@ -20,6 +20,9 @@
    （读执行历史，不触发执行；同一任务多次失败合并成一条，次数与最后一条错误进 detail）。
 6. CI 结果（2026-11-11）→ `data/ci/status.json`（`scripts/sync_ci_status.py` 用 gh 同步）。
    采集线程**不联网、不起子进程**：文件缺失或超过 2 小时未同步 ⇒ 本轮回"不可用"（不报警也不判恢复）。
+7. 出站通道投递（2026-11-13）→ `data/extensions/channel_health.json`（由发送收口
+   `ChannelInstaller.send_message` 记账）。连续失败达到阈值即报 `channel.<通道>`（critical）：
+   在这之前"通道发不出去"只有当时点按钮的人看得见，顶栏铃铛一声不响。
 
 【纪律】
 - 单轮失败只记日志，不中断循环（与健康采集线程同族）；
@@ -525,6 +528,78 @@ def ci_candidates(payload: Optional[dict]) -> List[dict]:
     return out
 
 
+#: 出站通道投递健康（2026-11-13）：由 `ChannelInstaller.send_message` 在收口记账。
+#: 【为什么不做成"定时发测试邮件"】那会把"监控"变成给 Owner 刷邮件；真实发送失败已经
+#: 是最强的信号。这里只读台账 + 通道启用状态，不发送任何东西。
+def read_channel_health() -> Optional[dict]:
+    """读投递台账与通道启用状态；任一读不到 ⇒ None（源不可用，不报警也不判恢复）。"""
+    try:
+        from agent.extensions import channel_health
+        snap = channel_health.snapshot()
+    except Exception as exc:  # noqa: BLE001 台账坏了不影响其它源
+        logger.warning("报警器：通道投递台账读取失败（%s）", type(exc).__name__)
+        return None
+    if snap is None:
+        return None
+    try:
+        from agent.extensions.channels_installer import ChannelInstaller
+        from agent.extensions.store import ExtensionStore
+        installer = ChannelInstaller(ExtensionStore())
+        enabled = [str(row.get("ext_id")) for row in (installer.list_installed_channels() or [])
+                   if isinstance(row, dict) and row.get("ext_id")
+                   and installer.is_channel_enabled(row)]
+    except Exception as exc:  # noqa: BLE001 扩展存储坏了 ⇒ 无法判断"该不该报"，交给 keep
+        logger.warning("报警器：通道启用状态读取失败（%s）", type(exc).__name__)
+        return None
+    return {"channels": snap.get("channels") or {}, "enabled": enabled,
+            "updated_at": snap.get("updated_at")}
+
+
+def _short_ts(value: object) -> str:
+    """ISO 时间戳压成 `YYYY-MM-DD HH:MM:SS`（台账里的值本来就是本地时区）。"""
+    text = str(value or "")
+    return text[:19].replace("T", " ") if text else ""
+
+
+def channel_candidates(payload: Optional[dict]) -> List[dict]:
+    """出站通道：连续失败达阈值 ⇒ critical。
+
+    【只报仍启用的通道】用户有意停用/卸载一个通道时，这条告警应当消失（那是配置决定，
+    不是运行故障）；否则一个"不再使用"的坏通道会让告警永久红着，最后被静音。
+    【恢复语义】成功发送一次 ⇒ 台账清零 ⇒ 下一轮没有候选 ⇒ 自动 resolve
+    （仍是「已自动恢复」那个含义：不代表根因查过，只代表最近一次发送成功了）。
+    """
+    if not payload:
+        return []
+    from agent.extensions.channel_health import (
+        CODE_LABELS, CODE_OTHER, FAIL_ALARM_THRESHOLD,
+    )
+
+    enabled = {str(item) for item in (payload.get("enabled") or [])}
+    out: List[dict] = []
+    for channel_id, row in (payload.get("channels") or {}).items():
+        cid = str(channel_id)
+        if cid not in enabled or not isinstance(row, dict):
+            continue
+        failures = int(row.get("consecutive_failures") or 0)
+        if failures < FAIL_ALARM_THRESHOLD:
+            continue
+        code = str(row.get("last_code") or "") or CODE_OTHER
+        last_ok = _short_ts(row.get("last_ok_at")) or "从未成功"
+        out.append({
+            "key": "channel." + cid,
+            "kind": "channel",
+            "severity": SEVERITY_CRITICAL,
+            "title": "出站通道发送失败：" + cid,
+            "detail": ("连续失败 %d 次；最近错误：%s；最近成功：%s。"
+                       "修好后再成功发送一次即自动恢复。" % (
+                           failures, CODE_LABELS.get(code, CODE_LABELS[CODE_OTHER]), last_ok)),
+            "subject": cid,
+            "source": "data/extensions/channel_health.json",
+        })
+    return out
+
+
 def read_audit_verification() -> Optional[dict]:
     """审计链尾部核验（每小时最多一次；其余轮次复用上次结果）"""
     global _last_audit_at, _last_audit_ok
@@ -575,6 +650,9 @@ def collect_once(store: Optional[AlarmStore] = None, *,
         # 两者都**只读本地状态**（执行历史文件 / gh 同步出的状态文件），采集线程不联网、不起子进程。
         "scheduler": read_scheduler_failures,
         "ci": read_ci_status,
+        # 2026-11-13（channel-delivery-alarm）：出站通道投递失败必须能被看见 ——
+        # 此前"邮件发不出去"只回一行文案，铃铛不响（Owner 现场质疑）。
+        "channel": read_channel_health,
     }
     if sources:
         readers.update(sources)
@@ -611,6 +689,8 @@ def collect_once(store: Optional[AlarmStore] = None, *,
             rows = scheduler_candidates(payload)  # type: ignore[arg-type]
         elif name == "ci":
             rows = ci_candidates(payload)  # type: ignore[arg-type]
+        elif name == "channel":
+            rows = channel_candidates(payload)  # type: ignore[arg-type]
         else:
             rows = audit_candidate(payload)  # type: ignore[arg-type]
         for row in rows:
@@ -620,7 +700,8 @@ def collect_once(store: Optional[AlarmStore] = None, *,
     #   数据源不可用时传空 candidates 会让旧告警被误判为恢复（伪造"已恢复"）。
     keep = set(keep_keys)
     for name, prefix in (("health", "health."), ("units", "unit."), ("audit", "audit."),
-                         ("rules", "rule."), ("scheduler", "scheduler."), ("ci", "ci.")):
+                         ("rules", "rule."), ("scheduler", "scheduler."), ("ci", "ci."),
+                         ("channel", "channel.")):
         if not checked.get(name):
             keep |= {k for k in _firing_keys(target) if k.startswith(prefix)}
 

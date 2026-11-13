@@ -248,6 +248,42 @@ class ChannelInstaller:
             return SEND_ERR_TIMEOUT
         return SEND_ERR_GENERIC
 
+    @staticmethod
+    def _send_error_code(exc: Optional[BaseException]) -> str:
+        """异常 → 投递台账的**类别**（与 _send_error_reason 同判据，台账只存类别不存原文）。"""
+        import smtplib
+        import ssl
+        from agent.extensions import channel_health as health  # 延迟 import：避免包级循环
+
+        if isinstance(exc, smtplib.SMTPAuthenticationError):
+            return health.CODE_AUTH
+        if isinstance(exc, ssl.SSLError) or "handshake" in str(exc).lower():
+            return health.CODE_TLS
+        if isinstance(exc, smtplib.SMTPServerDisconnected):
+            return health.CODE_DISCONNECTED
+        if isinstance(exc, (TimeoutError, ConnectionError)):
+            return health.CODE_TIMEOUT
+        return health.CODE_OTHER
+
+    @classmethod
+    def _record_delivery(cls, channel_id: str, *, success: bool,
+                         exc: Optional[BaseException] = None) -> None:
+        """把这次投递结果写进 channel_health（旁路：失败只记日志，绝不影响发送）。
+
+        【为什么在发送收口记账】手动发送、报警外发、覆盖缺口外发三条链路最终都走
+        `send_message`；在调用方各记一次会漏（2026-11-12 的教训：同一件事两处写点必漂）。
+        """
+        try:
+            from agent.extensions import channel_health
+            if success:
+                channel_health.record_success(channel_id)
+            else:
+                channel_health.record_failure(channel_id, cls._send_error_code(exc))
+        except Exception as e:  # noqa: BLE001 记账坏掉不能让"发消息"失败
+            logger.debug(log_dict({'module_name': 'channels_installer',
+                                   'action': 'channel_health_record_failed',
+                                   'msg': f'[通道安装器] 投递台账写入跳过: {type(e).__name__}'}))
+
     def send_message(
         self, channel_id: str, message: str, *, retry_transient: bool = False, **kwargs
     ) -> Tuple[bool, str]:
@@ -283,8 +319,6 @@ class ChannelInstaller:
         for attempt in range(attempts):
             try:
                 result = handler(config, message, **kwargs)
-                logger.info(log_dict({'module_name': 'channels_installer', 'action': 'channel_id', 'msg': f'[通道安装器] 消息发送成功: {channel_id}'}))
-                return True, f"消息已发送: {result}"
             except Exception as e:  # noqa: BLE001 通道实现各异，失败要如实回给调用方
                 last_exc = e
                 # 原文只进日志（响应里只给类别 + 下一步，见 _send_error_reason）
@@ -293,6 +327,14 @@ class ChannelInstaller:
                 if not retry_transient or not self._is_transient_send_error(e) or attempt + 1 >= attempts:
                     break
                 time.sleep(SEND_RETRY_BACKOFF_SEC)
+                continue
+            logger.info(log_dict({'module_name': 'channels_installer', 'action': 'channel_id', 'msg': f'[通道安装器] 消息发送成功: {channel_id}'}))
+            # 投递台账（2026-11-13）：成功 ⇒ 连续失败清零（告警下一轮自动恢复）
+            self._record_delivery(channel_id, success=True)
+            return True, f"消息已发送: {result}"
+        # 投递台账（2026-11-13）：重试之后仍失败 ⇒ 记一次失败（只存类别），
+        # 采集线程据此报 channel.<通道>，不再"只有点按钮的人知道"。
+        self._record_delivery(channel_id, success=False, exc=last_exc)
         return False, self._send_error_reason(last_exc) if last_exc is not None else SEND_ERR_GENERIC
 
     def _get_default_handler(self, channel_type: str) -> Optional[Callable]:

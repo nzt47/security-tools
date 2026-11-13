@@ -47,6 +47,9 @@ def _hermetic_optional_sources(monkeypatch):
     monkeypatch.setattr(collector, "read_audit_verification", lambda: {"ok": True})
     monkeypatch.setattr(collector, "read_health_point", lambda: None)
     monkeypatch.setattr(collector, "read_units", lambda: None)
+    # 出站通道投递（2026-11-13）同样是"默认源"：本机真实台账里就有失败记录时，
+    # 它会把 raised 顶高。编排逻辑用例只测注入的源。
+    monkeypatch.setattr(collector, "read_channel_health", lambda: None)
     # 告警外发（2026-11-12）也是"默认源"：不 patch 的话会去读**生产**的
     # data/alarms/events.jsonl 并推进游标（测试污染生产台账）
     from agent.alarms import notify as alarm_notify
