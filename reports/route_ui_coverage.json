@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-11-12T21:14:07",
+  "generated_at": "2026-11-14T00:58:21",
   "totals": {
-    "routes": 509,
-    "live": 509,
+    "routes": 512,
+    "live": 512,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 452,
+    "ui": 455,
     "cli_script": 15,
     "runtime_only": 11,
     "unreferenced": 31,
     "live_by_category": {
-      "ui": 452,
+      "ui": 455,
       "cli_script": 15,
       "runtime_only": 11,
       "unreferenced": 31
     },
     "by_intent": {
       "should_be_in_ui": 422,
-      "should_not_be_in_ui": 73,
+      "should_not_be_in_ui": 76,
       "unclassified": 14
     },
     "by_domain": {
@@ -34,10 +34,10 @@
       "技能与工具": 136,
       "认知与学习": 6,
       "开发与内部": 14,
-      "记忆与知识": 39
+      "记忆与知识": 42
     }
   },
-  "frontend_endpoints": 456,
+  "frontend_endpoints": 459,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -63,7 +63,7 @@
         "scripts/_check_page.py"
       ],
       "where": [
-        "app_server.py:2040"
+        "app_server.py:2069"
       ],
       "description": "首页：重定向到统一工作台（2026-10-03 R0-b legacy 收敛）。",
       "description_source": "handler",
@@ -276,7 +276,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/alarms/api.py:234"
+        "agent/alarms/api.py:306"
       ],
       "description": "确认（ack）：表示\"人已知悉\"，与已读分开记（谁、何时）",
       "description_source": "handler",
@@ -302,7 +302,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/alarms/api.py:218"
+        "agent/alarms/api.py:290"
       ],
       "description": "标记一条已读",
       "description_source": "handler",
@@ -328,7 +328,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/alarms/api.py:245"
+        "agent/alarms/api.py:317"
       ],
       "description": "静默 N 分钟（默认 60；上限 24h）。不改状态、不删除，到期自动重新计入未读。",
       "description_source": "handler",
@@ -351,7 +351,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/alarms/api.py:257"
+        "agent/alarms/api.py:329"
       ],
       "description": "手动跑一轮采集（诊断/验收用；后台线程正常情况下每分钟自己跑）",
       "description_source": "handler",
@@ -375,10 +375,11 @@
         "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [
-        "scripts/handoff_snapshot.py"
+        "scripts/handoff_snapshot.py",
+        "scripts/yunshu_observe.py"
       ],
       "where": [
-        "agent/alarms/api.py:153"
+        "agent/alarms/api.py:210"
       ],
       "description": "报警器覆盖读数：事件源清单 + 规则覆盖率 + 上一轮采集统计 + 两个\"静默缺口\"。",
       "description_source": "handler",
@@ -403,7 +404,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/alarms/api.py:59"
+        "agent/alarms/api.py:61"
       ],
       "description": "报警列表（当前态）。state=firing|resolved，unread_only=1，kind=health|unit|audit",
       "description_source": "handler",
@@ -428,7 +429,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/alarms/api.py:227"
+        "agent/alarms/api.py:299"
       ],
       "description": "全部标记已读",
       "description_source": "handler",
@@ -453,7 +454,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/alarms/api.py:91"
+        "agent/alarms/api.py:95"
       ],
       "description": "规则求值状态 + 覆盖率（哪些规则真能算、哪些因为没指标/没样本算不了）",
       "description_source": "handler",
@@ -478,7 +479,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/alarms/api.py:80"
+        "agent/alarms/api.py:84"
       ],
       "description": "未读数（铃铛徽标用；静默中的不计入）",
       "description_source": "handler",
@@ -1006,7 +1007,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:477"
+        "plugins/admin_api.py:503"
       ],
       "description": "登录：校验口令（环境变量优先）+ 签发**带签名**的会话令牌。",
       "description_source": "handler",
@@ -1031,7 +1032,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:526"
+        "plugins/admin_api.py:552"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -2449,7 +2450,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:873"
+        "plugins/admin_api.py:899"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -3027,7 +3028,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:888"
+        "plugins/admin_api.py:914"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -3877,7 +3878,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:1718"
+        "app_server.py:1747"
       ],
       "description": "混合检索器（embedding worker）健康状态（**只读**；永不 500）。",
       "description_source": "handler",
@@ -4454,7 +4455,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:973"
+        "plugins/memory.py:991"
       ],
       "description": "添加知识文档（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -5148,6 +5149,81 @@
       "domain": "记忆与知识"
     },
     {
+      "path": "/api/memory/import/sessions",
+      "norm": "/api/memory/import/sessions",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_memory_sessions.py:99"
+      ],
+      "description": "按来源迁移会话：默认 dry-run；真写必须 confirm=true 且 dry_run=false。",
+      "description_source": "handler",
+      "intent": "should_not_be_in_ui",
+      "intent_area": "记忆库",
+      "intent_note": "后端为占位实现（api_memory_delete_index 只回 ok，不落删除）。给「删除」做按钮等于对用户撒谎，故先不接；待后端补全真删除后再改判并接线。",
+      "ui_pending": false,
+      "domain": "记忆与知识"
+    },
+    {
+      "path": "/api/memory/import/sessions/latest",
+      "norm": "/api/memory/import/sessions/latest",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_memory_sessions.py:79"
+      ],
+      "description": "最近一份报告（只读；没有就回 report=null，不伪造）。",
+      "description_source": "handler",
+      "intent": "should_not_be_in_ui",
+      "intent_area": "记忆库",
+      "intent_note": "后端为占位实现（api_memory_delete_index 只回 ok，不落删除）。给「删除」做按钮等于对用户撒谎，故先不接；待后端补全真删除后再改判并接线。",
+      "ui_pending": false,
+      "domain": "记忆与知识"
+    },
+    {
+      "path": "/api/memory/import/sessions/sources",
+      "norm": "/api/memory/import/sessions/sources",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_memory_sessions.py:63"
+      ],
+      "description": "探测本机来源（只读；只数文件，不解析内容）。",
+      "description_source": "handler",
+      "intent": "should_not_be_in_ui",
+      "intent_area": "记忆库",
+      "intent_note": "后端为占位实现（api_memory_delete_index 只回 ok，不落删除）。给「删除」做按钮等于对用户撒谎，故先不接；待后端补全真删除后再改判并接线。",
+      "ui_pending": false,
+      "domain": "记忆与知识"
+    },
+    {
       "path": "/api/memory/manual",
       "norm": "/api/memory/manual",
       "methods": [
@@ -5293,7 +5369,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:1087"
+        "plugins/memory.py:1105"
       ],
       "description": "清空窗口事件记录",
       "description_source": "handler",
@@ -5319,7 +5395,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:1070"
+        "plugins/memory.py:1088"
       ],
       "description": "获取或更新窗口监控配置",
       "description_source": "handler",
@@ -5344,7 +5420,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:1060"
+        "plugins/memory.py:1078"
       ],
       "description": "获取当前活跃窗口",
       "description_source": "handler",
@@ -5369,7 +5445,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:1002"
+        "plugins/memory.py:1020"
       ],
       "description": "获取窗口切换事件",
       "description_source": "handler",
@@ -5394,7 +5470,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:1018"
+        "plugins/memory.py:1036"
       ],
       "description": "获取窗口使用统计",
       "description_source": "handler",
@@ -5419,7 +5495,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:760"
+        "plugins/admin_api.py:786"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -5445,8 +5521,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:787",
-        "plugins/admin_api.py:814"
+        "plugins/admin_api.py:813",
+        "plugins/admin_api.py:840"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -5471,7 +5547,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:754"
+        "plugins/admin_api.py:780"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -5733,7 +5809,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:856"
+        "plugins/admin_api.py:882"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -5758,7 +5834,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:833"
+        "plugins/admin_api.py:859"
       ],
       "description": "消息中心列表 = 报警器台账投影（type 目前只有 alert；unreadOnly=true 只看未读）",
       "description_source": "handler",
@@ -5783,7 +5859,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:865"
+        "plugins/admin_api.py:891"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -5808,7 +5884,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:849"
+        "plugins/admin_api.py:875"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -6321,7 +6397,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:604"
+        "plugins/admin_api.py:630"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -6482,7 +6558,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:1377"
+        "app_server.py:1394"
       ],
       "description": "插件元信息 manifest（插件化机制 T1.1）",
       "description_source": "handler",
@@ -6509,7 +6585,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:1383"
+        "app_server.py:1400"
       ],
       "description": "刷新插件清单（动态装载 T4.1）：扫描 plugins/ 目录重建注册表，无需重启进程。",
       "description_source": "handler",
@@ -6994,7 +7070,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:610"
+        "plugins/admin_api.py:636"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -7020,8 +7096,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:657",
-        "plugins/admin_api.py:671"
+        "plugins/admin_api.py:683",
+        "plugins/admin_api.py:697"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -7046,7 +7122,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:645"
+        "plugins/admin_api.py:671"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -7071,7 +7147,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:630"
+        "plugins/admin_api.py:656"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -7096,7 +7172,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:595"
+        "plugins/admin_api.py:621"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -7228,7 +7304,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/mcp_scheduler.py:232"
+        "plugins/mcp_scheduler.py:235"
       ],
       "description": "改任务：启停（enabled）与每日时刻（hour/minute）。",
       "description_source": "handler",
@@ -7251,7 +7327,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/mcp_scheduler.py:283"
+        "plugins/mcp_scheduler.py:286"
       ],
       "description": "创建定时任务",
       "description_source": "handler",
@@ -7276,7 +7352,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/mcp_scheduler.py:304"
+        "plugins/mcp_scheduler.py:307"
       ],
       "description": "删除定时任务",
       "description_source": "handler",
@@ -7303,7 +7379,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/mcp_scheduler.py:327"
+        "plugins/mcp_scheduler.py:330"
       ],
       "description": "立即执行指定任务",
       "description_source": "handler",
@@ -7328,7 +7404,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/mcp_scheduler.py:344"
+        "plugins/mcp_scheduler.py:347"
       ],
       "description": "获取任务执行历史",
       "description_source": "handler",
@@ -7353,7 +7429,8 @@
       ],
       "non_ui_refs": [
         "agent/alarms/collector.py",
-        "scripts/handoff_snapshot.py"
+        "scripts/handoff_snapshot.py",
+        "scripts/yunshu_observe.py"
       ],
       "where": [
         "plugins/mcp_scheduler.py:195"
@@ -7410,7 +7487,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/mcp_scheduler.py:315"
+        "plugins/mcp_scheduler.py:318"
       ],
       "description": "启用/禁用定时任务",
       "description_source": "handler",
@@ -7436,8 +7513,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/mcp_scheduler.py:363",
-        "plugins/mcp_scheduler.py:375"
+        "plugins/mcp_scheduler.py:366",
+        "plugins/mcp_scheduler.py:378"
       ],
       "description": "获取所有定时任务（**已迁移到统一信封**）。",
       "description_source": "handler",
@@ -7462,7 +7539,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/mcp_scheduler.py:405"
+        "plugins/mcp_scheduler.py:408"
       ],
       "description": "删除定时任务",
       "description_source": "handler",
@@ -7487,7 +7564,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/mcp_scheduler.py:417"
+        "plugins/mcp_scheduler.py:420"
       ],
       "description": "暂停定时任务",
       "description_source": "handler",
@@ -7512,7 +7589,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/mcp_scheduler.py:429"
+        "plugins/mcp_scheduler.py:432"
       ],
       "description": "恢复定时任务",
       "description_source": "handler",
@@ -7537,7 +7614,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/mcp_scheduler.py:441"
+        "plugins/mcp_scheduler.py:444"
       ],
       "description": "获取执行历史",
       "description_source": "handler",
@@ -10943,7 +11020,8 @@
       ],
       "non_ui_refs": [
         "agent/alarms/collector.py",
-        "scripts/handoff_snapshot.py"
+        "scripts/handoff_snapshot.py",
+        "scripts/yunshu_observe.py"
       ],
       "where": [
         "agent/server_routes/routes_units.py:27"
@@ -10971,7 +11049,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/mcp_scheduler.py:455"
+        "plugins/mcp_scheduler.py:458"
       ],
       "description": "列出所有异步任务",
       "description_source": "handler",
@@ -10996,7 +11074,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/mcp_scheduler.py:464"
+        "plugins/mcp_scheduler.py:467"
       ],
       "description": "获取单个异步任务状态",
       "description_source": "handler",
@@ -11021,7 +11099,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/mcp_scheduler.py:473"
+        "plugins/mcp_scheduler.py:476"
       ],
       "description": "取消异步任务",
       "description_source": "handler",
@@ -11122,7 +11200,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2196"
+        "app_server.py:2225"
       ],
       "description": "测试端点：测试除法运算（正常情况）",
       "description_source": "handler",
@@ -11147,7 +11225,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2172"
+        "app_server.py:2201"
       ],
       "description": "测试端点：触发除零错误以验证堆栈捕获",
       "description_source": "handler",
@@ -11172,7 +11250,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2185"
+        "app_server.py:2214"
       ],
       "description": "测试端点：触发空指针错误以验证堆栈捕获",
       "description_source": "handler",
@@ -11430,7 +11508,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:555"
+        "plugins/admin_api.py:581"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -11456,8 +11534,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:544",
-        "plugins/admin_api.py:577"
+        "plugins/admin_api.py:570",
+        "plugins/admin_api.py:603"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -11482,7 +11560,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:514"
+        "plugins/admin_api.py:540"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -11508,7 +11586,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:535"
+        "plugins/admin_api.py:561"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -11535,7 +11613,7 @@
         "agent/memory_import/targets.py"
       ],
       "where": [
-        "plugins/memory.py:788"
+        "plugins/memory.py:806"
       ],
       "description": "添加单条向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11560,7 +11638,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:811"
+        "plugins/memory.py:829"
       ],
       "description": "批量添加向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11585,7 +11663,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:948"
+        "plugins/memory.py:966"
       ],
       "description": "清空向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11611,8 +11689,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:833",
-        "plugins/memory.py:848"
+        "plugins/memory.py:851",
+        "plugins/memory.py:866"
       ],
       "description": "按 ID 获取记忆项（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11637,7 +11715,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:900"
+        "plugins/memory.py:918"
       ],
       "description": "获取最近的向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11662,7 +11740,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:747"
+        "plugins/memory.py:765"
       ],
       "description": "语义搜索向量记忆",
       "description_source": "handler",
@@ -11687,7 +11765,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:774"
+        "plugins/memory.py:792"
       ],
       "description": "获取向量记忆统计（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11710,7 +11788,8 @@
       "ui_refs": [],
       "non_ui_refs": [
         "scripts/deploy_workbench.py",
-        "scripts/handoff_snapshot.py"
+        "scripts/handoff_snapshot.py",
+        "scripts/yunshu_observe.py"
       ],
       "where": [
         "plugins/version_info.py:37"
@@ -12637,7 +12716,7 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2087"
+        "app_server.py:2116"
       ],
       "description": "云枢 React SPA 入口（build:flask 同步自 yunshu-ui/dist → templates/yunshu.html）。",
       "description_source": "handler",
@@ -12998,7 +13077,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2151"
+        "app_server.py:2180"
       ],
       "description": "[简易] 用户行为回放页面",
       "description_source": "handler",
@@ -13023,7 +13102,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2143"
+        "app_server.py:2172"
       ],
       "description": "搜索引擎状态监控页面",
       "description_source": "handler",
@@ -13049,7 +13128,7 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2124"
+        "app_server.py:2153"
       ],
       "description": "云枢 Web 应用 — 感知底座 + 数字生命对话",
       "description_source": "module",
@@ -13060,5 +13139,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "09308313e354d46a"
+  "content_hash": "0375aac8ee7bced5"
 }
