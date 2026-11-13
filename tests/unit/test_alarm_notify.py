@@ -20,9 +20,12 @@ from agent.alarms.store import AlarmStore
 
 
 @pytest.fixture(autouse=True)
-def _clean_env(monkeypatch):
+def _clean_env(monkeypatch, tmp_path):
     monkeypatch.delenv(notify.ENV_ENABLED, raising=False)
     monkeypatch.delenv(notify.ENV_INCLUDE_WARNING, raising=False)
+    # 【2026-11-13 实测】warning 摘要默认开，且默认路径是**生产** data/alarms/：
+    # 不隔离 root 的话，这些用例会把摘要待发写进生产、甚至真的发一封邮件。
+    monkeypatch.setattr(notify, "_root", lambda: tmp_path)
     yield
 
 
