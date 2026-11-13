@@ -1391,6 +1391,7 @@ flowchart LR
     agent_log_system_handlers --> agent_log_system_formatter
     agent_log_system_handlers --> agent_log_system_emoji_map
     agent_log_system_handlers --> agent_log_system_safe_logger
+    agent_log_system_introspection --> agent
     agent_log_system_introspection -.-> agent_common_stop_mixin
     agent_log_system_introspection -.-> agent_logging_utils
     agent_log_system_introspection -.-> agent_tool_calling
@@ -1406,6 +1407,7 @@ flowchart LR
     agent_logging_utils -.-> agent_utils_singleton_manager
     agent_logging_utils -.-> agent_utils
     agent_maintenance_zero_token_jobs -.-> agent_utils
+    agent_maintenance_zero_token_jobs --> agent
     agent_mcp_executor -.-> agent_utils_singleton_manager
     agent_mcp_executor --> agent_tool_router
     agent_mcp_executor --> agent_tool_router
@@ -2975,9 +2977,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 753
+- 扫描文件数: 755
 - 模块节点数: 655
-- 依赖边数: 2192
+- 依赖边数: 2194
 - 跨层调用数: 1393
 - 违规调用数: 0
 - 动态 import 数: 1
