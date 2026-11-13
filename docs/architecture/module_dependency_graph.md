@@ -339,6 +339,7 @@ flowchart LR
         agent_memory_adapters_mem0_adapter["agent.memory.adapters.mem0_adapter"]
         agent_memory_base["agent.memory.base"]
         agent_memory_broker["agent.memory.broker"]:::crosslayer
+        agent_memory_consolidation["agent.memory.consolidation"]:::crosslayer
         agent_memory_context_assembler["agent.memory.context_assembler"]
         agent_memory_file_watcher["agent.memory.file_watcher"]
         agent_memory_filter["agent.memory.filter"]
@@ -347,6 +348,7 @@ flowchart LR
         agent_memory_identity["agent.memory.identity"]
         agent_memory_layered_store["agent.memory.layered_store"]:::crosslayer
         agent_memory_long_term_memory["agent.memory.long_term_memory"]:::crosslayer
+        agent_memory_ltm_archive["agent.memory.ltm_archive"]
         agent_memory_markdown_syncer["agent.memory.markdown_syncer"]
         agent_memory_observability["agent.memory.observability"]
         agent_memory_quota["agent.memory.quota"]:::crosslayer
@@ -387,6 +389,7 @@ flowchart LR
         agent_monitoring_coverage_gaps["agent.monitoring.coverage_gaps"]:::crosslayer
         agent_monitoring_declared_units["agent.monitoring.declared_units"]
         agent_monitoring_decorators["agent.monitoring.decorators"]
+        agent_monitoring_dependency_probe["agent.monitoring.dependency_probe"]:::crosslayer
         agent_monitoring_error_reporter["agent.monitoring.error_reporter"]
         agent_monitoring_llm_monitor["agent.monitoring.llm_monitor"]:::crosslayer
         agent_monitoring_log_anomaly["agent.monitoring.log_anomaly"]
@@ -785,6 +788,7 @@ flowchart LR
     agent_alarms_api -.-> agent_server_auth
     agent_alarms_api --> agent_alarms
     agent_alarms_api -.-> agent_learning_perception_cycle
+    agent_alarms_api -.-> agent_monitoring
     agent_alarms_api --> agent_alarms_notify
     agent_alarms_api -.-> agent_monitoring_ci_status
     agent_alarms_api -.-> agent_monitoring_coverage_gaps
@@ -794,6 +798,7 @@ flowchart LR
     agent_alarms_api --> agent_alarms_samples
     agent_alarms_api --> agent_alarms
     agent_alarms_collector --> agent_alarms_store
+    agent_alarms_collector -.-> agent_monitoring_dependency_probe
     agent_alarms_collector -.-> agent_extensions_channel_health
     agent_alarms_collector -.-> agent_health_storage
     agent_alarms_collector -.-> agent_monitoring
@@ -804,6 +809,7 @@ flowchart LR
     agent_alarms_collector -.-> agent_extensions_channel_health
     agent_alarms_collector -.-> agent_extensions_channels_installer
     agent_alarms_collector -.-> agent_extensions_store
+    agent_alarms_collector -.-> agent_monitoring
     agent_alarms_collector -.-> agent_audit_chain
     agent_alarms_collector --> agent_alarms
     agent_alarms_collector --> agent_alarms
@@ -1415,6 +1421,7 @@ flowchart LR
     agent_logging_utils -.-> agent_utils
     agent_maintenance_zero_token_jobs -.-> agent_utils
     agent_maintenance_zero_token_jobs --> agent
+    agent_maintenance_zero_token_jobs -.-> agent_memory_consolidation
     agent_mcp_executor -.-> agent_utils_singleton_manager
     agent_mcp_executor --> agent_tool_router
     agent_mcp_executor --> agent_tool_router
@@ -1471,6 +1478,7 @@ flowchart LR
     agent_memory_long_term_memory --> agent_memory_base
     agent_memory_long_term_memory -.-> agent_logging_utils
     agent_memory_long_term_memory -.-> agent_monitoring_business_metrics
+    agent_memory_ltm_archive --> agent_memory_long_term_memory
     agent_memory_markdown_syncer -.-> agent_logging_utils
     agent_memory_observability -.-> agent_logging_utils
     agent_memory_observability -.-> agent_monitoring_business_metrics
@@ -1585,6 +1593,8 @@ flowchart LR
     agent_monitoring_decorators --> agent_monitoring_error_reporter
     agent_monitoring_decorators -.-> agent_error_handler
     agent_monitoring_decorators -.-> agent_error_handler
+    agent_monitoring_dependency_probe -.-> agent_extensions_channels_installer
+    agent_monitoring_dependency_probe -.-> agent_extensions_store
     agent_monitoring_error_reporter -.-> agent_logging_utils
     agent_monitoring_error_reporter --> agent_monitoring_tracing
     agent_monitoring_error_reporter -.-> agent_error_handler
@@ -2984,9 +2994,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 756
-- 模块节点数: 656
-- 依赖边数: 2200
-- 跨层调用数: 1397
+- 扫描文件数: 758
+- 模块节点数: 659
+- 依赖边数: 2207
+- 跨层调用数: 1403
 - 违规调用数: 0
 - 动态 import 数: 1
