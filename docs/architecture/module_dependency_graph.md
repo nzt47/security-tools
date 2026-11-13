@@ -204,6 +204,7 @@ flowchart LR
         agent_extensions["agent.extensions"]
         agent_extensions_base["agent.extensions.base"]:::crosslayer
         agent_extensions_channel_bridge["agent.extensions.channel_bridge"]:::crosslayer
+        agent_extensions_channel_health["agent.extensions.channel_health"]:::crosslayer
         agent_extensions_channels_installer["agent.extensions.channels_installer"]:::crosslayer
         agent_extensions_dependency_manager["agent.extensions.dependency_manager"]
         agent_extensions_installer["agent.extensions.installer"]
@@ -793,12 +794,16 @@ flowchart LR
     agent_alarms_api --> agent_alarms_samples
     agent_alarms_api --> agent_alarms
     agent_alarms_collector --> agent_alarms_store
+    agent_alarms_collector -.-> agent_extensions_channel_health
     agent_alarms_collector -.-> agent_health_storage
     agent_alarms_collector -.-> agent_monitoring
     agent_alarms_collector --> agent_alarms
     agent_alarms_collector --> agent_alarms_samples
     agent_alarms_collector --> agent_alarms_rules
     agent_alarms_collector -.-> agent_task_scheduler
+    agent_alarms_collector -.-> agent_extensions_channel_health
+    agent_alarms_collector -.-> agent_extensions_channels_installer
+    agent_alarms_collector -.-> agent_extensions_store
     agent_alarms_collector -.-> agent_audit_chain
     agent_alarms_collector --> agent_alarms
     agent_alarms_collector --> agent_alarms
@@ -1088,6 +1093,8 @@ flowchart LR
     agent_extensions_channels_installer --> agent_extensions_installer
     agent_extensions_channels_installer --> agent_extensions_store
     agent_extensions_channels_installer -.-> agent_logging_utils
+    agent_extensions_channels_installer --> agent_extensions_channel_health
+    agent_extensions_channels_installer --> agent_extensions_channel_health
     agent_extensions_dependency_manager -.-> agent_monitoring_tracing
     agent_extensions_dependency_manager -.-> agent_logging_utils
     agent_extensions_dependency_manager -.-> agent_utils
@@ -2977,9 +2984,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 755
-- 模块节点数: 655
-- 依赖边数: 2194
-- 跨层调用数: 1393
+- 扫描文件数: 756
+- 模块节点数: 656
+- 依赖边数: 2200
+- 跨层调用数: 1397
 - 违规调用数: 0
 - 动态 import 数: 1
