@@ -35,6 +35,22 @@ from agent.llm_response_guard import (  # noqa: E402
 )
 from agent.tool_calling import ToolCallingService  # noqa: E402
 
+
+@pytest.fixture(autouse=True)
+def _isolate_tool_registry(monkeypatch):
+    """解析用例不得依赖全局工具注册表（2026-11-13 CI 实测）。
+
+    适配器的"未知工具"判定读 `agent.tools.list_tools()`：注册表非空且不含
+    list_directory 时，本文件的解析用例会**稳定**产出 0 个调用（unknown_tool）。
+    分片是按文件分配的，新增测试文件会改变同进程邻居 —— 本文件因此从绿变红。
+    解析层用例只测"文本协议怎么解析"，所以这里把注册表置空
+    （适配器对空表明确"不做未知工具判定"），而不是放宽断言。
+    """
+    import agent.tools as tools_pkg
+
+    monkeypatch.setattr(tools_pkg, "list_tools", lambda: [])
+    monkeypatch.setattr(tools_pkg, "get_tool_schema", lambda name: None)
+
 # ════════════════════════════════════════════════════════════════════
 # 构造工具（**不要**在别处写裸标记）
 # ════════════════════════════════════════════════════════════════════
