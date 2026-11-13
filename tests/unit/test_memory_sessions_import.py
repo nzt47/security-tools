@@ -10,9 +10,7 @@
 from __future__ import annotations
 
 import json
-import os
 import sqlite3
-import time
 
 import pytest
 import zstandard
@@ -69,11 +67,6 @@ def dsh_root(tmp_path):
         _user_event("子代理输入"),
         _asst_event("子代理输出"),
     ])
-    # 排序按 mtime 新 -> 旧（小样本取最近 N 个）：显式钉住，避免文件系统抖动
-    now = time.time()
-    os.utime(root / "proj-a" / "sess-1" / "session.jsonl.zstd", (now, now))
-    os.utime(root / "proj-a" / "sess-2" / "session.jsonl.zstd", (now - 10, now - 10))
-    os.utime(root / "proj-b" / "sub-1" / "session.jsonl.zstd", (now - 20, now - 20))
     return root
 
 
@@ -97,17 +90,23 @@ def test_dsh_reader_filters_injected_and_keeps_text(dsh_root):
 
 def test_dry_run_reports_counts_and_writes_nothing(tmp_path, dsh_root):
     p = _paths(tmp_path)
-    result = transcript.import_sessions(
-        source="dsh", dry_run=True, dsh_root=dsh_root, limit_sessions=2, **p)
+    result = transcript.import_sessions(source="dsh", dry_run=True, dsh_root=dsh_root, **p)
     assert result["sessions"]["seen"] == 3
-    assert result["sessions"]["scanned"] == 2
-    assert result["messages"]["imported"] == 3
-    assert result["has_more"] is True
+    assert result["sessions"]["scanned"] == 3
+    assert result["messages"]["imported"] == 5
+    assert result["has_more"] is False
     assert not p["messages_path"].exists()
     assert not p["ledger_path"].exists()  # dry-run 不写台账
     report = json.loads(open(result["report_path"], encoding="utf-8").read())
     # 报告只有计数：不出现正文
     assert "你好，帮我看看仓库" not in json.dumps(report, ensure_ascii=False)
+    # 小样本：只取 1 个会话（顺序按 mtime，具体是哪一个不影响"只扫 1 个"）
+    sample = transcript.import_sessions(source="dsh", dry_run=True, dsh_root=dsh_root,
+                                        limit_sessions=1, **p)
+    assert sample["sessions"]["scanned"] == 1
+    assert sample["sessions"]["seen"] == 3
+    assert sample["has_more"] is True
+    assert sample["messages"]["imported"] in (1, 2)
 
 
 def test_execute_writes_rows_and_is_idempotent(tmp_path, dsh_root):
