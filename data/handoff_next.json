@@ -1,680 +1,696 @@
 {
-  "updated_at": "2026-11-13T13:25:09+08:00",
-  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
-  "items": [
-    {
-      "id": "module-topology-no-autodiscovery",
-      "status": "done",
-      "priority": "P2",
-      "title": "新模块不会自动出现在「系统监控」—— DOMAINS 是手写静态清单（Owner 提问，新会话任务①）",
-      "criteria": "agent/modules_registry.py 的 DOMAINS 是**手写 List[Domain]**（docstring 只写「新增模块只需向 DOMAINS 追加节点声明，前端拓扑自动上图」），没有任何目录扫描/包发现；所以 2026-10 之后新增的能力面（审计链/技能使用/工作流/记忆三件/向量/摄入/转化队列/反馈）一个都没上图。现状实测：6 域 32 节点，全部来自这份清单。",
-      "next": "2026-11-11 落地（Owner 选「自动发现 + 白名单」）：新增 agent/modules_discovery.py —— 只对 agent/*/__init__.py 做 AST 字面量扫描（不 import，避免启动期副作用/循环依赖）。白名单：只有声明了 MODULE_STATUS_SOURCE 的包才生成节点（+ 可选 MODULE_DOMAIN/NAME/DESCRIPTION/METRICS）；只声明名字/描述的包进 「未登记」单列，**不生成节点、不参与健康分**；两者都没有的包（utils/common…）完全忽略。modules_registry.effective_domains() = DOMAINS + 发现节点（手写 path 已覆盖的包不重复上图），get_node / declared_http_endpoints / summary / contract_diff 同批改；/api/modules/topology 只增字段（每节点 origin、autodiscovery 读数、unregistered 列表），domains/overall_health 形状不变；发现节点的状态源由 effective_client_sources 自动接上 client 兜底采集器（否则永远离线）。开关 CP_MODULE_AUTODISCOVERY（默认开、风险级 A、needs_restart，已进 settings/registry.py）。示范接入 3 个真包：observability / workflow_learning / ingestion ⇒ **拓扑 6 域 35 → 38 节点**（3 个自动发现均 healthy/运行中）、未登记 0。测试：test_modules_autodiscovery.py 21 条 + selfcheck 改读 effective_domains（71 条绿）；contract_diff 无 registry_* 漂移。提交 e14b61cba。"
-    },
-    {
-      "id": "health-dashboard-duplicate-l3",
-      "status": "done",
-      "priority": "P3",
-      "title": "健康仪表盘出现两个「L3 LLM/工具」（维度卡 + 指标卡同名，Owner 提问，新会话任务②）",
-      "criteria": "yunshu-ui/src/pages/hub/panorama/health.tsx 里有两处同名标签：① 五层维度卡 PROBE_LAYERS（line ~172 key=l3_llm_tool, label=L3 LLM/工具）；② 指标卡 VITALS（line ~484 key=error-rate, label=L3 LLM/工具，取 probe_details.l3_llm_tool.score）。两者数据同源、含义不同（一个是层得分，一个是错误率指标），但**标签逐字相同** ⇒ 同一屏看两次「L3 LLM/工具」，用户无法区分。",
-      "next": "2026-11-11 落地（Owner 选「合并进维度卡」）：删掉概览里两张与维度卡同源同名的指标卡（error-rate「L3 LLM/工具」/ task-success「L4 业务成功率」——**L4 是同一种情况**，一并处理），指标卡 9 → 7；原始比率搬进维度卡：L3 显示「错误率 x%」、L4 显示「成功率 x%」，每个分数全页只出现一次。数值来自**后端**结构化字段（agent/health/probes.py 新增 l3 metrics: llm_calls/llm_errors/error_rate、l4 metrics: http_requests/http_errors/success_rate），前端只换算单位、不拆 detail 文本；取不到就整行不渲染。新增纯函数 layerMetricLine()。测试：health.test.tsx 23 → 25；全量 vitest 169 files / 1286 tests 全绿；tsc 0 退出。现场 probe-trend 00:45:20 实测 l4 metrics={http_requests:75,http_errors:0,success_rate:1.0}（L3 待有 LLM 调用后才出错误率 —— 与「无数据」口径一致）。提交 bc0a41ab1。"
-    },
-    {
-      "id": "scheduler-card-wrong-endpoint",
-      "status": "done",
-      "priority": "P3",
-      "title": "计划任务卡改读 /api/scheduler/overview —— 已完成（05f487213，实测 16 条）",
-      "criteria": "实测 /api/scheduler/tasks 与 scheduler_tasks 都是 0 条（该端点只读 agent.system_tools.list_scheduled_tasks 的**文件登记** system_command）；真正在跑的 16 个 cron/interval 任务只在 /api/scheduler/overview（带统一信封 {code,data}）。于是健康页「计划任务」恒显示「暂无计划任务（/api/scheduler/tasks 返回空列表）」。",
-      "next": "已完成（05f487213）：见交接文档 §11.86。"
-    },
-    {
-      "id": "topology-missing-faces",
-      "status": "done",
-      "priority": "P3",
-      "title": "拓扑补 3 个能力面（记忆压缩 / 技能使用台账 / 审计链）—— 已完成（a2587720c，32→35 节点）",
-      "criteria": "/api/modules/topology 实测 6 域 32 个节点（感知7/认知4/记忆4/行动9/服务3/运维5）。对比「单位看板」的 12 个探测单位与既有页面，拓扑里**没有**：审计链(ops.audit)、技能使用台账(skills.usage)、学习工作流(workflows)、记忆压缩/长期记忆/反思(memory.compress|longterm|reflection)、向量库(vector)、能力获取/摄入(ingestion)、转化队列(transform)、反馈中心(feedback)。这些在「功能单位工作状况」卡里有读数，但系统监控页看不到它们的存在。",
-      "next": "已完成（a2587720c）：见交接文档 §11.86。"
-    },
-    {
-      "id": "alerts-runtime-state",
-      "status": "done",
-      "priority": "P3",
-      "title": "告警端点合并运行态（state/activeAt/value/fire_count）—— 已完成（6dad76daf）",
-      "criteria": "实测 /api/observability/alerts 返回 8 组 / 规则字段仅 alert/annotations/expr/for/labels，**没有 state / activeAt / last_fired** ⇒ health.tsx 的告警表只能标「端点未返回」（注释里已承认该缺口）。alert_evaluator 内部有 AlertState（INACTIVE 等），但没暴露成只读查询。",
-      "next": "已完成（6dad76daf）：见交接文档 §11.86。"
-    },
-    {
-      "id": "diagnostics-histograms-empty",
-      "status": "done",
-      "priority": "P3",
-      "title": "诊断页 histograms 恒空 —— 已改为「读 Prometheus 注册表投影」（c54d76b18）",
-      "criteria": "原判据成立：agent/monitoring/metrics.py 的进程内注册表无任何写入点；真实时延在 prometheus_flask_exporter 注册到**默认 REGISTRY** 的 yunshu_http_request_duration_seconds（标签 method/endpoint/status，桶 0.005–10s，prometheus_client 原生 Histogram）。",
-      "next": "已落地：agent/monitoring/prometheus.py 的 http_latency_histograms() 按端点聚合累积桶并做桶内线性插值（与 histogram_quantile 同法）；routes_logging._get_runtime_metrics 合并进 histograms。口径：样本 <20 的端点不报分位、不报 min/max、+Inf 桶只给下界、按样本量取前 8。若将来换掉 prometheus_flask_exporter 的前缀，改 _DIAG_LATENCY_FAMILIES 即可（两种族名都认）。"
-    },
-    {
-      "id": "memory-compress-500",
-      "status": "done",
-      "priority": "P1",
-      "title": "记忆运维「触发压缩」恒 500（compress() 缺参）—— 已修（d2c5a680f / 529801e7e）",
-      "criteria": "2026-11-10 用户实测：会话与配置 → 记忆管理 → 记忆运维 → 触发压缩 ⇒ 「压缩失败：操作失败（详见服务日志）（HTTP 500）」。服务日志原文：MemoryManager.compress() missing 1 required positional argument: old_messages。同一个坑 2026-10-14 在 /api/context/compress 修过，这条没修 —— 因为当年只补了「legacy 端点存在性」测试（url_map），端点存在 ≠ 可用。修法：走 compress_now()；新增 tests/unit/test_memory_compress_route.py 两条行为测试。",
-      "next": "实测（529801e7e）：POST /api/memory/compress → 200，{ok:true, version_before:98, summary_version:99, messages_compressed:100}。附带修掉「ok=true 但版本 0/0」的假成功：compress_now 的版本读数改与写入同键（_compression_session_key），并回报 scope(session/global)。"
-    },
-    {
-      "id": "dependabot-minimatch",
-      "status": "done",
-      "priority": "P2",
-      "title": "dependabot #417 minimatch DoS（GHSA-g3hv-75wg-m249）—— npm overrides 修掉，告警已自动 fixed",
-      "criteria": "受影响区间 >=7.0.0 <11.0.1；树里有 3.1.5 / 5.1.9（不受影响，未动）与 9.0.9 / 10.2.5 / 10.2.6（受影响，10.x 线无修复发布）。修法：yunshu-ui/package.json 加范围限定 overrides minimatch@>=7.0.0 <11.0.1 → 11.0.5（只换受影响副本）。全部是 dev/build 工具链依赖（eslint / typescript-eslint / electron-builder），不进 Flask 运行时产物；Node 25 支持 require(ESM)，minimatch 11 为 ESM-only，实跑通过。验证：npm audit 0 vulnerabilities；npm run lint 0 error（9 条既有 warning）；tsc --noEmit 0 退出；vitest 168 files / 1279 tests 全绿。",
-      "next": "合并后 GitHub 依赖图重算把 alert 417 自动置 fixed（2026-11-10T11:16:22Z），默认分支开放告警 0 条。"
-    },
-    {
-      "id": "audit-request-attribution",
-      "status": "done",
-      "priority": "P3",
-      "title": "写路由审计补「客户端归属」（UA 指纹 + IP 叶子字段）—— 已落地并部署",
-      "criteria": "**2026-11-10 19:1x 落地**（422a1785d）：两条写路径同批补归属字段 ——① user_agent_fp = sha256(User-Agent)[:16]（全局包装 UIAuditRecorder._before_request/_record 与显式装饰器 _emit_explicit_audit 都写；UA 原文不落盘）；② 显式装饰器路径补 identity_facts()：actor_ip_masked / actor_ip_hash / actor_ip_hash_status / actor_type / identity_authority，与全局包装同形。**仍遵守 S4-01 裁定 B**（原始 IP 永不落盘：只掩码 + HMAC；无密钥时如实标 degraded_no_key）。端到端实测（生产 422a1785d）：POST /api/skills-mgmt/__probe_no_such_skill__/intake（UA=yunshu-attribution-probe/1.0）→ 409，落链 seq 83786，user_agent_fp=76143adddffbbe8a（= sha256(UA)[:16]）、actor_ip_masked=127.0.xxx.xxx、actor_ip_hash_status=degraded_no_key、payload 里既无 UA 原文也无原始 IP。用例 +5（test_audit_ui_middleware.py::TestClientAttribution）；该文件 51 条全绿。",
-      "next": "下次再遇到「谁调了这条写路由」：直接看该条审计的 user_agent_fp + actor_ip_masked（浏览器 vs 脚本一次可分）。"
-    },
-    {
-      "id": "derive-fingerprint-guard",
-      "status": "done",
-      "priority": "P2",
-      "title": "全量测试期间 data/ 被静默写入 —— 守卫已落地；写入方已按「请求日志 × 审计链」join 锁定为工作台 UI 会话（两条 DELETE）",
-      "criteria": "2026-11-10 00:00 事故：一次全量 `pytest tests/unit -p no:randomly` 期间 data/skills_repo/gh-cli（随后 gstack）被删、data/skills_mgmt.json 少行（53→52）、能力清单被重派生、3 个基线测试被改。**2026-11-10 12:2x 在审计链找到直接证据**：两条 `skill.delete`，actor=tok_ffd912584295（= FLASK_API_TOKEN 的指纹）、source=ui、payload.method=DELETE、path=/api/skills-mgmt/gh-cli（seq 83644, 2026-11-09T15:53:40Z）与 path=/api/skills-mgmt/gstack（seq 83693, 16:37:51Z）⇒ 删除来自**带 bearer token 的 HTTP 调用**，不是测试直接删文件（测试内没有这种 DELETE：unit 里仅有 test_audit_integration 的假 svc + 假 id）。两次时间点都落在\"本机跑全量测试 + 后端在跑\"的窗口内。守卫已落地（`tests/conftest.py::_guard_derived_assets` + `tests/unit/test_derived_guard.py`，已在本地用故意改清单的探针验证\"会话结束点名 [modified] data/capability_manifest.json\"）。 【2026-11-10 18:1x 收口】按时间 join 结果：两条 skill.delete 的后端请求日志（logs/deploy_spawn_20261109_233817.err.log:4231-4238、logs/deploy_spawn_20261110_003424.err.log:2330-2337）显示**同一个浏览器页面会话**——DELETE 前 9~20s 该页在轮询 GET /api/skills-mgmt/assess/stream（SSE，timeout_sec=20）与 intake/status，DELETE 后同一秒立刻 GET /api/skills-mgmt + /usage/stats + /capability-manifest（前端 mutation 失效重取）。同一个页面会话在 23:50:52/54 点了两次 code-refactor 开关、23:58:13 与 00:00:44 两次 POST intake（均 400 rejected）、23:58:57-00:02:28 做了 suggest-fix/optimize/redraft/versions/bump/rollback、00:29:50/00:32:14/00:35:37 切过 chat 会话。代码侧唯一能发这条 DELETE 的入口是 yunshu-ui/src/components/SkillsMgmt/SkillDetail.tsx:97 handleDelete（带 confirm 文案）⇒ **不是 pytest（单测里没有这条 DELETE，也不打 5678）、不是 .env token 脚本**（data/_del_skill.py 只发一条孤立 DELETE，没有 SSE 轮询与删后重取）。",
-      "next": "已完成（join + 判定）。剩余只有『当时是谁在操作那个页面』——需 Owner 确认（若否认，则下次直接看新增的请求归属字段）。若同类再发：python -X utf8 data/_audit_delete_join.py 可按审计链时间戳列出所有 skill.delete 及其前后 30s 的页面请求，无需重造。附带遗留：00:00:13 的 capability_manifest 重派生与该窗口 3 个基线测试被改，**仍未归因**（/api/capability-manifest 是只读端点，与该 UI 会话无关），如再出现按同样方法查。"
-    },
-    {
-      "id": "skill-script-run-observe",
-      "status": "done",
-      "priority": "P2",
-      "title": "skill_script_run 观察期结论（2026-11-10 拍板）：维持现场开启、YAML 保持 false",
-      "criteria": "§11.78 新增工具：技能 L3 脚本的显式执行点（只补「显式调用」，不做命中即自动执行）。YAML 默认 enabled:false（停用观察口径）；现场通过 /api/tools/toggle 打开（data/tools_config.json，不改仓库）。工具层 L2 逐次确认（effect=execute+risk=high）；执行器内部还有一道 L1 闸门（工具名 skill.<id>）——实测两道路都要过（验收期一次审批 + 原样重试才跑通）。",
-      "next": "决定：**现场 enabled=true 保留**（data/tools_config.json），YAML 仍 enabled:false —— 干净重建不会自动放开执行面，要用的人在 toggle 里显式打开。依据：唯一一次真实执行成功（scripted-selftest/main.py exit=0/104ms，exec_calls 至今 1）、无「每次都要点确认」的抱怨、无脚本超时/输出超限；两道确认（工具 L2 + 执行器 L1）是设计而非缺陷。回滚 = POST /api/tools/toggle {name:skill_script_run,enabled:false}（立即生效）。观察继续走 /api/skills-mgmt/usage/stats。"
-    },
-    {
-      "id": "c6-remaining",
-      "title": "C-6 py/stack-trace-exposure 归零（4 → 0，三轮 SARIF 反查，#1474/#1477/#1478）",
-      "status": "done",
-      "priority": "P2",
-      "criteria": "master dfc3c1829 的 python 分析：stack-trace 0 条；总告警 64 → 60。真源用 SARIF codeFlows 定位（scripts/audit/codeql_flows.py）：build_info ×3、chat llm-preview、audit_coverage、ingestion ×4、solidify ×2、eval/metrics、task_scheduler ×5、status 心跳、toolbuild 语法错误",
-      "next": "共享 sink（ok/problem）以后若再报警：直接跑 python scripts/audit/codeql_flows.py --refresh --sources-only 按源修，别再改 sink 附近"
-    },
-    {
-      "id": "descriptor-backfill-production",
-      "title": "把修好的 backfill_tool_descriptors.py 跑进生产台账（已完成）",
-      "status": "done",
-      "priority": "P2",
-      "criteria": "145 条（96 工具 + 49 技能）全部通过运行时校验，invalid 0；destructive 工具 13 条 requires_approval=true（预期审批边界变化）",
-      "next": "回滚：data/backups/descriptors-pre-backfill-20261106-183814.json 覆盖回 data/descriptors.json 后重启"
-    },
-    {
-      "id": "runtime-skill-algorithmic-art",
-      "title": "本机运行时技能 algorithmic-art（已按 Owner 决定删除）",
-      "status": "done",
-      "priority": "P3",
-      "criteria": "2026-11-06 23:19 经 DELETE /api/skills-mgmt/algorithmic-art 删除（主轨+文件轨），残留描述符同步清掉；备份在 data/backups/algorithmic-art-20261106-231830/",
-      "next": "要重做：从备份取回 skill.md/CARD.md，再走 intake_skill.py 入轨"
-    },
-    {
-      "id": "runtime-skill-merge-brainstorming",
-      "title": "运行时「安全合并」把 pd-brainstorming-697b717a-skill 并入 brainstorming（已用「保 id 升正文」解决）",
-      "status": "done",
-      "priority": "P2",
-      "criteria": "2026-11-07 02:53 审计链 skill.assess.merge（actor_source=explicit）把旧技能从主轨摘掉、文件轨 enabled true→false；当场已 git checkout 回文件 + check_skills_dual_track --fix 回填。最终按「保 pd- id、升正文」落地（#1482）：pd- 技能零基线改动，brainstorming 的正文/卡片重抽，47/49 / 0 孤儿不变",
-      "next": "要真合并两个 id 时再单开：删 data/skills_repo/pd-brainstorming-697b717a-skill/ 并在干净 worktree 重派生能力基线（能力总数会 -1）"
-    },
-    {
-      "id": "secret-scanning-pat",
-      "title": "secret scanning 1 条 github_personal_access_token（#1，2026-06-29）—— 已按 revoked dismiss",
-      "status": "done",
-      "priority": "P2",
-      "criteria": "2026-11-07 复核：该 PAT 实测返回 401（= 已吊销/失效），按 resolution=revoked + 说明 dismiss；secret scanning 开放告警回到 0 条。与 FLASK_API_TOKEN 无关",
-      "next": "若将来再出现同类告警：先实测令牌是否仍有效（401 = 已吊销），再决定 revoked / used_in_tests / false_positive"
-    },
-    {
-      "id": "l1-assembly-canary",
-      "title": "C-8 L1 装配灰度（默认 full；灰名单 5 条真实技能）",
-      "status": "done",
-      "priority": "P1",
-      "criteria": "CP_SKILL_LAYER_MODE/CP_SKILL_LAYER_L1_IDS 已合并（#1459）；守卫用例 14 条；干净 worktree 零缺口",
-      "next": "灰度观察一周看「技能没按预期起作用」反馈；无回归再扩名单；回滚 = MODE 改回 full",
-      "owner_decision": "Owner 2026-11-06 同意「默认 full + 先灰 3-5 条」，名单由主线给（已定 5 条）"
-    },
-    {
-      "id": "c9-schedule-task-review",
-      "title": "C-9：schedule_task 观察期至 2026-11-10",
-      "status": "frozen",
-      "priority": "P3",
-      "criteria": "到期先复核最后 7 天用量，再决定「恢复/继续冻结/删除」。**2026-11-08 预复核发现判据本身不成立**：工具级台账（stage=tool）自 2026-10-29 上线至今**全仓 0 条**（连 read_file 这类高频工具都没有）——根因是台账唯一写入点 ToolCalling._execute_safe 不在本部署的对话链路上（工作台 SSE 直接用 agent.tools.call）。审计链里 15 条命中都是 CP_TOOL_CONFIRM_LEVEL_EXEMPT 的配置变更提到这个名字，不是调用",
-      "next": "台账已在对话执行点补记（PR #1515：plugins/chat.py 的 _record_tool_usage），部署后即可用真实用量复核。2026-11-10 到期时：先看近 7 天 stage=tool 里有没有 schedule_task（当前 YAML enabled:false，模型可见集已剔除 ⇒ 预期 0）；无数据且风险高（能自己安排未来任务）则继续冻结，删除/恢复需 Owner 点头"
-    },
-    {
-      "id": "local-env-noise",
-      "title": "本机红但不是回归：未跟踪运行时 YAML/技能目录带来的派生面测试红（+ test_network_config_test_floor / test_tool_pruning 历史项）",
-      "status": "frozen",
-      "priority": "P3",
-      "criteria": "干净 worktree / CI 均为绿；判绿以干净 worktree 为准",
-      "next": "本机：data/tool_definitions/{adaptive_skill_stack,api_multi_search_engine,byted_*}.yaml（5 个运行时登记工具，category=ingested/custom、缺 examples）⇒ test_tool_definitions_yaml 红；data/skills_repo/{adaptive-skill-stack,claude-code-analysis}/（未跟踪技能目录）⇒ test_capability_spec::test_清单与权威数据一致 红。两者在干净 worktree / CI 均为绿（2026-11-09 §11.78 已按干净 worktree 复核）。"
-    },
-    {
-      "id": "software-probe-install",
-      "title": "software_probe / software_install 受控安装通道（#1449）",
-      "status": "done",
-      "priority": "P0",
-      "criteria": "四道闸 + 默认停用；真机 probe 通过、install 未登记时 not-in-allowlist",
-      "next": "要真装软件：先在 config/software_allowlist.json 登记精确 package_id，再传 confirm=true"
-    },
-    {
-      "id": "c6-batch6",
-      "title": "C-6 第六批：4 文件 39 条 stack-trace（#1450 + #1452）",
-      "status": "done",
-      "priority": "P1",
-      "criteria": "master 上 py/stack-trace-exposure 112 → 73",
-      "next": "-"
-    },
-    {
-      "id": "legacy-endpoints",
-      "title": "legacy 三端点删除（install-skill / register / register-tool，#1453）",
-      "status": "done",
-      "priority": "P2",
-      "criteria": "路由 498 → 495；unreferenced 33 → 30；台账与会话意图同步收缩",
-      "next": "-"
-    },
-    {
-      "id": "handoff-revamp",
-      "title": "交接改造 ②–⑤（口径.md / 轮次拆分 / next_actions.json / 自检进快照）",
-      "status": "done",
-      "priority": "P2",
-      "criteria": "口径.md ≤150 行；轮次归档到 docs/handoff/rounds/ 且正文只留索引；卡片带自检与下一步",
-      "next": "-"
-    },
-    {
-      "id": "c7-overlap-vector",
-      "title": "C-7 重叠检测：诚实版面板 + 向量候选（三种 embedding 排它单选，默认关）",
-      "status": "done",
-      "priority": "P2",
-      "owner_decision": "Owner 2026-11-06 选 (a) 本地 embedding（transformers MiniLM，无外部 API、无费用）",
-      "criteria": "诚实版 #1460（阈值 0.25 / 上限分 / 为何为空）；向量候选 #1462（st_bge_m3 / native_minilm / api 三选一，默认关，设置中心可开）",
-      "next": "要用时在设置中心打开 CP_SKILL_OVERLAP_VECTOR，并在 PROVIDER 里三选一；api 需先配端点与密钥"
-    },
-    {
-      "id": "c6-tail-batch",
-      "title": "C-6 收尾：agent_lines 专项（message 属性）+ capabilities 投影（5 条归零，PR #1461/#1464）",
-      "status": "done",
-      "priority": "P1",
-      "criteria": "stack-trace 14 → 11（agent_lines 3 条清零）；capabilities 2 条随 #1464 归零（期待 11 → 9）",
-      "next": "-"
-    },
-    {
-      "id": "ingestion-help",
-      "title": "能力获取联机帮助（7 站全链路 + 操作清单）+ 清理过时文案 + 少点几下（#1465）",
-      "status": "done",
-      "priority": "P2",
-      "criteria": "手册覆盖入口材料→最终能力 7 站（3 自动 / 4 手动）；点候选即预览、批量 L2 自动重写、下一步直达；vitest 27 passed",
-      "next": "-"
-    },
-    {
-      "id": "c6-panels-memory",
-      "title": "C-6 余量 8 条：ui_panels 5 / api_envelope 2 / app_server 1（#1469）",
-      "status": "done",
-      "priority": "P1",
-      "criteria": "六面板 data 层 5 处 + memory_import detail/批次失败 + 插件重载，全部只回类名/固定文案",
-      "next": "-"
-    },
-    {
-      "id": "ui-ingestion-polish",
-      "title": "能力获取体验收口：探测按钮移卡片右侧 + 候选惰加载分页 + 技能中心删指路条 + 生成文件轨/合并重复单入口（#1470）",
-      "status": "done",
-      "priority": "P2",
-      "criteria": "候选首屏 50 条可加载更多/全部展开；合并只留评审报告出口；materialize 仅无文件轨行显示",
-      "next": "-"
-    },
-    {
-      "id": "pr-1483-collection",
-      "title": "#1483 收口：草稿能真的登记（三形态一口）+ 0 步拒绝 + 队列交互 + 工具页定位",
-      "status": "done",
-      "priority": "P1",
-      "criteria": "CI 首轮 shard4 红在 test_route_ui_coverage::test_产物与工作树一致（新增 POST /api/ingestion/drafts/<id>/register ⇒ 496 路由 / ui 440，content_hash 漂移）；在干净 worktree 按 HEAD 重派生 reports/route_ui_coverage.json 后全绿，squash 合并为 master f1a6308f5",
-      "next": "改到路由/前端引用后必须同批重派生 reports/route_ui_coverage.json（否则 shard4 必红）；派生只在干净 worktree 做"
-    },
-    {
-      "id": "demo-capability-chart-visualization",
-      "title": "演示能力去留：chart-visualization 技能入文件轨（#1485）",
-      "status": "done",
-      "priority": "P2",
-      "criteria": "按「保留」处理：data/skills_repo/chart-visualization/{skill.md,CARD.md} 入库，补 description_zh + 「何时使用」「示例」⇒ validate_skill_md 47 份 0 error / 0 warning；干净 worktree 重派生 capability_manifest（139 → 140）与盘点表，刷 6 处能力基线",
-      "next": "该技能缺 scripts/generate.js 与 references/*.md（见下一条）"
-    },
-    {
-      "id": "chart-visualization-missing-assets",
-      "title": "chart-visualization 只入了 SKILL/CARD：已按 Owner 决定**降级为「仅提示词资产」**",
-      "status": "done",
-      "priority": "P3",
-      "criteria": "2026-11-08 01:5x Owner 选「降级」：skill.md 正文重写为自足的提示词资产 —— 顶部新增「资产说明（仅提示词资产）」明确没有 scripts/ 与 references/、别去找 generate.js/references；Workflow 第 2 步换成通用 args 字段约定（不再指向缺失文件）、第 3 步换成「Python matplotlib / ECharts option / 只给规格」三条本机可走的路、示例末尾删掉 node ./scripts/generate.js；「何时使用」「示例」保留（validator 0 error / 该技能 0 warning），Reference Material 段写清上游 antvis/chart-visualization-skills 与「未导入」。正文改动对派生面**零影响**（干净 worktree 跑 sync_capability_manifest --check：142 条一致，exit 0）",
-      "next": "已完成（只改正文、未动 front matter ⇒ 不动能力面）。若日后要真出图：把上游 scripts/ 与 references/ 拷进 data/skills_repo/chart-visualization/ 后走 intake_skill.py --execute --fix-baselines 重新入轨"
-    },
-    {
-      "id": "demo-capability-tools-local",
-      "title": "演示工具 api_multi_search_engine / byted_seedance_video_generate 保持本机运行期（不入仓）—— Owner 已决定",
-      "status": "done",
-      "priority": "P3",
-      "criteria": "两者的落地位置是 agent/tools/custom/*.py（.gitignore 第 181 行明确其=运行时状态，与 data/dynamic_tools.json 同类）+ data/tool_definitions/*.yaml + tests/unit/test_*.py；本机 98 条工具里含这两条（seedance 为 enabled: false）",
-      "next": "Owner 2026-11-08 决定：**维持运行时登记**（合 5 条：adaptive_skill_stack / api_multi_search_engine / byted_bp_cdn_pagesdeploy / byted_seedance_video_generate / byted_seedream_image_generate）。它们不在入库声明口径 ⟹ YAML 缺 enabled/status/permission_level/llm_callable/location/tool_type 属正常，三个 backfill 的 --check 会跳过；工具页「移除」只对这类工具显示（内建工具必须走 PR）。若日后要入仓：tool_index / 清单+盘点表 / BM25 半饱和点 / 路由基线 / 路由冲突 τ 五处连锁 + BYTEPLUS_* 进 agent/settings/registry.py，别只提交 YAML"
-    },
-    {
-      "id": "tool-usage-ledger-empty",
-      "title": "工具级使用台账 0 条（已修）：对话执行点补记，实测已能落 stage=tool",
-      "status": "done",
-      "priority": "P1",
-      "criteria": "2026-11-08 复核 C-9 时发现：data/skill_usage_events*.jsonl（活动文件 + 8 个按日分片）里 **stage=tool 事件 0 条**，而 stage=load/match 正常（最近三条 load 是 11-07 的三次技能加载）。写入点 agent/tool_calling.py::_record_unified_tool_trace 确实挂在 _execute_safe 的四条终态上（代码无误），usage_log.record_tool 也写同一个文件（import 路径与 load 事件同一条，排除导入失败）**两个假设都还站得住**：①本部署的聊天工具调用没走 ToolCallingService（另有执行链，如 capregistry/invoke.py 只记 business_metrics）；②聊天确实很少真的调用过工具（同期 load 只有 3 条 ⇒ 聊天本身很闲）。/api/business/prometheus 的 tool_call 样本也是 0，但进程刚重启（02:13）⇒ 不能据此判 ①。影响：工具页「近 7 日调用」恒 '-'（设计上「无记录 ≠ 0 次」，所以不误报，但等于没有观测）；C-9 等「看用量」的判据全部失效",
-      "next": "已修（PR #1515，master ddb01a559 部署后实测）：plugins/chat.py 工具循环里在真实执行点补记 usage_log.record_tool（_record_tool_usage），失败判据只认显式 ok=False/error_code、工具抛异常也如实记失败。**决定性实验已做**：真实聊一轮（11 thinking / 162 chunk）后台账多 2 条 stage=tool（read_file 66ms / search_memory 883ms，source=workbench_chat）。⇒ 原假设 ① 成立（本部署对话链路不走 ToolCalling._execute_safe）。工具页「近 7 日调用」从此有数据；C-9 可以按真实用量复核（当前 schedule_task 仍 0 次，YAML enabled:false）"
-    },
-    {
-      "id": "approval-inline-surface",
-      "title": "需要审批的工具调用改为**对话内弹窗裁决**，不进审批收件箱（Owner 2026-11-08）",
-      "status": "done",
-      "priority": "P1",
-      "criteria": "PR #1514：新增 agent/approval_surface（contextvar 标记呈现面）+ request_approval(origin=) 落 payload + /api/approval/pending 与 /api/cp/approvals/inbox 默认过滤 origin=inline_chat（回 inline_hidden、?include_inline=1 看全量）+ 收件箱界面「另有 N 条在对话内弹窗」与勾选框；审批链不变（仍挂单/单次消费/审计）",
-      "next": "已完成并合并（86ca23f84）。若以后要把「某类工具永远不走弹窗」，改 approval_surface 的判据，别在 tool_gate 里写特例"
-    },
-    {
-      "id": "health-l5-semantics",
-      "title": "健康仪表盘 L5「语义」口径修正（50%→11% 的假数）+ L1~L5 标注数据来源 + 概览卡补 CPU/内存/磁盘",
-      "status": "done",
-      "priority": "P2",
-      "criteria": "PR #1513 + #1516：L5 只数近 7 天 like/dislike（suggestion/开发随记不计入分母、样本<5 或无语义反馈一律 available=false）；PROBE_LAYERS 增 origin/originDetail 并在维度卡与探针明细表展示；L1 探针返回结构化 metrics 且 assessor/collector 逐层透传，概览「CPU 核心数/内存可用量/磁盘可用」不再是 MISSING",
-      "next": "已完成（1d9b0948a 部署）。仍需后端补的两处如实占位：/api/diagnostics/metrics 的 histograms 为空（P50/P95/P99）、/api/observability/alerts 不返回运行态 state/activeAt"
-    },
-    {
-      "id": "ingestion-need-llm-steps",
-      "title": "AI 绑定/草稿登记：判断/评审类步骤按「LLM 步骤」落地（code-review 永远做不起来）",
-      "status": "done",
-      "priority": "P2",
-      "criteria": "PR #1512：新增 agent/ingestion/step_binding（有工具 or need_llm 都算落地，autobind/drafts 共用）；prompt 教模型对判断类步骤标 need_llm；apply_bindings 计 bound 含 need_llm 并回 llm_steps；build_learned_workflow 放行 need_llm 并透传 prompt_template；界面 regBlocked 只拦 0 步",
-      "next": "已完成（14580d5c6）。实测：该草稿修前只能绑 10/19 且登记恒灰，修后判断类步骤由模型标 need_llm（register_draft 也会兜底补）"
-    },
-    {
-      "id": "approval-inline-surface",
-      "title": "需要审批的工具调用改为**对话内弹窗裁决**，不进审批收件箱（Owner 2026-11-08）",
-      "status": "done",
-      "priority": "P1",
-      "criteria": "PR #1514：新增 agent/approval_surface（contextvar 标记呈现面）+ request_approval(origin=) 落 payload + /api/approval/pending 与 /api/cp/approvals/inbox 默认过滤 origin=inline_chat（回 inline_hidden、?include_inline=1 看全量）+ 收件箱界面「另有 N 条在对话内弹窗」与勾选框；审批链不变（仍挂单/单次消费/审计）",
-      "next": "已完成并合并（86ca23f84）。若以后要把「某类工具永远不走弹窗」，改 approval_surface 的判据，别在 tool_gate 里写特例"
-    },
-    {
-      "id": "health-l5-semantics",
-      "title": "健康仪表盘 L5「语义」口径修正（50%→11% 的假数）+ L1~L5 标注数据来源 + 概览卡补 CPU/内存/磁盘",
-      "status": "done",
-      "priority": "P2",
-      "criteria": "PR #1513 + #1516：L5 只数近 7 天 like/dislike（suggestion/开发随记不计入分母、样本<5 或无语义反馈一律 available=false）；PROBE_LAYERS 增 origin/originDetail 并在维度卡与探针明细表展示；L1 探针返回结构化 metrics 且 assessor/collector 逐层透传，概览「CPU 核心数/内存可用量/磁盘可用」不再是 MISSING",
-      "next": "已完成（1d9b0948a 部署）。仍需后端补的两处如实占位：/api/diagnostics/metrics 的 histograms 为空（P50/P95/P99）、/api/observability/alerts 不返回运行态 state/activeAt"
-    },
-    {
-      "id": "ingestion-need-llm-steps",
-      "title": "AI 绑定/草稿登记：判断/评审类步骤按「LLM 步骤」落地（code-review 永远做不起来）",
-      "status": "done",
-      "priority": "P2",
-      "criteria": "PR #1512：新增 agent/ingestion/step_binding（有工具 or need_llm 都算落地，autobind/drafts 共用）；prompt 教模型对判断类步骤标 need_llm；apply_bindings 计 bound 含 need_llm 并回 llm_steps；build_learned_workflow 放行 need_llm 并透传 prompt_template；界面 regBlocked 只拦 0 步",
-      "next": "已完成（14580d5c6）。实测：该草稿修前只能绑 10/19 且登记恒灰，修后判断类步骤由模型标 need_llm（register_draft 也会兜底补）"
-    },
-    {
-      "id": "deeplink-cold-start-search",
-      "title": "冷启动深链丢参：#/workbench?panel=… 粘贴打开后 search 被抹掉",
-      "status": "done",
-      "priority": "P2",
-      "criteria": "根因不在前端 hook，而在 app_server.index() 的 redirect(/chat#/workbench)：Location 自带 fragment ⇒ 浏览器按 RFC 7231 §7.1.2 用新 fragment 覆盖旧的 ⇒ ?panel= / &tool= 全丢。改为 redirect(/chat)（fragment 留给浏览器带过去）",
-      "next": "契约由 tests/unit/test_root_redirect_deeplink.py + yunshu-ui/src/workbench/useNavUrlSync.test.tsx 双侧钉住；以后再加启动重定向时禁止把 fragment 写进 Location"
-    },
-    {
-      "id": "c6-final-producers",
-      "title": "C-6 最后 4 条 producer：记忆导入读者 / 蒸馏固化 / 成本与 UTC 面板（#1472）",
-      "status": "done",
-      "priority": "P1",
-      "criteria": "统一「返回值只放类名或固定文案，原文进 logger」；向量回执改域异常 message 以保住原因；473 passed",
-      "next": "-"
-    },
-    {
-      "id": "c10-remaining",
-      "title": "C-10 余量归零：26 → 20（#1496/#1497）→ 0（#1501 修 14 + 6 dismiss；#1503 修最后 1 条 + 1 dismiss）",
-      "status": "done",
-      "priority": "P1",
-      "criteria": "#1501 已合并（c4bb9fb69）：14 条按**源**改（polynomial-redos 6 / redos 1 / clear-text-storage 2 / cookie-injection 1 / reflective-xss 1 / js xss-through-dom 3）；6 条按「设计如此」dismiss。合并后 code scanning 26 → 20 → **1**（唯一残余是 agent/env_config_manager.py 的 py/clear-text-storage：值仍被当实参传给审计写点）⇒ #1503 把敏感 key 改成「值不进审计函数」（_audit_log_sensitive，只给 action+key）",
-      "next": "已完成：code scanning 0 / secret scanning 0（2026-11-07 22:40 实测）。#529 是「运行时按 key 分流、静态无法判定」的 dismiss，理由与守卫用例见 dismissed_comment；以后同类告警先看是否有 key 分流再决定"
-    },
-    {
-      "id": "audit-chain-journal-gap",
-      "title": "审计链「预留未落库」不再报成篡改（seq 82897）+ 生产补写（已完成）",
-      "status": "done",
-      "priority": "P1",
-      "criteria": "根因两条：append 入库失败只 warning + 收敛 3 轮后放弃重试；启动自愈只看「日志链头 > DB 链头」⇒ 中间空洞不自愈。PR #1500：验签三态（ok/pending_commit/tampered，ok 不放宽）+ rows_for + replay_journal_pending + CLI --replay-journal + _mark_drain_if_gap（连续水位判空洞）+ 退出码 3。真实台账副本实测：exit 3 → 补写 1 条 → exit 0（82,919 条）",
-      "next": "已完成：#1500 合并为 b4e8e82f9；生产台账停后端后 python scripts/verify_audit_chain.py --replay-journal 补写 1 条 → exit 0（82,931 条，seq 1..82931）；交接卡自检「审计 82934 条 / 0 断点」。若将来再出现 3=PENDING：同一命令补写即可；别再当篡改取证"
-    },
-    {
-      "id": "ci-shard6-cognitive-shadow",
-      "title": "CI shard6 的 cognitive 包遮蔽 flake（已加 sys.path 守卫，#1506 上 shard6 全绿）",
-      "status": "done",
-      "priority": "P2",
-      "criteria": "仓里两个同名包：仓根 cognitive/（元认知引擎）与 agent/cognitive/（认知循环）。只要 agent/ 排在 sys.path 前面，from cognitive import PromptInjector 就解析到 agent/cognitive ⇒ ImportError（本机已复现该机制）。CI 的 shard6 在 #1498/#1499 上红了两轮（3 个收集失败 + test_plan_tools SessionRestore），本机 -n 2 跑完整 shard6 3752 条全绿 —— 属导入顺序 flake，非回归",
-      "next": "已做：_pin_repo_root_first() 把仓根钉在 sys.path[0]、把 .../agent 挪到末尾，三个调用点（conftest 导入 / pytest_collectstart / 逐用例 autouse）。#1506 的 shard6 全绿。若再犯：先确认那三个调用点还在（有人删了 autouse fixture 就会回退）"
-    },
-    {
-      "id": "weak-hash-queue",
-      "title": "weak-hash 5 条（分桶 MD5→SHA-256 + 签名密钥 PBKDF2+缓存，#1496）",
-      "status": "done",
-      "priority": "P1",
-      "criteria": "merged 937fbe69c；分桶改 SHA-256（agent/utils/bucketing.py），签名密钥派生改 PBKDF2 + 进程内缓存；code scanning weak-sensitive-data-hashing 5 → 0。另 3 条 identity/judge 的 dismiss 仍是裁决过的，别再动",
-      "next": "-"
-    },
-    {
-      "id": "transform-queue-archive-delete",
-      "title": "转化队列「归档 + 二次确认彻底删除」+ 工具页「移除运行时工具」+ shard6 sys.path 守卫（#1506，已合并）",
-      "status": "done",
-      "priority": "P2",
-      "criteria": "队列：archive 终态 + remove_job 只删已归档 + artifact_targets 白名单（仓库内/系统临时目录）+ 两个端点 + 「显示已归档」开关；工具：remove_runtime_tool 只认 dynamic_tools 台账（内建拒绝）、快照→注销→删台账/YAML/实现/单测→清 UI 开关、失败回滚。顺带把真实台账 62 → 27 条（删 35 条 pytest 临时目录污染，备份 data/backups/jobs-before-cleanup-20261107-232645.json）+ conftest autouse 隔离 jobs_path",
-      "next": "已完成：6908f52a1 合并 + 部署（三处一致）；code scanning 0。附带：conftest 的 sys.path 守卫（agent/ 挪末尾）本轮 shard6 全绿。【2026-11-08 补】「取消归档」已做（PR #1515）：jobs.unarchive 退回归档前状态（history 里最近一次 to=archived 的 from；取不到就报错不猜）+ POST /api/skills-mgmt/transforms/jobs/unarchive + 队列已归档行的「取消归档」按钮 + 干净 worktree 重派生 route_ui_coverage（444 ui）"
-    },
-    {
-      "id": "runtime-skill-intake-quality",
-      "title": "本机运行期技能质量（document-skill front matter 解析失败 + 入轨助手自动改基线）—— 已按 Owner 决定收口",
-      "status": "done",
-      "priority": "P3",
-      "criteria": "2026-11-07 23:49–23:51 有人用 UI 走「转化队列 → 登记/入轨」：新增 api-multi-search-engine（文件轨 + 主轨）与 document-skill；两条都不在 git（运行期）。document-skill/skill.md 的 front matter 被写成 description: name: ... 的多冒号单行 ⇒ YAML ScannerError，validate_skill_md 报 1 error；另有 4 条缺 description_zh/何时使用/示例的 warning（含既有的 adaptive-skill-stack / claude-code-analysis）。同期还自动改了 capability_manifest / 盘点表 / 3 个测试基线（已按口径还原，未提交）。交接卡自检因此显示 ⚠（dual_track 51/51 孤儿 / skill_md 1 error）",
-      "next": "已按 Owner 的 ①+③ 收口（2026-11-08 01:45）：① 两条技能修好并正式入轨 —— document-skill 的 description 改成单引号标量、name=技能名、去掉正文里重复的 name/description 与末行 Tags（不编内容），api-multi-search-engine 补 description_zh + 「何时使用」并把被截断的 description 补完；intake_skill --execute --fix-baselines 入轨（skill.md + CARD.md 进 git），干净 worktree 重派生 capability_manifest/盘点表（140 → 142 条，工具 93 不动），基线六处同步（entries 142 / by_kind skill 49 / by_location local 120 / skill_total 49），并顺手把 HEAD 里那处不可复现的 search_memory.location_unresolved 漂移改正；③ 入轨助手 fix_baselines 默认 false（DEFAULT_FIX_BASELINES + 界面「同时刷新基线」显式勾选），带 4 条路由用例与 2 条界面用例。结果：validate_skill_md 0 error（3 warning 是既有两条 + document-skill 无「示例」）、双轨 0 孤儿（文件轨 51 / 主轨 53）。剩余：「取消归档」见 queue-archive 条目"
-    },
-    {
-      "id": "compress-trigger-global-pool",
-      "title": "压缩触发池是**全局记忆**（跨会话最近 200 条），与界面读数（本会话）不同源；floor 又按 100 条记 ⇒ 闸门恒开",
-      "status": "done",
-      "priority": "P1",
-      "criteria": "量测（2026-11-08，python -X utf8 scripts/probe_compress_vs_cache.py）：触发池 data/messages.jsonl 是全库（295 条，无 session 字段），counted(最近 200 条)=130,469 token = 窗口 131,072 的 99.5%、80% 阈值(104,857)的 1.24 倍；而界面 /api/context/status 算的是**本会话**：68~70 条 / 68,243 token = 52.1%。阈值早在 2026-10-05T17:22（第 98 条）就越过，之后恒在阈值以上 ⇒ 新会话在 3% 也会因「另一条会话的消息」触发压缩。次因：_execute_compression 用 load_recent_messages(limit=100) 记 floor(69,895)，触发却看 200 条(130,469) ⇒ counted200 >= 1.1×floor=76,884 恒成立，闸门形同虚设；按现有消息池模拟可触发 186 次（floor 用同一 200 条窗口时只有 6 次）。实测压缩 80 次（79 成 + 1 空摘要），2026-10-13 一天 25 次、12:09–12:31 六次。",
-      "next": "已完成（PR #1518 → 74d7690c5，2026-11-08 15:00 部署）：① 触发池按会话（add_message/score_and_save_message 带 session_id、_recent_messages 过滤、水位按会话分桶）；② floor 与触发同窗口（COMPRESS_TRIGGER_WINDOW=200），并把维护线程也改成按会话判定；③ 重启时从落盘回填 _message_window（否则压缩输入只拿到重启后新写的几条，实测只剩 147 token）。实测：会话 0.1%→2.5% 期间压缩事件 +0、摘要版本 94 不变；离线演示触发点恰好 800/1000=80%，别的会话灌到 2000 不触发新会话。剩余边界：触发看会话最近 200 条、界面看会话全量累计 ⇒ 超长会话（>200 条）仍可能「界面到 80% 而触发未到」（方向安全，不再提前压）；摘要仍是全局一份"
-    },
-    {
-      "id": "retrieval-mode-prefix-cache",
-      "title": "检索/完整·流式档把「会话摘要+最近消息」塞进 system prompt ⇒ 整段前缀每轮失效（可复用 ≤0.13%）",
-      "status": "done",
-      "priority": "P1",
-      "criteria": "实测 7 条 LLM 记录：稳定档位内命中 99.4%~99.7%（每次只 miss 新增尾部 201~351 token）；换档那次（工具集 17→26、system prompt 75→434 字，3,774→7,270 token 的 tools）命中 0/62,415；压缩调用本身命中 0/57,385（摘要用另一套前缀，构造上不可能命中）。零命中 2 次贡献 119,800 token = 全部 miss 的 97.1%。检索档的 system prompt 里 [工作记忆] 块起点在第 102 字（块前只有 80 token），而该块 = get_context 的「摘要 + 最近 20 条」截 500 字 ⇒ 窗口每滑动一条就整段失效（模拟 115 轮里 114 轮该块变化，首个分歧就在块首）；压缩改写摘要同理（可复用 111 token）。",
-      "next": "已完成（PR #1518 → 74d7690c5）：plugins/chat.py 的技能 instruction / 检索片段不再拼 SYSTEM_PROMPT，改随本轮最后一条用户消息下发（与编排器 F3-1 共用 YUNSHU_PROMPT_VOLATILE_TAIL 开关，=0 回滚）。实测（pid 64828）：三次检索档对话 21 次调用，system prompt 恒 75 字、命中 88.1%、零命中 0 次（修前同档 0/62,415）；同轮相邻命中 93~98%。未做：压缩调用自身仍是另一套前缀（57k token 全价），要它命中得把摘要指令拼在对话前缀之后"
-    },
-    {
-      "id": "compress-call-prefix-reuse",
-      "title": "压缩调用复用对话前缀（已实现，默认关；实测 99.7%、成本 −81%）",
-      "status": "done",
-      "priority": "P2",
-      "criteria": "量测（§11.71）：公共前缀 0 token；压缩的 100 条是对话窗口的后缀 ⇒ 后缀不算前缀；只换 system+tools、切片不动命中 8.5%、成本 +1%（白干）；切片改成对话窗口 + 指令后置离线 99.9%、真实调用 99.8%。**实现（PR #1521 → 320f9d2bc，2026-11-09 00:1x 部署）**：agent/chat_prefix.py（按会话登记本轮实发 system+tools+messages+model，8 会话/30 分钟）+ plugins/chat.py 真实调用前登记 + memory/summarizer.py 前缀模式（指令放末尾）+ memory_manager._chat_prefix_for（开关/新鲜/模型一致/装得下）+ llm_service 与 llm_monitor 透传 tools + registry 登记 CP_COMPRESS_REUSE_CHAT_PREFIX。端到端 --e2e：_execute_compression True、summarize prompt=87,795 hit=87,552 = 99.7%、tools=26、system 逐字一致。A/B：旧路径输出是对话续写，新路径是结构化摘要（两次都触 completion=500）。",
-      "next": "开关默认关 ⇒ 收益尚未生效；开启见 compress-prefix-enable。回滚 = CP_COMPRESS_REUSE_CHAT_PREFIX=0（默认值即回滚）。复现：python -X utf8 scripts/probe_compress_prefix_reuse.py [--live|--ab|--e2e]。"
-    },
-    {
-      "id": "compress-prefix-enable",
-      "title": "CP_COMPRESS_REUSE_CHAT_PREFIX 观察结论（2026-11-10 拍板）：现场 true、代码默认保持 false",
-      "status": "done",
-      "priority": "P2",
-      "criteria": "**2026-11-09 已按 Owner 指示开启**（开关中心同一条 API：value=true、applied=True、hot 写入进程 os.environ、source=ui_override；重启后由 bootstrap 重新应用）。现场实测（分支临时部署 pid 69772）：窗口临时 30000 + 新会话 23,800 字消息 ⇒ 手动压缩返回 used_prefix=True / prefix_messages=1（摘要 v94→95，随后已还原）。**验收坑**：窗口 2000/3000 时 used_prefix 恒 False —— 守卫按设计拒绝（前缀 + RETRY_TOKENS 2000 + 余量 1024 > 窗口），验收要窗口 ≥ 前缀 + 3k。",
-      "next": "决定：**现场 ui_override=true 保留**（重启由 bootstrap 重新应用），registry 默认仍 false。依据：提示 87,795 / 命中 87,552 = 99.7%、成本 −81%、摘要从「对话续写」变结构化；但冷缓存 1.85× 的风险不该默认落到所有新环境 —— 「已验证、需显式打开」才与现状相符。回滚 = 置 0（立即生效）。"
-    },
-    {
-      "id": "summarize-usage-observability",
-      "title": "压缩（summarize）usage 恒 0 —— 钩子改读真响应对象（11dfde713）",
-      "status": "done",
-      "priority": "P3",
-      "criteria": "2026-11-09 做 --e2e 时发现：agent/llm_monitor 的 _patched_do_summarize 用 create_from_api_call(response_obj=...) 建记录，但 memory/llm_service._do_summarize 返回的是**文本**而不是响应对象 ⇒ usage_prompt_tokens / prompt_cache_hit_tokens / miss 恒 0（source=summarize、tools 倒是有了）。后果：压缩的 token 与缓存命中在「LLM 缓存命中」卡、成本统计、prometheus 的 llm_tokens_total 里都看不见（这正是当初 §11.67 只能用 --e2e 探针取数的原因）。",
-      "next": "已落地：_do_summarize 把真响应对象暂存 _last_summarize_response（异常时置 None），llm_monitor.summarize_response_for_record() 供钩子取值 ⇒ extract_usage 拿到真 usage。用例 5 条（test_summarize_usage_observability.py）。验证方式：下一次真实压缩后看 /api/llm-monitor/stats 里 source=summarize 的 usage_prompt_tokens 是否非 0。"
-    },
-    {
-      "id": "ui-vs-trigger-metric",
-      "title": "界面占用率与压缩触发同源（已完成：最近 200 条正文）",
-      "status": "done",
-      "priority": "P2",
-      "criteria": "修前：/api/context/status 分子 = 会话全量累计（收+发 over 全部消息），触发量的是最近 COMPRESS_TRIGGER_WINDOW(200) 条正文且跳过工具结果 ⇒ 超长会话「界面 80% 而触发未到」。**已修（PR #1523 → 05545d6bc）**：分子改成最近 200 条正文（跳过 role=tool/tool_call_id），current_tokens 与 percentage 同源；新增 session_total_tokens / percentage_semantics=compress_trigger_window / percentage_window_messages / percentage_note；面板显示后端口径说明 + 会话累计；口径.md §7 已补一条。同 PR 顺带让手动压缩回报 used_prefix/prefix_messages（面板显示「复用前缀 / 独立前缀」）。",
-      "next": "已完成（2026-11-09 部署）。若日后调 COMPRESS_TRIGGER_WINDOW，界面自动跟随（同一常量）；改任一侧必须同批改另一侧 + 用例（test_context_limits_alignment 的「同源」用例）。"
-    },
-    {
-      "id": "per-session-summary",
-      "title": "摘要按会话分家（已实现并开启：CP_SESSION_SUMMARY_SCOPED）",
-      "status": "done",
-      "priority": "P2",
-      "criteria": "修前：压缩永远写同一份 summary.txt，get_context(token_limit) 没有会话参数 ⇒ 会话 A 的摘要出现在 B 的上下文里。**2026-11-09 已实现（PR #1524 → 4d5394490）**，Owner 选 1①（首压以全局摘要作基底）+ 2②（全链路）：agent/current_session 叶子指针（SessionManager.set_current 发布）+ memory_manager._summary_sid（关⇒全局/开⇒显式 id 或当前会话）+ load_summary/get_context/clear_summary 的 session_id + 压缩读会话摘要（没有就迁移民全局）写会话文件 + compress_rounds_for；chat 两个入口解析出 session_id 后 set_current。存储层在 d5e2cc5a5（summary_<sha256(sid)[:16]>.txt）。A 实测：开关 hot 打开 → 会话 A 压缩 v0→97 写自己的文件、全局 v96 mtime 未动；会话 B 的 overview summary_version=None（看不到 A）；切回 A=97。",
-      "next": "已开启（source=ui_override，热生效）。观察：①分家后各会话摘要版本是否各自增长；②老会话首压是否带上全局基底（日志「迁移：以全局摘要 vN 作基底」）；③面板「当前窗口压缩」次数是否合理（分家后基线=0）。回滚 = 置 0。验收坑：手动压缩要紧跟 done 事件时，本轮落库/触发可能没跑完 ⇒ 先等 8~10s 再压，否则 _pending_session 为空、会走全局路径。"
-    },
-    {
-      "id": "context-message-window-scoped",
-      "title": "上下文「最近消息」按会话过滤（已实现并开启：CP_CONTEXT_WINDOW_SCOPED）",
-      "status": "done",
-      "priority": "P3",
-      "criteria": "修前：get_context 的 recent 取 _message_window（最近 20 条、跨会话）⇒ 会话 B 的上下文带出 A 的原文。量测（data/messages.jsonl）：最近 20 条来自 8 个会话、最近 200 条来自 21 个。**已实现（PR #1525 → 67ac1cb72）**：CP_CONTEXT_WINDOW_SCOPED（默认关）打开后 recent 只取当前会话（内存优先，空则从 messages.jsonl 取 200 条按会话筛到 20）；拆出 _session_key 与摘要开关解耦；顺带修「有摘要无消息返回空」。A/B 实测：开关关 messages=22 / 开 messages=1（新会话不再带别会话消息）。",
-      "next": "已打开（ui_override）。观察：新会话的上下文是否变短（正常）、老会话是否因为只有自己的消息而丢失跨会话线索（若需要跨会话线索，改用显式检索而不是靠窗口）。回滚 = 置 0。"
-    },
-    {
-      "id": "skill-usage-exec-zero",
-      "title": "技能近 7 日命中/加载/执行的口径 + 「执行不适用」上屏 + L3 显式执行点（§11.78）",
-      "status": "done",
-      "priority": "P2",
-      "criteria": "Owner 2026-11-09 指定。结论：exec 恒 0 **不是链路故障**，是「没有可执行技能」+「聊天链路只做 L1→L2，不执行脚本」+「页面把不适用显示成 0」。实测：51 个文件轨技能里只有 1 个真有 scripts/*.py（scripted-selftest 示例，全仓仅 1 个 .py）；SkillExecutor.execute 的调用点只有 POST /api/skills-mgmt/<id>/execute（人点详情抽屉）、评估器、修复委派 —— 工作台 SSE / 编排器从不执行脚本。台账自 2026-10-28 建账起 exec 事件 = 0（11 个分片全扫）。另两项口径问题：①load 的 source 全写 loader ⇒ 56 条加载里 33 条在 ±15s 内没有同技能命中（详情抽屉默认打开「使用说明」= 一次 load），「加载」把模型取用与人点开详情算成一个数；②命中率 71.9% 的分母是 32 次检索，不是 50 个启用技能（同窗口 39/50 一次都没命中）。",
-      "next": "已落：#1 列表加 has_scripts（叶子 file_store.skill_ids_with_scripts）+ 表格「执行」位改「—/不适用」+看板 summary 改「执行不适用（无带脚本技能）」+ 冲突处置不再提「0 执行」；#2 台账 load 按 source 分列（semantic/inject=模型取用、ui=详情查看、loader=未分源历史），totals 增 load_inject_calls/load_ui_calls/load_legacy_calls；#3 新工具 skill_script_run（L3 显式执行点，默认 YAML enabled:false，现场已开）。遗留：56 条历史加载无法回溯分源（只能按「未分源」单列），新事件起才有语义。",
-      "done_at": "2026-11-09T21:40+08:00",
-      "done_by": "§11.78"
-    },
-    {
-      "id": "lab-apply-cache-notice",
-      "title": "提示词实验室 apply 旁标注缓存代价（c257a455e）",
-      "status": "done",
-      "priority": "P3",
-      "criteria": "实测 2026-11-08：改一行身份 → system prompt 277→281 字、下一次命中 0/3,605（整段前缀作废一次），之后恢复；改回时若旧前缀仍在服务端缓存则不再付全价。",
-      "next": "已落地：「应用到运行时」按钮旁常驻一行「ⓘ 改身份 = 下一次调用整段前缀失效一次（按未命中计价）」，title 里写清「只赔一次，之后重新稳定」。"
-    },
-    {
-      "id": "unscoped-legacy-pool",
-      "title": "未分会话历史池：决定冻结、不迁移，并在 /api/context/status 与面板如实披露（d3f7fd043）",
-      "status": "done",
-      "priority": "P3",
-      "criteria": "PR #1518 后维护线程只在「窗口最后一条消息带 session_id」时判定；legacy 301 条（无 session_id）已不再被压，摘要也不再消化它们。",
-      "next": "决定：不迁移（把 305 条无主消息搬进某个会话 = 把无关上下文塞给它，比冻着更坏）。落地：agent/legacy_pool.py（只读计数 + 60s 缓存）→ /api/context/status.legacy_pool {available, policy:frozen, legacy_messages:305, legacy_chars, messages_total}；面板在占用率口径下加一行「未分会话历史池 305 条 · 已冻结（不参与压缩/摘要/最近消息）」。"
-    },
-    {
-      "id": "unit-board-no-data",
-      "title": "单位看板「无数据」口径（2026-11-10 拍板）：never 不计分，0 行长期记忆归为无数据",
-      "status": "done",
-      "priority": "P3",
-      "criteria": "2026-11-08 交接卡：12 个单位 9 ok / 2 warn / 1 never；两项都是「没有数据」而不是故障，却常挂在看板上像告警。",
-      "next": "决定：① never（从未产生数据）既不进分子也不进分母（L5：无数据不许折算成 0 或满分）；② 长期记忆「库在但 0 行」= 尚未产出 ⇒ status=never（是否真坏由 scheduler 的 last_run 判断，不重复推断）；③ 工作流 0 条文案改「尚无工作流（0 条）· 无数据，不计分」。落地：unit_monitor.score_detail() + /api/system/units 增 scored_units/no_data_units/health_score_note + 面板显示「（N 项无数据不计分）」；可计分单位为 0 时 score=None ⇒ 显示「无数据」而不是 0 分。现场读数：10 ok / 0 warn / 2 never · 健康分 100.0（10 项计分，2 项无数据不计分）。"
-    },
-    {
-      "id": "alarms-evaluator-wiring",
-      "title": "报警器未接入告警规则评估器（PromQL 规则 × 简单阈值 evaluator 结构不匹配）",
-      "status": "done",
-      "priority": "P3",
-      "criteria": "报警器（§11.88）当前的事件源 = 健康探针降级 / 单位看板 warn|error / 审计链尾部不一致，三处都是已在跑的采集面。**告警规则本身没有接进来**：monitoring/alerts.yml 的 16 条规则是 PromQL（up{job=\"yunshu\"} == 0、resets(up[1h]) > 3、sum(rate(yunshu_http_request_total{status=~\"5..\"}[5m])) ...），而 agent/monitoring/alert_evaluator.py 只认 \"metric 比较 阈值\"（get_metric_value(名字)），且 AlertManager 的规则来源（self._config.groups）默认是空 ⇒ 直接 start() 只会空转，不产生真告警。",
-      "next": "2026-11-11 落地（Owner 授权：全面分析后按最佳方案执行）：选**方案 C** —— 新增 agent/alarms/promql.py（PromQL 子集解析/求值：选择器、标签正则、区间、rate/increase/resets、sum/max/by(le)、clamp_min、histogram_quantile、四则与比较）+ agent/alarms/samples.py（每轮 60s 采样环，算窗口差值/分位数；窗口不足报 warming 而不是 0）+ agent/alarms/rules.py（读 monitoring/alerts.yml 的 16 条规则原样求值，按 for 时长状态机 firing/pending）。为什么不是 A（部署 Prometheus）或 B（手工翻成阈值）：A 为 16 条规则再引入一个外部服务；B 会丢掉 rate/clamp_min/分位数 —— 那正是 5xx 比例与 P99 的全部内容。结果如实：本部署的注册表里只有 6 条规则的指标存在（http 5xx 比例/1m 增量、P95/P99、内存、CPU），其余 10 条引用的 up / llm_calls / tool_call / security_blocks / hallucination / eval_score 不存在（外部 Prometheus 采集 或 本仓根本没埋点）⇒ 求值器标 no_data/unsupported 并给原因，经 /api/observability/alerts 运行态（新增 evaluable + state_reason）与 /api/alarms/coverage 如实暴露。规则告警已进入事件台账（kind=rule，key=rule.<alert>）。测试：promql 15 + rules 9 + api 14。**后续（未做，需 Owner 决定）**：要给 llm_calls/tool_call/security/hallucination/eval 这五类补埋点，或上 Prometheus；报警器本身不再改口径。"
-    },
-    {
-      "id": "baseline-gate-flaky-assertions",
-      "title": "失败基线回归（0 条容忍）对 flaky 断言零余地：同类断言落链要按口径用有界轮询",
-      "status": "done",
-      "priority": "P3",
-      "criteria": "failures_baseline.txt 已于 2026-09-28 收缩到 0 条（只允许收缩）⇒ 「失败基线回归」job 对**单条 flaky** 零容忍：整轮 2.5 万条里只要 1 条时序抖动就会让 master 红。2026-11-11 一夜之间实测到三处，都不是回归：① test_memory_comparison 的 refcount 首轮 ±1（已改两轮稳态比较）；② test_knowledge_watcher 等 meta 就读 log.md（已改有界轮询）；③ test_skill_registry_audit 两处漏了 _wait_records（同文件 toggle 用例早就改过）——已补。口径里本来就写着「链式审计 best-effort ⇒ 断言落链用有界轮询」，但历史上是**逐条打补丁**改的，没有机械守卫 ⇒ 下一处仍会漏。",
-      "next": "2026-11-11 落地（Owner 授权：按最佳方案执行）：**不用**①AST 守卫（实测全仓 45 处「链式断言未轮询」，其中多数是同步写路径、本来就该立即断言 —— 一刀切会造 45 条误报，而误报会让门禁被无视）也**不用**②重跑机制（会掩盖真回归）；改为**治本**：审计链 append 的『先 put 再 ++_enqueue_count』顺序使 flush() 可能读到旧 target ⇒ 立即返回 ⇒ 读路径看不到刚写的记录。修法（agent/audit/chain.py::append ②）：计数与入队放进同一临界区、计数先于入队 ⇒ 任何在 append 返回后开始的 flush 都必然等到提交（read-your-writes 成立）。新增 tests/unit/test_audit_read_your_writes.py 3 条（200 次追加逐次读、8 线程×10 并发、count 与 entries 口径一致）。此前三处逐条补丁（refcount 两轮稳态 / watcher 等 log 行 / audit 两处 _wait_records）保留作为第二道防线。"
-    },
-    {
-      "id": "alarms-coverage-in-ui",
-      "title": "把报警器的「覆盖/盲区」读数接进告警 Tab（现在只有 /api/alarms/coverage 端点）",
-      "status": "done",
-      "priority": "P3",
-      "criteria": "§11.89 新增了 GET /api/alarms/coverage（事件源清单 + 规则覆盖率 + 上一轮采集统计）与 GET /api/alarms/rules（逐条规则状态）。目前只有规则运行态通过 /api/observability/alerts 进了「健康仪表盘·告警」Tab；**覆盖/盲区读数还没有 UI 入口**，只在排障时手工调端点，并在 config/route_unreferenced_triage.json 登记为 keep-ops。",
-      "next": "2026-11-11 落地（Owner：「两条 open 都做」）：health.tsx 新增 AlarmCoverageBlock，渲染在「告警」Tab 顶部 —— ① 六个事件源逐条「本轮已读 / 本轮不可用 / 冷启动跳过」（读 /api/alarms/coverage 的 last_collect.checked，与采集层 keep 语义对齐：不可用的源既不报警也不判恢复，所以必须看得见）；② 规则可求值数（如 11/16）+ 算不了逐条原因（缺哪个指标 / 样本不足 / 需 Prometheus，读 /api/alarms/rules 的 coverage.blocked）；③ 采样环点数（窗口类规则的先决条件）；④ 外部 Prometheus 状态（configured / last_ok）。两条端点常量收口到 src/api/endpoints.ts（ALARMS_COVERAGE / ALARMS_RULES），alarms.ts 只引用常量；config/route_unreferenced_triage.json 里这两条的 keep-ops 已删除（已接 UI），干净 worktree 重派生 route_ui_coverage（unreferenced 33→31、ui 450→452、frontend_endpoints 454→456）。测试：health.test.tsx 25→28（覆盖块渲染 / 组件级 Prometheus 可用 / 两条端点都失败上屏）。提交 daae9258b + 1c2986dd4。"
-    },
-    {
-      "id": "alarms-global-coverage",
-      "title": "报警器要变「全域」还差三件事（补埋点 / 上 Prometheus / 调度与 CI 入源）",
-      "status": "done",
-      "priority": "P3",
-      "criteria": "Owner 2026-11-11 问「报警器是全域感知、全域监控吗？」——实测**不是**，盲区已写进 /api/alarms/coverage 与 §11.89 A：① 外部服务存活（up{job=…}）只有 Prometheus 采得到；② LLM 调用量 / 工具失败率 / 安全拦截 / 技能幻觉率 / 技能评分**本部署没有埋点**（alerts.yml 里 10 条规则因此是 no_data：yunshu_llm_calls_total、yunshu_tool_call_total、yunshu_security_blocks_total、yunshu_skill_hallucination_total、yunshu_skill_eval_score）；③ 计划任务失败/堆积、CI 与部署失败、日志异常聚合、报警外发通道都还没有进事件台账。",
-      "next": "2026-11-11 落地（Owner：「两条 open 都做」）—— 按 §11.89 的既有决策执行：① 补埋点（做）、② 上 Prometheus（**不做**，Owner 18:55 指正后撤销，见下）、③ 事件源扩容（做）：\n① 补埋点（接到真实执行点，不造数）：新增 agent/monitoring/alarm_metrics.py（只对**已注册**的族自增，不新建 ⇒ 不会让 app_server 的 Counter 撞名起不来；失败全吞）。\n   · yunshu_llm_calls_total{provider,model,status} ← 收口在 LLMMonitor.record()：**所有** LLM 交互的唯一落点。【踩坑】先写在 _patched_do_chat/_patched_do_summarize 两个钩子上，实测无效 —— 本部署对话主链路走的是 _wrap_get_client_for_tool_calling 的 client.create 包装（source=tool_calling），根本不经过那两个钩子（实测 5 条记录全是 tool_calling）；收口到 record() 后立刻出现 series（d68b25c8e）。\n   · yunshu_tool_call_total{success} ← plugins/chat.py::_record_tool_usage（与工具台账同一处，避免两套数字）；实测聊两轮后 read_file / search_files 两条 series。\n   · yunshu_security_blocks_total{rule,level,category} ← tool_gate._deny（治理边界=warning）与 guardrails egress/ssrf 的 block_result（真安全事件=critical）；标签只放静态值（策略 id/host/secret 不进标签）。当前 0 次拦截 ⇒ 该族还没有 series，规则如实 no_data（不造假 0）。\n   · yunshu_skill_hallucination_total / yunshu_skill_eval_score 本来就有真实写入点（skills_mgmt.observability.emit_eval_score_metric → business_metrics），缺的是「报警器看不看得见」；samples.py 新增 snapshot_business_metrics() 把业务指标层的导出投影并进采样环（只并规则引用的族）。新增端到端用例：真调 emit_eval_score_metric 再读投影，断言两族与 {quantile=\"0.5\"} 可见。\n② 上 Prometheus：**明确不做**（Owner 2026-11-11 18:55 指出：上一轮 §11.89 已否决方案 A「为 16 条规则再引入一个外部服务」，选 C 本进程求值；把「两条 open 都做」当成对冲突方案的授权是我的判断错误，这类冲突应当回来问 Owner）。已撤销：\n   · 下载中的二进制（116MB，~50MB/20KB/s）已中止，C:\\\\Users\\\\Administrator\\\\yunshu-prometheus 已删除；\n   · **未安装任何进程**，9090 无监听，未写任何 systemd/服务；\n   · deploy/monitoring/prometheus/prometheus.local.yml 已随本次修正删除（避免仓库里留着「要装外部服务」的信号）。\n   代码侧只保留**默认关**的可选读源 agent/alarms/prometheus_source.py（CP_PROMETHEUS_URL，默认空=完全不参与；每次都先判 configured()，不配置时与 C 逐字等价）：它存在的唯一目的是把「up{} 到底缺什么」说清楚（/api/alarms/coverage 与告警 Tab 都能看到「未配置 ⇒ up{} 类规则只能报无数据」），并保证将来 Owner 若明确要 up{} 时不必改码。不配置 ⇒ 不引入任何运行期依赖、不联网、不起子进程。③ 事件源扩容：collector 新增 scheduler（data/task_history.jsonl 近 6 小时 status=failed，同任务多次失败合并成一条）与 ci（data/ci/status.json）两个只读源；采集线程不联网、不起子进程 —— CI 结果由新增 scripts/sync_ci_status.py 用 gh 同步（已修 Windows 下 gh 输出 gbk 解码崩溃）。文件缺失或超过 2 小时未同步 ⇒ 该源本轮不可用（keep）。两个源的 keep 前缀（scheduler. / ci.）已接入 reconcile。/api/alarms/coverage 增 prometheus 读数与两条新源。\n现状读数（部署 d68b25c8e 后）：sources 6 条全部 checked=true；prometheus.configured=false（等二进制）；rules 7 evaluable / 9 blocked（no_data 8 + warming 1）；采样环 8 点。测试：test_alarms_global_coverage.py 24 条；alarm/promql/rules/api/store 全绿；前端 170 files / 1298 tests 全绿。"
-    },
-    {
-      "id": "unit-probe-timeout-counted-as-critical",
-      "status": "done",
-      "priority": "P3",
-      "title": "单位探针 2s 超时被记成 critical 告警（消息中心 6 条里 2 条是这种）",
-      "criteria": "2026-11-11 现场：13:39:58 台账记了 2 条 critical（unit.runtime.audit 审计链 / unit.memory.longterm 长期记忆，detail=探测超时），13:40:58 自愈。实测这两个探针常态只要 1.5~7.6ms（/api/system/units?refresh=1 的 probe_ms），所以超时不是单位坏，而是那一刻进程被别的活占住（两个探针相邻、连续超时 ⇒ 单次 ≥4s 的停顿），而 unit_monitor 的 _DEFAULT_PROBE_TIMEOUT=2.0s、超时即 status=error ⇒ collector 按 error 记 critical。同族噪声：04:51 冷启动那 3 条（WARMUP_SEC=90 已覆盖冷启动，但不覆盖「运行期短暂卡顿」）。",
-      "next": "2026-11-11 落地（Owner 授权「分析后决定」）：定为**无法判定**，不是故障。\n· agent/alarms/collector.py 新增 UNIT_TIMEOUT_MARK=\"探测超时\" + unit_is_timeout()/unit_timeout_keys()；\n  unit_candidates 跳过超时单位；collect_once 把这些键加进**逐键 keep** ⇒ 既不报警、也不判恢复\n  （与「数据源不可用」同一条口径）。真错误（非超时）照旧 critical。\n· 不选「连续 N 轮才报」：超时本质是信息缺失，靠计数兜底仍会在每次启动/卡顿时制造噪音。\n· 测试 4 条：超时不产生候选 / 真错误仍 critical / 超时保留旧告警不判恢复 / 恢复后照常 resolve。"
-    },
-    {
-      "id": "p99-rule-includes-sse-and-heavy-endpoints",
-      "status": "done",
-      "priority": "P3",
-      "title": "P99 规则把 SSE 长连接与重端点都算进 HTTP 时延 ⇒ 打开监控页就必然 firing",
-      "criteria": "2026-11-11 现场：rule.YunshuHighLatencyP99 从 13:00:48 一直 firing 到 15:35:11（count 77，detail 实测最高 10s）。归因（按 /metrics 的 endpoint 标签逐条核对）：>1s 的请求集中在 api_skills_mgmt_assess_stream（8 次全部 >10s，那是 SSE 长连接，本身就长）、system_tools.api_process_list（11 次全部 >1s）、modules.topology（11 次全部 >1s）、health.probe_trend（9 次全部 >1s）；真正偶发的是 /api/version（16 次里 2 次 >1s，它每次跑 git status 扫 ~900 个未跟踪文件）。⇒ 只要有人打开系统监控/进程列表/评估流，5m 窗口的 P99 就 >3s，规则必然报。",
-      "next": "2026-11-11 落地（Owner 授权「分析后决定」）：改**规则口径**而不是调阈值。\n· monitoring/alerts.yml 的 YunshuHighLatencyP99 / P95 加同一排除集：\n  endpoint!~\" .*stream.* | modules\\.topology | system_tools\\.api_process_list | health\\.probe_trend \"（无空格）。\n  理由逐条写进注释：SSE 的 histogram 是**连接存活时长**；topology 实测 3.2s/次且页 60s 自动刷新；\n  process_list / probe_trend 是进程枚举与五层历史聚合（扫描量≠交互延迟）。\n· 阈值与 for 不变；要盯这些端点用定向规则或诊断页分位数，别塞进全局 P99。\n· 测试 3 条互为反证：只有被排除端点慢 ⇒ ok；无排除时同数据 ⇒ firing；普通交互端点慢 ⇒ 仍 firing。\n  （夹具两端写全量桶 —— 直方图 bucket 是累计计数器，起点缺席会被按 0 起算而虚高。）"
-    },
-    {
-      "id": "perception-learning-switch-off",
-      "status": "done",
-      "priority": "P3",
-      "title": "「感知侧学习」拓扑显示未启用 —— 是现场开关 false，不是坏（等 Owner 决定要不要开）",
-      "criteria": "2026-11-11 Owner 问「感知侧学习模块为什么没有启用」。查证：拓扑节点 learning.novelty 的 status_source 是 config:learning.sensor_learning.enabled，而 config.yaml:242 = false ⇒ 节点如实显示 disabled/未启用。这个 false 是**有意**的：472490f0c（2026-08-15）「TASK-06 开关恢复观察模式 — true→false（并行 rebase 剥离后重建）」，docs/zh/智能体学习机制重构计划/TASK-06_变更说明.md 也写「false（2026-08-15 正式采集验证后恢复观察模式）」，.env.example 同步 false。但 config.yaml:236 的注释仍写「默认开启——2026-08-14 由观察模式转入正式采集」⇒ 注释与值矛盾（陈旧注释）。开关本身是 hot 生效（novelty_hooks._sensor_learning_enabled 每次事件都读 env→config），设置中心「学习与进化」里可切，风险级 A、needs_restart=false。副作用（开=true 后）：低/中置信 NoveltyEvent → 写 data/learning/novelty_memory（JSONL）；高置信 → 审计 + 建议草稿（data/learning/novelty_suggestions/，只产 DRAFT，绝不注册技能）；行为漂移周级检测。",
-      "next": "2026-11-11 按 Owner 指示**开启**：config.yaml learning.sensor_learning.enabled: false → true，\n并把那段自相矛盾的注释重写（旧注释写「默认开启——2026-08-14 转入正式采集」，实际值在 472490f0c（2026-08-15）\n已退回观察模式；新注释写明谁在何时为什么改过、true/false 行为、hot 生效方式、回滚方式）。\n.env.example 同步 SENSOR_LEARNING_ENABLED=true（新环境不再落回 false）。\n现场验证（部署 eeecf66c8 后）：设置中心 SENSOR_LEARNING_ENABLED=True（source=config, effect=hot）；\n拓扑节点 learning.novelty = **healthy / 已启用**；调度任务 16 → **17**（行为漂移检测 注册上了）。\n⚠ 两点如实记录：① novelty 钩子本身是 hot（每次事件重新取值），但 behavior_drift 的周级任务在\n  **启动时** schedule() 判定开关（关就返回 disabled 不注册）⇒ 真正生效需要一次重启（本次部署已完成）；\n  ② 本部署 sensor.watch_dirs 为空 ⇒ FileWatcher 未启动，当前事件源是 ChangeDetector 的快照对比\n  （硬件/进程/目录树），不是文件监听。若要监听目录，需配 watch_dirs（另一件事，未做）。\n回滚：config 改回 false（或设置中心置 false）——钩子立即停；周级任务要重启才消失。"
-    },
-    {
-      "id": "sensor-learning-watch-dirs",
-      "status": "done",
-      "priority": "P2",
-      "title": "给感知侧学习配 watch_dirs（Owner 2026-11-12 指定）",
-      "criteria": "感知侧学习已开启（config learning.sensor_learning.enabled=true），但 sensor.watch_dirs 为空 ⇒ FileWatcher 未启动；且真正产生变化的 ChangeDetector.collect() 在本部署没有周期调用方（只在 sensor_server.py / sensor/main.py / 测试里被调），实测 novelty_memory.jsonl 里 5 条全是 behavior_drift，hardware_change / process_change / file_change 各 0 条 ⇒ 感知侧学习目前「开了但近乎空转」。",
-      "next": "2026-11-12 落地（提交 82e292c98，部署 4c4514e6f，已验证）：\n① 查证结论：`Config` 确不读 config.yaml（DEFAULT→env→overrides），而 lifecycle 从 Config 取 watch_dirs、默认恒 None ⇒ 该键此前是死键。\n② 新增 `agent/sensor_config.py`（叶子模块）：env `SENSOR_WATCH_DIRS` > Config overrides > `config.yaml: sensor.watch_dirs` > 默认（knowledge、data/inbox）；相对路径按仓库根展开、大小写不敏感去重、**强制剔除 data/learning**（监听学习产物=自激）与仓库根。config.yaml 新增 sensor 段（头部接线说明同步）、.env.example 补 3 行、registry 登记 SENSOR_WATCH_DIRS(config_path=sensor.watch_dirs, needs_restart=True)。\n③ 原「可选」项也做了（Owner「该做的一次性全做」授权）：新增 `agent/learning/perception_cycle.py` —— 每 5 min drain FileWatcher 缓冲区并聚合成**一条** file_change（0.30 低置信→只写记忆，复用既有 make_learning_hook），每 30 min 跑一次 `ChangeDetector.collect()`（WMI 重活，避免进程增减噪音），每轮落 `data/learning/perception_status.json`（最后 tick/最后文件事件/监听目录/watcher 状态）。BodySensor 新增 `ensure_passive_sensors()`（只初始化 ChangeDetector+FileWatcher，不启动 EventMonitor）。\n④ 现场验收（01:54:34 第二轮 tick）：启动日志 `[BodySensor] 正在初始化 FileWatcher，监听目录: [...knowledge, ...data/inbox]`；往 data/inbox 建/改文件后 `novelty_memory.jsonl` 出现 `event_type=file_change / confidence=0.3 / level=low / \"文件变更 2 项（新增 1 / 修改 1）\"`；`coverage.perception.watcher_running=true` 且 last_file_event_at 同步；`perception_status.json` ticks 递增、change_detect_ran 按 30 min 节流（第二轮为 false）。\n⑤ 无自激：watch_dirs 不含 data/learning；file_events_total 只随投递文件增长（2 条 = created+modified），学习产物写入不产生事件。\n⑥ 回滚：`SENSOR_WATCH_DIRS` 空 + config.yaml `sensor.watch_dirs: []` ⇒ 走默认；`SENSOR_PERCEPTION_ENABLED=false` ⇒ 重启后不再注册周期任务。\n⑦ 已知代价：首轮快照 diff 实测约 29s（WMI 设备+服务+进程全量枚举，本机空闲内存仅 ~5GB），30 min 一次；若观察到拖慢心跳见新条目 `perception-snapshot-cost`。"
-    },
-    {
-      "id": "domain-perception-monitoring-audit",
-      "status": "done",
-      "priority": "P2",
-      "title": "复核「全域感知 / 全域监控」并给出自动化清单（Owner 2026-11-12 指定）",
-      "criteria": "Owner 问：现在真的能做到全域感知、全域监控了吗？开发出新功能也能自动被感知和监控吗？§11.94 C 节已考证结论：① 感知面做不到 —— 18 个传感器 enabled 但无周期采集/无 diff 触发，FileWatcher 未启，感知侧学习只有漂移事件；② 监控面不全域 —— 健康五层/单位看板 12/拓扑 38/审计/调度有读数，但规则 16 条只 6 可求值（up×3 需外部 Prometheus、security/hallucination/eval 缺样本），CI 事件源因 status.json 超 2h 未同步而 checked=false（实际离线），另缺外部存活/日志聚合/外发通道；③ 新功能只有拓扑能自动上图（需声明 MODULE_STATUS_SOURCE），单位看板/规则/事件源/传感器全是手写。",
-      "next": "2026-11-12 交付（提交 82e292c98 / 2b30194ae / 4c4514e6f，部署 4c4514e6f，已验证）：\n① 覆盖矩阵 + 新功能上线检查清单：`docs/handoff/覆盖矩阵与上线检查清单.md`（面 × 有无读数 × 是否自动 × 缺口原因；六项上线检查：拓扑声明/单位注册/规则+指标/埋点/传感器/文档派生）。\n② 两个「静默缺口」变可见：`/api/alarms/coverage` 新增 `ci`（last_sync_at / age_seconds / stale>2h / runs）与 `perception`（watch_dirs / watcher_running / last_file_event_at+age / last_change_at / last_novelty_at+age / long_silent），告警 Tab 顶部覆盖卡片新增一行（共用 formatAge，null→「—」而不是「刚刚」）。\n③ 候选自动化逐项决定（Owner 授权\"由你分析后替我确定\"）：\n   ✅ CI 同步周期化（30 min；gh 失败只记警告不抛异常，避免每 30 min 一条\"计划任务失败\"噪音）——现场 01:50:04 首次同步成功，coverage.ci.stale=false、六源 checked 全 true；\n   ✅ 感知周期化（见上条）；\n   ✅ 缺埋点报表：`coverage.rules.blocked` 已逐条给缺失指标名（16 条 6 可求值 / 10 blocked 不变），本轮补的是\"最后同步/最后事件\"两个时间读数；\n   ❌ 单位看板包级自动登记：会改健康分分母（新增单位默认 never/ok 各半）且需\"包声明自己是单位\"新协议 ⇒ 先做可见缺口，未动（单位看板仍 12 个）；\n   ❌ 外部端口存活 / 日志异常聚合：新数据面，须 Owner 明确点头（§11.89 方案 C 边界）。\n④ 现场：调度 17→19（感知周期采集 300s / CI 状态同步 1800s）；六源 checked 全 true（含 ci/units）。"
-    },
-    {
-      "id": "perception-snapshot-cost",
-      "status": "done",
-      "priority": "P3",
-      "title": "感知快照 diff 首轮耗时约 29s（WMI 全量枚举）—— 观察是否拖慢心跳/调度",
-      "criteria": "2026-11-12 部署 4c4514e6f 后首轮感知 tick 从 01:49:32 跑到 01:50:01（约 29s），耗时集中在 ChangeDetector._capture_snapshot 的 WMI 设备（Win32_PnPEntity）+ 服务（Win32_Service）+ 进程枚举；本机空闲内存仅 ~5GB 时更慢。当前节流 30 min 一次，diff 在 TaskScheduler 的 tick 线程里同步执行。",
-      "next": "2026-11-12 落地（本轮；部署后按 §11.96 验收）：\n① 取证（昨夜 90 次 perception 运行）：91 次 0–66ms；每 30 分钟一次 24–29s（峰值 43499ms），\n   同线程「系统心跳」被顶到 90s 一次 —— 与\"WMI 全量枚举\"假设吻合，不是抖动。\n② 分片（sensor/change_detector.py）：新增 SNAPSHOT_SECTIONS + collect(sections=...)；\n   未列出的分片沿用上次快照（不会伪造 diff）；未知分片名直接 ValueError（漏采=伪造\"没有变化\"）。\n③ 分频（agent/learning/perception_cycle.py）：便宜分片（processes/services/registry/\n   environment/system_info，实测 ~0.5–0.7s）每 30 分钟；贵分片（devices WMI 2.2–3.1s、\n   disk_partitions 0.8s）每 1 小时（SENSOR_CHANGE_DETECT_SLOW_INTERVAL_SECONDS，默认 3600）。\n④ 顺带把 Windows 服务枚举从 WMI（5.8s/322 个）换成 psutil.win_service_iter（0.23s），\n   值归一化成 WMI 同形（Running/Auto）；psutil 不可用自动回退 WMI。\n⑤ 预期：30 分钟边界 ~1s、1 小时边界 ~4s（不再 25–29s）。验收看 task_history 里\n   「系统心跳」间隔中位数仍 ≈60s、perception 的 duration_ms 峰值 ≤5s。"
-    },
-    {
-      "id": "full-domain-remaining-decisions",
-      "status": "done",
-      "priority": "P3",
-      "title": "全域感知/监控剩余三项需 Owner 决策（单位自动登记 / 外部端口存活 / 日志异常聚合）",
-      "criteria": "本轮按\"该做的一次性全做\"补齐了 CI 周期化、感知周期化与两个静默缺口读数；覆盖矩阵（docs/handoff/覆盖矩阵与上线检查清单.md §5）里还有三项**故意没做**：① 单位看板包级自动登记（会改健康分分母 + 需新声明协议）；② 外部端口存活（新数据面，与 §11.89 方案 C\"不引入外部服务\"边界相邻）；③ 日志异常聚合（需新的日志读源与基线口径）。",
-      "next": "2026-11-12 按 Owner「都要做，由你安排」全部落地（见 §11.96）：\n① 单位看板自动登记（声明式，不改健康分分母）：包 __init__.py 写\n   MODULE_UNITS = [{\"id\",\"label\",\"family\",\"probe\":\"模块:函数\"}]；modules_discovery 用 AST 解析\n   （启动期不 import），probe 在被调用时才 import；返回 never 不计分。\n   已声明 5 个：perception.cycle / alarms.collector / ops.ci_sync / ops.ports / ops.logs\n   ⇒ 单位看板 12 → 17（test_unit_monitor 的数量哨兵同步改成 17）。\n② 外部端口存活：agent/monitoring/port_probe.py —— 对 CP_PORT_PROBES 的 host:port 做\n   TCP connect（0.6s 超时，只握手不发应用层请求）；空 = never；连不上 = warn + 逐条 target。\n   不引入 Prometheus、不抓指标（§11.89 方案 C 边界不变）；.env 里配了本服务端口自证。\n③ 日志异常聚合：agent/monitoring/log_anomaly.py —— logs/*.log 尾窗（5000 行）ERROR 密度，\n   ≥20 条且 ≥5% 才 warn；只读、不写基线、不轮转；不读 *.jsonl。\n④ 仍故意没做：告警外发通道（IM/邮件）—— 需要定发给谁/哪些级别/怎么去重，已登记新 open 条目。\n⑤ 回归：alarms 相关用例改成「默认源置空」的密封测试（CI 文件变新鲜后真实候选混进来那次的教训）。"
-    },
-    {
-      "id": "alarm-notify-channel",
-      "status": "done",
-      "priority": "P3",
-      "title": "告警外发通道（IM/邮件/Webhook）仍未做 —— 先定\"发给谁、哪些级别、怎么去重\"",
-      "criteria": "报警器目前只有站内（顶栏铃铛 / 消息中心）。扩展通道 channel_bridge 已有 task.failed 通知，但那是\"任务事件\"，不是告警状态机（没有 firing/resolved/reopen 语义）。要接外发必须先定：① 哪些 severity 外发（建议 critical 立即、warning 汇总）；② 去重/静默是否沿用 alarm store 的 silence；③ 凭据只从 .env 读、不进日志。",
-      "next": "2026-11-12 落地（提交 4501c7fa3 / 8fd162310，部署 452f84843）：\n新增 agent/alarms/notify.py —— 台账事件（events.jsonl）按行游标 → channel_bridge.dispatch_alert。\n口径：默认只发 critical（CP_ALARM_NOTIFY_WARNING 才带 warning）；silence 期间不发但游标照走；\n每轮最多 5 条；无通道（no_enabled_channel）不算失败；任何异常不外抛；失败从每条 INFO 改成\n每 30 分钟一条汇总 warning。接线点 collect_once() reconcile 之后；覆盖读数新增 coverage.notify\n（enabled / include_warning / cursor_lines / event_lines / queued / last_round）。\n现场真相：webhook 与 email_smtp 两个通道已安装但**地址/服务器为空** ⇒ 外发会记 last_round.failed，\n配好通道即生效（单独登记为 open 条目 alarm-channel-credentials）。"
-    },
-    {
-      "id": "log-anomaly-time-series-baseline",
-      "status": "done",
-      "priority": "P3",
-      "title": "日志异常聚合 v1 是尾窗密度启发式 —— 抓不到「缓慢恶化」",
-      "criteria": "agent/monitoring/log_anomaly.py 当前只判\"尾窗里 ERROR ≥20 条且 ≥5%\"：能抓突发/持续爆炸，但每天多 1 条这种缓慢恶化不会报。升级需要按分钟分桶 + 与过去 N 个窗口的中位数比较，并且要一个写基线的周期任务（探针必须只读）。",
-      "next": "2026-11-12 落地（同批提交，部署 452f84843）：\n新增周期任务「日志异常基线采样」（默认 30 min，CP_LOG_BASELINE_INTERVAL_SECONDS）写\ndata/monitoring/log_anomaly_baseline.json（最多 96 样本≈48h；两次采样最小间隔 10 min）。\n探针仍只读：样本≥8 时启用相对判据 —— 当前密度 ≥ max(0.5%, 基线中位数×3) 且 ERROR+Traceback≥20 ⇒ warn；\n样本不足退回 v1 绝对判据（不拿空基线当 0 判）。诚实边界：48h 滚动中位数会吸收极缓慢恶化。"
-    },
-    {
-      "id": "monitoring-gap-detector",
-      "status": "done",
-      "priority": "P2",
-      "title": "新功能：自动检测「还没被感知/监控/告警覆盖」的能力并提示补上（Owner 2026-11-12 指定）",
-      "criteria": "Owner 原话：「全域感知，全域监控，及时报警还差哪些没做要补上。做一个新功能：检测还没有被感知监控的能及时补上。」\n现状（§11.97 已考证，别重新考古）：监控面有六事件源 + 两处静默缺口读数 + 17 个单位（12 手写 + 5 声明）+\n拓扑声明式；感知面有 watch_dirs/周期 diff/CI 同步；但\"新增了什么能力、它有没有被覆盖\"仍靠人肉对拍。\n典型缺口来源：新包只写了 MODULE_NAME 没写状态源；新工具没有调用埋点；新路由没进 route_domains/triage；\n新指标没有规则引用；新传感器 enabled 但没人周期 collect；新后台任务没进调度。",
-      "next": "2026-11-12 落地（第六十一轮，monitoring-gap-detector）：新增 agent/monitoring/coverage_gaps.py —— 六个声明面 × 判据（模块 docstring 有完整表）：package（MODULE_* 有元数据但无状态源且无单位；状态源不在 route_domains 前缀里）· unit（MODULE_UNIT(S) 的 probe 静态解析不到；声明非法被忽略）· sensor（sensor/*.py 里 *Sensor 类没有一个带 collect()）· scheduler（def register_*scheduler 无调用点；活体任务被停用）· route（route_domains 前缀在活体路由报告里零命中，支持 /* 通配）· tool（tool_index 条目在 tool_definitions 下没有同名 YAML）。**只报不注册**：不自动加单位/规则/探针（会改健康分分母）。不重复计数：规则 blocked 仍在 coverage.rules.blocked；工具 YAML→索引由 sync_tool_index --check 守门；路由 UI 标注由 route_ui_coverage 守门（三条都写进 gaps.excluded[]）。交付：① GET /api/alarms/coverage.gaps（available/count/by_kind/gaps[{kind,id,why,fix}]/degraded/surfaces/excluded；只读状态文件，拉页面不触发扫描）；② 单位 ops.coverage_gaps（gap=0 ok，>0 warn 逐条 issue，超 3 个周期没跑=停摆 warn；never 不计分）；③ 周期任务「覆盖缺口自检」每小时（CP_COVERAGE_GAP_ENABLED / CP_COVERAGE_GAP_INTERVAL_SECONDS 均进 registry）+ 指纹 kind:id 去重（首现经 notify.dispatch_gaps 推一次 warning，不受 CP_ALARM_NOTIFY_WARNING 过滤；推送成功才记指纹，没通道下轮重试，缺口消失后指纹修剪、再出现会再推）；④ 交接卡新增「覆盖：未覆盖 N」行 + 覆盖矩阵文档 §5.1/§4.6 + 前端告警 Tab 「未覆盖能力」块。测试：tests/unit/test_coverage_gaps.py 27 条（六类判据各一条 + 全绿 0 gap + 首现去重/失败重试/消失后再现 + summary/unit_probe/注册幂等/degraded）+ test_alarm_notify 新增 5 条 dispatch_gaps。首轮实测：未覆盖 2 条（见另两条 open：ocr-sensor-collect-contract / route-domains-voice-stale）。"
-    },
-    {
-      "id": "alarm-channel-credentials",
-      "status": "done",
-      "priority": "P3",
-      "title": "告警外发通道已安装但未配置（webhook_url / smtp_server 为空）⇒ 外发实际发不出去",
-      "criteria": "agent/extensions 里 webhook 与 email_smtp 两个通道 status=installed、enabled=true，但 config 里\nwebhook_url 与 smtp_server 都是空串。告警外发（agent/alarms/notify.py）已接线并每轮尝试，\n结果体现在 /api/alarms/coverage.notify.last_round.failed。",
-      "next": "2026-11-12 收口（Owner 已填 139 邮箱）：① 实测 smtp.139.com:587 **连接超时**、:465 通 （同机 qq:587 / 163:465 都通 ⇒ 不是出网被封）⇒ _handle_smtp 增加 465 隐式 TLS 支持（use_ssl 显式优先、未写时按端口推断；SMTP_TIMEOUT_SEC=15；收件人为空在建连接前就报错）。② 顺手修掉「停用按钮无效」：toggle 只写 status 而'发不发'读 enabled ⇒ 新增 ChannelInstaller.is_channel_enabled 作为唯一判据，toggle 一次写 enabled+status，模板卡片带 enabled（此前恒 undefined ⇒ 永远显示'已装（未启用）'）。现场：email_smtp 已启用（465）、webhook 停用（地址为空）；手动发送 ok；合成 critical 告警后 coverage.notify.last_round = {considered:1, sent:1, failed:0}（23:37:58）。证据 docs/handoff/evidence/channel_verify_20261112.json 的 smtp_round。后续只差 webhook：拿到 URL 后在通道页填上并启用即可。"
-    },
-    {
-      "id": "ocr-sensor-collect-contract",
-      "status": "done",
-      "priority": "P3",
-      "title": "OCR 传感器有类无 collect() ⇒ 自发现静默跳过，OCR 这一路感知等于不存在（覆盖缺口自检首轮发现）",
-      "criteria": "sensor/registry.py 的发现契约是「类名以 Sensor 结尾 + 有 collect()」；sensor/ocr_sensor.py 的 OcrSensor 只有 capture_screen/recognize（实测 /api/sensors 的 18 项里没有 ocr）。不满足契约时注册表**只是不出现**：没有 warning、没有红点 ⇒ 看起来有、其实没有。",
-      "next": "2026-11-12 修正（选②的中间路线）：sensor/ocr_sensor.py 增加模块级声明 SENSOR_CONTRACT = \"on_demand\" （类名与 4 个调用方都不动：lifetrace/enhanced_recorder.py、agent/orchestrator/voice_vision.py、agent/digital_life.py、lifecycle_manager）。为什么不是补 collect()：那会让 SensorRegistry 自发现把屏幕 OCR 变成每 60s 一次的周期采集（隐私 + 开销），而它的真实调用面全是按需触发。覆盖缺口自检读取该常量：on_demand ⇒ 不要求 collect()（surfaces.sensors.on_demand 计数）；periodic/缺省 ⇒ 仍要求 collect()；未知取值 ⇒ 记缺口（不静默放行）。测试：test_coverage_gaps.py 新增 3 条（on_demand 不算缺口 / 未知值算缺口 / periodic 仍要求 collect）。现场：ops.coverage_gaps 从『未覆盖 2 条』回到 ok。"
-    },
-    {
-      "id": "route-domains-voice-stale",
-      "status": "done",
-      "priority": "P3",
-      "title": "config/route_domains.json 声明了 /api/voice，但活体路由里一条都没有（功能区表陈旧）",
-      "criteria": "全仓 grep 只有 scripts 注释提到 /api/voice；reports/route_ui_coverage.json 的 509 条活体路由里 0 条命中该前缀。tests/unit/test_route_ui_coverage.py 只守「每条路由都有功能区」，不守「每个前缀都有路由」⇒ 这条此前没有任何守卫会红，是覆盖缺口自检首个 route 类发现。",
-      "next": "2026-11-12 修正：config/route_domains.json 删掉 \"/api/voice\" 前缀、config/route_ui_intent.json 删掉 \"/api/voice\" 与 \"/api/voice/*\" 两条标注（该组路由 2026-10-20 已删，triage 台账有记录），并在**干净 worktree**（.worktrees/route-derive，copy 两份 config 后）重派生 reports/route_ui_coverage.json：content_hash 09308313e354d46a，509 活体路由不变，主工作区 --check 通过；test_route_ui_coverage.py 48 条全绿。覆盖缺口自检 count 0。"
-    },
-    {
-      "id": "ci-observability-e2e-prometheus-fails",
-      "status": "done",
-      "priority": "P3",
-      "title": "「可观测性质量保障」工作流自 2026-11-11 起持续 failure（Docker 起 Prometheus 容器失败）—— 与代码无关，但'CI 全绿'这句话必须写清是哪些工作流",
-      "criteria": "实测 gh run view 43203052194 --json jobs：除「可观测性端到端验证」（失败步骤『启动 Prometheus 容器（checkout 后启动，避免 mount 失败）』）与「可观测性质量门禁」（随之失败）外，其余 19 个 job 全 success（6 个覆盖率分片 / 混沌 / Pact / 边界覆盖 / 可见性报告 都绿）。该工作流在 e661aec9c(11-11 18:32) / 55fc38233 / 32e18d4c9 / 9c2f9cce3 上均为 failure ⇒ 不是某一轮引入的。报警器 ci 事件源因此长期有一条 warning『CI 失败：可观测性质量保障』。",
-      "next": "2026-11-12 修复（两个真因都在我们自己的 YAML，不是 runner）：① monitoring/alerts.yml 的 P99/P95 排除集用了单反斜杠+点 ⇒ Go/PromQL 非法转义 ⇒ Prometheus 拒载整个规则文件（unknown escape sequence U+002E），改成一个双反斜杠+点；并在 agent/alarms/promql.py 加 unquote()（非法转义直接 ValueError ⇒ 该条报 unsupported），守门 tests/unit/test_prometheus_rule_escaping.py。② CI 只挂 prometheus.yml+alerts.yml，而 prometheus.yml 的 rule_files 有 13 项 ⇒ 容器内缺文件即启动失败；改为按 docker-compose.monitoring.yml 逐项挂 10 个 -v（整目录 :ro 再往里挂文件会因只读挂载建不了挂载点而失败，openat ... read-only file system，exit 125）。验证：a2a3374ec 的「可观测性端到端验证」job = success（这正是原先红的那个 job）；整工作流结论待覆盖率分片收尾。"
-    },
-    {
-      "id": "ci-date-shift-guard-legacy-red",
-      "status": "done",
-      "priority": "P3",
-      "title": "「日期平移守卫」工作流长期 failure（步骤名自己写着 S11-08 遗留=failure）—— 又一个'全绿'口径的例外",
-      "criteria": "2026-11-12 实测：该工作流在 42031743549 / 42220337292 / 42368848752 / 42477299355 / 42627839293 / 42823621279 / 43021079337 / 43228959810（a2a3374ec）**连续 8 个提交 failure**，失败步骤为「慢档日期敏感面（--runslow；S11-08 遗留=failure」与「定向日期敏感面（常规档）」；同一提交的其它 18 个工作流 success。⇒ 与覆盖缺口/外发无关，属历史遗留。",
-      "next": "2026-11-13 修好并验证（提交 b39489dde；手动 dispatch run 43364552205 = **success**，5 个 job 全绿：盲区静态扫描 + 守卫套件 / 不平移 / CONTROL(delta=0) / +400 / -400）。两处真因都不在日期逻辑里：\n① 慢档臂：tests/unit/test_task_scheduler_comprehensive.py::TestRunTask::test_run_python_func_failure 还在断言 C-6（2026-11-12 异常原文不进响应）之前的旧契约 —— 该用例属 --runslow，主 CI 不跑，所以只有本工作流红。改成断言「ValueError 在 error 里 + 原文不在」并注释 C-6 口径。\n② -400 臂：tests/unit/test_skills_digest_assessor.py::TestAssessFeedPagination 用固定日期 2026-01-01，时钟 −400 天后它们成了「未来」，被读侧 is_future_timestamp 防御过滤 ⇒ [] == [...] 误红。在该测试类加 autouse fixture 显式关掉该防御（「未来时间戳」另有专门用例覆盖）。\n本地复跑：慢档 259 passed；-400 臂常规集 248 passed + digest 74 passed。工作流本身没改一行（不需要 continue-on-error，也不需要删）。",
-      "done_at": "2026-11-13T12:22:00+08:00"
-    },
-    {
-      "id": "no-console-popups",
-      "status": "done",
-      "priority": "P2",
-      "title": "启动与定时任务别再弹黑色终端窗口（Owner 2026-11-13 指定，下一会话新任务）",
-      "criteria": "两个来源都要查：\n① 启动器：桌面「云枢一键启动.lnk」→ start_yunshu.bat、「云枢看护.lnk」→ start_watchdog.bat，两者都是 .bat，双击必开控制台；看护还是 30s 探活常驻循环，窗口会一直挂着（口径要求：看护只做手动快捷方式，不注册计划任务 —— 这一条不变）。\n② 定时任务：task_scheduler 的 python_func 任务在进程内跑（不弹窗），但**会 spawn 子进程**的任务在 Windows 上会闪黑窗 —— 已知：CI 状态同步（30 min）跑 gh（agent/monitoring/ci_status.py::sync_once）；deploy/桌面脚本跑 npm/python；感知/日志基线等纯进程内任务不弹。\n③ 另需确认机器上有没有 yunshu 相关的 Windows 计划任务（Get-ScheduledTask 里查 yunshu/watchdog）：有就说明有人（或旧轮次）注册过，按口径删掉或改成登录时静默，**不要新增计划任务**。",
-      "next": "2026-11-13 落地（第六十三轮，提交 233a790b7，部署 233a790b7，证据 docs/handoff/evidence/console_windows_20261113.json）。\n先取证再改（三条实测，不是猜）：① 后端由 deploy/watchdog 用 DETACHED_PROCESS 拉起 ⇒ 自身没有控制台；② 这种父进程 spawn 控制台程序（gh/python/git）时 Windows 会给子进程**新分配一个可见控制台**（探针：GetConsoleWindow 非 0、IsWindowVisible=true、类 ConsoleWindowClass；加 CREATE_NO_WINDOW 后为 0）；③ 两个桌面 .lnk 直接指向 .bat（WindowStyle=1）⇒ 双击必开 cmd；Get-ScheduledTask 里 yunshu/watchdog 相关 0 条（本轮也不注册）。\n三层修法：① 启动器 —— scripts/yunshu_launch.vbs（wscript，Run(cmd,0,False) 隐藏拉起 .bat，stdout/stderr 重定向到 logs/launcher_<mode>.log），两个 .lnk 改指向它，重建入口 scripts/make_desktop_shortcuts.py；② 脚本 —— start_yunshu.bat 用 Start-Process -WindowStyle Hidden 分离拉起后端（logs/backend_boot_<id>.out|err.log），删 cmd /k 与 pause；start_watchdog.bat 重定向 logs/watchdog_console.log（不用 pythonw，JSONL 留痕照旧）；③ 子进程 —— 新叶子模块 agent/utils/proc.py（run/popen/check_output + hidden_kwargs，Windows 注入 CREATE_NO_WINDOW+隐藏 STARTUPINFO，非 Windows 返回空字典，调用方 creationflags 优先），agent/ 下 39 处 spawn 收敛到它，mcp_services/mcp_client.py 补 CREATE_NO_WINDOW；守门 tests/unit/test_proc_hidden_window.py 12 条（含 AST 全仓哨兵）。\n验收：A/B 探针 —— 对照臂（裸 subprocess.run）2 个可见控制台窗口（image=gh.exe）；真实 ci_status.sync_once 0 个。冷启动经桌面链（wscript→隐藏 cmd→Start-Process）200s/200ms 采样 0 sighting、/api/health=200、launcher 日志有 OK backend is ready；同期 01:30:10 的『CI 状态同步』也在采样窗口内（0 sightings）。看护同链隐藏启动 0 sighting，验收后已停并删锁。\n坑：bat 里二次 >> %LOG% 会与外层重定向撞 ERROR_SHARING_VIOLATION（第一次实测失败真因）；.vbs/.bat 必须纯 ASCII（GBK 会吞掉下一个字节含 CR/LF）；「没看到窗口」不是证据 —— 采样器必须跑在无控制台父进程里，且 --control 必须 >0 才算仪器有效。",
-      "done_at": "2026-11-13T01:35:00+08:00"
-    },
-    {
-      "id": "legacy-vbs-launcher-stale",
-      "status": "done",
-      "priority": "P3",
-      "title": "docs/zh/启动云枢.vbs 是旧的重复启动器（无引用、硬编码 python 路径、打开 /:5678 而不是 /chat、会先 taskkill 占 5678 的进程）",
-      "criteria": "全仓 grep 启动云枢.vbs 0 处引用；脚本内 Const PYTHON_PATH 硬编码 C:\\Users\\Administrator\\...\\Python312\\python.exe、最后打开 http://127.0.0.1:5678（不带 /chat）、启动前 netstat+taskkill 清端口。2026-11-13 的 no-console-popups 已用 scripts/yunshu_launch.vbs + 两个桌面 .lnk 覆盖同一职责，且口径（/chat）与它不一致 ⇒ 保留它等于留一个「看起来能用但口径错」的入口。",
-      "next": "2026-11-13 按建议删除（Owner「遗留按你的意见处理」）：docs/zh/启动云枢.vbs 与 security-tools/docs/zh/启动云枢.vbs 两份同内容副本都已从磁盘移除，备份在 data/backups/legacy_vbs_20261113/（未入库，删前已确认全仓 0 处引用）。现在唯一的启动入口是 start_yunshu.bat（隐藏）+ scripts/yunshu_launch.vbs + 观察窗 observe_yunshu.bat。",
-      "done_at": "2026-11-13T12:10:00+08:00"
-    },
-    {
-      "id": "memory-idle-consolidation",
-      "status": "done",
-      "priority": "P2",
-      "title": "没有「空闲时间做记忆整理」：维护全是固定时刻，且记忆审查是空转的统计接口，去重降噪线上 0 条",
-      "criteria": "2026-11-13 复核（Owner 提问）：① 21 条调度任务全按 hour/minute/last_run 触发（agent/task_scheduler.py:390-426），不看 CPU/负载/键鼠；唯一的空闲闸门在日志内省（IdleDetector），且 mark_activity() 生产零调用 ⇒ 开机 5 分钟后恒为「空闲」。②「维护·记忆库审查」实际调 review_quick()（agent/memory/reviewer.py:131-166）只做统计+建议，不算陈旧也不算重复；完整 review() 无生产调用点；ForgettingEngine 无实例化；热度过期扫描未启动。③ 审查对象 data/memory/long_term.db 的 long_term_memory / user_profile 都是 0 行 ⇒ 即使真跑也只报 0/0。④ 真正的对话记忆 data/messages.jsonl：421 条 / 357 唯一 / **64 条重复行（27 组，最大一组 17 次）**，最后一次压缩是 2026-11-10 20:43（且压缩只写摘要不删消息）⇒ 线上去重降噪 0 条。",
-      "next": "2026-11-13 落地（b93a30fef / 部署 818615877），三条一起做：\n① 新模块 agent/memory/consolidation.py：只读扫 data/messages.jsonl，出「无响应近重复」候选（同角色+同内容+10 分钟窗内+两次之间没有任何对方消息）；报告只放 sha256 前 12 位与 40 字预览，不落全文；无 session_id 历史池只计数（冻结不迁移）。**只报告不删除**。实测 421 条 / 357 唯一 / 64 条重复行，但候选只有 3 组 —— 「继续」×17 那类是用户真说了 17 次，按内容 hash 去重会毁历史（口径写进模块头注与 §11.103 F-2）。\n② POST /api/memory/review 新增 mode=full：真跑 reviewer.review() + consolidation，报告落 data/maintenance/memory/consolidation_<ts>.json；GET 回显最近一份。默认仍 quick。每日「维护·记忆库审查」改发 mode=full（原来 quick 读的 long_term.db 0 行 ⇒ 永远 0/0）。\n③ 零 token 作业加空闲闸门：到点不空闲就排队（data/maintenance/zero_token_pending.json，跨天作废），新增 interval 任务「维护·空闲补跑」（600s，调度 21→22）在空闲时补跑、18:00 后强制跑一次；手动 --run/--all 不过闸门。\n现场：mode=full 返回 ok、报告已落盘、调度 22 条含「空闲补跑」。",
-      "done_at": "2026-11-13T13:25:00+08:00"
-    },
-    {
-      "id": "idle-detector-fake-gate",
-      "status": "done",
-      "priority": "P3",
-      "title": "日志内省的「空闲检测」是假闸门：mark_activity() 生产零调用 ⇒ 开机 5 分钟后恒为空闲",
-      "criteria": "agent/log_system/introspection.py:47-88 的 IdleDetector 需要 300s 无活动 + CPU<20%，但 mark_activity() 全仓只有测试调用（生产无调用点）⇒ _last_activity 停在启动时刻，开机 5 分钟后恒判空闲。2026-11-13 日志实测每 30 分钟准点跑（03:11/03:41/…/09:41），13 轮全是 0 洞察、LLM=False ⇒ 这个闸门从来没有真的避让过。",
-      "next": "2026-11-13 落地（b93a30fef / 部署 818615877）：新增叶子模块 agent/system_idle.py —— 空闲 =min(用户输入空闲, 进程内活动空闲) 且 CPU<=20%。用户输入用 Windows GetLastInputInfo（系统级，**不依赖谁记得调 mark_activity**）；进程内活动由 app_server 的 before_request 钩子每请求 mark_activity（放在鉴权闸门之前：被 401 的请求同样证明有人在用）。IdleDetector 改为委托 + get_idle_detector() 单例（引擎与钩子共用同一份，否则又是两处真相）。/logs/api/introspection/status 的 idle 读数新增idle_source / user_input_idle_seconds / process_idle_seconds / last_activity_age_s / degraded。现场实测：user_input_idle_seconds=515.5s、process_idle_seconds=0、reason=process_activity ⇒「刚有请求」时确实不判空闲（旧实现会判空闲）。测试 tests/unit/test_idle_gate.py 12 条。",
-      "done_at": "2026-11-13T13:25:00+08:00"
-    },
-    {
-      "id": "alarm-resolved-semantics",
-      "status": "done",
-      "priority": "P3",
-      "title": "绿色「已恢复」= 自动翻状态，不是「人已处理」；界面把两者混用，且 state 与事件流会漂移",
-      "criteria": "2026-11-13 复核（Owner 提问）：状态机只有 firing/resolved（agent/alarms/store.py:45-47），reconcile 时「不在 candidates 里」就自动 resolve（collector.py:533-614），没有人工 resolve 路由；read（仅清未读）/ack（记 acked_by，UI 不显示）/silence 与 resolved 是四件不同的事。现场：11 条告警全 resolved、0 firing、0 ack；verify.channel_probe 的 state=resolved 而 events.jsonl 最后一条是 reopen(23:36:44) ⇒ state.json 与事件流不一致（store.py:237-238 先 append 后 _save）。界面误导：AlarmBell.tsx:180-182 把「暂无未读」写成「系统运行正常」（全部已读后即使仍在 firing 也显示正常）；NotificationCenter/AlarmBell 用 state==='resolved' 直接渲染绿色「已恢复」，没有「自动恢复 / 人工确认」区分；health.tsx:232 也把 resolved 映射成「已恢复」，但本进程规则引擎只产出 firing/pending/ok/no_data，两套语义混用。另有「指标算不出（no_data）也会 resolve 旧 rule.* 告警」的风险（collector.py:285-296 + 267-271），与 collector.py:8/271「不伪造已恢复」的口径冲突。",
-      "next": "2026-11-13 落地（b93a30fef / 部署 818615877）：\n① 语义：界面 resolved 徽标改「已自动恢复」（tooltip 写明「不代表已处理/根因消失」），acked 时补「已确认」；铃铛空态不再写「系统运行正常」，改为「暂无未读报警 —— 但仍有 N 条未恢复」（firing 从 /api/alarms/unread-count 的 summary 读）。现场正是这个场景：unread=0 而 firing=3。\n② 一致性：store._save() 改「3 次重试 + 失败置 dirty + 下轮 flush 补写」；新增 consistency() 自检（每条告警 state vs 它最后一条事件的 state）与 sync_events()（补 state_sync 事件，只追加）；collect_once 每轮 flush + 自检 + 补账；/api/alarms/coverage 新增 consistency 读数。现场：checked=14 / drift=0 / dirty=false / events_seen=539。\n③ no_data 不再伪造恢复：rule_keep_keys() 对 no_data/unsupported/warming/error 按 key keep，只有 ok 才算真恢复（与 collector 头注「不伪造已恢复」对齐）。\n④ ack 接线：投影补 acked/acked_by/acked_at，消息中心显示「已确认」。\n⑤ health.tsx 删掉规则状态表里的 resolved 映射（规则引擎从不下发该状态）。\n测试：test_alarms_store 加 5 条、test_alarms_collector 加 3 条、AlarmBell/NotificationCenter 各加用例。",
-      "done_at": "2026-11-13T13:25:00+08:00"
-    }
-  ]
+ "updated_at": "2026-11-13T20:33:41+08:00",
+ "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
+ "items": [
+  {
+   "id": "module-topology-no-autodiscovery",
+   "status": "done",
+   "priority": "P2",
+   "title": "新模块不会自动出现在「系统监控」—— DOMAINS 是手写静态清单（Owner 提问，新会话任务①）",
+   "criteria": "agent/modules_registry.py 的 DOMAINS 是**手写 List[Domain]**（docstring 只写「新增模块只需向 DOMAINS 追加节点声明，前端拓扑自动上图」），没有任何目录扫描/包发现；所以 2026-10 之后新增的能力面（审计链/技能使用/工作流/记忆三件/向量/摄入/转化队列/反馈）一个都没上图。现状实测：6 域 32 节点，全部来自这份清单。",
+   "next": "2026-11-11 落地（Owner 选「自动发现 + 白名单」）：新增 agent/modules_discovery.py —— 只对 agent/*/__init__.py 做 AST 字面量扫描（不 import，避免启动期副作用/循环依赖）。白名单：只有声明了 MODULE_STATUS_SOURCE 的包才生成节点（+ 可选 MODULE_DOMAIN/NAME/DESCRIPTION/METRICS）；只声明名字/描述的包进 「未登记」单列，**不生成节点、不参与健康分**；两者都没有的包（utils/common…）完全忽略。modules_registry.effective_domains() = DOMAINS + 发现节点（手写 path 已覆盖的包不重复上图），get_node / declared_http_endpoints / summary / contract_diff 同批改；/api/modules/topology 只增字段（每节点 origin、autodiscovery 读数、unregistered 列表），domains/overall_health 形状不变；发现节点的状态源由 effective_client_sources 自动接上 client 兜底采集器（否则永远离线）。开关 CP_MODULE_AUTODISCOVERY（默认开、风险级 A、needs_restart，已进 settings/registry.py）。示范接入 3 个真包：observability / workflow_learning / ingestion ⇒ **拓扑 6 域 35 → 38 节点**（3 个自动发现均 healthy/运行中）、未登记 0。测试：test_modules_autodiscovery.py 21 条 + selfcheck 改读 effective_domains（71 条绿）；contract_diff 无 registry_* 漂移。提交 e14b61cba。"
+  },
+  {
+   "id": "health-dashboard-duplicate-l3",
+   "status": "done",
+   "priority": "P3",
+   "title": "健康仪表盘出现两个「L3 LLM/工具」（维度卡 + 指标卡同名，Owner 提问，新会话任务②）",
+   "criteria": "yunshu-ui/src/pages/hub/panorama/health.tsx 里有两处同名标签：① 五层维度卡 PROBE_LAYERS（line ~172 key=l3_llm_tool, label=L3 LLM/工具）；② 指标卡 VITALS（line ~484 key=error-rate, label=L3 LLM/工具，取 probe_details.l3_llm_tool.score）。两者数据同源、含义不同（一个是层得分，一个是错误率指标），但**标签逐字相同** ⇒ 同一屏看两次「L3 LLM/工具」，用户无法区分。",
+   "next": "2026-11-11 落地（Owner 选「合并进维度卡」）：删掉概览里两张与维度卡同源同名的指标卡（error-rate「L3 LLM/工具」/ task-success「L4 业务成功率」——**L4 是同一种情况**，一并处理），指标卡 9 → 7；原始比率搬进维度卡：L3 显示「错误率 x%」、L4 显示「成功率 x%」，每个分数全页只出现一次。数值来自**后端**结构化字段（agent/health/probes.py 新增 l3 metrics: llm_calls/llm_errors/error_rate、l4 metrics: http_requests/http_errors/success_rate），前端只换算单位、不拆 detail 文本；取不到就整行不渲染。新增纯函数 layerMetricLine()。测试：health.test.tsx 23 → 25；全量 vitest 169 files / 1286 tests 全绿；tsc 0 退出。现场 probe-trend 00:45:20 实测 l4 metrics={http_requests:75,http_errors:0,success_rate:1.0}（L3 待有 LLM 调用后才出错误率 —— 与「无数据」口径一致）。提交 bc0a41ab1。"
+  },
+  {
+   "id": "scheduler-card-wrong-endpoint",
+   "status": "done",
+   "priority": "P3",
+   "title": "计划任务卡改读 /api/scheduler/overview —— 已完成（05f487213，实测 16 条）",
+   "criteria": "实测 /api/scheduler/tasks 与 scheduler_tasks 都是 0 条（该端点只读 agent.system_tools.list_scheduled_tasks 的**文件登记** system_command）；真正在跑的 16 个 cron/interval 任务只在 /api/scheduler/overview（带统一信封 {code,data}）。于是健康页「计划任务」恒显示「暂无计划任务（/api/scheduler/tasks 返回空列表）」。",
+   "next": "已完成（05f487213）：见交接文档 §11.86。"
+  },
+  {
+   "id": "topology-missing-faces",
+   "status": "done",
+   "priority": "P3",
+   "title": "拓扑补 3 个能力面（记忆压缩 / 技能使用台账 / 审计链）—— 已完成（a2587720c，32→35 节点）",
+   "criteria": "/api/modules/topology 实测 6 域 32 个节点（感知7/认知4/记忆4/行动9/服务3/运维5）。对比「单位看板」的 12 个探测单位与既有页面，拓扑里**没有**：审计链(ops.audit)、技能使用台账(skills.usage)、学习工作流(workflows)、记忆压缩/长期记忆/反思(memory.compress|longterm|reflection)、向量库(vector)、能力获取/摄入(ingestion)、转化队列(transform)、反馈中心(feedback)。这些在「功能单位工作状况」卡里有读数，但系统监控页看不到它们的存在。",
+   "next": "已完成（a2587720c）：见交接文档 §11.86。"
+  },
+  {
+   "id": "alerts-runtime-state",
+   "status": "done",
+   "priority": "P3",
+   "title": "告警端点合并运行态（state/activeAt/value/fire_count）—— 已完成（6dad76daf）",
+   "criteria": "实测 /api/observability/alerts 返回 8 组 / 规则字段仅 alert/annotations/expr/for/labels，**没有 state / activeAt / last_fired** ⇒ health.tsx 的告警表只能标「端点未返回」（注释里已承认该缺口）。alert_evaluator 内部有 AlertState（INACTIVE 等），但没暴露成只读查询。",
+   "next": "已完成（6dad76daf）：见交接文档 §11.86。"
+  },
+  {
+   "id": "diagnostics-histograms-empty",
+   "status": "done",
+   "priority": "P3",
+   "title": "诊断页 histograms 恒空 —— 已改为「读 Prometheus 注册表投影」（c54d76b18）",
+   "criteria": "原判据成立：agent/monitoring/metrics.py 的进程内注册表无任何写入点；真实时延在 prometheus_flask_exporter 注册到**默认 REGISTRY** 的 yunshu_http_request_duration_seconds（标签 method/endpoint/status，桶 0.005–10s，prometheus_client 原生 Histogram）。",
+   "next": "已落地：agent/monitoring/prometheus.py 的 http_latency_histograms() 按端点聚合累积桶并做桶内线性插值（与 histogram_quantile 同法）；routes_logging._get_runtime_metrics 合并进 histograms。口径：样本 <20 的端点不报分位、不报 min/max、+Inf 桶只给下界、按样本量取前 8。若将来换掉 prometheus_flask_exporter 的前缀，改 _DIAG_LATENCY_FAMILIES 即可（两种族名都认）。"
+  },
+  {
+   "id": "memory-compress-500",
+   "status": "done",
+   "priority": "P1",
+   "title": "记忆运维「触发压缩」恒 500（compress() 缺参）—— 已修（d2c5a680f / 529801e7e）",
+   "criteria": "2026-11-10 用户实测：会话与配置 → 记忆管理 → 记忆运维 → 触发压缩 ⇒ 「压缩失败：操作失败（详见服务日志）（HTTP 500）」。服务日志原文：MemoryManager.compress() missing 1 required positional argument: old_messages。同一个坑 2026-10-14 在 /api/context/compress 修过，这条没修 —— 因为当年只补了「legacy 端点存在性」测试（url_map），端点存在 ≠ 可用。修法：走 compress_now()；新增 tests/unit/test_memory_compress_route.py 两条行为测试。",
+   "next": "实测（529801e7e）：POST /api/memory/compress → 200，{ok:true, version_before:98, summary_version:99, messages_compressed:100}。附带修掉「ok=true 但版本 0/0」的假成功：compress_now 的版本读数改与写入同键（_compression_session_key），并回报 scope(session/global)。"
+  },
+  {
+   "id": "dependabot-minimatch",
+   "status": "done",
+   "priority": "P2",
+   "title": "dependabot #417 minimatch DoS（GHSA-g3hv-75wg-m249）—— npm overrides 修掉，告警已自动 fixed",
+   "criteria": "受影响区间 >=7.0.0 <11.0.1；树里有 3.1.5 / 5.1.9（不受影响，未动）与 9.0.9 / 10.2.5 / 10.2.6（受影响，10.x 线无修复发布）。修法：yunshu-ui/package.json 加范围限定 overrides minimatch@>=7.0.0 <11.0.1 → 11.0.5（只换受影响副本）。全部是 dev/build 工具链依赖（eslint / typescript-eslint / electron-builder），不进 Flask 运行时产物；Node 25 支持 require(ESM)，minimatch 11 为 ESM-only，实跑通过。验证：npm audit 0 vulnerabilities；npm run lint 0 error（9 条既有 warning）；tsc --noEmit 0 退出；vitest 168 files / 1279 tests 全绿。",
+   "next": "合并后 GitHub 依赖图重算把 alert 417 自动置 fixed（2026-11-10T11:16:22Z），默认分支开放告警 0 条。"
+  },
+  {
+   "id": "audit-request-attribution",
+   "status": "done",
+   "priority": "P3",
+   "title": "写路由审计补「客户端归属」（UA 指纹 + IP 叶子字段）—— 已落地并部署",
+   "criteria": "**2026-11-10 19:1x 落地**（422a1785d）：两条写路径同批补归属字段 ——① user_agent_fp = sha256(User-Agent)[:16]（全局包装 UIAuditRecorder._before_request/_record 与显式装饰器 _emit_explicit_audit 都写；UA 原文不落盘）；② 显式装饰器路径补 identity_facts()：actor_ip_masked / actor_ip_hash / actor_ip_hash_status / actor_type / identity_authority，与全局包装同形。**仍遵守 S4-01 裁定 B**（原始 IP 永不落盘：只掩码 + HMAC；无密钥时如实标 degraded_no_key）。端到端实测（生产 422a1785d）：POST /api/skills-mgmt/__probe_no_such_skill__/intake（UA=yunshu-attribution-probe/1.0）→ 409，落链 seq 83786，user_agent_fp=76143adddffbbe8a（= sha256(UA)[:16]）、actor_ip_masked=127.0.xxx.xxx、actor_ip_hash_status=degraded_no_key、payload 里既无 UA 原文也无原始 IP。用例 +5（test_audit_ui_middleware.py::TestClientAttribution）；该文件 51 条全绿。",
+   "next": "下次再遇到「谁调了这条写路由」：直接看该条审计的 user_agent_fp + actor_ip_masked（浏览器 vs 脚本一次可分）。"
+  },
+  {
+   "id": "derive-fingerprint-guard",
+   "status": "done",
+   "priority": "P2",
+   "title": "全量测试期间 data/ 被静默写入 —— 守卫已落地；写入方已按「请求日志 × 审计链」join 锁定为工作台 UI 会话（两条 DELETE）",
+   "criteria": "2026-11-10 00:00 事故：一次全量 `pytest tests/unit -p no:randomly` 期间 data/skills_repo/gh-cli（随后 gstack）被删、data/skills_mgmt.json 少行（53→52）、能力清单被重派生、3 个基线测试被改。**2026-11-10 12:2x 在审计链找到直接证据**：两条 `skill.delete`，actor=tok_ffd912584295（= FLASK_API_TOKEN 的指纹）、source=ui、payload.method=DELETE、path=/api/skills-mgmt/gh-cli（seq 83644, 2026-11-09T15:53:40Z）与 path=/api/skills-mgmt/gstack（seq 83693, 16:37:51Z）⇒ 删除来自**带 bearer token 的 HTTP 调用**，不是测试直接删文件（测试内没有这种 DELETE：unit 里仅有 test_audit_integration 的假 svc + 假 id）。两次时间点都落在\"本机跑全量测试 + 后端在跑\"的窗口内。守卫已落地（`tests/conftest.py::_guard_derived_assets` + `tests/unit/test_derived_guard.py`，已在本地用故意改清单的探针验证\"会话结束点名 [modified] data/capability_manifest.json\"）。 【2026-11-10 18:1x 收口】按时间 join 结果：两条 skill.delete 的后端请求日志（logs/deploy_spawn_20261109_233817.err.log:4231-4238、logs/deploy_spawn_20261110_003424.err.log:2330-2337）显示**同一个浏览器页面会话**——DELETE 前 9~20s 该页在轮询 GET /api/skills-mgmt/assess/stream（SSE，timeout_sec=20）与 intake/status，DELETE 后同一秒立刻 GET /api/skills-mgmt + /usage/stats + /capability-manifest（前端 mutation 失效重取）。同一个页面会话在 23:50:52/54 点了两次 code-refactor 开关、23:58:13 与 00:00:44 两次 POST intake（均 400 rejected）、23:58:57-00:02:28 做了 suggest-fix/optimize/redraft/versions/bump/rollback、00:29:50/00:32:14/00:35:37 切过 chat 会话。代码侧唯一能发这条 DELETE 的入口是 yunshu-ui/src/components/SkillsMgmt/SkillDetail.tsx:97 handleDelete（带 confirm 文案）⇒ **不是 pytest（单测里没有这条 DELETE，也不打 5678）、不是 .env token 脚本**（data/_del_skill.py 只发一条孤立 DELETE，没有 SSE 轮询与删后重取）。",
+   "next": "已完成（join + 判定）。剩余只有『当时是谁在操作那个页面』——需 Owner 确认（若否认，则下次直接看新增的请求归属字段）。若同类再发：python -X utf8 data/_audit_delete_join.py 可按审计链时间戳列出所有 skill.delete 及其前后 30s 的页面请求，无需重造。附带遗留：00:00:13 的 capability_manifest 重派生与该窗口 3 个基线测试被改，**仍未归因**（/api/capability-manifest 是只读端点，与该 UI 会话无关），如再出现按同样方法查。"
+  },
+  {
+   "id": "skill-script-run-observe",
+   "status": "done",
+   "priority": "P2",
+   "title": "skill_script_run 观察期结论（2026-11-10 拍板）：维持现场开启、YAML 保持 false",
+   "criteria": "§11.78 新增工具：技能 L3 脚本的显式执行点（只补「显式调用」，不做命中即自动执行）。YAML 默认 enabled:false（停用观察口径）；现场通过 /api/tools/toggle 打开（data/tools_config.json，不改仓库）。工具层 L2 逐次确认（effect=execute+risk=high）；执行器内部还有一道 L1 闸门（工具名 skill.<id>）——实测两道路都要过（验收期一次审批 + 原样重试才跑通）。",
+   "next": "决定：**现场 enabled=true 保留**（data/tools_config.json），YAML 仍 enabled:false —— 干净重建不会自动放开执行面，要用的人在 toggle 里显式打开。依据：唯一一次真实执行成功（scripted-selftest/main.py exit=0/104ms，exec_calls 至今 1）、无「每次都要点确认」的抱怨、无脚本超时/输出超限；两道确认（工具 L2 + 执行器 L1）是设计而非缺陷。回滚 = POST /api/tools/toggle {name:skill_script_run,enabled:false}（立即生效）。观察继续走 /api/skills-mgmt/usage/stats。"
+  },
+  {
+   "id": "c6-remaining",
+   "title": "C-6 py/stack-trace-exposure 归零（4 → 0，三轮 SARIF 反查，#1474/#1477/#1478）",
+   "status": "done",
+   "priority": "P2",
+   "criteria": "master dfc3c1829 的 python 分析：stack-trace 0 条；总告警 64 → 60。真源用 SARIF codeFlows 定位（scripts/audit/codeql_flows.py）：build_info ×3、chat llm-preview、audit_coverage、ingestion ×4、solidify ×2、eval/metrics、task_scheduler ×5、status 心跳、toolbuild 语法错误",
+   "next": "共享 sink（ok/problem）以后若再报警：直接跑 python scripts/audit/codeql_flows.py --refresh --sources-only 按源修，别再改 sink 附近"
+  },
+  {
+   "id": "descriptor-backfill-production",
+   "title": "把修好的 backfill_tool_descriptors.py 跑进生产台账（已完成）",
+   "status": "done",
+   "priority": "P2",
+   "criteria": "145 条（96 工具 + 49 技能）全部通过运行时校验，invalid 0；destructive 工具 13 条 requires_approval=true（预期审批边界变化）",
+   "next": "回滚：data/backups/descriptors-pre-backfill-20261106-183814.json 覆盖回 data/descriptors.json 后重启"
+  },
+  {
+   "id": "runtime-skill-algorithmic-art",
+   "title": "本机运行时技能 algorithmic-art（已按 Owner 决定删除）",
+   "status": "done",
+   "priority": "P3",
+   "criteria": "2026-11-06 23:19 经 DELETE /api/skills-mgmt/algorithmic-art 删除（主轨+文件轨），残留描述符同步清掉；备份在 data/backups/algorithmic-art-20261106-231830/",
+   "next": "要重做：从备份取回 skill.md/CARD.md，再走 intake_skill.py 入轨"
+  },
+  {
+   "id": "runtime-skill-merge-brainstorming",
+   "title": "运行时「安全合并」把 pd-brainstorming-697b717a-skill 并入 brainstorming（已用「保 id 升正文」解决）",
+   "status": "done",
+   "priority": "P2",
+   "criteria": "2026-11-07 02:53 审计链 skill.assess.merge（actor_source=explicit）把旧技能从主轨摘掉、文件轨 enabled true→false；当场已 git checkout 回文件 + check_skills_dual_track --fix 回填。最终按「保 pd- id、升正文」落地（#1482）：pd- 技能零基线改动，brainstorming 的正文/卡片重抽，47/49 / 0 孤儿不变",
+   "next": "要真合并两个 id 时再单开：删 data/skills_repo/pd-brainstorming-697b717a-skill/ 并在干净 worktree 重派生能力基线（能力总数会 -1）"
+  },
+  {
+   "id": "secret-scanning-pat",
+   "title": "secret scanning 1 条 github_personal_access_token（#1，2026-06-29）—— 已按 revoked dismiss",
+   "status": "done",
+   "priority": "P2",
+   "criteria": "2026-11-07 复核：该 PAT 实测返回 401（= 已吊销/失效），按 resolution=revoked + 说明 dismiss；secret scanning 开放告警回到 0 条。与 FLASK_API_TOKEN 无关",
+   "next": "若将来再出现同类告警：先实测令牌是否仍有效（401 = 已吊销），再决定 revoked / used_in_tests / false_positive"
+  },
+  {
+   "id": "l1-assembly-canary",
+   "title": "C-8 L1 装配灰度（默认 full；灰名单 5 条真实技能）",
+   "status": "done",
+   "priority": "P1",
+   "criteria": "CP_SKILL_LAYER_MODE/CP_SKILL_LAYER_L1_IDS 已合并（#1459）；守卫用例 14 条；干净 worktree 零缺口",
+   "next": "灰度观察一周看「技能没按预期起作用」反馈；无回归再扩名单；回滚 = MODE 改回 full",
+   "owner_decision": "Owner 2026-11-06 同意「默认 full + 先灰 3-5 条」，名单由主线给（已定 5 条）"
+  },
+  {
+   "id": "c9-schedule-task-review",
+   "title": "C-9：schedule_task 观察期至 2026-11-10",
+   "status": "frozen",
+   "priority": "P3",
+   "criteria": "到期先复核最后 7 天用量，再决定「恢复/继续冻结/删除」。**2026-11-08 预复核发现判据本身不成立**：工具级台账（stage=tool）自 2026-10-29 上线至今**全仓 0 条**（连 read_file 这类高频工具都没有）——根因是台账唯一写入点 ToolCalling._execute_safe 不在本部署的对话链路上（工作台 SSE 直接用 agent.tools.call）。审计链里 15 条命中都是 CP_TOOL_CONFIRM_LEVEL_EXEMPT 的配置变更提到这个名字，不是调用",
+   "next": "台账已在对话执行点补记（PR #1515：plugins/chat.py 的 _record_tool_usage），部署后即可用真实用量复核。2026-11-10 到期时：先看近 7 天 stage=tool 里有没有 schedule_task（当前 YAML enabled:false，模型可见集已剔除 ⇒ 预期 0）；无数据且风险高（能自己安排未来任务）则继续冻结，删除/恢复需 Owner 点头"
+  },
+  {
+   "id": "local-env-noise",
+   "title": "本机红但不是回归：未跟踪运行时 YAML/技能目录带来的派生面测试红（+ test_network_config_test_floor / test_tool_pruning 历史项）",
+   "status": "frozen",
+   "priority": "P3",
+   "criteria": "干净 worktree / CI 均为绿；判绿以干净 worktree 为准",
+   "next": "本机：data/tool_definitions/{adaptive_skill_stack,api_multi_search_engine,byted_*}.yaml（5 个运行时登记工具，category=ingested/custom、缺 examples）⇒ test_tool_definitions_yaml 红；data/skills_repo/{adaptive-skill-stack,claude-code-analysis}/（未跟踪技能目录）⇒ test_capability_spec::test_清单与权威数据一致 红。两者在干净 worktree / CI 均为绿（2026-11-09 §11.78 已按干净 worktree 复核）。"
+  },
+  {
+   "id": "software-probe-install",
+   "title": "software_probe / software_install 受控安装通道（#1449）",
+   "status": "done",
+   "priority": "P0",
+   "criteria": "四道闸 + 默认停用；真机 probe 通过、install 未登记时 not-in-allowlist",
+   "next": "要真装软件：先在 config/software_allowlist.json 登记精确 package_id，再传 confirm=true"
+  },
+  {
+   "id": "c6-batch6",
+   "title": "C-6 第六批：4 文件 39 条 stack-trace（#1450 + #1452）",
+   "status": "done",
+   "priority": "P1",
+   "criteria": "master 上 py/stack-trace-exposure 112 → 73",
+   "next": "-"
+  },
+  {
+   "id": "legacy-endpoints",
+   "title": "legacy 三端点删除（install-skill / register / register-tool，#1453）",
+   "status": "done",
+   "priority": "P2",
+   "criteria": "路由 498 → 495；unreferenced 33 → 30；台账与会话意图同步收缩",
+   "next": "-"
+  },
+  {
+   "id": "handoff-revamp",
+   "title": "交接改造 ②–⑤（口径.md / 轮次拆分 / next_actions.json / 自检进快照）",
+   "status": "done",
+   "priority": "P2",
+   "criteria": "口径.md ≤150 行；轮次归档到 docs/handoff/rounds/ 且正文只留索引；卡片带自检与下一步",
+   "next": "-"
+  },
+  {
+   "id": "c7-overlap-vector",
+   "title": "C-7 重叠检测：诚实版面板 + 向量候选（三种 embedding 排它单选，默认关）",
+   "status": "done",
+   "priority": "P2",
+   "owner_decision": "Owner 2026-11-06 选 (a) 本地 embedding（transformers MiniLM，无外部 API、无费用）",
+   "criteria": "诚实版 #1460（阈值 0.25 / 上限分 / 为何为空）；向量候选 #1462（st_bge_m3 / native_minilm / api 三选一，默认关，设置中心可开）",
+   "next": "要用时在设置中心打开 CP_SKILL_OVERLAP_VECTOR，并在 PROVIDER 里三选一；api 需先配端点与密钥"
+  },
+  {
+   "id": "c6-tail-batch",
+   "title": "C-6 收尾：agent_lines 专项（message 属性）+ capabilities 投影（5 条归零，PR #1461/#1464）",
+   "status": "done",
+   "priority": "P1",
+   "criteria": "stack-trace 14 → 11（agent_lines 3 条清零）；capabilities 2 条随 #1464 归零（期待 11 → 9）",
+   "next": "-"
+  },
+  {
+   "id": "ingestion-help",
+   "title": "能力获取联机帮助（7 站全链路 + 操作清单）+ 清理过时文案 + 少点几下（#1465）",
+   "status": "done",
+   "priority": "P2",
+   "criteria": "手册覆盖入口材料→最终能力 7 站（3 自动 / 4 手动）；点候选即预览、批量 L2 自动重写、下一步直达；vitest 27 passed",
+   "next": "-"
+  },
+  {
+   "id": "c6-panels-memory",
+   "title": "C-6 余量 8 条：ui_panels 5 / api_envelope 2 / app_server 1（#1469）",
+   "status": "done",
+   "priority": "P1",
+   "criteria": "六面板 data 层 5 处 + memory_import detail/批次失败 + 插件重载，全部只回类名/固定文案",
+   "next": "-"
+  },
+  {
+   "id": "ui-ingestion-polish",
+   "title": "能力获取体验收口：探测按钮移卡片右侧 + 候选惰加载分页 + 技能中心删指路条 + 生成文件轨/合并重复单入口（#1470）",
+   "status": "done",
+   "priority": "P2",
+   "criteria": "候选首屏 50 条可加载更多/全部展开；合并只留评审报告出口；materialize 仅无文件轨行显示",
+   "next": "-"
+  },
+  {
+   "id": "pr-1483-collection",
+   "title": "#1483 收口：草稿能真的登记（三形态一口）+ 0 步拒绝 + 队列交互 + 工具页定位",
+   "status": "done",
+   "priority": "P1",
+   "criteria": "CI 首轮 shard4 红在 test_route_ui_coverage::test_产物与工作树一致（新增 POST /api/ingestion/drafts/<id>/register ⇒ 496 路由 / ui 440，content_hash 漂移）；在干净 worktree 按 HEAD 重派生 reports/route_ui_coverage.json 后全绿，squash 合并为 master f1a6308f5",
+   "next": "改到路由/前端引用后必须同批重派生 reports/route_ui_coverage.json（否则 shard4 必红）；派生只在干净 worktree 做"
+  },
+  {
+   "id": "demo-capability-chart-visualization",
+   "title": "演示能力去留：chart-visualization 技能入文件轨（#1485）",
+   "status": "done",
+   "priority": "P2",
+   "criteria": "按「保留」处理：data/skills_repo/chart-visualization/{skill.md,CARD.md} 入库，补 description_zh + 「何时使用」「示例」⇒ validate_skill_md 47 份 0 error / 0 warning；干净 worktree 重派生 capability_manifest（139 → 140）与盘点表，刷 6 处能力基线",
+   "next": "该技能缺 scripts/generate.js 与 references/*.md（见下一条）"
+  },
+  {
+   "id": "chart-visualization-missing-assets",
+   "title": "chart-visualization 只入了 SKILL/CARD：已按 Owner 决定**降级为「仅提示词资产」**",
+   "status": "done",
+   "priority": "P3",
+   "criteria": "2026-11-08 01:5x Owner 选「降级」：skill.md 正文重写为自足的提示词资产 —— 顶部新增「资产说明（仅提示词资产）」明确没有 scripts/ 与 references/、别去找 generate.js/references；Workflow 第 2 步换成通用 args 字段约定（不再指向缺失文件）、第 3 步换成「Python matplotlib / ECharts option / 只给规格」三条本机可走的路、示例末尾删掉 node ./scripts/generate.js；「何时使用」「示例」保留（validator 0 error / 该技能 0 warning），Reference Material 段写清上游 antvis/chart-visualization-skills 与「未导入」。正文改动对派生面**零影响**（干净 worktree 跑 sync_capability_manifest --check：142 条一致，exit 0）",
+   "next": "已完成（只改正文、未动 front matter ⇒ 不动能力面）。若日后要真出图：把上游 scripts/ 与 references/ 拷进 data/skills_repo/chart-visualization/ 后走 intake_skill.py --execute --fix-baselines 重新入轨"
+  },
+  {
+   "id": "demo-capability-tools-local",
+   "title": "演示工具 api_multi_search_engine / byted_seedance_video_generate 保持本机运行期（不入仓）—— Owner 已决定",
+   "status": "done",
+   "priority": "P3",
+   "criteria": "两者的落地位置是 agent/tools/custom/*.py（.gitignore 第 181 行明确其=运行时状态，与 data/dynamic_tools.json 同类）+ data/tool_definitions/*.yaml + tests/unit/test_*.py；本机 98 条工具里含这两条（seedance 为 enabled: false）",
+   "next": "Owner 2026-11-08 决定：**维持运行时登记**（合 5 条：adaptive_skill_stack / api_multi_search_engine / byted_bp_cdn_pagesdeploy / byted_seedance_video_generate / byted_seedream_image_generate）。它们不在入库声明口径 ⟹ YAML 缺 enabled/status/permission_level/llm_callable/location/tool_type 属正常，三个 backfill 的 --check 会跳过；工具页「移除」只对这类工具显示（内建工具必须走 PR）。若日后要入仓：tool_index / 清单+盘点表 / BM25 半饱和点 / 路由基线 / 路由冲突 τ 五处连锁 + BYTEPLUS_* 进 agent/settings/registry.py，别只提交 YAML"
+  },
+  {
+   "id": "tool-usage-ledger-empty",
+   "title": "工具级使用台账 0 条（已修）：对话执行点补记，实测已能落 stage=tool",
+   "status": "done",
+   "priority": "P1",
+   "criteria": "2026-11-08 复核 C-9 时发现：data/skill_usage_events*.jsonl（活动文件 + 8 个按日分片）里 **stage=tool 事件 0 条**，而 stage=load/match 正常（最近三条 load 是 11-07 的三次技能加载）。写入点 agent/tool_calling.py::_record_unified_tool_trace 确实挂在 _execute_safe 的四条终态上（代码无误），usage_log.record_tool 也写同一个文件（import 路径与 load 事件同一条，排除导入失败）**两个假设都还站得住**：①本部署的聊天工具调用没走 ToolCallingService（另有执行链，如 capregistry/invoke.py 只记 business_metrics）；②聊天确实很少真的调用过工具（同期 load 只有 3 条 ⇒ 聊天本身很闲）。/api/business/prometheus 的 tool_call 样本也是 0，但进程刚重启（02:13）⇒ 不能据此判 ①。影响：工具页「近 7 日调用」恒 '-'（设计上「无记录 ≠ 0 次」，所以不误报，但等于没有观测）；C-9 等「看用量」的判据全部失效",
+   "next": "已修（PR #1515，master ddb01a559 部署后实测）：plugins/chat.py 工具循环里在真实执行点补记 usage_log.record_tool（_record_tool_usage），失败判据只认显式 ok=False/error_code、工具抛异常也如实记失败。**决定性实验已做**：真实聊一轮（11 thinking / 162 chunk）后台账多 2 条 stage=tool（read_file 66ms / search_memory 883ms，source=workbench_chat）。⇒ 原假设 ① 成立（本部署对话链路不走 ToolCalling._execute_safe）。工具页「近 7 日调用」从此有数据；C-9 可以按真实用量复核（当前 schedule_task 仍 0 次，YAML enabled:false）"
+  },
+  {
+   "id": "approval-inline-surface",
+   "title": "需要审批的工具调用改为**对话内弹窗裁决**，不进审批收件箱（Owner 2026-11-08）",
+   "status": "done",
+   "priority": "P1",
+   "criteria": "PR #1514：新增 agent/approval_surface（contextvar 标记呈现面）+ request_approval(origin=) 落 payload + /api/approval/pending 与 /api/cp/approvals/inbox 默认过滤 origin=inline_chat（回 inline_hidden、?include_inline=1 看全量）+ 收件箱界面「另有 N 条在对话内弹窗」与勾选框；审批链不变（仍挂单/单次消费/审计）",
+   "next": "已完成并合并（86ca23f84）。若以后要把「某类工具永远不走弹窗」，改 approval_surface 的判据，别在 tool_gate 里写特例"
+  },
+  {
+   "id": "health-l5-semantics",
+   "title": "健康仪表盘 L5「语义」口径修正（50%→11% 的假数）+ L1~L5 标注数据来源 + 概览卡补 CPU/内存/磁盘",
+   "status": "done",
+   "priority": "P2",
+   "criteria": "PR #1513 + #1516：L5 只数近 7 天 like/dislike（suggestion/开发随记不计入分母、样本<5 或无语义反馈一律 available=false）；PROBE_LAYERS 增 origin/originDetail 并在维度卡与探针明细表展示；L1 探针返回结构化 metrics 且 assessor/collector 逐层透传，概览「CPU 核心数/内存可用量/磁盘可用」不再是 MISSING",
+   "next": "已完成（1d9b0948a 部署）。仍需后端补的两处如实占位：/api/diagnostics/metrics 的 histograms 为空（P50/P95/P99）、/api/observability/alerts 不返回运行态 state/activeAt"
+  },
+  {
+   "id": "ingestion-need-llm-steps",
+   "title": "AI 绑定/草稿登记：判断/评审类步骤按「LLM 步骤」落地（code-review 永远做不起来）",
+   "status": "done",
+   "priority": "P2",
+   "criteria": "PR #1512：新增 agent/ingestion/step_binding（有工具 or need_llm 都算落地，autobind/drafts 共用）；prompt 教模型对判断类步骤标 need_llm；apply_bindings 计 bound 含 need_llm 并回 llm_steps；build_learned_workflow 放行 need_llm 并透传 prompt_template；界面 regBlocked 只拦 0 步",
+   "next": "已完成（14580d5c6）。实测：该草稿修前只能绑 10/19 且登记恒灰，修后判断类步骤由模型标 need_llm（register_draft 也会兜底补）"
+  },
+  {
+   "id": "approval-inline-surface",
+   "title": "需要审批的工具调用改为**对话内弹窗裁决**，不进审批收件箱（Owner 2026-11-08）",
+   "status": "done",
+   "priority": "P1",
+   "criteria": "PR #1514：新增 agent/approval_surface（contextvar 标记呈现面）+ request_approval(origin=) 落 payload + /api/approval/pending 与 /api/cp/approvals/inbox 默认过滤 origin=inline_chat（回 inline_hidden、?include_inline=1 看全量）+ 收件箱界面「另有 N 条在对话内弹窗」与勾选框；审批链不变（仍挂单/单次消费/审计）",
+   "next": "已完成并合并（86ca23f84）。若以后要把「某类工具永远不走弹窗」，改 approval_surface 的判据，别在 tool_gate 里写特例"
+  },
+  {
+   "id": "health-l5-semantics",
+   "title": "健康仪表盘 L5「语义」口径修正（50%→11% 的假数）+ L1~L5 标注数据来源 + 概览卡补 CPU/内存/磁盘",
+   "status": "done",
+   "priority": "P2",
+   "criteria": "PR #1513 + #1516：L5 只数近 7 天 like/dislike（suggestion/开发随记不计入分母、样本<5 或无语义反馈一律 available=false）；PROBE_LAYERS 增 origin/originDetail 并在维度卡与探针明细表展示；L1 探针返回结构化 metrics 且 assessor/collector 逐层透传，概览「CPU 核心数/内存可用量/磁盘可用」不再是 MISSING",
+   "next": "已完成（1d9b0948a 部署）。仍需后端补的两处如实占位：/api/diagnostics/metrics 的 histograms 为空（P50/P95/P99）、/api/observability/alerts 不返回运行态 state/activeAt"
+  },
+  {
+   "id": "ingestion-need-llm-steps",
+   "title": "AI 绑定/草稿登记：判断/评审类步骤按「LLM 步骤」落地（code-review 永远做不起来）",
+   "status": "done",
+   "priority": "P2",
+   "criteria": "PR #1512：新增 agent/ingestion/step_binding（有工具 or need_llm 都算落地，autobind/drafts 共用）；prompt 教模型对判断类步骤标 need_llm；apply_bindings 计 bound 含 need_llm 并回 llm_steps；build_learned_workflow 放行 need_llm 并透传 prompt_template；界面 regBlocked 只拦 0 步",
+   "next": "已完成（14580d5c6）。实测：该草稿修前只能绑 10/19 且登记恒灰，修后判断类步骤由模型标 need_llm（register_draft 也会兜底补）"
+  },
+  {
+   "id": "deeplink-cold-start-search",
+   "title": "冷启动深链丢参：#/workbench?panel=… 粘贴打开后 search 被抹掉",
+   "status": "done",
+   "priority": "P2",
+   "criteria": "根因不在前端 hook，而在 app_server.index() 的 redirect(/chat#/workbench)：Location 自带 fragment ⇒ 浏览器按 RFC 7231 §7.1.2 用新 fragment 覆盖旧的 ⇒ ?panel= / &tool= 全丢。改为 redirect(/chat)（fragment 留给浏览器带过去）",
+   "next": "契约由 tests/unit/test_root_redirect_deeplink.py + yunshu-ui/src/workbench/useNavUrlSync.test.tsx 双侧钉住；以后再加启动重定向时禁止把 fragment 写进 Location"
+  },
+  {
+   "id": "c6-final-producers",
+   "title": "C-6 最后 4 条 producer：记忆导入读者 / 蒸馏固化 / 成本与 UTC 面板（#1472）",
+   "status": "done",
+   "priority": "P1",
+   "criteria": "统一「返回值只放类名或固定文案，原文进 logger」；向量回执改域异常 message 以保住原因；473 passed",
+   "next": "-"
+  },
+  {
+   "id": "c10-remaining",
+   "title": "C-10 余量归零：26 → 20（#1496/#1497）→ 0（#1501 修 14 + 6 dismiss；#1503 修最后 1 条 + 1 dismiss）",
+   "status": "done",
+   "priority": "P1",
+   "criteria": "#1501 已合并（c4bb9fb69）：14 条按**源**改（polynomial-redos 6 / redos 1 / clear-text-storage 2 / cookie-injection 1 / reflective-xss 1 / js xss-through-dom 3）；6 条按「设计如此」dismiss。合并后 code scanning 26 → 20 → **1**（唯一残余是 agent/env_config_manager.py 的 py/clear-text-storage：值仍被当实参传给审计写点）⇒ #1503 把敏感 key 改成「值不进审计函数」（_audit_log_sensitive，只给 action+key）",
+   "next": "已完成：code scanning 0 / secret scanning 0（2026-11-07 22:40 实测）。#529 是「运行时按 key 分流、静态无法判定」的 dismiss，理由与守卫用例见 dismissed_comment；以后同类告警先看是否有 key 分流再决定"
+  },
+  {
+   "id": "audit-chain-journal-gap",
+   "title": "审计链「预留未落库」不再报成篡改（seq 82897）+ 生产补写（已完成）",
+   "status": "done",
+   "priority": "P1",
+   "criteria": "根因两条：append 入库失败只 warning + 收敛 3 轮后放弃重试；启动自愈只看「日志链头 > DB 链头」⇒ 中间空洞不自愈。PR #1500：验签三态（ok/pending_commit/tampered，ok 不放宽）+ rows_for + replay_journal_pending + CLI --replay-journal + _mark_drain_if_gap（连续水位判空洞）+ 退出码 3。真实台账副本实测：exit 3 → 补写 1 条 → exit 0（82,919 条）",
+   "next": "已完成：#1500 合并为 b4e8e82f9；生产台账停后端后 python scripts/verify_audit_chain.py --replay-journal 补写 1 条 → exit 0（82,931 条，seq 1..82931）；交接卡自检「审计 82934 条 / 0 断点」。若将来再出现 3=PENDING：同一命令补写即可；别再当篡改取证"
+  },
+  {
+   "id": "ci-shard6-cognitive-shadow",
+   "title": "CI shard6 的 cognitive 包遮蔽 flake（已加 sys.path 守卫，#1506 上 shard6 全绿）",
+   "status": "done",
+   "priority": "P2",
+   "criteria": "仓里两个同名包：仓根 cognitive/（元认知引擎）与 agent/cognitive/（认知循环）。只要 agent/ 排在 sys.path 前面，from cognitive import PromptInjector 就解析到 agent/cognitive ⇒ ImportError（本机已复现该机制）。CI 的 shard6 在 #1498/#1499 上红了两轮（3 个收集失败 + test_plan_tools SessionRestore），本机 -n 2 跑完整 shard6 3752 条全绿 —— 属导入顺序 flake，非回归",
+   "next": "已做：_pin_repo_root_first() 把仓根钉在 sys.path[0]、把 .../agent 挪到末尾，三个调用点（conftest 导入 / pytest_collectstart / 逐用例 autouse）。#1506 的 shard6 全绿。若再犯：先确认那三个调用点还在（有人删了 autouse fixture 就会回退）"
+  },
+  {
+   "id": "weak-hash-queue",
+   "title": "weak-hash 5 条（分桶 MD5→SHA-256 + 签名密钥 PBKDF2+缓存，#1496）",
+   "status": "done",
+   "priority": "P1",
+   "criteria": "merged 937fbe69c；分桶改 SHA-256（agent/utils/bucketing.py），签名密钥派生改 PBKDF2 + 进程内缓存；code scanning weak-sensitive-data-hashing 5 → 0。另 3 条 identity/judge 的 dismiss 仍是裁决过的，别再动",
+   "next": "-"
+  },
+  {
+   "id": "transform-queue-archive-delete",
+   "title": "转化队列「归档 + 二次确认彻底删除」+ 工具页「移除运行时工具」+ shard6 sys.path 守卫（#1506，已合并）",
+   "status": "done",
+   "priority": "P2",
+   "criteria": "队列：archive 终态 + remove_job 只删已归档 + artifact_targets 白名单（仓库内/系统临时目录）+ 两个端点 + 「显示已归档」开关；工具：remove_runtime_tool 只认 dynamic_tools 台账（内建拒绝）、快照→注销→删台账/YAML/实现/单测→清 UI 开关、失败回滚。顺带把真实台账 62 → 27 条（删 35 条 pytest 临时目录污染，备份 data/backups/jobs-before-cleanup-20261107-232645.json）+ conftest autouse 隔离 jobs_path",
+   "next": "已完成：6908f52a1 合并 + 部署（三处一致）；code scanning 0。附带：conftest 的 sys.path 守卫（agent/ 挪末尾）本轮 shard6 全绿。【2026-11-08 补】「取消归档」已做（PR #1515）：jobs.unarchive 退回归档前状态（history 里最近一次 to=archived 的 from；取不到就报错不猜）+ POST /api/skills-mgmt/transforms/jobs/unarchive + 队列已归档行的「取消归档」按钮 + 干净 worktree 重派生 route_ui_coverage（444 ui）"
+  },
+  {
+   "id": "runtime-skill-intake-quality",
+   "title": "本机运行期技能质量（document-skill front matter 解析失败 + 入轨助手自动改基线）—— 已按 Owner 决定收口",
+   "status": "done",
+   "priority": "P3",
+   "criteria": "2026-11-07 23:49–23:51 有人用 UI 走「转化队列 → 登记/入轨」：新增 api-multi-search-engine（文件轨 + 主轨）与 document-skill；两条都不在 git（运行期）。document-skill/skill.md 的 front matter 被写成 description: name: ... 的多冒号单行 ⇒ YAML ScannerError，validate_skill_md 报 1 error；另有 4 条缺 description_zh/何时使用/示例的 warning（含既有的 adaptive-skill-stack / claude-code-analysis）。同期还自动改了 capability_manifest / 盘点表 / 3 个测试基线（已按口径还原，未提交）。交接卡自检因此显示 ⚠（dual_track 51/51 孤儿 / skill_md 1 error）",
+   "next": "已按 Owner 的 ①+③ 收口（2026-11-08 01:45）：① 两条技能修好并正式入轨 —— document-skill 的 description 改成单引号标量、name=技能名、去掉正文里重复的 name/description 与末行 Tags（不编内容），api-multi-search-engine 补 description_zh + 「何时使用」并把被截断的 description 补完；intake_skill --execute --fix-baselines 入轨（skill.md + CARD.md 进 git），干净 worktree 重派生 capability_manifest/盘点表（140 → 142 条，工具 93 不动），基线六处同步（entries 142 / by_kind skill 49 / by_location local 120 / skill_total 49），并顺手把 HEAD 里那处不可复现的 search_memory.location_unresolved 漂移改正；③ 入轨助手 fix_baselines 默认 false（DEFAULT_FIX_BASELINES + 界面「同时刷新基线」显式勾选），带 4 条路由用例与 2 条界面用例。结果：validate_skill_md 0 error（3 warning 是既有两条 + document-skill 无「示例」）、双轨 0 孤儿（文件轨 51 / 主轨 53）。剩余：「取消归档」见 queue-archive 条目"
+  },
+  {
+   "id": "compress-trigger-global-pool",
+   "title": "压缩触发池是**全局记忆**（跨会话最近 200 条），与界面读数（本会话）不同源；floor 又按 100 条记 ⇒ 闸门恒开",
+   "status": "done",
+   "priority": "P1",
+   "criteria": "量测（2026-11-08，python -X utf8 scripts/probe_compress_vs_cache.py）：触发池 data/messages.jsonl 是全库（295 条，无 session 字段），counted(最近 200 条)=130,469 token = 窗口 131,072 的 99.5%、80% 阈值(104,857)的 1.24 倍；而界面 /api/context/status 算的是**本会话**：68~70 条 / 68,243 token = 52.1%。阈值早在 2026-10-05T17:22（第 98 条）就越过，之后恒在阈值以上 ⇒ 新会话在 3% 也会因「另一条会话的消息」触发压缩。次因：_execute_compression 用 load_recent_messages(limit=100) 记 floor(69,895)，触发却看 200 条(130,469) ⇒ counted200 >= 1.1×floor=76,884 恒成立，闸门形同虚设；按现有消息池模拟可触发 186 次（floor 用同一 200 条窗口时只有 6 次）。实测压缩 80 次（79 成 + 1 空摘要），2026-10-13 一天 25 次、12:09–12:31 六次。",
+   "next": "已完成（PR #1518 → 74d7690c5，2026-11-08 15:00 部署）：① 触发池按会话（add_message/score_and_save_message 带 session_id、_recent_messages 过滤、水位按会话分桶）；② floor 与触发同窗口（COMPRESS_TRIGGER_WINDOW=200），并把维护线程也改成按会话判定；③ 重启时从落盘回填 _message_window（否则压缩输入只拿到重启后新写的几条，实测只剩 147 token）。实测：会话 0.1%→2.5% 期间压缩事件 +0、摘要版本 94 不变；离线演示触发点恰好 800/1000=80%，别的会话灌到 2000 不触发新会话。剩余边界：触发看会话最近 200 条、界面看会话全量累计 ⇒ 超长会话（>200 条）仍可能「界面到 80% 而触发未到」（方向安全，不再提前压）；摘要仍是全局一份"
+  },
+  {
+   "id": "retrieval-mode-prefix-cache",
+   "title": "检索/完整·流式档把「会话摘要+最近消息」塞进 system prompt ⇒ 整段前缀每轮失效（可复用 ≤0.13%）",
+   "status": "done",
+   "priority": "P1",
+   "criteria": "实测 7 条 LLM 记录：稳定档位内命中 99.4%~99.7%（每次只 miss 新增尾部 201~351 token）；换档那次（工具集 17→26、system prompt 75→434 字，3,774→7,270 token 的 tools）命中 0/62,415；压缩调用本身命中 0/57,385（摘要用另一套前缀，构造上不可能命中）。零命中 2 次贡献 119,800 token = 全部 miss 的 97.1%。检索档的 system prompt 里 [工作记忆] 块起点在第 102 字（块前只有 80 token），而该块 = get_context 的「摘要 + 最近 20 条」截 500 字 ⇒ 窗口每滑动一条就整段失效（模拟 115 轮里 114 轮该块变化，首个分歧就在块首）；压缩改写摘要同理（可复用 111 token）。",
+   "next": "已完成（PR #1518 → 74d7690c5）：plugins/chat.py 的技能 instruction / 检索片段不再拼 SYSTEM_PROMPT，改随本轮最后一条用户消息下发（与编排器 F3-1 共用 YUNSHU_PROMPT_VOLATILE_TAIL 开关，=0 回滚）。实测（pid 64828）：三次检索档对话 21 次调用，system prompt 恒 75 字、命中 88.1%、零命中 0 次（修前同档 0/62,415）；同轮相邻命中 93~98%。未做：压缩调用自身仍是另一套前缀（57k token 全价），要它命中得把摘要指令拼在对话前缀之后"
+  },
+  {
+   "id": "compress-call-prefix-reuse",
+   "title": "压缩调用复用对话前缀（已实现，默认关；实测 99.7%、成本 −81%）",
+   "status": "done",
+   "priority": "P2",
+   "criteria": "量测（§11.71）：公共前缀 0 token；压缩的 100 条是对话窗口的后缀 ⇒ 后缀不算前缀；只换 system+tools、切片不动命中 8.5%、成本 +1%（白干）；切片改成对话窗口 + 指令后置离线 99.9%、真实调用 99.8%。**实现（PR #1521 → 320f9d2bc，2026-11-09 00:1x 部署）**：agent/chat_prefix.py（按会话登记本轮实发 system+tools+messages+model，8 会话/30 分钟）+ plugins/chat.py 真实调用前登记 + memory/summarizer.py 前缀模式（指令放末尾）+ memory_manager._chat_prefix_for（开关/新鲜/模型一致/装得下）+ llm_service 与 llm_monitor 透传 tools + registry 登记 CP_COMPRESS_REUSE_CHAT_PREFIX。端到端 --e2e：_execute_compression True、summarize prompt=87,795 hit=87,552 = 99.7%、tools=26、system 逐字一致。A/B：旧路径输出是对话续写，新路径是结构化摘要（两次都触 completion=500）。",
+   "next": "开关默认关 ⇒ 收益尚未生效；开启见 compress-prefix-enable。回滚 = CP_COMPRESS_REUSE_CHAT_PREFIX=0（默认值即回滚）。复现：python -X utf8 scripts/probe_compress_prefix_reuse.py [--live|--ab|--e2e]。"
+  },
+  {
+   "id": "compress-prefix-enable",
+   "title": "CP_COMPRESS_REUSE_CHAT_PREFIX 观察结论（2026-11-10 拍板）：现场 true、代码默认保持 false",
+   "status": "done",
+   "priority": "P2",
+   "criteria": "**2026-11-09 已按 Owner 指示开启**（开关中心同一条 API：value=true、applied=True、hot 写入进程 os.environ、source=ui_override；重启后由 bootstrap 重新应用）。现场实测（分支临时部署 pid 69772）：窗口临时 30000 + 新会话 23,800 字消息 ⇒ 手动压缩返回 used_prefix=True / prefix_messages=1（摘要 v94→95，随后已还原）。**验收坑**：窗口 2000/3000 时 used_prefix 恒 False —— 守卫按设计拒绝（前缀 + RETRY_TOKENS 2000 + 余量 1024 > 窗口），验收要窗口 ≥ 前缀 + 3k。",
+   "next": "决定：**现场 ui_override=true 保留**（重启由 bootstrap 重新应用），registry 默认仍 false。依据：提示 87,795 / 命中 87,552 = 99.7%、成本 −81%、摘要从「对话续写」变结构化；但冷缓存 1.85× 的风险不该默认落到所有新环境 —— 「已验证、需显式打开」才与现状相符。回滚 = 置 0（立即生效）。"
+  },
+  {
+   "id": "summarize-usage-observability",
+   "title": "压缩（summarize）usage 恒 0 —— 钩子改读真响应对象（11dfde713）",
+   "status": "done",
+   "priority": "P3",
+   "criteria": "2026-11-09 做 --e2e 时发现：agent/llm_monitor 的 _patched_do_summarize 用 create_from_api_call(response_obj=...) 建记录，但 memory/llm_service._do_summarize 返回的是**文本**而不是响应对象 ⇒ usage_prompt_tokens / prompt_cache_hit_tokens / miss 恒 0（source=summarize、tools 倒是有了）。后果：压缩的 token 与缓存命中在「LLM 缓存命中」卡、成本统计、prometheus 的 llm_tokens_total 里都看不见（这正是当初 §11.67 只能用 --e2e 探针取数的原因）。",
+   "next": "已落地：_do_summarize 把真响应对象暂存 _last_summarize_response（异常时置 None），llm_monitor.summarize_response_for_record() 供钩子取值 ⇒ extract_usage 拿到真 usage。用例 5 条（test_summarize_usage_observability.py）。验证方式：下一次真实压缩后看 /api/llm-monitor/stats 里 source=summarize 的 usage_prompt_tokens 是否非 0。"
+  },
+  {
+   "id": "ui-vs-trigger-metric",
+   "title": "界面占用率与压缩触发同源（已完成：最近 200 条正文）",
+   "status": "done",
+   "priority": "P2",
+   "criteria": "修前：/api/context/status 分子 = 会话全量累计（收+发 over 全部消息），触发量的是最近 COMPRESS_TRIGGER_WINDOW(200) 条正文且跳过工具结果 ⇒ 超长会话「界面 80% 而触发未到」。**已修（PR #1523 → 05545d6bc）**：分子改成最近 200 条正文（跳过 role=tool/tool_call_id），current_tokens 与 percentage 同源；新增 session_total_tokens / percentage_semantics=compress_trigger_window / percentage_window_messages / percentage_note；面板显示后端口径说明 + 会话累计；口径.md §7 已补一条。同 PR 顺带让手动压缩回报 used_prefix/prefix_messages（面板显示「复用前缀 / 独立前缀」）。",
+   "next": "已完成（2026-11-09 部署）。若日后调 COMPRESS_TRIGGER_WINDOW，界面自动跟随（同一常量）；改任一侧必须同批改另一侧 + 用例（test_context_limits_alignment 的「同源」用例）。"
+  },
+  {
+   "id": "per-session-summary",
+   "title": "摘要按会话分家（已实现并开启：CP_SESSION_SUMMARY_SCOPED）",
+   "status": "done",
+   "priority": "P2",
+   "criteria": "修前：压缩永远写同一份 summary.txt，get_context(token_limit) 没有会话参数 ⇒ 会话 A 的摘要出现在 B 的上下文里。**2026-11-09 已实现（PR #1524 → 4d5394490）**，Owner 选 1①（首压以全局摘要作基底）+ 2②（全链路）：agent/current_session 叶子指针（SessionManager.set_current 发布）+ memory_manager._summary_sid（关⇒全局/开⇒显式 id 或当前会话）+ load_summary/get_context/clear_summary 的 session_id + 压缩读会话摘要（没有就迁移民全局）写会话文件 + compress_rounds_for；chat 两个入口解析出 session_id 后 set_current。存储层在 d5e2cc5a5（summary_<sha256(sid)[:16]>.txt）。A 实测：开关 hot 打开 → 会话 A 压缩 v0→97 写自己的文件、全局 v96 mtime 未动；会话 B 的 overview summary_version=None（看不到 A）；切回 A=97。",
+   "next": "已开启（source=ui_override，热生效）。观察：①分家后各会话摘要版本是否各自增长；②老会话首压是否带上全局基底（日志「迁移：以全局摘要 vN 作基底」）；③面板「当前窗口压缩」次数是否合理（分家后基线=0）。回滚 = 置 0。验收坑：手动压缩要紧跟 done 事件时，本轮落库/触发可能没跑完 ⇒ 先等 8~10s 再压，否则 _pending_session 为空、会走全局路径。"
+  },
+  {
+   "id": "context-message-window-scoped",
+   "title": "上下文「最近消息」按会话过滤（已实现并开启：CP_CONTEXT_WINDOW_SCOPED）",
+   "status": "done",
+   "priority": "P3",
+   "criteria": "修前：get_context 的 recent 取 _message_window（最近 20 条、跨会话）⇒ 会话 B 的上下文带出 A 的原文。量测（data/messages.jsonl）：最近 20 条来自 8 个会话、最近 200 条来自 21 个。**已实现（PR #1525 → 67ac1cb72）**：CP_CONTEXT_WINDOW_SCOPED（默认关）打开后 recent 只取当前会话（内存优先，空则从 messages.jsonl 取 200 条按会话筛到 20）；拆出 _session_key 与摘要开关解耦；顺带修「有摘要无消息返回空」。A/B 实测：开关关 messages=22 / 开 messages=1（新会话不再带别会话消息）。",
+   "next": "已打开（ui_override）。观察：新会话的上下文是否变短（正常）、老会话是否因为只有自己的消息而丢失跨会话线索（若需要跨会话线索，改用显式检索而不是靠窗口）。回滚 = 置 0。"
+  },
+  {
+   "id": "skill-usage-exec-zero",
+   "title": "技能近 7 日命中/加载/执行的口径 + 「执行不适用」上屏 + L3 显式执行点（§11.78）",
+   "status": "done",
+   "priority": "P2",
+   "criteria": "Owner 2026-11-09 指定。结论：exec 恒 0 **不是链路故障**，是「没有可执行技能」+「聊天链路只做 L1→L2，不执行脚本」+「页面把不适用显示成 0」。实测：51 个文件轨技能里只有 1 个真有 scripts/*.py（scripted-selftest 示例，全仓仅 1 个 .py）；SkillExecutor.execute 的调用点只有 POST /api/skills-mgmt/<id>/execute（人点详情抽屉）、评估器、修复委派 —— 工作台 SSE / 编排器从不执行脚本。台账自 2026-10-28 建账起 exec 事件 = 0（11 个分片全扫）。另两项口径问题：①load 的 source 全写 loader ⇒ 56 条加载里 33 条在 ±15s 内没有同技能命中（详情抽屉默认打开「使用说明」= 一次 load），「加载」把模型取用与人点开详情算成一个数；②命中率 71.9% 的分母是 32 次检索，不是 50 个启用技能（同窗口 39/50 一次都没命中）。",
+   "next": "已落：#1 列表加 has_scripts（叶子 file_store.skill_ids_with_scripts）+ 表格「执行」位改「—/不适用」+看板 summary 改「执行不适用（无带脚本技能）」+ 冲突处置不再提「0 执行」；#2 台账 load 按 source 分列（semantic/inject=模型取用、ui=详情查看、loader=未分源历史），totals 增 load_inject_calls/load_ui_calls/load_legacy_calls；#3 新工具 skill_script_run（L3 显式执行点，默认 YAML enabled:false，现场已开）。遗留：56 条历史加载无法回溯分源（只能按「未分源」单列），新事件起才有语义。",
+   "done_at": "2026-11-09T21:40+08:00",
+   "done_by": "§11.78"
+  },
+  {
+   "id": "lab-apply-cache-notice",
+   "title": "提示词实验室 apply 旁标注缓存代价（c257a455e）",
+   "status": "done",
+   "priority": "P3",
+   "criteria": "实测 2026-11-08：改一行身份 → system prompt 277→281 字、下一次命中 0/3,605（整段前缀作废一次），之后恢复；改回时若旧前缀仍在服务端缓存则不再付全价。",
+   "next": "已落地：「应用到运行时」按钮旁常驻一行「ⓘ 改身份 = 下一次调用整段前缀失效一次（按未命中计价）」，title 里写清「只赔一次，之后重新稳定」。"
+  },
+  {
+   "id": "unscoped-legacy-pool",
+   "title": "未分会话历史池：决定冻结、不迁移，并在 /api/context/status 与面板如实披露（d3f7fd043）",
+   "status": "done",
+   "priority": "P3",
+   "criteria": "PR #1518 后维护线程只在「窗口最后一条消息带 session_id」时判定；legacy 301 条（无 session_id）已不再被压，摘要也不再消化它们。",
+   "next": "决定：不迁移（把 305 条无主消息搬进某个会话 = 把无关上下文塞给它，比冻着更坏）。落地：agent/legacy_pool.py（只读计数 + 60s 缓存）→ /api/context/status.legacy_pool {available, policy:frozen, legacy_messages:305, legacy_chars, messages_total}；面板在占用率口径下加一行「未分会话历史池 305 条 · 已冻结（不参与压缩/摘要/最近消息）」。"
+  },
+  {
+   "id": "unit-board-no-data",
+   "title": "单位看板「无数据」口径（2026-11-10 拍板）：never 不计分，0 行长期记忆归为无数据",
+   "status": "done",
+   "priority": "P3",
+   "criteria": "2026-11-08 交接卡：12 个单位 9 ok / 2 warn / 1 never；两项都是「没有数据」而不是故障，却常挂在看板上像告警。",
+   "next": "决定：① never（从未产生数据）既不进分子也不进分母（L5：无数据不许折算成 0 或满分）；② 长期记忆「库在但 0 行」= 尚未产出 ⇒ status=never（是否真坏由 scheduler 的 last_run 判断，不重复推断）；③ 工作流 0 条文案改「尚无工作流（0 条）· 无数据，不计分」。落地：unit_monitor.score_detail() + /api/system/units 增 scored_units/no_data_units/health_score_note + 面板显示「（N 项无数据不计分）」；可计分单位为 0 时 score=None ⇒ 显示「无数据」而不是 0 分。现场读数：10 ok / 0 warn / 2 never · 健康分 100.0（10 项计分，2 项无数据不计分）。"
+  },
+  {
+   "id": "alarms-evaluator-wiring",
+   "title": "报警器未接入告警规则评估器（PromQL 规则 × 简单阈值 evaluator 结构不匹配）",
+   "status": "done",
+   "priority": "P3",
+   "criteria": "报警器（§11.88）当前的事件源 = 健康探针降级 / 单位看板 warn|error / 审计链尾部不一致，三处都是已在跑的采集面。**告警规则本身没有接进来**：monitoring/alerts.yml 的 16 条规则是 PromQL（up{job=\"yunshu\"} == 0、resets(up[1h]) > 3、sum(rate(yunshu_http_request_total{status=~\"5..\"}[5m])) ...），而 agent/monitoring/alert_evaluator.py 只认 \"metric 比较 阈值\"（get_metric_value(名字)），且 AlertManager 的规则来源（self._config.groups）默认是空 ⇒ 直接 start() 只会空转，不产生真告警。",
+   "next": "2026-11-11 落地（Owner 授权：全面分析后按最佳方案执行）：选**方案 C** —— 新增 agent/alarms/promql.py（PromQL 子集解析/求值：选择器、标签正则、区间、rate/increase/resets、sum/max/by(le)、clamp_min、histogram_quantile、四则与比较）+ agent/alarms/samples.py（每轮 60s 采样环，算窗口差值/分位数；窗口不足报 warming 而不是 0）+ agent/alarms/rules.py（读 monitoring/alerts.yml 的 16 条规则原样求值，按 for 时长状态机 firing/pending）。为什么不是 A（部署 Prometheus）或 B（手工翻成阈值）：A 为 16 条规则再引入一个外部服务；B 会丢掉 rate/clamp_min/分位数 —— 那正是 5xx 比例与 P99 的全部内容。结果如实：本部署的注册表里只有 6 条规则的指标存在（http 5xx 比例/1m 增量、P95/P99、内存、CPU），其余 10 条引用的 up / llm_calls / tool_call / security_blocks / hallucination / eval_score 不存在（外部 Prometheus 采集 或 本仓根本没埋点）⇒ 求值器标 no_data/unsupported 并给原因，经 /api/observability/alerts 运行态（新增 evaluable + state_reason）与 /api/alarms/coverage 如实暴露。规则告警已进入事件台账（kind=rule，key=rule.<alert>）。测试：promql 15 + rules 9 + api 14。**后续（未做，需 Owner 决定）**：要给 llm_calls/tool_call/security/hallucination/eval 这五类补埋点，或上 Prometheus；报警器本身不再改口径。"
+  },
+  {
+   "id": "baseline-gate-flaky-assertions",
+   "title": "失败基线回归（0 条容忍）对 flaky 断言零余地：同类断言落链要按口径用有界轮询",
+   "status": "done",
+   "priority": "P3",
+   "criteria": "failures_baseline.txt 已于 2026-09-28 收缩到 0 条（只允许收缩）⇒ 「失败基线回归」job 对**单条 flaky** 零容忍：整轮 2.5 万条里只要 1 条时序抖动就会让 master 红。2026-11-11 一夜之间实测到三处，都不是回归：① test_memory_comparison 的 refcount 首轮 ±1（已改两轮稳态比较）；② test_knowledge_watcher 等 meta 就读 log.md（已改有界轮询）；③ test_skill_registry_audit 两处漏了 _wait_records（同文件 toggle 用例早就改过）——已补。口径里本来就写着「链式审计 best-effort ⇒ 断言落链用有界轮询」，但历史上是**逐条打补丁**改的，没有机械守卫 ⇒ 下一处仍会漏。",
+   "next": "2026-11-11 落地（Owner 授权：按最佳方案执行）：**不用**①AST 守卫（实测全仓 45 处「链式断言未轮询」，其中多数是同步写路径、本来就该立即断言 —— 一刀切会造 45 条误报，而误报会让门禁被无视）也**不用**②重跑机制（会掩盖真回归）；改为**治本**：审计链 append 的『先 put 再 ++_enqueue_count』顺序使 flush() 可能读到旧 target ⇒ 立即返回 ⇒ 读路径看不到刚写的记录。修法（agent/audit/chain.py::append ②）：计数与入队放进同一临界区、计数先于入队 ⇒ 任何在 append 返回后开始的 flush 都必然等到提交（read-your-writes 成立）。新增 tests/unit/test_audit_read_your_writes.py 3 条（200 次追加逐次读、8 线程×10 并发、count 与 entries 口径一致）。此前三处逐条补丁（refcount 两轮稳态 / watcher 等 log 行 / audit 两处 _wait_records）保留作为第二道防线。"
+  },
+  {
+   "id": "alarms-coverage-in-ui",
+   "title": "把报警器的「覆盖/盲区」读数接进告警 Tab（现在只有 /api/alarms/coverage 端点）",
+   "status": "done",
+   "priority": "P3",
+   "criteria": "§11.89 新增了 GET /api/alarms/coverage（事件源清单 + 规则覆盖率 + 上一轮采集统计）与 GET /api/alarms/rules（逐条规则状态）。目前只有规则运行态通过 /api/observability/alerts 进了「健康仪表盘·告警」Tab；**覆盖/盲区读数还没有 UI 入口**，只在排障时手工调端点，并在 config/route_unreferenced_triage.json 登记为 keep-ops。",
+   "next": "2026-11-11 落地（Owner：「两条 open 都做」）：health.tsx 新增 AlarmCoverageBlock，渲染在「告警」Tab 顶部 —— ① 六个事件源逐条「本轮已读 / 本轮不可用 / 冷启动跳过」（读 /api/alarms/coverage 的 last_collect.checked，与采集层 keep 语义对齐：不可用的源既不报警也不判恢复，所以必须看得见）；② 规则可求值数（如 11/16）+ 算不了逐条原因（缺哪个指标 / 样本不足 / 需 Prometheus，读 /api/alarms/rules 的 coverage.blocked）；③ 采样环点数（窗口类规则的先决条件）；④ 外部 Prometheus 状态（configured / last_ok）。两条端点常量收口到 src/api/endpoints.ts（ALARMS_COVERAGE / ALARMS_RULES），alarms.ts 只引用常量；config/route_unreferenced_triage.json 里这两条的 keep-ops 已删除（已接 UI），干净 worktree 重派生 route_ui_coverage（unreferenced 33→31、ui 450→452、frontend_endpoints 454→456）。测试：health.test.tsx 25→28（覆盖块渲染 / 组件级 Prometheus 可用 / 两条端点都失败上屏）。提交 daae9258b + 1c2986dd4。"
+  },
+  {
+   "id": "alarms-global-coverage",
+   "title": "报警器要变「全域」还差三件事（补埋点 / 上 Prometheus / 调度与 CI 入源）",
+   "status": "done",
+   "priority": "P3",
+   "criteria": "Owner 2026-11-11 问「报警器是全域感知、全域监控吗？」——实测**不是**，盲区已写进 /api/alarms/coverage 与 §11.89 A：① 外部服务存活（up{job=…}）只有 Prometheus 采得到；② LLM 调用量 / 工具失败率 / 安全拦截 / 技能幻觉率 / 技能评分**本部署没有埋点**（alerts.yml 里 10 条规则因此是 no_data：yunshu_llm_calls_total、yunshu_tool_call_total、yunshu_security_blocks_total、yunshu_skill_hallucination_total、yunshu_skill_eval_score）；③ 计划任务失败/堆积、CI 与部署失败、日志异常聚合、报警外发通道都还没有进事件台账。",
+   "next": "2026-11-11 落地（Owner：「两条 open 都做」）—— 按 §11.89 的既有决策执行：① 补埋点（做）、② 上 Prometheus（**不做**，Owner 18:55 指正后撤销，见下）、③ 事件源扩容（做）：\n① 补埋点（接到真实执行点，不造数）：新增 agent/monitoring/alarm_metrics.py（只对**已注册**的族自增，不新建 ⇒ 不会让 app_server 的 Counter 撞名起不来；失败全吞）。\n   · yunshu_llm_calls_total{provider,model,status} ← 收口在 LLMMonitor.record()：**所有** LLM 交互的唯一落点。【踩坑】先写在 _patched_do_chat/_patched_do_summarize 两个钩子上，实测无效 —— 本部署对话主链路走的是 _wrap_get_client_for_tool_calling 的 client.create 包装（source=tool_calling），根本不经过那两个钩子（实测 5 条记录全是 tool_calling）；收口到 record() 后立刻出现 series（d68b25c8e）。\n   · yunshu_tool_call_total{success} ← plugins/chat.py::_record_tool_usage（与工具台账同一处，避免两套数字）；实测聊两轮后 read_file / search_files 两条 series。\n   · yunshu_security_blocks_total{rule,level,category} ← tool_gate._deny（治理边界=warning）与 guardrails egress/ssrf 的 block_result（真安全事件=critical）；标签只放静态值（策略 id/host/secret 不进标签）。当前 0 次拦截 ⇒ 该族还没有 series，规则如实 no_data（不造假 0）。\n   · yunshu_skill_hallucination_total / yunshu_skill_eval_score 本来就有真实写入点（skills_mgmt.observability.emit_eval_score_metric → business_metrics），缺的是「报警器看不看得见」；samples.py 新增 snapshot_business_metrics() 把业务指标层的导出投影并进采样环（只并规则引用的族）。新增端到端用例：真调 emit_eval_score_metric 再读投影，断言两族与 {quantile=\"0.5\"} 可见。\n② 上 Prometheus：**明确不做**（Owner 2026-11-11 18:55 指出：上一轮 §11.89 已否决方案 A「为 16 条规则再引入一个外部服务」，选 C 本进程求值；把「两条 open 都做」当成对冲突方案的授权是我的判断错误，这类冲突应当回来问 Owner）。已撤销：\n   · 下载中的二进制（116MB，~50MB/20KB/s）已中止，C:\\\\Users\\\\Administrator\\\\yunshu-prometheus 已删除；\n   · **未安装任何进程**，9090 无监听，未写任何 systemd/服务；\n   · deploy/monitoring/prometheus/prometheus.local.yml 已随本次修正删除（避免仓库里留着「要装外部服务」的信号）。\n   代码侧只保留**默认关**的可选读源 agent/alarms/prometheus_source.py（CP_PROMETHEUS_URL，默认空=完全不参与；每次都先判 configured()，不配置时与 C 逐字等价）：它存在的唯一目的是把「up{} 到底缺什么」说清楚（/api/alarms/coverage 与告警 Tab 都能看到「未配置 ⇒ up{} 类规则只能报无数据」），并保证将来 Owner 若明确要 up{} 时不必改码。不配置 ⇒ 不引入任何运行期依赖、不联网、不起子进程。③ 事件源扩容：collector 新增 scheduler（data/task_history.jsonl 近 6 小时 status=failed，同任务多次失败合并成一条）与 ci（data/ci/status.json）两个只读源；采集线程不联网、不起子进程 —— CI 结果由新增 scripts/sync_ci_status.py 用 gh 同步（已修 Windows 下 gh 输出 gbk 解码崩溃）。文件缺失或超过 2 小时未同步 ⇒ 该源本轮不可用（keep）。两个源的 keep 前缀（scheduler. / ci.）已接入 reconcile。/api/alarms/coverage 增 prometheus 读数与两条新源。\n现状读数（部署 d68b25c8e 后）：sources 6 条全部 checked=true；prometheus.configured=false（等二进制）；rules 7 evaluable / 9 blocked（no_data 8 + warming 1）；采样环 8 点。测试：test_alarms_global_coverage.py 24 条；alarm/promql/rules/api/store 全绿；前端 170 files / 1298 tests 全绿。"
+  },
+  {
+   "id": "unit-probe-timeout-counted-as-critical",
+   "status": "done",
+   "priority": "P3",
+   "title": "单位探针 2s 超时被记成 critical 告警（消息中心 6 条里 2 条是这种）",
+   "criteria": "2026-11-11 现场：13:39:58 台账记了 2 条 critical（unit.runtime.audit 审计链 / unit.memory.longterm 长期记忆，detail=探测超时），13:40:58 自愈。实测这两个探针常态只要 1.5~7.6ms（/api/system/units?refresh=1 的 probe_ms），所以超时不是单位坏，而是那一刻进程被别的活占住（两个探针相邻、连续超时 ⇒ 单次 ≥4s 的停顿），而 unit_monitor 的 _DEFAULT_PROBE_TIMEOUT=2.0s、超时即 status=error ⇒ collector 按 error 记 critical。同族噪声：04:51 冷启动那 3 条（WARMUP_SEC=90 已覆盖冷启动，但不覆盖「运行期短暂卡顿」）。",
+   "next": "2026-11-11 落地（Owner 授权「分析后决定」）：定为**无法判定**，不是故障。\n· agent/alarms/collector.py 新增 UNIT_TIMEOUT_MARK=\"探测超时\" + unit_is_timeout()/unit_timeout_keys()；\n  unit_candidates 跳过超时单位；collect_once 把这些键加进**逐键 keep** ⇒ 既不报警、也不判恢复\n  （与「数据源不可用」同一条口径）。真错误（非超时）照旧 critical。\n· 不选「连续 N 轮才报」：超时本质是信息缺失，靠计数兜底仍会在每次启动/卡顿时制造噪音。\n· 测试 4 条：超时不产生候选 / 真错误仍 critical / 超时保留旧告警不判恢复 / 恢复后照常 resolve。"
+  },
+  {
+   "id": "p99-rule-includes-sse-and-heavy-endpoints",
+   "status": "done",
+   "priority": "P3",
+   "title": "P99 规则把 SSE 长连接与重端点都算进 HTTP 时延 ⇒ 打开监控页就必然 firing",
+   "criteria": "2026-11-11 现场：rule.YunshuHighLatencyP99 从 13:00:48 一直 firing 到 15:35:11（count 77，detail 实测最高 10s）。归因（按 /metrics 的 endpoint 标签逐条核对）：>1s 的请求集中在 api_skills_mgmt_assess_stream（8 次全部 >10s，那是 SSE 长连接，本身就长）、system_tools.api_process_list（11 次全部 >1s）、modules.topology（11 次全部 >1s）、health.probe_trend（9 次全部 >1s）；真正偶发的是 /api/version（16 次里 2 次 >1s，它每次跑 git status 扫 ~900 个未跟踪文件）。⇒ 只要有人打开系统监控/进程列表/评估流，5m 窗口的 P99 就 >3s，规则必然报。",
+   "next": "2026-11-11 落地（Owner 授权「分析后决定」）：改**规则口径**而不是调阈值。\n· monitoring/alerts.yml 的 YunshuHighLatencyP99 / P95 加同一排除集：\n  endpoint!~\" .*stream.* | modules\\.topology | system_tools\\.api_process_list | health\\.probe_trend \"（无空格）。\n  理由逐条写进注释：SSE 的 histogram 是**连接存活时长**；topology 实测 3.2s/次且页 60s 自动刷新；\n  process_list / probe_trend 是进程枚举与五层历史聚合（扫描量≠交互延迟）。\n· 阈值与 for 不变；要盯这些端点用定向规则或诊断页分位数，别塞进全局 P99。\n· 测试 3 条互为反证：只有被排除端点慢 ⇒ ok；无排除时同数据 ⇒ firing；普通交互端点慢 ⇒ 仍 firing。\n  （夹具两端写全量桶 —— 直方图 bucket 是累计计数器，起点缺席会被按 0 起算而虚高。）"
+  },
+  {
+   "id": "perception-learning-switch-off",
+   "status": "done",
+   "priority": "P3",
+   "title": "「感知侧学习」拓扑显示未启用 —— 是现场开关 false，不是坏（等 Owner 决定要不要开）",
+   "criteria": "2026-11-11 Owner 问「感知侧学习模块为什么没有启用」。查证：拓扑节点 learning.novelty 的 status_source 是 config:learning.sensor_learning.enabled，而 config.yaml:242 = false ⇒ 节点如实显示 disabled/未启用。这个 false 是**有意**的：472490f0c（2026-08-15）「TASK-06 开关恢复观察模式 — true→false（并行 rebase 剥离后重建）」，docs/zh/智能体学习机制重构计划/TASK-06_变更说明.md 也写「false（2026-08-15 正式采集验证后恢复观察模式）」，.env.example 同步 false。但 config.yaml:236 的注释仍写「默认开启——2026-08-14 由观察模式转入正式采集」⇒ 注释与值矛盾（陈旧注释）。开关本身是 hot 生效（novelty_hooks._sensor_learning_enabled 每次事件都读 env→config），设置中心「学习与进化」里可切，风险级 A、needs_restart=false。副作用（开=true 后）：低/中置信 NoveltyEvent → 写 data/learning/novelty_memory（JSONL）；高置信 → 审计 + 建议草稿（data/learning/novelty_suggestions/，只产 DRAFT，绝不注册技能）；行为漂移周级检测。",
+   "next": "2026-11-11 按 Owner 指示**开启**：config.yaml learning.sensor_learning.enabled: false → true，\n并把那段自相矛盾的注释重写（旧注释写「默认开启——2026-08-14 转入正式采集」，实际值在 472490f0c（2026-08-15）\n已退回观察模式；新注释写明谁在何时为什么改过、true/false 行为、hot 生效方式、回滚方式）。\n.env.example 同步 SENSOR_LEARNING_ENABLED=true（新环境不再落回 false）。\n现场验证（部署 eeecf66c8 后）：设置中心 SENSOR_LEARNING_ENABLED=True（source=config, effect=hot）；\n拓扑节点 learning.novelty = **healthy / 已启用**；调度任务 16 → **17**（行为漂移检测 注册上了）。\n⚠ 两点如实记录：① novelty 钩子本身是 hot（每次事件重新取值），但 behavior_drift 的周级任务在\n  **启动时** schedule() 判定开关（关就返回 disabled 不注册）⇒ 真正生效需要一次重启（本次部署已完成）；\n  ② 本部署 sensor.watch_dirs 为空 ⇒ FileWatcher 未启动，当前事件源是 ChangeDetector 的快照对比\n  （硬件/进程/目录树），不是文件监听。若要监听目录，需配 watch_dirs（另一件事，未做）。\n回滚：config 改回 false（或设置中心置 false）——钩子立即停；周级任务要重启才消失。"
+  },
+  {
+   "id": "sensor-learning-watch-dirs",
+   "status": "done",
+   "priority": "P2",
+   "title": "给感知侧学习配 watch_dirs（Owner 2026-11-12 指定）",
+   "criteria": "感知侧学习已开启（config learning.sensor_learning.enabled=true），但 sensor.watch_dirs 为空 ⇒ FileWatcher 未启动；且真正产生变化的 ChangeDetector.collect() 在本部署没有周期调用方（只在 sensor_server.py / sensor/main.py / 测试里被调），实测 novelty_memory.jsonl 里 5 条全是 behavior_drift，hardware_change / process_change / file_change 各 0 条 ⇒ 感知侧学习目前「开了但近乎空转」。",
+   "next": "2026-11-12 落地（提交 82e292c98，部署 4c4514e6f，已验证）：\n① 查证结论：`Config` 确不读 config.yaml（DEFAULT→env→overrides），而 lifecycle 从 Config 取 watch_dirs、默认恒 None ⇒ 该键此前是死键。\n② 新增 `agent/sensor_config.py`（叶子模块）：env `SENSOR_WATCH_DIRS` > Config overrides > `config.yaml: sensor.watch_dirs` > 默认（knowledge、data/inbox）；相对路径按仓库根展开、大小写不敏感去重、**强制剔除 data/learning**（监听学习产物=自激）与仓库根。config.yaml 新增 sensor 段（头部接线说明同步）、.env.example 补 3 行、registry 登记 SENSOR_WATCH_DIRS(config_path=sensor.watch_dirs, needs_restart=True)。\n③ 原「可选」项也做了（Owner「该做的一次性全做」授权）：新增 `agent/learning/perception_cycle.py` —— 每 5 min drain FileWatcher 缓冲区并聚合成**一条** file_change（0.30 低置信→只写记忆，复用既有 make_learning_hook），每 30 min 跑一次 `ChangeDetector.collect()`（WMI 重活，避免进程增减噪音），每轮落 `data/learning/perception_status.json`（最后 tick/最后文件事件/监听目录/watcher 状态）。BodySensor 新增 `ensure_passive_sensors()`（只初始化 ChangeDetector+FileWatcher，不启动 EventMonitor）。\n④ 现场验收（01:54:34 第二轮 tick）：启动日志 `[BodySensor] 正在初始化 FileWatcher，监听目录: [...knowledge, ...data/inbox]`；往 data/inbox 建/改文件后 `novelty_memory.jsonl` 出现 `event_type=file_change / confidence=0.3 / level=low / \"文件变更 2 项（新增 1 / 修改 1）\"`；`coverage.perception.watcher_running=true` 且 last_file_event_at 同步；`perception_status.json` ticks 递增、change_detect_ran 按 30 min 节流（第二轮为 false）。\n⑤ 无自激：watch_dirs 不含 data/learning；file_events_total 只随投递文件增长（2 条 = created+modified），学习产物写入不产生事件。\n⑥ 回滚：`SENSOR_WATCH_DIRS` 空 + config.yaml `sensor.watch_dirs: []` ⇒ 走默认；`SENSOR_PERCEPTION_ENABLED=false` ⇒ 重启后不再注册周期任务。\n⑦ 已知代价：首轮快照 diff 实测约 29s（WMI 设备+服务+进程全量枚举，本机空闲内存仅 ~5GB），30 min 一次；若观察到拖慢心跳见新条目 `perception-snapshot-cost`。"
+  },
+  {
+   "id": "domain-perception-monitoring-audit",
+   "status": "done",
+   "priority": "P2",
+   "title": "复核「全域感知 / 全域监控」并给出自动化清单（Owner 2026-11-12 指定）",
+   "criteria": "Owner 问：现在真的能做到全域感知、全域监控了吗？开发出新功能也能自动被感知和监控吗？§11.94 C 节已考证结论：① 感知面做不到 —— 18 个传感器 enabled 但无周期采集/无 diff 触发，FileWatcher 未启，感知侧学习只有漂移事件；② 监控面不全域 —— 健康五层/单位看板 12/拓扑 38/审计/调度有读数，但规则 16 条只 6 可求值（up×3 需外部 Prometheus、security/hallucination/eval 缺样本），CI 事件源因 status.json 超 2h 未同步而 checked=false（实际离线），另缺外部存活/日志聚合/外发通道；③ 新功能只有拓扑能自动上图（需声明 MODULE_STATUS_SOURCE），单位看板/规则/事件源/传感器全是手写。",
+   "next": "2026-11-12 交付（提交 82e292c98 / 2b30194ae / 4c4514e6f，部署 4c4514e6f，已验证）：\n① 覆盖矩阵 + 新功能上线检查清单：`docs/handoff/覆盖矩阵与上线检查清单.md`（面 × 有无读数 × 是否自动 × 缺口原因；六项上线检查：拓扑声明/单位注册/规则+指标/埋点/传感器/文档派生）。\n② 两个「静默缺口」变可见：`/api/alarms/coverage` 新增 `ci`（last_sync_at / age_seconds / stale>2h / runs）与 `perception`（watch_dirs / watcher_running / last_file_event_at+age / last_change_at / last_novelty_at+age / long_silent），告警 Tab 顶部覆盖卡片新增一行（共用 formatAge，null→「—」而不是「刚刚」）。\n③ 候选自动化逐项决定（Owner 授权\"由你分析后替我确定\"）：\n   ✅ CI 同步周期化（30 min；gh 失败只记警告不抛异常，避免每 30 min 一条\"计划任务失败\"噪音）——现场 01:50:04 首次同步成功，coverage.ci.stale=false、六源 checked 全 true；\n   ✅ 感知周期化（见上条）；\n   ✅ 缺埋点报表：`coverage.rules.blocked` 已逐条给缺失指标名（16 条 6 可求值 / 10 blocked 不变），本轮补的是\"最后同步/最后事件\"两个时间读数；\n   ❌ 单位看板包级自动登记：会改健康分分母（新增单位默认 never/ok 各半）且需\"包声明自己是单位\"新协议 ⇒ 先做可见缺口，未动（单位看板仍 12 个）；\n   ❌ 外部端口存活 / 日志异常聚合：新数据面，须 Owner 明确点头（§11.89 方案 C 边界）。\n④ 现场：调度 17→19（感知周期采集 300s / CI 状态同步 1800s）；六源 checked 全 true（含 ci/units）。"
+  },
+  {
+   "id": "perception-snapshot-cost",
+   "status": "done",
+   "priority": "P3",
+   "title": "感知快照 diff 首轮耗时约 29s（WMI 全量枚举）—— 观察是否拖慢心跳/调度",
+   "criteria": "2026-11-12 部署 4c4514e6f 后首轮感知 tick 从 01:49:32 跑到 01:50:01（约 29s），耗时集中在 ChangeDetector._capture_snapshot 的 WMI 设备（Win32_PnPEntity）+ 服务（Win32_Service）+ 进程枚举；本机空闲内存仅 ~5GB 时更慢。当前节流 30 min 一次，diff 在 TaskScheduler 的 tick 线程里同步执行。",
+   "next": "2026-11-12 落地（本轮；部署后按 §11.96 验收）：\n① 取证（昨夜 90 次 perception 运行）：91 次 0–66ms；每 30 分钟一次 24–29s（峰值 43499ms），\n   同线程「系统心跳」被顶到 90s 一次 —— 与\"WMI 全量枚举\"假设吻合，不是抖动。\n② 分片（sensor/change_detector.py）：新增 SNAPSHOT_SECTIONS + collect(sections=...)；\n   未列出的分片沿用上次快照（不会伪造 diff）；未知分片名直接 ValueError（漏采=伪造\"没有变化\"）。\n③ 分频（agent/learning/perception_cycle.py）：便宜分片（processes/services/registry/\n   environment/system_info，实测 ~0.5–0.7s）每 30 分钟；贵分片（devices WMI 2.2–3.1s、\n   disk_partitions 0.8s）每 1 小时（SENSOR_CHANGE_DETECT_SLOW_INTERVAL_SECONDS，默认 3600）。\n④ 顺带把 Windows 服务枚举从 WMI（5.8s/322 个）换成 psutil.win_service_iter（0.23s），\n   值归一化成 WMI 同形（Running/Auto）；psutil 不可用自动回退 WMI。\n⑤ 预期：30 分钟边界 ~1s、1 小时边界 ~4s（不再 25–29s）。验收看 task_history 里\n   「系统心跳」间隔中位数仍 ≈60s、perception 的 duration_ms 峰值 ≤5s。"
+  },
+  {
+   "id": "full-domain-remaining-decisions",
+   "status": "done",
+   "priority": "P3",
+   "title": "全域感知/监控剩余三项需 Owner 决策（单位自动登记 / 外部端口存活 / 日志异常聚合）",
+   "criteria": "本轮按\"该做的一次性全做\"补齐了 CI 周期化、感知周期化与两个静默缺口读数；覆盖矩阵（docs/handoff/覆盖矩阵与上线检查清单.md §5）里还有三项**故意没做**：① 单位看板包级自动登记（会改健康分分母 + 需新声明协议）；② 外部端口存活（新数据面，与 §11.89 方案 C\"不引入外部服务\"边界相邻）；③ 日志异常聚合（需新的日志读源与基线口径）。",
+   "next": "2026-11-12 按 Owner「都要做，由你安排」全部落地（见 §11.96）：\n① 单位看板自动登记（声明式，不改健康分分母）：包 __init__.py 写\n   MODULE_UNITS = [{\"id\",\"label\",\"family\",\"probe\":\"模块:函数\"}]；modules_discovery 用 AST 解析\n   （启动期不 import），probe 在被调用时才 import；返回 never 不计分。\n   已声明 5 个：perception.cycle / alarms.collector / ops.ci_sync / ops.ports / ops.logs\n   ⇒ 单位看板 12 → 17（test_unit_monitor 的数量哨兵同步改成 17）。\n② 外部端口存活：agent/monitoring/port_probe.py —— 对 CP_PORT_PROBES 的 host:port 做\n   TCP connect（0.6s 超时，只握手不发应用层请求）；空 = never；连不上 = warn + 逐条 target。\n   不引入 Prometheus、不抓指标（§11.89 方案 C 边界不变）；.env 里配了本服务端口自证。\n③ 日志异常聚合：agent/monitoring/log_anomaly.py —— logs/*.log 尾窗（5000 行）ERROR 密度，\n   ≥20 条且 ≥5% 才 warn；只读、不写基线、不轮转；不读 *.jsonl。\n④ 仍故意没做：告警外发通道（IM/邮件）—— 需要定发给谁/哪些级别/怎么去重，已登记新 open 条目。\n⑤ 回归：alarms 相关用例改成「默认源置空」的密封测试（CI 文件变新鲜后真实候选混进来那次的教训）。"
+  },
+  {
+   "id": "alarm-notify-channel",
+   "status": "done",
+   "priority": "P3",
+   "title": "告警外发通道（IM/邮件/Webhook）仍未做 —— 先定\"发给谁、哪些级别、怎么去重\"",
+   "criteria": "报警器目前只有站内（顶栏铃铛 / 消息中心）。扩展通道 channel_bridge 已有 task.failed 通知，但那是\"任务事件\"，不是告警状态机（没有 firing/resolved/reopen 语义）。要接外发必须先定：① 哪些 severity 外发（建议 critical 立即、warning 汇总）；② 去重/静默是否沿用 alarm store 的 silence；③ 凭据只从 .env 读、不进日志。",
+   "next": "2026-11-12 落地（提交 4501c7fa3 / 8fd162310，部署 452f84843）：\n新增 agent/alarms/notify.py —— 台账事件（events.jsonl）按行游标 → channel_bridge.dispatch_alert。\n口径：默认只发 critical（CP_ALARM_NOTIFY_WARNING 才带 warning）；silence 期间不发但游标照走；\n每轮最多 5 条；无通道（no_enabled_channel）不算失败；任何异常不外抛；失败从每条 INFO 改成\n每 30 分钟一条汇总 warning。接线点 collect_once() reconcile 之后；覆盖读数新增 coverage.notify\n（enabled / include_warning / cursor_lines / event_lines / queued / last_round）。\n现场真相：webhook 与 email_smtp 两个通道已安装但**地址/服务器为空** ⇒ 外发会记 last_round.failed，\n配好通道即生效（单独登记为 open 条目 alarm-channel-credentials）。"
+  },
+  {
+   "id": "log-anomaly-time-series-baseline",
+   "status": "done",
+   "priority": "P3",
+   "title": "日志异常聚合 v1 是尾窗密度启发式 —— 抓不到「缓慢恶化」",
+   "criteria": "agent/monitoring/log_anomaly.py 当前只判\"尾窗里 ERROR ≥20 条且 ≥5%\"：能抓突发/持续爆炸，但每天多 1 条这种缓慢恶化不会报。升级需要按分钟分桶 + 与过去 N 个窗口的中位数比较，并且要一个写基线的周期任务（探针必须只读）。",
+   "next": "2026-11-12 落地（同批提交，部署 452f84843）：\n新增周期任务「日志异常基线采样」（默认 30 min，CP_LOG_BASELINE_INTERVAL_SECONDS）写\ndata/monitoring/log_anomaly_baseline.json（最多 96 样本≈48h；两次采样最小间隔 10 min）。\n探针仍只读：样本≥8 时启用相对判据 —— 当前密度 ≥ max(0.5%, 基线中位数×3) 且 ERROR+Traceback≥20 ⇒ warn；\n样本不足退回 v1 绝对判据（不拿空基线当 0 判）。诚实边界：48h 滚动中位数会吸收极缓慢恶化。"
+  },
+  {
+   "id": "monitoring-gap-detector",
+   "status": "done",
+   "priority": "P2",
+   "title": "新功能：自动检测「还没被感知/监控/告警覆盖」的能力并提示补上（Owner 2026-11-12 指定）",
+   "criteria": "Owner 原话：「全域感知，全域监控，及时报警还差哪些没做要补上。做一个新功能：检测还没有被感知监控的能及时补上。」\n现状（§11.97 已考证，别重新考古）：监控面有六事件源 + 两处静默缺口读数 + 17 个单位（12 手写 + 5 声明）+\n拓扑声明式；感知面有 watch_dirs/周期 diff/CI 同步；但\"新增了什么能力、它有没有被覆盖\"仍靠人肉对拍。\n典型缺口来源：新包只写了 MODULE_NAME 没写状态源；新工具没有调用埋点；新路由没进 route_domains/triage；\n新指标没有规则引用；新传感器 enabled 但没人周期 collect；新后台任务没进调度。",
+   "next": "2026-11-12 落地（第六十一轮，monitoring-gap-detector）：新增 agent/monitoring/coverage_gaps.py —— 六个声明面 × 判据（模块 docstring 有完整表）：package（MODULE_* 有元数据但无状态源且无单位；状态源不在 route_domains 前缀里）· unit（MODULE_UNIT(S) 的 probe 静态解析不到；声明非法被忽略）· sensor（sensor/*.py 里 *Sensor 类没有一个带 collect()）· scheduler（def register_*scheduler 无调用点；活体任务被停用）· route（route_domains 前缀在活体路由报告里零命中，支持 /* 通配）· tool（tool_index 条目在 tool_definitions 下没有同名 YAML）。**只报不注册**：不自动加单位/规则/探针（会改健康分分母）。不重复计数：规则 blocked 仍在 coverage.rules.blocked；工具 YAML→索引由 sync_tool_index --check 守门；路由 UI 标注由 route_ui_coverage 守门（三条都写进 gaps.excluded[]）。交付：① GET /api/alarms/coverage.gaps（available/count/by_kind/gaps[{kind,id,why,fix}]/degraded/surfaces/excluded；只读状态文件，拉页面不触发扫描）；② 单位 ops.coverage_gaps（gap=0 ok，>0 warn 逐条 issue，超 3 个周期没跑=停摆 warn；never 不计分）；③ 周期任务「覆盖缺口自检」每小时（CP_COVERAGE_GAP_ENABLED / CP_COVERAGE_GAP_INTERVAL_SECONDS 均进 registry）+ 指纹 kind:id 去重（首现经 notify.dispatch_gaps 推一次 warning，不受 CP_ALARM_NOTIFY_WARNING 过滤；推送成功才记指纹，没通道下轮重试，缺口消失后指纹修剪、再出现会再推）；④ 交接卡新增「覆盖：未覆盖 N」行 + 覆盖矩阵文档 §5.1/§4.6 + 前端告警 Tab 「未覆盖能力」块。测试：tests/unit/test_coverage_gaps.py 27 条（六类判据各一条 + 全绿 0 gap + 首现去重/失败重试/消失后再现 + summary/unit_probe/注册幂等/degraded）+ test_alarm_notify 新增 5 条 dispatch_gaps。首轮实测：未覆盖 2 条（见另两条 open：ocr-sensor-collect-contract / route-domains-voice-stale）。"
+  },
+  {
+   "id": "alarm-channel-credentials",
+   "status": "done",
+   "priority": "P3",
+   "title": "告警外发通道已安装但未配置（webhook_url / smtp_server 为空）⇒ 外发实际发不出去",
+   "criteria": "agent/extensions 里 webhook 与 email_smtp 两个通道 status=installed、enabled=true，但 config 里\nwebhook_url 与 smtp_server 都是空串。告警外发（agent/alarms/notify.py）已接线并每轮尝试，\n结果体现在 /api/alarms/coverage.notify.last_round.failed。",
+   "next": "2026-11-12 收口（Owner 已填 139 邮箱）：① 实测 smtp.139.com:587 **连接超时**、:465 通 （同机 qq:587 / 163:465 都通 ⇒ 不是出网被封）⇒ _handle_smtp 增加 465 隐式 TLS 支持（use_ssl 显式优先、未写时按端口推断；SMTP_TIMEOUT_SEC=15；收件人为空在建连接前就报错）。② 顺手修掉「停用按钮无效」：toggle 只写 status 而'发不发'读 enabled ⇒ 新增 ChannelInstaller.is_channel_enabled 作为唯一判据，toggle 一次写 enabled+status，模板卡片带 enabled（此前恒 undefined ⇒ 永远显示'已装（未启用）'）。现场：email_smtp 已启用（465）、webhook 停用（地址为空）；手动发送 ok；合成 critical 告警后 coverage.notify.last_round = {considered:1, sent:1, failed:0}（23:37:58）。证据 docs/handoff/evidence/channel_verify_20261112.json 的 smtp_round。后续只差 webhook：拿到 URL 后在通道页填上并启用即可。"
+  },
+  {
+   "id": "ocr-sensor-collect-contract",
+   "status": "done",
+   "priority": "P3",
+   "title": "OCR 传感器有类无 collect() ⇒ 自发现静默跳过，OCR 这一路感知等于不存在（覆盖缺口自检首轮发现）",
+   "criteria": "sensor/registry.py 的发现契约是「类名以 Sensor 结尾 + 有 collect()」；sensor/ocr_sensor.py 的 OcrSensor 只有 capture_screen/recognize（实测 /api/sensors 的 18 项里没有 ocr）。不满足契约时注册表**只是不出现**：没有 warning、没有红点 ⇒ 看起来有、其实没有。",
+   "next": "2026-11-12 修正（选②的中间路线）：sensor/ocr_sensor.py 增加模块级声明 SENSOR_CONTRACT = \"on_demand\" （类名与 4 个调用方都不动：lifetrace/enhanced_recorder.py、agent/orchestrator/voice_vision.py、agent/digital_life.py、lifecycle_manager）。为什么不是补 collect()：那会让 SensorRegistry 自发现把屏幕 OCR 变成每 60s 一次的周期采集（隐私 + 开销），而它的真实调用面全是按需触发。覆盖缺口自检读取该常量：on_demand ⇒ 不要求 collect()（surfaces.sensors.on_demand 计数）；periodic/缺省 ⇒ 仍要求 collect()；未知取值 ⇒ 记缺口（不静默放行）。测试：test_coverage_gaps.py 新增 3 条（on_demand 不算缺口 / 未知值算缺口 / periodic 仍要求 collect）。现场：ops.coverage_gaps 从『未覆盖 2 条』回到 ok。"
+  },
+  {
+   "id": "route-domains-voice-stale",
+   "status": "done",
+   "priority": "P3",
+   "title": "config/route_domains.json 声明了 /api/voice，但活体路由里一条都没有（功能区表陈旧）",
+   "criteria": "全仓 grep 只有 scripts 注释提到 /api/voice；reports/route_ui_coverage.json 的 509 条活体路由里 0 条命中该前缀。tests/unit/test_route_ui_coverage.py 只守「每条路由都有功能区」，不守「每个前缀都有路由」⇒ 这条此前没有任何守卫会红，是覆盖缺口自检首个 route 类发现。",
+   "next": "2026-11-12 修正：config/route_domains.json 删掉 \"/api/voice\" 前缀、config/route_ui_intent.json 删掉 \"/api/voice\" 与 \"/api/voice/*\" 两条标注（该组路由 2026-10-20 已删，triage 台账有记录），并在**干净 worktree**（.worktrees/route-derive，copy 两份 config 后）重派生 reports/route_ui_coverage.json：content_hash 09308313e354d46a，509 活体路由不变，主工作区 --check 通过；test_route_ui_coverage.py 48 条全绿。覆盖缺口自检 count 0。"
+  },
+  {
+   "id": "ci-observability-e2e-prometheus-fails",
+   "status": "done",
+   "priority": "P3",
+   "title": "「可观测性质量保障」工作流自 2026-11-11 起持续 failure（Docker 起 Prometheus 容器失败）—— 与代码无关，但'CI 全绿'这句话必须写清是哪些工作流",
+   "criteria": "实测 gh run view 43203052194 --json jobs：除「可观测性端到端验证」（失败步骤『启动 Prometheus 容器（checkout 后启动，避免 mount 失败）』）与「可观测性质量门禁」（随之失败）外，其余 19 个 job 全 success（6 个覆盖率分片 / 混沌 / Pact / 边界覆盖 / 可见性报告 都绿）。该工作流在 e661aec9c(11-11 18:32) / 55fc38233 / 32e18d4c9 / 9c2f9cce3 上均为 failure ⇒ 不是某一轮引入的。报警器 ci 事件源因此长期有一条 warning『CI 失败：可观测性质量保障』。",
+   "next": "2026-11-12 修复（两个真因都在我们自己的 YAML，不是 runner）：① monitoring/alerts.yml 的 P99/P95 排除集用了单反斜杠+点 ⇒ Go/PromQL 非法转义 ⇒ Prometheus 拒载整个规则文件（unknown escape sequence U+002E），改成一个双反斜杠+点；并在 agent/alarms/promql.py 加 unquote()（非法转义直接 ValueError ⇒ 该条报 unsupported），守门 tests/unit/test_prometheus_rule_escaping.py。② CI 只挂 prometheus.yml+alerts.yml，而 prometheus.yml 的 rule_files 有 13 项 ⇒ 容器内缺文件即启动失败；改为按 docker-compose.monitoring.yml 逐项挂 10 个 -v（整目录 :ro 再往里挂文件会因只读挂载建不了挂载点而失败，openat ... read-only file system，exit 125）。验证：a2a3374ec 的「可观测性端到端验证」job = success（这正是原先红的那个 job）；整工作流结论待覆盖率分片收尾。"
+  },
+  {
+   "id": "ci-date-shift-guard-legacy-red",
+   "status": "done",
+   "priority": "P3",
+   "title": "「日期平移守卫」工作流长期 failure（步骤名自己写着 S11-08 遗留=failure）—— 又一个'全绿'口径的例外",
+   "criteria": "2026-11-12 实测：该工作流在 42031743549 / 42220337292 / 42368848752 / 42477299355 / 42627839293 / 42823621279 / 43021079337 / 43228959810（a2a3374ec）**连续 8 个提交 failure**，失败步骤为「慢档日期敏感面（--runslow；S11-08 遗留=failure」与「定向日期敏感面（常规档）」；同一提交的其它 18 个工作流 success。⇒ 与覆盖缺口/外发无关，属历史遗留。",
+   "next": "2026-11-13 修好并验证（提交 b39489dde；手动 dispatch run 43364552205 = **success**，5 个 job 全绿：盲区静态扫描 + 守卫套件 / 不平移 / CONTROL(delta=0) / +400 / -400）。两处真因都不在日期逻辑里：\n① 慢档臂：tests/unit/test_task_scheduler_comprehensive.py::TestRunTask::test_run_python_func_failure 还在断言 C-6（2026-11-12 异常原文不进响应）之前的旧契约 —— 该用例属 --runslow，主 CI 不跑，所以只有本工作流红。改成断言「ValueError 在 error 里 + 原文不在」并注释 C-6 口径。\n② -400 臂：tests/unit/test_skills_digest_assessor.py::TestAssessFeedPagination 用固定日期 2026-01-01，时钟 −400 天后它们成了「未来」，被读侧 is_future_timestamp 防御过滤 ⇒ [] == [...] 误红。在该测试类加 autouse fixture 显式关掉该防御（「未来时间戳」另有专门用例覆盖）。\n本地复跑：慢档 259 passed；-400 臂常规集 248 passed + digest 74 passed。工作流本身没改一行（不需要 continue-on-error，也不需要删）。",
+   "done_at": "2026-11-13T12:22:00+08:00"
+  },
+  {
+   "id": "no-console-popups",
+   "status": "done",
+   "priority": "P2",
+   "title": "启动与定时任务别再弹黑色终端窗口（Owner 2026-11-13 指定，下一会话新任务）",
+   "criteria": "两个来源都要查：\n① 启动器：桌面「云枢一键启动.lnk」→ start_yunshu.bat、「云枢看护.lnk」→ start_watchdog.bat，两者都是 .bat，双击必开控制台；看护还是 30s 探活常驻循环，窗口会一直挂着（口径要求：看护只做手动快捷方式，不注册计划任务 —— 这一条不变）。\n② 定时任务：task_scheduler 的 python_func 任务在进程内跑（不弹窗），但**会 spawn 子进程**的任务在 Windows 上会闪黑窗 —— 已知：CI 状态同步（30 min）跑 gh（agent/monitoring/ci_status.py::sync_once）；deploy/桌面脚本跑 npm/python；感知/日志基线等纯进程内任务不弹。\n③ 另需确认机器上有没有 yunshu 相关的 Windows 计划任务（Get-ScheduledTask 里查 yunshu/watchdog）：有就说明有人（或旧轮次）注册过，按口径删掉或改成登录时静默，**不要新增计划任务**。",
+   "next": "2026-11-13 落地（第六十三轮，提交 233a790b7，部署 233a790b7，证据 docs/handoff/evidence/console_windows_20261113.json）。\n先取证再改（三条实测，不是猜）：① 后端由 deploy/watchdog 用 DETACHED_PROCESS 拉起 ⇒ 自身没有控制台；② 这种父进程 spawn 控制台程序（gh/python/git）时 Windows 会给子进程**新分配一个可见控制台**（探针：GetConsoleWindow 非 0、IsWindowVisible=true、类 ConsoleWindowClass；加 CREATE_NO_WINDOW 后为 0）；③ 两个桌面 .lnk 直接指向 .bat（WindowStyle=1）⇒ 双击必开 cmd；Get-ScheduledTask 里 yunshu/watchdog 相关 0 条（本轮也不注册）。\n三层修法：① 启动器 —— scripts/yunshu_launch.vbs（wscript，Run(cmd,0,False) 隐藏拉起 .bat，stdout/stderr 重定向到 logs/launcher_<mode>.log），两个 .lnk 改指向它，重建入口 scripts/make_desktop_shortcuts.py；② 脚本 —— start_yunshu.bat 用 Start-Process -WindowStyle Hidden 分离拉起后端（logs/backend_boot_<id>.out|err.log），删 cmd /k 与 pause；start_watchdog.bat 重定向 logs/watchdog_console.log（不用 pythonw，JSONL 留痕照旧）；③ 子进程 —— 新叶子模块 agent/utils/proc.py（run/popen/check_output + hidden_kwargs，Windows 注入 CREATE_NO_WINDOW+隐藏 STARTUPINFO，非 Windows 返回空字典，调用方 creationflags 优先），agent/ 下 39 处 spawn 收敛到它，mcp_services/mcp_client.py 补 CREATE_NO_WINDOW；守门 tests/unit/test_proc_hidden_window.py 12 条（含 AST 全仓哨兵）。\n验收：A/B 探针 —— 对照臂（裸 subprocess.run）2 个可见控制台窗口（image=gh.exe）；真实 ci_status.sync_once 0 个。冷启动经桌面链（wscript→隐藏 cmd→Start-Process）200s/200ms 采样 0 sighting、/api/health=200、launcher 日志有 OK backend is ready；同期 01:30:10 的『CI 状态同步』也在采样窗口内（0 sightings）。看护同链隐藏启动 0 sighting，验收后已停并删锁。\n坑：bat 里二次 >> %LOG% 会与外层重定向撞 ERROR_SHARING_VIOLATION（第一次实测失败真因）；.vbs/.bat 必须纯 ASCII（GBK 会吞掉下一个字节含 CR/LF）；「没看到窗口」不是证据 —— 采样器必须跑在无控制台父进程里，且 --control 必须 >0 才算仪器有效。",
+   "done_at": "2026-11-13T01:35:00+08:00"
+  },
+  {
+   "id": "legacy-vbs-launcher-stale",
+   "status": "done",
+   "priority": "P3",
+   "title": "docs/zh/启动云枢.vbs 是旧的重复启动器（无引用、硬编码 python 路径、打开 /:5678 而不是 /chat、会先 taskkill 占 5678 的进程）",
+   "criteria": "全仓 grep 启动云枢.vbs 0 处引用；脚本内 Const PYTHON_PATH 硬编码 C:\\Users\\Administrator\\...\\Python312\\python.exe、最后打开 http://127.0.0.1:5678（不带 /chat）、启动前 netstat+taskkill 清端口。2026-11-13 的 no-console-popups 已用 scripts/yunshu_launch.vbs + 两个桌面 .lnk 覆盖同一职责，且口径（/chat）与它不一致 ⇒ 保留它等于留一个「看起来能用但口径错」的入口。",
+   "next": "2026-11-13 按建议删除（Owner「遗留按你的意见处理」）：docs/zh/启动云枢.vbs 与 security-tools/docs/zh/启动云枢.vbs 两份同内容副本都已从磁盘移除，备份在 data/backups/legacy_vbs_20261113/（未入库，删前已确认全仓 0 处引用）。现在唯一的启动入口是 start_yunshu.bat（隐藏）+ scripts/yunshu_launch.vbs + 观察窗 observe_yunshu.bat。",
+   "done_at": "2026-11-13T12:10:00+08:00"
+  },
+  {
+   "id": "memory-idle-consolidation",
+   "status": "done",
+   "priority": "P2",
+   "title": "没有「空闲时间做记忆整理」：维护全是固定时刻，且记忆审查是空转的统计接口，去重降噪线上 0 条",
+   "criteria": "2026-11-13 复核（Owner 提问）：① 21 条调度任务全按 hour/minute/last_run 触发（agent/task_scheduler.py:390-426），不看 CPU/负载/键鼠；唯一的空闲闸门在日志内省（IdleDetector），且 mark_activity() 生产零调用 ⇒ 开机 5 分钟后恒为「空闲」。②「维护·记忆库审查」实际调 review_quick()（agent/memory/reviewer.py:131-166）只做统计+建议，不算陈旧也不算重复；完整 review() 无生产调用点；ForgettingEngine 无实例化；热度过期扫描未启动。③ 审查对象 data/memory/long_term.db 的 long_term_memory / user_profile 都是 0 行 ⇒ 即使真跑也只报 0/0。④ 真正的对话记忆 data/messages.jsonl：421 条 / 357 唯一 / **64 条重复行（27 组，最大一组 17 次）**，最后一次压缩是 2026-11-10 20:43（且压缩只写摘要不删消息）⇒ 线上去重降噪 0 条。",
+   "next": "2026-11-13 落地（b93a30fef / 部署 818615877），三条一起做：\n① 新模块 agent/memory/consolidation.py：只读扫 data/messages.jsonl，出「无响应近重复」候选（同角色+同内容+10 分钟窗内+两次之间没有任何对方消息）；报告只放 sha256 前 12 位与 40 字预览，不落全文；无 session_id 历史池只计数（冻结不迁移）。**只报告不删除**。实测 421 条 / 357 唯一 / 64 条重复行，但候选只有 3 组 —— 「继续」×17 那类是用户真说了 17 次，按内容 hash 去重会毁历史（口径写进模块头注与 §11.103 F-2）。\n② POST /api/memory/review 新增 mode=full：真跑 reviewer.review() + consolidation，报告落 data/maintenance/memory/consolidation_<ts>.json；GET 回显最近一份。默认仍 quick。每日「维护·记忆库审查」改发 mode=full（原来 quick 读的 long_term.db 0 行 ⇒ 永远 0/0）。\n③ 零 token 作业加空闲闸门：到点不空闲就排队（data/maintenance/zero_token_pending.json，跨天作废），新增 interval 任务「维护·空闲补跑」（600s，调度 21→22）在空闲时补跑、18:00 后强制跑一次；手动 --run/--all 不过闸门。\n现场：mode=full 返回 ok、报告已落盘、调度 22 条含「空闲补跑」。",
+   "done_at": "2026-11-13T13:25:00+08:00"
+  },
+  {
+   "id": "idle-detector-fake-gate",
+   "status": "done",
+   "priority": "P3",
+   "title": "日志内省的「空闲检测」是假闸门：mark_activity() 生产零调用 ⇒ 开机 5 分钟后恒为空闲",
+   "criteria": "agent/log_system/introspection.py:47-88 的 IdleDetector 需要 300s 无活动 + CPU<20%，但 mark_activity() 全仓只有测试调用（生产无调用点）⇒ _last_activity 停在启动时刻，开机 5 分钟后恒判空闲。2026-11-13 日志实测每 30 分钟准点跑（03:11/03:41/…/09:41），13 轮全是 0 洞察、LLM=False ⇒ 这个闸门从来没有真的避让过。",
+   "next": "2026-11-13 落地（b93a30fef / 部署 818615877）：新增叶子模块 agent/system_idle.py —— 空闲 =min(用户输入空闲, 进程内活动空闲) 且 CPU<=20%。用户输入用 Windows GetLastInputInfo（系统级，**不依赖谁记得调 mark_activity**）；进程内活动由 app_server 的 before_request 钩子每请求 mark_activity（放在鉴权闸门之前：被 401 的请求同样证明有人在用）。IdleDetector 改为委托 + get_idle_detector() 单例（引擎与钩子共用同一份，否则又是两处真相）。/logs/api/introspection/status 的 idle 读数新增idle_source / user_input_idle_seconds / process_idle_seconds / last_activity_age_s / degraded。现场实测：user_input_idle_seconds=515.5s、process_idle_seconds=0、reason=process_activity ⇒「刚有请求」时确实不判空闲（旧实现会判空闲）。测试 tests/unit/test_idle_gate.py 12 条。",
+   "done_at": "2026-11-13T13:25:00+08:00"
+  },
+  {
+   "id": "alarm-resolved-semantics",
+   "status": "done",
+   "priority": "P3",
+   "title": "绿色「已恢复」= 自动翻状态，不是「人已处理」；界面把两者混用，且 state 与事件流会漂移",
+   "criteria": "2026-11-13 复核（Owner 提问）：状态机只有 firing/resolved（agent/alarms/store.py:45-47），reconcile 时「不在 candidates 里」就自动 resolve（collector.py:533-614），没有人工 resolve 路由；read（仅清未读）/ack（记 acked_by，UI 不显示）/silence 与 resolved 是四件不同的事。现场：11 条告警全 resolved、0 firing、0 ack；verify.channel_probe 的 state=resolved 而 events.jsonl 最后一条是 reopen(23:36:44) ⇒ state.json 与事件流不一致（store.py:237-238 先 append 后 _save）。界面误导：AlarmBell.tsx:180-182 把「暂无未读」写成「系统运行正常」（全部已读后即使仍在 firing 也显示正常）；NotificationCenter/AlarmBell 用 state==='resolved' 直接渲染绿色「已恢复」，没有「自动恢复 / 人工确认」区分；health.tsx:232 也把 resolved 映射成「已恢复」，但本进程规则引擎只产出 firing/pending/ok/no_data，两套语义混用。另有「指标算不出（no_data）也会 resolve 旧 rule.* 告警」的风险（collector.py:285-296 + 267-271），与 collector.py:8/271「不伪造已恢复」的口径冲突。",
+   "next": "2026-11-13 落地（b93a30fef / 部署 818615877）：\n① 语义：界面 resolved 徽标改「已自动恢复」（tooltip 写明「不代表已处理/根因消失」），acked 时补「已确认」；铃铛空态不再写「系统运行正常」，改为「暂无未读报警 —— 但仍有 N 条未恢复」（firing 从 /api/alarms/unread-count 的 summary 读）。现场正是这个场景：unread=0 而 firing=3。\n② 一致性：store._save() 改「3 次重试 + 失败置 dirty + 下轮 flush 补写」；新增 consistency() 自检（每条告警 state vs 它最后一条事件的 state）与 sync_events()（补 state_sync 事件，只追加）；collect_once 每轮 flush + 自检 + 补账；/api/alarms/coverage 新增 consistency 读数。现场：checked=14 / drift=0 / dirty=false / events_seen=539。\n③ no_data 不再伪造恢复：rule_keep_keys() 对 no_data/unsupported/warming/error 按 key keep，只有 ok 才算真恢复（与 collector 头注「不伪造已恢复」对齐）。\n④ ack 接线：投影补 acked/acked_by/acked_at，消息中心显示「已确认」。\n⑤ health.tsx 删掉规则状态表里的 resolved 映射（规则引擎从不下发该状态）。\n测试：test_alarms_store 加 5 条、test_alarms_collector 加 3 条、AlarmBell/NotificationCenter 各加用例。",
+   "done_at": "2026-11-13T13:25:00+08:00"
+  },
+  {
+   "id": "tool-confirm-exempt-high-risk",
+   "status": "open",
+   "priority": "P2",
+   "title": "审计全链核验（G1 治理门）报 FAIL：豁免名单含 4 个 L2 高风险工具，模型可自动执行写/执行类工具",
+   "criteria": "2026-11-13 跑 scripts/audit_governance_check.py：G1 FAIL —— 工具 delegate / fan_out / write_file / schedule_task / edit 的确认级别是 L2（逐次确认），但 data/ui_settings.json 的 CP_TOOL_CONFIRM_LEVEL_EXEMPT（2026-10-13 由 UI 设置，actor tok_ffd...）把它们整条豁免，effect=write/execute、risk=high。G2 全链 84111 条重算一致、G3 日根、G4 口径均 PASS。这是**风险接受**，不是链损坏；每日作业只跑 G2/G3/G4，所以不会天天红。",
+   "next": "需 Owner 决定是否收紧：在设置中心把 CP_TOOL_CONFIRM_LEVEL_EXEMPT 里的 write_file/edit/schedule_task/fan_out/delegate 去掉（或只保留受控批处理窗口），然后重跑 audit_governance_check.py 确认 G1 PASS。"
+  },
+  {
+   "id": "workflows-store-empty",
+   "status": "frozen",
+   "priority": "P3",
+   "title": "单位 workflows.store 恒 never：0 条工作流（产品未使用，不是监控缺口）",
+   "criteria": "2026-11-13 复核：GET /api/system/units 里 workflows.store = never「尚无工作流（0 条）· 无数据，不计分」。按口径 never 不计分；本轮把 memory.longterm 从 never 变成 ok（压缩摘要归档进 long_term.db，2 行），但工作流没有任何内置/示例条目，单位永远不会有数据。",
+   "next": "产品决定：定义首批内置工作流（或允许从模板一键创建工作流）。在定义之前保持 never、不计分，不要为了分数造假数据。"
+  }
+ ]
 }
