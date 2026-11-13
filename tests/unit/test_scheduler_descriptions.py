@@ -54,3 +54,29 @@ def test_说明表覆盖全部内置任务且非空():
         text = DEFAULT_TASK_DESCRIPTIONS.get(name, "")
         assert text, name
         assert len(text) >= 8, "说明要能说清做什么（太短的等于没写）: " + name
+
+def test_overview接口透传说明(monkeypatch):
+    """白名单漏字段 = 前端永远拿不到（2026-11-13 第一次上线就是这么丢的）。"""
+    from flask import Flask
+
+    import plugins.mcp_scheduler as m
+
+    class _FakeScheduler:
+        def list_tasks(self):
+            return [{
+                "name": "生成周报", "task_id": "t1", "type": "python_func",
+                "enabled": True, "cron": {"hour": 0, "minute": 0}, "last_run": None,
+                "schedule_text": "每周一 00:00", "zero_token": True,
+                "zero_token_note": "", "zero_token_conditional": False, "owner": "x",
+                "description": "汇总本周运行数据（任务/告警/健康/技能使用）",
+            }]
+
+    monkeypatch.setattr("agent.task_scheduler.get_scheduler", lambda: _FakeScheduler())
+    app = Flask(__name__)
+    app.register_blueprint(m.bp)
+    resp = app.test_client().get("/api/scheduler/overview")
+
+    body = resp.get_json()
+    payload = body.get("data") or body
+    assert resp.status_code == 200
+    assert payload["tasks"][0]["description"] == "汇总本周运行数据（任务/告警/健康/技能使用）"

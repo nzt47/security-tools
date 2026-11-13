@@ -224,6 +224,9 @@ def api_scheduler_overview():
             "zero_token_note": item.get("zero_token_note", ""),
             "zero_token_conditional": bool(item.get("zero_token_conditional", False)),
             "owner": item.get("owner", ""),
+            # 「说明」= 这条任务做什么（后端注册时声明，或按名字回落）；**白名单里漏字段
+            # 等于前端永远拿不到** —— 2026-11-13 第一次上线就是这么丢的。
+            "description": item.get("description", ""),
             "editable_time": bool(cron),
         })
     return _ok({"tasks": tasks, "count": len(tasks)})
