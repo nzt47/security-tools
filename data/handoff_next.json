@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-13T01:32:30+08:00",
+  "updated_at": "2026-11-13T12:24:53+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
     {
@@ -624,11 +624,12 @@
     },
     {
       "id": "ci-date-shift-guard-legacy-red",
-      "status": "open",
+      "status": "done",
       "priority": "P3",
       "title": "「日期平移守卫」工作流长期 failure（步骤名自己写着 S11-08 遗留=failure）—— 又一个'全绿'口径的例外",
       "criteria": "2026-11-12 实测：该工作流在 42031743549 / 42220337292 / 42368848752 / 42477299355 / 42627839293 / 42823621279 / 43021079337 / 43228959810（a2a3374ec）**连续 8 个提交 failure**，失败步骤为「慢档日期敏感面（--runslow；S11-08 遗留=failure」与「定向日期敏感面（常规档）」；同一提交的其它 18 个工作流 success。⇒ 与覆盖缺口/外发无关，属历史遗留。",
-      "next": "两件事：① 判据——要么在 workflow 里把慢档臂显式标注为 continue-on-error（并把常规档臂修绿），要么删掉这条工作流；② 若要真修：先看「定向日期敏感面（常规档）」那条失败用例（它才是常规档，比慢档更该优先）。修不动就保持 open，但交接卡/文档里'绿'必须限定为 required 工作流。"
+      "next": "2026-11-13 修好并验证（提交 b39489dde；手动 dispatch run 43364552205 = **success**，5 个 job 全绿：盲区静态扫描 + 守卫套件 / 不平移 / CONTROL(delta=0) / +400 / -400）。两处真因都不在日期逻辑里：\n① 慢档臂：tests/unit/test_task_scheduler_comprehensive.py::TestRunTask::test_run_python_func_failure 还在断言 C-6（2026-11-12 异常原文不进响应）之前的旧契约 —— 该用例属 --runslow，主 CI 不跑，所以只有本工作流红。改成断言「ValueError 在 error 里 + 原文不在」并注释 C-6 口径。\n② -400 臂：tests/unit/test_skills_digest_assessor.py::TestAssessFeedPagination 用固定日期 2026-01-01，时钟 −400 天后它们成了「未来」，被读侧 is_future_timestamp 防御过滤 ⇒ [] == [...] 误红。在该测试类加 autouse fixture 显式关掉该防御（「未来时间戳」另有专门用例覆盖）。\n本地复跑：慢档 259 passed；-400 臂常规集 248 passed + digest 74 passed。工作流本身没改一行（不需要 continue-on-error，也不需要删）。",
+      "done_at": "2026-11-13T12:22:00+08:00"
     },
     {
       "id": "no-console-popups",
@@ -641,11 +642,36 @@
     },
     {
       "id": "legacy-vbs-launcher-stale",
-      "status": "open",
+      "status": "done",
       "priority": "P3",
       "title": "docs/zh/启动云枢.vbs 是旧的重复启动器（无引用、硬编码 python 路径、打开 /:5678 而不是 /chat、会先 taskkill 占 5678 的进程）",
       "criteria": "全仓 grep 启动云枢.vbs 0 处引用；脚本内 Const PYTHON_PATH 硬编码 C:\\Users\\Administrator\\...\\Python312\\python.exe、最后打开 http://127.0.0.1:5678（不带 /chat）、启动前 netstat+taskkill 清端口。2026-11-13 的 no-console-popups 已用 scripts/yunshu_launch.vbs + 两个桌面 .lnk 覆盖同一职责，且口径（/chat）与它不一致 ⇒ 保留它等于留一个「看起来能用但口径错」的入口。",
-      "next": "建议删除 docs/zh/启动云枢.vbs（本轮不在任务面内，未动；security-tools/docs/zh/ 下另有一份同内容副本，属另一个目录，删除前确认无人引用）。删除不涉及路由/UI 入口，不需要重派生 route_ui_coverage。"
+      "next": "2026-11-13 按建议删除（Owner「遗留按你的意见处理」）：docs/zh/启动云枢.vbs 与 security-tools/docs/zh/启动云枢.vbs 两份同内容副本都已从磁盘移除，备份在 data/backups/legacy_vbs_20261113/（未入库，删前已确认全仓 0 处引用）。现在唯一的启动入口是 start_yunshu.bat（隐藏）+ scripts/yunshu_launch.vbs + 观察窗 observe_yunshu.bat。",
+      "done_at": "2026-11-13T12:10:00+08:00"
+    },
+    {
+      "id": "memory-idle-consolidation",
+      "status": "open",
+      "priority": "P2",
+      "title": "没有「空闲时间做记忆整理」：维护全是固定时刻，且记忆审查是空转的统计接口，去重降噪线上 0 条",
+      "criteria": "2026-11-13 复核（Owner 提问）：① 21 条调度任务全按 hour/minute/last_run 触发（agent/task_scheduler.py:390-426），不看 CPU/负载/键鼠；唯一的空闲闸门在日志内省（IdleDetector），且 mark_activity() 生产零调用 ⇒ 开机 5 分钟后恒为「空闲」。②「维护·记忆库审查」实际调 review_quick()（agent/memory/reviewer.py:131-166）只做统计+建议，不算陈旧也不算重复；完整 review() 无生产调用点；ForgettingEngine 无实例化；热度过期扫描未启动。③ 审查对象 data/memory/long_term.db 的 long_term_memory / user_profile 都是 0 行 ⇒ 即使真跑也只报 0/0。④ 真正的对话记忆 data/messages.jsonl：421 条 / 357 唯一 / **64 条重复行（27 组，最大一组 17 次）**，最后一次压缩是 2026-11-10 20:43（且压缩只写摘要不删消息）⇒ 线上去重降噪 0 条。",
+      "next": "按代价从低到高（都零 token，均未实现）：a) 给 7 条零 token 作业加「空闲闸门 + 兜底」：tick 前查 300s 无键鼠 + CPU<20%（复用 introspection.IdleDetector，补 GetLastInputInfo），窗口内首次满足才跑，18:00 前没跑就强制跑一次（~40-60 行 + 2 用例；风险=可能拖到兜底）；b) 审查改真跑：POST /api/memory/review 加 mode=full 走 review()，口径从空 LTM 换成 messages.jsonl，报告落 data/maintenance/memory/（~60 行，一次就能看见那 64 条重复）；c) 零 token 去重 dry-run：按内容 hash（可选 embedding cosine≥0.85）出候选清单，只报告不删，删除仍走现有 confirm=true（~50 行；风险=误报需人工确认）。先做 b+c（只读、可解释）再谈 a（改调度语义，要 Owner 点头）。"
+    },
+    {
+      "id": "idle-detector-fake-gate",
+      "status": "open",
+      "priority": "P3",
+      "title": "日志内省的「空闲检测」是假闸门：mark_activity() 生产零调用 ⇒ 开机 5 分钟后恒为空闲",
+      "criteria": "agent/log_system/introspection.py:47-88 的 IdleDetector 需要 300s 无活动 + CPU<20%，但 mark_activity() 全仓只有测试调用（生产无调用点）⇒ _last_activity 停在启动时刻，开机 5 分钟后恒判空闲。2026-11-13 日志实测每 30 分钟准点跑（03:11/03:41/…/09:41），13 轮全是 0 洞察、LLM=False ⇒ 这个闸门从来没有真的避让过。",
+      "next": "两个方向二选一：① 让闸门真起来 —— 在会话/工具/请求入口调用 mark_activity()（或直接用 GetLastInputInfo 取代进程内事件），并加一条「空闲判定新鲜度」读数；② 承认它不是闸门 —— 删掉空闲判定，改成固定节流，别让读数冒充「避让了」。若要做 a) 记忆整理的空闲调度，必须先修这个（否则闸门恒真，等于没加）。"
+    },
+    {
+      "id": "alarm-resolved-semantics",
+      "status": "open",
+      "priority": "P3",
+      "title": "绿色「已恢复」= 自动翻状态，不是「人已处理」；界面把两者混用，且 state 与事件流会漂移",
+      "criteria": "2026-11-13 复核（Owner 提问）：状态机只有 firing/resolved（agent/alarms/store.py:45-47），reconcile 时「不在 candidates 里」就自动 resolve（collector.py:533-614），没有人工 resolve 路由；read（仅清未读）/ack（记 acked_by，UI 不显示）/silence 与 resolved 是四件不同的事。现场：11 条告警全 resolved、0 firing、0 ack；verify.channel_probe 的 state=resolved 而 events.jsonl 最后一条是 reopen(23:36:44) ⇒ state.json 与事件流不一致（store.py:237-238 先 append 后 _save）。界面误导：AlarmBell.tsx:180-182 把「暂无未读」写成「系统运行正常」（全部已读后即使仍在 firing 也显示正常）；NotificationCenter/AlarmBell 用 state==='resolved' 直接渲染绿色「已恢复」，没有「自动恢复 / 人工确认」区分；health.tsx:232 也把 resolved 映射成「已恢复」，但本进程规则引擎只产出 firing/pending/ok/no_data，两套语义混用。另有「指标算不出（no_data）也会 resolve 旧 rule.* 告警」的风险（collector.py:285-296 + 267-271），与 collector.py:8/271「不伪造已恢复」的口径冲突。",
+      "next": "① 语义显式化：resolved 徽标文案改成「已自动恢复（未确认）」+ 有 ack 时补「已确认 by/time」；② 修铃铛：全部已读时不要显示「系统运行正常」，改成「无未读（仍有 N 条 firing）」；③ state 与 events 的一致性：resolve/reopen 改成「先写事件并落盘成功再更新 state」或用同一个事务，并加一条「最新事件状态 == state」的自检读数；④ no_data 不应 resolve（要么 hold、要么标 degraded），与模块头注口径对齐；⑤ ack 目前是死字段（UI 不展示、通知投影不带）——要么接上，要么删掉。"
     }
   ]
 }
