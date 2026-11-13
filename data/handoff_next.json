@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-13T20:33:41+08:00",
+ "updated_at": "2026-11-13T22:35:51+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -678,19 +678,19 @@
   },
   {
    "id": "tool-confirm-exempt-high-risk",
-   "status": "open",
+   "status": "done",
    "priority": "P2",
    "title": "审计全链核验（G1 治理门）报 FAIL：豁免名单含 4 个 L2 高风险工具，模型可自动执行写/执行类工具",
-   "criteria": "2026-11-13 跑 scripts/audit_governance_check.py：G1 FAIL —— 工具 delegate / fan_out / write_file / schedule_task / edit 的确认级别是 L2（逐次确认），但 data/ui_settings.json 的 CP_TOOL_CONFIRM_LEVEL_EXEMPT（2026-10-13 由 UI 设置，actor tok_ffd...）把它们整条豁免，effect=write/execute、risk=high。G2 全链 84111 条重算一致、G3 日根、G4 口径均 PASS。这是**风险接受**，不是链损坏；每日作业只跑 G2/G3/G4，所以不会天天红。",
-   "next": "需 Owner 决定是否收紧：在设置中心把 CP_TOOL_CONFIRM_LEVEL_EXEMPT 里的 write_file/edit/schedule_task/fan_out/delegate 去掉（或只保留受控批处理窗口），然后重跑 audit_governance_check.py 确认 G1 PASS。"
+   "criteria": "2026-11-13 跑 scripts/audit_governance_check.py：G1 FAIL —— 工具 delegate / fan_out / write_file / schedule_task / edit 的确认级别是 L2（逐次确认），但 data/ui_settings.json 的 CP_TOOL_CONFIRM_LEVEL_EXEMPT（2026-10-13 由 UI 设置，actor tok_ffd...）把它们整条豁免，effect=write/execute、risk=high。G2 全链 84111 条重算一致、G3 日根、G4 口径均 PASS。这是**风险接受**，不是链损坏；每日作业只跑 G2/G3/G4，所以不会天天红。 【Owner 2026-11-13 决定】**不收紧**：受控环境下这批工具的批量操作需要豁免，风险已接受。",
+   "next": "无需动作。审计治理门 G1 会持续显示 FAIL，这是**预期**（每日全链作业只跑 G2/G3/G4，不会因此红）。若将来要收紧，改设置中心 CP_TOOL_CONFIRM_LEVEL_EXEMPT。"
   },
   {
    "id": "workflows-store-empty",
-   "status": "frozen",
+   "status": "done",
    "priority": "P3",
    "title": "单位 workflows.store 恒 never：0 条工作流（产品未使用，不是监控缺口）",
-   "criteria": "2026-11-13 复核：GET /api/system/units 里 workflows.store = never「尚无工作流（0 条）· 无数据，不计分」。按口径 never 不计分；本轮把 memory.longterm 从 never 变成 ok（压缩摘要归档进 long_term.db，2 行），但工作流没有任何内置/示例条目，单位永远不会有数据。",
-   "next": "产品决定：定义首批内置工作流（或允许从模板一键创建工作流）。在定义之前保持 never、不计分，不要为了分数造假数据。"
+   "criteria": "2026-11-13 复核：GET /api/system/units 里 workflows.store = never「尚无工作流（0 条）· 无数据，不计分」。按口径 never 不计分；本轮把 memory.longterm 从 never 变成 ok（压缩摘要归档进 long_term.db，2 行），但工作流没有任何内置/示例条目，单位永远不会有数据。 【2026-11-13 落地】① 探针 bug：probe_workflows 只认 {\"workflows\":[...]} 包装，而仓库落盘是扁平 {id:{...}} ⇒ 有 9 条也恒读 0（这就是 never 的真正原因，已修，并新增两种形态的用例）；② 首批 4 条**只读模板**补种：tpl-repo-overview / tpl-todo-scan / tpl-lint-check / tpl-memory-recall（enabled=False + draft，落库≠上线）；③ 新增零 token 作业「维护·工作流模板补种」13:20（幂等只补缺）。",
+   "next": "已收口。要加模板：往 agent/workflow_learning/templates.py 的 BUILTIN_TEMPLATES 追加，再跑 python -m agent.workflow_learning.templates --seed --json；启用/删除仍由人决定。"
   }
  ]
 }

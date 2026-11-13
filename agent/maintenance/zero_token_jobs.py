@@ -160,6 +160,17 @@ JOBS: List[Dict[str, Any]] = [
         "note": "把非空压缩摘要 upsert 进 long_term.db（零 token、只读源文件）",
     },
     {
+        "key": "workflow_templates_seed",
+        "name": "维护·工作流模板补种",
+        "hour": 13,
+        "minute": 20,
+        "kind": "shell",
+        "argv": [
+            sys.executable, "-m", "agent.workflow_learning.templates", "--seed", "--json",
+        ],
+        "note": "补种首批内置工作流模板（只补缺不覆盖；全部只读、默认不启用）",
+    },
+    {
         "key": "health_snapshot",
         "name": "维护·健康快照",
         "hour": 14,

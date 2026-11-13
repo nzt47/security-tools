@@ -226,12 +226,26 @@ def probe_tools() -> Dict[str, Any]:
 
 
 def probe_workflows() -> Dict[str, Any]:
+    """工作流仓库：兼容两种落盘形态。
+
+    【2026-11-13 实测的坑】仓库（agent/workflow_learning/repository.py）把条目存成
+    **扁平映射** `{wf_id: {...}}`，而本探针原先只认 `{"workflows": [...]}` 包装 ⇒
+    哪怕仓库里有 9 条，也永远读成 0、单位恒 never（"看起来没数据"其实是"读错结构"）。
+    现在：有 workflows 键就取它（列表或映射），否则把根映射当条目表。
+    """
     doc = _read_json("data/learned_workflows.json")
-    items = doc.get("workflows") if isinstance(doc, dict) else doc
+    if isinstance(doc, dict):
+        wrapped = doc.get("workflows")
+        items = wrapped if isinstance(wrapped, (list, dict)) else doc
+    else:
+        items = doc
     if isinstance(items, dict):
         items = list(items.values())
     items = items if isinstance(items, list) else []
-    enabled = sum(1 for w in items if isinstance(w, dict) and w.get("enabled", True))
+    # 「启用」只数非归档条目：archived 是退役态，enabled 字段可能残留 True（存量数据就是这样）
+    enabled = sum(1 for w in items
+                  if isinstance(w, dict) and w.get("enabled", True)
+                  and str(w.get("status") or "") != "archived")
     # 0 条 = 无数据（还没产出过），不是「0 分」也不是故障：不计分，页面上说清楚
     if not items:
         return {"status": "never",

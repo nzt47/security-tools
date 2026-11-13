@@ -139,6 +139,30 @@ def test_probe_workflows_never_when_empty(tmp_path, monkeypatch):
     assert r["status"] == "never"
 
 
+def test_probe_workflows_reads_flat_repo_shape(tmp_path, monkeypatch):
+    """仓库实际落盘是扁平 {id: {...}}（2026-11-13 实测：只认 workflows 包装 ⇒ 恒 0）。"""
+    monkeypatch.setattr(up, "_ROOT", tmp_path)
+    (tmp_path / "data").mkdir()
+    (tmp_path / "data" / "learned_workflows.json").write_text(json.dumps({
+        "wf-a": {"id": "wf-a", "enabled": True, "status": "active"},
+        "wf-b": {"id": "wf-b", "enabled": True, "status": "archived"},
+        "tpl-x": {"id": "tpl-x", "enabled": False, "status": "draft"},
+    }), encoding="utf-8")
+    r = up.probe_workflows()
+    assert r["status"] == "ok"
+    assert r["metrics"]["total"] == 3
+    assert r["metrics"]["enabled"] == 1, "archived 的 enabled=True 不计入启用"
+
+
+def test_probe_workflows_reads_wrapped_list(tmp_path, monkeypatch):
+    monkeypatch.setattr(up, "_ROOT", tmp_path)
+    (tmp_path / "data").mkdir()
+    (tmp_path / "data" / "learned_workflows.json").write_text(json.dumps(
+        {"workflows": [{"id": "wf-a", "enabled": True, "status": "active"}]}), encoding="utf-8")
+    r = up.probe_workflows()
+    assert r["status"] == "ok" and r["metrics"]["total"] == 1
+
+
 def _usage_fixture(tmp_path, monkeypatch, *, enabled, hits):
     """写一份技能主轨 + 使用台账：enabled=启用技能 id，hits=每条 match 事件命中的技能 id。"""
     monkeypatch.setattr(up, "_ROOT", tmp_path)
