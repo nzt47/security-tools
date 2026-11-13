@@ -52,6 +52,8 @@ interface SchedTask {
   zero_token?: boolean | null
   /** 零 token 判据（后端声明时写，悬浮展示；空 = 没声明判据） */
   zero_token_note?: string
+  /** 这条任务做什么（后端注册时声明，或按名字回落；空 = 没写说明） */
+  description?: string
   /** true = 是否零 token 取决于运行时开关（如 dry_run），此时零 token 表示"当前配置下的实际行为" */
   zero_token_conditional?: boolean
   owner?: string
@@ -237,6 +239,12 @@ export default function EngineScheduler() {
                 render: (r) => <span className="font-mono text-xs text-slate-400">{r.kind === 'cron' ? '每日' : r.kind === 'interval' ? '间隔' : '命令'}</span>,
               },
               { key: 'schedule_text', title: '排程', render: (r) => <span className="font-mono text-xs text-cyan-400">{r.schedule_text}</span> },
+              {
+                key: 'description', title: '说明',
+                render: (r) => r.description
+                  ? <span className="block max-w-[26rem] text-xs leading-snug text-slate-400" title={r.description} data-testid={'task-desc-' + r.name}>{r.description}</span>
+                  : <span className="text-xs text-slate-600" title="这条任务还没写说明（后端可显式传 description=，或补 DEFAULT_TASK_DESCRIPTIONS）">—</span>,
+              },
               {
                 key: 'zero_token', title: '零 token',
                 render: (r) => {

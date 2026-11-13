@@ -27,7 +27,7 @@ vi.mock('../components/ui', async (importOriginal) => {
 const { default: EngineScheduler } = await import('./scheduler')
 
 const TASKS = [
-  { name: '维护·健康快照', task_id: 't1', type: 'python_func', enabled: true, schedule_text: '每日 17:00', kind: 'cron', zero_token: true, zero_token_note: '只读巡检', zero_token_conditional: false, owner: 'agent/maintenance/zero_token_jobs.py' },
+  { name: '维护·健康快照', task_id: 't1', type: 'python_func', enabled: true, schedule_text: '每日 17:00', kind: 'cron', zero_token: true, zero_token_note: '只读巡检', zero_token_conditional: false, owner: 'agent/maintenance/zero_token_jobs.py', description: '采集健康端点五层分数与六域拓扑节点状态计数，留一行结果' },
   { name: '周期进化', task_id: 't2', type: 'python_func', enabled: true, schedule_text: '每 604800 秒', kind: 'interval', zero_token: true, zero_token_note: 'dry_run=true 时只筛候选（只读），不生成变异体', zero_token_conditional: true, owner: 'agent/skills_mgmt/evolution_scheduler.py' },
   { name: '生成周报', task_id: 't3', type: 'python_func', enabled: true, schedule_text: '每日 09:00', kind: 'cron', zero_token: false, zero_token_note: '含 LLM 汇总', zero_token_conditional: false, owner: 'x' },
   { name: '未声明任务', task_id: 't4', type: 'python_func', enabled: false, schedule_text: '每 60 秒', kind: 'interval', zero_token: null, owner: '' },
@@ -55,5 +55,10 @@ describe('引擎 · 定时任务「零 token」三态', () => {
     // 条件性的判据说明挂在 title 上（悬浮可见），不是凭空一个「零 token」
     const badge = within(rowOf('周期进化')).getByText('零 token（条件）').closest('span[title]')
     expect(badge?.getAttribute('title')).toContain('dry_run')
+
+    // 2026-11-13：每行有「说明」列，讲清这条任务做什么；没写说明的显示「—」而不是空
+    expect(within(rowOf('维护·健康快照')).getByTestId('task-desc-维护·健康快照').textContent)
+      .toContain('健康端点')
+    expect(within(rowOf('未声明任务')).getByText('—')).toBeInTheDocument()
   })
 })

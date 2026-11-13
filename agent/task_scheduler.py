@@ -83,6 +83,44 @@ def _save_overrides(data: Dict[str, Dict[str, Any]]) -> bool:
         return False
 
 
+#: 任务「说明」——**这条定时任务到底做什么**（UI 的「说明」列）。
+#:
+#: 【为什么放在这一张表里】这些任务由 20 多个模块各自注册（生命周期/技能/监控/感知…），
+#: 逐个加参数要改 20 处、且新任务照样可能漏；而"给用户看的解释"本来就该有一处总览。
+#: 口径：
+#: 1. **注册时显式传 `description=` 优先**（新任务请直接传，别只加表）；
+#: 2. 表里只写"做什么 + 产物落在哪"，不写实现八卦；没有条目的任务显示「—」，不编；
+#: 3. 与 `zero_token_note`（为什么零 token）分开：一个回答"做什么"，一个回答"花不花 token"。
+DEFAULT_TASK_DESCRIPTIONS: Dict[str, str] = {
+    "生成周报": "汇总本周运行数据（任务/告警/健康/技能使用），生成周报文件存档",
+    "清理旧日志": "按保留期清理过期日志文件释放磁盘；不触碰审计链与运行期数据库",
+    "维护·记忆库审查": "只读体检长期记忆与对话记忆：无响应近重复候选、agent_memory 重复、可省估算；只报不删",
+    "维护·知识库巡检": "检查知识库孤儿/断链/index 漂移/过期声明，报告写 data/maintenance/knowledge",
+    "维护·路由覆盖自检": "校验 route_ui_coverage 产物与工作树一致（只读，不重写报告）",
+    "维护·能力清单自检": "校验 capability_manifest 与权威数据一致（只读，不重写产物）",
+    "维护·技能自动分类": "纯规则给未归类技能补分类、必要时建类（无 LLM）",
+    "学习·记忆抽象草稿": "把最近 7 天记忆聚类，只产技能草稿（source=learning）；不注册、不启用",
+    "维护·审计全链核验": "审计链完整性三门：G2 全链 verify_chain 重算 / G3 日根 / G4 口径卫生；报告写 data/maintenance/audit",
+    "维护·长期记忆归档": "把非空压缩摘要 upsert 进 data/memory/long_term.db（长期记忆的唯一写入口）",
+    "维护·工作流模板补种": "补种内置只读工作流模板（tpl-*）；只补缺、不覆盖，模板默认不启用",
+    "维护·健康快照": "采集健康端点五层分数与六域拓扑节点状态计数，留一行结果",
+    "维护·记忆整理": "空闲时扫描对话与 agent_memory：近重复候选 + 可省 token 估算；只报告，不删除",
+    "维护·空闲补跑": "每 10 分钟把「到点但系统忙」的零 token 作业补跑一次；18:00 后强制清空队列",
+    "系统心跳": "每 60 秒采集进程/硬件指标写心跳文件，供看护与健康页判断服务是否还活着",
+    "反馈建议执行": "执行反馈中心积累的建议（dry_run=true 时只读反馈、产报告，不改状态）",
+    "周期进化": "筛技能/流程的进化候选（dry_run=true 时只列候选，不生成变异体）",
+    "生命周期检查": "统计技能闲置天数 → 生命周期候选（dry_run 下不迁移状态）",
+    "行为漂移检测": "统计工具/流程分布的漂移（本周 vs 基线），产出漂移报告",
+    "感知周期采集": "每 5 分钟 drain 文件监听事件 + 快照 diff，推进 novelty（感知面心跳）",
+    "CI 状态同步": "每 30 分钟用 gh 查最近 CI 结论，写 data/ci/status.json 供告警器判读",
+    "覆盖缺口自检": "每小时扫描各声明面（工具/技能/路由/单位…），找「新增了但没人监控」的缺口",
+    "日志异常基线采样": "每 30 分钟统计日志尾部 ERROR/Traceback 密度，写基线样本供 ops.logs 判异常",
+    "技能冲突自动处置": "产技能冲突处置计划（规则判据，无 LLM）；停用等动作仍要界面确认",
+    "SLO 指标周报": "聚合 SLO 指标并写周报存档（data/slo_report*）",
+    "数据保留策略归档": "按保留策略归档/清理历史数据（首跑强制 dry_run）",
+}
+
+
 def _schedule_text(task: Dict[str, Any]) -> str:
     """人读的排程文案：cron → '每天 09:20' / '每周一 09:00'；interval → '每 300 秒'。"""
     cron = task.get("cron")
@@ -259,13 +297,16 @@ class TaskScheduler:
                       hour: int = 0, minute: int = 0,
                       zero_token: Optional[bool] = None, owner: str = "",
                       zero_token_note: str = "",
-                      zero_token_conditional: bool = False) -> None:
+                      zero_token_conditional: bool = False,
+                      description: str = "") -> None:
         """添加 Python 函数 cron 任务（会套用 UI 上的覆盖：启停 / 时刻）。
 
         zero_token：调用链是否**不含 LLM**（True/False）；None = 未声明（UI 显示「未标注」）。
         zero_token_note：一句话说明判据（UI 悬浮展示），声明时一并写，别让下一个人重新考证。
         zero_token_conditional：True = 是否零 token **取决于运行时开关**（如 dry_run），
         此时 zero_token 表示"当前配置下的实际行为"，UI 会标「零 token（条件）」。
+        description：**这条任务到底做什么**（UI「说明」列）。不传时回落到
+        `DEFAULT_TASK_DESCRIPTIONS`（按任务名），两者都没有就显示「—」，不编。
         """
         task = _apply_override({
             "name": name,
@@ -279,6 +320,7 @@ class TaskScheduler:
             "zero_token_note": zero_token_note,
             "zero_token_conditional": bool(zero_token_conditional),
             "owner": owner,
+            "description": description,
         })
         self.tasks.append(task)
         logger.info(log_dict({'module_name': 'task_scheduler', 'action': 'name.cron', 'msg': f'[TaskScheduler] 添加任务: {name} (cron)'}))
@@ -286,7 +328,8 @@ class TaskScheduler:
     def add_interval_task(self, name: str, func: Callable, interval_seconds: int,
                           zero_token: Optional[bool] = None, owner: str = "",
                           zero_token_note: str = "",
-                          zero_token_conditional: bool = False) -> None:
+                          zero_token_conditional: bool = False,
+                          description: str = "") -> None:
         """添加 Python 函数间隔任务（同样套用 UI 覆盖：启停）。
 
         zero_token / zero_token_note / zero_token_conditional 语义见 add_cron_task。
@@ -303,6 +346,7 @@ class TaskScheduler:
             "zero_token_note": zero_token_note,
             "zero_token_conditional": bool(zero_token_conditional),
             "owner": owner,
+            "description": description,
         })
         self.tasks.append(task)
         logger.info(log_dict({'module_name': 'task_scheduler', 'action': 'name.interval_seconds', 'msg': f'[TaskScheduler] 添加任务: {name} (每{interval_seconds}秒)'}))
@@ -827,6 +871,9 @@ class TaskScheduler:
                 "zero_token_note": t.get("zero_token_note", ""),
                 "zero_token_conditional": bool(t.get("zero_token_conditional", False)),
                 "owner": t.get("owner", ""),
+                # 「说明」= 这条任务做什么。注册时显式声明优先；未声明的内置任务按名字回落
+                # 到 DEFAULT_TASK_DESCRIPTIONS（见其注释）；都没有就空串（UI 显示「—」）。
+                "description": t.get("description") or DEFAULT_TASK_DESCRIPTIONS.get(t["name"], ""),
                 "schedule_text": _schedule_text(t),
             }
             if t["type"] == "system_command":
