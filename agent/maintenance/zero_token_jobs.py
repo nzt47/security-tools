@@ -282,12 +282,20 @@ def _load_pending() -> Dict[str, Any]:
 _TRUE_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
+def _running_under_pytest() -> bool:
+    """当前进程是否在跑测试（不读环境变量，避免被 settings 零缺口门禁判成未登记开关）。"""
+    return "pytest" in sys.modules or "_pytest" in sys.modules
+
+
 def _save_pending(state: Dict[str, Any]) -> None:
     path = _pending_path()
     # 【2026-11-13 实测的坑】早期用例直接调 run_job（没加 force），闸门把 3 条作业写进了**生产**的
     # data/maintenance/zero_token_pending.json。用例本该把它们指到 tmp（patch z.REPO_ROOT），
     # 但只要有人忘了，就会污染真实排队。这里加一道闸：测试进程 + 目标是真实仓库 ⇒ 不写。
-    if os.environ.get("PYTEST_CURRENT_TEST") and os.path.abspath(path).startswith(_TRUE_REPO_ROOT + os.sep):
+    # 【为什么不用 PYTEST_CURRENT_TEST 环境变量】任何 os.environ 读取都会被
+    # tests/unit/test_settings_registry.py 的"零缺口"门禁判成未登记开关（实测 CI 红）；
+    # 用 sys.modules 判进程即可，既不引入新开关，也不会在生产里命中。
+    if _running_under_pytest() and os.path.abspath(path).startswith(_TRUE_REPO_ROOT + os.sep):
         logger.debug("[zero-token] 测试进程不写生产排队文件: %s", path)
         return
     try:
