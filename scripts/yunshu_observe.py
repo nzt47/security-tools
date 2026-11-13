@@ -46,6 +46,12 @@ LOG_TAIL_LINES = 4
 
 WINDOW_TITLE = "云枢 · 后台观察窗（关掉本窗口不影响后端）"
 
+#: 变化慢的读数：key → 只读端点（每 SLOW_EVERY 次刷新拉一遍；--once 全拉一遍）
+_SLOW_PATHS = (("version", "/api/version"),
+               ("units", "/api/system/units"),
+               ("coverage", "/api/alarms/coverage"),
+               ("scheduler", "/api/scheduler/overview"))
+
 _DIM = "\033[2m"
 _RESET = "\033[0m"
 _GREEN = "\033[32m"
@@ -87,6 +93,13 @@ class _Client:
             return None, int((time.time() - started) * 1000), "HTTP %s" % exc.code
         except Exception as exc:  # noqa: BLE001 连不上/超时一律如实显示
             return None, int((time.time() - started) * 1000), type(exc).__name__
+
+
+def _unwrap(payload) -> object:
+    """统一信封（{code,data}）与裸对象都认：只取 data 段。"""
+    if isinstance(payload, dict) and isinstance(payload.get("data"), (dict, list)):
+        return payload["data"]
+    return payload
 
 
 def _num(value, unit: str = "") -> str:
@@ -151,9 +164,10 @@ def _dashboard(client: _Client, slow: dict) -> str:
         out.append(_DIM + "  版本   : —（/api/version 拿不到）" + _RESET)
 
     units = slow.get("units")
-    if units:
+    if isinstance(units, dict) and units.get("summary"):
+        s = units.get("summary") or {}
         out.append("  单位   : %s ok / %s warn / %s never · 健康分 %s" % (
-            _num(units.get("ok")), _num(units.get("warn")), _num(units.get("never")),
+            _num(s.get("ok")), _num(s.get("warn")), _num(s.get("never")),
             _num(units.get("health_score"))))
     else:
         out.append(_DIM + "  单位   : —" + _RESET)
@@ -219,7 +233,12 @@ def main(argv=None) -> int:
 
     client = _Client()
     if args.once:
-        print(_dashboard(client, {"version": (client.get("/api/version") or (None,))[0]}))
+        slow_once: dict = {}
+        for key, path in _SLOW_PATHS:
+            data, _ms, _err = client.get(path)
+            if data is not None:
+                slow_once[key] = _unwrap(data)
+        print(_dashboard(client, slow_once))
         return 0
 
     _set_title()
@@ -229,13 +248,10 @@ def main(argv=None) -> int:
     try:
         while True:
             if tick % SLOW_EVERY == 0:
-                for key, path in (("version", "/api/version"),
-                                  ("units", "/api/system/units"),
-                                  ("coverage", "/api/alarms/coverage"),
-                                  ("scheduler", "/api/scheduler/overview")):
+                for key, path in _SLOW_PATHS:
                     data, _ms, _err = client.get(path)
                     if data is not None:
-                        slow[key] = data.get("data", data) if isinstance(data, dict) else data
+                        slow[key] = _unwrap(data)
             if os.name == "nt":
                 os.system("cls")
             else:
