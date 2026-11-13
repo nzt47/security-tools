@@ -451,8 +451,14 @@ def import_sessions(*, source: str, dry_run: bool = True, confirm: bool = False,
     if source == SOURCE_TRAE:
         refs.sort(key=lambda r: r.session_id)
     total_refs = len(refs)
-    if limit_sessions and total_refs > int(limit_sessions):
-        refs = refs[:int(limit_sessions)]
+    wanted = total_refs
+    if limit_sessions and wanted > int(limit_sessions):
+        wanted = int(limit_sessions)
+    # 硬上限：即使调用方传 0（全部），也不让一次请求枚举超过护栏值
+    if wanted > MAX_SESSIONS_PER_RUN:
+        wanted = MAX_SESSIONS_PER_RUN
+    if wanted < total_refs:
+        refs = refs[:wanted]
     sessions["seen"] = total_refs
     has_more = total_refs > len(refs)
 

@@ -115,7 +115,9 @@ export default function MemorySessionsImportCard() {
             />
             {s.label}
             <span className="text-[10px] text-slate-500">
-              {s.available ? '(' + s.sessions + ' 个会话)' : '（未找到）'}
+              {!s.available ? '（未找到）'
+                : s.sessions > 0 ? '(' + s.sessions + ' 个会话)'
+                  : '（本地仅提问轨迹）'}
             </span>
           </label>
         ))}
