@@ -560,6 +560,11 @@ def read_channel_health() -> Optional[dict]:
 #: 这里的目标是**用户自己配的端点**、15 分钟一轮、超时 6s，而且探测跑在独立线程里，
 #: 采集线程只读快照 —— 网络慢不会把告警采集卡住。
 PROBE_KEY_PREFIX = "probe."
+#: 连续失败达到该轮数才报警。
+#: 【为什么不是 1】2026-11-13 首次上线实测：部署重启窗口里 SMTP 探测 6s 超时，
+#: 同一分钟手工握手只要 250ms ⇒ 单轮失败是**抖动**，报出来就是假警报。探针每 15 分钟一轮，
+#: 连续两轮 = 最晚 30 分钟发现真故障，比"每轮都喊狼来了"值。
+PROBE_ALARM_AFTER = 2
 
 
 def read_dependency_probe() -> Optional[dict]:
@@ -587,6 +592,8 @@ def probe_candidates(payload: Optional[dict]) -> List[dict]:
     for row in payload.get("results") or []:
         if not isinstance(row, dict) or row.get("ok"):
             continue
+        if int(row.get("consecutive_failures") or 0) < PROBE_ALARM_AFTER:
+            continue  # 单轮抖动不报（见 PROBE_ALARM_AFTER 的现场依据）
         target_id = str(row.get("id") or "target").replace(":", ".")
         kind = str(row.get("kind") or "target")
         code = str(row.get("code") or "") or CODE_OTHER
@@ -596,8 +603,8 @@ def probe_candidates(payload: Optional[dict]) -> List[dict]:
             "kind": "probe",
             "severity": SEVERITY_CRITICAL if kind == "channel" else SEVERITY_WARNING,
             "title": "依赖探测失败：" + target_id,
-            "detail": "%s 连不上：%s（耗时 %sms）。这是只做握手的探针，没发信也没登录。" % (
-                kind, label, row.get("ms", "—")),
+            "detail": "%s 连续 %d 轮连不上：%s（耗时 %sms）。这是只做握手的探针，没发信也没登录。" % (
+                kind, int(row.get("consecutive_failures") or 0), label, row.get("ms", "—")),
             "subject": target_id,
             "source": "data/monitoring/dependency_probe.json",
         })

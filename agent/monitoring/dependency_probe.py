@@ -61,6 +61,13 @@ STATE_PATH = _ROOT / STATE_REL_PATH
 _lock = threading.Lock()
 _thread: Optional[threading.Thread] = None
 _snapshot: Optional[Dict[str, Any]] = None
+#: 每目标的连续失败轮数（进程内；重启归零 —— 重启后要两轮才敢报，宁可晚 15 分钟）
+_fail_counts: Dict[str, int] = {}
+#: 值得当场重试一次的失败类别（抖动型）：DNS 与 TLS 证书错误重试也没用
+RETRYABLE_CODES = (CODE_TIMEOUT, CODE_OTHER)
+#: 单轮内重试次数（发现抖动就再来一次；仍失败才算这一轮失败）
+PROBE_RETRIES = 1
+RETRY_BACKOFF_SEC = 0.3
 
 
 def _now_iso(now: Optional[float] = None) -> str:
@@ -84,7 +91,8 @@ def _classify(exc: BaseException) -> str:
 
 
 def probe_target(target: Dict[str, Any], *, timeout: float = PROBE_TIMEOUT_SEC,
-                 connector: Optional[Callable[..., Any]] = None) -> Dict[str, Any]:
+                 connector: Optional[Callable[..., Any]] = None,
+                 retries: int = PROBE_RETRIES) -> Dict[str, Any]:
     """探一个目标：TCP 连接（tls=True 时再做一次握手）。**永不抛**。
 
     Args:
@@ -107,24 +115,34 @@ def probe_target(target: Dict[str, Any], *, timeout: float = PROBE_TIMEOUT_SEC,
         result["code"] = CODE_OTHER
         result["detail"] = "目标配置不完整（缺 host/port）"
         return result
-    sock = None
-    try:
-        sock = (connector or socket.create_connection)((host, port), timeout)
-        if use_tls:
-            context = ssl.create_default_context()
-            sock = context.wrap_socket(sock, server_hostname=host)
-        result["ok"] = True
-    except Exception as exc:  # noqa: BLE001 任何连接失败都只记类别
-        code = _classify(exc)
-        result["code"] = code
-        result["detail"] = CODE_LABELS.get(code, CODE_LABELS[CODE_OTHER])
-        logger.debug("[dependency-probe] %s 失败（%s）", target_id, type(exc).__name__)
-    finally:
-        if sock is not None:
-            try:
-                sock.close()
-            except Exception:  # noqa: BLE001
-                pass
+    attempts = max(0, int(retries)) + 1
+    for attempt in range(attempts):
+        sock = None
+        try:
+            sock = (connector or socket.create_connection)((host, port), timeout)
+            if use_tls:
+                context = ssl.create_default_context()
+                sock = context.wrap_socket(sock, server_hostname=host)
+            result["ok"] = True
+            result["code"] = ""
+            result["detail"] = ""
+        except Exception as exc:  # noqa: BLE001 任何连接失败都只记类别
+            code = _classify(exc)
+            result["code"] = code
+            result["detail"] = CODE_LABELS.get(code, CODE_LABELS[CODE_OTHER])
+            logger.debug("[dependency-probe] %s 失败（%s）", target_id, type(exc).__name__)
+        finally:
+            if sock is not None:
+                try:
+                    sock.close()
+                except Exception:  # noqa: BLE001
+                    pass
+        if result["ok"]:
+            break
+        if attempt + 1 < attempts and result["code"] in RETRYABLE_CODES:
+            time.sleep(RETRY_BACKOFF_SEC)
+            continue
+        break
     result["ms"] = int((time.monotonic() - started) * 1000)
     return result
 
@@ -208,7 +226,17 @@ def run_once(targets: Optional[List[Dict[str, Any]]] = None,
              persist: bool = True) -> Dict[str, Any]:
     """探一轮并返回快照（不启动线程）。"""
     rows = list(targets) if targets is not None else load_targets()
-    results = [probe_target(t, timeout=timeout) for t in rows]
+    results = []
+    for target in rows:
+        row = probe_target(target, timeout=timeout)
+        target_id = str(row.get("id") or "")
+        if row["ok"]:
+            count = 0
+        else:
+            count = int(_fail_counts.get(target_id, 0)) + 1
+        _fail_counts[target_id] = count
+        row["consecutive_failures"] = count
+        results.append(row)
     snapshot = {
         "at": _now_iso(now),
         "ok": all(r["ok"] for r in results) if results else True,
@@ -271,10 +299,11 @@ def start(interval: float = PROBE_INTERVAL_SEC) -> Optional[threading.Thread]:
 
 
 def reset_for_tests() -> None:
-    """清空进程内快照（用例隔离用；不动磁盘）。"""
+    """清空进程内快照与连续失败计数（用例隔离用；不动磁盘）。"""
     global _snapshot
     with _lock:
         _snapshot = None
+        _fail_counts.clear()
 
 
 __all__ = [

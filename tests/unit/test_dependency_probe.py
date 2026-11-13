@@ -99,10 +99,21 @@ def test_run_once落盘并可读(tmp_path, monkeypatch):
     assert again and again["results"][0]["ok"] is False
 
 
+def test_单轮失败不报警_连续两轮才报():
+    """2026-11-13 现场：部署窗口里 SMTP 探测 6s 超时，手工握手只要 250ms ⇒ 单轮是抖动。"""
+    once = {"results": [
+        {"id": "channel:email_smtp", "kind": "channel", "ok": False, "code": "timeout",
+         "ms": 6000, "consecutive_failures": 1},
+    ]}
+    assert collector.probe_candidates(once) == []
+
+
 def test_采集候选_通道critical_端点warning():
     payload = {"results": [
-        {"id": "channel:email_smtp", "kind": "channel", "ok": False, "code": "tls", "ms": 1500},
-        {"id": "llm:endpoint", "kind": "endpoint", "ok": False, "code": "timeout", "ms": 6000},
+        {"id": "channel:email_smtp", "kind": "channel", "ok": False, "code": "tls",
+         "ms": 1500, "consecutive_failures": 2},
+        {"id": "llm:endpoint", "kind": "endpoint", "ok": False, "code": "timeout",
+         "ms": 6000, "consecutive_failures": 3},
         {"id": "channel:ok", "kind": "channel", "ok": True, "code": "", "ms": 10},
     ]}
     rows = collector.probe_candidates(payload)
@@ -112,4 +123,35 @@ def test_采集候选_通道critical_端点warning():
     assert by_key["probe.channel.email_smtp"]["severity"] == "critical"
     assert by_key["probe.llm.endpoint"]["severity"] == "warning"
     assert "TLS 握手失败" in by_key["probe.channel.email_smtp"]["detail"]
+    assert "连续 2 轮" in by_key["probe.channel.email_smtp"]["detail"]
     assert "没发信" in by_key["probe.channel.email_smtp"]["detail"]
+
+
+def test_瞬时超时当场重试一次():
+    calls = {"n": 0}
+
+    def flaky(addr, timeout):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise socket.timeout("t")
+        return _Sock()
+
+    out = dp.probe_target({"id": "x", "kind": "channel", "host": "h", "port": 465},
+                          connector=flaky)
+    assert out["ok"] is True and calls["n"] == 2
+
+
+def test_连续失败计数累加与清零(tmp_path, monkeypatch):
+    monkeypatch.setattr(dp, "STATE_PATH", tmp_path / "p.json")
+    dp.reset_for_tests()
+    bad = [{"id": "channel:x", "kind": "channel", "host": "h", "port": 9, "tls": False}]
+
+    def fail(addr, timeout):
+        raise ConnectionRefusedError("r")
+
+    monkeypatch.setattr(dp, "probe_target", lambda t, timeout=0: {
+        "id": t["id"], "kind": t["kind"], "ok": False, "ms": 1, "code": "refused", "detail": "x"})
+    first = dp.run_once(bad)
+    second = dp.run_once(bad)
+    assert first["results"][0]["consecutive_failures"] == 1
+    assert second["results"][0]["consecutive_failures"] == 2
