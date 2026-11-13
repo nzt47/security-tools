@@ -12,6 +12,7 @@
 import { useEffect, useState } from 'react'
 import { DownloadCloud, Loader2, RefreshCw, ShieldCheck, Undo2 } from 'lucide-react'
 import { Card } from '../components/ui'
+import MemorySessionsImportCard from '@/components/memory/MemorySessionsImportCard'
 import {
   MemoryImportApiError, commitMemoryImport, fetchImportedVectorDocs,
   fetchMemoryImportBatches, fetchMemoryImportSources, previewMemoryImport,
@@ -212,6 +213,7 @@ export default function MemoryImportPanel() {
     : '无'
 
   return (
+    <>
     <Card title="导入外部记忆">
       <p className="mb-3 text-xs leading-6 text-slate-500">
         把 Claude / Trae 的规则与会话轨迹导入云枢：规则进知识卡片，会话/提问进<span className="text-slate-300">向量记忆</span>（可语义检索、可按批回滚）。
@@ -560,5 +562,9 @@ export default function MemoryImportPanel() {
       )}
 
     </Card>
+    <div className="mt-4">
+      <MemorySessionsImportCard />
+    </div>
+    </>
   )
 }

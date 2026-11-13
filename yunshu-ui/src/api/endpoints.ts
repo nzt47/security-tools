@@ -411,6 +411,10 @@ export const VECTOR_CLEAR = '/api/vector/clear';
 export const VECTOR_RECENT = '/api/vector/recent';
 // 外部记忆导入（记忆管理页「导入外部记忆」；commit 默认 dry-run，confirm=true 才真写）
 export const MEMORY_IMPORT_SOURCES = '/api/memory-import/sources';
+/** 外部会话「全话」迁移（2026-11-14）：与上面的卡片导入分开 */
+export const MEMORY_SESSION_SOURCES = '/api/memory/import/sessions/sources';
+export const MEMORY_SESSION_IMPORT = '/api/memory/import/sessions';
+export const MEMORY_SESSION_LATEST = '/api/memory/import/sessions/latest';
 export const MEMORY_IMPORT_PREVIEW = '/api/memory-import/preview';
 export const MEMORY_IMPORT_COMMIT = '/api/memory-import/commit';
 export const MEMORY_IMPORT_BATCHES = '/api/memory-import/batches';

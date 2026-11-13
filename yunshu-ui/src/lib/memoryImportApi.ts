@@ -18,7 +18,8 @@ import {
 } from '../api/envelope'
 import {
   MEMORY_IMPORT_BATCHES, MEMORY_IMPORT_COMMIT, MEMORY_IMPORT_PREVIEW,
-  MEMORY_IMPORT_ROLLBACK, MEMORY_IMPORT_SOURCES, VECTOR_RECENT,
+  MEMORY_IMPORT_ROLLBACK, MEMORY_IMPORT_SOURCES, MEMORY_SESSION_IMPORT,
+  MEMORY_SESSION_LATEST, MEMORY_SESSION_SOURCES, VECTOR_RECENT,
 } from '../api/endpoints'
 
 export interface MemoryImportSource {
@@ -278,3 +279,73 @@ export async function fetchImportedVectorDocs(limit = 100, signal?: AbortSignal)
     })
 }
 
+
+// ─────────────────────────────────────────────────────────────
+// 外部会话「全话」迁移（2026-11-14）
+// 与卡片导入的区别：整段会话按来源幂等追加进 data/messages.jsonl，
+// 不摘要、不改写；dry-run 只回计数。
+// ─────────────────────────────────────────────────────────────
+
+export interface MemorySessionSource {
+  id: string
+  label: string
+  available: boolean
+  detail: string
+  /** 本机可解析的会话/文件数（Trae 本地拿不到会话边界 ⇒ 恒 0） */
+  sessions: number
+}
+
+export type MemorySessionCounts = Record<string, number>
+
+export interface MemorySessionReport {
+  source: string
+  dry_run: boolean
+  started_at?: string
+  finished_at?: string
+  duration_ms?: number
+  sessions: MemorySessionCounts
+  messages: MemorySessionCounts
+  chars: MemorySessionCounts
+  bytes_written?: number
+  redactions?: Record<string, number>
+  truncated_messages?: number
+  errors?: Array<{ session_id: string; error: string }>
+  has_more?: boolean
+  partial?: boolean
+  messages_path?: string
+  ledger_path?: string
+  report_path?: string
+  audit?: { seq?: number }
+}
+
+export async function fetchMemorySessionSources(
+  signal?: AbortSignal,
+): Promise<{ sources: MemorySessionSource[]; note?: string }> {
+  const res = await fetch(MEMORY_SESSION_SOURCES, { headers: headersFor(false), signal })
+  return readSuccess<{ sources: MemorySessionSource[]; note?: string }>(res, MEMORY_SESSION_SOURCES)
+}
+
+export async function importMemorySessions(input: {
+  source: string
+  dry_run: boolean
+  confirm?: boolean
+  limit_sessions?: number
+  include_subagents?: boolean
+}, signal?: AbortSignal): Promise<MemorySessionReport> {
+  const res = await fetch(MEMORY_SESSION_IMPORT, {
+    method: 'POST',
+    headers: headersFor(true),
+    body: JSON.stringify({ dry_run: true, ...input }),
+    signal,
+  })
+  return readSuccess<MemorySessionReport>(res, MEMORY_SESSION_IMPORT)
+}
+
+export async function fetchMemorySessionLatest(
+  source: string,
+  signal?: AbortSignal,
+): Promise<{ source: string; report: MemorySessionReport | null }> {
+  const res = await fetch(MEMORY_SESSION_LATEST + '?source=' + encodeURIComponent(source),
+    { headers: headersFor(false), signal })
+  return readSuccess<{ source: string; report: MemorySessionReport | null }>(res, MEMORY_SESSION_LATEST)
+}
