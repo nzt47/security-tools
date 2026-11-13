@@ -170,3 +170,48 @@ class TestNoBareSpawners:
         src = (REPO_ROOT / "agent" / "digestion" / "isolation_worker.py").read_text(encoding="utf-8")
         assert "_NO_WINDOW" in src, "隔离执行体必须就地取 CREATE_NO_WINDOW 常量"
         assert "from agent" not in src and "import agent" not in src
+
+class TestServerKeepsHiddenConsole:
+    """**根因层**守卫：后端自己必须跑在一个「不可见的控制台」里。
+
+    2026-11-13 实测（docs/handoff/rounds §11.102 D-9）：DETACHED_PROCESS 让后端**完全没有
+    控制台**，于是它 spawn 的任何控制台子程序（sensor/ 里的 netstat/wmic/powershell、
+    knowledge/ cognitive/ 里的 python 脚本）都会被系统**新分配一个可见控制台** ⇒
+    定时任务/「行为漂移检测」一跑就闪黑窗。改成 CREATE_NO_WINDOW 后：后端有一个不可见控制台，
+    子进程**继承**它（实测孙进程 GetConsoleWindow()==0 且 IsWindowVisible()==false）。
+    这两条 spawn 点（部署 / 看护）是"所有子进程"的共同上游，改坏了就会全仓闪窗。
+    """
+
+    @staticmethod
+    def _src(rel: str) -> str:
+        return (REPO_ROOT / rel).read_text(encoding="utf-8")
+
+    @pytest.mark.parametrize("rel", ["scripts/deploy_workbench.py", "scripts/watchdog_yunshu.py"])
+    def test_backend_spawn_uses_hidden_console(self, rel):
+        src = self._src(rel)
+        assert "CREATE_NO_WINDOW" in src, "%s 必须用 CREATE_NO_WINDOW 拉起后端" % rel
+        assert "0x00000008" not in src, (
+            "%s 里出现 DETACHED_PROCESS(0x00000008)：后端会**没有**控制台，"
+            "它 spawn 的每个控制台子程序都会各开一个黑窗" % rel
+        )
+        assert "DETACHED_PROCESS" not in src.split("def spawn_backend")[0].split("CREATE_NO_WINDOW")[-1]
+
+    def test_launcher_keeps_a_visible_observer_window(self):
+        """静默不等于成功：一键启动必须给出一个**可见**的观察窗（Owner 2026-11-13 要求）。"""
+        bat = self._src("start_yunshu.bat")
+        assert "yunshu_observe.py" in bat, "一键启动必须打开观察窗，否则用户无法判断是否已启动"
+        assert "-WindowStyle Hidden" in bat, "后端仍然必须隐藏（不能为了观察窗把后端窗口放出来）"
+        assert "cmd /k" not in bat, "旧的 cmd /k 后端窗口会一直挂着"
+
+    def test_observer_script_is_stdlib_only(self):
+        """观察窗必须能在后端起不来时单独跑（不 import agent.*）。"""
+        src = self._src("scripts/yunshu_observe.py")
+        code = [ln for ln in src.splitlines()
+                if ln.strip() and not ln.lstrip().startswith("#")]
+        imports = [ln.strip() for ln in code
+                   if ln.strip().startswith(("import ", "from "))]
+        assert not [ln for ln in imports if ln.split()[1].startswith("agent")], (
+            "观察窗不能 import agent.*（后端起不来时它还得能跑）：%s" % imports
+        )
+        assert "FLASK_API_TOKEN" in src, "观察窗要读令牌才能看 /api/version（但不得打印）"
+        assert "print(self.token" not in src and 'print(token' not in src

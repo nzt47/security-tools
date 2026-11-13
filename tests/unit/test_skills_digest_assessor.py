@@ -632,7 +632,20 @@ class TestAutoAssessHooks:
 # ═══════════════════════════════════════════════════════════════
 
 class TestAssessFeedPagination:
-    """assessment_feed(limit, offset)：评估事件 + 审计记录合并、时间倒序、分页切片。"""
+    """assessment_feed(limit, offset)：评估事件 + 审计记录合并、时间倒序、分页切片。
+
+    【只测合并/排序/分页，不测"未来时间戳"防御】本类夹具用的是**固定日期**
+    （2026-01-01）。日期平移守卫工作流的 −400 天臂下，"现在"被挪到 2025-10，
+    那些固定日期就成了"未来" ⇒ 读侧的 is_future_timestamp 会把它们全部过滤掉，
+    用例会以 `[] == [...]` 的形式误红（2026-11-13 实测，四个臂里 −400 红）。
+    "未来时间戳"的判定另有专门用例（test_future_timestamp_*），这里显式关掉它，
+    让本类只对分页契约负责。
+    """
+
+    @pytest.fixture(autouse=True)
+    def _disable_future_filter(self, monkeypatch):
+        from agent.skills_mgmt import service as _service
+        monkeypatch.setattr(_service, "is_future_timestamp", lambda _ts: False)
 
     def test_merge_sort_desc_and_slice(self, svc):
         events = [

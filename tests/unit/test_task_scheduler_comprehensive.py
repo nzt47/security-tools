@@ -463,7 +463,12 @@ class TestRunTask:
         }
         result = scheduler.run_task(task)
         assert result["status"] == "failed"
-        assert "test error" in result["error"]
+        # 【C-6 口径（2026-11-12）】result 会被 /api/scheduler/execute-now 与
+        # /api/schedules/history 原样 jsonify ⇒ 只回异常**类名**，原文进日志。
+        # 本条原断言 "test error" in error 是 C-6 之前的旧契约（该用例在慢档 --runslow
+        # 里，主 CI 不跑 ⇒ 一直红在「日期平移守卫」工作流，2026-11-13 修）。
+        assert "ValueError" in result["error"]
+        assert "test error" not in result["error"], "异常原文不许进响应（py/stack-trace-exposure）"
 
     def test_run_command_success(self, tmp_path, monkeypatch):
         monkeypatch.setattr("agent.task_scheduler.TASK_HISTORY_FILE", tmp_path / "history.jsonl")

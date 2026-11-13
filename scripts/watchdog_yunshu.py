@@ -60,6 +60,10 @@ DEFAULT_LOCK_PATH = os.path.join(REPO_ROOT, "logs", "watchdog_yunshu.lock")
 #: 后端启动命令（与 start_yunshu.bat 的 `python app_server.py` 一致）
 BACKEND_ARGV = ["app_server.py"]
 
+#: Windows 进程创建标志：不可见控制台 + 独立进程组（语义见 spawn_backend）
+CREATE_NO_WINDOW = 0x08000000
+CREATE_NEW_PROCESS_GROUP = 0x00000200
+
 
 def read_repo_head(repo_root: str = REPO_ROOT) -> Optional[str]:
     """尽力读取当前仓库 HEAD（先 git，失败退回 .git/HEAD 文件解析）；绝不抛异常。
@@ -191,10 +195,13 @@ def spawn_backend(*, dry_run: bool = False) -> Optional[int]:
     out_path = os.path.join(REPO_ROOT, "logs", "watchdog_spawn_%s.out.log" % stamp)
     err_path = os.path.join(REPO_ROOT, "logs", "watchdog_spawn_%s.err.log" % stamp)
     argv = [sys.executable] + BACKEND_ARGV
-    # DETACHED_PROCESS: 不继承本控制台 ⇒ 关掉看门狗窗口不会连带杀掉后端
+    # CREATE_NO_WINDOW: 后端自己拿一个**不可见**控制台（不是没有控制台）——
+    # 这样它 spawn 的 gh/python/netstat 等子进程会**继承**这个隐藏控制台，不会各开一个黑窗
+    # （DETACHED_PROCESS 会让每个子进程新分配可见控制台，2026-11-13 实测）。
+    # 关掉看护窗口仍然不会连带杀掉后端：两者各有自己的 console，不是共享的。
     creat = 0
     if sys.platform == "win32":
-        creat = 0x00000008 | 0x00000200  # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
+        creat = CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP
     with open(out_path, "ab") as fo, open(err_path, "ab") as fe:
         proc = subprocess.Popen(argv, cwd=REPO_ROOT, stdout=fo, stderr=fe,
                                 stdin=subprocess.DEVNULL, creationflags=creat,

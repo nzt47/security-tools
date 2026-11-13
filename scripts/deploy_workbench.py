@@ -313,14 +313,28 @@ def watchdog_pid(lock: Path = WATCHDOG_LOCK) -> Optional[int]:
     return None
 
 
+#: Windows 进程创建标志（0x08000000 / 0x00000200）—— 语义见 spawn_backend 的说明
+CREATE_NO_WINDOW = 0x08000000
+CREATE_NEW_PROCESS_GROUP = 0x00000200
+
+
 def spawn_backend(repo_root: Path, python_exe: str) -> int:
-    """分离进程拉起后端（与看护进程同构：不继承控制台、日志落 logs/）。"""
+    """分离进程拉起后端（与看护进程同构：不继承控制台、日志落 logs/）。
+
+    【2026-11-13 改：CREATE_NO_WINDOW 而不是 DETACHED_PROCESS】
+    实测（docs/handoff/rounds §11.102 D-9）：DETACHED_PROCESS 让后端**完全没有控制台**，
+    于是它每 spawn 一个控制台子程序（gh / python / netstat / wmic / powershell…）Windows 都会
+    给那个子进程**新分配一个可见控制台** ⇒ 定时任务/传感器一跑就闪黑窗。
+    改成 CREATE_NO_WINDOW|CREATE_NEW_PROCESS_GROUP 后：后端自己有一个**不可见**的控制台，
+    子进程**继承**它（实测孙进程 GetConsoleWindow()==0 且 IsWindowVisible()=false），
+    而关掉启动器/看护的窗口也不会连带杀掉后端（各有自己的 console，不是共享的）。
+    """
     logs = Path(repo_root) / "logs"
     logs.mkdir(parents=True, exist_ok=True)
     stamp = time.strftime("%Y%m%d_%H%M%S")
     out_path = logs / ("deploy_spawn_%s.out.log" % stamp)
     err_path = logs / ("deploy_spawn_%s.err.log" % stamp)
-    creat = 0x00000008 | 0x00000200 if os.name == "nt" else 0
+    creat = CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
     with open(out_path, "ab") as fo, open(err_path, "ab") as fe:
         proc = subprocess.Popen([python_exe, *BACKEND_ARGV], cwd=str(repo_root),
                                 stdout=fo, stderr=fe, stdin=subprocess.DEVNULL,

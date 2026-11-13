@@ -31,12 +31,18 @@ WSCRIPT = SYSTEM_ROOT / "System32" / "wscript.exe"
 POWERSHELL = SYSTEM_ROOT / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
 PYTHON_EXE = Path(sys.executable)
 
-#: (桌面图标名, 启动器参数, 说明) —— 只有两个入口，别再加
+#: 观察窗入口（可见窗口，只读）—— 与隐藏启动器分开，因为它是**故意**可见的那一个
+OBSERVER_BAT = REPO_ROOT / "observe_yunshu.bat"
+
+#: (桌面图标名, 启动器参数|None, 说明, 目标)
+#: 参数为 None ⇒ 直接指向观察窗的 .bat（可见控制台）；否则 wscript + yunshu_launch.vbs
 SHORTCUTS = [
     ("云枢一键启动.lnk", "start_yunshu",
-     "启动云枢后端（生产构建）并打开工作台 http://127.0.0.1:5678/chat（无控制台窗口）"),
+     "启动云枢后端（生产构建）+ 打开观察窗与工作台 http://127.0.0.1:5678/chat", None),
+    ("云枢状态.lnk", "observe",
+     "打开云枢后台观察窗（只读：健康/版本/单位/覆盖/最近错误；关掉不影响后端）", OBSERVER_BAT),
     ("云枢看护.lnk", "watchdog",
-     "手动启动云枢看护进程（每 30s 探活，连续 3 次失败自动重启后端；无控制台窗口）"),
+     "手动启动云枢看护进程（每 30s 探活，连续 3 次失败自动重启后端；无控制台窗口）", None),
 ]
 
 #: 快捷方式窗口样式：1 = 常规窗口（wscript 自身没有控制台 ⇒ 不会出现黑窗）
@@ -53,14 +59,17 @@ def _ps_string(text: object) -> str:
 def build_command(desktop: Path) -> str:
     """拼出创建两个快捷方式的 PowerShell 脚本。"""
     parts = ["$ws = New-Object -ComObject WScript.Shell"]
-    for name, mode, desc in SHORTCUTS:
+    for name, mode, desc, target in SHORTCUTS:
         link = desktop / name
+        if target is None:
+            exe, args = WSCRIPT, '"%s" %s' % (LAUNCHER, mode)
+        else:
+            exe, args = target, ""
         parts.append(
             "$s = $ws.CreateShortcut(%s); "
             "$s.TargetPath = %s; $s.Arguments = %s; $s.WorkingDirectory = %s; "
             "$s.WindowStyle = %d; $s.IconLocation = %s; $s.Description = %s; $s.Save()"
-            % (_ps_string(link), _ps_string(WSCRIPT),
-               _ps_string('"%s" %s' % (LAUNCHER, mode)),
+            % (_ps_string(link), _ps_string(exe), _ps_string(args),
                _ps_string(REPO_ROOT), WINDOW_STYLE_NORMAL,
                _ps_string("%s,0" % PYTHON_EXE), _ps_string(desc))
         )
@@ -94,8 +103,9 @@ def main(argv=None) -> int:
     if proc.returncode != 0:
         print("[ERROR] 创建快捷方式失败：%s" % ((proc.stderr or "").strip()[:500] or proc.returncode))
         return 1
-    for name, mode, _desc in SHORTCUTS:
-        print("[OK] %s -> wscript %s %s" % (desktop / name, LAUNCHER.name, mode))
+    for name, mode, _desc, target in SHORTCUTS:
+        what = (target or LAUNCHER).name
+        print("[OK] %s -> %s %s" % (desktop / name, what, mode if target is None else ""))
     return 0
 
 

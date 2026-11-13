@@ -95,6 +95,11 @@ if errorlevel 1 (
 echo  OK backend is ready.
 
 :open_browser
+REM Observer window: the ONE deliberately visible console (read-only, shows
+REM health / pid / commit / units / coverage / last backend errors). Closing it
+REM does NOT stop the backend. Opened also when the backend failed to start -
+REM that is exactly when you need to see why.
+start "Yunshu Observer" python "%ROOT%scripts\yunshu_observe.py"
 start "" "%URL%"
 echo.
 echo  Opened: %URL%
