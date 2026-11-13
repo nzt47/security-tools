@@ -28,6 +28,7 @@ import json
 import logging
 import os
 import threading
+import time
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -59,6 +60,12 @@ MAX_ALARMS = 500
 DEFAULT_SILENCE_MINUTES = 60
 #: 静默上限（防止"永久静默"把报警器变成摆设）
 MAX_SILENCE_MINUTES = 24 * 60
+
+#: 落盘重试次数与间隔（磁盘瞬时占用最常见，3×50ms 足够过渡）
+_SAVE_RETRIES = 3
+_SAVE_RETRY_SLEEP_SEC = 0.05
+#: consistency() 默认回看多少条事件
+_CONSISTENCY_EVENT_LINES = 5000
 
 _VERSION = 1
 
@@ -126,6 +133,8 @@ class AlarmStore:
         self._alarms: Dict[str, Alarm] = {}
         self._next_id = 1
         self._loaded = False
+        #: 上一次落盘是否失败（失败后内存态比磁盘新 ⇒ 需要 flush 补写，否则重启就"回退"）
+        self._dirty = False
 
     # ── 载入 / 落盘 ────────────────────────────────────────────
     def _ensure_loaded(self) -> None:
@@ -150,16 +159,48 @@ class AlarmStore:
         if self._alarms:
             self._next_id = max(self._next_id, max(a.id for a in self._alarms.values()) + 1)
 
-    def _save(self) -> None:
+    def _save(self) -> bool:
+        """原子落盘（3 次重试）。
+
+        【2026-11-13 为什么改成"不抛 + 重试 + dirty 标记"】resolve/reopen 是"先写事件、再写
+        state"：state 落盘失败时内存态已经变了、磁盘还停在旧态 ⇒ 重启后 **state 与事件流打架**
+        （实测 verify.channel_probe 的 state=resolved 而最后一条事件是 reopen）。现在失败不抛，
+        置 `_dirty`，下一轮采集前 `flush()` 补写；`consistency()` 把这个"打架"暴露成读数。
+        """
         payload = {
             "version": _VERSION,
             "next_id": self._next_id,
             "alarms": [a.to_dict() for a in self._sorted()],
         }
-        self._state_path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = self._state_path.with_suffix(".json.tmp")
-        tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=1), encoding="utf-8")
-        os.replace(tmp, self._state_path)
+        last_error: Optional[BaseException] = None
+        for _attempt in range(_SAVE_RETRIES):
+            try:
+                self._state_path.parent.mkdir(parents=True, exist_ok=True)
+                tmp = self._state_path.with_suffix(".json.tmp")
+                tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=1), encoding="utf-8")
+                os.replace(tmp, self._state_path)
+                self._dirty = False
+                return True
+            except OSError as exc:  # 磁盘忙 / 被占用 / 权限 —— 重试，失败就留给 flush
+                last_error = exc
+                time.sleep(_SAVE_RETRY_SLEEP_SEC)
+        self._dirty = True
+        logger.error("报警台账落盘失败（重试 %d 次，标记 dirty，下轮 flush 补写）: %s",
+                     _SAVE_RETRIES, type(last_error).__name__)
+        return False
+
+    def flush(self) -> bool:
+        """把未落盘的内存态补写一次（只有上一次 _save 失败过才真正写盘）。"""
+        with self._lock:
+            self._ensure_loaded()
+            if not self._dirty:
+                return True
+            return self._save()
+
+    @property
+    def dirty(self) -> bool:
+        """内存态是否比磁盘新（落盘失败未恢复）。"""
+        return bool(self._dirty)
 
     def _append_event(self, event: str, alarm: Alarm, now: datetime,
                       extra: Optional[Dict[str, object]] = None) -> None:
@@ -270,6 +311,77 @@ class AlarmStore:
                 if self.resolve(key, now=now) is not None:
                     resolved += 1
         return {"raised": raised, "resolved": resolved}
+
+    # ── 自检：state 与事件流是否一致 ────────────────────────────
+    def _tail_events(self, limit: int) -> List[Dict[str, object]]:
+        """读事件文件末尾 limit 行（读不到就空 —— 自检不能反过来把服务拖垮）。"""
+        try:
+            with self._events_path.open("r", encoding="utf-8", errors="replace") as handle:
+                lines = handle.readlines()[-max(1, int(limit)):]
+        except OSError:
+            return []
+        out: List[Dict[str, object]] = []
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                record = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(record, dict):
+                out.append(record)
+        return out
+
+    def consistency(self, *, limit_events: int = _CONSISTENCY_EVENT_LINES) -> Dict[str, object]:
+        """自检：每条告警的 state 与它**最后一条事件**的 state 是否一致。
+
+        这是"绿色已恢复"可信度的前提：如果 state 说 resolved、事件流最后一条却是 reopen，
+        那界面上那个绿色就是假的。`dirty=True` 说明内存态比磁盘新（上一轮落盘失败）。
+        """
+        with self._lock:
+            self._ensure_loaded()
+            last_event: Dict[str, Dict[str, object]] = {}
+            events = self._tail_events(limit_events)
+            for record in events:
+                key = str(record.get("key") or "")
+                if key:
+                    last_event[key] = record
+            drifts: List[Dict[str, object]] = []
+            for key, alarm in self._alarms.items():
+                record = last_event.get(key)
+                if record is None:
+                    continue
+                event_state = str(record.get("state") or "")
+                if event_state and event_state != alarm.state:
+                    drifts.append({
+                        "key": key, "id": alarm.id, "state": alarm.state,
+                        "last_event": record.get("event"), "last_event_state": event_state,
+                        "last_event_at": record.get("at"),
+                    })
+            return {"checked": len(self._alarms), "events_seen": len(events),
+                    "drift": len(drifts), "drifts": drifts, "dirty": bool(self._dirty)}
+
+    def sync_events(self, keys: Iterable[str],
+                    now: Optional[datetime] = None) -> int:
+        """给"状态与事件流不一致"的告警补一条 `state_sync` 事件（让事件流追上当前态）。
+
+        不删除、不改历史，只追加一条"我在这里对了一次账"，并带上当前 state。
+        """
+        ts = _now(now)
+        synced = 0
+        with self._lock:
+            self._ensure_loaded()
+            for key in keys:
+                alarm = self._alarms.get(str(key))
+                if alarm is None:
+                    continue
+                self._append_event("state_sync", alarm, ts,
+                                   {"reason": "state/events drift detected"})
+                synced += 1
+            if synced:
+                self._save()
+        return synced
 
     # ── 读 ────────────────────────────────────────────────────
     def _sorted(self) -> List[Alarm]:

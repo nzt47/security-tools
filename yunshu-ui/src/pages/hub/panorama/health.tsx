@@ -229,7 +229,9 @@ export const ALERT_STATE_LABEL: Record<string, string> = {
   firing: '触发中',
   pending: '待确认（未满 for）',
   ok: '正常',
-  resolved: '已恢复',
+  // 【2026-11-13】不放 resolved：本进程规则引擎只产出 firing/pending/ok/no_data/warming/
+  // unsupported/error（agent/alarms/rules.py）。resolved 是**报警台账**的状态，
+  // 由消息中心/铃铛展示为「已自动恢复」—— 两套状态语义不混用。
   no_data: '无数据（指标不存在）',
   warming: '样本不足（刚启动）',
   unsupported: '需 Prometheus',

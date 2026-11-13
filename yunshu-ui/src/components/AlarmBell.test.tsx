@@ -79,6 +79,18 @@ describe('报警器 · 读数', () => {
     expect(screen.queryByTestId('alarm-badge')).toBeNull()
   })
 
+  it('全部已读但仍有 firing 时，空态必须说明「仍有 N 条未恢复」而不是"正常"', async () => {
+    installRoutes({
+      unread: { unread: 0, summary: { total: 2, unread: 0, firing: 2, resolved: 0, firing_by_severity: {} } },
+      list: { items: [], total: 0, limit: PANEL_ITEM_LIMIT, offset: 0, summary: {} },
+    })
+    render(<AlarmBell />)
+    fireEvent.click(screen.getByTestId('alarm-bell'))
+    const empty = await screen.findByTestId('alarm-empty')
+    expect(empty.textContent).toContain('仍有 2 条未恢复')
+    expect(empty.textContent).not.toContain('系统运行正常')
+  })
+
   it('读数失败要上屏，且不显示假未读', async () => {
     fetchMock.mockImplementation(async () => {
       throw new Error('HTTP 503')
@@ -135,14 +147,27 @@ describe('报警器 · 动作只打对应端点', () => {
     })
   })
 
-  it('已恢复的条目带「已恢复」标记', async () => {
+  it('resolved 条目带「已自动恢复」标记（不是"已处理"）', async () => {
     installRoutes({
       list: { items: [RESOLVED], total: 1, limit: PANEL_ITEM_LIMIT, offset: 0, summary: {} },
     })
     render(<AlarmBell />)
     fireEvent.click(await screen.findByTestId('alarm-bell'))
     const item = await screen.findByTestId('alarm-item-8')
-    expect(within(item).getByText('已恢复')).toBeTruthy()
+    expect(within(item).getByText('已自动恢复')).toBeTruthy()
+    // 旧文案「已恢复」容易读成"人已处理"，不能留
+    expect(within(item).queryByText('已恢复')).toBeNull()
+  })
+
+  it('已确认的条目额外显示「· 已确认」', async () => {
+    const acked = { ...RESOLVED, acked: true, acked_by: 'owner', acked_at: '2026-11-13T10:00:00+08:00' }
+    installRoutes({
+      list: { items: [acked], total: 1, limit: PANEL_ITEM_LIMIT, offset: 0, summary: {} },
+    })
+    render(<AlarmBell />)
+    fireEvent.click(await screen.findByTestId('alarm-bell'))
+    const item = await screen.findByTestId('alarm-item-8')
+    expect(within(item).getByText('· 已确认')).toBeTruthy()
   })
 })
 

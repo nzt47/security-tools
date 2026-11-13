@@ -712,8 +712,14 @@ def api_memory_update_summary():
 def api_memory_review():
     """记忆库审查接口（legacy：原 agent/server_routes/routes_memory.py）
 
-    GET: 返回上次审查结果 + LTM 统计
-    POST: 触发快速审查 (review_quick)
+    GET: 返回上次审查结果 + LTM 统计 + **最近一次整理候选报告**
+    POST: 触发审查；body `{"mode": "quick"|"full"}`，缺省 quick（向后兼容）
+
+    【2026-11-13 为什么加 full】quick 只读**长期记忆库**的统计，而线上 long_term.db 是 0 行
+    ⇒ 每天跑一次也只是 0 陈旧/0 重复（"记忆库审查"实际上什么都没看）。full 才做两件事：
+    ① reviewer.review() 真正算陈旧/重复；② agent/memory/consolidation.py 扫**对话记忆**
+    （data/messages.jsonl）出"无响应近重复"候选，只报告不删、零 token，报告落
+    data/maintenance/memory/。
     """
     from app_server import _Yunshu
     try:
@@ -722,20 +728,32 @@ def api_memory_review():
             return jsonify({"ok": False, "error": "记忆审查器未启用"}), 503
 
         if request.method == "GET":
+            from agent.memory import consolidation
             last_review = reviewer.get_last_review()
             return jsonify({
                 "last_review": vars(last_review) if last_review else None,
                 "stats": _Yunshu._long_term_memory.get_stats() if _Yunshu._long_term_memory else {},
+                "consolidation": consolidation.latest_report(),
             })
         else:  # POST
+            payload = request.get_json(silent=True) or {}
+            mode = str(payload.get("mode") or "quick").strip().lower()
             import asyncio
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             try:
+                if mode == "full":
+                    from agent.memory import consolidation
+                    result = loop.run_until_complete(reviewer.review())
+                    report = consolidation.scan()
+                    report_path = consolidation.write_report(report)
+                    return jsonify({"ok": True, "mode": "full",
+                                    "result": vars(result) if hasattr(result, "__dict__") else result,
+                                    "consolidation": report, "report_path": report_path})
                 result = loop.run_until_complete(reviewer.review_quick())
             finally:
                 loop.close()
-            return jsonify({"ok": True, "result": result})
+            return jsonify({"ok": True, "mode": "quick", "result": result})
     except Exception as e:
         return _fail(e)
 

@@ -196,3 +196,59 @@ class TestSummary:
         assert summary["firing"] == 1 and summary["resolved"] == 1
         assert summary["firing_by_severity"]["critical"] == 1
         assert summary["unread"] == 2
+
+class TestConsistency:
+    """2026-11-13：state 与事件流一致性（"绿色已恢复"可信度的前提）。
+
+    实测过的漂移：verify.channel_probe 的 state=resolved，而 events.jsonl 最后一条是 reopen。
+    根因是"先写事件、再写 state"，state 落盘失败时内存态比磁盘新。
+    """
+
+    def test_新台账一致(self, store):
+        _raise(store)
+        assert store.consistency()["drift"] == 0
+
+    def test_人为制造漂移能被发现(self, store):
+        _raise(store)
+        store.resolve("health.l3_llm_tool", now=T0 + timedelta(minutes=1))
+        # 补一条 reopen 事件（模拟"事件写了、state 没落盘"的现场）
+        with open(store._events_path, "a", encoding="utf-8") as handle:
+            handle.write(json.dumps({"event": "reopen", "key": "health.l3_llm_tool",
+                                     "state": STATE_FIRING, "at": "2026-11-11T01:02:00+00:00"},
+                                    ensure_ascii=False) + "\n")
+
+        report = store.consistency()
+        assert report["drift"] == 1
+        assert report["drifts"][0]["state"] == STATE_RESOLVED
+        assert report["drifts"][0]["last_event"] == "reopen"
+
+    def test_sync_events_补齐后归零(self, store):
+        _raise(store)
+        store.resolve("health.l3_llm_tool", now=T0 + timedelta(minutes=1))
+        with open(store._events_path, "a", encoding="utf-8") as handle:
+            handle.write(json.dumps({"event": "reopen", "key": "health.l3_llm_tool",
+                                     "state": STATE_FIRING, "at": "2026-11-11T01:02:00+00:00"},
+                                    ensure_ascii=False) + "\n")
+
+        assert store.sync_events(["health.l3_llm_tool"]) == 1
+        assert store.consistency()["drift"] == 0, "补一条 state_sync 事件后事件流应追上当前态"
+
+    def test_落盘失败置_dirty_且_flush_能补写(self, store, monkeypatch):
+        _raise(store)
+        real_replace = __import__("os").replace
+
+        def boom(src, dst):
+            raise OSError("disk busy")
+
+        monkeypatch.setattr("agent.alarms.store.os.replace", boom)
+        assert store._save() is False
+        assert store.dirty is True
+
+        monkeypatch.setattr("agent.alarms.store.os.replace", real_replace)
+        assert store.flush() is True
+        assert store.dirty is False
+
+    def test_consistency_读不到事件文件也不抛(self, store):
+        store._events_path.unlink(missing_ok=True)
+        report = store.consistency()
+        assert report["drift"] == 0 and report["events_seen"] == 0

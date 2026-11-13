@@ -886,6 +886,23 @@ def _warn_if_gate_shadow_once() -> None:
 
 
 @app.before_request
+def _mark_human_activity():
+    """把"有人在用"告诉空闲闸门（日志内省 / 零 token 维护作业靠它避让）。
+
+    【为什么是 before_request】这是唯一覆盖所有浏览器/脚本请求的位置；一次模块级 float 赋值，
+    没有锁竞争。**任何异常都吞掉**：记活动失败绝不能变成 500（可用性优先）。放在鉴权闸门
+    **之前**：被 401 拒掉的请求同样证明"有人在用"。
+    【为什么还需要 GetLastInputInfo】钩子只在有请求时触发；用户只是用鼠标点桌面/打游戏时它不会跑，
+    系统级输入空闲由 agent/system_idle 独立兜底 —— 两层合起来才是"真的没人用"。
+    """
+    try:
+        from agent.log_system.introspection import get_idle_detector
+        get_idle_detector().mark_activity()
+    except Exception:  # noqa: BLE001 记活动失败不影响请求
+        pass
+
+
+@app.before_request
 def _api_auth_gate():
     """全局 API 鉴权兜底闸门。任何异常都放行并记 ERROR（可用性优先），不阻断业务。"""
     if _API_AUTH_MODE == "off":

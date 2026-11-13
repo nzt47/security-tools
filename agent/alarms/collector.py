@@ -282,6 +282,30 @@ def read_rule_states() -> Optional[List[dict]]:
         return None
 
 
+#: 规则"算不出/样本不足"的状态：这些**不能**当成"已恢复"。
+#: 依据：collector.py 头注与 rules.py 的口径 —— no_data 只代表"这一轮没算出值"
+#: （指标不存在 / 未自增 / 外部 Prometheus 没配），不代表指标回落到阈值内。
+_NON_RECOVERY_RULE_STATES = ("no_data", "unsupported", "warming", "error")
+
+
+def rule_keep_keys(states: Optional[List[dict]]) -> List[str]:
+    """求值结果是"算不出/样本不足"的规则 → 保留它已有的告警（不判恢复）。
+
+    2026-11-13：此前只有"整源不可用"才 keep，单条规则掉成 no_data 时会被 reconcile
+    当成"条件消失"而 resolve —— 那是**伪造恢复**（用户会看到绿色「已恢复」而根因没查）。
+    """
+    if not states:
+        return []
+    keys: List[str] = []
+    for raw in states:
+        if str(raw.get("state") or "") not in _NON_RECOVERY_RULE_STATES:
+            continue
+        alert = str(raw.get("alert") or "").strip()
+        if alert:
+            keys.append("rule." + alert)
+    return keys
+
+
 def rule_candidates(states: Optional[List[dict]]) -> List[dict]:
     """求值结果 → 报警候选（只取 firing）"""
     if not states:
@@ -581,6 +605,8 @@ def collect_once(store: Optional[AlarmStore] = None, *,
             keep_keys.update(unit_timeout_keys(payload))  # type: ignore[arg-type]
         elif name == "rules":
             rows = rule_candidates(payload)  # type: ignore[arg-type]
+            # 算不出/样本不足的规则：保留旧告警（见 rule_keep_keys 的注释）
+            keep_keys.update(rule_keep_keys(payload))  # type: ignore[arg-type]
         elif name == "scheduler":
             rows = scheduler_candidates(payload)  # type: ignore[arg-type]
         elif name == "ci":
@@ -598,7 +624,16 @@ def collect_once(store: Optional[AlarmStore] = None, *,
         if not checked.get(name):
             keep |= {k for k in _firing_keys(target) if k.startswith(prefix)}
 
+    # 上一轮落盘失败过就先补写（不然 reconcile 后的 consistency 会读到旧盘）
+    target.flush()
     stats = target.reconcile(candidates, keep=keep)
+    # 【2026-11-13】state/events 一致性自检：state 说 resolved 而最后一条事件是 reopen 时，
+    #   界面上的绿色「已恢复」就是假的。发现漂移就补一条 state_sync 事件（只追加，不改历史）。
+    consistency = target.consistency()
+    resynced = 0
+    if consistency.get("drift"):
+        resynced = target.sync_events([d["key"] for d in consistency.get("drifts") or []])
+        logger.warning("报警器：state 与事件流不一致 %d 条（已补 state_sync）", resynced)
     # 告警外发（2026-11-12）：把本轮产生的 firing/reopen/resolved 接到已安装的出站通道。
     # 旁路：任何失败只记日志，绝不影响台账与采集线程（dispatch_alert 自己也永不抛）。
     try:
@@ -609,9 +644,13 @@ def collect_once(store: Optional[AlarmStore] = None, *,
         logger.warning("报警器：外发失败（%s）", type(exc).__name__)
     global _last_stats
     _last_stats = {"at": time.time(), "checked": checked, "raised": stats["raised"],
-                   "resolved": stats["resolved"], "kept": sorted(keep), "warmup": warmup}
+                   "resolved": stats["resolved"], "kept": sorted(keep), "warmup": warmup,
+                   "consistency": {"drift": consistency.get("drift"),
+                                   "resynced": resynced,
+                                   "dirty": consistency.get("dirty")}}
     return {"checked": checked, "raised": stats["raised"],
-            "resolved": stats["resolved"], "kept": sorted(keep), "warmup": warmup}
+            "resolved": stats["resolved"], "kept": sorted(keep), "warmup": warmup,
+            "consistency": {"drift": consistency.get("drift"), "resynced": resynced}}
 
 
 def _firing_keys(store: AlarmStore) -> List[str]:

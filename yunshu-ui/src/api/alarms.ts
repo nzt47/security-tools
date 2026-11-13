@@ -41,6 +41,7 @@ export interface AlarmItem {
   read?: boolean
   acked?: boolean
   acked_by?: string
+  acked_at?: string
   silenced_until?: string
 }
 

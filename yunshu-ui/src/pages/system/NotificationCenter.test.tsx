@@ -156,3 +156,25 @@ describe('消息中心页', () => {
     )
   })
 })
+
+describe('消息中心 · 告警状态语义（2026-11-13）', () => {
+  it('resolved 显示「已自动恢复」，并区分「已确认」', async () => {
+    const alarmRows: NotificationItem[] = [
+      { id: 11, type: 'alert', severity: 'critical', title: 'L3 LLM 降级',
+        content: 'error_rate=20%', read: false, createdAt: '2026-11-13 10:00:00',
+        state: 'firing' },
+      { id: 12, type: 'alert', severity: 'warning', title: '技能异常',
+        content: 'unit.skills warn', read: true, createdAt: '2026-11-13 09:00:00',
+        state: 'resolved', acked: true, acked_by: 'owner',
+        acked_at: '2026-11-13T09:30:00+08:00' },
+    ]
+    mockGetNotifications.mockResolvedValue({ list: alarmRows, total: 2 })
+
+    renderList()
+
+    expect(await screen.findByText('已自动恢复')).toBeInTheDocument()
+    expect(screen.getByText('已确认')).toBeInTheDocument()
+    // 旧文案「已恢复」会被读成"人已处理"，不许再出现
+    expect(screen.queryByText('已恢复')).toBeNull()
+  })
+})

@@ -82,9 +82,14 @@ class TestRegister:
         monkeypatch.delenv("ZERO_TOKEN_JOBS_ENABLED", raising=False)
         calls = []
 
+        intervals: list = []
+
         class FakeScheduler:
             def add_cron_task(self, **kwargs):
                 calls.append(kwargs)
+
+            def add_interval_task(self, **kwargs):
+                intervals.append(kwargs)
 
         keys = z.register_zero_token_jobs(FakeScheduler())
         assert keys == [j["key"] for j in z.JOBS]
@@ -93,6 +98,10 @@ class TestRegister:
         ]
         assert all(c["day_of_week"] is None for c in calls)
         assert all(callable(c["func"]) for c in calls)
+        # 2026-11-13：多注册一条「维护·空闲补跑」（空闲闸门的补跑线程）
+        assert [i["name"] for i in intervals] == ["维护·空闲补跑"]
+        assert intervals[0]["interval_seconds"] == z.DRAIN_INTERVAL_SEC
+        assert intervals[0]["zero_token"] is True
 
     def test_开关可关闭(self, monkeypatch):
         monkeypatch.setenv("ZERO_TOKEN_JOBS_ENABLED", "0")
@@ -100,6 +109,9 @@ class TestRegister:
         class FakeScheduler:
             def add_cron_task(self, **kwargs):
                 raise AssertionError("关闭时不应注册")
+
+            def add_interval_task(self, **kwargs):
+                raise AssertionError("关闭时不应注册补跑任务")
 
         assert z.register_zero_token_jobs(FakeScheduler()) == []
 
@@ -112,13 +124,13 @@ class TestRunJob:
 
     def test_shell成功路径(self, monkeypatch):
         monkeypatch.setattr(z, "_run_shell", lambda argv: (True, "ok"))
-        result = z.run_job("route_coverage_check")
+        result = z.run_job("route_coverage_check", force=True)
         assert result["ok"] is True
         assert result["elapsed_ms"] >= 0
 
     def test_shell失败被如实回报(self, monkeypatch):
         monkeypatch.setattr(z, "_run_shell", lambda argv: (False, "exit=1 boom"))
-        result = z.run_job("capability_manifest_check")
+        result = z.run_job("capability_manifest_check", force=True)
         assert result["ok"] is False
         assert "boom" in result["detail"]
 
@@ -127,7 +139,7 @@ class TestRunJob:
             raise RuntimeError("kaboom")
 
         monkeypatch.setattr(z, "_run_shell", boom)
-        result = z.run_job("knowledge_audit")
+        result = z.run_job("knowledge_audit", force=True)
         assert result["ok"] is False
         assert "kaboom" in result["detail"]
 
@@ -149,3 +161,90 @@ class TestApiToken:
         monkeypatch.setattr(z, "REPO_ROOT", str(tmp_path))
         assert z._api_token() == ""
 
+
+class TestIdleGate:
+    """空闲闸门（2026-11-13）：到点不空闲就排队，空闲/兜底时补跑。
+
+    为什么这些用例重要：闸门的判据（agent/system_idle）如果退化成"恒空闲"，
+    这一整套就白做（§11.103 F：原 IdleDetector 就是恒空闲）。这里直接替换 z.idle_state，
+    把"空闲/不空闲/强制"三种分支都钉住。
+    """
+
+    @staticmethod
+    def _idle(is_idle: bool):
+        return lambda: {"is_idle": is_idle, "reason": "test", "idle_source": "test",
+                        "degraded": False, "idle_seconds": 600.0, "cpu_percent": 1.0}
+
+    def test_到点不空闲就排队而不是执行(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(z, "REPO_ROOT", str(tmp_path))
+        monkeypatch.setattr(z, "idle_state", self._idle(False))
+        ran = []
+        monkeypatch.setattr(z, "_run_shell", lambda argv: (ran.append(argv), (True, "ok"))[1])
+
+        result = z.run_job("route_coverage_check")
+
+        assert result["ok"] is True and result["deferred"] is True
+        assert ran == [], "不空闲时不许真的跑"
+        pending = z._load_pending()
+        assert pending["keys"] == ["route_coverage_check"]
+
+    def test_空闲时直接执行(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(z, "REPO_ROOT", str(tmp_path))
+        monkeypatch.setattr(z, "idle_state", self._idle(True))
+        monkeypatch.setattr(z, "_run_shell", lambda argv: (True, "ok"))
+
+        result = z.run_job("route_coverage_check")
+
+        assert result.get("deferred") is not True and result["ok"] is True
+
+    def test_补跑在空闲时执行并清空队列(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(z, "REPO_ROOT", str(tmp_path))
+        monkeypatch.setattr(z, "idle_state", self._idle(True))
+        monkeypatch.setattr(z, "_run_shell", lambda argv: (True, "ok"))
+        z.mark_pending("route_coverage_check")
+        z.mark_pending("knowledge_audit")
+
+        out = z.drain_pending()
+
+        assert len(out["ran"]) == 2 and out["waiting"] == 0
+        assert z._load_pending()["keys"] == []
+
+    def test_不空闲且未到兜底时刻则继续等(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(z, "REPO_ROOT", str(tmp_path))
+        monkeypatch.setattr(z, "idle_state", self._idle(False))
+        monkeypatch.setattr(z, "FALLBACK_HOUR", 99)  # 永远不到兜底
+        z.mark_pending("route_coverage_check")
+        monkeypatch.setattr(z, "_run_shell", lambda argv: (_ for _ in ()).throw(AssertionError("不应执行")))
+
+        out = z.drain_pending()
+
+        assert out["ran"] == [] and out["waiting"] == 1
+        assert z._load_pending()["keys"] == ["route_coverage_check"]
+
+    def test_到兜底时刻强制跑(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(z, "REPO_ROOT", str(tmp_path))
+        monkeypatch.setattr(z, "idle_state", self._idle(False))
+        monkeypatch.setattr(z, "FALLBACK_HOUR", 0)  # 任何时刻都算"已过兜底"
+        monkeypatch.setattr(z, "_run_shell", lambda argv: (True, "ok"))
+        z.mark_pending("route_coverage_check")
+
+        out = z.drain_pending()
+
+        assert len(out["ran"]) == 1 and out["forced"] is True
+        assert z._load_pending()["keys"] == []
+
+    def test_跨天的待办作废(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(z, "REPO_ROOT", str(tmp_path))
+        path = tmp_path / z.PENDING_REL_PATH
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text('{"date": "2000-01-01", "keys": ["route_coverage_check"]}', encoding="utf-8")
+
+        assert z._load_pending()["keys"] == []
+
+    def test_未知作业不入队(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(z, "REPO_ROOT", str(tmp_path))
+        path = tmp_path / z.PENDING_REL_PATH
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text('{"date": "%s", "keys": ["no-such-job"]}' % z._today(), encoding="utf-8")
+
+        assert z._load_pending()["keys"] == []

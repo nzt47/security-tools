@@ -55,6 +55,16 @@ WORK_WINDOW_END = 18
 SHELL_TIMEOUT = 600
 HTTP_TIMEOUT = 120
 
+#: 空闲闸门：判"用户不在用"的秒数阈值与 CPU 上限（与 agent/system_idle 默认值同口径）
+IDLE_TIMEOUT_SEC = 300.0
+IDLE_MAX_CPU_PERCENT = 20.0
+#: 排队补跑的检查间隔（秒）——调度器里注册成 interval 任务
+DRAIN_INTERVAL_SEC = 600
+#: 兜底时刻（小时）：到这个点还没跑就**强制**跑一次（不能让"忙"变成"今天不做"）
+FALLBACK_HOUR = WORK_WINDOW_END
+#: 待办文件（运行期状态；gitignore 的 data/ 下）
+PENDING_REL_PATH = os.path.join("data", "maintenance", "zero_token_pending.json")
+
 #: 端点分段（拼装后才是完整路径；理由见模块头）
 EP_MEMORY_REVIEW = ("api", "memory", "review")
 EP_HEALTH = ("api", "health")
@@ -223,11 +233,103 @@ def _http_json(method: str, endpoint_parts: Tuple[str, ...], timeout: int = HTTP
 
 
 def _job_memory_review() -> Tuple[bool, str]:
-    r = _http_json("POST", EP_MEMORY_REVIEW)
+    """记忆审查：**mode=full**（2026-11-13 起）。
+
+    以前发的是默认 quick，只读长期记忆库的统计（实测 long_term.db 0 行 ⇒ 永远 0 陈旧/0 重复）；
+    full 才会跑 reviewer.review() + 对话记忆的整理候选扫描（agent/memory/consolidation.py），
+    并把报告落 data/maintenance/memory/。仍然零 token，只回计数、不回记忆内容。
+    """
+    r = _http_json("POST", EP_MEMORY_REVIEW, body={"mode": "full"})
     body = r.get("body") or {}
     if not body.get("ok", True):
         return False, "服务端返回 not ok: " + _tail(str(body.get("error", "")), 200)
-    return True, "status=" + str(r.get("status"))
+    cons = body.get("consolidation") or {}
+    frozen = (cons.get("frozen_pool") or {}).get("count", "—")
+    return True, ("mode=full 重复候选=%s 组 / 冻结池=%s 条 / status=%s"
+                  % (cons.get("no_response_repeat_groups", "—"), frozen, r.get("status")))
+
+
+# ── 空闲闸门（2026-11-13）─────────────────────────────────────
+# 【为什么】这批作业是"维护"，不是"必须准点"的活。用户正在用机器时跑巡检/审查会抢 IO 与 CPU，
+# 而原来的调度只看时钟（§11.103 F：21 条任务全按 hour/minute/last_run 触发）。
+# 【口径】到点先看空闲（agent/system_idle：用户输入 + 进程内活动 + CPU），不空闲就**排队**；
+# 每 10 分钟补跑一次；到 FALLBACK_HOUR（18:00）还没跑就强制跑 —— 忙不能变成"今天不做"。
+# 【为什么不是"睡等"】调度线程是单线程轮询，在里面 sleep 会把别的任务一起卡住。
+
+def _pending_path() -> str:
+    return os.path.join(REPO_ROOT, PENDING_REL_PATH)
+
+
+def _today() -> str:
+    from datetime import date
+    return date.today().isoformat()
+
+
+def _load_pending() -> Dict[str, Any]:
+    """读待办；跨天自动作废（昨天的活不补，避免开机就把历史作业全灌一遍）。"""
+    try:
+        with open(_pending_path(), "r", encoding="utf-8") as handle:
+            state = json.load(handle)
+    except (OSError, ValueError):
+        return {"date": _today(), "keys": []}
+    if not isinstance(state, dict) or state.get("date") != _today():
+        return {"date": _today(), "keys": []}
+    keys = [str(k) for k in (state.get("keys") or []) if str(k) in _BY_KEY]
+    return {"date": _today(), "keys": list(dict.fromkeys(keys))}
+
+
+def _save_pending(state: Dict[str, Any]) -> None:
+    path = _pending_path()
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump(state, handle, ensure_ascii=False, indent=2)
+            handle.write("\n")
+    except OSError as exc:  # noqa: BLE001 排队失败只影响"补跑"，不能让调度线程崩
+        logger.warning("[zero-token] 待办写入失败（忽略）: %s", type(exc).__name__)
+
+
+def mark_pending(key: str) -> None:
+    state = _load_pending()
+    if key not in state["keys"]:
+        state["keys"].append(key)
+        _save_pending(state)
+
+
+def idle_state() -> Dict[str, Any]:
+    """当前空闲判定（用户输入 + 进程内活动 + CPU；取不到的读数如实为 None）。"""
+    try:
+        from agent import system_idle
+        return system_idle.state(idle_timeout=IDLE_TIMEOUT_SEC, max_cpu=IDLE_MAX_CPU_PERCENT)
+    except Exception as exc:  # noqa: BLE001 判据不可用 ⇒ 当作"不空闲"，宁可延后也不抢资源
+        logger.warning("[zero-token] 空闲判定不可用，按不空闲处理: %s", type(exc).__name__)
+        return {"is_idle": False, "reason": "idle_probe_failed", "idle_source": "unavailable",
+                "degraded": True, "idle_seconds": None, "cpu_percent": None}
+
+
+def drain_pending() -> Dict[str, Any]:
+    """把排队的作业在空闲时补跑一次；到 FALLBACK_HOUR 之后强制跑。永不抛。"""
+    state = _load_pending()
+    if not state["keys"]:
+        return {"ran": [], "waiting": 0, "forced": False, "idle": None}
+    idle = idle_state()
+    from datetime import datetime
+    forced = datetime.now().hour >= FALLBACK_HOUR
+    if not idle.get("is_idle") and not forced:
+        logger.info("[zero-token] 有 %d 条作业排队，当前不空闲（%s）⇒ 等下一轮",
+                    len(state["keys"]), idle.get("reason"))
+        return {"ran": [], "waiting": len(state["keys"]), "forced": False, "idle": False}
+    ran: List[Dict[str, Any]] = []
+    remaining: List[str] = []
+    for key in list(state["keys"]):
+        result = run_job(key, force=True)
+        ran.append({"job": key, "ok": bool(result.get("ok")), "detail": _tail(str(result.get("detail", "")), 120)})
+        if not result.get("ok"):
+            logger.warning("[zero-token] 补跑失败（不再排队，避免死循环）: %s %s", key, result.get("detail"))
+    state["keys"] = remaining
+    _save_pending(state)
+    logger.info("[zero-token] 空闲补跑完成: %d 条（forced=%s）", len(ran), forced)
+    return {"ran": ran, "waiting": 0, "forced": bool(forced), "idle": bool(idle.get("is_idle"))}
 
 
 def _job_health_snapshot() -> Tuple[bool, str]:
@@ -274,12 +376,24 @@ def _run_http_job(job: Dict[str, Any]) -> Tuple[bool, str]:
     return True, "status=" + str(r.get("status"))
 
 
-def run_job(key: str) -> Dict[str, Any]:
-    """执行一条作业；返回结构化结果，永不抛（调度线程安全）。"""
+def run_job(key: str, *, force: bool = False) -> Dict[str, Any]:
+    """执行一条作业；返回结构化结果，永不抛（调度线程安全）。
+
+    force=False（调度器调用）时先过空闲闸门：不空闲就排队（drain_pending 负责补跑，
+    FALLBACK_HOUR 之后强制）。force=True 用于手动/补跑，不再二次判断。
+    """
     started = time.time()
     job = _BY_KEY.get(key)
     if job is None:
         return {"ok": False, "job": key, "detail": "未知作业", "elapsed_ms": 0}
+    if not force:
+        state = idle_state()
+        if not state.get("is_idle"):
+            mark_pending(key)
+            logger.info("[zero-token] %s 到点但系统不空闲（%s）⇒ 排队等补跑", job["name"], state.get("reason"))
+            return {"ok": True, "deferred": True, "job": key, "name": job["name"],
+                    "detail": "系统不空闲（%s），已排队等空闲补跑" % state.get("reason"),
+                    "elapsed_ms": 0}
     try:
         if job["kind"] == "shell":
             ok, detail = _run_shell(list(job["argv"]))
@@ -313,7 +427,16 @@ def register_zero_token_jobs(scheduler: Any) -> List[str]:
             owner="agent/maintenance/zero_token_jobs.py",
         )
         registered.append(job["key"])
-    logger.info("[zero-token] 已注册 %d 条维护作业（09:00-18:00）", len(registered))
+    # 空闲补跑：每 10 分钟看一眼排队里的作业（到点不空闲就排队，见 run_job / drain_pending）
+    scheduler.add_interval_task(
+        name="维护·空闲补跑",
+        func=drain_pending,
+        interval_seconds=DRAIN_INTERVAL_SEC,
+        zero_token=True,
+        owner="agent/maintenance/zero_token_jobs.py",
+    )
+    logger.info("[zero-token] 已注册 %d 条维护作业（09:00-18:00）+ 空闲补跑（%ds）",
+                len(registered), DRAIN_INTERVAL_SEC)
     return registered
 
 
@@ -357,13 +480,13 @@ def main(argv: List[str] | None = None) -> int:
         return 0
 
     if args.run:
-        result = run_job(args.run)
+        result = run_job(args.run, force=True)
         print(json.dumps(result, ensure_ascii=False))
         return 0 if result["ok"] else 1
 
     failed = 0
     for job in JOBS:
-        result = run_job(job["key"])
+        result = run_job(job["key"], force=True)  # 手动 --all 不再过空闲闸门
         print(json.dumps(result, ensure_ascii=False))
         if not result["ok"]:
             failed += 1

@@ -204,7 +204,20 @@ export default function NotificationCenter() {
                       </span>
                     )}
                     {item.state === 'resolved' && (
-                      <span className="rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success">已恢复</span>
+                      <span
+                        className="rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success"
+                        title="已自动恢复 = 最近一轮采集没再报出来，不代表根因消失或人已处理"
+                      >
+                        已自动恢复
+                      </span>
+                    )}
+                    {item.acked && (
+                      <span
+                        className="rounded-full bg-sky-500/10 px-2 py-0.5 text-xs font-medium text-sky-500"
+                        title={item.acked_at ? '确认时间：' + item.acked_at : '已确认'}
+                      >
+                        已确认
+                      </span>
                     )}
                     {item.silenced_until && item.state === 'firing' && (
                       <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">静默中</span>

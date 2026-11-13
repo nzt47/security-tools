@@ -214,9 +214,14 @@ def _notification_rows():
             "content": alarm.get("detail") or "",
             "read": bool(alarm.get("read")),
             "createdAt": alarm.get("last_seen") or alarm.get("first_seen") or "",
-            # 报警器独有字段：页面可按需展示"已恢复/静默中"，但旧消费方忽略也不报错
+            # 报警器独有字段：页面可按需展示"已恢复/静默中/已确认"，旧消费方忽略也不报错
             "state": alarm.get("state"),
             "silenced_until": alarm.get("silenced_until") or "",
+            # 【2026-11-13】ack 此前是死字段（界面不显示、投影不带）—— 要么接上要么删掉，这里接上：
+            # "自动恢复"与"人已确认"是两件事，消息中心必须能显示"谁在什么时候确认过"。
+            "acked": bool(alarm.get("acked")),
+            "acked_by": alarm.get("acked_by") or "",
+            "acked_at": alarm.get("acked_at") or "",
         })
     # 新消息置顶（Owner 2026-11-13）：投影层按 last_seen 倒序，台账自身顺序不动
     rows.sort(key=lambda row: _notification_sort_ts(row.get("createdAt")), reverse=True)

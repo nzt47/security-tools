@@ -24,6 +24,7 @@ from .models import (
     Insight, ActionItem, KnowledgeFinding,
     LogCategory, LogLevel, LogEntry,
 )
+from agent import system_idle
 from agent.common.stop_mixin import StopMixin
 from .analyzer import LogAnalyzer
 from agent.logging_utils import log_dict
@@ -45,9 +46,17 @@ except ImportError:
 
 
 class IdleDetector:
-    """空闲检测器 — 判断系统是否可执行分析任务"""
+    """空闲检测器 — 判断系统是否可执行分析任务。
 
-    def __init__(self, idle_timeout: int = 300, max_cpu: float = 20.0):
+    【2026-11-13 重写】判据下沉到叶子模块 `agent/system_idle`：用户输入空闲（Windows
+    GetLastInputInfo）+ 进程内活动（mark_activity）+ CPU。原来只看进程内 `_last_activity`，
+    而生产没有任何地方调 mark_activity ⇒ 开机 5 分钟后恒判空闲（假闸门，实测 13 轮准点跑）。
+    现在 `mark_activity()` 由 app_server 的 before_request 钩子每请求调用一次，
+    即使钩子失效，GetLastInputInfo 也能独立兜底。
+    """
+
+    def __init__(self, idle_timeout: float = system_idle.IDLE_TIMEOUT_SEC,
+                 max_cpu: float = system_idle.MAX_CPU_PERCENT):
         """
         Args:
             idle_timeout: 无用户交互的秒数阈值（默认 5 分钟）
@@ -55,37 +64,36 @@ class IdleDetector:
         """
         self.idle_timeout = idle_timeout
         self.max_cpu = max_cpu
-        self._last_activity = time.time()
-        self._lock = threading.Lock()
 
     def mark_activity(self):
-        """标记用户活动"""
-        with self._lock:
-            self._last_activity = time.time()
+        """标记用户活动（HTTP 请求等入口调用）"""
+        system_idle.mark_activity()
+
+    def state(self) -> Dict[str, Any]:
+        """完整读数：是否空闲 + 判据来源 + 各维度秒数 + CPU + 新鲜度。"""
+        return system_idle.state(idle_timeout=self.idle_timeout, max_cpu=self.max_cpu)
 
     def is_idle(self) -> bool:
-        """检查系统是否空闲"""
-        with self._lock:
-            elapsed = time.time() - self._last_activity
-            if elapsed < self.idle_timeout:
-                return False
-
-        # 检查 CPU 使用率（仅支持 psutil 可用时）
-        try:
-            import psutil
-            cpu_pct = psutil.cpu_percent(interval=0.1)
-            if cpu_pct > self.max_cpu:
-                logger.debug("[Introspection] 系统繁忙: CPU %.1f%% > %.0f%%", cpu_pct, self.max_cpu)
-                return False
-        except ImportError:
-            pass  # 没有 psutil 跳过 CPU 检查
-
-        return True
+        """检查系统是否空闲（用户不在用 + 进程没在忙 + CPU 不忙）"""
+        return bool(self.state()["is_idle"])
 
     def seconds_until_idle(self) -> float:
         """返回还需多少秒进入空闲"""
-        with self._lock:
-            return max(0, self.idle_timeout - (time.time() - self._last_activity))
+        return max(0.0, float(self.idle_timeout) - float(self.state()["idle_seconds"]))
+
+
+_IDLE_DETECTOR: Optional[IdleDetector] = None
+_IDLE_DETECTOR_LOCK = threading.Lock()
+
+
+def get_idle_detector() -> IdleDetector:
+    """进程内唯一的空闲检测器（HTTP 钩子与内省引擎共用同一份状态）。"""
+    global _IDLE_DETECTOR
+    if _IDLE_DETECTOR is None:
+        with _IDLE_DETECTOR_LOCK:
+            if _IDLE_DETECTOR is None:
+                _IDLE_DETECTOR = IdleDetector()
+    return _IDLE_DETECTOR
 
 
 class InsightExtractor:
@@ -355,7 +363,8 @@ class IntrospectionEngine(StopMixin):
 
     def __init__(self):
         super().__init__()  # 初始化 StopMixin 的 _stop_event / _registered_threads
-        self.idle_detector = IdleDetector()
+        # 与 HTTP 钩子共用同一个实例（否则钩子标记的活动引擎看不到 —— 又是"两处真相"）
+        self.idle_detector = get_idle_detector()
         self.analyzer = LogAnalyzer()
         self.extractor = InsightExtractor()
         self.action_gen = ActionGenerator()
@@ -502,11 +511,15 @@ class IntrospectionEngine(StopMixin):
 
     def get_status(self) -> dict:
         """获取内省引擎状态"""
+        idle = self.idle_detector.state()
         return {
             'running': self._running,
             'last_run': datetime.fromtimestamp(self._last_run).isoformat() if self._last_run else 'never',
             'total_cycles': self._run_count,
-            'is_idle': self.idle_detector.is_idle(),
+            'is_idle': idle['is_idle'],
             'seconds_until_idle': round(self.idle_detector.seconds_until_idle()),
             'thread_alive': self._thread and self._thread.is_alive() if self._thread else False,
+            # 【2026-11-13】空闲判定的"新鲜度"：判据来源 / 各维度秒数 / CPU / 是否降级。
+            # 只有 is_idle 一个布尔值时，无法区分"真的没人用"与"没人记得调 mark_activity"。
+            'idle': idle,
         }

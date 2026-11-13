@@ -105,6 +105,10 @@ def alarms_rules():
         return jsonify({"code": 500, "message": _ERR_TEXT, "data": None}), 500
 
 
+#: consistency 自检回看多少条事件（与 store 默认值同量级；够覆盖当前台账）
+_CONSISTENCY_EVENT_LINES = 5000
+
+
 def _perception_gap() -> dict:
     """感知面「最后事件时间」读数（只读状态文件；异常只回固定文案）。"""
     try:
@@ -209,6 +213,13 @@ def alarms_coverage():
         # 覆盖缺口（2026-11-12，monitoring-gap-detector）：新增能力有没有被感知/监控/告警覆盖。
         # **只读状态文件**（自检由每小时周期任务跑）—— 打开告警页不该触发一次全仓扫描。
         coverage["gaps"] = _coverage_gaps()
+        # 【2026-11-13】state 与事件流的一致性自检（"绿色已恢复"可信度的前提）。
+        # 只读事件文件末尾若干行 + 内存台账，不写任何东西；dirty=True 表示上一轮落盘失败。
+        try:
+            coverage["consistency"] = get_store().consistency(limit_events=_CONSISTENCY_EVENT_LINES)
+        except Exception as exc:  # noqa: BLE001 自检失败不影响覆盖读数
+            logger.warning("报警器：一致性自检失败（%s）", type(exc).__name__)
+            coverage["consistency"] = {"available": False}
         return _ok(coverage)
     except Exception as exc:  # noqa: BLE001
         logger.error("报警器覆盖读数失败: %s", type(exc).__name__)

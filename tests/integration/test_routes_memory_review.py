@@ -272,3 +272,50 @@ class TestMemoryReviewEdgeCases:
         assert resp.status_code == 200
         data = resp.get_json()
         assert data["stats"] == {}
+
+class TestPostMemoryReviewFull:
+    """mode=full（2026-11-13）：真跑 review() + 对话记忆整理候选扫描，报告落盘。"""
+
+    def test_post_full_runs_consolidation(self, monkeypatch):
+        reviewer = MagicMock()
+
+        async def fake_review():
+            return types.SimpleNamespace(
+                reviewed_at=1700000000.0, total_entries=0, healthy_entries=0,
+                stale_entries=0, duplicate_entries=0, sensitive_unverified=0,
+                suggestions=[], report={},
+            )
+
+        reviewer.review = fake_review
+
+        from agent.memory import consolidation
+        monkeypatch.setattr(consolidation, "scan",
+                            lambda: {"total_messages": 3, "no_response_repeat_groups": 1,
+                                     "frozen_pool": {"count": 2}})
+        monkeypatch.setattr(consolidation, "write_report", lambda report: "/tmp/report.json")
+
+        client, patches = _make_app_with_reviewer(reviewer=reviewer)
+        try:
+            resp = client.post("/api/memory/review", json={"mode": "full"})
+            assert resp.status_code == 200
+            data = resp.get_json()
+            assert data["mode"] == "full"
+            assert data["consolidation"]["total_messages"] == 3
+            assert data["consolidation"]["no_response_repeat_groups"] == 1
+            assert data["report_path"] == "/tmp/report.json"
+        finally:
+            _cleanup_patches(patches)
+
+    def test_get_returns_latest_consolidation_report(self, monkeypatch):
+        reviewer = MagicMock()
+        reviewer.get_last_review.return_value = None
+        from agent.memory import consolidation
+        monkeypatch.setattr(consolidation, "latest_report",
+                            lambda: {"total_messages": 7, "no_response_repeat_groups": 0})
+        client, patches = _make_app_with_reviewer(reviewer=reviewer)
+        try:
+            resp = client.get("/api/memory/review")
+            assert resp.status_code == 200
+            assert resp.get_json()["consolidation"]["total_messages"] == 7
+        finally:
+            _cleanup_patches(patches)

@@ -63,6 +63,9 @@ export interface AlarmBellProps {
 
 export default function AlarmBell({ onOpenAll }: AlarmBellProps) {
   const [unread, setUnread] = useState(0)
+  // 【2026-11-13】firing = 仍在发生的条数（含已读）。"暂无未读" ≠ "系统正常"：
+  //   全部已读后 firing 仍可能 >0，旧文案「暂无未读报警（系统运行正常）」是误导。
+  const [firing, setFiring] = useState(0)
   const [items, setItems] = useState<AlarmItem[]>([])
   const [open, setOpen] = useState(false)
   const [error, setError] = useState('')
@@ -76,12 +79,14 @@ export default function AlarmBell({ onOpenAll }: AlarmBellProps) {
       ])
       if (!mounted.current) return
       setUnread(Math.max(0, Number(countRes?.unread ?? 0)))
+      setFiring(Math.max(0, Number(countRes?.summary?.firing ?? 0)))
       setItems(Array.isArray(listRes?.items) ? listRes.items : [])
       setError('')
     } catch (reason: unknown) {
       if (!mounted.current) return
       // 失败要上屏（不显示假未读）；保留上一轮 items 会造成"看起来还在"的错觉，故清空
       setUnread(0)
+      setFiring(0)
       setItems([])
       setError(errText(reason))
     }
@@ -178,7 +183,9 @@ export default function AlarmBell({ onOpenAll }: AlarmBellProps) {
 
           {!error && items.length === 0 && (
             <p data-testid="alarm-empty" className="py-4 text-center text-[11px] text-slate-500">
-              暂无未读报警（系统运行正常）
+              {firing > 0
+                ? '暂无未读报警 —— 但仍有 ' + firing + ' 条未恢复（见消息中心的告警记录）'
+                : '暂无未读报警'}
             </p>
           )}
 
@@ -201,7 +208,15 @@ export default function AlarmBell({ onOpenAll }: AlarmBellProps) {
                     )}
                     <div className="mt-1 flex items-center gap-1.5 text-[10px] text-slate-500">
                       <span>{fmtClock(item.last_seen)}</span>
-                      {item.state === 'resolved' && <span className="text-emerald-400">已恢复</span>}
+                      {item.state === 'resolved' && (
+                        <span
+                          className="text-emerald-400"
+                          title="已自动恢复 = 最近一轮采集没再报出来，不代表根因消失或人已处理；点「确认」才是人已看过"
+                        >
+                          已自动恢复
+                        </span>
+                      )}
+                      {item.acked && <span className="text-sky-400" title={item.acked_by ? '确认人：' + item.acked_by : '已确认'}>· 已确认</span>}
                       {(item.count ?? 1) > 1 && <span>×{item.count}</span>}
                       <button
                         type="button"

@@ -24,9 +24,13 @@ export interface NotificationItem {
   createdAt: string
   /** 【2026-11-11】消息中心已改为**报警器台账的投影**：多出严重度与当前态，旧消费方可忽略 */
   severity?: 'info' | 'warning' | 'critical'
-  /** firing = 仍在发生；resolved = 已恢复（恢复本身也要被看到） */
+  /** firing = 仍在发生；resolved = **已自动恢复**（最近一轮没再报出来，不代表人已处理） */
   state?: 'firing' | 'resolved'
   silenced_until?: string
+  /** 【2026-11-13】"人已确认"（与自动恢复是两件事）：谁、何时确认过 */
+  acked?: boolean
+  acked_by?: string
+  acked_at?: string
 }
 
 /** 通知查询入参 */

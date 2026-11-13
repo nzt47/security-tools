@@ -310,3 +310,41 @@ class TestUnitProbeTimeout:
         })
         assert stats["resolved"] == 1
         assert store.list()[0]["state"] == STATE_RESOLVED
+
+class TestRuleNoDataKeep:
+    """2026-11-13：规则掉成 no_data/unsupported/warming/error 时**不许**判恢复。
+
+    依据：no_data 只代表"这一轮没算出值"（指标不存在 / 未自增 / 外部 Prometheus 没配），
+    不代表指标回落到阈值内。此前只有"整源不可用"才 keep ⇒ 单条规则变 no_data 会被
+    reconcile 当成"条件消失"而 resolve，用户看到绿色「已恢复」却没人查根因。
+    """
+
+    def test_规则状态到key的映射(self):
+        states = [
+            {"alert": "A", "state": "no_data"},
+            {"alert": "B", "state": "unsupported"},
+            {"alert": "C", "state": "warming"},
+            {"alert": "D", "state": "error"},
+            {"alert": "E", "state": "firing"},
+            {"alert": "F", "state": "ok"},
+        ]
+        assert collector.rule_keep_keys(states) == ["rule.A", "rule.B", "rule.C", "rule.D"]
+
+    def test_规则变_no_data_时保留旧告警(self, store):
+        # 上一轮：规则 firing
+        store.raise_alarm("rule.HighLatency", kind="rule", severity="warning", title="延迟高")
+        # 这一轮：规则变成 no_data（算不出），求值结果里没有 firing
+        states = [{"alert": "HighLatency", "state": "no_data"}]
+        collect_once(store=store, sources={"rules": lambda: states})
+
+        rows = store.list()
+        assert [r["state"] for r in rows] == [STATE_FIRING], "no_data 不许把告警判成已恢复"
+        assert store.list(state=STATE_RESOLVED) == []
+
+    def test_规则恢复_ok_时照常判恢复(self, store):
+        store.raise_alarm("rule.HighLatency", kind="rule", severity="warning", title="延迟高")
+        states = [{"alert": "HighLatency", "state": "ok"}]
+        collect_once(store=store, sources={"rules": lambda: states})
+
+        assert store.list(state=STATE_FIRING) == []
+        assert len(store.list(state=STATE_RESOLVED)) == 1
