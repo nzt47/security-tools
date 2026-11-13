@@ -37,6 +37,14 @@ def _count(path: Path) -> Dict[str, int]:
     messages = 0
     legacy = 0
     chars = 0
+    # 2026-11-14：外部会话「全话」迁入后，同一份文件里既有冻结池、也有带 session_id
+    # 的导入行。这里如实分列三个数（**不动 legacy 口径**）：
+    #   session_messages = 带 session_id 的行数（含导入与既有会话）
+    #   sessions         = 去重后的 session_id 数（导入按源+原会话分）
+    #   imported_messages= 带 import_key 的行数（外部会话迁移写入的行）
+    session_messages = 0
+    imported = 0
+    sessions = set()
     try:
         with path.open("r", encoding="utf-8", errors="replace") as fh:
             for line in fh:
@@ -48,12 +56,23 @@ def _count(path: Path) -> Dict[str, int]:
                     row = json.loads(line)
                 except Exception:  # noqa: BLE001 坏行跳过（不为一行坏数据整块报错）
                     continue
-                if not row.get("session_id"):
+                session_id = str(row.get("session_id") or "")
+                if not session_id:
                     legacy += 1
                     chars += len(str(row.get("content") or ""))
+                else:
+                    session_messages += 1
+                    # 同名会话可能来自不同源：导入行带 source，按 (source, session_id) 去重
+                    source = str(row.get("import_source") or row.get("source") or "")
+                    sessions.add((source, session_id))
+                if row.get("import_key"):
+                    imported += 1
     except OSError:
-        return {"messages": 0, "legacy_messages": 0, "legacy_chars": 0}
-    return {"messages": messages, "legacy_messages": legacy, "legacy_chars": chars}
+        return {"messages": 0, "legacy_messages": 0, "legacy_chars": 0,
+                "session_messages": 0, "sessions": 0, "imported_messages": 0}
+    return {"messages": messages, "legacy_messages": legacy, "legacy_chars": chars,
+            "session_messages": session_messages, "sessions": len(sessions),
+            "imported_messages": imported}
 
 
 def snapshot(*, refresh: bool = False) -> Dict[str, Any]:
@@ -70,13 +89,19 @@ def snapshot(*, refresh: bool = False) -> Dict[str, Any]:
             return dict(cached)
     available = LEGACY_POOL_PATH.exists()
     counts = _count(LEGACY_POOL_PATH) if available else {
-        "messages": 0, "legacy_messages": 0, "legacy_chars": 0}
+        "messages": 0, "legacy_messages": 0, "legacy_chars": 0,
+        "session_messages": 0, "sessions": 0, "imported_messages": 0}
     payload = {
         "available": available,
         "policy": "frozen",
         "legacy_messages": counts["legacy_messages"],
         "legacy_chars": counts["legacy_chars"],
         "messages_total": counts["messages"],
+        # 会话面读数（2026-11-14）：外部会话迁移的验收就看这三个数的增量，
+        # **legacy_messages 必须保持原值**（冻结池不因导入而变化）。
+        "session_messages": counts["session_messages"],
+        "sessions": counts["sessions"],
+        "imported_messages": counts["imported_messages"],
         "note": FROZEN_NOTE,
     }
     with _LOCK:

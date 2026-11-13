@@ -29,7 +29,11 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 SOURCE_CLAUDE = "claude"
 SOURCE_TRAE = "trae"
+#: DeepSeek Harness（DSH）本地会话（2026-11-14 新增「全话」迁移用）
+SOURCE_DSH = "dsh"
 SOURCES: Tuple[str, ...] = (SOURCE_CLAUDE, SOURCE_TRAE)
+#: 可整段迁移为「全话」的会话来源（与上面 SOURCES 分开：卡片导入只认 claude/trae）
+SESSION_SOURCES: Tuple[str, ...] = (SOURCE_DSH, SOURCE_CLAUDE, SOURCE_TRAE)
 
 #: 记录类型：偏好/规则、用户输入历史、会话消息
 KIND_PREFERENCE = "preference"
@@ -339,13 +343,104 @@ def plan_id_for(source_digest: str, batches: Sequence[Batch]) -> str:
     return "mp_" + hashlib.sha256(raw).hexdigest()[:24]
 
 
+# ════════════════════════════════════════════════════════════
+#  「全话」迁移（2026-11-14）：外部 agent 会话 -> 云枢消息流
+# ════════════════════════════════════════════════════════════
+#
+# 与 MemoryRecord 的区别（**不要混用**）：
+# - MemoryRecord 是「提炼后的外部记忆」，走 preview/commit 写知识卡片/向量；
+# - TranscriptMessage 是**原样一条对话**，按会话整段写进 data/messages.jsonl，
+#   不摘要、不改写、不删既有条目（零 token）。
+#
+# 幂等键 = import:<source>:<session_id>:<n>（n 从 1 开始，会话内序号）。
+
+
+def import_key(source: str, session_id: str, index: int) -> str:
+    """会话消息的幂等键（同一源、同一会话、同一序号恒等）。"""
+    return f"import:{source}:{session_id}:{int(index)}"
+
+
+@dataclass
+class TranscriptMessage:
+    """一条完整对话消息（角色 + 正文 + 时间；正文已截断/脱敏前）。"""
+
+    role: str
+    content: str
+    ts: str = ""
+    truncated: bool = False
+    #: 会话内序号（1 起），用于 import_key；扫描时按出现顺序编号
+    index: int = 0
+
+    @property
+    def chars(self) -> int:
+        return len(self.content)
+
+    def to_public(self) -> Dict[str, Any]:
+        """对外投影（**不带正文**：报告只放计数）。"""
+        return {"role": self.role, "ts": self.ts, "chars": self.chars,
+                "truncated": bool(self.truncated)}
+
+
+@dataclass
+class TranscriptSession:
+    """一份外部会话的完整转录（只读扫描结果）。"""
+
+    source: str
+    session_id: str
+    project: str = ""
+    title: str = ""
+    origin: str = ""
+    messages: List[TranscriptMessage] = field(default_factory=list)
+    meta: Dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        self.source = str(self.source or "").strip().lower()
+        self.session_id = str(self.session_id or "").strip()
+        if self.source not in SESSION_SOURCES:
+            raise ValueError(f"未知会话来源: {self.source!r}")
+        if not self.session_id:
+            raise ValueError("会话必须带 session_id（否则会进未分会话冻结池）")
+        self.project = str(self.project or "")
+        self.title = str(self.title or "")
+        self.origin = str(self.origin or "")
+
+    @property
+    def chars(self) -> int:
+        return sum(m.chars for m in self.messages)
+
+    @property
+    def ts_first(self) -> str:
+        stamps = [m.ts for m in self.messages if m.ts]
+        return min(stamps) if stamps else ""
+
+    @property
+    def ts_last(self) -> str:
+        stamps = [m.ts for m in self.messages if m.ts]
+        return max(stamps) if stamps else ""
+
+    def to_public(self) -> Dict[str, Any]:
+        """对外投影（**不带正文**，界面/报告只认计数与来源）。"""
+        return {
+            "source": self.source,
+            "session_id": self.session_id,
+            "project": self.project,
+            "title": self.title,
+            "origin": self.origin,
+            "messages": len(self.messages),
+            "chars": self.chars,
+            "ts_first": self.ts_first,
+            "ts_last": self.ts_last,
+        }
+
+
 __all__ = [
     "CARRIERS", "CARRIER_CARD", "CARRIER_LABELS", "CARRIER_MEMORY",
     "KINDS", "KIND_MESSAGE", "KIND_PREFERENCE", "KIND_PROMPT",
     "ROLE_ASSISTANT", "ROLE_NOTE", "ROLE_USER",
-    "SHORT_TEXT_CHARS", "SOURCES", "SOURCE_CLAUDE", "SOURCE_TRAE",
-    "STATUS_BLOCKED", "STATUS_KEEP",
+    "SESSION_SOURCES", "SHORT_TEXT_CHARS", "SOURCES", "SOURCE_CLAUDE",
+    "SOURCE_DSH", "SOURCE_TRAE", "STATUS_BLOCKED", "STATUS_KEEP",
     "Batch", "ConfirmationRequired", "DroppedRecord", "MemoryImportError",
-    "MemoryRecord", "PlanNotFound", "SourceNotFound", "UnknownBatch",
-    "digest_id", "normalize_text", "plan_id_for", "text_chars",
+    "MemoryRecord", "PlanNotFound", "SourceNotFound", "TranscriptMessage",
+    "TranscriptSession", "UnknownBatch", "digest_id", "import_key",
+    "normalize_text", "plan_id_for", "text_chars",
 ]

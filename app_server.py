@@ -1526,6 +1526,18 @@ except Exception as e:
 
 
 # ════════════════════════════════════════════════════════════
+#  外部会话「全话」迁移路由（/api/memory/import/sessions*，记忆运维页入口）
+# ════════════════════════════════════════════════════════════
+
+try:
+    from agent.server_routes.routes_memory_sessions import register_routes as reg_memory_sessions
+    reg_memory_sessions(app, lambda: None)
+    logger.info("外部会话迁移路由已注册 (/api/memory/import/sessions*)")
+except Exception as e:
+    _record_route_failure("外部会话迁移路由", e)
+
+
+# ════════════════════════════════════════════════════════════
 #  过程蒸馏路由（/api/process-distill/*）
 #  知识库/素材 → 子代理蒸馏 → workflow/skill 固化
 # ════════════════════════════════════════════════════════════
