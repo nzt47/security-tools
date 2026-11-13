@@ -54,7 +54,35 @@ interface ReviewStats {
   vec_table?: string
 }
 
-interface ReviewResp { last_review?: string | number | null; stats?: ReviewStats; ok?: boolean; error?: string }
+interface ConsolidationCandidate {
+  count?: number
+  role?: string
+  preview?: string
+  content_sha256_12?: string
+  reason?: string
+}
+
+interface Consolidation {
+  total_messages?: number
+  unique_contents?: number
+  no_response_repeat_groups?: number
+  no_response_repeat_lines?: number
+  frozen_pool?: { count?: number; note?: string }
+  candidates?: ConsolidationCandidate[]
+  notes?: string[]
+  scanned_at?: string
+}
+
+interface ReviewResp {
+  last_review?: string | number | null
+  stats?: ReviewStats
+  ok?: boolean
+  error?: string
+  /** full = 真跑 review() + 对话记忆整理候选扫描（2026-11-13） */
+  mode?: string
+  consolidation?: Consolidation
+  report_path?: string
+}
 
 interface WindowCurrent { process?: string | null; title?: string | null; elapsed_sec?: number; is_idle?: boolean }
 interface WindowStat { app?: string; duration_sec?: number; switches?: number; [k: string]: unknown }
@@ -89,6 +117,9 @@ export default function MemoryMaintenance() {
   const [msg, setMsg] = useState('')
 
   const [review, setReview] = useState<ReviewResp | null>(null)
+  // 【2026-11-13】整理候选（只报告不删除）：来自 mode=full 的 review 响应 / GET 回显
+  const [consolidation, setConsolidation] = useState<Consolidation | null>(null)
+  const [reportPath, setReportPath] = useState('')
   const [summary, setSummary] = useState('')
   const [confirmSummary, setConfirmSummary] = useState(false)
   const [confirmClearSummary, setConfirmClearSummary] = useState(false)
@@ -117,15 +148,24 @@ export default function MemoryMaintenance() {
       const r = await hubGet<ReviewResp>(MEMORY_REVIEW)
       if (r?.ok === false) { bad('读取记忆审查失败', r); return }
       setReview(r)
+      if (r?.consolidation) setConsolidation(r.consolidation)
     } catch (e) { fail('读取记忆审查失败', e) } finally { setBusy('') }
   }, [])
 
   const triggerReview = async () => {
     setBusy('review-run'); setErr(''); setMsg('')
     try {
-      const r = await hubPost<ReviewResp>(MEMORY_REVIEW, {})
+      // 【2026-11-13】mode=full：真跑 review()（算陈旧/重复）+ 对话记忆整理候选扫描。
+      // quick 只读长期记忆库统计，而线上 long_term.db 是 0 行 ⇒ 永远 0 陈旧/0 重复。
+      const r = await hubPost<ReviewResp>(MEMORY_REVIEW, { mode: 'full' })
       if (r?.ok === false) { bad('触发审查失败', r); return }
-      setMsg('审查已执行')
+      if (r?.consolidation) setConsolidation(r.consolidation)
+      if (r?.report_path) setReportPath(r.report_path)
+      const c = r?.consolidation
+      setMsg(c
+        ? '审查已执行（full）：候选 ' + (c.no_response_repeat_groups ?? 0) + ' 组 / 冻结池 '
+          + (c.frozen_pool?.count ?? 0) + ' 条（只报告，未删除）'
+        : '审查已执行（full）')
       await loadReview()
     } catch (e) { fail('触发审查失败', e) } finally { setBusy('') }
   }
@@ -321,6 +361,47 @@ export default function MemoryMaintenance() {
               <div className="truncate font-mono text-[12px] text-cyan-300">{String(v ?? 0)}</div>
             </div>
           ))}
+        </div>
+
+        {/* 【2026-11-13】整理候选（只报告不删除）—— 对话记忆的去重 / 降噪 dry-run。
+            为什么单列：之前「审查」只读长期记忆库（0 行），对话记忆从来没被整理过；
+            而且"同内容重复"不等于噪音（「继续」×17 是用户真说了 17 次），所以这里只出候选。 */}
+        <div data-testid="consolidation-block" className="mt-2 rounded-sm border border-slate-800 bg-slate-950/60 p-2">
+          <div className="mb-1 flex flex-wrap items-center gap-1.5 text-[10px]">
+            <span className="font-medium text-slate-300">整理候选（只报告，不删除）</span>
+            {consolidation ? (
+              <>
+                <span className="text-slate-500">
+                  对话 {consolidation.total_messages ?? 0} 条 / 唯一 {consolidation.unique_contents ?? 0}
+                </span>
+                <span className="text-amber-300">
+                  无响应近重复 {consolidation.no_response_repeat_groups ?? 0} 组（{consolidation.no_response_repeat_lines ?? 0} 行）
+                </span>
+                <span className="text-slate-500">冻结池 {consolidation.frozen_pool?.count ?? 0} 条</span>
+              </>
+            ) : (
+              <span className="text-slate-500">还没跑过 full 审查 —— 点「执行审查」</span>
+            )}
+          </div>
+          {consolidation?.candidates?.length ? (
+            <ul className="space-y-0.5">
+              {consolidation.candidates.slice(0, 3).map((c, i) => (
+                <li key={String(c.content_sha256_12 || i)} className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                  <span className="font-mono text-slate-500">×{c.count ?? 1}</span>
+                  <span className="text-slate-500">{c.role ?? '—'}</span>
+                  <span className="truncate" title={c.preview || ''}>{c.preview || '（无预览）'}</span>
+                  <span className="ml-auto font-mono text-[9px] text-slate-600">{c.content_sha256_12}</span>
+                </li>
+              ))}
+            </ul>
+          ) : consolidation ? (
+            <div className="text-[10px] text-slate-500">没有「无响应近重复」候选（同内容重复不等于噪音，不在这里列）</div>
+          ) : null}
+          <div className="mt-1 text-[9px] text-slate-600">
+            口径：同角色 + 同内容 + 10 分钟窗内 + 两次之间没有任何回复；报告只放 sha256 前 12 位与 40 字预览，不落全文。
+            删除仍需人工确认（这里不提供删除按钮）。
+          </div>
+          {reportPath && <div className="mt-0.5 truncate font-mono text-[9px] text-slate-600" title={reportPath}>报告：{reportPath}</div>}
         </div>
       </div>
 

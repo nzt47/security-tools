@@ -5,7 +5,7 @@
  * 都是不可撤销的整体动作，长期摘要还是**盲写**（后端没有读接口）。
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 
 const api = vi.hoisted(() => ({ hubGet: vi.fn(), hubPost: vi.fn(), hubPut: vi.fn(), hubDelete: vi.fn() }))
 vi.mock('../components/ui', async (importOriginal) => ({
@@ -59,7 +59,8 @@ describe('MemoryMaintenance', () => {
     await screen.findByText('mem_1')
 
     fireEvent.click(screen.getByRole('button', { name: '执行记忆审查' }))
-    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/memory/review', {}))
+    // 2026-11-13：执行审查改走 mode=full（quick 只读长期记忆库 0 行，等于什么都没看）
+    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/memory/review', { mode: 'full' }))
 
     fireEvent.click(screen.getByRole('button', { name: '触发记忆压缩' }))
     await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/memory/compress', {}))
@@ -144,5 +145,54 @@ describe('MemoryMaintenance', () => {
     fireEvent.click(screen.getByLabelText('确认清空向量库'))
     fireEvent.click(clear)
     await waitFor(() => expect(api.hubDelete).toHaveBeenCalledWith('/api/vector/clear'))
+  })
+})
+
+describe('MemoryMaintenance · 整理候选（只报告不删除）', () => {
+  it('GET 带回的 consolidation 会显示候选、冻结池与"不删除"口径', async () => {
+    baseGets()
+    api.hubGet.mockImplementation(async (url: string) => {
+      if (url === '/api/memory/review') {
+        return {
+          last_review: null,
+          stats: { total_entries: 4 },
+          consolidation: {
+            total_messages: 421, unique_contents: 357,
+            no_response_repeat_groups: 3, no_response_repeat_lines: 3,
+            frozen_pool: { count: 305 },
+            candidates: [{ count: 2, role: 'assistant', preview: '早上好！我在线', content_sha256_12: '3f80bcd611a9' }],
+          },
+        }
+      }
+      if (url === '/api/memory/windows/current') return { process: 'Code.exe', title: 'vscode', elapsed_sec: 12, is_idle: false }
+      if (url === '/api/memory/windows/stats') return { apps: [], total_switches: 0, total_duration_sec: 0 }
+      if (url.startsWith('/api/memory/windows/events')) return { events: [] }
+      if (url === '/api/memory/windows/config') return { enabled: true, idle_timeout_sec: 300, max_events: 500, poll_interval_sec: 0.5, ignore_processes: [] }
+      if (url.startsWith('/api/vector/recent')) return { items: [] }
+      return { ok: true }
+    })
+    render(<MemoryMaintenance />)
+
+    const block = await screen.findByTestId('consolidation-block')
+    expect(block.textContent).toContain('421')
+    expect(block.textContent).toContain('无响应近重复 3 组')
+    expect(block.textContent).toContain('冻结池 305')
+    expect(block.textContent).toContain('3f80bcd611a9')
+    // 只报告不删除：这一段不许出现删除按钮
+    expect(within(block).queryByRole('button', { name: /删除/ })).toBeNull()
+  })
+
+  it('执行 full 审查后把候选数写进提示（只报告，未删除）', async () => {
+    baseGets()
+    api.hubPost.mockResolvedValue({
+      ok: true, mode: 'full', report_path: 'data/maintenance/memory/consolidation_x.json',
+      consolidation: { total_messages: 10, no_response_repeat_groups: 2, frozen_pool: { count: 1 }, candidates: [] },
+    })
+    render(<MemoryMaintenance />)
+    await waitFor(() => expect(api.hubGet).toHaveBeenCalled())
+
+    fireEvent.click(screen.getByRole('button', { name: '执行记忆审查' }))
+    expect(await screen.findByText(/候选 2 组/)).toBeTruthy()
+    expect(screen.getByText(/未删除/)).toBeTruthy()
   })
 })
