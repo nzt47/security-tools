@@ -787,6 +787,22 @@ function CommandView() {
   )
 }
 
+/** 审计链 ts 是 UTC（+00:00）；必须换算成**浏览器本地时区**再显示。
+ *  【不易】原来的 r.ts.slice(11, 19) 直接截 UTC 串：东八区会整整差 8 小时。 */
+export function formatActivityClock(ts: string): string {
+  const d = new Date(ts)
+  if (Number.isNaN(d.getTime())) return String(ts || '').slice(11, 19)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds())
+}
+
+/** 悬浮提示用：完整本地日期时间（同样的 UTC 串，经浏览器时区换算） */
+function activityTitle(ts: string): string {
+  const d = new Date(ts)
+  if (Number.isNaN(d.getTime())) return String(ts || '')
+  return d.toLocaleString('zh-CN', { hour12: false })
+}
+
 /** 实时活动：审计链尾部（云枢正在做什么）+ 进行中的子代理委派 */
 function ActivityView() {
   const [rows, setRows] = useState<{ seq: number; ts: string; action: string; subject: string }[]>([])
@@ -876,7 +892,9 @@ function ActivityView() {
         ) : (
           rows.map((r) => (
             <div key={r.seq} className="flex gap-1.5 py-0.5">
-              <span className="shrink-0 text-slate-600">{r.ts.slice(11, 19)}</span>
+              <span className="shrink-0 text-slate-600" title={activityTitle(r.ts)}>
+                {formatActivityClock(r.ts)}
+              </span>
               <span className="shrink-0 text-cyan-400/80">{r.action}</span>
               <span className="truncate text-slate-400" title={r.subject ?? ''}>
                 {r.subject ?? ''}

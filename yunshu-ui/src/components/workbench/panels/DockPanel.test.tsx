@@ -10,7 +10,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 
-const { DockPanel } = await import('./DockPanel')
+const { DockPanel, formatActivityClock } = await import('./DockPanel')
 
 function res(body: unknown, envelope = false) {
   const wire = envelope ? { code: 200, data: body } : body
@@ -47,6 +47,8 @@ function installFetch(opts: { terminal?: unknown } = {}) {
         rows: [
           { seq: 81503, ts: '2026-10-31T09:10:00+08:00', action: 'terminal.exec', subject: 'git-status' },
           { seq: 81504, ts: '2026-10-31T09:10:03+08:00', action: 'skill.load', subject: 'skill:handoff' },
+          // 同一时刻的 UTC 写法：修复时区后应与上面一行显示**同一个**本地时钟
+          { seq: 81505, ts: '2026-10-31T01:10:03+00:00', action: 'tool.call', subject: 'same-instant' },
         ],
         inflight: [{ task_id: 't1', subagent: 'sa-x', goal: '抽取文档要点' }],
         last_seq: 81504,
@@ -150,6 +152,9 @@ describe('DockPanel · 右侧可切换边栏', () => {
     expect(screen.getByText('skill.load')).toBeInTheDocument()
     expect(screen.getByText(/进行中的委派/)).toBeInTheDocument()
     expect(screen.getByText(/抽取文档要点/)).toBeInTheDocument()
+    // 审计 ts 是 UTC：+00:00 与 +08:00 的同一时刻必须显示成同一个本地时间
+    const clock = formatActivityClock('2026-10-31T09:10:03+08:00')
+    expect(screen.getAllByText(clock)).toHaveLength(2)
   })
 
   it('终端 Tab：命令清单读取失败时上屏错误（不是空白面板）', async () => {
