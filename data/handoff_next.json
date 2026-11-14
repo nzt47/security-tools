@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-14T13:55:13+08:00",
+ "updated_at": "2026-11-14T14:46:36+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -710,11 +710,19 @@
   },
   {
    "id": "memory-knowledge-experience-classification",
-   "status": "open",
+   "status": "done",
    "priority": "P2",
    "title": "向量记忆 / 知识库 / 经验 分类，供不同智能体装载不同子集",
    "criteria": "现状核查（2026-11-14）：①向量记忆是单个 collection agent_memory（memory/vector_store/vector_store.py），metadata 任意、search 没有过滤参数；②知识库卡片有 type（concepts/insights/entities）+ tags（agent/knowledge/schema.py），按 knowledge/wiki/<type> 存放；③经验库是独立 collection experience（agent/skills_mgmt/experience_index.py，BM25+向量 RRF）。现有隔离只有 scoped memory 的 tenant/workspace/subject（agent/memory/tenancy.py、agent/memory/scoped_store.py、agent/subagent/memory_broker.py、scoped_memory_gate.py），那是私人域，不是按主题/角色给不同智能体装载不同知识；子代理 manifest 目前只有 memory_mode(none/brokered/scoped)/provider，没有可读哪些类的声明。",
-   "next": "新会话先只读盘点三库的写入点/检索入口/现有字段与子代理装配链，然后给 Owner 2-3 个方案对比（A 独立 collection/表；B 统一 metadata class + 检索侧过滤；C 双层：class 必填 + 智能体 profile 白名单），说明迁移、性能、权限与回滚代价；Owner 点头后再写代码。建议默认 fail-closed：未声明 class 的记录归 general，智能体只读其 profile 白名单；分类维度候选=业务域（工程/产品/运维/个人）/项目/角色。落地需同批：写入点自动打标、旧数据迁移、子代理 profile 声明、检索强制过滤、审计、UI、用例；不得破坏现有 tenancy/scoped 语义。"
+   "next": "2026-11-14 落地（Owner 授权「按建议执行，需要点头的你替我决定」）。四期交付：\nC1 c7722a5f4 词表 agent/topics.py（闭集 5 值 general/engineering/knowledge/ops/product，写侧未知值抛错、读侧未知值丢弃不回落 general）+ 三库写侧打标 + 读侧 topics 过滤（向量 search(topics=) 含**缓存键**、知识 Card.topic + 双链同处裁、经验 _ok + 闸门改看白名单内 top1）；\nC2 01ee1325b 读侧策略 agent/memory/topic_policy.py（声明 manifest > 主线档案 > general，永不抛）+ LineProfile.topics + memory_scope.topics（两份 SCOPE_KEYS 同改）+ 五条智能体检索路径强制 + 审计 memory.topics.declared（只在非默认声明时写，payload 走键白名单）+ 五路径哨兵；\nC3 63f328d57 界面：主线编辑器 topics 区块、组装台 memory_mode + topics、分身列表回显；\nfbe18e1d2 迁移存量：向量 687 / 知识 3 / 经验 484（engineering 355 + general 129，--infer）全部打标，台账 data/maintenance/topics/ledger_*.jsonl（1174 行 before/after），回滚演练 dry-run restored=1174 / mismatch=0。\n验收：三库跨类隔离各有单测（tests/unit/test_topics_three_stores.py 21 条 + test_topics_policy.py 25 条，含反方向、未声明只读 general、双链跨类、缓存跨类、闸门口径、前后端词表对拍）；现场只读实测 engineering 线 3 命中（含 2 条 engineering）/ assistant 线仅 general 1 命中 / recon 线仅 general；审计链 seq 84743 = memory.topics.declared（payload 无正文）。\n已知边界（另立条目跟踪）：分身声明挂在 memory_scope 上 ⇒ 需要 memory_mode != none；向量与知识存量全是 general（导入/沉淀尚未按类写），要有混合数据才看得出方向性差异。"
+  },
+  {
+   "id": "memory-topics-followups",
+   "status": "open",
+   "priority": "P3",
+   "title": "主题类（topic）三件后续：分身顶层 memory_topics、写入侧按类打标、混合数据验证",
+   "criteria": "C1-C3 已把「按类装载」接线并迁移存量（见 memory-knowledge-experience-classification）。三个遗留边界：\n1) 分身的类声明目前寄生在 memory_scope.topics 上，而 none 档拒收非空 scope ⇒ 未开记忆的分身无法声明类（只能 general）。要独立于档位就需顶层字段 memory_topics（同时改 SubagentConfig / create+update 路由 / bundle 导出导入 / attach_memory_metadata 的 none 提前返回 / executor._topics_scope）；\n2) 写入侧只有兜底 general：orchestrator 的 reflection/conversation、memory_import 的导入批次、kb_capture/kb_distill 产卡都没有显式类，现场向量 687 条与知识 3 张全是 general；需要按来源/项目给这些写入点加类（否则「两个智能体装载不同子集」在向量/知识上只能靠新数据才看得出）；\n3) 缺混合数据的回归：应在测试库造 mixed 向量/知识数据跑一遍「A 看不到 B 的类」，并加一条 scripts/verify_topics_isolation.py 现场读数脚本（现在只有经验侧有现场证据）。",
+   "next": "建议顺序：先 1（顶层 memory_topics，纯配置面）→ 再 2（各写入点加类，改动面在 orchestrator / memory_import / 知识沉淀三处，需同步审计与报表）→ 最后 3（现场脚本 + 混合数据用例）。两条纪律不变：词表仍是 agent/topics.py 唯一事实源（前端 lib/topics.ts 有对拍用例）；读侧只经 topic_policy 解析，人机 HTTP 面不按类过滤（那是人机面，不是安全边界）。"
   }
  ]
 }
