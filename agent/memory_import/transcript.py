@@ -419,8 +419,8 @@ def import_sessions(*, source: str, dry_run: bool = True, confirm: bool = False,
     redactions: Dict[str, int] = {}
     errors: List[Dict[str, str]] = []
 
-    sessions = {"seen": 0, "scanned": 0, "imported": 0, "skipped_unchanged": 0,
-                "empty": 0, "failed": 0, "capped": 0}
+    sessions = {"seen": 0, "pending": 0, "scanned": 0, "imported": 0,
+                "skipped_unchanged": 0, "empty": 0, "failed": 0, "capped": 0}
     messages = {"seen": 0, "candidates": 0, "imported": 0, "skipped_existing": 0,
                 "skipped_redacted": 0, "skipped_empty": 0, "skipped_capped": 0,
                 "truncated": 0}
@@ -435,7 +435,11 @@ def import_sessions(*, source: str, dry_run: bool = True, confirm: bool = False,
     if source == SOURCE_TRAE:
         roots = _trae_roots(appdata)
         trae_fp = _trae_fingerprint(roots)
-        if trae_aggregate.get("fingerprint") == trae_fp and trae_aggregate.get("sessions", 0) > 0:
+        # 只有"整源已完整处理过"才允许聚合短路；分批（limit）或中途失败时 complete=False，
+        # 下次必须重新枚举，否则剩余会话会被误判成"已导入"。
+        if (trae_aggregate.get("fingerprint") == trae_fp
+                and trae_aggregate.get("complete", True)
+                and trae_aggregate.get("sessions", 0) > 0):
             trae_all_skipped = True
             sessions["skipped_unchanged"] = int(trae_aggregate.get("sessions") or 0)
             messages["skipped_existing"] = int(trae_aggregate.get("messages") or 0)
@@ -447,20 +451,43 @@ def import_sessions(*, source: str, dry_run: bool = True, confirm: bool = False,
     else:
         refs = _claude_refs(claude_dir)
 
-    # 小样本：取最近 N 个（按指纹里的 mtime 已倒序；Trae 按 session_id 排序）
+    # 小样本 = 「本次最多处理 N 个**待导入**会话」：**先按台账过滤，再截断**。
+    # 【不易】截断在前会让 limit 变成"最近 N 个文件"：积压 > N 时，每轮都选中同一批
+    # 已导入会话 ⇒ 永远 0 新增、has_more 恒真（分批补齐卡死）。过滤在前之后，
+    # 反复调用同一命令会一批批往前走，直到 has_more=false。
     if source == SOURCE_TRAE:
         refs.sort(key=lambda r: r.session_id)
-    total_refs = len(refs)
-    wanted = total_refs
-    if limit_sessions and wanted > int(limit_sessions):
-        wanted = int(limit_sessions)
-    # 硬上限：即使调用方传 0（全部），也不让一次请求枚举超过护栏值
-    if wanted > MAX_SESSIONS_PER_RUN:
-        wanted = MAX_SESSIONS_PER_RUN
-    if wanted < total_refs:
-        refs = refs[:wanted]
-    sessions["seen"] = total_refs
-    has_more = total_refs > len(refs)
+    if trae_all_skipped:
+        # Trae 聚合指纹命中：整源跳过（seen 取上次记录的会话数，pending 恒 0）
+        sessions["seen"] = int(trae_aggregate.get("sessions") or 0)
+        sessions["pending"] = 0
+        pending_refs: List[SessionRef] = []
+        has_more = False
+    else:
+        sessions["seen"] = len(refs)
+        ledger_sessions = ledger.get("sessions") if isinstance(ledger.get("sessions"), dict) else {}
+        pending_refs = []
+        unchanged = 0
+        for ref in refs:
+            entry = ledger_sessions.get(f"{ref.source}:{ref.session_id}")
+            if isinstance(entry, dict) and entry.get("fingerprint") == ref.fingerprint:
+                unchanged += 1
+                messages["skipped_existing"] += int(entry.get("messages") or 0)
+                chars["seen"] += int(entry.get("chars") or 0)
+            else:
+                pending_refs.append(ref)
+        sessions["skipped_unchanged"] = unchanged
+        pending_total = len(pending_refs)
+        sessions["pending"] = pending_total
+        wanted = pending_total
+        if limit_sessions and wanted > int(limit_sessions):
+            wanted = int(limit_sessions)
+        # 硬上限：即使调用方传 0（全部），也不让一次请求处理超过护栏值
+        if wanted > MAX_SESSIONS_PER_RUN:
+            wanted = MAX_SESSIONS_PER_RUN
+        pending_refs = pending_refs[:wanted]
+        # has_more 现在只表示「还有待导入会话没处理」，不再把已导入的算进来
+        has_more = pending_total > len(pending_refs)
 
     existing = _existing_keys(messages_path) if not trae_all_skipped else set()
 
@@ -472,18 +499,12 @@ def import_sessions(*, source: str, dry_run: bool = True, confirm: bool = False,
     imported_at = _now_iso()
     pending_flush = 0
     try:
-        for ref in refs:
+        for ref in pending_refs:
             if time.monotonic() - started > float(max_runtime_seconds):
                 partial = True
                 break
-            key = f"{ref.source}:{ref.session_id}"
-            entry = ledger.get("sessions", {}).get(key) if isinstance(ledger.get("sessions"), dict) else None
-            if isinstance(entry, dict) and entry.get("fingerprint") == ref.fingerprint:
-                sessions["skipped_unchanged"] += 1
-                messages["skipped_existing"] += int(entry.get("messages") or 0)
-                chars["seen"] += int(entry.get("chars") or 0)
-                continue
             sessions["scanned"] += 1
+            key = f"{ref.source}:{ref.session_id}"
             try:
                 session = trae_map[ref.session_id] if source == SOURCE_TRAE else _scan_ref(ref, scan)
             except Exception as exc:  # noqa: BLE001 单会话失败不拖垮整次导入
@@ -575,10 +596,18 @@ def import_sessions(*, source: str, dry_run: bool = True, confirm: bool = False,
 
     if not dry_run:
         if source == SOURCE_TRAE and trae_fp:
-            ledger["trae"] = {"fingerprint": trae_fp,
-                              "sessions": sessions["imported"] + sessions["skipped_unchanged"],
-                              "messages": messages["imported"] + messages["skipped_existing"],
-                              "updated_at": imported_at}
+            if trae_all_skipped:
+                # 整源已跳过：保留原聚合读数，只更新时间（不能把 messages 写成 0）
+                ledger["trae"] = dict(trae_aggregate)
+                ledger["trae"]["updated_at"] = imported_at
+            else:
+                # 聚合台账只在"整源处理完整"时才算完成；否则下次还要继续补剩余分组。
+                complete = (not has_more and not partial and int(sessions["failed"]) == 0)
+                ledger["trae"] = {"fingerprint": trae_fp,
+                                  "sessions": int(sessions["seen"]),
+                                  "messages": int(sum(len(s.messages) for s in trae_map.values())),
+                                  "complete": bool(complete),
+                                  "updated_at": imported_at}
         _save_ledger(ledger_file, ledger)
 
     elapsed_ms = int((time.monotonic() - started) * 1000)

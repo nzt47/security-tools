@@ -92,6 +92,7 @@ def test_dry_run_reports_counts_and_writes_nothing(tmp_path, dsh_root):
     p = _paths(tmp_path)
     result = transcript.import_sessions(source="dsh", dry_run=True, dsh_root=dsh_root, **p)
     assert result["sessions"]["seen"] == 3
+    assert result["sessions"]["pending"] == 3
     assert result["sessions"]["scanned"] == 3
     assert result["messages"]["imported"] == 5
     assert result["has_more"] is False
@@ -105,6 +106,7 @@ def test_dry_run_reports_counts_and_writes_nothing(tmp_path, dsh_root):
                                         limit_sessions=1, **p)
     assert sample["sessions"]["scanned"] == 1
     assert sample["sessions"]["seen"] == 3
+    assert sample["sessions"]["pending"] == 3
     assert sample["has_more"] is True
     assert sample["messages"]["imported"] in (1, 2)
 
@@ -293,6 +295,7 @@ def test_route_latest_empty_is_null(client, auth, monkeypatch, tmp_path):
     assert resp.status_code == 200
     assert resp.get_json()["data"]["report"] is None
 
+
 def test_legacy_pool_reports_session_counts_without_moving_legacy(tmp_path, monkeypatch):
     """导入只增会话面读数；未分会话冻结池必须保持原值（L5：不折算）。"""
     from agent import legacy_pool
@@ -314,3 +317,86 @@ def test_legacy_pool_reports_session_counts_without_moving_legacy(tmp_path, monk
     assert snap["session_messages"] == 1
     assert snap["sessions"] == 1
     assert snap["imported_messages"] == 1
+
+
+def test_limit_is_batch_of_pending_sessions(tmp_path):
+    """limit = 「本次最多处理 N 个待导入会话」：分批调用能一批批走完，不卡在同一批。"""
+    root = tmp_path / "sessions"
+    for index in range(5):
+        _zstd_write(root / "p" / f"s{index}" / "session.jsonl.zstd", [
+            _session_event(f"s{index}"),
+            _user_event(f"消息{index}"),
+        ])
+    p = _paths(tmp_path)
+
+    dry = transcript.import_sessions(source="dsh", dry_run=True, dsh_root=root,
+                                     limit_sessions=2, **p)
+    assert dry["sessions"]["seen"] == 5
+    assert dry["sessions"]["pending"] == 5
+    assert dry["sessions"]["scanned"] == 2
+    assert dry["messages"]["imported"] == 2
+    assert dry["has_more"] is True
+
+    first = transcript.import_sessions(source="dsh", dry_run=False, confirm=True,
+                                       dsh_root=root, limit_sessions=2, **p)
+    assert first["sessions"]["pending"] == 5
+    assert first["sessions"]["imported"] == 2
+    assert first["has_more"] is True
+
+    second = transcript.import_sessions(source="dsh", dry_run=False, confirm=True,
+                                        dsh_root=root, limit_sessions=2, **p)
+    assert second["sessions"]["pending"] == 3
+    assert second["sessions"]["imported"] == 2
+    assert second["has_more"] is True
+
+    third = transcript.import_sessions(source="dsh", dry_run=False, confirm=True,
+                                       dsh_root=root, limit_sessions=2, **p)
+    assert third["sessions"]["pending"] == 1
+    assert third["sessions"]["imported"] == 1
+    assert third["has_more"] is False
+
+    fourth = transcript.import_sessions(source="dsh", dry_run=False, confirm=True,
+                                        dsh_root=root, limit_sessions=2, **p)
+    assert fourth["sessions"]["pending"] == 0
+    assert fourth["messages"]["imported"] == 0
+    assert fourth["has_more"] is False
+
+    rows = [json.loads(line) for line in
+            p["messages_path"].read_text(encoding="utf-8").splitlines()]
+    assert len(rows) == 5
+    assert {row["session_id"] for row in rows} == {f"s{i}" for i in range(5)}
+
+
+def test_trae_limit_does_not_short_circuit_remaining_groups(tmp_path):
+    """Trae 用聚合指纹：分批导入时不能让下一轮误判「整源已完成」而跳过剩余分组。"""
+    base = tmp_path / "appdata"
+    db = base / "Trae CN" / "User" / "globalStorage" / "state.vscdb"
+    db.parent.mkdir(parents=True)
+    con = sqlite3.connect(str(db))
+    con.execute("create table ItemTable (key text primary key, value blob)")
+    for index in (1, 2, 3):
+        payload = {"response": {"resp": {"result": [
+            {"id": f"2026010{index}120000abc", "text": f"提问{index}"}]}}}
+        con.execute("insert into ItemTable values (?, ?)",
+                    (trae_reader.QUERY_KEY_PREFIX + f"k{index}",
+                     json.dumps(payload).encode("utf-8")))
+    con.commit()
+    con.close()
+
+    p = _paths(tmp_path)
+    rounds = [
+        transcript.import_sessions(source="trae", dry_run=False, confirm=True,
+                                   appdata=base, limit_sessions=1, **p)
+        for _ in range(3)
+    ]
+    assert [r["messages"]["imported"] for r in rounds] == [1, 1, 1]
+    assert [r["sessions"]["pending"] for r in rounds] == [3, 2, 1]
+    assert [r["has_more"] for r in rounds] == [True, True, False]
+
+    last = transcript.import_sessions(source="trae", dry_run=False, confirm=True,
+                                      appdata=base, limit_sessions=1, **p)
+    assert last["sessions"]["pending"] == 0
+    assert last["messages"]["imported"] == 0
+    rows = [json.loads(line) for line in
+            p["messages_path"].read_text(encoding="utf-8").splitlines()]
+    assert len(rows) == 3

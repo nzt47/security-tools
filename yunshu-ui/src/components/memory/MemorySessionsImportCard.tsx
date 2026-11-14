@@ -121,8 +121,9 @@ export default function MemorySessionsImportCard() {
             </span>
           </label>
         ))}
-        <label className="inline-flex items-center gap-1" title="0 = 全部；先填 3 跑通小样本">
-          只取最近
+        <label className="inline-flex items-center gap-1"
+          title="0 = 全部；填 N 则每次最多处理 N 个还没导入的会话，可反复执行直到「待导入」为 0">
+          每次最多处理
           <input
             type="number"
             min={0}
@@ -130,9 +131,9 @@ export default function MemorySessionsImportCard() {
             disabled={busy !== ''}
             onChange={(e) => setLimit(Math.max(0, Number(e.target.value) || 0))}
             className="w-14 rounded border border-slate-700 bg-slate-900 px-1 py-0.5 text-[11px]"
-            aria-label="最多会话数"
+            aria-label="最多待导入会话数"
           />
-          个会话（0=全部）
+          个待导入会话（0=全部）
         </label>
         {source === 'dsh' && (
           <label className="inline-flex items-center gap-1" title="子代理会话也是真实对话；只导主会话时取消勾选">
@@ -176,11 +177,12 @@ export default function MemorySessionsImportCard() {
             <span>{report.dry_run ? 'dry-run（未写入）' : '已写入'}</span>
             <span>耗时 <b className="text-slate-200">{num(report.duration_ms)} ms</b></span>
             {report.partial && <span className="text-amber-300">本轮达到上限，已提前停止</span>}
-            {report.has_more && <span className="text-amber-300">还有更多会话未处理</span>}
+            {report.has_more && <span className="text-amber-300">还有待导入会话未处理（可再执行一次）</span>}
           </div>
           <div className="flex flex-wrap gap-x-6 gap-y-1">
             <span>会话 发现 <b className="text-slate-200">{num(sessions.seen)}</b></span>
-            <span>扫描 <b className="text-slate-200">{num(sessions.scanned)}</b></span>
+            <span>待导入 <b className="text-amber-300">{num(sessions.pending)}</b></span>
+            <span>本轮扫描 <b className="text-slate-200">{num(sessions.scanned)}</b></span>
             <span>跳过（未变化）<b className="text-slate-200">{num(sessions.skipped_unchanged)}</b></span>
             <span>空会话 <b className="text-slate-200">{num(sessions.empty)}</b></span>
             <span>失败 <b className="text-slate-200">{num(sessions.failed)}</b></span>

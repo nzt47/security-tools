@@ -21,7 +21,7 @@ const REPORT = {
   source: 'dsh',
   dry_run: true,
   duration_ms: 1234,
-  sessions: { seen: 418, scanned: 3, skipped_unchanged: 0, imported: 3, empty: 0, failed: 0 },
+  sessions: { seen: 418, pending: 415, scanned: 3, skipped_unchanged: 0, imported: 3, empty: 0, failed: 0 },
   messages: { imported: 12, skipped_existing: 0, skipped_redacted: 0, truncated: 0 },
   chars: { imported: 2048 },
   redactions: {},
@@ -56,6 +56,7 @@ describe('MemorySessionsImportCard', () => {
       limit_sessions: undefined, include_subagents: true,
     }))
     expect(await screen.findByText(/dry-run 完成/)).toBeTruthy()
+    expect(screen.getAllByText(/待导入/).length).toBeGreaterThan(0)
     expect(screen.getByText(/dsh-x-dry.json/)).toBeTruthy()
   })
 
@@ -76,7 +77,7 @@ describe('MemorySessionsImportCard', () => {
   it('小样本：填 3 时把 limit_sessions 传给后端', async () => {
     api.runImport.mockResolvedValue(REPORT)
     render(<MemorySessionsImportCard />)
-    fireEvent.change(await screen.findByLabelText('最多会话数'), { target: { value: '3' } })
+    fireEvent.change(await screen.findByLabelText('最多待导入会话数'), { target: { value: '3' } })
     fireEvent.click(screen.getByRole('button', { name: '只跑 dry-run' }))
     await waitFor(() => expect(api.runImport).toHaveBeenCalledWith({
       source: 'dsh', dry_run: true, confirm: false,
