@@ -36,7 +36,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from agent.topics import (  # noqa: E402  (需先补 sys.path)
+from agent.knowledge.schema import slugify  # noqa: E402  (需先补 sys.path)
+from agent.topics import (  # noqa: E402
     DEFAULT_TOPIC,
     TOPICS,
     normalize_topic,
@@ -275,6 +276,14 @@ def migrate_knowledge(wiki_root: str, *, apply: bool, force: bool,
             ledger.record("knowledge", card.slug, before, DEFAULT_TOPIC)
         if apply:
             try:
+                # 【历史卡的 slug 豁免】存量里有 slug 与 slugify(title) 不一致的卡
+                # （早期导入/蒸馏产物）。update() 会重跑校验并把它们判成"非法"，
+                # 于是这张卡永远迁不动。用 Card 自带的 explicit_slug 豁免（同一机制，
+                # 蒸馏同题笔记 -N 后缀也走它），并在报告里计数 —— 不悄悄改 slug，
+                # 那会断掉别人卡片里的 links。
+                if card.slug != slugify(card.title or ""):
+                    card.explicit_slug = True
+                    stat["slug_exempted"] = stat.get("slug_exempted", 0) + 1
                 store.update(card)
             except Exception as exc:  # noqa: BLE001 单卡失败不阻断整批
                 stat["failed"] += 1

@@ -7,16 +7,18 @@ source: docs/zh/Git维护操作复盘_TASK06_20260815.md
 date: '2026-08-15'
 tags: [git, gc, 仓库维护, 并行会话, TASK-06, SOP]
 links: []
+topic: general
 contradictions: []
-insight: 并行会话活跃环境下执行 git gc 的安全策略：空闲窗口轮询 + 默认参数（禁 --prune=now，reflog 90 天保护）可零影响并行会话；实测 loose 对象
-  3.09 MiB(673 个)→0、packs 3→2、size-pack 57.57→56.37 MiB，策略已沉淀为 Git_Archive_Cleanup_SOP §三-E。
+insight: 并行会话活跃环境下执行 git gc 的安全策略：空闲窗口轮询 + 默认参数（禁 --prune=now，reflog 90 天保护）可零影响并行会话；实测
+  loose 对象 3.09 MiB(673 个)→0、packs 3→2、size-pack 57.57→56.37 MiB，策略已沉淀为 Git_Archive_Cleanup_SOP
+  §三-E。
 scope: 仓库维护（docs/Git_Archive_Cleanup_SOP.md）
 metadata:
   report: docs/zh/Git维护操作复盘_TASK06_20260815.md
   commits: [e56b5575]
-  gc_before: {loose_count: 673, loose_size: "3.09 MiB", packs: 3, size_pack: "57.57 MiB"}
-  gc_after: {loose_count: 0, loose_size: "0 bytes", packs: 2, size_pack: "56.37 MiB"}
-  sop_update: {section: "三-E 对象库优化", redline: "并行会话活跃时禁 gc / 禁 --prune=now"}
+  gc_before: {loose_count: 673, loose_size: 3.09 MiB, packs: 3, size_pack: 57.57 MiB}
+  gc_after: {loose_count: 0, loose_size: 0 bytes, packs: 2, size_pack: 56.37 MiB}
+  sop_update: {section: 三-E 对象库优化, redline: 并行会话活跃时禁 gc / 禁 --prune=now}
 ---
 
 TASK-06 收尾（2026-08-15）执行 Git 仓库维护：对象库优化（git gc）+ 临时数据清理，全程并行会话活跃（9 worktree）零影响。

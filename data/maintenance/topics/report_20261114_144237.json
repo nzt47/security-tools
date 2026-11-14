@@ -1,0 +1,64 @@
+{
+  "started_at": "2026-11-14T14:42:37",
+  "mode": "apply",
+  "infer": true,
+  "force": false,
+  "vocabulary": [
+    "general",
+    "engineering",
+    "knowledge",
+    "ops",
+    "product"
+  ],
+  "default_topic": "general",
+  "stores": {
+    "vector": {
+      "store": "vector",
+      "db": "C:/Users/Administrator/agent/data/memory/agent_memory_vec.db",
+      "total": 687,
+      "already": 0,
+      "changed": 687,
+      "skipped": 0,
+      "by_topic": {
+        "general": 687
+      }
+    },
+    "knowledge": {
+      "store": "knowledge",
+      "root": "C:/Users/Administrator/agent/knowledge/wiki",
+      "total": 3,
+      "already": 0,
+      "changed": 3,
+      "skipped": 0,
+      "failed": 1,
+      "by_topic": {
+        "general": 3
+      },
+      "failures": [
+        {
+          "slug": "git-维护复盘-task06-gc优化",
+          "error": "ValueError"
+        }
+      ]
+    },
+    "experience": {
+      "store": "experience",
+      "file": "C:/Users/Administrator/agent/data/experience/samples.ndjson",
+      "total": 484,
+      "already": 0,
+      "changed": 484,
+      "skipped": 0,
+      "suggest": {
+        "engineering": 355,
+        "general": 129
+      },
+      "by_topic": {
+        "engineering": 355,
+        "general": 129
+      }
+    }
+  },
+  "changed_total": 1174,
+  "ledger": "C:/Users/Administrator/agent/data/maintenance/topics/ledger_20261114_144237.jsonl",
+  "finished_at": "2026-11-14T14:42:38"
+}

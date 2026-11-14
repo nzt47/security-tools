@@ -7,6 +7,7 @@ source: docs/zh/智能体学习机制重构计划/TASK-06_验证报告_20260815.
 date: '2026-08-15'
 tags: [TASK-06, sensor_learning, novelty, 验证]
 links: []
+topic: general
 contradictions: []
 insight: TASK-06 感知侧新颖性学习管线三项运行时验证全通过：观察模式（enabled=false）只记录不沉淀；行为漂移跨会话对比（drift_score
   0.52 >= 0.3）正确触发事件；高置信事件仅产 DRAFT 草稿绝不注册技能。

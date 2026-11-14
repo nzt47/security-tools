@@ -1,0 +1,59 @@
+{
+  "started_at": "2026-11-14T14:42:56",
+  "mode": "apply",
+  "infer": true,
+  "force": false,
+  "vocabulary": [
+    "general",
+    "engineering",
+    "knowledge",
+    "ops",
+    "product"
+  ],
+  "default_topic": "general",
+  "stores": {
+    "vector": {
+      "store": "vector",
+      "db": "C:/Users/Administrator/agent/data/memory/agent_memory_vec.db",
+      "total": 687,
+      "already": 687,
+      "changed": 0,
+      "skipped": 0,
+      "by_topic": {
+        "general": 687
+      }
+    },
+    "knowledge": {
+      "store": "knowledge",
+      "root": "C:/Users/Administrator/agent/knowledge/wiki",
+      "total": 3,
+      "already": 2,
+      "changed": 1,
+      "skipped": 0,
+      "failed": 0,
+      "by_topic": {
+        "general": 3
+      },
+      "slug_exempted": 1
+    },
+    "experience": {
+      "store": "experience",
+      "file": "C:/Users/Administrator/agent/data/experience/samples.ndjson",
+      "total": 484,
+      "already": 484,
+      "changed": 0,
+      "skipped": 0,
+      "suggest": {
+        "engineering": 355,
+        "general": 129
+      },
+      "by_topic": {
+        "engineering": 355,
+        "general": 129
+      }
+    }
+  },
+  "changed_total": 1,
+  "ledger": "C:/Users/Administrator/agent/data/maintenance/topics/ledger_20261114_144256.jsonl",
+  "finished_at": "2026-11-14T14:42:56"
+}
