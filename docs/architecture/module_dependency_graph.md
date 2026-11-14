@@ -146,6 +146,7 @@ flowchart LR
         agent_tool_router_reranker["agent.tool_router_reranker"]:::crosslayer
         agent_tool_schema_pruner["agent.tool_schema_pruner"]:::crosslayer
         agent_tools_prompt_guard["agent.tools_prompt_guard"]:::crosslayer
+        agent_topics["agent.topics"]:::crosslayer
         agent_v2_performance_patch["agent.v2_performance_patch"]
         agent_weekly_report_generator["agent.weekly_report_generator"]:::crosslayer
     end
@@ -315,6 +316,7 @@ flowchart LR
         agent_lines_integration["agent.lines.integration"]:::crosslayer
         agent_lines_location["agent.lines.location"]
         agent_lines_models["agent.lines.models"]:::crosslayer
+        agent_lines_registry["agent.lines.registry"]:::crosslayer
         agent_lines_skillpack["agent.lines.skillpack"]
     end
     subgraph log_system [log_system]
@@ -358,6 +360,7 @@ flowchart LR
         agent_memory_short_term_memory["agent.memory.short_term_memory"]:::crosslayer
         agent_memory_taxonomy["agent.memory.taxonomy"]:::crosslayer
         agent_memory_tenancy["agent.memory.tenancy"]
+        agent_memory_topic_policy["agent.memory.topic_policy"]:::crosslayer
     end
     subgraph memory_import [memory_import]
         agent_memory_import["agent.memory_import"]:::crosslayer
@@ -1029,6 +1032,7 @@ flowchart LR
     agent_digital_life_state --> agent_state_manager
     agent_digital_life_state --> agent_logging_utils
     agent_digital_life_state --> agent_p6_snapshot
+    agent_digital_life_state -.-> agent_memory_topic_policy
     agent_digital_life_state --> agent_p6_snapshot
     agent_digital_life_state --> agent_behavior_controller
     agent_disaster_recovery -.-> agent_utils_singleton_manager
@@ -1324,9 +1328,11 @@ flowchart LR
     agent_knowledge_lint --> agent_knowledge_index
     agent_knowledge_lint --> agent_knowledge_links
     agent_knowledge_reporting --> agent_knowledge_lint
+    agent_knowledge_schema -.-> agent_topics
     agent_knowledge_search --> agent_knowledge_card
     agent_knowledge_search --> agent_knowledge_link_cache
     agent_knowledge_search --> agent_knowledge_schema
+    agent_knowledge_search -.-> agent_topics
     agent_knowledge_search -.-> agent_utils_periodic_sampler
     agent_knowledge_search -.-> agent_logging_utils
     agent_knowledge_skill_bridge -.-> agent_skills_mgmt_creator
@@ -1345,6 +1351,7 @@ flowchart LR
     agent_knowledge_tools --> agent_knowledge_audit_entry
     agent_knowledge_tools --> agent_knowledge_card
     agent_knowledge_tools --> agent_knowledge_search
+    agent_knowledge_tools -.-> agent_memory_topic_policy
     agent_knowledge_watcher --> agent_knowledge_ingest
     agent_knowledge_workflow --> agent_knowledge_card
     agent_knowledge_workflow --> agent_knowledge_discuss
@@ -1386,6 +1393,7 @@ flowchart LR
     agent_lines_callability --> agent_lines_assembler
     agent_lines_callability --> agent_lines_models
     agent_lines_integration --> agent
+    agent_lines_models -.-> agent_topics
     agent_lines_skillpack -.-> agent_skills_mgmt_registry
     agent_lines_skillpack -.-> agent_skills_mgmt_registry
     agent_llm_monitor -.-> agent_monitoring_prometheus
@@ -1508,6 +1516,10 @@ flowchart LR
     agent_memory_tenancy -.-> agent_observability_trace_v2
     agent_memory_tenancy -.-> agent_observability_trace_v2
     agent_memory_tenancy -.-> agent_observability_trace_v2
+    agent_memory_topic_policy -.-> agent_topics
+    agent_memory_topic_policy -.-> agent_subagent_memory_broker
+    agent_memory_topic_policy -.-> agent_lines_registry
+    agent_memory_topic_policy -.-> agent_audit_facade
     agent_memory_import_migrate -.-> agent_audit_facade
     agent_memory_import_redact -.-> agent_subagent_credentials
     agent_memory_import_service -.-> agent_audit_facade
@@ -1811,6 +1823,7 @@ flowchart LR
     agent_orchestrator_orchestrator -.-> agent_state_manager
     agent_orchestrator_orchestrator -.-> agent_guardrails_injection_defense
     agent_orchestrator_orchestrator -.-> agent_skills_mgmt_experience_index
+    agent_orchestrator_orchestrator -.-> agent_memory_topic_policy
     agent_orchestrator_orchestrator -.-> agent_monitoring_prometheus
     agent_orchestrator_orchestrator -.-> agent_context_assembler
     agent_orchestrator_orchestrator -.-> agent_system_prompt_manager
@@ -2119,6 +2132,7 @@ flowchart LR
     agent_server_routes_routes_agent_lines -.-> agent_prompt_manager_roles
     agent_server_routes_routes_agent_lines -.-> agent_lines_callability
     agent_server_routes_routes_agent_lines -.-> agent_lines_callability
+    agent_server_routes_routes_agent_lines -.-> agent_memory_topic_policy
     agent_server_routes_routes_agent_lines --> agent
     agent_server_routes_routes_approval -.-> agent_security
     agent_server_routes_routes_approval -.-> agent_security
@@ -2449,6 +2463,7 @@ flowchart LR
     agent_skills_mgmt_executor -.-> agent_audit_facade
     agent_skills_mgmt_executor -.-> agent_tool_gate
     agent_skills_mgmt_experience_index -.-> agent_logging_utils
+    agent_skills_mgmt_experience_index -.-> agent_topics
     agent_skills_mgmt_experience_index --> agent_skills_mgmt_bm25_searcher
     agent_skills_mgmt_experience_index --> agent_skills_mgmt_vector_adapter
     agent_skills_mgmt_feedback_agent --> agent_skills_mgmt_service
@@ -2609,6 +2624,7 @@ flowchart LR
     agent_subagent_executor --> agent_subagent_local_inference
     agent_subagent_executor --> agent_subagent_cognitive_loop
     agent_subagent_executor -.-> agent_memory_scoped_store
+    agent_subagent_executor -.-> agent_memory_topic_policy
     agent_subagent_executor --> agent_subagent_callback_channel
     agent_subagent_executor --> agent_subagent_local_inference
     agent_subagent_executor -.-> agent_memory_broker
@@ -2681,6 +2697,7 @@ flowchart LR
     agent_system_tools -.-> agent_tools_task_tools
     agent_system_tools -.-> agent_tools_shell_tools
     agent_system_tools -.-> agent_utils
+    agent_system_tools -.-> agent_memory_topic_policy
     agent_task_planner_dag -.-> agent_logging_utils
     agent_task_planner_enhanced_dag -.-> agent_logging_utils
     agent_task_planner_enhanced_dag --> agent_task_planner_dag
@@ -3003,9 +3020,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 763
-- 模块节点数: 661
-- 依赖边数: 2214
-- 跨层调用数: 1409
+- 扫描文件数: 765
+- 模块节点数: 664
+- 依赖边数: 2228
+- 跨层调用数: 1423
 - 违规调用数: 0
 - 动态 import 数: 1
