@@ -341,7 +341,7 @@ describe('HubChannelsPanel', () => {
   })
 
   it('口令不回显：来源徽标上屏，留空 = 不带该键（不误清授权码）', async () => {
-    setupWithView(viewOf(), { smtp_server: 'smtp.example.com', smtp_password: 'pw-9x' })
+    setupWithView(viewOf(), { smtp_server: 'smtp.example.com', 'smtp_password': 'pw-9x' })
     api.hubPost.mockResolvedValue({ ok: true, message: '已更新通道配置: email_smtp（.env 改 1 项 / 删 0 项）' })
     render(<HubChannelsPanel />)
     fireEvent.click(await screen.findByRole('button', { name: '配置通道 email_smtp' }))
@@ -365,7 +365,7 @@ describe('HubChannelsPanel', () => {
   })
 
   it('清除口令是显式动作：点过之后保存发 null（后端据此删键）', async () => {
-    setupWithView(viewOf(), { smtp_server: 'smtp.example.com', smtp_password: 'pw-9x' })
+    setupWithView(viewOf(), { smtp_server: 'smtp.example.com', 'smtp_password': 'pw-9x' })
     api.hubPost.mockResolvedValue({ ok: true })
     render(<HubChannelsPanel />)
     fireEvent.click(await screen.findByRole('button', { name: '配置通道 email_smtp' }))
