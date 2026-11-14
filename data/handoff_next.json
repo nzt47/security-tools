@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-14T14:46:36+08:00",
+ "updated_at": "2026-11-14T16:24:52+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -718,11 +718,19 @@
   },
   {
    "id": "memory-topics-followups",
-   "status": "open",
+   "status": "done",
    "priority": "P3",
    "title": "主题类（topic）三件后续：分身顶层 memory_topics、写入侧按类打标、混合数据验证",
    "criteria": "C1-C3 已把「按类装载」接线并迁移存量（见 memory-knowledge-experience-classification）。三个遗留边界：\n1) 分身的类声明目前寄生在 memory_scope.topics 上，而 none 档拒收非空 scope ⇒ 未开记忆的分身无法声明类（只能 general）。要独立于档位就需顶层字段 memory_topics（同时改 SubagentConfig / create+update 路由 / bundle 导出导入 / attach_memory_metadata 的 none 提前返回 / executor._topics_scope）；\n2) 写入侧只有兜底 general：orchestrator 的 reflection/conversation、memory_import 的导入批次、kb_capture/kb_distill 产卡都没有显式类，现场向量 687 条与知识 3 张全是 general；需要按来源/项目给这些写入点加类（否则「两个智能体装载不同子集」在向量/知识上只能靠新数据才看得出）；\n3) 缺混合数据的回归：应在测试库造 mixed 向量/知识数据跑一遍「A 看不到 B 的类」，并加一条 scripts/verify_topics_isolation.py 现场读数脚本（现在只有经验侧有现场证据）。",
-   "next": "建议顺序：先 1（顶层 memory_topics，纯配置面）→ 再 2（各写入点加类，改动面在 orchestrator / memory_import / 知识沉淀三处，需同步审计与报表）→ 最后 3（现场脚本 + 混合数据用例）。两条纪律不变：词表仍是 agent/topics.py 唯一事实源（前端 lib/topics.ts 有对拍用例）；读侧只经 topic_policy 解析，人机 HTTP 面不按类过滤（那是人机面，不是安全边界）。"
+   "next": "2026-11-14 收口（§11.118，Owner「继续」）：三件全做完。\n① fb352749b 顶层 memory_topics（与记忆档位解耦，none 档也能声明；bundle 往返；主权清单补证据；前端改发顶层字段）；\n② b49b19c3b 写入侧**归因打标**（write_topic = 写入者声明的首个非 general 类）接到对话/反思/remember/知识卡片四处；导入批次**显式 general**（按来源猜类就是编）；\n③ b67ced9de 三库合并验收（mixed 数据，A 看不到 B 的类）+ scripts/verify_topics_isolation.py（只读现场读数）；b77ecdc8f 推前干净 worktree 重派生清单（fan_out 234→236、kb_card 95→98）。\n现场：向量 687/知识 3 全 general、经验 484（engineering 355）；engineering 线可见 general+engineering（经验 38 命中），knowledge 线仅 general（经验 4 命中），两条线越权类 0。\n测试：主题类三份 66 条、合并回归 482 passed、前端 1320 全绿；部署 b77ecdc8f 三处一致。"
+  },
+  {
+   "id": "memory-topics-import-classification",
+   "status": "open",
+   "priority": "P3",
+   "title": "存量向量/知识的类回补 + 导入批次按「项目」分门别类（等 Owner 定是否需要）",
+   "criteria": "主题类链路已完整（词表/写侧/读侧/装配/审计/验收）。剩下两件都是**数据问题**，不是代码问题：\n1) 存量：向量 687 条与知识 3 张仍是 general（写侧归因打标从 b49b19c3b 之后才生效，新写入会出现非 general）。要不要按来源/项目回补，需要 Owner 定 —— scripts/migrate_memory_topics.py --infer 能做，但那是「猜」，与本轮「按来源猜类就是编」的口径冲突；\n2) 导入批次按项目分类需要「项目」这一维（现在 metadata 只有 origin/period/batch_id），属新增维度（要定项目清单、要迁移历史批次），不建议在没有真实需求前先做。",
+   "next": "等 Owner 明确需求再动：若要做 1，先出 dry-run 报告（每类建议条数 + 抽样 10 条）再决定；若要做 2，先定义项目维度（与 workspace / 主线 / repo 的关系）再改 vector_metadata 与卡片 frontmatter。本轮不做，避免用猜测污染分类。"
   }
  ]
 }
