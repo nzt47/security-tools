@@ -36,6 +36,7 @@ __all__ = [
     "effective_topics",
     "supports_topics",
     "search_with_topics",
+    "write_topic",
     "enter_manifest",
     "audit_line_declared",
 ]
@@ -164,6 +165,23 @@ def search_with_topics(store: Any, query: str, *, top_k: int, topics: Any = None
     logger.warning("[topics] 检索对象不支持 topics 形参（%s）⇒ 本次不过滤，"
                    "路径未接线请补", type(store).__name__)
     return store.search(query, top_k), resolved
+
+
+def write_topic() -> str:
+    """写入侧**归因**打标：取写入者声明的**首要类**（顺序第一个非 general），没有就 general。
+
+    【语义是"谁产生的"，不是"内容属于哪类"】按内容猜类就是编 —— 一条关于 OOM 的反思
+    属于运维还是工程？没人能替它决定。能确定的是"这条记忆是工程线写的"。所以：
+    · 主线/分身声明了非 general 类 ⇒ 用它声明顺序里的第一个（声明顺序即优先级）；
+    · 没声明 ⇒ general（未分类，仍然 fail-closed：只有 general 白名单的智能体能读到它）。
+
+    【为什么按声明顺序而不是按"线 id 映射"】映射表是第二份词表，迟早漂移；
+    声明顺序是配置者自己写的意图，读起来也直观（engineering 线第一个非 general 是 engineering）。
+    """
+    for topic in effective_topics():
+        if topic != DEFAULT_TOPIC:
+            return topic
+    return DEFAULT_TOPIC
 
 
 def audit_declared(topics: Tuple[str, ...], *, actor: str = "", subject: str = "",

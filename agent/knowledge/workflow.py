@@ -138,11 +138,15 @@ class WorkflowRunner:
         extracted = extract_card_insights(path, llm=self.llm)
         links = list(disc.links or extracted["links"])
         conflicts = list(disc.conflicts or extracted["conflicts"])
+        from agent.memory.topic_policy import write_topic
+
         card = Card(
             title=disc.title or disc.topic,
             slug=slugify(disc.title or disc.topic),
             status="draft",  # 必须人工确认才转 current
             type=card_type,
+            # 归因打标：哪条线沉淀的卡片就归哪一类（未声明 ⇒ general）
+            topic=write_topic(),
             source=disc.source or f"discussion:{path.name}",
             date=disc.distill_date or date.today().isoformat(),
             links=links,

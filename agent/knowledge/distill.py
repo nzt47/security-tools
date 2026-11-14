@@ -425,11 +425,15 @@ def card_from_note(note: Note, card_type: str = "concepts") -> Card:
         source_hash / llm_model / confidence / reason → metadata（溯源）
     状态固定 draft（人机边界：须人工确认后才可转 current）。
     """
+    from agent.memory.topic_policy import write_topic
+
     return Card(
         title=note.title,
         slug=note.slug,
         status="draft",
         type=card_type,
+        # 归因打标（与 workflow.card_from_discussion 同口径）
+        topic=write_topic(),
         source=note.source,
         date=note.distill_date or date.today().isoformat(),
         links=list(note.suggested_links),

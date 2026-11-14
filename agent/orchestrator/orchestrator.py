@@ -1697,11 +1697,15 @@ class Orchestrator:
         if self._vector_memory is not None:
             try:
                 memory_content = f"用户: {user_input}\n云枢: {response}"
+                from agent.memory.topic_policy import write_topic
+
                 item_id = self._vector_memory.add(
                     content=memory_content,
                     metadata={
                         "type": "conversation",
                         "interaction": self._interaction_count,
+                        # 归因打标：这条对话记忆由哪条线产生（未声明 ⇒ general）
+                        "topic": write_topic(),
                     },
                 )
                 logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.log', 'message': '[记忆] 向量记忆已保存: %s' % (item_id,)}))
@@ -4841,10 +4845,14 @@ class Orchestrator:
             logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.self_reflect.persist.start', 'message': '[反思] 反思产物写入检索面开始（交互 #%d, 反思长度=%d）' % (entry["interaction"], len(entry["reflection"]))}))
             score = eval_result.score if eval_result is not None else 0.0
             suggestions = list(eval_result.suggestions or []) if eval_result is not None else []
+            from agent.memory.topic_policy import write_topic
+
             item_id = self._vector_memory.add(
                 content="反思(#%d): %s" % (entry["interaction"], entry["reflection"]),
                 metadata={
                     "type": "reflection",
+                    # 归因打标（同对话记忆）：反思由哪条线产生就归哪一类
+                    "topic": write_topic(),
                     "interaction": entry["interaction"],
                     "task_id": str(entry["interaction"]),
                     "input_hash": hashlib.sha1(task.encode("utf-8")).hexdigest()[:12],

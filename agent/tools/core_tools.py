@@ -274,9 +274,13 @@ def register_all(dl):
         # 存到向量记忆
         if dl._vector_memory:
             try:
+                from agent.memory.topic_policy import write_topic
+
                 mem_id = dl._vector_memory.add(
                     content=memory_text,
-                    metadata={"type": "user_memory", "key": key, "importance": importance}
+                    # 归因打标：这条"记住"是哪个智能体写的（未声明 ⇒ general）
+                    metadata={"type": "user_memory", "key": key, "importance": importance,
+                              "topic": write_topic()}
                 )
             except Exception as e:
                 logger.error("保存向量记忆失败: %s", e)

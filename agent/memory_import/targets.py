@@ -19,6 +19,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional
 
+from agent.topics import DEFAULT_TOPIC
+
 from .models import CARRIER_CARD, CARRIER_MEMORY, Batch
 
 
@@ -70,6 +72,8 @@ def write_knowledge_card(batch: Batch, *, store: Any = None,
         card = Card(
             title=batch.title, slug=slug, status=str(status or "current"),
             type="concepts",
+            # 导入的卡片同样是 general（同 vector_metadata 的理由：按来源猜类就是编）
+            topic=DEFAULT_TOPIC,
             source=f"import:{batch.source}:{batch.date or 'static'}",
             date=_today(), tags=[t for t in batch.tags if t],
             insight=insight, content=body,
@@ -256,6 +260,12 @@ def vector_metadata(batch: Batch) -> Dict[str, Any]:
         "digest_source": str(getattr(batch, "digest_source", "rule") or "rule"),
         "title": str(batch.title or ""),
         "records": len(batch.record_ids),
+        # 主题类：外部转录**一律 general**（有意的，不是漏做）——
+        # 导入器只知道"来自 claude/trae/dsh 的某段时间"，不知道那段话的业务域；
+        # 按来源猜类就是编。只有 general 白名单能读到它们，要扩就人工作业（migrate 脚本支持）。
+        # 【为什么要显式写】依赖 VectorStore.add 的兜底也能得到 general，但那种"碰巧正确"
+        # 没法在 metadata 上分辨"导入器表过态"与"没人管"。
+        "topic": DEFAULT_TOPIC,
     }
 
 

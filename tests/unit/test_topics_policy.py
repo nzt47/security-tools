@@ -383,6 +383,47 @@ def test_search_helper_tolerates_legacy_stub_without_topics_param():
 
 
 # ════════════════════════════════════════════════════════════
+#  4b. 写入侧归因打标（谁产生的 → 哪一类）
+# ════════════════════════════════════════════════════════════
+
+
+def test_write_topic_takes_first_non_general_declared(monkeypatch):
+    monkeypatch.setattr(P, "_active_line_topics", lambda: ("general", "engineering", "ops"))
+    assert P.write_topic() == "engineering"
+
+
+def test_write_topic_falls_back_to_general(monkeypatch):
+    monkeypatch.setattr(P, "_active_line_topics", lambda: ("general",))
+    assert P.write_topic() == "general"
+
+
+def test_write_topic_respects_declared_context(monkeypatch):
+    monkeypatch.setattr(P, "_active_line_topics", lambda: ("general", "engineering"))
+    with T.topics_context(["knowledge"]):
+        assert P.write_topic() == "knowledge"
+
+
+#: 写入侧四处（对话/反思/remember/知识卡片）+ 导入一侧（显式 general）
+WRITE_SITES = {
+    "agent/orchestrator/orchestrator.py": ("write_topic", 2),
+    "agent/tools/core_tools.py": ("write_topic", 1),
+    "agent/knowledge/workflow.py": ("write_topic", 1),
+    "agent/knowledge/distill.py": ("write_topic", 1),
+    "agent/memory_import/targets.py": ("DEFAULT_TOPIC", 2),
+}
+
+
+@pytest.mark.parametrize("rel,spec", [(k, v) for k, v in WRITE_SITES.items()])
+def test_write_sites_are_stamped(rel, spec):
+    """写入点必须显式打标（漏一处 = 那类数据永远进 general，看起来像"分类没生效"）"""
+    needle, at_least = spec
+    text = (ROOT / rel).read_text(encoding="utf-8")
+    assert text.count(needle) >= at_least, (
+        f"{rel} 里 {needle} 出现 {text.count(needle)} 次（期望 ≥{at_least}）——"
+        " 新增写入点必须同批打标，否则数据会悄悄归 general")
+
+
+# ════════════════════════════════════════════════════════════
 #  5. 哨兵：五条读路径都必须走策略（漏一条就是越权）
 # ════════════════════════════════════════════════════════════
 
