@@ -175,7 +175,8 @@ class TestFileTrackAudit:
         r = reg.toggle("d2-toggle-file-1")
         assert r == {"ok": True, "id": "d2-toggle-file-1", "enabled": False,
                      "track": "file_track"}
-        recs = _records("d2-toggle-file-1", ACTION_TOGGLE)
+        # 【2026-11-15】同一 flake 形状：全量单进程下落链可能晚一拍（见 _wait_records 注释）
+        recs = _wait_records(lambda: _records("d2-toggle-file-1", ACTION_TOGGLE), 1)
         assert len(recs) == 1
         body = _body(recs[0])
         assert body["track"] == "file_track"
@@ -238,7 +239,10 @@ class TestContractAndBestEffort:
         _make_main(iso_svc, "d2-secret-1", description=marker,
                    content=f"# {marker}")
         reg.set_enabled("d2-secret-1", False)
-        recs = _records("d2-secret-1", ACTION_SET)
+        # 【2026-11-15】CI run 43620185197 在全量单进程里实测此处 assert 0 == 1：
+        #   落链晚一拍，不是"没写"（单跑 / 与 test_channel_env_sync 连跑均恒绿）。
+        #   同文件其余落链断言早已改成有界轮询，这里漏改了一处。
+        recs = _wait_records(lambda: _records("d2-secret-1", ACTION_SET), 1)
         assert len(recs) == 1
         dumped = json.dumps(recs[0].payload, ensure_ascii=False, sort_keys=True)
         assert marker not in dumped
