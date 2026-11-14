@@ -1312,6 +1312,7 @@ flowchart LR
     agent_knowledge_distill --> agent_knowledge_prompts
     agent_knowledge_distill --> agent_knowledge_schema
     agent_knowledge_distill -.-> agent_logging_utils
+    agent_knowledge_distill -.-> agent_memory_topic_policy
     agent_knowledge_distill_feedback -.-> agent_cognitive_prompt_optimizer
     agent_knowledge_distill_feedback -.-> agent_feedback
     agent_knowledge_distill_feedback --> agent_knowledge_ingest
@@ -1361,6 +1362,7 @@ flowchart LR
     agent_knowledge_workflow --> agent_knowledge_logbook
     agent_knowledge_workflow --> agent_knowledge_schema
     agent_knowledge_workflow -.-> agent_logging_utils
+    agent_knowledge_workflow -.-> agent_memory_topic_policy
     agent_lazy_loader -.-> agent_logging_utils
     agent_lazy_loader -.-> agent_utils_singleton_manager
     agent_lazy_loader__core -.-> agent_logging_utils
@@ -1527,6 +1529,7 @@ flowchart LR
     agent_memory_import_service -.-> agent_knowledge_card
     agent_memory_import_service -.-> agent_audit_facade
     agent_memory_import_summarize -.-> agent_env_config_manager
+    agent_memory_import_targets -.-> agent_topics
     agent_memory_import_targets -.-> agent_knowledge_card
     agent_memory_import_targets -.-> agent_knowledge_schema
     agent_memory_import_targets -.-> agent_knowledge_card
@@ -1829,11 +1832,13 @@ flowchart LR
     agent_orchestrator_orchestrator -.-> agent_system_prompt_manager
     agent_orchestrator_orchestrator -.-> agent_state_manager
     agent_orchestrator_orchestrator -.-> agent_cognitive_reflection
+    agent_orchestrator_orchestrator -.-> agent_memory_topic_policy
     agent_orchestrator_orchestrator -.-> agent_autonomy
     agent_orchestrator_orchestrator -.-> agent_autonomy
     agent_orchestrator_orchestrator -.-> agent_session_manager
     agent_orchestrator_orchestrator -.-> agent_state_manager
     agent_orchestrator_orchestrator --> agent_orchestrator_dialog_state
+    agent_orchestrator_orchestrator -.-> agent_memory_topic_policy
     agent_orchestrator_orchestrator -.-> agent_monitoring_prometheus
     agent_orchestrator_orchestrator --> agent
     agent_orchestrator_orchestrator -.-> agent_skills_mgmt_loader
@@ -2318,6 +2323,7 @@ flowchart LR
     agent_server_routes_routes_subagent -.-> agent_subagent_memory_broker
     agent_server_routes_routes_subagent -.-> agent_subagent_credentials
     agent_server_routes_routes_subagent -.-> agent_subagent_role_templates
+    agent_server_routes_routes_subagent -.-> agent_topics
     agent_server_routes_routes_subagent -.-> agent_subagent_autonomy_gate
     agent_server_routes_routes_subagent -.-> agent_subagent_delegation
     agent_server_routes_routes_subagent -.-> agent_subagent_rounds
@@ -2831,6 +2837,7 @@ flowchart LR
     agent_tools_code_tools -.-> agent_tool_gate
     agent_tools_core_tools --> agent
     agent_tools_core_tools -.-> agent_system_tools
+    agent_tools_core_tools -.-> agent_memory_topic_policy
     agent_tools_db_tools --> agent
     agent_tools_discovery_service -.-> agent_extensions_base
     agent_tools_discovery_service --> agent_tools_mcp_connector
@@ -3022,7 +3029,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 765
 - 模块节点数: 664
-- 依赖边数: 2228
-- 跨层调用数: 1423
+- 依赖边数: 2235
+- 跨层调用数: 1430
 - 违规调用数: 0
 - 动态 import 数: 1
