@@ -205,6 +205,7 @@ flowchart LR
         agent_extensions["agent.extensions"]
         agent_extensions_base["agent.extensions.base"]:::crosslayer
         agent_extensions_channel_bridge["agent.extensions.channel_bridge"]:::crosslayer
+        agent_extensions_channel_env_bridge["agent.extensions.channel_env_bridge"]:::crosslayer
         agent_extensions_channel_health["agent.extensions.channel_health"]:::crosslayer
         agent_extensions_channels_installer["agent.extensions.channels_installer"]:::crosslayer
         agent_extensions_dependency_manager["agent.extensions.dependency_manager"]
@@ -1101,6 +1102,11 @@ flowchart LR
     agent_extensions_channel_bridge --> agent_extensions_store
     agent_extensions_channel_bridge --> agent_extensions_channels_installer
     agent_extensions_channel_bridge --> agent_extensions_store
+    agent_extensions_channel_env_bridge -.-> agent_env_config_manager
+    agent_extensions_channel_env_bridge -.-> agent_env_config_manager
+    agent_extensions_channel_env_bridge -.-> agent_env_config_manager
+    agent_extensions_channel_env_bridge -.-> agent_audit_facade
+    agent_extensions_channels_installer --> agent_extensions_channel_env_bridge
     agent_extensions_channels_installer --> agent_extensions_base
     agent_extensions_channels_installer --> agent_extensions_installer
     agent_extensions_channels_installer --> agent_extensions_store
@@ -1613,6 +1619,7 @@ flowchart LR
     agent_monitoring_decorators -.-> agent_error_handler
     agent_monitoring_dependency_probe -.-> agent_extensions_channels_installer
     agent_monitoring_dependency_probe -.-> agent_extensions_store
+    agent_monitoring_dependency_probe -.-> agent_extensions_channel_env_bridge
     agent_monitoring_error_reporter -.-> agent_logging_utils
     agent_monitoring_error_reporter --> agent_monitoring_tracing
     agent_monitoring_error_reporter -.-> agent_error_handler
@@ -3027,9 +3034,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 765
-- 模块节点数: 664
-- 依赖边数: 2235
-- 跨层调用数: 1430
+- 扫描文件数: 766
+- 模块节点数: 665
+- 依赖边数: 2241
+- 跨层调用数: 1435
 - 违规调用数: 0
 - 动态 import 数: 1
