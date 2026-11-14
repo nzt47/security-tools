@@ -31,6 +31,7 @@ import {
 } from '@/lib/subagentApi'
 // 与「主线档案」同源：active 主线决定委派时的工具集（只读展示，不在本页提供选择）
 import { fetchLines } from '@/lib/agentLinesApi'
+import { TopicPicker } from '@/components/TopicPicker'
 
 interface RoleCatalogLite {
   templates?: { id?: string; title?: string; note?: string }[]
@@ -292,11 +293,41 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
                 placeholder="记忆提供商（声明字段）"
                 className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden"
               />
+              <select
+                value={form.memoryMode}
+                onChange={(e) => set('memoryMode', e.target.value)}
+                data-testid="assembly-memory-mode"
+                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-hidden"
+              >
+                <option value="">记忆档：不表态（后端默认 none）</option>
+                <option value="brokered">brokered（母体代管；本页只提供这一档）</option>
+              </select>
             </div>
+
+            <div className="mt-3">
+              <div className="mb-1.5 text-[12px] text-slate-400">
+                可装载的主题类（向量记忆 / 知识库 / 经验 同用一份词表）
+              </div>
+              <TopicPicker
+                value={form.topics}
+                onChange={(next) => set('topics', next)}
+                disabled={form.memoryMode !== 'brokered'}
+                testId="assembly-topic"
+              />
+              {form.memoryMode !== 'brokered' && (
+                <div className="mt-1 text-[11px] text-amber-300" data-testid="assembly-topic-hint">
+                  选了「不表态 / none」时本页不发类声明（后端 none 档拒收非空记忆域，
+                  静默忽略会让你以为它生效了）—— 要按类装载请先选 brokered。
+                </div>
+              )}
+            </div>
+
             <p className="mt-2 text-[11px] text-slate-500" data-testid="assembly-memory-note">
               记忆档 <code>memory_mode</code>（none / brokered / scoped）**已接线**，由后端消费；
-              scoped 档按 <code>memory_provider</code> 选真实后端（holographic → 本地 SQLite；mem0 → 可选依赖 + 内置降级）。
-              本页填的是创建时的声明值，实际生效/降级以「分身」列表的 memory_view 为准。
+              scoped 档还要求 <code>memory_scope</code> 的 tenant/workspace/subject 三要素，
+              本页不给域输入，故不提供 scoped（会 400，不做假选项）。
+              未给域时 brokered 的「母体代管记忆」会如实降级为空，但**按类装载**照常生效。
+              实际生效/降级以「分身」列表的 memory 视图为准。
             </p>
           </Card>
 

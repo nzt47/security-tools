@@ -15,6 +15,7 @@
 
 import { request } from './apiClient'
 import { SUBAGENT_CAPABILITIES } from '@/api/endpoints'
+import { normalizeTopics } from '@/lib/topics'
 
 // ═══════════════════════════════════════════════════════════
 //  主权清单（与 agent/subagent/capabilities.py 的投影对齐）
@@ -88,6 +89,10 @@ export interface AssembleForm {
   modelId: string
   temperature: string
   memoryProvider: string
+  /** 记忆档位：'' = 不表态（后端默认 none）；当前只提供 none/brokered */
+  memoryMode: string
+  /** 可装载的主题类（仅在 brokered 下随 memory_scope 发出） */
+  topics: string[]
   toolSources: string
   permissions: string[]
   ttlSeconds: string
@@ -102,6 +107,8 @@ export const EMPTY_ASSEMBLE_FORM: AssembleForm = {
   modelId: '',
   temperature: '',
   memoryProvider: 'default',
+  memoryMode: '',
+  topics: ['general'],
   toolSources: '',
   permissions: ['read'],
   ttlSeconds: '',
@@ -120,6 +127,8 @@ export function buildCreatePayload(form: AssembleForm): Record<string, unknown> 
     .split(',')
     .map((t) => t.trim())
     .filter(Boolean)
+  const memoryMode = form.memoryMode === 'brokered' ? 'brokered' : ''
+  const topics = normalizeTopics(form.topics)
   const body: Record<string, unknown> = {
     name: form.name.trim(),
     model_id: form.modelId.trim(),
@@ -136,5 +145,12 @@ export function buildCreatePayload(form: AssembleForm): Record<string, unknown> 
   if (roleText) body.role_text = roleText
   const ttl = form.ttlSeconds.trim()
   if (ttl) body.ttl_seconds = Number(ttl)
+  // 【为什么装在哪】主题类是"可装载哪些知识"，目前挂在 memory_scope 上
+  // （与 memory_types 同型）。而 none 档**不接受**非空 scope（后端 fail-closed），
+  // 所以只有选了 brokered 才发；没选就老实不发，而不是假装生效。
+  if (memoryMode) {
+    body.memory_mode = memoryMode
+    body.memory_scope = { topics }
+  }
   return body
 }

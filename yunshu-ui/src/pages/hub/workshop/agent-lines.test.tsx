@@ -12,7 +12,7 @@
  * 页面自身会打三个接口（/api/agent-lines、/planes、/preview），故 fetch 按 URL 打桩。
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 // ═══════════════════════════════════════════════════════════
 //  固定响应（形状与后端 `SkillPack.to_dict()` 对齐）
@@ -32,6 +32,7 @@ const LINE_PROFILE = {
   allow_govern: false,
   skills: ['engineering-test-delivery', 'typo-skill'],
   prompt_note: '',
+  topics: ['general'],
 }
 
 const LINE_LIST = { ok: true, active: 'engineering', lines: [LINE_PROFILE], broken: [] }
@@ -111,8 +112,20 @@ function json(body: unknown, status = 200) {
 /** `POST /api/agent-lines/preview` 的应答（用例可换） */
 let previewReply: Record<string, unknown> = {}
 
-const fetchMock = vi.fn(async (url: string) => {
+/** 写请求体（PUT/POST）：用来断言"编辑器真的把声明发出去了" */
+const writeBodies: { url: string; body: Record<string, unknown> }[] = []
+
+const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
   const u = String(url)
+  const method = String(init?.method || 'GET').toUpperCase()
+  if (method !== 'GET') {
+    let body: Record<string, unknown> = {}
+    try { body = JSON.parse(String(init?.body ?? '{}')) } catch { body = {} }
+    writeBodies.push({ url: u, body })
+    if (u.includes('/api/agent-lines/preview')) return json(previewReply)
+    if (u.includes('/api/agent-lines')) return json({ ok: true, line: { ...LINE_PROFILE, ...body }, created: false, note: '' })
+    return json({})
+  }
   if (u.includes('/api/agent-lines/planes')) return json(PLANES)
   if (u.includes('/api/agent-lines/preview')) return json(previewReply)
   if (u.includes('/api/agent-lines')) return json(LINE_LIST)
@@ -128,6 +141,7 @@ function renderPage() {
 
 beforeEach(() => {
   fetchMock.mockClear()
+  writeBodies.length = 0
   previewReply = {
     ok: true,
     line_id: 'engineering',
@@ -145,6 +159,29 @@ afterEach(cleanup)
 // ═══════════════════════════════════════════════════════════
 //  用例
 // ═══════════════════════════════════════════════════════════
+
+describe('主线档案 · 主题类（可装载哪些类）', () => {
+  it('勾选主题类后保存 ⇒ 请求体带 topics（不是只改界面状态）', async () => {
+    renderPage()
+    await waitFor(() => expect(screen.getByText('工程线')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('工程线'))
+    // 默认只有兜底类 general；加上 ops ⇒ 装载 {general, ops}
+    fireEvent.click(screen.getByTestId('line-topic-ops'))
+    fireEvent.click(screen.getByRole('button', { name: /保存/ }))
+    await waitFor(() => expect(writeBodies.length).toBe(1))
+    expect(writeBodies[0].url).toContain('/api/agent-lines/engineering')
+    expect(writeBodies[0].body.topics).toEqual(['general', 'ops'])
+  })
+
+  it('改主题类会被判为"未保存"（集合语义：只换顺序不算改动）', async () => {
+    renderPage()
+    await waitFor(() => expect(screen.getByText('工程线')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('工程线'))
+    expect(screen.queryByText('未保存')).toBeNull()
+    fireEvent.click(screen.getByTestId('line-topic-ops'))
+    await waitFor(() => expect(screen.getByText('未保存')).toBeInTheDocument())
+  })
+})
 
 describe('装配预览 · 技能区块', () => {
   it('白名单：列出 allowed，并把声明了但不存在的 id 红色单独列出（写错不许静默消失）', () => {

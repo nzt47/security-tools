@@ -57,6 +57,11 @@ export interface LineProfile {
   allow_govern: boolean
   skills: string[]
   prompt_note: string
+  /**
+   * 可装载的主题类（agent/topics.py 的闭集）。
+   * 读侧按它过滤三库检索；**未声明 ⇒ 只读 general**（不是全读）。
+   */
+  topics: string[]
 }
 
 /** 工具目录条目（来自 data/tool_definitions/*.yaml，唯一权威） */

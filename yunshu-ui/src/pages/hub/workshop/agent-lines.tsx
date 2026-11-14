@@ -50,6 +50,8 @@ import {
   useToolExemptions,
   type ToolExemptionState,
 } from './exemption'
+import { TopicPicker } from '@/components/TopicPicker'
+import { DEFAULT_TOPIC, normalizeTopics } from '@/lib/topics'
 
 // ═══════════════════════════════════════════════════════════
 //  文案与常量（中文名与后端 PLANE_LABELS / EFFECT_LABELS 同源；
@@ -125,6 +127,7 @@ function cloneProfile(p: LineProfile): LineProfile {
     requires_approval: [...(p.requires_approval ?? [])],
     skills: [...(p.skills ?? [])],
     prompt_note: p.prompt_note || '',
+    topics: normalizeTopics(p.topics),
   }
 }
 
@@ -147,6 +150,7 @@ function blankProfile(defaults?: Partial<LineProfile> | null): LineProfile {
     allow_govern: d.allow_govern ?? false,
     skills: [],
     prompt_note: '',
+    topics: normalizeTopics(d.topics),
   }
 }
 
@@ -163,6 +167,8 @@ function canonical(p: LineProfile): string {
     requires_approval: [...(p.requires_approval ?? [])].sort(),
     allow_govern: !!p.allow_govern,
     skills: [...(p.skills ?? [])].sort(), prompt_note: p.prompt_note || '',
+    // 顺序无关（集合语义）：否则只调换选中顺序也会被当成"未保存"
+    topics: [...normalizeTopics(p.topics)].sort(),
   })
 }
 
@@ -1463,6 +1469,22 @@ export default function ToolsAgentLines() {
                       />
                     </Field>
                   </div>
+
+                  <Field
+                    label="topics（可装载的主题类）"
+                    hint="本线检索向量记忆/知识库/经验时只看这些类；全不选 ⇒ 只有 general（未声明即只读兜底类，不是全读）"
+                  >
+                    <div className="space-y-1.5">
+                      <TopicPicker
+                        value={draft.topics ?? [DEFAULT_TOPIC]}
+                        onChange={(next) => patch({ topics: next })}
+                        testId="line-topic"
+                      />
+                      <div className="text-[11px] text-slate-500" data-testid="line-topic-note">
+                        三库（向量 / 知识 / 经验）用同一份词表；跨类读取必须把那一类加进来。
+                      </div>
+                    </div>
+                  </Field>
 
                   <Field label="prompt_note" hint="随本线注入的系统提示词片段（可留空）">
                     <textarea

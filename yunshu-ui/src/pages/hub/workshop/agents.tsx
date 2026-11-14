@@ -40,6 +40,14 @@ interface Subagent {
   name: string
   model_id?: string
   memory_provider?: string
+  /** 后端 `memory_view`：生效档位 / 域（含 topics 白名单）/ 降级（**不含记忆正文**） */
+  memory?: {
+    mode?: string
+    scope?: { topics?: string[] }
+    provider?: string
+    error?: string
+    degraded?: string
+  }
   status?: string
   tool_sources?: string[]
   tags?: string[]
@@ -275,7 +283,29 @@ function SubagentView({ onShowAssembly }: { onShowAssembly?: () => void }) {
                   )
                 },
               },
-              { key: 'memory_provider', title: '记忆', render: (r) => <Badge color="cyan">{String(r.memory_provider ?? 'default')}</Badge> },
+              {
+                key: 'memory_provider',
+                title: '记忆',
+                render: (r) => {
+                  const mode = String(r.memory?.mode || 'none')
+                  const topics = r.memory?.scope?.topics ?? []
+                  return (
+                    <span className="flex flex-wrap items-center gap-1.5" data-testid={`subagent-memory-${String(r.name)}`}>
+                      <Badge color="cyan">{String(r.memory_provider ?? 'default')}</Badge>
+                      <span className="text-[11px] text-slate-500">{mode}</span>
+                      {topics.length > 0 && (
+                        <span className="flex flex-wrap gap-1" data-testid={`subagent-topics-${String(r.name)}`}>
+                          {topics.map((t) => (
+                            <span key={t} className="rounded-full border border-slate-700 bg-slate-800/60 px-2 py-0.5 font-mono text-[10px] text-slate-300">
+                              {t}
+                            </span>
+                          ))}
+                        </span>
+                      )}
+                    </span>
+                  )
+                },
+              },
               { key: 'status', title: '状态', render: (r) => <Badge color={String(r.status) === 'running' ? 'green' : 'slate'}>{String(r.status ?? '?')}</Badge> },
               {
                 key: 'actions', title: '操作',

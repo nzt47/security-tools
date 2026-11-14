@@ -295,6 +295,21 @@ READ_PATHS = {
 }
 
 
+def test_frontend_vocabulary_matches_backend():
+    """前端词表（yunshu-ui/src/lib/topics.ts）必须与后端逐字同源。
+
+    UI 要在两处让人选"装载哪些类"，选项只能有一份；写死在页面里就会出现
+    两套词表 —— 而后端会拒收词表外的值（400），现场表现为"选不了但也不报错"。
+    """
+    import re
+
+    ts = (ROOT / "yunshu-ui/src/lib/topics.ts").read_text(encoding="utf-8")
+    ids = re.findall(r"\{ id: '([a-z_]+)'", ts)
+    assert tuple(ids) == T.TOPICS, (
+        f"前端词表 {tuple(ids)} 与后端 {T.TOPICS} 不一致；改一处必须同批改另一处")
+    assert "DEFAULT_TOPIC = 'general'" in ts or 'DEFAULT_TOPIC = "general"' in ts
+
+
 @pytest.mark.parametrize("rel,needle", [(k, v) for k, v in READ_PATHS.items()])
 def test_every_read_path_goes_through_topic_policy(rel, needle):
     fn_marker, want = needle
