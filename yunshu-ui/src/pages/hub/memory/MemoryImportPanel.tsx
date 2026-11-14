@@ -214,9 +214,11 @@ export default function MemoryImportPanel() {
 
   return (
     <>
-    <Card title="导入外部记忆">
+    <Card title="① 提炼导入：知识卡片 / 向量记忆">
       <p className="mb-3 text-xs leading-6 text-slate-500">
-        把 Claude / Trae 的规则与会话轨迹导入云枢：规则进知识卡片，会话/提问进<span className="text-slate-300">向量记忆</span>（可语义检索、可按批回滚）。
+        从 Claude / Trae 的规则、偏好与提问轨迹里<span className="text-slate-300">提炼</span>要点：规则进知识卡片，会话/提问进
+        <span className="text-slate-300">向量记忆</span>（可语义检索、可按批回滚）。这里存的是摘要后的片段，
+        <b className="text-slate-300">不是完整对话</b> —— 要原文全文请用下面的「② 全话导入」。
         <span className="text-slate-400">预览是只读的</span>，勾选批次并确认后才会写入；每次写入都会写审计，可按批次回滚。
       </p>
 
@@ -243,7 +245,7 @@ export default function MemoryImportPanel() {
             onChange={(e) => setIncludeTranscripts(e.target.checked)}
             aria-label="解析会话转录"
           />
-          解析会话转录（51 MB，约 10 秒）
+          解析 Claude 会话转录（约 53 MB，约 10 秒）
         </label>
         <label
           className={'inline-flex items-center gap-1 ' + (llmAvailable ? '' : 'opacity-40')}

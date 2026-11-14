@@ -93,11 +93,13 @@ export default function MemorySessionsImportCard() {
   const messages = report?.messages ?? {}
 
   return (
-    <Card title="外部会话导入（全话）">
+    <Card title="② 全话导入：原始会话 → 消息流">
       <p className="mb-3 text-xs leading-6 text-slate-500">
-        把 <span className="text-slate-300">DeepSeek Harness / Claude Code / Trae</span> 的整段会话追加进云枢消息流
-        （data/messages.jsonl，带 session_id）。只截断 + 脱敏，<span className="text-slate-400">不摘要、不改写、不删既有消息</span>；
-        每行带幂等键，同一来源重跑只补新增。<span className="text-slate-400">先跑 dry-run 看计数</span>。
+        把 <span className="text-slate-300">DeepSeek Harness / Claude Code / Trae</span> 的整段会话
+        <b className="text-slate-300">原文</b>按来源追加进云枢消息流（data/messages.jsonl，带 session_id）。
+        只截断 + 脱敏，<span className="text-slate-400">不摘要、不改写、不删既有消息</span>；
+        每行带幂等键，同一来源重跑只补新增。上面「① 提炼导入」产的是摘要片段，这里才是完整对话。
+        <span className="text-slate-400">先「只跑 dry-run」看计数（不写任何东西），确认后再执行导入。</span>
       </p>
 
       <div className="mb-3 flex flex-wrap items-center gap-3 text-xs text-slate-300">
