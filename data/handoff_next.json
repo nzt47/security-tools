@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-14T16:24:52+08:00",
+ "updated_at": "2026-11-14T19:47:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -731,6 +731,22 @@
    "title": "存量向量/知识的类回补 + 导入批次按「项目」分门别类（等 Owner 定是否需要）",
    "criteria": "主题类链路已完整（词表/写侧/读侧/装配/审计/验收）。剩下两件都是**数据问题**，不是代码问题：\n1) 存量：向量 687 条与知识 3 张仍是 general（写侧归因打标从 b49b19c3b 之后才生效，新写入会出现非 general）。要不要按来源/项目回补，需要 Owner 定 —— scripts/migrate_memory_topics.py --infer 能做，但那是「猜」，与本轮「按来源猜类就是编」的口径冲突；\n2) 导入批次按项目分类需要「项目」这一维（现在 metadata 只有 origin/period/batch_id），属新增维度（要定项目清单、要迁移历史批次），不建议在没有真实需求前先做。",
    "next": "等 Owner 明确需求再动：若要做 1，先出 dry-run 报告（每类建议条数 + 抽样 10 条）再决定；若要做 2，先定义项目维度（与 workspace / 主线 / repo 的关系）再改 vector_metadata 与卡片 frontmatter。本轮不做，避免用猜测污染分类。"
+  },
+  {
+   "id": "daily-test-yml-red-alignment",
+   "status": "open",
+   "priority": "P3",
+   "title": "每日定时 test.yml 天天红：做受控复现并对齐 ci.yml 的环境/集合（不要假绿）",
+   "criteria": "现象：`云枢系统测试流程` 有两个同名 workflow —— ci.yml（push/PR，6 分片）绿，test.yml（每日定时整跑）自 2026-11-07 起天天红（11/13 ubuntu+windows 单元测试 job 都红）。\n已查证据：失败点集中在 test_s5_03_cost_brake（日预算熔断 4-5 条）、test_judge_llm_runtime（预算护栏自见 2 条）、test_settings_registry::TestMechanicalZeroGap（零缺口扫描）；本机用**完全相同的 pytest 参数**（-n auto --dist=loadfile -p no:randomly）跑这三份 222/222 全过；同一提交上 ci.yml 6 分片全绿 ⇒ 不是代码问题，是「整跑 + 环境形状」的组合问题。\n环境差异：ci.yml 设 SKILLS_OFFLINE；test.yml 设 HF_HUB_OFFLINE / TRANSFORMERS_OFFLINE / PYTHONUTF8。",
+   "next": "做法：在容器/干净机用 test.yml 的整跑命令 + 逐项对齐 env 做受控复现，定位到具体 env 键再改 workflow；**不要**用 --deselect / skip_ci 换绿（假绿）。改完照口径部署 + 等 push run 跑完。口径 §9 已记「每日红 ≠ 回归、判读只看 ci.yml push run」，所以这条不急。"
+  },
+  {
+   "id": "alarm-channel-env-sync",
+   "status": "open",
+   "priority": "P2",
+   "title": "UI 配报警通道同时写 .env（改/清空语义 + 多通道 + 示例说明）",
+   "criteria": "Owner 2026-11-14 新任务，原文：\"在UI配置报警通道同时也写进env，重新配置则修改env，配置为空时回落到env。设置可以增加有多通道配置，空的频道放进范例和说明，方便以后添加。\"\n拆成四条需求：① UI 保存通道配置时**同时写进 .env**（持久化，进程/机器重启后仍在）；② 再次配置 ⇒ **修改** .env 里对应键（不是追加第二份）；③ 配置为**空** ⇒ 读取时**回落 .env**（= 清空 UI 值不等于删除 env 键，仍是 env 生效）；④ 支持**多通道**配置，空频道给出**范例 + 说明**（方便以后加）。\n**开工前必须先定的口径冲突（别直接写）**：设置中心 agent/settings/service.py 现行不易是「.env / config.yaml 未被修改」（_apply/reset 的 never_touched 都写着这两个），值走 override store。本任务要求写 .env ⇒ 必须显式决定走哪条路：(a) 只对白名单键（通道类）开一个 .env 写路径，其它键维持原口径；或 (b) 新增独立的「通道配置」写入口。\n落点（已摸过）：.env 唯一写入口是 agent/env_config_manager.py（EnvConfigManager：600 权限 + 热重载 os.environ + 备份；注意 2026-08-15 事故：测试写过真实 .env 1801 行 ⇒ 测试必须用 ENV_FILE 覆盖）；通道安装/启用 agent/extensions/channels_installer.py（ChannelInstaller）+ channel_bridge.py + channel_health.py；报警发送 agent/alarms/notify.py；通道健康 agent/alarms/collector.py:read_channel_health；相关 env 键：SMTP_HOST/PORT/USERNAME/PASSWORD、ERROR_REPORTING_WEBHOOK_URL、ERROR_REPORTING_SLACK_WEBHOOK_URL/CHANNEL/USERNAME/ICON/LEVEL、SEARCH_*（见 .env 与 settings/registry.py）。",
+   "next": "建议顺序：① 先定口径（写 .env 的键白名单 + 「空=回落」的读取语义，写进 settings/registry.py 的说明与口径.md）；② 后端：EnvConfigManager 加/复用一个「按白名单键批量 upsert」的接口（保留注释与格式、600 权限、热重载、审计只记键名不记值），空值语义=删除该键 or 写入空串？→ 需明确（推荐：空 ⇒ 从 .env 移除该键，读取自然回落默认）；③ 多通道数据结构：沿用 data/extensions 的通道登记（ChannelInstaller）还是新增 alart_channels 配置，二选一，别两套；④ 前端：报警设置页加通道列表（增/删/改/启用），空态给**范例 + 说明**（可直接复制的模板）；⑤ 测试：.env 写入用 ENV_FILE 指向 tmp（严禁碰真 .env，写守卫用例）；多通道增删改 + 空值回落各有用例；⑥ 部署按口径（先停后端再构建 → 带 token 核三处一致）。"
   }
  ]
 }
