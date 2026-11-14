@@ -155,6 +155,10 @@ describe('DockPanel · 右侧可切换边栏', () => {
     // 审计 ts 是 UTC：+00:00 与 +08:00 的同一时刻必须显示成同一个本地时间
     const clock = formatActivityClock('2026-10-31T09:10:03+08:00')
     expect(screen.getAllByText(clock)).toHaveLength(2)
+    // 后进置顶：seq 更大的（更新的）必须排在前面
+    const actions = screen.getAllByText(/^(terminal\.exec|skill\.load|tool\.call)$/)
+      .map((el) => el.textContent)
+    expect(actions).toEqual(['tool.call', 'skill.load', 'terminal.exec'])
   })
 
   it('终端 Tab：命令清单读取失败时上屏错误（不是空白面板）', async () => {

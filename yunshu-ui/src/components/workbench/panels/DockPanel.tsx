@@ -845,13 +845,15 @@ function ActivityView() {
 
   useEffect(() => {
     const el = boxRef.current
-    if (el) el.scrollTop = el.scrollHeight
+    // 【2026-11-14】后进置顶：最新一条在最上面，新行到达时回到顶部（原来是滚到底）
+    if (el) el.scrollTop = 0
   }, [rows.length])
 
   return (
     <>
       <Hint>
         审计链尾部（工具调用 / 技能加载 / 调度执行 / UI 写操作）—— 这就是“云枢此刻在做什么”。
+        <span className="text-slate-400">最新的在最上面（后进置顶）。</span>
       </Hint>
       <div className="flex shrink-0 items-center gap-1 border-b border-slate-800/60 px-2 py-1">
         <button
@@ -890,7 +892,7 @@ function ActivityView() {
         {rows.length === 0 ? (
           <p className="text-slate-500">暂无活动（有新执行时会自动出现）</p>
         ) : (
-          rows.map((r) => (
+          rows.slice().reverse().map((r) => (
             <div key={r.seq} className="flex gap-1.5 py-0.5">
               <span className="shrink-0 text-slate-600" title={activityTitle(r.ts)}>
                 {formatActivityClock(r.ts)}
