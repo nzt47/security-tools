@@ -211,6 +211,16 @@ def test_热重载写盘后进程环境立刻生效(env_file):
     assert "CP_ALERT_SMTP_TO" not in os.environ
 
 
+def test_重启后仍生效_靠启动时的reload读回(env_file):
+    """验收①的"重启后仍生效"：.env 里有值 ⇒ 新进程 app_server 启动时 reload() 能读回"""
+    mgr = get_env_config_manager()
+    mgr.apply_many(upsert={"CP_ALERT_SMTP_TO": "restart@example.com"})
+    assert os.environ["CP_ALERT_SMTP_TO"] == "restart@example.com"
+    os.environ.pop("CP_ALERT_SMTP_TO", None)      # 模拟进程重启（内存里的值没了）
+    mgr.reload()                                   # app_server.py 启动时就调这一个
+    assert os.environ["CP_ALERT_SMTP_TO"] == "restart@example.com"
+
+
 def test_审计只记键名不记值(env_file, monkeypatch):
     entries = []
     monkeypatch.setattr(EnvConfigManager, "_write_audit_entry",
