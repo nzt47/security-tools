@@ -183,6 +183,40 @@ def test_重复行收敛成一行(env_file):
     assert lines == ["CP_ALERT_SMTP_TO=c@x"]
 
 
+def test_一次新增多个键只加一个空行(env_file):
+    """块追加：N 个新键共用一个空行分隔，不是每个键前都补空行（.env 越写越松）"""
+    before = len(_lines(env_file))
+    get_env_config_manager().apply_many(upsert={
+        "CP_ALERT_SMTP_USERNAME": "u@example.com",
+        "CP_ALERT_SMTP_FROM": "f@example.com",
+        "CP_ALERT_SMTP_TO": "t@example.com",
+    })
+    lines = _lines(env_file)
+    assert len(lines) == before + 4          # 1 空行 + 3 键
+    idx = lines.index("CP_ALERT_SMTP_USERNAME=u@example.com")
+    assert lines[idx - 1] == ""
+    assert lines[idx + 1] == "CP_ALERT_SMTP_FROM=f@example.com"
+
+
+def test_空通道判定看端点而不是端口(store, installer):
+    """内置模板预置 smtp_port=587 ⇒ 有非空字段，但"端点没配"仍算空通道（要出范例）"""
+    installer.install_builtin_channel("email_smtp")
+    view = bridge.public_view(_row(store))
+    assert view["empty"] is True
+    by_field = {f["field"]: f for f in view["fields"]}
+    assert by_field["smtp_port"]["configured"] is True
+    assert by_field["smtp_server"]["configured"] is False
+    installer.configure_channel("email_smtp", {"smtp_server": "smtp.example.com"})
+    assert bridge.public_view(_row(store))["empty"] is False
+
+
+def test_webhook空通道判定(store, installer):
+    installer.install_builtin_channel("webhook")
+    assert bridge.public_view(_row(store, "webhook"))["empty"] is True
+    installer.configure_channel("webhook", {"webhook_url": "https://example.com/hook"})
+    assert bridge.public_view(_row(store, "webhook"))["empty"] is False
+
+
 def test_值没变就不重写也不产生新备份(env_file):
     backups = env_file.parent / ".env.backups"
     before = len(list(backups.glob("env.bak.*"))) if backups.exists() else 0

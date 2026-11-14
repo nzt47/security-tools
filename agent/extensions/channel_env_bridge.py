@@ -96,6 +96,16 @@ LOCAL_ONLY_FIELDS: Tuple[str, ...] = (
     'channel_type', 'method', 'headers', 'use_tls', 'use_ssl',
 )
 
+#: 判定"这条通道是不是空的"要看的字段（**端点**，不是端口）
+#:
+#: 【为什么不用"所有字段都空"】内置模板给 email_smtp 预置了 smtp_port=587 / use_tls=true，
+#: 于是"刚装好、还没填服务器"的通道会有 1 个非空字段 —— 用"全部为空"判定会让
+#: 空态范例（+说明）永远不出现，正好废掉 Owner 要的"空的频道放进范例"。
+REQUIRED_FIELDS: Dict[str, Tuple[str, ...]] = {
+    TYPE_SMTP: ('smtp_server',),
+    TYPE_WEBHOOK: ('webhook_url',),
+}
+
 #: 有效值来源
 SOURCE_CHANNEL = 'channel'
 SOURCE_ENV = 'env'
@@ -289,10 +299,14 @@ def public_view(row: Mapping[str, Any]) -> Dict[str, Any]:
     extra = {str(k): v for k, v in cfg.items()
              if str(k) not in LOCAL_ONLY_FIELDS
              and str(k) not in {f for f, _n in ENV_KEYS_BY_TYPE.get(ctype, ())}}
+    required = REQUIRED_FIELDS.get(ctype, ())
+    empty = not any(layers.get(field, ('', ''))[0] for field in required)
     return {
         'channel_id': str(row.get('ext_id') or ''),
         'channel_type': ctype,
         'primary': primary,
+        # 空通道（端点还没配）⇒ UI 显示可复制的范例 + 说明
+        'empty': empty,
         'env_keys': env_keys_for(ctype),
         'fields': fields,
         'extra': extra,
@@ -426,7 +440,7 @@ def clear_env(row: Mapping[str, Any]) -> Dict[str, Any]:
 
 __all__ = [
     'TYPE_SMTP', 'TYPE_WEBHOOK', 'TYPE_ALIASES', 'PRIMARY_CHANNEL_BY_TYPE',
-    'ENV_KEYS_BY_TYPE', 'LEGACY_ENV_BY_TYPE', 'SECRET_FIELDS', 'MASK',
+    'ENV_KEYS_BY_TYPE', 'LEGACY_ENV_BY_TYPE', 'SECRET_FIELDS', 'MASK', 'REQUIRED_FIELDS',
     'LOCAL_ONLY_FIELDS', 'SOURCE_LABELS', 'EXAMPLE_TEMPLATES', 'EXAMPLE_NOTES',
     'channel_type', 'is_primary_channel', 'env_keys_for', 'effective_config',
     'public_view', 'normalize_config', 'sync_env', 'rollback_env', 'clear_env',

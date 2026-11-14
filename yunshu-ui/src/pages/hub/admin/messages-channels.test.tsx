@@ -294,6 +294,29 @@ describe('HubChannelsPanel', () => {
     })
   }
 
+  it('空通道：端点没配但端口已预置，仍要出范例（不然内置模板永远不显示空态）', async () => {
+    setupWithView(viewOf({
+      // 后端算出的 empty 与"所有字段都空"不同：端口 587 是有值的，端点为空
+      empty: true,
+      fields: [
+        {
+          field: 'smtp_port', env_key: 'CP_ALERT_SMTP_PORT', secret: false,
+          local: '587', local_configured: true, effective: '587',
+          source: 'channel', source_label: '通道本地配置', configured: true,
+        },
+        {
+          field: 'smtp_server', env_key: 'CP_ALERT_SMTP_HOST', secret: false,
+          local: '', local_configured: false, effective: '', source: 'default',
+          source_label: '默认值（未配置）', configured: false,
+        },
+      ],
+    }))
+    render(<HubChannelsPanel />)
+    fireEvent.click(await screen.findByRole('button', { name: '配置通道 email_smtp' }))
+    expect(screen.getByText(/这条通道还是空的/)).toBeTruthy()
+    expect(screen.getByText(/smtp\.example\.com/)).toBeTruthy()
+  })
+
   it('空通道：给出可复制的范例 + 说明（文案来自后端）', async () => {
     const writeText = vi.fn(async () => undefined)
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })

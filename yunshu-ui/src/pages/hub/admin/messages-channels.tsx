@@ -85,6 +85,8 @@ interface ResolvedChannel {
   channel_id: string
   channel_type: string
   primary: boolean
+  /** 空通道（端点还没配）⇒ 显示可复制的范例 + 说明 */
+  empty?: boolean
   env_keys?: string[]
   fields?: ResolvedField[]
   extra?: Record<string, unknown>
@@ -618,7 +620,7 @@ export default function HubChannelsPanel() {
                 {row && editing && (
                   <div className="flex flex-col gap-1.5">
                     {/* 空通道：范例 + 说明 + 一键复制（后端给文案，前端不抄第二份） */}
-                    {view && (view.fields ?? []).every((f) => !f.configured) && (
+                    {view && (view.empty ?? (view.fields ?? []).every((f) => !f.configured)) && (
                       <div className="rounded-sm border border-amber-900/50 bg-amber-500/5 p-2">
                         <div className="text-[10px] text-amber-200">
                           这条通道还是空的（未配置）。照抄下面的范例，改成自己的值就能用：

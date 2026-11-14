@@ -402,13 +402,16 @@ class EnvConfigManager:
                             new_lines.append(f'{name}={changed_upsert[name]}')
                         continue
                 new_lines.append(line)
-            for key, value in changed_upsert.items():
-                if key in handled:
-                    continue
+            # 新增键当成**一个块**追加：只在块前留一个空行。
+            # 【为什么】（2026-11-15 实测）逐个追加时每个键前都会补一个空行
+            # （上一行已非空）⇒ 一次写 6 个键会多出 6 个空行，.env 越写越松。
+            appended = [k for k in changed_upsert if k not in handled]
+            if appended:
                 if new_lines and new_lines[-1].strip():
                     new_lines.append('')         # 空行分隔（与 _update_env_file 一致）
-                new_lines.append(f'{key}={value}')
-                handled.append(key)
+                for key in appended:
+                    new_lines.append(f'{key}={changed_upsert[key]}')
+                    handled.append(key)
 
             self._backup_env_file()
             self._atomic_write(new_lines)
