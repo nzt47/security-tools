@@ -2223,6 +2223,7 @@ flowchart LR
     agent_server_routes_routes_memory_import --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_memory_import -.-> agent_memory_import_readers
     agent_server_routes_routes_memory_import -.-> agent_memory_import_readers
+    agent_server_routes_routes_memory_import -.-> agent_memory_import_readers
     agent_server_routes_routes_memory_import -.-> agent_memory_import
     agent_server_routes_routes_memory_sessions -.-> agent_api_envelope
     agent_server_routes_routes_memory_sessions -.-> agent_memory_import
@@ -3002,9 +3003,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 762
+- 扫描文件数: 763
 - 模块节点数: 661
-- 依赖边数: 2213
-- 跨层调用数: 1408
+- 依赖边数: 2214
+- 跨层调用数: 1409
 - 违规调用数: 0
 - 动态 import 数: 1
