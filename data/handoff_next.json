@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-14T01:08:08+08:00",
+ "updated_at": "2026-11-14T13:55:13+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -707,6 +707,14 @@
    "title": "Trae 的助手回复不在本地（只有用户提问轨迹）—— 要全话得走云端导出",
    "criteria": "2026-11-14 复核：%APPDATA%/Trae CN 的 state.vscdb 只有 ai-chat.chatQueryCompletion.v1.*（用户当时输入的提问补全缓存），chat.ChatSessionStore.index 为空，IndexedDB 只有 SVG 预览缓存；会话正文在 Trae 云端。本地能迁的只有 41 组/312 条用户提问（已迁）。",
    "next": "要助手回复：先在 Trae 里导出/复制会话，再按 Claude 转录格式落到本地后走同一 import；不要试图从 vscdb 猜会话边界（会造出假会话）。"
+  },
+  {
+   "id": "memory-knowledge-experience-classification",
+   "status": "open",
+   "priority": "P2",
+   "title": "向量记忆 / 知识库 / 经验 分类，供不同智能体装载不同子集",
+   "criteria": "现状核查（2026-11-14）：①向量记忆是单个 collection agent_memory（memory/vector_store/vector_store.py），metadata 任意、search 没有过滤参数；②知识库卡片有 type（concepts/insights/entities）+ tags（agent/knowledge/schema.py），按 knowledge/wiki/<type> 存放；③经验库是独立 collection experience（agent/skills_mgmt/experience_index.py，BM25+向量 RRF）。现有隔离只有 scoped memory 的 tenant/workspace/subject（agent/memory/tenancy.py、agent/memory/scoped_store.py、agent/subagent/memory_broker.py、scoped_memory_gate.py），那是私人域，不是按主题/角色给不同智能体装载不同知识；子代理 manifest 目前只有 memory_mode(none/brokered/scoped)/provider，没有可读哪些类的声明。",
+   "next": "新会话先只读盘点三库的写入点/检索入口/现有字段与子代理装配链，然后给 Owner 2-3 个方案对比（A 独立 collection/表；B 统一 metadata class + 检索侧过滤；C 双层：class 必填 + 智能体 profile 白名单），说明迁移、性能、权限与回滚代价；Owner 点头后再写代码。建议默认 fail-closed：未声明 class 的记录归 general，智能体只读其 profile 白名单；分类维度候选=业务域（工程/产品/运维/个人）/项目/角色。落地需同批：写入点自动打标、旧数据迁移、子代理 profile 声明、检索强制过滤、审计、UI、用例；不得破坏现有 tenancy/scoped 语义。"
   }
  ]
 }
