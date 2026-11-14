@@ -291,6 +291,23 @@ class TestCrossTenantIsolation:
         return [e for e in chain.entries(action="tool.confirm_decision", limit=None)
                 if str(getattr(e, "subject", "")) == cls.AUDIT_SUBJECT]
 
+    def _wait_audit_rows(self, *, need: int = 1, timeout: float = 3.0) -> list:
+        """有界轮询：链式审计是 best-effort，写后立刻读可能「晚一拍」。
+
+        为什么这条也要等：2026-11-14 CI（26096 条用例并发跑）实测
+        「test_审计载荷带_tenant_id」偶发「审计未落链」—— 同一形状的竞争
+        已在下面的「test_审计可按租户区分」里用轮询处理过（2026-11-09），
+        本方法把那套等待抽成一处，判据不变：超时仍不足 ⇒ 照样红。
+        """
+        import time as _t
+
+        deadline = _t.monotonic() + timeout
+        rows = self._audit_rows()
+        while len(rows) < need and _t.monotonic() < deadline:
+            _t.sleep(0.05)
+            rows = self._audit_rows()
+        return rows
+
     def test_审计载荷带_tenant_id(self):
         import agent.tool_gate as G
 
@@ -298,7 +315,7 @@ class TestCrossTenantIsolation:
                                   decision="approved",
                                   identity="human", source="cli", reason="隔离维度验证",
                                   tenant_id=TENANT_A, version="1.0.0")
-        rows = self._audit_rows()
+        rows = self._wait_audit_rows()
         assert rows, "审计未落链"
         payload = getattr(rows[-1], "payload", None)
         if isinstance(payload, str):
@@ -318,12 +335,13 @@ class TestCrossTenantIsolation:
         # 【2026-11-09】有界轮询：链式审计是 best-effort（锁竞争/后台补写时可能晚一拍），
         # 全量顺序跑时"最后两条"偶发只剩一条。判据不变：两个租户的记录必须都在且可区分；
         # 超时后仍缺一个 ⇒ 照样红。
+        # 等待实现见 _wait_audit_rows（本类两处共用一份）
         import time as _t
         deadline = _t.monotonic() + 3.0
         seen = set()
         while _t.monotonic() < deadline:
             seen = set()
-            for e in self._audit_rows():
+            for e in self._wait_audit_rows():
                 payload = getattr(e, "payload", None)
                 if isinstance(payload, str):
                     payload = json.loads(payload)
