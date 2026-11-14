@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-14T19:47:00+08:00",
+ "updated_at": "2026-11-15T01:05:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -742,11 +742,19 @@
   },
   {
    "id": "alarm-channel-env-sync",
-   "status": "open",
+   "status": "done",
    "priority": "P2",
    "title": "UI 配报警通道同时写 .env（改/清空语义 + 多通道 + 示例说明）",
    "criteria": "Owner 2026-11-14 新任务，原文：\"在UI配置报警通道同时也写进env，重新配置则修改env，配置为空时回落到env。设置可以增加有多通道配置，空的频道放进范例和说明，方便以后添加。\"\n拆成四条需求：① UI 保存通道配置时**同时写进 .env**（持久化，进程/机器重启后仍在）；② 再次配置 ⇒ **修改** .env 里对应键（不是追加第二份）；③ 配置为**空** ⇒ 读取时**回落 .env**（= 清空 UI 值不等于删除 env 键，仍是 env 生效）；④ 支持**多通道**配置，空频道给出**范例 + 说明**（方便以后加）。\n**开工前必须先定的口径冲突（别直接写）**：设置中心 agent/settings/service.py 现行不易是「.env / config.yaml 未被修改」（_apply/reset 的 never_touched 都写着这两个），值走 override store。本任务要求写 .env ⇒ 必须显式决定走哪条路：(a) 只对白名单键（通道类）开一个 .env 写路径，其它键维持原口径；或 (b) 新增独立的「通道配置」写入口。\n落点（已摸过）：.env 唯一写入口是 agent/env_config_manager.py（EnvConfigManager：600 权限 + 热重载 os.environ + 备份；注意 2026-08-15 事故：测试写过真实 .env 1801 行 ⇒ 测试必须用 ENV_FILE 覆盖）；通道安装/启用 agent/extensions/channels_installer.py（ChannelInstaller）+ channel_bridge.py + channel_health.py；报警发送 agent/alarms/notify.py；通道健康 agent/alarms/collector.py:read_channel_health；相关 env 键：SMTP_HOST/PORT/USERNAME/PASSWORD、ERROR_REPORTING_WEBHOOK_URL、ERROR_REPORTING_SLACK_WEBHOOK_URL/CHANNEL/USERNAME/ICON/LEVEL、SEARCH_*（见 .env 与 settings/registry.py）。",
-   "next": "建议顺序：① 先定口径（写 .env 的键白名单 + 「空=回落」的读取语义，写进 settings/registry.py 的说明与口径.md）；② 后端：EnvConfigManager 加/复用一个「按白名单键批量 upsert」的接口（保留注释与格式、600 权限、热重载、审计只记键名不记值），空值语义=删除该键 or 写入空串？→ 需明确（推荐：空 ⇒ 从 .env 移除该键，读取自然回落默认）；③ 多通道数据结构：沿用 data/extensions 的通道登记（ChannelInstaller）还是新增 alart_channels 配置，二选一，别两套；④ 前端：报警设置页加通道列表（增/删/改/启用），空态给**范例 + 说明**（可直接复制的模板）；⑤ 测试：.env 写入用 ENV_FILE 指向 tmp（严禁碰真 .env，写守卫用例）；多通道增删改 + 空值回落各有用例；⑥ 部署按口径（先停后端再构建 → 带 token 核三处一致）。"
+   "next": "2026-11-15 落地（Owner：「按你推荐的执行」= 方案 B）。提交 c6a6cf8bc（10 文件 +1745/-37）。\n口径：.env 的唯一写入方是「消息中心·消息通道」页（configure_channel → EnvConfigManager.apply_many）；开关中心对这些键仍是 C 级只读，settings/service.py 的 never_touched 不变（写 .env 的不是设置中心）。\n值语义：空 ⇒ **从 .env 删键**（不写空串占位）；回落链 通道本地 > CP_ALERT_*（专用键）> 旧键（SMTP_*/MAIL_*/ERROR_REPORTING_WEBHOOK_URL）> 默认；发送 / 依赖探针 / 页面三处共用 channel_env_bridge.effective_config。\n为什么用专用键：复用 SMTP_*/ERROR_REPORTING_* 会串台（知识审计日报会用报警收件人发信、错误上报会往报警 webhook 推）。\n多通道：沿用 agent/data/extensions.json 的 channels[]（唯一清单真相），同类型第 2 条起只存本机（UI 标「本机 · 不写 .env」）；只有主通道（email_smtp / webhook）映射 .env。\n安全：写入顺序 .env → 本地（本地失败用 previous 回滚 .env）；apply_many 在 pytest 进程拒写仓库根 .env（fail-closed）；口令永久掩码、留空/掩码=不修改、清空必须显式 null；审计 channel.env_sync / channel.env_clear / channel.env_rollback 只记键名。\n顺带修的两个既有缺陷：ExtensionStore._save 是截断写且零备份（改原子写+写前备份）；update_config 会顺手把通道 status 改成 enabled（「改配置把停用通道重新启用」，改配置不再动启停）。\n测试：后端 test_channel_env_sync 25 条（含守卫）+ 通道/扩展/报警/探针 201 条全过；前端 messages-channels +6 条，tsc 0 / eslint 0 / 全量 vitest 1325 绿（1 条 tools 页超时 flake，单跑绿）；干净 worktree：manifest --check 143 条一致、scan_settings --check 零缺口、arch_rules 0 违规。\n部署：deploy --no-fetch --smoke 3×200（backend c6a6cf8bc · bundle index-BUwvJITP.js）；CI 见 c6a6cf8bc 的 ci.yml push run。\n已知边界见 §11.121 F：第 2 条同类型通道不写 .env（另立 alarm-channel-multi-env-keys）、旧键仍属审计日报/错误上报、本地台账口令仍是明文、高级 JSON 的非映射键只落本机。"
+  },
+  {
+   "id": "alarm-channel-multi-env-keys",
+   "status": "open",
+   "priority": "P3",
+   "title": "同类型第 2 条通道也各有一份 .env（slot 家族键）",
+   "criteria": "现状（2026-11-15）：只有主通道（id = email_smtp / webhook）映射 CP_ALERT_*；同类型第 2 条起的通道只存 agent/data/extensions.json 的 config（本机登记），UI 已明确标注「本机 · 不写 .env」。原因：.env 的通道键是**单值**语义，两条通道抢同一组键会互相覆盖。\n要做「每条都在 env 里各有一份」，需要：① 键名规则（如 CP_ALERT_SMTP_<SLOT>_HOST 或按通道 id 归一化）；② registry 的 dynamic_prefix 家族登记（否则「开关零缺口」门禁把动态读取判成 <unresolved> 红）；③ scripts/scan_settings.py 能推导出该家族（当前只认常量前缀 / f-string 常量段）；④ 迁移（把第 2 条起的本地值搬进新键）+ 回滚；⑤ UI 的\"哪些键属于我\"视图。",
+   "next": "等 Owner 明确要不要「第 2 条通道也进 .env」。在此之前默认不做：本机登记已满足\"多通道\"的可用性，加 slot 家族是 1 天量且会动门禁白名单（要同批改 registry 说明与用例）。"
   }
  ]
 }
