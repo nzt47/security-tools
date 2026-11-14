@@ -77,6 +77,7 @@ _MANUAL_CONFIGURED_MODULES: Set[str] = {
     # readers/__init__.py 的 record_cap() 与 targets.py 的 http_timeout()。
     "memory_import/readers/claude.py",
     "memory_import/readers/trae.py",
+    "memory_import/readers/dsh_prompts.py",
     "memory_import/targets.py",
 }
 
