@@ -301,17 +301,23 @@ def public_view(row: Mapping[str, Any]) -> Dict[str, Any]:
              and str(k) not in {f for f, _n in ENV_KEYS_BY_TYPE.get(ctype, ())}}
     required = REQUIRED_FIELDS.get(ctype, ())
     empty = not any(layers.get(field, ('', ''))[0] for field in required)
+    notes = list(EXAMPLE_NOTES.get(ctype, ()))
+    if not primary:
+        # 【别让说明撒谎】非主通道的值只存本机；照抄 SMTP 那套说明会让人以为它会写 .env。
+        notes.append('这条是本机通道（同类型第 2 条起）：值只存本机台账，不写 .env；'
+                     '.env 里的 CP_ALERT_* 只属于主通道。')
     return {
         'channel_id': str(row.get('ext_id') or ''),
         'channel_type': ctype,
         'primary': primary,
         # 空通道（端点还没配）⇒ UI 显示可复制的范例 + 说明
         'empty': empty,
-        'env_keys': env_keys_for(ctype),
+        # 非主通道不映射 .env ⇒ 这里如实给空（不是"有键但不用"）
+        'env_keys': env_keys_for(ctype) if primary else [],
         'fields': fields,
         'extra': extra,
         'example': EXAMPLE_TEMPLATES.get(ctype, {}),
-        'notes': list(EXAMPLE_NOTES.get(ctype, ())),
+        'notes': notes,
         'source_labels': dict(SOURCE_LABELS),
     }
 

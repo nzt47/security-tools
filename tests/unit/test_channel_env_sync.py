@@ -331,6 +331,10 @@ def test_非主通道不借用主通道的env(store, installer, monkeypatch):
     row = store.get(ExtensionType.CHANNEL, "email_smtp_2")
     assert bridge.is_primary_channel(row) is False
     assert bridge.effective_config(row).get("smtp_server") in (None, "")
+    # 非主通道的解析视图必须如实：没有 env 键、说明里点明"不写 .env"
+    view = bridge.public_view(row)
+    assert view["env_keys"] == []
+    assert any("不写 .env" in note for note in view["notes"])
     plan = bridge.sync_env(row, {"smtp_server": "local2.example.com"})
     assert plan["primary"] is False and plan["written"] == []
 
