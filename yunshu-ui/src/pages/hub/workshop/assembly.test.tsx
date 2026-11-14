@@ -146,36 +146,42 @@ describe('组装台 · 生成与自解释', () => {
     expect(note).not.toContain('无消费者')
   })
 
-  it('主题类：不选档位 ⇒ 不发 memory_mode/memory_scope（不假装生效）', async () => {
+  it('主题类：只有 general（默认）⇒ 不发 memory_topics / memory_mode（不假装表态）', async () => {
     await settle()
     expect('memory_mode' in previewJson()).toBe(false)
+    expect('memory_topics' in previewJson()).toBe(false)
     expect('memory_scope' in previewJson()).toBe(false)
-    // 未选 brokered 时类选择器禁用，并如实说明原因
-    expect(screen.getByTestId('assembly-topic-general')).toBeDisabled()
+    // 类选择器始终可用（与记忆档位无关），并如实说明"不勾别的类就不发声明"
+    expect(screen.getByTestId('assembly-topic-general')).not.toBeDisabled()
     expect(screen.getByTestId('assembly-topic-hint')).toBeInTheDocument()
   })
 
-  it('主题类：选 brokered ⇒ 发 memory_mode + memory_scope.topics，且预览=请求体', async () => {
+  it('主题类：勾了别的类 ⇒ 发顶层 memory_topics（与记忆档位无关），预览=请求体', async () => {
     await settle()
     fireEvent.change(screen.getByTestId('assembly-name'), { target: { value: 'cls-1' } })
-    fireEvent.change(screen.getByTestId('assembly-memory-mode'), { target: { value: 'brokered' } })
     // 先加两类，再去掉兜底的 general ⇒ "只装载 ops + knowledge"
     fireEvent.click(screen.getByTestId('assembly-topic-ops'))
     fireEvent.click(screen.getByTestId('assembly-topic-knowledge'))
     fireEvent.click(screen.getByTestId('assembly-topic-general'))
 
-    const preview = previewJson()
-    expect(preview.memory_mode).toBe('brokered')
-    expect(preview.memory_scope).toEqual({ topics: ['ops', 'knowledge'] })
+    let preview = previewJson()
+    // none 档（不表态）也能声明类 —— 这正是"顶层字段"的意义
+    expect('memory_mode' in preview).toBe(false)
+    expect(preview.memory_topics).toEqual(['ops', 'knowledge'])
+    expect('memory_scope' in preview).toBe(false)
 
-    // 点到最后一类也点掉 ⇒ 回落 general（空白名单 = 谁都不装，看起来像坏了）
-    fireEvent.click(screen.getByTestId('assembly-topic-knowledge'))
-    fireEvent.click(screen.getByTestId('assembly-topic-ops'))
-    expect(previewJson().memory_scope).toEqual({ topics: ['general'] })
+    // 再选 brokered：档位与类是两条独立声明
+    fireEvent.change(screen.getByTestId('assembly-memory-mode'), { target: { value: 'brokered' } })
+    preview = previewJson()
+    expect(preview.memory_mode).toBe('brokered')
+    expect(preview.memory_topics).toEqual(['ops', 'knowledge'])
 
     fireEvent.click(screen.getByTestId('assembly-create'))
     await waitFor(() => expect(postCalls.length).toBe(1))
-    expect(postCalls[0].body).toMatchObject({ memory_mode: 'brokered' })
+    expect(postCalls[0].body).toMatchObject({
+      memory_mode: 'brokered',
+      memory_topics: ['ops', 'knowledge'],
+    })
   })
 
   it('组装台与主线档案同源：显示当前生效主线（active）', async () => {

@@ -921,10 +921,12 @@ class DelegationExecutor:
         from agent.memory.topic_policy import enter_manifest
 
         meta = getattr(ctx, "metadata", None) or {}
-        config = {"memory_mode": "none", "memory_scope": None}
+        config = {"memory_mode": "none", "memory_scope": None, "memory_topics": None}
         if isinstance(meta, Mapping):
             config["memory_mode"] = meta.get("memory_mode", "none")
             config["memory_scope"] = meta.get("memory_scope")
+            # 顶层类声明（与记忆档位无关；none 档也会有）
+            config["memory_topics"] = meta.get("memory_topics")
         return enter_manifest(
             config, actor=str(getattr(ctx, "delegate_actor", "") or "sub_agent"),
             subject="delegation:%s" % (getattr(ctx, "delegation_id", "") or ""))

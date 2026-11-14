@@ -288,6 +288,8 @@ def build_bundle(
         "memory": {
             "mode": str(getattr(config, "memory_mode", "none") or "none"),
             "scope": (dict(config.memory_scope) if getattr(config, "memory_scope", None) else None),
+            # 可装载的主题类：跟着分身一起带走（否则导入端只能读 general —— 静默丢声明）
+            "topics": _as_str_list(getattr(config, "memory_topics", None)),
         },
         "tools": tools,
         "permissions": _as_str_list(getattr(config, "permissions", None)),
@@ -500,6 +502,8 @@ def import_config(bundle: Mapping[str, Any]) -> SubagentConfig:
         role_mode=str(role.get("mode") or "template"),
         memory_mode=str(memory.get("mode") or "none"),
         memory_scope=(dict(memory["scope"]) if memory.get("scope") else None),
+        # 旧 bundle 没有 topics 键 ⇒ 空（未声明 ⇒ 只读 general），不因缺字段而拒绝导入
+        memory_topics=[str(t) for t in (memory.get("topics") or [])],
         # 执行后端随 bundle 携带：container 包导入后由容器通道执行（声明式选路）
         execution_backend=("container"
                            if str((bundle.get("runtime") or {}).get("backend") or "") == "container"

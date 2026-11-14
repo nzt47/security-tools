@@ -311,22 +311,21 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
               <TopicPicker
                 value={form.topics}
                 onChange={(next) => set('topics', next)}
-                disabled={form.memoryMode !== 'brokered'}
                 testId="assembly-topic"
               />
-              {form.memoryMode !== 'brokered' && (
-                <div className="mt-1 text-[11px] text-amber-300" data-testid="assembly-topic-hint">
-                  选了「不表态 / none」时本页不发类声明（后端 none 档拒收非空记忆域，
-                  静默忽略会让你以为它生效了）—— 要按类装载请先选 brokered。
-                </div>
-              )}
+              <div className="mt-1 text-[11px] text-slate-500" data-testid="assembly-topic-hint">
+                只选 <code>general</code> 时不发声明（后端按未声明处理，只读兜底类）；
+                勾了别的类才随创建请求发 <code>memory_topics</code> —— 与记忆档位无关，
+                none 档也能声明。
+              </div>
             </div>
 
             <p className="mt-2 text-[11px] text-slate-500" data-testid="assembly-memory-note">
               记忆档 <code>memory_mode</code>（none / brokered / scoped）**已接线**，由后端消费；
               scoped 档还要求 <code>memory_scope</code> 的 tenant/workspace/subject 三要素，
               本页不给域输入，故不提供 scoped（会 400，不做假选项）。
-              未给域时 brokered 的「母体代管记忆」会如实降级为空，但**按类装载**照常生效。
+              未给域时 brokered 的「母体代管记忆」会如实降级为空，但**按类装载**照常生效
+              （它读的是 <code>memory_topics</code>，不是记忆域）。
               实际生效/降级以「分身」列表的 memory 视图为准。
             </p>
           </Card>

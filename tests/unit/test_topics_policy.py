@@ -134,6 +134,109 @@ def test_line_registry_save_load_keeps_topics(tmp_path, monkeypatch):
 
 
 # ════════════════════════════════════════════════════════════
+#  2b. 顶层 memory_topics（与记忆档位无关）
+# ════════════════════════════════════════════════════════════
+
+
+class _Ctx:
+    delegation_id = "d-1"
+    delegate_actor = "sub"
+    metadata: dict = {}
+
+
+def test_manifest_prefers_top_level_memory_topics_over_scope():
+    cfg = {"memory_mode": "brokered", "memory_topics": ["ops"],
+           "memory_scope": {"topics": ["knowledge"]}}
+    assert P.topics_for_manifest(cfg) == ("ops",)
+
+
+def test_memory_topics_accepts_csv_and_dedupes():
+    from agent.server_routes.routes_subagent import _memory_topics
+
+    assert _memory_topics({"memory_topics": "ops, engineering,ops"}) == ["ops", "engineering"]
+    assert _memory_topics({"memory_topics": []}) == []
+    assert _memory_topics({}) == []
+
+
+def test_memory_topics_rejects_unknown_at_the_door():
+    """写错类名要 400（端点转 MemoryConfigError），不静默丢 —— 否则现场表现为'怎么搜不到'"""
+    from agent.server_routes.routes_subagent import _memory_topics
+    from agent.subagent.memory_broker import MemoryConfigError
+
+    with pytest.raises(MemoryConfigError):
+        _memory_topics({"memory_topics": ["devops"]})
+
+
+def test_attach_carries_topics_even_for_none_mode():
+    from agent.subagent.container import SubagentConfig
+    from agent.subagent.memory_broker import attach_memory_metadata
+
+    cfg = SubagentConfig(name="a", model_id="", memory_mode="none",
+                         memory_topics=["ops", "knowledge"])
+    ctx = _Ctx()
+    ctx.metadata = {}
+    attach_memory_metadata(ctx, cfg)
+    assert ctx.metadata == {"memory_topics": ["ops", "knowledge"]}, (
+        "none 档不写 memory_mode（保持逐字旧行为），但类声明必须带上")
+
+
+def test_attach_leaves_ctx_untouched_without_topics():
+    """默认档且无类声明 ⇒ 完全不碰 ctx（与 C2 之前逐字一致）"""
+    from agent.subagent.container import SubagentConfig
+    from agent.subagent.memory_broker import attach_memory_metadata
+
+    cfg = SubagentConfig(name="a", model_id="", memory_mode="none")
+    ctx = _Ctx()
+    ctx.metadata = {"keep": 1}
+    attach_memory_metadata(ctx, cfg)
+    assert ctx.metadata == {"keep": 1}
+
+
+def test_memory_view_exposes_topics():
+    from agent.subagent.container import SubagentConfig
+    from agent.subagent.memory_broker import memory_view
+
+    cfg = SubagentConfig(name="a", model_id="", memory_mode="none", memory_topics=["ops"])
+    assert memory_view(cfg)["topics"] == ["ops"]
+    assert memory_view(SubagentConfig(name="b", model_id=""))["topics"] == []
+
+
+#: bundle v2 起 environment 为必需段；本文件只关心 memory 段，用最小合法占位
+_MIN_ENV = {
+    "source": "test", "source_status": "ok", "captured_at": "2026-11-14T00:00:00+00:00",
+    "python": {"required": "", "running": "", "status": "unknown"},
+    "items": [], "counts": {"declared": 0, "ok": 0, "missing": 0,
+                            "version_mismatch": 0, "unknown": 0},
+    "satisfied_locally": True, "artifacts": {"mode": "none", "count": 0},
+    "offline_ready": False, "reason": "测试占位",
+}
+
+
+def test_bundle_round_trip_keeps_topics():
+    """分身的类声明要能跟着 bundle 一起带走：否则导入端只读 general（静默丢声明）"""
+    from agent.subagent.bundle import build_bundle, import_config
+    from agent.subagent.container import SubagentConfig
+
+    cfg = SubagentConfig(name="carry", model_id="", memory_mode="none",
+                         memory_topics=["general", "engineering"])
+    bundle = build_bundle(cfg, line_id="engineering", environment=_MIN_ENV)
+    assert bundle["assembly"]["memory"]["topics"] == ["general", "engineering"]
+    restored = import_config(bundle)
+    assert restored.memory_topics == ["general", "engineering"]
+
+
+def test_old_bundle_without_topics_still_imports():
+    """旧包没有 topics 键 ⇒ 空（未声明 ⇒ 只读 general），不因缺字段而拒绝导入"""
+    from agent.subagent.bundle import build_bundle, import_config
+    from agent.subagent.container import SubagentConfig
+
+    bundle = build_bundle(SubagentConfig(name="old", model_id=""),
+                          line_id="assistant", environment=_MIN_ENV)
+    bundle["assembly"]["memory"].pop("topics", None)
+    assert import_config(bundle).memory_topics == []
+
+
+# ════════════════════════════════════════════════════════════
 #  3. 委派上下文 + 审计
 # ════════════════════════════════════════════════════════════
 

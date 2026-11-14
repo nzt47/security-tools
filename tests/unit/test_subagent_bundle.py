@@ -148,7 +148,10 @@ class TestContract:
         assert set(b["assembly"]) == {"role", "model", "memory", "tools", "permissions"}
         assert set(b["assembly"]["role"]) == {"template", "text", "mode"}
         assert set(b["assembly"]["model"]) == {"model_id", "temperature"}
-        assert set(b["assembly"]["memory"]) == {"mode", "scope"}
+        # memory 段 2026-11-14 增 topics（= 可装载的主题类，与档位无关）：
+        # **只增不改**，schema_version 不动 —— 旧包缺这个键仍可导入（空 = 未声明 ⇒ 只读 general），
+        # 旧导入端也会忽略多余键（validate_bundle 只查必需键，不拒多余键）。
+        assert set(b["assembly"]["memory"]) == {"mode", "scope", "topics"}
         assert set(b["assembly"]["tools"]) == {"tool_sources", "line"}
         assert set(b["secrets"]) == {"refs"}
         assert set(b["entrypoint"]) == {"protocol", "argv_template"}

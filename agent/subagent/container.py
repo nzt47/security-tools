@@ -78,6 +78,9 @@ class SubagentConfig:
         memory_scope: 记忆域（键：tenant_id / workspace_id / subject_id /
             workspace_root / memory_types / limit）。brokered/scoped 使用；默认档给
             非空值会被端点**拒绝**；scoped 要求前三个键齐全。
+        memory_topics: 可装载的主题类（闭集见 agent/topics.py）。空 = 未声明 ⇒ 只读
+            general；与 memory_mode 无关（none 档也能声明）。读侧统一由
+            agent/memory/topic_policy.py 解析（声明 > 主线档案 > general）。
         memory_quota: scoped 档的配额（键：max_entries / max_bytes /
             consecutive_reject_limit）。缺省用 memory_quota.py 的默认值；非 scoped 给值
             会被端点**拒绝**（不静默忽略）。
@@ -103,6 +106,11 @@ class SubagentConfig:
     memory_scope: Optional[dict] = None
     # P3 scoped 档配额（仅 scoped 生效；默认 None ⇒ 用默认配额）
     memory_quota: Optional[dict] = None
+    #: 可装载的主题类（agent/topics.py 闭集）。**与 memory_mode 无关**：
+    #: 默认空 = 未声明 ⇒ 只读 general（fail-closed）；声明了 non-general 就要按它过滤三库检索。
+    #: 【为什么不做进 memory_scope】那是"私人域"（tenant/workspace/subject）且 none 档拒收非空域，
+    #: 而"装载哪些知识"与"记忆归谁"是两件事 —— 挂一起会让未开记忆的分身无法声明类。
+    memory_topics: list = field(default_factory=list)
     # P5 执行后端（声明式选路）：""=auto（CP_SUBAGENT_CONTAINER_ENABLED 开则 container，
     # 否则 inproc）；"inproc"/"container" 显式覆盖。见 _resolve_execution_channel。
     execution_backend: str = ""

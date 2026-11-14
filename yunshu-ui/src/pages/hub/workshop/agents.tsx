@@ -44,6 +44,8 @@ interface Subagent {
   memory?: {
     mode?: string
     scope?: { topics?: string[] }
+    /** 顶层可装载主题类（与记忆档位无关） */
+    topics?: string[]
     provider?: string
     error?: string
     degraded?: string
@@ -288,7 +290,7 @@ function SubagentView({ onShowAssembly }: { onShowAssembly?: () => void }) {
                 title: '记忆',
                 render: (r) => {
                   const mode = String(r.memory?.mode || 'none')
-                  const topics = r.memory?.scope?.topics ?? []
+                  const topics = r.memory?.topics ?? r.memory?.scope?.topics ?? []
                   return (
                     <span className="flex flex-wrap items-center gap-1.5" data-testid={`subagent-memory-${String(r.name)}`}>
                       <Badge color="cyan">{String(r.memory_provider ?? 'default')}</Badge>

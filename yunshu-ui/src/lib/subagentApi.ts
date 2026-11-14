@@ -15,7 +15,7 @@
 
 import { request } from './apiClient'
 import { SUBAGENT_CAPABILITIES } from '@/api/endpoints'
-import { normalizeTopics } from '@/lib/topics'
+import { normalizeTopics } from '@/lib/topics'  // 词表唯一来源（与后端 agent/topics.py 对拍）
 
 // ═══════════════════════════════════════════════════════════
 //  主权清单（与 agent/subagent/capabilities.py 的投影对齐）
@@ -145,12 +145,12 @@ export function buildCreatePayload(form: AssembleForm): Record<string, unknown> 
   if (roleText) body.role_text = roleText
   const ttl = form.ttlSeconds.trim()
   if (ttl) body.ttl_seconds = Number(ttl)
-  // 【为什么装在哪】主题类是"可装载哪些知识"，目前挂在 memory_scope 上
-  // （与 memory_types 同型）。而 none 档**不接受**非空 scope（后端 fail-closed），
-  // 所以只有选了 brokered 才发；没选就老实不发，而不是假装生效。
-  if (memoryMode) {
-    body.memory_mode = memoryMode
-    body.memory_scope = { topics }
-  }
+  // 记忆档：只有选了才发（不表态 = 后端默认 none）
+  if (memoryMode) body.memory_mode = memoryMode
+  // 可装载的主题类走**顶层** memory_topics（与记忆档位无关；none 档也能声明）。
+  // 【为什么不发 general】只有 general 与"不发"在语义上等价（未声明 ⇒ 只读 general），
+  // 发了只会给每个分身写一条冗余声明。
+  const onlyDefault = topics.length === 1 && topics[0] === 'general'
+  if (!onlyDefault) body.memory_topics = topics
   return body
 }

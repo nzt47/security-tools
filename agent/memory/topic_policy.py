@@ -67,9 +67,25 @@ def topics_for_line(profile: Any) -> Tuple[str, ...]:
     return normalize_topics(_split_multi(getattr(profile, "topics", None)))
 
 
+def _field(config: Any, name: str, default: Any = None) -> Any:
+    """从配置对象或 Mapping 读字段（与 memory_broker._config_field 同口径）"""
+    if isinstance(config, Mapping):
+        return config.get(name, default)
+    return getattr(config, name, default)
+
+
 def topics_for_manifest(config: Any) -> Tuple[str, ...]:
-    """分身 manifest ⇒ 它能读的类（`memory_scope.topics`；解析失败一律 general）"""
+    """分身 manifest ⇒ 它能读的类。
+
+    两级来源，**顶层 `memory_topics` 优先**：
+    1. `memory_topics`（与记忆档位无关；none 档也能声明）；
+    2. `memory_scope.topics`（C2 的旧形态，保留兼容 —— 存量配置与已导出的 bundle 里是这个）。
+    都没有 ⇒ 只读 general（fail-closed）。
+    """
     try:
+        top = _split_multi(_field(config, "memory_topics", None))
+        if top:
+            return normalize_topics(top)
         from agent.subagent.memory_broker import resolve_config_memory
 
         plan = resolve_config_memory(config)

@@ -207,8 +207,12 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
                  "**分身侧主动 read/write 已接线**：协议内声明式守门器 agent/subagent/scoped_memory_gate.py"
                  "（子代理在载荷声明 memory_reads/writes ⇒ 母体 ScopedMemoryGate 代执行；四道闸：mode/域启用判定 → "
                  "toolset 权限 → 母体域强制覆盖 → fail-soft；域标识一律取母体 domain.scope，子代理声明的域被丢弃），"
-                 "配额/熔断/审计真实强制（§5.7 机制 3 受控例外）",
+                 "配额/熔断/审计真实强制（§5.7 机制 3 受控例外）；"
+                 "**可装载的主题类 memory_topics（与档位无关）**：闭集见 agent/topics.py，"
+                 "读侧由 agent/memory/topic_policy.py 解析（声明 > 主线档案 > general）并强制到"
+                 "向量/知识/经验三库检索，未声明 ⇒ 只读 general（fail-closed）",
         evidence_files=("agent/memory/broker.py", "agent/memory/scoped_store.py", "agent/subagent/memory_broker.py",
+                        "agent/topics.py", "agent/memory/topic_policy.py",
                         "agent/subagent/scoped_memory_gate.py", "agent/subagent/tool_loop.py",
                         "agent/subagent/memory_quota.py",
                         "agent/memory/tenancy.py", "agent/subagent/executor.py"),

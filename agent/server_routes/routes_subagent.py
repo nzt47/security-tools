@@ -430,7 +430,41 @@ def _memory_fields(data: Dict[str, Any], base: Dict[str, Any] | None = None,
         raise MemoryConfigError(plan.error)
     return {"memory_mode": plan.mode,
             "memory_scope": (dict(plan.scope) or None),
-            "memory_quota": (dict(plan.quota) or None)}
+            "memory_quota": (dict(plan.quota) or None),
+            "memory_topics": _memory_topics(data, base)}
+
+
+def _memory_topics(data: Dict[str, Any], base: Dict[str, Any] | None = None) -> list:
+    """读并**严格校验**可装载的主题类（创建 / 热更新 / 临时委派共用）
+
+    词表外一律 400（不静默丢弃）：写错一个类名只会让这个分身"少读一类"，
+    现场表现为"怎么搜不到"，且没人会想到是配置拼错。空/未给 ⇒ []（未声明 ⇒ 只读 general）。
+
+    接受列表或逗号分隔串（界面两种都可能发）。
+    """
+    from agent.topics import TopicError, normalize_topic
+
+    raw = data.get("memory_topics", (base or {}).get("memory_topics"))
+    if raw is None:
+        return []
+    if isinstance(raw, str):
+        items = [part.strip() for part in raw.split(",")]
+    elif isinstance(raw, (list, tuple, set, frozenset)):
+        items = [str(part).strip() for part in raw]
+    else:
+        raise MemoryConfigError(
+            "memory_topics 必须是列表或逗号分隔串，收到: %s" % type(raw).__name__)
+    out: list = []
+    for item in items:
+        if not item:
+            continue
+        try:
+            topic = normalize_topic(item, strict=True)
+        except TopicError as exc:
+            raise MemoryConfigError("memory_topics 非法：%s" % exc) from exc
+        if topic not in out:
+            out.append(topic)
+    return out
 
 
 def _autonomy_field(data: Dict[str, Any], base: Dict[str, Any] | None = None) -> str:
@@ -457,6 +491,8 @@ def _subagent_with_memory(row: Dict[str, Any]) -> Dict[str, Any]:
                                  out.get("memory_provider", ""), out.get("memory_quota"))
     view = plan.to_dict()
     view["provider"] = str(out.get("memory_provider", "") or "")
+    # 可装载的类随 memory 视图回显（**不含记忆正文**；未声明时给空列表，不假装"全装载"）
+    view["topics"] = [str(t) for t in (out.get("memory_topics") or [])]
     out["memory"] = view
     return out
 

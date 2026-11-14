@@ -341,6 +341,8 @@ def memory_view(config: Any, guard: Any = None) -> Dict[str, Any]:
     plan = resolve_config_memory(config)
     view = plan.to_dict()
     view["provider"] = str(_config_field(config, "memory_provider", "") or "")
+    # 可装载的主题类（标识级；未声明 = 空列表 —— 空不等于"全装载"，读侧只读 general）
+    view["topics"] = _memory_topics_of(config)
     if plan.ok and plan.is_scoped:
         live = guard or guard_from_quota(plan.quota)
         view["breaker"] = live.status()
@@ -373,6 +375,24 @@ def scoped_memory_domain(config: Any, *, audit: Any = None, root: str = "",
         store=store, store_factory=store_factory)
 
 
+def _memory_topics_of(config: Any) -> list:
+    """配置里的可装载主题类（**不校验**，只做形态归一；校验在端点进门时做）"""
+    raw = _config_field(config, "memory_topics", None)
+    if raw is None:
+        return []
+    if isinstance(raw, str):
+        items = [part.strip() for part in raw.split(",")]
+    elif isinstance(raw, (list, tuple, set, frozenset)):
+        items = [str(part).strip() for part in raw]
+    else:
+        return []
+    out: list = []
+    for item in items:
+        if item and item.lower() not in out:
+            out.append(item.lower())
+    return out
+
+
 def attach_memory_metadata(ctx: Any, config: Any, audit: Any = None) -> Any:
     """把生效档位与域**标识**写进委派上下文 metadata（config→ctx 桥）
 
@@ -390,7 +410,11 @@ def attach_memory_metadata(ctx: Any, config: Any, audit: Any = None) -> Any:
     """
     normalized = str(_config_field(config, "memory_mode", MEMORY_MODE_NONE)
                      or "").strip().lower()
-    if normalized in _NONE_SENTINELS or normalized == MEMORY_MODE_NONE:
+    topics = _memory_topics_of(config)
+    # 默认档且**没有类声明** ⇒ 完全不碰 ctx（逐字旧行为）。
+    # 有类声明时即便 none 档也要带上：装载哪些类与记忆档位是两件事，
+    # 否则未开记忆的分身永远只能读 general。
+    if (normalized in _NONE_SENTINELS or normalized == MEMORY_MODE_NONE) and not topics:
         return ctx
     scope = _config_field(config, "memory_scope", None)
     if normalized == MEMORY_MODE_SCOPED and audit is not None:
@@ -404,7 +428,10 @@ def attach_memory_metadata(ctx: Any, config: Any, audit: Any = None) -> Any:
             status="enabled")
     current = getattr(ctx, "metadata", None)
     meta: Dict[str, Any] = dict(current) if isinstance(current, Mapping) else {}
-    meta["memory_mode"] = normalized
+    if normalized not in _NONE_SENTINELS and normalized != MEMORY_MODE_NONE:
+        meta["memory_mode"] = normalized
+    if topics:
+        meta["memory_topics"] = list(topics)
     if isinstance(scope, Mapping) and scope:
         meta["memory_scope"] = dict(scope)
     if normalized == MEMORY_MODE_SCOPED:
