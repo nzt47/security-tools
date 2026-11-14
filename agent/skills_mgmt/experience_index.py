@@ -22,9 +22,10 @@ import hashlib
 import json
 import logging
 import os
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Sequence
 
 from agent.logging_utils import log_dict
+from agent.topics import normalize_topic, normalize_topics
 
 # ── 模型加载离线化（关键性能修复）──
 # 【实测】SentenceTransformer("BAAI/bge-m3") 在联网检查下会对 hf-mirror.com 发起
@@ -109,6 +110,18 @@ class _ExperienceMetaStore:
         return ""
 
 
+def _hit_sid(hit: Any) -> Optional[str]:
+    """从 BM25 / 向量腿的命中里取 skill_id（两种返回形态兼容）"""
+    sid = getattr(hit, "skill_id", None)
+    if sid:
+        return str(sid)
+    if isinstance(hit, dict):
+        val = hit.get("skill_id")
+        if val:
+            return str(val)
+    return None
+
+
 def _sample_to_meta(s: Dict[str, Any]) -> Dict[str, Any]:
     """把经验样本映射为 loader._meta_to_meta_text 认识的字段集。
 
@@ -129,6 +142,8 @@ def _sample_to_meta(s: Dict[str, Any]) -> Dict[str, Any]:
         "category": "experience",
         "file_names": names,
         # 经验侧专有（供检索后过滤/展示，不参与文本匹配）
+        #: 主题类（旧样本没有这个键 ⇒ general，fail-closed）
+        "_topic": normalize_topic(s.get("topic"), strict=False),
         "_verified": s.get("verified"),
         "_task_type": s.get("task_type"),
         "_lang": stack.get("lang"),
@@ -331,6 +346,7 @@ class ExperienceIndex:
         task_type: Optional[str] = None,
         include_unverified: bool = False,
         min_bm25_score: float = _DEFAULT_MIN_BM25_SCORE,
+        topics: Optional[Sequence[str]] = None,
     ) -> List[Dict[str, Any]]:
         """RRF 融合检索。返回 [{id, score, meta, legs}]。
 
@@ -344,6 +360,13 @@ class ExperienceIndex:
         """
         if not query or not self._docs:
             return []
+        allowed_topics = None if topics is None else set(normalize_topics(topics))
+
+        def _topic_ok(sid: str) -> bool:
+            if allowed_topics is None:
+                return True
+            m = self._docs.get(sid) or {}
+            return normalize_topic(m.get("_topic"), strict=False) in allowed_topics
 
         def _ok(sid: str) -> bool:
             m = self._docs.get(sid) or {}
@@ -352,6 +375,8 @@ class ExperienceIndex:
             if task_type and m.get("_task_type") != task_type:
                 return False
             if not include_unverified and m.get("_verified") != "pass":
+                return False
+            if not _topic_ok(sid):
                 return False
             return True
 
@@ -363,14 +388,24 @@ class ExperienceIndex:
                 # 相关性下限：原始分不足即判定"未命中"，不返回任何结果。
                 # 注意判定用的是**未经 lang/task_type/verified 过滤**的 top1 原始分 ——
                 # 下限衡量的是"这条查询是否与本库相关"，与被过滤掉的条目无关。
-                if min_bm25_score > 0 and bm25_hits and float(bm25_hits[0].score) < min_bm25_score:
+                #
+                # 【例外·2026-11-14 主题类】设了 topics 白名单时，闸门改看**白名单内**
+                # 的 top1：否则「全库最高分属于别的类」会让这条查询过一次闸，
+                # 然后把白名单里分数很低的条目注入进去 —— 那是拿别的类的相关度
+                # 给本类背书。宁可判"本类没命中"（返回空），也不放宽。
+                gate_hits = bm25_hits
+                if allowed_topics is not None:
+                    gate_hits = [h for h in bm25_hits
+                                 if (_hit_sid(h) or "") and _topic_ok(_hit_sid(h) or "")]
+                if min_bm25_score > 0 and gate_hits and float(gate_hits[0].score) < min_bm25_score:
                     logger.info(log_dict({"module_name": "experience_index",
                                           "action": "search.below_threshold",
-                                          "top_score": round(float(bm25_hits[0].score), 3),
-                                          "threshold": min_bm25_score}))
+                                          "top_score": round(float(gate_hits[0].score), 3),
+                                          "threshold": min_bm25_score,
+                                          "topics": sorted(allowed_topics) if allowed_topics else None}))
                     return []
                 for r, hit in enumerate(bm25_hits, 1):
-                    sid = getattr(hit, "skill_id", None) or (hit.get("skill_id") if isinstance(hit, dict) else None)
+                    sid = _hit_sid(hit)
                     if sid and _ok(sid):
                         ranks.setdefault(sid, {})["bm25"] = r
                         raw_bm25[sid] = float(getattr(hit, "score", 0.0) or 0.0)

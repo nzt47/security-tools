@@ -41,6 +41,7 @@ from typing import Optional
 from agent.knowledge.card import Card, CardStore
 from agent.knowledge.link_cache import LinkCache
 from agent.knowledge.schema import Card as _SchemaCard  # noqa: F401  (类型别名，防误用)
+from agent.topics import normalize_topic, normalize_topics
 from agent.utils.periodic_sampler import PeriodicSampler
 from agent.logging_utils import log_dict
 
@@ -341,6 +342,7 @@ class KnowledgeSearch:
         rrf_k: Optional[int] = None,
         hide_sensitive_snippet: Optional[bool] = None,
         timing_sample_rate: Optional[float] = None,
+        topics=None,
     ):
         """构造检索器（一次性构建 BM25 索引 + 链接解析缓存）。
 
@@ -358,6 +360,9 @@ class KnowledgeSearch:
             timing_sample_rate: search_stage_timing 耗时日志采样率 (0,1]，
                 rate=1.0 全量，0<rate<1 按周期确定性抽样
                 （默认 KNOWLEDGE_TIMING_SAMPLE_RATE / 0.1，生产降噪）。
+            topics: 主题类白名单（None = **不按类过滤**，逐字旧行为）。
+                传了就只返回这些类的卡片；**双链一跳扩展也在同一处裁**
+                （链到白名单外卡片的跳转会被丢弃 —— 否则内容照样从链接里漏出去）。
         """
         self._card_store = card_store
         self._vector_store = vector_store
@@ -384,6 +389,9 @@ class KnowledgeSearch:
             else _env_float(_ENV_TIMING_SAMPLE_RATE, _DEFAULT_TIMING_SAMPLE_RATE)
         )
         self._timing_sampler = PeriodicSampler(self._timing_sample_rate)
+        #: 主题类白名单（None = 不过滤）。归一化只做一次，检索热路径只查集合。
+        self._allowed_topics = (
+            None if topics is None else frozenset(normalize_topics(topics)))
 
         self._bm25 = BM25Index()
         self._cards: dict[str, Card] = {}
@@ -409,6 +417,25 @@ class KnowledgeSearch:
             "KnowledgeSearch: 索引构建完成 卡片数=%d bm25_size=%d 链接缓存卡数=%d",
             len(self._cards), self._bm25.size, self._link_cache.size,
         )
+
+    # ---------- 内部：主题类过滤 ----------
+
+    def _topic_allowed(self, slug: str) -> bool:
+        """该卡片是否在本次检索的主题白名单内（未设白名单 ⇒ 全放行）"""
+        if self._allowed_topics is None:
+            return True
+        card = self._cards.get(slug)
+        if card is None:
+            # 索引里没有这张卡（不该发生）：从严不给
+            return False
+        return normalize_topic(getattr(card, "topic", None), strict=False) in self._allowed_topics
+
+    def _filter_topic(self, pairs: list[tuple[str, Optional[float]]]):
+        """按主题白名单裁一路召回结果 → (保留, 丢弃数)"""
+        if self._allowed_topics is None:
+            return pairs, 0
+        kept = [(slug, score) for slug, score in pairs if self._topic_allowed(slug)]
+        return kept, len(pairs) - len(kept)
 
     # ---------- 内部：三路召回 ----------
 
@@ -602,11 +629,22 @@ class KnowledgeSearch:
         _t_stage = time.perf_counter()
         vector_results = self._vector_recall(query, candidate_k)
         t_vector = (time.perf_counter() - _t_stage) * 1000
+
+        # ── 主题类白名单：三路都在 RRF 之前裁（双链同样跨类，必须同处裁）──
+        dropped_topic = 0
+        if self._allowed_topics is not None:
+            bm25_results, _d1 = self._filter_topic(bm25_results)
+            vector_results, _d2 = self._filter_topic(vector_results)
+            dropped_topic += _d1 + _d2
         seeds = list(dict.fromkeys(  # 保序去重：BM25 优先，向量补充
             [s for s, _ in bm25_results] + [s for s, _ in vector_results]
         ))
         _t_stage = time.perf_counter()
         link_slugs = self._link_recall(seeds, trace_id=_trace)
+        if self._allowed_topics is not None:
+            _kept_links = [s for s in link_slugs if self._topic_allowed(s)]
+            dropped_topic += len(link_slugs) - len(_kept_links)
+            link_slugs = _kept_links
         t_link = (time.perf_counter() - _t_stage) * 1000
 
         ranked_lists = [
@@ -615,12 +653,14 @@ class KnowledgeSearch:
             link_slugs,
         ]
         logger.info(
-            "知识检索-三路召回: BM25=%s 向量=%s 双链=%s 并集=%s trace=%s",
+            "知识检索-三路召回: BM25=%s 向量=%s 双链=%s 并集=%s 主题=%s 裁掉=%d trace=%s",
             [(s, round(sc, 3)) for s, sc in bm25_results],
             [(s, round(sc, 3)) if sc is not None else (s, None)
              for s, sc in vector_results],
             link_slugs,
             list(dict.fromkeys(s for lst in ranked_lists for s in lst)),
+            ",".join(sorted(self._allowed_topics)) if self._allowed_topics else "-",
+            dropped_topic,
             _trace,
         )
         _t_stage = time.perf_counter()

@@ -18,6 +18,11 @@ import unicodedata
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
+# 主题类词表与「记忆/知识/经验」三库同源（叶子模块，无依赖）：
+# 卡片这里是**第二个**写侧入口（另两个是向量 VectorStore.add 与经验 samples），
+# 三处共用同一份闭集，别在各自门口再定义一次。
+from agent.topics import DEFAULT_TOPIC, TOPICS as TOPIC_VOCABULARY
+
 REQUIRED_FIELDS = ["title", "slug", "status", "type", "source", "date"]
 
 VALID_TYPES = {"concepts", "insights", "entities"}
@@ -37,6 +42,9 @@ class Card:
     date: str
     tags: list[str] = field(default_factory=list)
     links: list[str] = field(default_factory=list)
+    #: 主题类（业务域）。默认 general —— 旧卡片/未声明一律归它（fail-closed）。
+    #: 单选：一条记录只属于一个类，否则「A 检索不到 B 的类」这句验收就没法验证。
+    topic: str = DEFAULT_TOPIC
     contradictions: list[dict] = field(default_factory=list)
     insight: str = ""
     scope: str = ""
@@ -92,6 +100,12 @@ def validate_card(card: dict) -> list[str]:
     # 6. 核心洞见必填
     if not card.get("insight"):
         errors.append("缺少一句话核心洞见")
+
+    # 7. topic 合法（空 = 未声明，允许；由 Card 默认值落成 general）
+    topic = card.get("topic")
+    if topic not in (None, "") and str(topic).strip().lower() not in TOPIC_VOCABULARY:
+        errors.append(f"非法 topic: {topic!r}（允许: "
+                      f"{', '.join(TOPIC_VOCABULARY)}）")
 
     return errors
 

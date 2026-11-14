@@ -32,6 +32,25 @@ from collections import OrderedDict, defaultdict
 
 logger = logging.getLogger(__name__)
 
+# ── 主题类（topic）过滤：与「记忆/知识/经验」三库共用的唯一词表同源 ──
+# 【为什么在向量库这层做过滤】三库都要"按类装载"，但过滤只能有一份语义：
+# 词表与归一化在 agent/memory/topics.py（叶子模块），本文件只负责"取回后筛"。
+from agent.topics import (
+    DEFAULT_TOPIC,
+    filter_by_topic,
+    normalize_topic,
+    normalize_topics,
+)
+
+#: 按 topic 过滤时的**最小取回条数**。sqlite-vec 的 vec0 表不能带 metadata 条件
+#: （只认 `WHERE embedding MATCH ? AND k = ?`），过滤只能发生在 KNN 之后；
+#: 取回条数太少会导致"过滤完不足 top_k" ⇒ 表现为**假空**（检索不到 ≠ 本来没有）。
+_TOPIC_FETCH_MIN = 50
+#: 取回放大倍数：top_k 很小而类很多时，单次 KNN 取回可能几乎全被滤掉
+_TOPIC_FETCH_FACTOR = 8
+#: 单次检索取回硬上限（与 plugins/memory.py 的 _VECTOR_SOURCE_SCAN_LIMIT 同量级）
+_TOPIC_FETCH_CAP = 2000
+
 # 【变易·2026-08-29】记忆项 id 生成: 微秒时间戳在高速连续写入时可能重复
 # （同一微秒内两次 add → SqliteVecBackend UNIQUE 主键冲突 → 第二条丢失，L3
 # 容器 sqlite-vec 集成测试实证 test_add_and_count count=1）。进程内递增序号
@@ -363,16 +382,23 @@ class LRUQueryCache:
     def __init__(self, max_size: int = 100, ttl_seconds: int = 300):
         self.max_size = max_size
         self.ttl_seconds = ttl_seconds
-        self._cache: OrderedDict[Tuple[str, int], Tuple[List[Any], float]] = OrderedDict()
+        #: 键 = (query, top_k, scope)。`scope` 是**过滤维度**（当前用于 topic 白名单）：
+        #: 不含 scope 的缓存会让"按类装载"的智能体命中另一个类的检索结果
+        #: —— 这是静默越权，比慢一点严重得多。
+        self._cache: OrderedDict[Tuple[str, int, str], Tuple[List[Any], float]] = OrderedDict()
         self.hits = 0
         self.misses = 0
 
     def _is_expired(self, timestamp: float) -> bool:
         return (datetime.now().timestamp() - timestamp) > self.ttl_seconds
 
-    def get(self, query: str, top_k: int) -> Optional[List[Any]]:
-        """获取缓存结果（命中时自动更新访问时间）"""
-        key = (query, top_k)
+    def get(self, query: str, top_k: int, scope: str = "") -> Optional[List[Any]]:
+        """获取缓存结果（命中时自动更新访问时间）
+
+        Args:
+            scope: 过滤维度（topic 白名单等）。空串 = 无过滤（旧行为，键不变）。
+        """
+        key = (query, top_k, scope)
         if key in self._cache:
             results, timestamp = self._cache.pop(key)
             if not self._is_expired(timestamp):
@@ -384,9 +410,9 @@ class LRUQueryCache:
             self.misses += 1
         return None
 
-    def set(self, query: str, top_k: int, results: List[Any]):
-        """设置缓存结果"""
-        key = (query, top_k)
+    def set(self, query: str, top_k: int, results: List[Any], scope: str = ""):
+        """设置缓存结果（scope 语义见 get）"""
+        key = (query, top_k, scope)
         if key in self._cache:
             self._cache.pop(key)
         elif len(self._cache) >= self.max_size:
@@ -672,6 +698,9 @@ class VectorStore:
         item_id = _new_mem_id()
         metadata = metadata or {}
         metadata["created_at"] = datetime.now().isoformat()
+        # 写侧打标（唯一入口）：未声明 ⇒ general；词表外 ⇒ TopicError（不静默纠正，
+        # 否则写进去之后没人知道它原本想写什么）
+        metadata["topic"] = normalize_topic(metadata.get("topic"))
 
         # 失效缓存
         if self._query_cache:
@@ -738,6 +767,7 @@ class VectorStore:
                 content = item_data.get("content", "")
                 metadata = item_data.get("metadata", {})
                 metadata["created_at"] = now_iso
+                metadata["topic"] = normalize_topic(metadata.get("topic"))
                 item_id = f"{_new_mem_id()}_{i}"
                 backend_items.append({
                     "id": item_id,
@@ -764,6 +794,7 @@ class VectorStore:
             content = item_data.get("content", "")
             metadata = item_data.get("metadata", {})
             metadata["created_at"] = datetime.now().isoformat()
+            metadata["topic"] = normalize_topic(metadata.get("topic"))
 
             item_id = _new_mem_id()
             item = MemoryItem(
@@ -799,9 +830,9 @@ class VectorStore:
 
     # ── 搜索 ──
 
-    def search(self, query: str, top_k: int = 5) -> List[MemoryItem]:
-        """
-        搜索记忆
+    def search(self, query: str, top_k: int = 5,
+               topics: Optional[Any] = None) -> List[MemoryItem]:
+        """搜索记忆（可选按 topic 白名单过滤）
 
         搜索路径（按 _backend 自动选择）:
         1. sqlite-vec KNN 向量搜索（首选）
@@ -812,19 +843,68 @@ class VectorStore:
         Args:
             query: 查询文本
             top_k: 返回数量
+            topics: topic 白名单（None = **不按类过滤**，逐字旧行为）。
+                传了就按 agent/memory/topics.py 的词表归一化后过滤：
+                白名单外的记录**一律不返回**（fail-closed），因为"假装没看见"
+                比"返回了不该看的"安全。
 
         Returns:
             匹配的记忆项列表
         """
-        logger.info(f"🔍 搜索记忆: query='{query[:50]}...', top_k={top_k}")
+        allowed = normalize_topics(topics) if topics is not None else None
+        scope = "" if allowed is None else ",".join(allowed)
+        logger.info(
+            f"🔍 搜索记忆: query='{query[:50]}...', top_k={top_k}, "
+            f"topics={allowed or '-'}")
 
-        # ── 查询缓存命中 ──
+        # ── 查询缓存命中（键含 scope，避免跨类命中）──
         if self._query_cache:
-            cached = self._query_cache.get(query, top_k)
+            cached = self._query_cache.get(query, top_k, scope)
             if cached is not None:
                 logger.info(f"   ├─ [缓存命中] 返回 {len(cached)} 条")
                 return cached
 
+        if allowed is None:
+            items = self._search_backend(query, top_k)
+        else:
+            items = self._search_topic_filtered(query, top_k, allowed)
+
+        if self._query_cache:
+            self._query_cache.set(query, top_k, items, scope)
+
+        logger.info(f"   └─ 返回: {len(items)} 条")
+        return items
+
+    def _search_topic_filtered(self, query: str, top_k: int,
+                               allowed: Tuple[str, ...]) -> List[MemoryItem]:
+        """按 topic 白名单检索：KNN 取回 → Python 侧过滤 → 不足则放大重取。
+
+        为什么后置过滤（三后端统一）：
+        · sqlite-vec 的 vec0 表**只认** `WHERE embedding MATCH ? AND k = ?`，
+          不能带 metadata 条件（加条件会退化成全表扫或直接报错）；
+        · Chroma 支持 `where`，但那样三后端就有两套过滤语义，日后必漂移。
+        故统一在 Python 侧过滤，语义只有一个：**白名单外的一律不出**。
+
+        放大循环的必要性：过滤后不足 top_k 时，若直接返回，上层会把"本类没命中"
+        读成"库里没有"（假空）。故按 _TOPIC_FETCH_MIN 起步、不足则翻倍，
+        直到够数 / 后端给不出更多 / 触顶 _TOPIC_FETCH_CAP。
+        """
+        fetch = max(_TOPIC_FETCH_MIN, min(top_k * _TOPIC_FETCH_FACTOR, _TOPIC_FETCH_CAP))
+        kept: List[MemoryItem] = []
+        while True:
+            raw = self._search_backend(query, fetch)
+            kept, dropped = filter_by_topic(raw, allowed)
+            if dropped:
+                logger.info(
+                    "   ├─ topic 过滤: 取回=%d 保留=%d 丢弃=%d（白名单=%s）",
+                    len(raw), len(kept), dropped, ",".join(allowed))
+            if len(kept) >= top_k or len(raw) < fetch or fetch >= _TOPIC_FETCH_CAP:
+                break
+            fetch = min(fetch * 2, _TOPIC_FETCH_CAP)
+        return kept[:top_k]
+
+    def _search_backend(self, query: str, top_k: int) -> List[MemoryItem]:
+        """单次后端检索（不含缓存、不含 topic 过滤）—— search() 的唯一取回入口"""
         # ── sqlite-vec KNN 搜索 ──
         if self._backend == "sqlite_vec":
             try:
@@ -837,8 +917,6 @@ class VectorStore:
                     ) for r in raw_results
                 ]
                 logger.info(f"   ├─ sqlite-vec 匹配结果数: {len(items)}")
-                if self._query_cache:
-                    self._query_cache.set(query, top_k, items)
                 return items
             except Exception as e:
                 logger.error(f"sqlite-vec 搜索失败: {e}")
@@ -861,10 +939,6 @@ class VectorStore:
                             timestamp=results["metadatas"][0][i].get("created_at", "")
                         ))
                 logger.info(f"   ├─ ChromaDB 匹配结果数: {len(items)}")
-
-                # 写入缓存
-                if self._query_cache:
-                    self._query_cache.set(query, top_k, items)
                 return items
             except Exception as e:
                 # 不再修改 _backend（线程安全），仅本次降级到 JSON 搜索路径
@@ -880,11 +954,6 @@ class VectorStore:
         else:
             results = self._search_fallback(query, top_k)
 
-        # 写入缓存
-        if self._query_cache:
-            self._query_cache.set(query, top_k, results)
-
-        logger.info(f"   └─ 返回: {len(results)} 条")
         return results
 
     def _bm25_search(self, query: str, top_k: int) -> List[MemoryItem]:
