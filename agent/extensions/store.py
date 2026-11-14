@@ -7,7 +7,10 @@
 import json
 import uuid
 import os
+import shutil
+import threading
 import logging
+from datetime import datetime
 from typing import Dict, Any, List, Optional
 from pathlib import Path
 
@@ -24,6 +27,12 @@ def _trace_id():
 # 默认扩展数据目录
 _EXTENSIONS_DATA_DIR = Path(__file__).parent.parent / "data"
 _EXTENSIONS_DATA_FILE = _EXTENSIONS_DATA_DIR / "extensions.json"
+
+#: 写盘备份保留份数（与 .env.backups 的 50 同族；这里每次保存都留一份，20 份足够）
+_BACKUP_KEEP = 20
+
+#: 进程内写锁：一次保存是"读-改-整份重写"，两个线程交错会把对方的改动写丢
+_STORE_LOCK = threading.RLock()
 
 # 扩展包存储目录
 _EXTENSIONS_PACKAGES_DIR = _EXTENSIONS_DATA_DIR / "extensions_packages"
@@ -65,10 +74,54 @@ class ExtensionStore:
         return self._cache
 
     def _save(self, data: Dict[str, List[Dict]]):
-        """保存扩展数据到文件"""
-        self._data_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(self._data_file, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        """保存扩展数据到文件（**原子写 + 写前备份**，2026-11-14）
+
+        【为什么改】原实现是 open(..., "w") 直接截断写：写到一半进程被杀（或被并发
+        写交错）就等于**整份扩展台账丢失** —— 而通道清单与通道值只存在这里；
+        同一族的 .env 有 50 份备份（CHG-2026-0810），这里此前一份都没有。
+        改为 tmp + os.replace（Windows 上同样可覆盖），并在写前把上一版复制到
+        <file>.bak.<stamp>（保留 _BACKUP_KEEP 份）。
+        """
+        with _STORE_LOCK:
+            target = self._data_file
+            target.parent.mkdir(parents=True, exist_ok=True)
+            self._backup_store_file(target)
+            tmp = target.with_name(target.name + ".tmp")
+            try:
+                with open(tmp, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                os.replace(str(tmp), str(target))
+            finally:
+                if tmp.exists():
+                    try:
+                        tmp.unlink()
+                    except OSError:                    # pragma: no cover
+                        pass
+
+    @staticmethod
+    def _backup_store_file(target: Path) -> None:
+        """写前备份上一版（文件不存在/为空则跳过；失败只 warning，不阻塞保存）"""
+        try:
+            if not target.exists() or target.stat().st_size == 0:
+                return
+            stamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            backup = target.with_name(target.name + ".bak." + stamp)
+            index = 1
+            while backup.exists():
+                backup = target.with_name(target.name + ".bak." + stamp + "_" + str(index))
+                index += 1
+            shutil.copy2(target, backup)
+            olds = sorted(target.parent.glob(target.name + ".bak.*"))
+            for old in olds[:-_BACKUP_KEEP]:
+                try:
+                    old.unlink()
+                except OSError:                        # pragma: no cover
+                    pass
+        except OSError as exc:                         # pragma: no cover
+            logger.warning(log_dict({
+                'module_name': 'store', 'action': 'backup_failed',
+                'msg': f'[扩展存储] 写前备份失败（不阻塞保存）: {type(exc).__name__}',
+            }))
 
     def _get_key(self, ext_type: ExtensionType) -> str:
         """扩展类型到存储键的映射"""
@@ -157,8 +210,29 @@ class ExtensionStore:
         return False
 
     def update_config(self, ext_type: ExtensionType, ext_id: str, config: Dict) -> bool:
-        """更新扩展配置"""
-        return self.update_status(ext_type, ext_id, ExtensionStatus.ENABLED, config)
+        """只更新扩展配置（**不改 status / enabled**）
+
+        【2026-11-14 修复】原实现委托 update_status(..., ENABLED, ...)：保存一次配置
+        就把"停用"的通道顺手改回 enabled ⇒ 界面上的"改配置"与"启用"变成同一件事
+        （现场表现：停用某通道后改了下收件人，它又开始发了）。
+        现在这里只动 config + updated_at；启停仍然只走 toggle_channel/update_status。
+        """
+        if not config:
+            return False
+        data = self._load()
+        key = self._get_key(ext_type)
+        for item in data[key]:
+            if item.get("ext_id") == ext_id:
+                item.setdefault("config", {}).update(config)
+                item["updated_at"] = datetime.now().isoformat()
+                self._save(data)
+                self._cache = data
+                logger.info(log_dict({
+                    'module_name': 'store', 'action': 'config_updated',
+                    'msg': f'[扩展存储] 已更新配置（不改启停）: {ext_id}',
+                }))
+                return True
+        return False
 
     def ensure_packages_dir(self) -> Path:
         """确保扩展包存储目录存在"""

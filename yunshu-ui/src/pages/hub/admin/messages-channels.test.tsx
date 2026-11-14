@@ -243,4 +243,176 @@ describe('HubChannelsPanel', () => {
       type: 'channel', id: 'email_smtp', force: true,
     }))
   })
+
+  // ── 报警通道写 .env（2026-11-14，alarm-channel-env-sync）──
+  //
+  // 后端 /api/extensions/discover 的 resolved_channels 是**唯一真相**：
+  // 字段→环境键、值来自哪一层、空态范例与说明都在那里；本页只渲染。
+
+  function viewOf(overrides: Record<string, unknown> = {}) {
+    return {
+      channel_id: 'email_smtp',
+      channel_type: 'smtp',
+      primary: true,
+      env_keys: ['CP_ALERT_SMTP_HOST', 'CP_ALERT_SMTP_PASSWORD'],
+      fields: [
+        {
+          field: 'smtp_server', env_key: 'CP_ALERT_SMTP_HOST', secret: false,
+          local: 'smtp.example.com', local_configured: true,
+          effective: 'smtp.example.com', source: 'channel',
+          source_label: '通道本地配置', configured: true,
+        },
+        {
+          field: 'smtp_password', env_key: 'CP_ALERT_SMTP_PASSWORD', secret: true,
+          local: '***', local_configured: true, effective: '***',
+          source: 'channel', source_label: '通道本地配置', configured: true,
+        },
+      ],
+      extra: {},
+      example: { channel_type: 'smtp', smtp_server: 'smtp.example.com' },
+      notes: ['端口：465 = 隐式 TLS（常见于 139/163），587 = STARTTLS。'],
+      ...overrides,
+    }
+  }
+
+  function setupWithView(view: Record<string, unknown>, config: Record<string, unknown> = {}) {
+    api.hubGet.mockImplementation(async (url: string) => {
+      if (url === '/api/extensions/discover') {
+        return {
+          ok: true,
+          builtin_channels: [{ id: 'email_smtp', name: '邮件通道 (SMTP)', installed: true }],
+          resolved_channels: [view],
+        }
+      }
+      if (url === '/api/extensions/list') {
+        return {
+          ok: true,
+          extensions: [{ ext_id: 'email_smtp', ext_type: 'channel', name: '邮件通道', enabled: true, config }],
+        }
+      }
+      return { ok: true }
+    })
+  }
+
+  it('空通道：给出可复制的范例 + 说明（文案来自后端）', async () => {
+    const writeText = vi.fn(async () => undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    setupWithView(viewOf({
+      fields: [{
+        field: 'smtp_server', env_key: 'CP_ALERT_SMTP_HOST', secret: false,
+        local: '', local_configured: false, effective: '', source: 'default',
+        source_label: '默认值（未配置）', configured: false,
+      }],
+    }))
+    render(<HubChannelsPanel />)
+    fireEvent.click(await screen.findByRole('button', { name: '配置通道 email_smtp' }))
+
+    expect(screen.getByText(/这条通道还是空的/)).toBeTruthy()
+    expect(screen.getByText(/smtp\.example\.com/)).toBeTruthy()
+    expect(screen.getByText(/465 = 隐式 TLS/)).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: '复制范例 email_smtp' }))
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1))
+    expect(screen.getByText('已复制')).toBeTruthy()
+  })
+
+  it('主通道/本机通道各有一处徽标（多通道时谁是 .env 的那条要一眼看出）', async () => {
+    setupWithView(viewOf())
+    render(<HubChannelsPanel />)
+    expect(await screen.findByText('主通道 · 写 .env')).toBeTruthy()
+    cleanup()
+    api.hubGet.mockReset()
+    setupWithView(viewOf({ channel_id: 'email_smtp_2', primary: false }))
+    api.hubGet.mockImplementation(async (url: string) => {
+      if (url === '/api/extensions/discover') {
+        return {
+          ok: true,
+          builtin_channels: [],
+          resolved_channels: [viewOf({ channel_id: 'email_smtp_2', primary: false })],
+        }
+      }
+      if (url === '/api/extensions/list') {
+        return { ok: true, extensions: [{ ext_id: 'email_smtp_2', ext_type: 'channel', name: '邮件 2', enabled: true }] }
+      }
+      return { ok: true }
+    })
+    render(<HubChannelsPanel />)
+    expect(await screen.findByText('本机 · 不写 .env')).toBeTruthy()
+  })
+
+  it('口令不回显：来源徽标上屏，留空 = 不带该键（不误清授权码）', async () => {
+    setupWithView(viewOf(), { smtp_server: 'smtp.example.com', smtp_password: 'pw-9x' })
+    api.hubPost.mockResolvedValue({ ok: true, message: '已更新通道配置: email_smtp（.env 改 1 项 / 删 0 项）' })
+    render(<HubChannelsPanel />)
+    fireEvent.click(await screen.findByRole('button', { name: '配置通道 email_smtp' }))
+
+    // 口令框永远是空的（绝不回显），并以"已配置"提示
+    const pwd = screen.getByLabelText('通道字段 email_smtp smtp_password') as HTMLInputElement
+    expect(pwd.value).toBe('')
+    expect(pwd.placeholder).toContain('已配置')
+    // 高级 JSON 里也不能出现口令
+    const area = screen.getByLabelText('通道配置 email_smtp') as HTMLTextAreaElement
+    expect(area.value).not.toContain('pw-9x')
+
+    const host = screen.getByLabelText('通道字段 email_smtp smtp_server')
+    fireEvent.change(host, { target: { value: 'smtp2.example.com' } })
+    fireEvent.click(screen.getByRole('button', { name: '保存通道配置 email_smtp' }))
+
+    await waitFor(() => expect(api.hubPost).toHaveBeenCalled())
+    const body = api.hubPost.mock.calls.at(-1)?.[1] as { config: Record<string, unknown> }
+    expect(body.config.smtp_server).toBe('smtp2.example.com')
+    expect('smtp_password' in body.config, '留空必须不带该键（后端 = 不修改）').toBe(false)
+  })
+
+  it('清除口令是显式动作：点过之后保存发 null（后端据此删键）', async () => {
+    setupWithView(viewOf(), { smtp_server: 'smtp.example.com', smtp_password: 'pw-9x' })
+    api.hubPost.mockResolvedValue({ ok: true })
+    render(<HubChannelsPanel />)
+    fireEvent.click(await screen.findByRole('button', { name: '配置通道 email_smtp' }))
+
+    fireEvent.click(screen.getByRole('button', { name: '清除口令 email_smtp' }))
+    fireEvent.click(screen.getByRole('button', { name: '保存通道配置 email_smtp' }))
+
+    await waitFor(() => expect(api.hubPost).toHaveBeenCalled())
+    const body = api.hubPost.mock.calls.at(-1)?.[1] as { config: Record<string, unknown> }
+    expect(body.config.smtp_password).toBeNull()
+  })
+
+  it('字段留空保存 = 提交空串（后端据此从 .env 删键，回落 env/默认）', async () => {
+    setupWithView(viewOf(), { smtp_server: 'smtp.example.com' })
+    api.hubPost.mockResolvedValue({ ok: true })
+    render(<HubChannelsPanel />)
+    fireEvent.click(await screen.findByRole('button', { name: '配置通道 email_smtp' }))
+
+    const host = screen.getByLabelText('通道字段 email_smtp smtp_server') as HTMLInputElement
+    fireEvent.change(host, { target: { value: '' } })
+    fireEvent.click(screen.getByRole('button', { name: '保存通道配置 email_smtp' }))
+
+    await waitFor(() => expect(api.hubPost).toHaveBeenCalled())
+    const body = api.hubPost.mock.calls.at(-1)?.[1] as { config: Record<string, unknown> }
+    expect(body.config.smtp_server).toBe('')
+  })
+
+  it('多通道：新增自定义 id 走 install + params（类型/名称/空配置）', async () => {
+    setup()
+    api.hubPost.mockResolvedValue({ ok: true, message: '已安装' })
+    render(<HubChannelsPanel />)
+    await screen.findByText('Webhook 通道')
+
+    fireEvent.change(screen.getByLabelText('新通道 id'), { target: { value: 'email_smtp_2' } })
+    fireEvent.change(screen.getByLabelText('新通道名称'), { target: { value: '值班邮件' } })
+    fireEvent.click(screen.getByRole('button', { name: '新增通道' }))
+
+    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/extensions/install', {
+      type: 'channel',
+      source: 'email_smtp_2',
+      params: {
+        channel_type: 'smtp',
+        name: '值班邮件',
+        description: '界面新增的通道',
+        config: { channel_type: 'smtp' },
+      },
+    }))
+    expect(await screen.findByText(/已新增通道 email_smtp_2/)).toBeTruthy()
+  })
 })

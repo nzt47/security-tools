@@ -42,6 +42,7 @@ import threading
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from agent.logging_utils import log_dict
 
@@ -119,6 +120,29 @@ ENV_FILE_OVERRIDE_VAR = "CP_ENV_FILE"
 
 #: 允许的变量名字符集（沿用历史契约：字母/数字/下划线/连字符）
 ENV_VAR_NAME_RE = re.compile(r'^[A-Za-z_][A-Za-z0-9_-]*$')
+
+#: 仓库根 .env 的**真实**路径（新增批量写入口的 fail-closed 判据）
+#:
+#: 【为什么单开这一条守卫（2026-11-14，alarm-channel-env-sync）】批量写入口
+#: apply_many 是**新的**写路径（通道配置页用它把通道值镜像进 .env）。2026-08-15 事故是
+#: 「测试把真实 .env 写掉 1801 行」，此前的防线只有 CP_ENV_FILE 的会话级地板。
+#: 地板挡的是"忘了重定向"，挡不住"有人直接把目标指向仓库 .env 再写"。
+#: 故这里再加一道：**测试进程 + 目标是仓库根 .env ⇒ 直接拒绝**（fail-closed）。
+#: 只加在新入口上（不改 set/delete 的既有契约，避免动到存量用例的判据）。
+_REPO_ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
+
+
+class EnvWriteRefused(PermissionError):
+    """拒绝对仓库根 .env 的写操作（测试进程的 fail-closed 守卫）"""
+
+
+def _running_under_pytest() -> bool:
+    """当前进程是否在跑测试（判据用 sys.modules，不新增 env 开关）
+
+    【为什么不读环境变量】本仓的「开关零缺口」门禁用 AST 机械提取全部 env 读取点，
+    为测试专用的判断新增一个 env 键会把它判成未登记开关（channel_health.py 踩过）。
+    """
+    return "pytest" in sys.modules or "_pytest" in sys.modules
 
 #: UUID 形态段（8-4-4-4-12 十六进制）——命中即判定为机器生成的实例 id 泄漏
 _UUID_SEGMENT_RE = re.compile(
@@ -282,6 +306,155 @@ class EnvConfigManager:
                 'action': 'env_config.delete',
                 'message': f'[Env配置] 已删除 {key}'
             }))
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # 【2026-11-14 新增】批量写入口（一条原子链：一次读 → 一次备份 → 一次写）
+    #
+    # 【为什么需要】通道配置页一次要写 6 个键：用单键 set/delete 会把整份文件重写
+    # 6 次、留 6 份备份，且中途失败**没有事务**（前 3 个键已落盘、后 3 个没落）。
+    # 本方法把"一批键的改动"压成一次读改写，并把 previous 交回调用方用于回滚。
+    #
+    # 【口径（写死，改要同批改用例）】
+    # - 空值 ⇒ **删除该键**（不写 KEY= 空串占位）；upsert 里的空串一律转成删除。
+    # - 只写"真的变了"的键：值相同不重写、不产生备份（避免每点一次保存多一份备份）。
+    # - 同名重复行：本批碰到的键收敛成一行，未碰到的行原样保留。
+    # - 注释与行序原样保留（命中行原地替换/删除，新键追加末尾）。
+    # - 审计逐键一条（敏感键只记键名 + 常量，值/长度/布尔都不进日志）。
+    # - 测试进程 + 目标是仓库根 .env ⇒ 直接拒绝（fail-closed，见 _REPO_ENV_PATH）。
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def apply_many(self, *, upsert: Optional[Mapping[str, str]] = None,
+                   delete: Optional[Sequence[str]] = None) -> Dict[str, Any]:
+        """批量写 .env（upsert + delete 一次原子落盘）
+
+        Args:
+            upsert: 键 → 新值（空串/None 视为删除该键）
+            delete: 要删除的键（与 upsert 重叠时以 upsert 为准）
+
+        Returns:
+            {"written": [...], "removed": [...], "unchanged": [...],
+             "previous": {键: 旧值或 None}, "wrote_file": bool}
+            —— previous 用于调用方在后续步骤失败时回滚（值相同/未动的键不在里面）。
+        """
+        updates: Dict[str, str] = {}
+        for raw_key, raw_value in (upsert or {}).items():
+            key = str(raw_key).strip()
+            if not key:
+                continue
+            text = '' if raw_value is None else str(raw_value).strip()
+            if not text:
+                continue                     # 空值 ⇒ 走删除，不写空串占位
+            updates[key] = text
+
+        removals: List[str] = []
+        for raw_key in (delete or []):
+            key = str(raw_key).strip()
+            if not key or key in updates or key in removals:
+                continue
+            removals.append(key)
+
+        result: Dict[str, Any] = {'written': [], 'removed': [], 'unchanged': [],
+                                  'previous': {}, 'wrote_file': False}
+        if not updates and not removals:
+            return result
+
+        self._refuse_repo_env_under_tests()
+
+        with self._file_lock:
+            lines: List[str] = []
+            if self._env_file.exists():
+                content = self._env_file.read_text(encoding='utf-8')
+                if content.strip() == '' and self._env_file.stat().st_size > 0:
+                    logger.warning(log_dict({
+                        'module_name': 'env_config',
+                        'action': 'env_config.empty_content_guard',
+                        'message': '[Env配置] 警告: .env 存在但内容为空，疑似被误清空（已备份，写入继续）'
+                    }))
+                lines = content.splitlines()
+
+            # 现有一切键值（同名多行取首个，与 _update_env_file 同口径）
+            existing: Dict[str, str] = {}
+            for line in lines:
+                stripped = line.strip()
+                if not stripped or stripped.startswith('#') or '=' not in stripped:
+                    continue
+                name, value = stripped.split('=', 1)
+                existing.setdefault(name.strip(), value.strip())
+
+            changed_upsert = {k: v for k, v in updates.items()
+                              if existing.get(k) != v}
+            changed_removals = [k for k in removals if k in existing]
+            result['unchanged'] = sorted(set(updates) - set(changed_upsert))
+            if not changed_upsert and not changed_removals:
+                return result
+
+            new_lines: List[str] = []
+            handled: List[str] = []
+            for line in lines:
+                stripped = line.strip()
+                if stripped and not stripped.startswith('#') and '=' in stripped:
+                    name = stripped.split('=', 1)[0].strip()
+                    if name in changed_upsert or name in changed_removals:
+                        if name in handled:
+                            continue             # 重复行收敛成一行
+                        handled.append(name)
+                        if name in changed_upsert:
+                            new_lines.append(f'{name}={changed_upsert[name]}')
+                        continue
+                new_lines.append(line)
+            for key, value in changed_upsert.items():
+                if key in handled:
+                    continue
+                if new_lines and new_lines[-1].strip():
+                    new_lines.append('')         # 空行分隔（与 _update_env_file 一致）
+                new_lines.append(f'{key}={value}')
+                handled.append(key)
+
+            self._backup_env_file()
+            self._atomic_write(new_lines)
+            result['wrote_file'] = True
+
+            # 热重载：写盘后立刻同步进程环境（与 set/delete 同款语义）
+            for key, value in changed_upsert.items():
+                os.environ[key] = value
+            for key in changed_removals:
+                os.environ.pop(key, None)
+
+            for key in list(changed_upsert) + list(changed_removals):
+                result['previous'][key] = existing.get(key)
+                action = 'set' if key in changed_upsert else 'delete'
+                if self._is_sensitive_key(key):
+                    self._audit_log_sensitive(action, key)
+                else:
+                    self._audit_log(action, key, existing.get(key),
+                                    changed_upsert.get(key))
+            result['written'] = list(changed_upsert)
+            result['removed'] = list(changed_removals)
+            logger.info(log_dict({
+                'module_name': 'env_config',
+                'action': 'env_config.apply_many',
+                'message': (f'[Env配置] 批量写入完成（改 {len(changed_upsert)} 项 / '
+                            f'删 {len(changed_removals)} 项）')
+            }))
+        return result
+
+    def _refuse_repo_env_under_tests(self) -> None:
+        """测试进程拒写仓库根 .env（新增入口的 fail-closed 守卫）
+
+        【为什么只在这一条路径上】set/delete 是存量契约（多个用例断言"写入成功"），
+        给它们加拒绝会改变既有判据；而 apply_many 是**新增**路径，
+        加严不需要动任何人。
+        """
+        if not _running_under_pytest():
+            return
+        try:
+            target = self._env_file.resolve()
+        except OSError:                                   # pragma: no cover
+            return
+        if target == _REPO_ENV_PATH.resolve():
+            raise EnvWriteRefused(
+                '测试进程拒绝写仓库根 .env（' + str(target) +
+                '）—— 请用 CP_ENV_FILE 把目标重定向到临时文件')
 
     # ──────────────────────────────────────────────────────────────────────────
     # 【P3 配置审计日志】配置变更追踪

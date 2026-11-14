@@ -24,6 +24,17 @@ from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple, Callable
 from datetime import datetime
 
+# 【按子模块 import，别写 from agent.extensions import ...】后者会触发包 __init__
+# （它 import manager → manager import 本模块），arch_rules 的循环依赖检查会红
+# （2026-11-14 当场踩过：manager.extensions → channels_installer 被判高严重度）。
+from agent.extensions.channel_env_bridge import (
+    clear_env as bridge_clear_env,
+    effective_config as bridge_effective_config,
+    normalize_config as bridge_normalize_config,
+    public_view as bridge_public_view,
+    rollback_env as bridge_rollback_env,
+    sync_env as bridge_sync_env,
+)
 from agent.extensions.base import (
     ExtensionType, ExtensionStatus, ExtensionMetadata, BUILTIN_EXTENSIONS,
 )
@@ -192,20 +203,89 @@ class ChannelInstaller:
     def configure_channel(
         self, channel_id: str, config: Dict
     ) -> Tuple[bool, str]:
-        """配置通道参数"""
+        """配置通道参数（**同时镜像进 .env**，2026-11-14）
+
+        写入顺序是安全边界的一部分：
+        ① 先把值写进 .env（EnvConfigManager：跨进程锁 / 原子写 / 600 / 写前备份）；
+        ② .env 成功后才落本地 extensions.json（同样是原子写 + 备份）；
+        ③ ② 失败 ⇒ 用 ① 返回的 previous 回滚 .env，并如实报错（不假装成功）。
+
+        【为什么先写 .env 再写本地】.env 有备份与跨进程锁，本地 store 只有单文件原子写；
+        先做"更难回滚、更敏感"的那一步，失败时还能用内存里的 previous 退回。
+
+        【空值语义】字段留空 ⇒ 从 .env 删除该键（不是写空串）；口令留空/掩码 ⇒ 不改。
+        详见 agent/extensions/channel_env_bridge.py 的模块 docstring。
+        """
         existing = self._store.get(ExtensionType.CHANNEL, channel_id)
         if not existing:
             return False, f"通道不存在: {channel_id}"
 
-        self._store.update_config(ExtensionType.CHANNEL, channel_id, config)
-        logger.info(log_dict({'module_name': 'channels_installer', 'action': 'channel_id', 'msg': f'[通道安装器] 已配置通道: {channel_id}'}))
-        return True, f"已更新通道配置: {channel_id}"
+        # ① .env（只对主通道生效；非主通道是 no-op）
+        try:
+            env_result = bridge_sync_env(existing, config or {})
+        except Exception as exc:  # noqa: BLE001 写 .env 失败 ⇒ 不落本地，如实报失败
+            logger.error(log_dict({
+                'module_name': 'channels_installer', 'action': 'channel.env_sync_failed',
+                'msg': f'[通道安装器] 写 .env 失败，配置未保存: {type(exc).__name__}',
+            }))
+            return False, '写入 .env 失败，配置未保存（详见服务日志）'
+
+        # ② 本地存储（口令留空/掩码时保留原值）
+        normalized = bridge_normalize_config(existing, config or {})
+        try:
+            # 本次只有"不改口令"一类空操作 ⇒ 本地无需重写（也不算失败）
+            ok = True if not normalized else self._store.update_config(
+                ExtensionType.CHANNEL, channel_id, normalized)
+        except Exception as exc:  # noqa: BLE001 本地失败 ⇒ 回滚 .env
+            ok = False
+            logger.error(log_dict({
+                'module_name': 'channels_installer', 'action': 'channel.store_failed',
+                'msg': f'[通道安装器] 本地通道配置写入失败: {type(exc).__name__}',
+            }))
+        if not ok:
+            try:
+                bridge_rollback_env(existing, env_result.get('previous') or {})
+            except Exception as exc:  # noqa: BLE001 回滚失败也要把失败如实报出去
+                logger.error(log_dict({
+                    'module_name': 'channels_installer', 'action': 'channel.env_rollback_failed',
+                    'msg': f'[通道安装器] .env 回滚失败: {type(exc).__name__}',
+                }))
+            return False, '保存通道配置失败，已尝试回滚 .env（详见服务日志）'
+
+        written = len(env_result.get('written') or [])
+        removed = len(env_result.get('removed') or [])
+        logger.info(log_dict({'module_name': 'channels_installer', 'action': 'channel_configured',
+                              'msg': f'[通道安装器] 已配置通道: {channel_id}'
+                                     f'（.env 改 {written} 项 / 删 {removed} 项）'}))
+        if not env_result.get('primary'):
+            return True, f"已更新通道配置: {channel_id}（非主通道：值只存本机，不写 .env）"
+        return True, f"已更新通道配置: {channel_id}（.env 改 {written} 项 / 删 {removed} 项）"
 
     def uninstall_channel(self, channel_id: str) -> Tuple[bool, str]:
-        """卸载通道"""
+        """卸载通道（主通道一并清掉它在 .env 里的专用键）
+
+        【为什么要清】专用键（CP_ALERT_*）是**这条通道的**值。通道没了却留着键，
+        等于把凭据留在 .env 里、且后续任何"回落"都会读到一个没有主人的配置。
+        清空同样是"删键"而不是写空串；.env 写前有备份（.env.backups），可回滚。
+        """
+        existing = self._store.get(ExtensionType.CHANNEL, channel_id)
         success = self._store.remove(ExtensionType.CHANNEL, channel_id)
         if success:
-            logger.info(log_dict({'module_name': 'channels_installer', 'action': 'channel_id', 'msg': f'[通道安装器] 已卸载通道: {channel_id}'}))
+            cleared: List[str] = []
+            if existing:
+                try:
+                    cleared = list(bridge_clear_env(existing).get("removed") or [])
+                except Exception as exc:  # noqa: BLE001 清键失败不阻塞卸载，但要留存
+                    logger.error(log_dict({
+                        'module_name': 'channels_installer',
+                        'action': 'channel.env_clear_failed',
+                        'msg': f'[通道安装器] 卸载后清理 .env 失败: {type(exc).__name__}',
+                    }))
+            logger.info(log_dict({'module_name': 'channels_installer', 'action': 'channel_uninstalled',
+                                  'msg': f'[通道安装器] 已卸载通道: {channel_id}'
+                                         f'（.env 清理 {len(cleared)} 个键）'}))
+            if cleared:
+                return True, f"已卸载通道: {channel_id}（同时从 .env 清掉 {len(cleared)} 个键）"
             return True, f"已卸载通道: {channel_id}"
         return False, f"通道不存在: {channel_id}"
 
@@ -317,7 +397,11 @@ class ChannelInstaller:
         if not handler:
             return False, f"通道无处理器: {channel_id} (type={channel_type})"
 
-        config = existing.get("config", {})
+        # 【一处真相（2026-11-14）】发送用的是**有效配置**：本地值 > .env 专用键
+        # （CP_ALERT_*）> 旧键（SMTP_* / ERROR_REPORTING_WEBHOOK_URL）> 默认。
+        # 与页面展示（discover 的 resolved_channels）和依赖探针同源，否则会出现
+        # "页面显示 A、实际发的是 B"。只读，不写回存储。
+        config = bridge_effective_config(existing)
         attempts = SEND_RETRY_ATTEMPTS if retry_transient else 1
         last_exc: Optional[BaseException] = None
         for attempt in range(attempts):
@@ -446,4 +530,10 @@ class ChannelInstaller:
         return {
             "builtin_channels": available,
             "installed_channels": installed,
+            # 【2026-11-14】给界面用的解析视图：逐字段"值 + 来源（通道 / .env / 旧键 / 默认）"，
+            # 口令永久掩码，附空态范例与说明（后端是唯一文案来源，前端不抄第二份）。
+            "resolved_channels": [
+                bridge_public_view(row) for row in installed
+                if isinstance(row, dict) and row.get("ext_id")
+            ],
         }

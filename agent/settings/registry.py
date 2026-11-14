@@ -2078,7 +2078,9 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
     _secret("YUNSHU_ADMIN_PASSWORD", CAT_EXTERNAL,
             "管理后台口令（只读脱敏；缺省回落演示默认值并告警）",
             owner="plugins/admin_api.py"),
-    _secret("SMTP_PASSWORD", CAT_EXTERNAL, "SMTP 口令（只读脱敏）",
+    _secret("SMTP_PASSWORD", CAT_EXTERNAL,
+            "SMTP 口令（只读脱敏）：审计日报用；也是报警通道口令的回落层"
+            "（通道页写入 CP_ALERT_SMTP_PASSWORD）",
             owner="agent/knowledge/audit_job.py"),
     _b("LLM_MODEL", CAT_EXTERNAL, "",
        "主力 LLM 模型名（变更影响全部输出与成本口径）",
@@ -2098,15 +2100,24 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
     _c("LOKI_URL", CAT_EXTERNAL, "http://localhost:3100",
        "Loki 日志服务地址（外部依赖，只读）",
        owner="agent/monitoring/loki.py"),
-    _c("SMTP_HOST", CAT_EXTERNAL, "", "SMTP 主机（只读）",
+    # 【2026-11-14】这几个键是**知识审计日报**的口径，同时也是**报警通道的回落层**：
+    # 报警通道页写入的是 CP_ALERT_SMTP_*（见本表 CAT_EXTERNAL 末尾那组），
+    # 这里**不由通道页写**——否则"配报警通道"会顺手改掉审计邮件的去���（串台）。
+    _c("SMTP_HOST", CAT_EXTERNAL, "",
+       "SMTP 主机（只读）：知识审计日报邮件用；也是**报警通道的回落层**"
+       "（通道页写入 CP_ALERT_SMTP_HOST）",
        owner="agent/knowledge/audit_job.py"),
-    _c("SMTP_PORT", CAT_EXTERNAL, 587, "SMTP 端口（只读）",
+    _c("SMTP_PORT", CAT_EXTERNAL, 587,
+       "SMTP 端口（只读）：审计日报用；也是报警通道的回落层（CP_ALERT_SMTP_PORT）",
        owner="agent/knowledge/audit_job.py"),
-    _c("SMTP_USERNAME", CAT_EXTERNAL, "", "SMTP 用户名（只读脱敏）",
+    _c("SMTP_USERNAME", CAT_EXTERNAL, "",
+       "SMTP 用户名（只读脱敏）：审计日报用；也是报警通道的回落层（CP_ALERT_SMTP_USERNAME）",
        owner="agent/knowledge/audit_job.py"),
-    _c("MAIL_FROM", CAT_EXTERNAL, "", "审计邮件发件人（只读）",
+    _c("MAIL_FROM", CAT_EXTERNAL, "",
+       "审计邮件发件人（只读）；也是报警通道发件人的回落层（CP_ALERT_SMTP_FROM）",
        owner="agent/knowledge/audit_job.py"),
-    _c("MAIL_RECIPIENTS", CAT_EXTERNAL, "", "审计邮件收件人（只读）",
+    _c("MAIL_RECIPIENTS", CAT_EXTERNAL, "",
+       "审计邮件收件人（只读）；也是报警通道收件人的回落层（CP_ALERT_SMTP_TO）",
        owner="agent/knowledge/audit_job.py"),
     _secret("SENTRY_DSN", CAT_EXTERNAL, "Sentry DSN（只读脱敏）",
             owner="agent/error_reporting_config.py"),
@@ -2164,8 +2175,56 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        "错误上报：Webhook 超时（秒）",
        owner="agent/error_reporting_config.py", validator=Validator("int")),
     _c("ERROR_REPORTING_WEBHOOK_URL", CAT_EXTERNAL, "",
-       "错误上报：Webhook 地址（外部端点，只读脱敏）",
+       "错误上报：Webhook 地址（外部端点，只读脱敏）；"
+       "**同时也是报警通道 webhook 的回落层**（报警通道页写入的是 CP_ALERT_WEBHOOK_URL）",
        owner="agent/error_reporting_config.py", secret=True),
+
+    # ────────────────────────────────────────────────────────
+    #  【2026-11-14 · alarm-channel-env-sync】报警通道的 .env 镜像键
+    #
+    #  口径（改要同批改 agent/extensions/channel_env_bridge.py 与用例）：
+    #  - **唯一写入方是「消息中心 → 消息通道」页**（经 ChannelInstaller.configure_channel
+    #    → EnvConfigManager.apply_many），因此在开关中心一律 C 级只读；
+    #  - 值留空 ⇒ **从 .env 删除该键**（不写空串占位），读取回落到旧键与默认值；
+    #  - 读取次序：通道本地配置 > 本组键 > 旧键（SMTP_* / ERROR_REPORTING_WEBHOOK_URL）> 默认；
+    #  - 只有**主通道**（id 与内置模板同名：email_smtp / webhook）映射本组键，
+    #    同类型第 2 条起的通道只在本机登记（否则两条通道抢同一组键互相覆盖）；
+    #  - 口令类字段 UI 留空 = 不改（清空必须显式），日志/审计只出现**键名**。
+    # ────────────────────────────────────────────────────────
+    _c("CP_ALERT_SMTP_HOST", CAT_EXTERNAL, "",
+       "报警通道（邮件）的 SMTP 主机：由消息通道页写入 .env，此处只读；"
+       "空 = 未配置 ⇒ 回落旧键 SMTP_HOST 与默认值"
+       "（agent/extensions/channel_env_bridge.py）",
+       owner="agent/extensions/channel_env_bridge.py"),
+    _c("CP_ALERT_SMTP_PORT", CAT_EXTERNAL, 587,
+       "报警通道（邮件）的 SMTP 端口：由消息通道页写入 .env，此处只读；"
+       "465 = 隐式 TLS，587 = STARTTLS；空 = 回落 SMTP_PORT / 587"
+       "（agent/extensions/channel_env_bridge.py）",
+       owner="agent/extensions/channel_env_bridge.py"),
+    _c("CP_ALERT_SMTP_USERNAME", CAT_EXTERNAL, "",
+       "报警通道（邮件）的 SMTP 用户名：由消息通道页写入 .env，此处只读；"
+       "空 = 回落 SMTP_USERNAME"
+       "（agent/extensions/channel_env_bridge.py）",
+       owner="agent/extensions/channel_env_bridge.py"),
+    _secret("CP_ALERT_SMTP_PASSWORD", CAT_EXTERNAL,
+            "报警通道（邮件）的 SMTP 口令（授权码）：由消息通道页写入 .env，此处只读脱敏"
+            "（agent/extensions/channel_env_bridge.py）",
+            owner="agent/extensions/channel_env_bridge.py"),
+    _c("CP_ALERT_SMTP_FROM", CAT_EXTERNAL, "",
+       "报警通道（邮件）的发件人：由消息通道页写入 .env，此处只读；"
+       "空 = 回落 MAIL_FROM（再空则用 SMTP 用户名）"
+       "（agent/extensions/channel_env_bridge.py）",
+       owner="agent/extensions/channel_env_bridge.py"),
+    _c("CP_ALERT_SMTP_TO", CAT_EXTERNAL, "",
+       "报警通道（邮件）的收件人（逗号分隔）：由消息通道页写入 .env，此处只读；"
+       "空 = 回落 MAIL_RECIPIENTS（再空则该通道发不出去，会记投递失败并报警）"
+       "（agent/extensions/channel_env_bridge.py）",
+       owner="agent/extensions/channel_env_bridge.py"),
+    _c("CP_ALERT_WEBHOOK_URL", CAT_EXTERNAL, "",
+       "报警通道（Webhook）的地址：由消息通道页写入 .env，此处只读脱敏；"
+       "空 = 回落 ERROR_REPORTING_WEBHOOK_URL 与默认值"
+       "（agent/extensions/channel_env_bridge.py）",
+       owner="agent/extensions/channel_env_bridge.py", secret=True),
 
     # ────────────────────────────────────────────────────────
     #  【L5】扫描根扩容后补登记的「表外」开关（2026-09-23）

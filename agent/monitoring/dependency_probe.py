@@ -160,7 +160,16 @@ def targets_from_channels(rows: List[Dict[str, Any]],
         except Exception:  # noqa: BLE001 判据坏掉按"不探"处理
             continue
         channel_id = str(row.get("ext_id"))
-        cfg = row.get("config") or {}
+        # 【一处真相（2026-11-14）】探针必须与发送用**同一份有效配置**：
+        # 通道本地值为空而 .env 里有值（回落层）时，发送能发、探针却会"没目标"，
+        # 于是"通道能发但端点连不上"这件事再也看不见（探针存在的唯一理由）。
+        try:
+            from agent.extensions.channel_env_bridge import effective_config
+            cfg = effective_config(row)
+        except Exception as exc:  # noqa: BLE001 解析失败退回原始配置（不假装有/没有）
+            logger.debug("[dependency-probe] 有效配置解析失败（%s），退回原始配置",
+                         type(exc).__name__)
+            cfg = row.get("config") or {}
         ctype = str(cfg.get("channel_type") or "")
         if ctype == "smtp":
             host = str(cfg.get("smtp_server") or "")
