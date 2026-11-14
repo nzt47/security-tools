@@ -4146,8 +4146,12 @@ class Orchestrator:
                 _min_score = float(_ms) if _ms else _DEFAULT_MIN_BM25_SCORE
             except ValueError:
                 _min_score = _DEFAULT_MIN_BM25_SCORE
+            # 按类装载：经验注入与向量/知识同源同一份白名单
+            from agent.memory.topic_policy import effective_topics
+
+            _topics = effective_topics()
             hits = idx.search(task, top_k=int(cfg.get("experience_top_k", 3)),
-                              min_bm25_score=_min_score)
+                              min_bm25_score=_min_score, topics=_topics)
             out = []
             for h in hits:
                 m = h.get("meta") or {}

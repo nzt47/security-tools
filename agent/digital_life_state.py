@@ -51,12 +51,15 @@ class DigitalLifeStateMixin:
         }
 
     def search_memory(self, query: str, top_k: int = 5) -> list:
-        """搜索向量记忆"""
+        """搜索向量记忆（按 agent/memory/topic_policy 的白名单过滤）"""
         vs = getattr(self, '_vector_memory', None)
         if not vs:
             return []
         try:
-            return vs.search(query, top_k)
+            from agent.memory.topic_policy import search_with_topics
+
+            results, _topics = search_with_topics(vs, query, top_k=top_k)
+            return results
         except Exception as e:
             logger.error("搜索记忆失败: %s", e)
             return []

@@ -63,3 +63,7 @@ prompt_note: '本线的交付标准是"改完并验证"：改动前先 read_file
   不可跳过的边界：不得为了通过而放宽测试，不得留下未验证的改动。
 
   '
+topics:
+- general
+- engineering
+- ops

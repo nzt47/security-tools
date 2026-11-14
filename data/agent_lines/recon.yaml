@@ -68,3 +68,6 @@ prompt_note: '本线以"采到—判真—入库—可复跑"为闭环：每条�
   编码执行不是本线的手段——需要改代码时委派给 engineering 线，不要自己动手。
 
   '
+topics:
+- general
+- ops

@@ -32,7 +32,23 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
+from agent.topics import DEFAULT_TOPIC, TOPICS
+
 logger = logging.getLogger(__name__)
+
+
+def _split_topics(value: Any) -> List[str]:
+    """topics 入参归一：list/tuple/set 与逗号分隔串都收（界面两种都可能发）。
+
+    只做**形态**归一，不做词表纠正 —— 词表外的值原样保留，交给 validate() 报错。
+    """
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [part.strip() for part in value.split(",") if part.strip()]
+    if isinstance(value, (list, tuple, set, frozenset)):
+        return [str(part).strip() for part in value if str(part).strip()]
+    return []
 
 
 class LinesValidationError(ValueError):
@@ -734,6 +750,11 @@ class LineProfile:
     #: 关注的标签：命中的工具获得小幅加成
     tags: List[str] = field(default_factory=list)
 
+    #: **可装载的记忆/知识/经验主题类**（agent/topics.py 闭集；默认只有 general）。
+    #: 读侧唯一的装载声明：三库检索都按它过滤（agent/memory/topic_policy.py）。
+    #: 未声明 ⇒ 只读 general（fail-closed），不是"全读"。
+    topics: List[str] = field(default_factory=lambda: [DEFAULT_TOPIC])
+
     #: 单轮最多暴露给模型的工具数
     max_tools: int = 20
 
@@ -758,6 +779,9 @@ class LineProfile:
             if _norm(k, PLANES, "")
         }
         self.plane_weights = {k: max(0.0, v) for k, v in self.plane_weights.items()}
+        # 空 topics ⇒ general（未声明就是"只读兜底类"，不是"全读"）
+        if not self.topics:
+            self.topics = [DEFAULT_TOPIC]
         if not self.allow_govern:
             self.plane_weights.pop("govern", None)
         else:
@@ -830,6 +854,15 @@ class LineProfile:
             unknown_skills = [s for s in clean_skills if s not in known_skills]
             if unknown_skills:
                 issues.append(f"引用了未注册的技能: {unknown_skills}")
+        # ── topics（可装载的主题类）──
+        # 同 skills 的理由：写错一个类名不会报错，只会让这个智能体**少读**一类，
+        # 现场表现为"怎么搜不到"，排查成本极高。故在保存路径就拦住。
+        unknown_topics = [t for t in self.topics if str(t).strip().lower() not in TOPICS]
+        if unknown_topics:
+            issues.append(f"topics 含未知主题类: {unknown_topics}"
+                          f"（允许: {', '.join(TOPICS)}）")
+        if len({str(t).strip().lower() for t in self.topics}) != len(self.topics):
+            issues.append("topics 含重复项")
         return issues
 
     @property
@@ -855,6 +888,7 @@ class LineProfile:
             "boost": list(self.boost),
             "mute": list(self.mute),
             "tags": list(self.tags),
+            "topics": list(self.topics),
             "max_tools": int(self.max_tools),
             "effect_allow": list(self.effect_allow),
             "requires_approval": list(self.requires_approval),
@@ -891,6 +925,9 @@ class LineProfile:
             boost=[str(t) for t in (raw.get("boost") or [])],
             mute=[str(t) for t in (raw.get("mute") or [])],
             tags=[str(t) for t in (raw.get("tags") or [])],
+            # topics 原样收下（不在这里纠正）：词表外的值要由 validate() 逐项报错，
+            # 归一化只发生在读侧（那时只会更严）。静默纠正会让 typo 变成"少读一类"却没人知道。
+            topics=[str(t) for t in (_split_topics(raw.get("topics")))],
             max_tools=max_tools,
             effect_allow=[str(e) for e in (raw.get("effect_allow") or ["read", "write", "execute"])],
             requires_approval=[str(e) for e in (raw.get("requires_approval") or [])],

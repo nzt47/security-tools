@@ -64,3 +64,5 @@ skills:
 - self_reflection
 - voice_interaction
 prompt_note: 轻量助手线：能查、能读、能写产物；不做命令执行、不改自身能力集。需要动手改代码时委派。
+topics:
+- general

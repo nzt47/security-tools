@@ -65,3 +65,6 @@ prompt_note: '本线的产物是**可复现的步骤序列**，不是摘要：�
   来源与蒸馏依据必须写清，便于后续审计与退役。
 
   '
+topics:
+- general
+- knowledge

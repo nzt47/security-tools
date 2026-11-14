@@ -619,11 +619,14 @@ class DelegationExecutor:
         try:
             # ── 步骤 1.5：brokered 记忆注入（**在 _execute_locked 之前**，逐字影响 task_file）──
             ctx, memory = self._apply_memory_broker(ctx)
-            outcome = self._execute_locked(ctx, toolset=toolset, credentials=credentials,
-                                           parent_trace=parent_trace,
-                                           input_text=input_text or ctx.goal,
-                                           system_prompt=system_prompt, role_tier=role_tier,
-                                           start=start)
+            # 【按类装载】把本分身声明的主题类写进执行上下文：它调 kb_search /
+            # search_memory 时，三库检索都按这份白名单过滤（未声明的分身只读 general）。
+            with self._topics_scope(ctx):
+                outcome = self._execute_locked(ctx, toolset=toolset, credentials=credentials,
+                                               parent_trace=parent_trace,
+                                               input_text=input_text or ctx.goal,
+                                               system_prompt=system_prompt, role_tier=role_tier,
+                                               start=start)
             if memory:
                 # 【P-F】_execute_locked 在通道输出后已算好声明式记忆操作结果（仅 scoped）；
                 # 换 memory 段时把它一并带过来（只含计数/错误码，不含正文）。
@@ -908,6 +911,23 @@ class DelegationExecutor:
                    "degraded": str(memory.get("degraded", "") or "")}
         return self._audit_event_recorded("subagent.memory.brokered", ctx, payload,
                                           status="enabled")
+
+    def _topics_scope(self, ctx: DelegationContext):
+        """分身执行期间生效的主题类白名单（`memory_scope.topics`；未声明 ⇒ general）
+
+        读的是`attach_memory_metadata` 写进 ctx.metadata 的**生效档位**，
+        而不是请求体原文 —— 两处若各读一次请求体，热更新后就会不一致。
+        """
+        from agent.memory.topic_policy import enter_manifest
+
+        meta = getattr(ctx, "metadata", None) or {}
+        config = {"memory_mode": "none", "memory_scope": None}
+        if isinstance(meta, Mapping):
+            config["memory_mode"] = meta.get("memory_mode", "none")
+            config["memory_scope"] = meta.get("memory_scope")
+        return enter_manifest(
+            config, actor=str(getattr(ctx, "delegate_actor", "") or "sub_agent"),
+            subject="delegation:%s" % (getattr(ctx, "delegation_id", "") or ""))
 
     def _execute_locked(self, ctx: DelegationContext, *, toolset: SubAgentToolset,
                         credentials: Sequence[Mapping[str, Any]], parent_trace: Any,

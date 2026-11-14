@@ -84,6 +84,13 @@ def register_routes(app, state):
 
         双重检查锁：Flask threaded 模式下并发首请求只构建一次检索器
         （BM25 全库索引是昂贵操作，重复构建浪费且无状态损坏）。
+
+        【为什么这里**不**按主题类过滤】本端点是人机面（知识库页面检索）。
+        同一 token 持有者本来就能从 /api/knowledge/cards 列出全量卡片 ⇒
+        在这里过滤不构成安全边界，只会让人"搜不到"。按类装载的边界在
+        **智能体自主检索**：kb_search 工具、经验注入、分身执行
+        （统一走 agent/memory/topic_policy）。若哪天把本端点接给智能体调用，
+        必须同批接上白名单。
         """
         nonlocal _searcher
         if _searcher is not None:

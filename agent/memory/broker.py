@@ -57,6 +57,9 @@ PER_ENTRY_CHARS = 400
 SCOPE_KEYS: Tuple[str, ...] = (
     "tenant_id", "workspace_id", "subject_id", "workspace_root",
     "memory_types", "limit",
+    # 主题类白名单（与 agent/subagent/memory_broker.MEMORY_SCOPE_KEYS 逐字同源，
+    # tests/unit/test_subagent_memory_broker.py 有对拍用例）
+    "topics",
 )
 
 

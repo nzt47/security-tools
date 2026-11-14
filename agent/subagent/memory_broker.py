@@ -89,6 +89,9 @@ SCOPED_REQUIRED_SCOPE_KEYS: Tuple[str, ...] = (
 MEMORY_SCOPE_KEYS: Tuple[str, ...] = (
     "tenant_id", "workspace_id", "subject_id", "workspace_root",
     "memory_types", "limit",
+    # 主题类白名单（agent/topics.py 的闭集；空/未声明 ⇒ 只有 general）。
+    # 与 memory_types（限定"记忆层"）同型：都是"按维度装载子集"，不是"私人域"。
+    "topics",
 )
 
 #: 视为"未表态 ⇒ none"的取值（大小写不敏感）

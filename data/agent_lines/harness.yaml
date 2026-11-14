@@ -63,3 +63,6 @@ prompt_note: |
   本线服务"改云枢自己的运行框架"：优先用 file/grep 自省组合与 preset 现状，
   用 edit/write_file 做最小改动，改动后必须验证（重启或跑一致性检查）。
   govern 平面的动作（装插件、生成工具、改扩展配置）会改变自身能力集，必须先取得确认。
+topics:
+- general
+- engineering

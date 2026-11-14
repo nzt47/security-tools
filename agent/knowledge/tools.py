@@ -228,8 +228,13 @@ def kb_search(**kw) -> dict:
         from agent.knowledge.search import KnowledgeSearch
 
         runner = _get_runner()
-        searcher = KnowledgeSearch(CardStore(runner.root / "wiki"))
-        logger.info(log_dict({'module_name': 'tools', 'action': 'kb_search', 'msg': "[kb_search] 检索请求 query=%r top_k=%s" % (query, top_k)}))
+        # 白名单取自策略（主智能体=主线档案；分身委派=manifest 的 memory_scope.topics）
+        from agent.memory.topic_policy import effective_topics
+
+        topics = effective_topics()
+        searcher = KnowledgeSearch(
+            CardStore(runner.root / "wiki"), topics=topics)
+        logger.info(log_dict({'module_name': 'tools', 'action': 'kb_search', 'msg': "[kb_search] 检索请求 query=%r top_k=%s topics=%s" % (query, top_k, ",".join(topics))}))
         hits = searcher.search(query, top_k=top_k)
         logger.info(log_dict({'module_name': 'tools', 'action': 'kb_search.success', 'msg': "[kb_search] 检索完成 命中=%d → %s" % (len(hits), [h.slug for h in hits])}))
         return {

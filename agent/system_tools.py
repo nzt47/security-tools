@@ -340,7 +340,10 @@ def expand_context_from_memory(digital_life, query, max_items=5):
     """
     try:
         if hasattr(digital_life, '_vector_memory') and digital_life._vector_memory:
-            results = digital_life._vector_memory.search(query, top_k=max_items)
+            from agent.memory.topic_policy import search_with_topics
+
+            results, _topics = search_with_topics(
+                digital_life._vector_memory, query, top_k=max_items)
             context_items = []
             for item in results:
                 if isinstance(item, dict):

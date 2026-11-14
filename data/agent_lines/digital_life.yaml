@@ -50,3 +50,5 @@ skills:
 - self_reflection
 - voice_interaction
 prompt_note: 本线以"自我状态—记忆—人格"为重心；工程类能力仅在明确需要时按需调用。
+topics:
+- general

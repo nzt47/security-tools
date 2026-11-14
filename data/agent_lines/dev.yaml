@@ -58,3 +58,6 @@ skills:
 - self_reflection
 - voice_interaction
 prompt_note: 纯研发线：只碰代码，不碰自身能力集（永不用 govern 平面工具）。
+topics:
+- general
+- engineering

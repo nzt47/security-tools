@@ -792,6 +792,14 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
             reg = get_line_registry()
             existed = reg.load(line_id) is not None
             reg.save(profile)
+            # 【按类装载·审计】"谁装载了哪些类"是**配置变更**事件：在这里留痕，
+            # 而不是每次检索留一条（那会把审计链变成噪声源）。默认档（只有 general）不写。
+            try:
+                from agent.memory.topic_policy import audit_line_declared
+
+                audit_line_declared(profile, line_id=line_id)
+            except Exception as exc:  # noqa: BLE001 审计失败不影响保存
+                logger.warning("主线 topics 审计写入失败: %s", type(exc).__name__)
             return jsonify({"ok": True, "line": profile.to_dict(),
                             "created": not existed,
                             "note": "已覆盖保存" if existed else "已新建保存"})

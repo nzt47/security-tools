@@ -778,6 +778,11 @@ def api_vector_search():
         return _ok({"ok": True, "results": [], "count": 0, "available": False})
 
     try:
+        # 【为什么这里**不**按主题类过滤】这是**人机面**（运维/界面直接检索），
+        # 而同一 token 持有者本来就能从 /api/vector/recent、/api/knowledge/cards
+        # 读到全量 ⇒ 在这里过滤不构成任何安全边界，只会让运维"搜不到自己刚写的东西"。
+        # 真正的边界在**智能体自主检索**那几条路（search_memory / kb_search /
+        # 经验注入 / 分身执行），它们统一走 agent/memory/topic_policy 的白名单。
         results = vs.search(query, top_k)
         return _ok({
             "ok": True,
