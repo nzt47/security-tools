@@ -31,11 +31,12 @@ from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Seque
 
 from . import pipeline
 from .models import (
-    CARRIER_CARD, CARRIER_LABELS, CARRIER_MEMORY, SOURCE_CLAUDE, SOURCE_TRAE,
-    SOURCES, Batch, ConfirmationRequired, MemoryRecord, PlanNotFound,
-    UnknownBatch, digest_id, plan_id_for,
+    CARRIER_CARD, CARRIER_LABELS, CARRIER_MEMORY, SOURCE_CLAUDE, SOURCE_DSH,
+    SOURCE_TRAE, SOURCES, Batch, ConfirmationRequired, MemoryRecord,
+    PlanNotFound, UnknownBatch, digest_id, plan_id_for,
 )
 from .readers import claude as claude_reader
+from .readers import dsh_prompts as dsh_prompts_reader
 from .readers import trae as trae_reader
 from .targets import default_writers
 
@@ -81,6 +82,7 @@ class CollectResult:
 def collect(*, sources: Sequence[str] = SOURCES,
             claude_dir: Optional[Path] = None,
             appdata: Optional[Path] = None,
+            dsh_root: Optional[Path] = None,
             include_transcripts: bool = True,
             max_records: Optional[int] = None) -> CollectResult:
     """只读采集（不写任何文件、不写任何记忆）。"""
@@ -100,6 +102,12 @@ def collect(*, sources: Sequence[str] = SOURCES,
         result = trae_reader.read_trae(appdata=appdata, max_records=max_records)
         records.extend(result.records)
         reports[SOURCE_TRAE] = result.report
+    if SOURCE_DSH in wanted:
+        # ① 只取真人提问轨迹（不取 assistant / 系统注入；subagent 会话默认跳过）
+        result = dsh_prompts_reader.read_dsh_prompts(root=dsh_root,
+                                                     max_records=max_records)
+        records.extend(result.records)
+        reports[SOURCE_DSH] = result.report
     return CollectResult(records=records, reports=reports)
 
 
@@ -139,6 +147,7 @@ def _public_reports(reports: Mapping[str, Any]) -> Dict[str, Any]:
 def preview(*, sources: Sequence[str] = SOURCES,
             claude_dir: Optional[Path] = None,
             appdata: Optional[Path] = None,
+            dsh_root: Optional[Path] = None,
             include_transcripts: bool = True,
             root: Optional[Path] = None,
             save: bool = True,
@@ -152,6 +161,7 @@ def preview(*, sources: Sequence[str] = SOURCES,
     外部调用与费用，输出与历史版本逐字节相同。
     """
     collected = collect(sources=sources, claude_dir=claude_dir, appdata=appdata,
+                        dsh_root=dsh_root,
                         include_transcripts=include_transcripts,
                         max_records=max_records)
     digest_fn, digest_info = _build_digest_fn(use_llm=use_llm, llm=llm)

@@ -33,7 +33,9 @@ logger = logging.getLogger(__name__)
 _PREVIEW_LOCK = threading.Lock()
 
 #: 来源的人读标签（与前端选项一一对应）
-_SOURCE_LABELS: Dict[str, str] = {"claude": "Claude Code", "trae": "Trae"}
+_SOURCE_LABELS: Dict[str, str] = {
+    "claude": "Claude Code", "trae": "Trae", "dsh": "DeepSeek Harness",
+}
 
 #: 预览响应里每个批次最多带几条样例（完整清单在计划快照里）
 _PREVIEW_ITEMS = 5
@@ -101,6 +103,7 @@ def register_routes(app, state) -> None:
         from pathlib import Path
 
         from agent.memory_import.readers import claude as claude_reader
+        from agent.memory_import.readers import dsh as dsh_reader
         from agent.memory_import.readers import trae as trae_reader
 
         items: List[Dict[str, Any]] = []
@@ -121,12 +124,23 @@ def register_routes(app, state) -> None:
                 Path(os.environ.get("APPDATA") or "") / "Trae CN"),
             "has_transcripts": False,  # 本地无会话正文（只有提问轨迹）
         })
+        dsh_base = dsh_reader.default_dsh_root()
+        items.append({
+            "id": "dsh",
+            "label": _SOURCE_LABELS["dsh"],
+            "available": dsh_base.is_dir(),
+            "detail": str(dsh_base),
+            # ① 只取真人提问；整段原文由 ② 全话导入负责
+            "has_transcripts": False,
+        })
+
         from agent.memory_import import summarize as llm_summary
 
         available, reason = llm_summary.llm_available()
         return ok({"sources": items,
                    "digest_llm": {"available": bool(available), "reason": reason},
-                   "note": "Trae 的会话正文在云端，本地可解析的是提问轨迹"})
+                   "note": "DSH 只取真人提问轨迹（全文用 ② 全话导入）；"
+                           "Trae 的会话正文在云端，本地可解析的是提问轨迹"})
 
     @app.route("/api/memory-import/preview", methods=["POST"])
     @trace_route("MemoryImport")
@@ -140,7 +154,7 @@ def register_routes(app, state) -> None:
         except ValueError as exc:  # noqa: BLE001 参数错误：只给可执行提示，不回显异常原文
             logger.info("外部记忆导入：来源参数无效（%s）", exc)
             return problem(400, title="来源参数无效",
-                           detail="sources 只能取 claude / trae（数组或逗号分隔字符串）",
+                           detail="sources 只能取 claude / trae / dsh（数组或逗号分隔字符串）",
                            type_slug="invalid-source")
         include_transcripts = body.get("include_transcripts", True)
         # use_llm 默认 False：LLM 摘要有成本，必须由用户显式勾选（界面默认不勾）

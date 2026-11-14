@@ -216,9 +216,9 @@ export default function MemoryImportPanel() {
     <>
     <Card title="① 提炼导入：知识卡片 / 向量记忆">
       <p className="mb-3 text-xs leading-6 text-slate-500">
-        从 Claude / Trae 的规则、偏好与提问轨迹里<span className="text-slate-300">提炼</span>要点：规则进知识卡片，会话/提问进
-        <span className="text-slate-300">向量记忆</span>（可语义检索、可按批回滚）。这里存的是摘要后的片段，
-        <b className="text-slate-300">不是完整对话</b> —— 要原文全文请用下面的「② 全话导入」。
+        从 Claude / Trae / DeepSeek Harness 的规则、偏好与提问轨迹里<span className="text-slate-300">提炼</span>要点：规则进知识卡片，会话/提问进
+        <span className="text-slate-300">向量记忆</span>（可语义检索、可按批回滚）。DSH 只取<span className="text-slate-300">真人提问</span>（不含助手回复/系统注入）。
+        这里存的是摘要后的片段，<b className="text-slate-300">不是完整对话</b> —— 要原文全文请用下面的「② 全话导入」。
         <span className="text-slate-400">预览是只读的</span>，勾选批次并确认后才会写入；每次写入都会写审计，可按批次回滚。
       </p>
 

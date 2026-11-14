@@ -224,7 +224,11 @@ def build_batches(records: Sequence[MemoryRecord], *,
         if record.kind == KIND_PREFERENCE:
             carrier, scope, period = CARRIER_CARD, "user", "static"
         elif record.kind == KIND_PROMPT:
-            carrier, scope, period = CARRIER_MEMORY, "prompts", period_of(record.ts)
+            # scope 默认 prompts（按周期汇总）；带 batch_scope 的来源（DSH）按会话分批，
+            # 避免同月几百条提问被 digest 截断后大部分进不了向量。
+            carrier = CARRIER_MEMORY
+            scope = str(record.meta.get("batch_scope") or "prompts")
+            period = period_of(record.ts)
         else:
             carrier, scope, period = CARRIER_MEMORY, record.project or "unknown", period_of(record.ts)
         groups.setdefault((carrier, record.source, scope, period), []).append(record)
@@ -256,6 +260,10 @@ def build_batches(records: Sequence[MemoryRecord], *,
             title = f"{source} 偏好与规则（外部记忆导入）"
         elif scope == "prompts":
             title = f"{source} 提问轨迹 {period}"
+        elif scope.startswith("prompts:"):
+            # 去掉项目前缀，标题只留会话 id（项目仍在 batch.project / scope 里可追溯）
+            label = scope.split(":", 1)[1].rsplit("/", 1)[-1]
+            title = f"{source} 提问轨迹 {label} {period}"
         else:
             title = f"{source} 会话摘要 {scope} {period}"
         batches.append(Batch(
@@ -286,7 +294,7 @@ def _compose_digest(carrier: str, source: str, scope: str, period: str,
             body = str(record.text or "").strip()
             if body:
                 lines.append(body)
-    elif scope == "prompts":
+    elif scope == "prompts" or scope.startswith("prompts:"):
         for record in items:
             ts = (record.ts or "")[11:16]
             lines.append(f"- {ts} {_summary_line(record.text, 70)}")

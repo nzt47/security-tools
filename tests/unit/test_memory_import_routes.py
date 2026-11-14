@@ -55,13 +55,13 @@ def test_sources_requires_token(client):
     assert resp.status_code == 401
 
 
-def test_sources_lists_claude_and_trae(client, auth):
+def test_sources_lists_claude_trae_and_dsh(client, auth):
     resp = client.get("/api/memory-import/sources", headers=auth)
     assert resp.status_code == 200
     assert resp.headers.get(ENVELOPE_HEADER) == ENVELOPE_VERSION
     body = resp.get_json()
     ids = [item["id"] for item in body["data"]["sources"]]
-    assert ids == ["claude", "trae"]
+    assert ids == ["claude", "trae", "dsh"]
     assert all("available" in item for item in body["data"]["sources"])
 
 
@@ -123,7 +123,7 @@ def test_preview_rejects_unknown_source(client, auth):
     assert resp.status_code == 400
     body = resp.get_json()
     assert body["status"] == 400
-    assert "claude" in body["detail"] and "trae" in body["detail"]
+    assert "claude" in body["detail"] and "trae" in body["detail"] and "dsh" in body["detail"]
     assert resp.mimetype == "application/problem+json"
 
 

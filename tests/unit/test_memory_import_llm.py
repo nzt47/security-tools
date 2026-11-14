@@ -85,6 +85,8 @@ def test_llm_available_reflects_env(monkeypatch):
 def test_llm_eligible_only_for_message_batches():
     assert summarize.llm_eligible(CARRIER_MEMORY, "p1") is True
     assert summarize.llm_eligible(CARRIER_MEMORY, "prompts") is False
+    # DSH 的按会话提问批次（prompts:<proj>/<session>）也不能走 LLM 改写
+    assert summarize.llm_eligible(CARRIER_MEMORY, "prompts:p/s1") is False
     assert summarize.llm_eligible(CARRIER_CARD, "user") is False
 
 

@@ -31,8 +31,9 @@ SOURCE_CLAUDE = "claude"
 SOURCE_TRAE = "trae"
 #: DeepSeek Harness（DSH）本地会话（2026-11-14 新增「全话」迁移用）
 SOURCE_DSH = "dsh"
-SOURCES: Tuple[str, ...] = (SOURCE_CLAUDE, SOURCE_TRAE)
-#: 可整段迁移为「全话」的会话来源（与上面 SOURCES 分开：卡片导入只认 claude/trae）
+#: ① 提炼导入的来源：Claude 规则/历史/转录、Trae 提问轨迹、DSH 真人提问轨迹
+SOURCES: Tuple[str, ...] = (SOURCE_CLAUDE, SOURCE_TRAE, SOURCE_DSH)
+#: 可整段迁移为「全话」的会话来源（② 全话导入；与 ① 共用 dsh/claude/trae 三个名字）
 SESSION_SOURCES: Tuple[str, ...] = (SOURCE_DSH, SOURCE_CLAUDE, SOURCE_TRAE)
 
 #: 记录类型：偏好/规则、用户输入历史、会话消息

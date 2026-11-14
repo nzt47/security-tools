@@ -178,10 +178,12 @@ def llm_eligible(carrier: str, scope: str) -> bool:
     """哪些批次允许 LLM 改写：只有会话载体，且不是「提问轨迹」。
 
 - knowledge_card：承载 CLAUDE.md / Trae rules 的**原话规则**，改写即失真 => 不做；
-- scope == prompts：本来就是一句一条的提问清单，规则式已是最忠实形态
+- scope 以 prompts 开头（prompts / prompts:<proj>/<session>）：本来就是一句一条的提问清单，规则式已是最忠实形态
   （LLM 会把「提问」改写成「主题」，反而丢原文）。
     """
-    return str(carrier) == "memory_note" and str(scope) != "prompts"
+    # prompts / prompts:<project>/<session> 都是"一句一条的提问清单"：规则式已最忠实，
+    # 不能因为加了会话前缀就被判成"会话批次"而走 LLM（DSH 有 120+ 个会话批次）。
+    return str(carrier) == "memory_note" and not str(scope).startswith("prompts")
 
 
 def _excerpts(items: Sequence[Any]) -> str:
