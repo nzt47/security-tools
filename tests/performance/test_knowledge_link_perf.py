@@ -5,8 +5,10 @@
    （防磁盘预扫描/缓存优化引入漏判或误判）
 2. 确定性：3 次调用断链结果完全一致（无状态泄漏）
 3. 耗时上限：6000 卡断链检测 < 2000ms（宽松阈值，防平台抖动误报）
-4. list 内存缓存：热命中显著快于冷读（≥2 倍）；文件修改后指纹自动
-   失效并重载（不返回陈旧数据）
+4. list 内存缓存：热命中显著快于冷读（5 次中位数比 ≥1.43 倍，且热命中
+   期间不重新读盘）；文件修改后指纹自动失效并重载（不返回陈旧数据）。判据与
+   实测分布见 _WARM_RATIO_MAX 上方的注释（2026-11-15 改：原 2 倍门槛在
+   windows runner 上必然红，且红的是「stat vs 解析的成本结构」而非缓存失效）
 
 运行方式（CI test.yml performance-tests job）:
     pytest tests/performance/test_knowledge_link_perf.py -m performance --timeout=300
@@ -14,6 +16,7 @@
 from __future__ import annotations
 
 import logging
+import statistics
 import time
 from pathlib import Path
 
@@ -112,25 +115,87 @@ def test_broken_links_massive_correct_deterministic_fast(tmp_path):
     assert len(find_orphans(cards)) == 3000
 
 
-def test_list_cache_speedup(tmp_path):
-    """list(use_cache=True) 热命中显著快于冷读（≥2 倍）。"""
+#: 热命中 / 冷读 的耗时上限（1.43 倍即判「显著更快」）。
+#:
+#: 【变易 2026-11-15】原判据是 warm < cold * 0.5（2 倍），在 windows runner 上必然红：
+#:   实测分布（run 43715479538 / 31d88c89b，同一份代码）
+#:     · ubuntu-latest（2 vCPU）：过 2 倍门槛（历史一直绿）；
+#:     · windows-latest：warm=89.8ms、cold=166.1ms = **1.85x** ⇒ 撞 2 倍门槛；
+#:     · 本机（Windows 12 核，5 次采样）：cold≈450ms、warm≈3.5ms ≈ 130x，且热命中期间
+#:       _list_from_disk 调用 0 次（缓存确实没重新读盘）。
+#:   为什么 2 倍在 windows runner 上测不出来：热命中的成本 = 指纹扫描（2000 条
+#:   scandir + stat，用来判断 mtime 是否变化），冷读的成本 = 2000 个
+#:   read_text + YAML 解析。两者之比只反映「stat 与解析的相对成本」，是**平台
+#:   文件系统成本结构**，不是「缓存是否生效」的度量 —— 所以 1.85x 不代表缓存失效，
+#:   反过来把门槛放宽到 2 倍以下也不该只靠调数字。
+#: 故判据拆成三条，缺一不可（都不依赖具体平台）：
+#:   ① 热命中期间 **不得** 重新读盘（_list_from_disk 调用 0 次）—— 缓存生效的直接证据；
+#:   ② 冷/热各采样 _SAMPLES 次取**中位数**（单次采样噪声大：本机首采 114ms、稳态 3.5ms，
+#:      runner 上单点相差 2 倍也很常见）；
+#:   ③ 中位数比 ≥ 1.43 倍（warm < cold * 0.7）—— 保留「显著更快」的量化下限；
+#:      实测 1.85x 仍有 ~30% 余量，而缓存彻底失效时比值会掉到 1 附近，必定红。
+_WARM_RATIO_MAX = 0.7
+#: 冷/热各采样次数（中位数抗噪；每次冷读都要全量解析 2000 张卡，5 次 ≈ 1–3 秒量级）。
+_SAMPLES = 5
+
+
+def test_list_cache_speedup(tmp_path, monkeypatch, record_property):
+    """list(use_cache=True) 热命中显著快于冷读：不重读盘 + 中位数比 ≥1.43x。"""
     store = build_store(tmp_path, 2000, n_ghost=500)
     store.list()  # 预热（文件系统缓存）
 
-    t0 = time.perf_counter()
-    cold = store.list()
-    t_cold = (time.perf_counter() - t0) * 1000
+    colds: list[float] = []
+    cold: list[Card] = []
+    for _ in range(_SAMPLES):
+        t0 = time.perf_counter()
+        cold = store.list()
+        colds.append((time.perf_counter() - t0) * 1000)
     assert len(cold) == 2000
 
-    store.list(use_cache=True)  # 冷缓存（全量加载）
-    t0 = time.perf_counter()
-    warm = store.list(use_cache=True)
-    t_warm = (time.perf_counter() - t0) * 1000
+    store.list(use_cache=True)  # 填充缓存（全量加载，不计时）
+
+    calls = _spy_list_from_disk(monkeypatch)
+    warms: list[float] = []
+    warm: list[Card] = []
+    for _ in range(_SAMPLES):
+        t0 = time.perf_counter()
+        warm = store.list(use_cache=True)
+        warms.append((time.perf_counter() - t0) * 1000)
+
     assert len(warm) == 2000
     assert [c.slug for c in warm] == [c.slug for c in cold]
 
-    assert t_warm < t_cold * 0.5, (
-        f"缓存未生效: warm={t_warm:.1f}ms 未显著快于 cold={t_cold:.1f}ms"
+    med_cold = statistics.median(colds)
+    med_warm = statistics.median(warms)
+    ratio = med_cold / med_warm if med_warm > 0 else float("inf")
+    # 分布同时进 junit 的 <properties>（CI 上传 knowledge-link-perf-results.xml，
+    # 通过用例也留读数；pytest 只对失败用例写 system-out，故用 record_property）。
+    record_property("list_cache_cold_ms_all", ",".join("%.1f" % t for t in colds))
+    record_property("list_cache_warm_ms_all", ",".join("%.1f" % t for t in warms))
+    record_property("list_cache_median_cold_ms", "%.1f" % med_cold)
+    record_property("list_cache_median_warm_ms", "%.1f" % med_warm)
+    record_property("list_cache_ratio", "%.2f" % ratio)
+    record_property("list_cache_reloads", str(len(calls)))
+    print(
+        "list 缓存采样（各 %d 次，ms）：\n  cold=%s → 中位 %.1f\n  warm=%s → 中位 %.1f\n"
+        "  比值（中位）%.2fx · 热命中期间重载次数 %d"
+        % (
+            _SAMPLES,
+            ",".join("%.1f" % t for t in colds), med_cold,
+            ",".join("%.1f" % t for t in warms), med_warm,
+            ratio, len(calls),
+        )
+    )
+
+    assert not calls, (
+        "热命中触发了全量重载（日志 %d 次 _list_from_disk）：缓存未生效。"
+        " cold=%s warm=%s" % (len(calls), colds, warms)
+    )
+    assert med_warm < med_cold * _WARM_RATIO_MAX, (
+        "缓存未显著提速: 中位 warm=%.1fms vs cold=%.1fms（%.2fx，判据需 ≥%.2fx）"
+        "；cold=%s warm=%s"
+        % (med_warm, med_cold, ratio, 1 / _WARM_RATIO_MAX,
+           ["%.1f" % t for t in colds], ["%.1f" % t for t in warms])
     )
 
 
