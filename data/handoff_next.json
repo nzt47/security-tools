@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-15T18:35:00+08:00",
+ "updated_at": "2026-11-15T19:05:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -882,6 +882,14 @@
    "title": "三条面板细条统一 44px（导航 / 主内容 / 右栏抓手所在的那条）",
    "criteria": "Owner 2026-11-15 问「三条细条高度怎么都不一样」：实测 45 / 47.5 / 38.8px（1280/1440/1920 三档同值），底边 y=99 / 101.5 / 92.8。B 步删掉面板标题栏后，三条各自由自己的 py-* 与内容高凑，没有任何共用约束。",
    "next": "已落地（e97217c62）：--wb-strip-h: 44px + .wb-strip（min-height/align-items:center），三条去掉各自 py-*；复量三档都是 44/44/44、底边同 y=98。「抓手线居中到细条中线」**没做**：那样命中区（44×9）要下移到 y≈17.5，会压住导航搜索框与会话页头按钮的点击区（HTML5 drag source 抢 mousedown）—— 已写进 workbench.css 注释与 §11.127 C-3。"
+  },
+  {
+   "id": "per-agent-line-context-window",
+   "status": "open",
+   "priority": "P3",
+   "title": "按智能体分身设不同的默认上下文窗口（目前**做不到**，需 Owner 定）",
+   "criteria": "2026-11-15 Owner 提「给不同的智能体分身设定默认使用不同的上下文窗口」。核实结果：做不到 —— data/agent_lines/*.yaml 的字段只有 plane_weights / plane_floors / boost / mute / max_tools / effect_allow / requires_approval / skills / prompt_note，**没有窗口或 token 预算字段**；窗口是进程级一个值（/api/context/status 的 token_limit，实测 131072，来源 builtin_default，解析在 agent/orchestrator/lifecycle_manager.py:296-313，支持 config.yaml 的 memory.token_limit 与运行时覆盖）。界面已在「上下文 → 窗口取值参考」里如实写明这一条（不编能力）。",
+   "next": "若要做：① 给 line schema 加字段（如 context_window_tokens，含 min/max 与注释）；② 会话装配处按当前分身在 GLOBAL 与 line 值之间取小（或 line 优先，需口径）；③ /api/context/status 增加 token_limit_source=line:<id> 的可复核来源；④ 用例覆盖「line 没配 ⇒ 回落全局」「line 配过头 ⇒ clamp」「切分身当场生效」；⑤ 界面滑块改成「显示生效值 + 来源」，并允许按分身在面板里覆盖（运行时覆盖语义与现在一致：重启回落）。取值口径待 Owner 定 —— 建议别按人数拍脑袋，直接映射到界面那张任务表（engineering→32K–64K、knowledge→64K–128K 等），上线后按延迟/成本/错误率再收紧。"
   }
  ]
 }
