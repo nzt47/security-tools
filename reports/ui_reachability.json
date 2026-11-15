@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-11-06T01:17:05",
+  "generated_at": "2026-11-15T14:16:29",
   "entry": "yunshu-ui/src/main.tsx",
   "scanned": {
-    "source_modules": 289,
-    "reachable_modules": 273,
-    "page_files": 113
+    "source_modules": 303,
+    "reachable_modules": 288,
+    "page_files": 112
   },
   "unreachable": [],
   "orphan_default": [],
-  "content_hash": "460babcb51e76d6f",
+  "content_hash": "02335441b452d2eb",
   "page_files": [
     "yunshu-ui/src/pages/Dashboard/index.tsx",
     "yunshu-ui/src/pages/Export/index.tsx",
@@ -85,7 +85,6 @@
     "yunshu-ui/src/pages/hub/panorama/platform.tsx",
     "yunshu-ui/src/pages/hub/panorama/sensors.tsx",
     "yunshu-ui/src/pages/hub/panorama/unit-status.tsx",
-    "yunshu-ui/src/pages/hub/personality.tsx",
     "yunshu-ui/src/pages/hub/plugin-manage.tsx",
     "yunshu-ui/src/pages/hub/plugins/index.tsx",
     "yunshu-ui/src/pages/hub/replay/index.tsx",
