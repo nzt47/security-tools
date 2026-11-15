@@ -96,19 +96,22 @@ const createNode = (viewId: PanelId): MosaicNode<PanelId> => ({
 });
 
 /**
- * 6px 抓取条 —— 代替原 24px 面板标题栏（B 步）。
+ * 面板抓手（面板顶边居中：44×9 命中区 + 28×2 可见线）—— 代替原面板标题栏。
  *
  * 【不易·1】MosaicWindow 会把 renderToolbar 的返回值**包成 drag source**
  * （node_modules/react-mosaic-component/lib/MosaicWindow.mjs:128-141：connectIfDraggable(renderToolbar(...))），
  * 所以返回的节点就是"拖这块能移动面板 / 拖到别人的边上拆分 / 拖到窗口边缘分离成独立窗口"
- * 的命中区。**高度设 0 或者干脆不返回节点，会让三者一起失效**（§11.122 D-1 的坑）。
+ * 的命中区。
+ * 【不易·1b】致命组合是"**高度 0 且不给节点**"（§11.122 D-1）；**只把高度设 0 不会失效**：
+ * 现在 .mosaic-window-toolbar 高度确实是 0（不占版面），但抓取节点仍在（absolute 浮在顶边），
+ * 所以它照样是 drag source —— Owner 2026-11-15 回调"细条全去掉、只留手柄"后实测仍能起拖（§11.123 G）。
  *
  * 【不易·2】react-dnd 的 connector **只接受原生 DOM 节点**：这里不能返回 <PanelGrip/> 这种
  * 自定义组件元素，否则运行期直接抛
  * "Only native element nodes can now be passed to React DnD connectors"（本轮实测踩到一次）。
  * 所以抓取条写成**返回 JSX 的普通函数**（函数调用 → 返回的仍是那个 div），不是一个组件。
  *
- * 标题文字不再显示（面板身份靠内容本身辨认），但仍作为 title 传给 MosaicWindow（拖拽预览用）。
+ * 面板标题文字不再显示（身份靠内容本身辨认），title 仍传给 MosaicWindow（只用于拖拽预览）。
  */
 function panelGripElement() {
   return (
