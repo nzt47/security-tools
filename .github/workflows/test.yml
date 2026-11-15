@@ -108,17 +108,20 @@ jobs:
     # 之前"windows 单元 10 分钟跑完"是 fail-fast 早停的假象（成本台账那 7 条红让它在 3159 条时停下）；
     # 那些红修掉后它要跑满 1.5 万条 ⇒ 单独给 windows 70 分钟，ubuntu 维持 30（实测 ~22 分钟）。
     timeout-minutes: ${{ matrix.os == 'windows-latest' && 70 || 30 }}
-    # 【2026-11-16 · A-②】3.11 只加回 ubuntu：覆盖率硬门槛（70%）的**数据源**要一份
-    #   语言版本稳定、且集成覆盖数据可得的组合；windows 平台覆盖由 3.12 继续负责
-    #   （再加一个 3.11-windows 单元 job 等于每次多花 ~38 分钟买同一类信息）。
+    # 【2026-11-16 · A-② 试过、被事实挡住】3.11 腿加回来实跑（run 43735743556）**连 collect 都过不了**：
+    #   `agent/logging_utils.py:600` 用了 PEP 701 的 f-string 嵌套同引号
+    #   （f'调试模式: {('启用' if debug_mode else '关闭')}'），3.11 的解析器直接
+    #   SyntaxError: f-string: unmatched '(' ⇒ 所有 import logging_utils 的用例整批 collection error；
+    #   同一个 job 里 coverage 还打 "Couldn't parse Python file agent/logging_utils.py" ——
+    #   即 3.11 上的覆盖率会**静默漏掉这个文件**，用它当 70% 硬门槛等于量了一把坏尺子。
+    #   同期实测全仓 PEP 701-only f-string：22 个文件（产品 4 / 测试 11），清理可行但属代码改造，
+    #   已记进 handoff_next（pyproject-declares-311-but-code-is-312）等 Owner 定。
+    #   ⇒ 70% 硬门槛改挂 3.12 ubuntu 腿（见 coverage-check），同一契约、同一数据源。
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.11', '3.12']
+        python-version: ['3.12']
         os: [ubuntu-latest, windows-latest]
-        exclude:
-          - python-version: '3.11'
-            os: windows-latest
     steps:
       - name: 检出代码
         uses: actions/checkout@v6
@@ -233,16 +236,12 @@ jobs:
     # ② windows runner 整体比 ubuntu 慢 ~50% (3.10-windows 15.3min vs ubuntu 9.7min),
     #    3.11-windows 曾贴线超时。40min 为最慢组合 (3.12-windows) 留足余量。
     timeout-minutes: 40
-    # 【2026-11-16 · A-②】同 unit-tests：3.11 只在 ubuntu 跑，给覆盖率硬门槛提供
-    #   「语言版本稳定 + 集成覆盖可得」的那一份数据。
+    # 【2026-11-16】3.11 腿已撤回：同 unit-tests 的注释（PEP 701 语法 + coverage 解析不了）。
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.11', '3.12']
+        python-version: ['3.12']
         os: [ubuntu-latest, windows-latest]
-        exclude:
-          - python-version: '3.11'
-            os: windows-latest
     steps:
       - name: 检出代码
         uses: actions/checkout@v6
@@ -556,16 +555,14 @@ jobs:
 
   coverage-check:
     name: 覆盖率检查 (Python ${{ matrix.python-version }} - ${{ matrix.os }})
-    # 【2026-11-16 · A-②】覆盖面契约拆成两条腿、**分工明确**：
-    #   · 3.11（ubuntu）：`unit + integration` 合并后 **≥70% 硬门槛** —— 这就是原来
-    #     写在 env.COVERAGE_THRESHOLD 的那个契约，现在回到一个能真正量到它的组合上
-    #     （3.11 无 sysmon，但集成 --cov 一直可用）。
-    #   · 3.12（ubuntu / windows）：只**出报告不断言**。3.12 的集成覆盖靠
-    #     COVERAGE_CORE=sysmon 采集（见 integration-tests 步骤注释），数字与 3.11 的
-    #     采集内核不同（PEP 669 vs tracer），拿它当硬门槛等于把两个口径混成一个。
-    #   历史：CHG-2026-0811 关掉 3.12 集成的 --cov 后，矩阵又只剩 3.12 ⇒ 下载必然 404
-    #   （"Artifact not found for name: coverage-integration-ubuntu-latest-py3.12"），
-    #   而 70% 这道门从此一次都没真正跑过。
+    # 【2026-11-16 · A-②/③】70% 这道门第一次真正挂上了**能测到它的组合**：
+    #   · ubuntu 腿：`unit + integration` 合并后 **≥70% 硬门槛**（原 env.COVERAGE_THRESHOLD 契约）。
+    #     此前量不到的原因是「3.12 集成 --cov 被关 + 矩阵只剩 3.12」⇒ 下载必然 404
+    #     ("Artifact not found for name: coverage-integration-ubuntu-latest-py3.12")，
+    #     这道门从 2026-08-11 起一次都没跑过。
+    #   · windows 腿：只**出报告不断言**（同一份代码不在两个平台各设一道门）。
+    #   3.11 曾计划做门槛来源，但 3.11 连 collect 都过不了（PEP 701 f-string，见 unit-tests 注释），
+    #   且它上面的 coverage 会静默漏掉解析不了的文件 ⇒ 不能拿它当尺子。
     # 注: 不采用 job 级 `if: matrix...` 排除, 因 job 级 if 上下文仅限
     # github/needs/vars/inputs, 不允许 matrix (actionlint 校验确认)。
     runs-on: ${{ matrix.os }}
@@ -576,11 +573,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.11', '3.12']
+        python-version: ['3.12']
         os: [ubuntu-latest, windows-latest]
-        exclude:
-          - python-version: '3.11'
-            os: windows-latest
     steps:
       - name: 检出代码
         uses: actions/checkout@v6
@@ -646,12 +640,12 @@ jobs:
           echo "=== combine 输入:$FILES ==="
           coverage combine $FILES
           coverage report
-          # 【口径】硬门槛只挂在 3.11；3.12 只出报告（见 job 头注释）。
-          if [ "${{ matrix.python-version }}" = "3.11" ]; then
-            echo "=== 3.11 硬门槛：--fail-under=${{ env.COVERAGE_THRESHOLD }} ==="
+          # 【口径】硬门槛只挂在 ubuntu 腿（3.12 的 unit+integration 合并）；windows 腿只出报告。
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+            echo "=== 硬门槛：--fail-under=${{ env.COVERAGE_THRESHOLD }}（ubuntu 腿） ==="
             coverage report --fail-under=${{ env.COVERAGE_THRESHOLD }}
           else
-            echo "=== 3.12 只出报告：不断言（sysmon 内核口径，与 3.11 不可比） ==="
+            echo "=== windows 腿只出报告：不断言（同一份代码不在两个平台各设一道门） ==="
           fi
 
       - name: 生成覆盖率报告
