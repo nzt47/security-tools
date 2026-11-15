@@ -810,6 +810,22 @@
    "done_at": "2026-11-15T14:18+08:00"
   },
   {
+   "id": "prompt-lab-drop-base-template",
+   "status": "done",
+   "priority": "P2",
+   "title": "基础模板编辑器整块删除（Owner：分节开关就是在组装它，预览看得到即可）",
+   "criteria": "Owner 2026-11-15：「感觉 基础模板 可以不要，分节配置 的开关本身就是在组装基础模板，只要每一个开关修改都可以在实时预览中看到就可以了。」删掉 <details class=\"pl-base-block\">、pages/prompt-lab/SystemPromptPanel.tsx 及其测试（3 条端点的唯一消费方）、api/endpoints.ts 里 SYSTEM_PROMPT/_RESET/_SYNC_STATUS 三条常量；页面只剩 ① 分节配置 → ② 最终注入文本。三条 /api/system-prompt* 在 config/route_ui_intent.json 改判 should_not_be_in_ui（族键 /api/system-prompt/* 仍 should_be_in_ui：分节配置在用）⇒ 「该进却未进 UI」仍 0；覆盖率与可达性产物在干净 worktree 重派生（pages 112→111）。",
+   "next": "已落地（提交 d400ca1b6 / 950409f13，部署 950409f136cb）。若将来要复刻模板编辑入口：从 git 历史取回 SystemPromptPanel.tsx，并把三条意图改回 should_be_in_ui、重派生覆盖率产物。"
+  },
+  {
+   "id": "prompt-lab-factor-preview-mapping",
+   "status": "done",
+   "priority": "P3",
+   "title": "影响因素的变动算不算「实时预览看得到」—— 实测结论：看得到（在「生成的提示词」），故不拆 TAB",
+   "criteria": "Owner 2026-11-15：「影响提示词因素 的变动如果不能从实时预览中看到倒是可以单独拆一个TAB」。真机实测：关掉分节「工具与技能状态」⇒ ② 最终注入文本 285→227 字符、{tool_status} 消失；把因素「指令明确性」拖到 100 ⇒ ② 不变，但「生成的提示词」由 指令明确度 70/100 变 100/100。两块本质不同：② 是 system message（只由分节开关组装），「生成的提示词」才是因素滑块的产物（试跑也用它）。",
+   "next": "按 Owner 的条件「看得到就不拆」处理：未拆 Tab，改在界面写清谁响应谁（② 下加一行说明 + 「生成的提示词（左侧因素实时生成 · 试跑用它）」）。若 Owner 看完仍要独立 Tab：LAB_TABS 加一项、把 .pl-factors 挪进该分支，半小时量。"
+  },
+  {
    "id": "prompt-lab-token-levers",
    "status": "open",
    "priority": "P3",
