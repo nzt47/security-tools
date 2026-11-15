@@ -205,6 +205,9 @@ export function ContextManagerBar() {
     }
   }
 
+  // 说明面板（Owner 2026-11-15：原来常驻的机制说明太占版面 ⇒ 收进「手动压缩」同一行的两个按钮）
+  const [infoTab, setInfoTab] = useState<'mechanism' | 'window' | null>(null)
+
   // percentage 可能为 null（后端取不到真实窗口时**如实报 None**，不拿硬编码冒充分母）
   const pct = status?.percentage ?? 0
   const pctKnown = status?.percentage != null
@@ -430,6 +433,29 @@ export function ContextManagerBar() {
                   {/* 【2026-11-09】压缩复用对话前缀：与「手动压缩」同一行 —— 按下去压什么、
                       这一次压缩怎么算钱，两个问题在同一处可见（开关中心是同一份登记表）。 */}
                   <CompressPrefixSwitch />
+                  {/* 【2026-11-15 Owner】原来常驻在面板底部的「上下文管理机制」太占版面 ⇒ 收成按钮，
+                      与「手动压缩」同一行（和 §11.123 的开关同一处：按下去压什么、规则在哪，一屏可见）。
+                      第二个按钮是「窗口取值参考」：按任务类型的建议值 + 我们这里的真实约束（全局一个窗口、
+                      分身影子目前没有窗口字段）。 */}
+                  <button
+                    type="button"
+                    onClick={() => setInfoTab((v) => (v === 'mechanism' ? null : 'mechanism'))}
+                    aria-expanded={infoTab === 'mechanism'}
+                    className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[11px] transition-colors ${infoTab === 'mechanism' ? 'border-cyan-700/70 bg-cyan-500/10 text-cyan-300' : 'border-slate-700 text-slate-400 hover:bg-slate-800'}`}
+                    title="自动压缩 / 三级水位 / 摘要退化 / System Prompt 预算 / 主动丢弃 —— 这套机制怎么运作"
+                  >
+                    <Info size={11} /> 上下文管理说明
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInfoTab((v) => (v === 'window' ? null : 'window'))}
+                    aria-expanded={infoTab === 'window'}
+                    aria-label="窗口取值参考"
+                    className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[11px] transition-colors ${infoTab === 'window' ? 'border-cyan-700/70 bg-cyan-500/10 text-cyan-300' : 'border-slate-700 text-slate-400 hover:bg-slate-800'}`}
+                    title="窗口该开多大：按任务类型的建议值 + 本机的真实约束（全局一个窗口；分身不各带窗口）"
+                  >
+                    <Info size={11} /> 窗口取值参考
+                  </button>
                   <button onClick={load} className="flex items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1.5 text-[11px] text-slate-400 hover:bg-slate-800">
                     <RefreshCw size={11} /> 刷新
                   </button>
@@ -437,11 +463,22 @@ export function ContextManagerBar() {
                 <span className="text-[9px] text-slate-600">压缩为写操作，需 FLASK_API_TOKEN</span>
               </div>
 
-              {/* 机制说明（【2026-10-14】去掉开关，**正文常驻**：说明本身就是读数的一部分，
-                  藏起来只会让人反复问「这数是怎么来的」） */}
+              {/* 说明面板（Owner 2026-11-15）：原来常驻的机制正文收进「手动压缩」同一行的按钮。
+                  两个入口各自只讲一件事：① 这套自动策略怎么运作 ② 窗口该开多大 + 我们这里的真实约束。 */}
+              {infoTab === 'mechanism' && (
               <div className="space-y-2 rounded-lg border border-slate-800 bg-slate-950/60 p-3">
-                <div className="flex items-center gap-1.5 text-[10.5px] font-medium text-cyan-300">
-                  <Info size={11} /> 上下文管理机制（多层次自动策略，无需手动干预）
+                <div className="flex items-center justify-between gap-2 text-[10.5px] font-medium text-cyan-300">
+                  <span className="flex items-center gap-1.5">
+                    <Info size={11} /> 上下文管理机制（多层次自动策略，无需手动干预）
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setInfoTab(null)}
+                    aria-label="收起上下文管理说明"
+                    className="text-[10px] text-slate-500 hover:text-slate-300"
+                  >
+                    收起
+                  </button>
                 </div>
                 <div className="text-[11px] leading-relaxed text-slate-300">
                   <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5">
@@ -476,6 +513,93 @@ export function ContextManagerBar() {
                   </div>
                 </div>
               </div>
+              )}
+
+              {infoTab === 'window' && (
+                <div className="space-y-2 rounded-lg border border-slate-800 bg-slate-950/60 p-3">
+                  <div className="flex items-center justify-between gap-2 text-[10.5px] font-medium text-cyan-300">
+                    <span className="flex items-center gap-1.5">
+                      <Info size={11} /> 窗口该开多大（建议值 + 我们这里的真实约束）
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setInfoTab(null)}
+                      aria-label="收起窗口取值参考"
+                      className="text-[10px] text-slate-500 hover:text-slate-300"
+                    >
+                      收起
+                    </button>
+                  </div>
+
+                  {/* ① 本机的真实数值（全部来自后端读数，不写死） */}
+                  <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5 text-[11px] leading-relaxed text-slate-300">
+                    <span className="text-cyan-400">① 本机现在是多少</span>：窗口 = 全局一个值
+                    <b className="text-slate-100"> {fmt(status.token_limit)}</b> tok
+                    （来源 <span className="font-mono text-slate-400">{status.token_limit_source ?? '-'}</span>，
+                    面板可调 8K–1M，重启回落代码默认值）· 到
+                    <b className="text-slate-100"> {Math.round(status.compress_threshold * 100)}% </b>
+                    自动压缩 · 单次发送上限 <b className="text-slate-100">{fmt(status.per_message_send_limit)}</b>（超限只告警不截断）·
+                    单次回复 <b className="text-slate-100">{fmt(status.per_message_recv_limit)}</b> tok。
+                  </div>
+
+                  {/* ② 按任务的建议起点（通用经验值，**不是本机配置**） */}
+                  <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5 text-[11px] leading-relaxed text-slate-300">
+                    <div className="text-cyan-400">② 按任务类型的建议起点（通用经验，不是本机配置）</div>
+                    <div className="mt-1 space-y-0.5">
+                      {[
+                        ['日常对话', '8K–16K', '历史太多会稀释注意力'],
+                        ['写作 / 单篇总结', '16K–32K', '覆盖整篇，又避开中段衰减'],
+                        ['代码 Agent / 跨文件理解', '32K–64K', '需要上下文，但推理比检索更怕噪声'],
+                        ['RAG 检索问答', '64K–128K', '关键仍是检索质量，不是无限塞上下文'],
+                        ['合同 / 论文 / 整书分析', '128K+', '仍需分章处理，别一次性塞满'],
+                      ].map(([task, win, why]) => (
+                        <div key={task} className="flex flex-wrap items-baseline gap-x-2">
+                          <span className="text-slate-200">{task}</span>
+                          <span className="font-mono text-cyan-300">{win}</span>
+                          <span className="text-slate-500">{why}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-1 text-[10px] text-slate-500">
+                      用法：先按任务选一个起点，再按下面的真实约束往下压 —— 表格是起点，不是配额。
+                    </div>
+                  </div>
+
+                  {/* ③ 工程要点（都对着本机的实测数字写） */}
+                  <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5 text-[11px] leading-relaxed text-slate-300">
+                    <div className="text-cyan-400">③ 工程要点（对我们意味着什么）</div>
+                    <ul className="mt-1 list-disc space-y-0.5 pl-4 text-slate-400">
+                      <li>
+                        <b className="text-slate-200">标称长度 ≠ 有效长度</b>：deepseek-flash 标称 1,048,576，
+                        实际能稳定利用的更低 —— 要用 RULER / NoLiMa / 大海捞针这类基准测，别拿标称当预算。
+                      </li>
+                      <li>
+                        <b className="text-slate-200">越大 ≠ 越准</b>：信息越多注意力越稀释，关键内容放在中段最容易丢。
+                        「装什么」优先于「装多少」：检索 / 摘要 / 滑动窗口 / 任务分步能解决的，不必上超大窗口。
+                      </li>
+                      <li>
+                        <b className="text-slate-200">算力随长度近似 O(n²)</b>：长上下文显著抬高首 token 延迟与成本。
+                        本机实测一次真实请求 <b className="text-slate-100">8.8k tok</b>，其中 tools 段约 7.6k、
+                        前缀缓存命中 <b className="text-slate-100">96.7%</b> ⇒ 砍 tools 省的是**上下文窗口**，几乎不省钱。
+                      </li>
+                      <li>
+                        <b className="text-slate-200">Agent 要做 token 预算</b>：系统指令 / 工具输出 / 检索片段 / 历史
+                        分别设上限，超了就压缩或丢弃 —— 本面板 ①②⑤ 就是这套（压缩 → 水位预警 → 主动丢弃）。
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* ④ 分身：如实说"目前做不到" */}
+                  <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5 text-[11px] leading-relaxed text-slate-300">
+                    <span className="text-cyan-400">④ 按智能体分身设不同窗口？</span>
+                    <b className="text-amber-300"> 目前做不到</b>：{'`'}data/agent_lines/*.yaml{'`'} 的字段只有
+                    plane_weights / plane_floors / boost / mute / max_tools / effect_allow / requires_approval /
+                    skills / prompt_note，<b className="text-slate-100">没有窗口或 token 预算字段</b>；窗口是
+                    <b className="text-slate-100">进程级一个值</b>（见上方「窗口来源」）。
+                    要按分身分窗：先给 line 加字段，再在会话装配处按分身解析窗口 + 用例覆盖回落。
+                  </div>
+                </div>
+              )}
 
             </>
           )}

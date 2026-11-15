@@ -182,15 +182,47 @@ describe('ContextManagerBar · DSH 三组读数', () => {
     expect(screen.getByText('305')).toBeTruthy()
   })
 
-  it('机制说明：开关已移除，但说明正文常驻', async () => {
+  it('上下文管理说明：收进「手动压缩」同一行的按钮，默认不占版面', async () => {
     render(<ContextManagerBar />)
     expand()
     await screen.findByText('会话统计')
-    // 开关（折叠条快捷入口 + 面板内按钮）已移除
-    expect(screen.queryByText('机制说明')).toBeNull()
-    expect(screen.queryByText('收起机制说明')).toBeNull()
-    // 【2026-10-14】正文改为常驻：不点任何东西也应该看得到
-    expect(screen.getByText(/上下文管理机制/)).toBeTruthy()
+    // 【2026-11-15 Owner】正文不再常驻：默认整段不渲染，只在按钮上留一个入口
+    expect(screen.queryByText(/上下文管理机制/)).toBeNull()
+    expect(screen.queryByText(/异步后台压缩/)).toBeNull()
+    const btn = screen.getByRole('button', { name: /上下文管理说明/ })
+    // 与「手动压缩」同一行（同属操作条那一组）
+    const row = screen.getByRole('button', { name: /手动压缩/ }).parentElement
+    expect(row?.contains(btn)).toBe(true)
+    fireEvent.click(btn)
+    expect(await screen.findByText(/上下文管理机制/)).toBeTruthy()
     expect(screen.getByText(/异步后台压缩/)).toBeTruthy()
+    // 再点一次收起（正文回到不渲染）
+    fireEvent.click(btn)
+    await waitFor(() => expect(screen.queryByText(/上下文管理机制/)).toBeNull())
+  })
+
+  it('窗口取值参考：本机真实约束 + 建议表 + 如实说明「分身目前不各带窗口」', async () => {
+    render(<ContextManagerBar />)
+    expand()
+    await screen.findByText('会话统计')
+    expect(screen.queryByText(/窗口该开多大/)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '窗口取值参考' }))
+    expect(await screen.findByText(/窗口该开多大/)).toBeTruthy()
+    // ① 真实读数来自后端（fixture：131,072 / 80% / 单次 131,072 / 393,216）
+    expect(screen.getByText(/本机现在是多少/)).toBeTruthy()
+    expect(screen.getAllByText(/131,072/).length).toBeGreaterThan(0)
+    // ② 建议表按任务类型给起点，且写明「不是本机配置」
+    expect(screen.getByText(/日常对话/)).toBeTruthy()
+    expect(screen.getByText('8K–16K')).toBeTruthy()
+    expect(screen.getByText(/不是本机配置/)).toBeTruthy()
+    // ③ 工程要点对着实测数字写（8.8k / 96.7%）
+    expect(screen.getByText(/8.8k tok/)).toBeTruthy()
+    expect(screen.getByText(/96.7%/)).toBeTruthy()
+    // ④ 分身：如实说目前做不到，并指出 lines YAML 没有窗口字段
+    expect(screen.getByText(/按智能体分身设不同窗口/)).toBeTruthy()
+    expect(screen.getByText(/没有窗口或 token 预算字段/)).toBeTruthy()
+    // 收起
+    fireEvent.click(screen.getByRole('button', { name: '收起窗口取值参考' }))
+    await waitFor(() => expect(screen.queryByText(/窗口该开多大/)).toBeNull())
   })
 })
