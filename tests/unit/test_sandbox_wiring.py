@@ -55,34 +55,57 @@ def _reset_env(monkeypatch):
 DANGEROUS_BUT_HARMLESS = "drop table users"
 
 
+#: 探测用的探针串（出现在回显里才算真跑起来了）
+_BASH_PROBE = "__yunshu_bash_probe__"
+
+
 def _usable_bash() -> tuple[bool, str]:
     """本机有没有**真的能跑**的 bash（返回 (可用, 说明)）
 
-    【为什么不能只用 `shutil.which("bash")`（2026-11-15 windows CI 实测）】windows-latest 上
-    `bash.exe` 存在但是 **WSL 的入口**，而 runner 没装 WSL 发行版 —— 于是 `which("bash")` 为真、
-    真正执行却只得到 `"Windows Subsystem for Linux has no installed distributions"`（还是 UTF-16、
-    带 \x00），三条 depend-on-bash 的用例因此红成「stdout 里没有 hello」。
-    判据改成"跑一句 `echo ok` 看回来的是什么"，失败就**如实跳过**（不伪装通过）。
+    【为什么不能看 PATH，也不能自己起一个 bash（2026-11-15 windows CI 两次实测）】
+      · 第一次：`shutil.which("bash")` 在 windows-latest 上为真（那是 git-bash），但
+        `execute_shell(shell="bash")` 里按 PATHEXT 解析到的是 `C:\Windows\System32\bash.exe`
+        （**WSL 空壳**）⇒ 四条用例红成 "Windows Subsystem for Linux has no installed distributions"
+        （UTF-16、带 \x00）。
+      · 第二次：改成 `subprocess.run([which("bash"), "-c", "echo ok"])` —— 探的仍然**不是用例在用的那个**
+        （which 拿到 git-bash ⇒ 探测通过 ⇒ 用例照样红）。
+    故这里**直接走产品自己的执行路径**：`execute_shell("echo <探针>", shell="bash")`，拿到 ok 且回显里
+    有探针串才算可用；否则**如实跳过**（不伪装通过，也不改产品行为）。
     """
-    import shutil
-    exe = shutil.which("bash")
-    if not exe:
-        return False, "本机没有 bash（run_sandboxed 用 argv 形态，不经 shell）"
     try:
-        proc = subprocess.run([exe, "-c", "echo ok"], capture_output=True,
-                              timeout=15, text=True, encoding="utf-8", errors="replace")
-    except (OSError, subprocess.SubprocessError) as exc:
-        return False, f"bash 起不来（{type(exc).__name__}）"
-    out = (proc.stdout or "").replace("\x00", "").strip()
-    if proc.returncode == 0 and "ok" in out:
+        from agent.tools.shell_tools import execute_shell
+        result = execute_shell(f"echo {_BASH_PROBE}", shell="bash")
+    except Exception as exc:            # noqa: BLE001 探测本身不许把收集期搞崩
+        return False, f"bash 探测异常（{type(exc).__name__}）"
+    out = str(result.get("stdout") or "").replace("\x00", "")
+    err = str(result.get("stderr") or "").replace("\x00", "")
+    if result.get("ok") and _BASH_PROBE in out:
         return True, ""
-    head = (proc.stderr or proc.stdout or "").replace("\x00", "").strip()[:120]
-    return False, f"bash 不可用（rc={proc.returncode}）：{head or '无输出'}"
+    head = (err or out).strip()[:140].replace("\n", " ")
+    return False, f"bash 不可用（ok={result.get('ok')}）：{head or '无输出'}"
 
 
-BASH_OK, BASH_REASON = _usable_bash()
-#: 需要**真 bash** 的用例（Windows 上常常只有 WSL 的空壳，见 `_usable_bash`）
-BASH_REQUIRED = pytest.mark.skipif(not BASH_OK, reason=BASH_REASON)
+#: 探测结果缓存（**不要**在 import 期就跑：那会在审计链夹具绑定之前写默认台账）
+_BASH_PROBE_CACHE: dict = {}
+
+
+def _bash_probe_cached() -> tuple[bool, str]:
+    if "v" not in _BASH_PROBE_CACHE:
+        _BASH_PROBE_CACHE["v"] = _usable_bash()
+    return _BASH_PROBE_CACHE["v"]
+
+
+@pytest.fixture
+def _bash_required():
+    """需要**真 bash** 的用例的前置：不可用就如实跳过
+
+    【为什么用夹具而不是 `pytest.mark.skipif`】探测要走 `execute_shell`（产品自己的路径），
+    那是会写审计的**运行时动作**；放在 import 期会在 `_isolated_audit` 绑定 tmp 台账之前执行，
+    把条目写进默认台账。夹具在任何用例里都排在 autouse 的 `_isolated_audit` 之后。
+    """
+    ok, why = _bash_probe_cached()
+    if not ok:
+        pytest.skip(why)
 
 
 # ════════════════════════════════════════════════════════════
@@ -106,8 +129,7 @@ class TestShellWiring:
         assert seen, "shell_execute 必须先过 validate_command"
         assert any("echo hello-wiring" in c for c in seen)
 
-    @BASH_REQUIRED
-    def test_run_sandboxed_is_the_executor(self, monkeypatch):
+    def test_run_sandboxed_is_the_executor(self, monkeypatch, _bash_required):
         """spy：执行**真的**落在 `Sandbox.run_sandboxed` 上（改动前它零生产调用方）"""
         seen = []
         real = SB.Sandbox.run_sandboxed
@@ -153,8 +175,7 @@ class TestShellWiring:
         execute_shell(DANGEROUS_BUT_HARMLESS, shell="bash")
         assert seen == [], "影子模式命中后应走既有路径，不得进沙箱执行器"
 
-    @BASH_REQUIRED
-    def test_off_mode_is_legacy(self, monkeypatch):
+    def test_off_mode_is_legacy(self, monkeypatch, _bash_required):
         """`off` 档：完全不接线（等价改动前 —— 回滚口）"""
         monkeypatch.setenv("CP_SANDBOX_SHELL_MODE", "off")
         called = []
@@ -180,8 +201,7 @@ class TestShellWiring:
         from agent.tools.shell_tools import sandbox_mode
         assert sandbox_mode() == expected
 
-    @BASH_REQUIRED
-    def test_timeout_kill_and_truncation_preserved(self):
+    def test_timeout_kill_and_truncation_preserved(self, _bash_required):
         """既有能力不退化：超时 kill 与输出截断仍由 `run_sandboxed` 保证"""
         import shutil
         if not shutil.which("bash"):
@@ -196,8 +216,7 @@ class TestShellWiring:
             limits=SandboxResourceLimits(max_output_bytes=10))
         assert len(limited.stdout) <= 10
 
-    @BASH_REQUIRED
-    def test_normal_shell_usage_not_blocked(self):
+    def test_normal_shell_usage_not_blocked(self, _bash_required):
         """E10：常规 shell 用法（管道/变量/重定向）不被误拦"""
         from agent.tools.shell_tools import execute_shell
         result = execute_shell("echo a b c | wc -w", shell="bash")
