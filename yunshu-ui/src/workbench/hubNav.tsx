@@ -124,7 +124,10 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'workshop/agents', label: '分身', icon: Users, component: WorkshopAgents },
       // 2026-10-24：吞噬前移到技能中心之前 —— 获取（获取外来能力）在前、管理（技能中心/工作流）在后，
       // 与「单一获取入口」的口径一致：先拿到东西，再谈管理与编排。
-      { key: 'prompt-lab', label: '提示词实验室', icon: FlaskConical, component: PromptLab },
+      // 【2026-11-15 Owner 改名】叶子「提示词实验室」→「提示词」：侧栏这一列本来就窄，
+      // 页面内部三个 Tab（提示词影响因素 / 身份提示词 / LLM 通信监控）已经说明它是什么。
+      // key 不变 ⇒ 深链 ?panel=prompt-lab 与 LEGACY_NAV_KEY_MAP 全部照旧。
+      { key: 'prompt-lab', label: '提示词', icon: FlaskConical, component: PromptLab },
       // 【2026-10-31 IA 改名】'吞噬' 是内部黑话，用户看不出是"获取外来能力" ⇒ 改「能力获取」；
       // key 不变 ⇒ 旧深链 `?panel=ingestion` 照旧有效。
       { key: 'ingestion', label: '能力获取', icon: PackagePlus, component: IngestionPage },

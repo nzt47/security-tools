@@ -128,11 +128,13 @@ describe('hubNav 导航结构（人格配置并入提示词实验室 · 阶段 1
     expect(keys).not.toContain('persona/personality')
   })
 
-  it('「提示词实验室」仍是叶子项（人格以页内 Tab 承载，不再单列导航）', () => {
+  it('「提示词」仍是叶子项（人格以页内 Tab 承载，不再单列导航）', () => {
     const promptLab = findNavItem('prompt-lab')
     expect(promptLab).toBeDefined()
     expect(promptLab?.children).toBeUndefined()
     expect(promptLab?.component).toBeDefined()
+    // 【Owner 2026-11-15 改名】侧栏叶子显示「提示词」（key 仍是 prompt-lab ⇒ 深链不变）
+    expect(promptLab?.label).toBe('提示词')
   })
 })
 
