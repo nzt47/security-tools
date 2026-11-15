@@ -34,6 +34,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from agent.eval import anchor as A  # noqa: E402
 from agent.eval import cases as C  # noqa: E402
 from agent.eval import runner as R  # noqa: E402
+from agent.utils.paths import rel_to_repo as _rel_to_repo  # noqa: E402
 
 #: 发布清单落点（把锚用例集哈希"锚定入 release manifest"）
 RELEASE_MANIFEST = os.path.join(A._REPO_ROOT, "release", "eval_anchor_manifest.json")
@@ -54,7 +55,9 @@ def collect_layer_hashes(anchor_dir: str = "") -> dict:
     out: dict = {}
     for layer in DATASET_LAYERS:
         path = _dataset_path(layer, root)
-        entry = {"path": os.path.relpath(path, A._REPO_ROOT) if path else "",
+        # 【2026-11-15】跨盘（pytest 的 tmp 在 C:、仓库在 D:）用 rel_to_repo，别直接 relpath：
+        # 直接 relpath 会抛 ValueError，windows 单元 job 里 test_collect_layer_hashes_* 整条红。
+        entry = {"path": _rel_to_repo(path) if path else "",
                  "exists": bool(path) and os.path.exists(path)}
         if entry["exists"]:
             try:
@@ -75,7 +78,7 @@ def write_release_manifest(anchor_dir: str = "", path: str = "") -> dict:
     manifest = A.load_manifest(os.path.join(root, A.MANIFEST_FILENAME))
     payload = {
         "schema": "eval.release_anchor.v1",
-        "anchor_dir": os.path.relpath(root, A._REPO_ROOT),
+        "anchor_dir": _rel_to_repo(root),
         "anchor_caseset_sha256": manifest.caseset_sha256,
         "anchor_manifest_sha256": A.text_sha256(os.path.join(root, A.MANIFEST_FILENAME)),
         "anchor_count": manifest.count,

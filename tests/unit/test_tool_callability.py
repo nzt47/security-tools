@@ -555,7 +555,7 @@ class TestRuntimeFilter:
         现在跨盘退回绝对路径（`agent/lines/_paths.rel_to_repo`）。
         """
         from agent.tools import _non_callable_names  # noqa: F401  (存在性)
-        from agent.lines._paths import rel_to_repo
+        from agent.utils.paths import rel_to_repo
         from agent.lines import callability as C
 
         _write_tool(tmp_path, "manual_b", llm_callable=False, callable_mode="manual",
@@ -563,10 +563,15 @@ class TestRuntimeFilter:
         monkeypatch.setattr(C, "TOOL_DEFS_DIR", str(tmp_path))
         docs = C.load_tool_docs(str(tmp_path))
         assert docs["manual_b"]["_declared_in"].endswith("manual_b.yaml")
-        # 同一盘（本机常态）是相对路径；**跨盘**退回绝对路径且不抛
-        assert not os.path.isabs(rel_to_repo(str(tmp_path / "x.yaml")))
-        assert rel_to_repo("Z:/somewhere/x.yaml", root=str(tmp_path)) == \
-            "Z:/somewhere/x.yaml".replace(os.sep, "/")
+        # 同盘 ⇒ 相对路径；**跨盘**（CI 上 tmp 在 C:、仓库在 D:）⇒ 退回绝对路径且不抛
+        # 不抛即达标：同盘给相对（可能在仓库外，带 .. 是正常的）、跨盘给绝对
+        same = rel_to_repo(str(tmp_path / "x.yaml"))
+        assert same.endswith("x.yaml")
+        # 跨盘只有 Windows 存在：nt 上 relpath 抛 ValueError ⇒ 退回绝对；POSIX 上 "Z:" 只是普通名字
+        cross = rel_to_repo("Z:/somewhere/x.yaml", root=str(tmp_path))
+        assert cross.endswith("x.yaml")
+        if os.name == "nt":
+            assert cross == "Z:/somewhere/x.yaml", f"Windows 跨盘应退回绝对路径，实际 {cross}"
 
     def test_当前判否集合是_internal_的子集(self):
         """上线时点的零行为变化锁：本开关打开前后，模型可见集必须**完全相同**

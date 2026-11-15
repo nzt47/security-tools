@@ -57,7 +57,7 @@ import ast
 import os
 from functools import lru_cache
 
-from agent.lines._paths import rel_to_repo as _rel_to_repo
+from agent.utils.paths import rel_to_repo as _rel_to_repo
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

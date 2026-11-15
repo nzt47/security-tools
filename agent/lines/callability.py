@@ -89,7 +89,7 @@ from typing import Any, Dict, FrozenSet, Iterable, List, Optional, Tuple
 
 import yaml
 
-from agent.lines._paths import rel_to_repo as _rel_to_repo
+from agent.utils.paths import rel_to_repo as _rel_to_repo
 
 logger = logging.getLogger(__name__)
 

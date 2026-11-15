@@ -55,6 +55,36 @@ def _reset_env(monkeypatch):
 DANGEROUS_BUT_HARMLESS = "drop table users"
 
 
+def _usable_bash() -> tuple[bool, str]:
+    """本机有没有**真的能跑**的 bash（返回 (可用, 说明)）
+
+    【为什么不能只用 `shutil.which("bash")`（2026-11-15 windows CI 实测）】windows-latest 上
+    `bash.exe` 存在但是 **WSL 的入口**，而 runner 没装 WSL 发行版 —— 于是 `which("bash")` 为真、
+    真正执行却只得到 `"Windows Subsystem for Linux has no installed distributions"`（还是 UTF-16、
+    带 \x00），三条 depend-on-bash 的用例因此红成「stdout 里没有 hello」。
+    判据改成"跑一句 `echo ok` 看回来的是什么"，失败就**如实跳过**（不伪装通过）。
+    """
+    import shutil
+    exe = shutil.which("bash")
+    if not exe:
+        return False, "本机没有 bash（run_sandboxed 用 argv 形态，不经 shell）"
+    try:
+        proc = subprocess.run([exe, "-c", "echo ok"], capture_output=True,
+                              timeout=15, text=True, encoding="utf-8", errors="replace")
+    except (OSError, subprocess.SubprocessError) as exc:
+        return False, f"bash 起不来（{type(exc).__name__}）"
+    out = (proc.stdout or "").replace("\x00", "").strip()
+    if proc.returncode == 0 and "ok" in out:
+        return True, ""
+    head = (proc.stderr or proc.stdout or "").replace("\x00", "").strip()[:120]
+    return False, f"bash 不可用（rc={proc.returncode}）：{head or '无输出'}"
+
+
+BASH_OK, BASH_REASON = _usable_bash()
+#: 需要**真 bash** 的用例（Windows 上常常只有 WSL 的空壳，见 `_usable_bash`）
+BASH_REQUIRED = pytest.mark.skipif(not BASH_OK, reason=BASH_REASON)
+
+
 # ════════════════════════════════════════════════════════════
 #  一、E7：`shell_execute` 走 `validate_command` + `run_sandboxed`
 # ════════════════════════════════════════════════════════════
@@ -76,6 +106,7 @@ class TestShellWiring:
         assert seen, "shell_execute 必须先过 validate_command"
         assert any("echo hello-wiring" in c for c in seen)
 
+    @BASH_REQUIRED
     def test_run_sandboxed_is_the_executor(self, monkeypatch):
         """spy：执行**真的**落在 `Sandbox.run_sandboxed` 上（改动前它零生产调用方）"""
         seen = []
@@ -122,6 +153,7 @@ class TestShellWiring:
         execute_shell(DANGEROUS_BUT_HARMLESS, shell="bash")
         assert seen == [], "影子模式命中后应走既有路径，不得进沙箱执行器"
 
+    @BASH_REQUIRED
     def test_off_mode_is_legacy(self, monkeypatch):
         """`off` 档：完全不接线（等价改动前 —— 回滚口）"""
         monkeypatch.setenv("CP_SANDBOX_SHELL_MODE", "off")
@@ -148,6 +180,7 @@ class TestShellWiring:
         from agent.tools.shell_tools import sandbox_mode
         assert sandbox_mode() == expected
 
+    @BASH_REQUIRED
     def test_timeout_kill_and_truncation_preserved(self):
         """既有能力不退化：超时 kill 与输出截断仍由 `run_sandboxed` 保证"""
         import shutil
@@ -163,6 +196,7 @@ class TestShellWiring:
             limits=SandboxResourceLimits(max_output_bytes=10))
         assert len(limited.stdout) <= 10
 
+    @BASH_REQUIRED
     def test_normal_shell_usage_not_blocked(self):
         """E10：常规 shell 用法（管道/变量/重定向）不被误拦"""
         from agent.tools.shell_tools import execute_shell
