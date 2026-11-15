@@ -157,7 +157,15 @@ export default function PreviewPanel({
       </div>
 
       <div className="pl-preview-block">
-        <h3>Token 用量估算</h3>
+        {/* 【2026-11-15】这里显示的是**各节声明的 token 预算**之和，不是一次请求的实测用量
+            （实测：一次真实请求 8.8k，其中 tools 定义 7.6k、system 提示词只有 ~130 tok、
+            记忆线索实测只有几十字符，而面板曾把记忆线索按 5000 计）。改标题 + 指路，
+            免得按这些数字去砍不存在的开销。 */}
+        <h3>Token 预算（各节声明值 · 非实测）</h3>
+        <p className="pl-export-hint">
+          真实用量请看「LLM 通信监控」里每次请求的 usage —— 那边的 tools 段通常是大头
+          （本部署实测：26 个工具 ≈ 7.6k tok、system 提示词 ≈ 130 tok、缓存命中率 ~97%）。
+        </p>
         <div className="pl-token-table">
           <div className="pl-token-row">
             <span>身份提示词模板（注入）</span>
