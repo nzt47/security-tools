@@ -5,6 +5,11 @@
  * （§11.123 K-2 / §11.124 D-2）：**前端为主**，6 个 0–1 滑块住在「提示词影响因素实验室」
  * 的「人格」分类里，调了就真的写后端；后端人格模块不用动。
  *
+ * 【同日追加：「人格不要两份，合成到轻量版就可以，TAB 的可以删掉」】于是「人格」Tab 与
+ * pages/hub/personality.tsx 一并删除，**这个分类就是人格的唯一入口**。原 Tab 上的两件
+ * 能力不能跟着一起没：预设人格（3 个档）与「重置」也搬到这里（applyProfile / reset），
+ * 数据仍走后端既有的 /api/personality/profile|reset 两个端点。
+ *
  * 数据流（三条，缺一条就会"面板在动、后端没变"）：
  *   1. 首屏 GET /api/personality → 用 custom_params **覆盖** store 里的默认值
  *      （否则界面显示的是 lib 里的默认档，与线上不一致，拖动一次就把线上改成默认值）；
@@ -16,9 +21,9 @@
  * 【视图如实】人格参数进不进提示词，由系统提示词的 persona 节决定（默认关闭），
  * 本 hook 只管"写进后端"，不承诺"影响回答"；界面的黄条见 index.tsx。
  */
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getEnvelope, postEnvelope } from '@/api/envelope'
-import { PERSONALITY, PERSONALITY_PARAMS } from '@/api/endpoints'
+import { PERSONALITY, PERSONALITY_PARAMS, PERSONALITY_PROFILE, PERSONALITY_RESET } from '@/api/endpoints'
 import {
   PERSONALITY_DIMENSIONS,
   personalityParamsDiff,
@@ -29,10 +34,26 @@ import type { FactorValue } from '../../lib/promptFactorTypes'
 /** 防抖窗口（ms）：拖动滑块时只在停手后发一次 POST */
 export const PERSONALITY_DEBOUNCE_MS = 400
 
-/** GET /api/personality 的载荷（只声明本 hook 用到的两个键，其余原样忽略） */
+/** 一个人格预设档（后端 profiles 的一项） */
+export interface PersonalityProfile {
+  name: string
+  description?: string
+  params?: Record<string, number>
+}
+
+/** GET /api/personality 的载荷（只声明本 hook 用到的键，其余原样忽略） */
 export interface PersonalityPayload {
   current_profile?: string
   custom_params?: Record<string, number>
+  profiles?: Record<string, PersonalityProfile>
+}
+
+/** POST /api/personality/profile|reset 的回执（后端既有形状：{ok, profile?, params?} / {ok:false, error}） */
+interface ProfileResp {
+  ok?: boolean
+  profile?: string
+  params?: Record<string, number>
+  error?: string
 }
 
 export interface PersonalitySync {
@@ -40,17 +61,38 @@ export interface PersonalitySync {
   loading: boolean
   /** 正在写回后端 */
   saving: boolean
+  /** 正在应用预设 / 重置 */
+  applying: boolean
   /** 读/写失败的原文（空串 = 无错） */
   error: string
   /** 后端当前档位（写入后后端会置 custom）；读不到时为空串 */
   profile: string
+  /** 后端登记的预设档（删除「人格」Tab 后，预设搬到了这个分类里） */
+  profiles: Record<string, PersonalityProfile>
   /** 是否已经尝试过读取（读失败也算；界面据此区分"默认值"与"后端值"） */
   loaded: boolean
   /** 最近一次写入成功的时刻（Date.now()），null = 还没写过 */
   syncedAt: number | null
+  /** 应用某个预设档（会整份覆盖 6 维并置 current_profile） */
+  applyProfile: (key: string) => void
+  /** 重置为默认档（后端 /api/personality/reset = apply_profile('gentle_helper')） */
+  reset: () => void
 }
 
 const msgOf = (e: unknown): string => (e instanceof Error ? e.message : String(e))
+
+/** 后端 params（{tone,…}）→ 因素补丁（{'personality.tone':…}）；只认 0–1 的数字 */
+function paramsToPatch(params: Record<string, number> | undefined): Record<string, FactorValue> {
+  const patch: Record<string, FactorValue> = {}
+  for (const dim of PERSONALITY_DIMENSIONS) {
+    const v = params?.[dim.key]
+    // 后端若回 null/字符串，宁可保留默认值，也不要写 NaN 进滑块
+    if (typeof v === 'number' && Number.isFinite(v)) {
+      patch['personality.' + dim.key] = Math.min(1, Math.max(0, v))
+    }
+  }
+  return patch
+}
 
 /**
  * @param values     store 里的因素当前值（只读其中 personality.* 6 项）
@@ -62,8 +104,10 @@ export function usePersonalityFactors(
 ): PersonalitySync {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [applying, setApplying] = useState(false)
   const [error, setError] = useState('')
   const [profile, setProfile] = useState('')
+  const [profiles, setProfiles] = useState<Record<string, PersonalityProfile>>({})
   const [loaded, setLoaded] = useState(false)
   const [syncedAt, setSyncedAt] = useState<number | null>(null)
 
@@ -81,19 +125,12 @@ export function usePersonalityFactors(
     getEnvelope<PersonalityPayload | null>(PERSONALITY)
       .then((d) => {
         if (!alive) return
-        const custom = d?.custom_params ?? {}
-        const patch: Record<string, FactorValue> = {}
-        for (const dim of PERSONALITY_DIMENSIONS) {
-          const v = custom[dim.key]
-          // 只认数字（后端若回 null/字符串，宁可保留默认值，也不要写 NaN 进滑块）
-          if (typeof v === 'number' && Number.isFinite(v)) {
-            patch['personality.' + dim.key] = Math.min(1, Math.max(0, v))
-          }
-        }
+        const patch = paramsToPatch(d?.custom_params)
         setValues(patch)
         // 基线 = 后端值 ∪ 本地未覆盖项：这样"刚读到就立刻回写一次"不会发生
         baselineRef.current = personalityParamsOf({ ...valuesRef.current, ...patch })
         setProfile(d?.current_profile ?? '')
+        setProfiles(d?.profiles ?? {})
         setLoaded(true)
       })
       .catch((e) => {
@@ -139,5 +176,50 @@ export function usePersonalityFactors(
     return () => clearTimeout(timer)
   }, [params, loaded])
 
-  return { loading, saving, error, profile, loaded, syncedAt }
+  // ── 3. 预设 / 重置（原「人格」Tab 上的两件事，Tab 删除后搬到这里） ──
+  /**
+   * 两个端点的回执形状一样（{ok, profile, params}），故共用一段收尾：
+   * 先对齐基线再写 store —— 否则"应用预设"会被防抖 effect 当成一次拖动，又 POST 一遍参数。
+   */
+  const applyFrom = useCallback(
+    async (run: () => Promise<ProfileResp>, fallbackProfile: string, label: string) => {
+      if (applying) return
+      setApplying(true)
+      try {
+        const d = await run()
+        if (d?.ok === false) {
+          setError(label + '失败：' + (d.error || 'ok=false'))
+          return
+        }
+        const patch = paramsToPatch(d?.params)
+        baselineRef.current = personalityParamsOf({ ...valuesRef.current, ...patch })
+        setValues(patch)
+        setProfile(d?.profile || fallbackProfile)
+        setSyncedAt(Date.now())
+        setError('')
+      } catch (e) {
+        setError(label + '失败：' + msgOf(e))
+      } finally {
+        setApplying(false)
+      }
+    },
+    [applying, setValues],
+  )
+
+  const applyProfile = useCallback(
+    (key: string) => {
+      void applyFrom(
+        () => postEnvelope<ProfileResp>(PERSONALITY_PROFILE, { profile: key }),
+        key,
+        '应用人格预设',
+      )
+    },
+    [applyFrom],
+  )
+
+  const reset = useCallback(() => {
+    void applyFrom(() => postEnvelope<ProfileResp>(PERSONALITY_RESET), 'gentle_helper', '重置人格参数')
+  }, [applyFrom])
+
+  return { loading, saving, applying, error, profile, profiles, loaded, syncedAt, applyProfile, reset }
 }

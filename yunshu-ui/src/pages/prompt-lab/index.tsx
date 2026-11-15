@@ -28,7 +28,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { FileCode2, FlaskConical, Plus, Radio, RotateCcw, Smile, TriangleAlert } from 'lucide-react';
+import { FileCode2, FlaskConical, Plus, Radio, RotateCcw, TriangleAlert } from 'lucide-react';
 import { usePromptLabStore } from '../../stores/usePromptLabStore';
 import { downloadFile } from '../../utils/system';
 import {
@@ -54,8 +54,8 @@ import LlmMonitorPanel from './LlmMonitorPanel';
 // 它与"影响因素/人格"同属"模型侧配置"，此前只有后端与手改文件。
 // 2026-11-15：不再独占 Tab，改由影响因素页的「① 基础模板」（默认收起）承载
 import SystemPromptPanel from './SystemPromptPanel';
-// 人格配置（原「人格与提示词 → 人格配置」独立页）并入本页第 3 个 Tab（阶段 1.1）
-import PersonalityPage from '../hub/personality';
+// 【2026-11-15 人格不再有两份】原「人格」Tab（pages/hub/personality.tsx）已删除，
+// 6 维滑块 + 预设 + 重置全部住在影响因素页的「人格」分类里（单一入口）。
 import { useIdentityPrompt } from './identityPrompt';
 // 人格 6 维 ↔ /api/personality 的同步（首屏 GET 覆盖 + 防抖 400ms POST）
 import { usePersonalityFactors } from './personalityFactors';
@@ -65,17 +65,17 @@ import '../PromptLab.css';
 
 type Filter = 'all' | FactorCategory;
 
-/** 主内容区模块 Tab（并列展示）：影响因素实验室 / LLM 通信监控 / 人格 */
-type LabTab = 'factors' | 'llm-monitor' | 'personality';
+/**
+ * 主内容区模块 Tab（并列展示）：影响因素实验室 / LLM 通信监控。
+ *
+ * 【2026-11-15 人格 Tab 删除】Owner：「人格不要两份，合成到轻量版就可以，TAB 的可以删掉。」
+ * 人格 6 维 + 预设 + 重置现在只在「影响因素 → 人格」分类里（pages/hub/personality.tsx 已删）。
+ */
+type LabTab = 'factors' | 'llm-monitor';
 
 const LAB_TABS: { id: LabTab; label: string; icon: typeof FlaskConical; hint: string }[] = [
-  { id: 'factors', label: '提示词影响因素实验室', icon: FlaskConical, hint: '① 基础模板 → ② 分节配置 → ③ 最终注入文本，外加 6 类因素（含人格）与试跑' },
+  { id: 'factors', label: '提示词影响因素实验室', icon: FlaskConical, hint: '① 基础模板 → ② 分节配置 → ③ 最终注入文本，外加 6 类因素（含人格与预设）与试跑' },
   { id: 'llm-monitor', label: 'LLM 通信监控', icon: Radio, hint: '每次 LLM 调用的完整收发内容（折叠展开）+ Token 统计' },
-  // 阶段 1.1：原「人格与提示词 → 人格配置」独立页并入本页 Tab。
-  // 语义：人格是"它是谁"（画像），因素实验室是"它怎么答"（行为），同属"模型侧配置"。
-  // 2026-11-15：这 6 维同时进了「影响因素 → 人格」分类（调了直接写后端），此 Tab 保留为
-  // 「预设人格 + 重置」的整体视图，两者共用同一份 /api/personality。
-  { id: 'personality', label: '人格', icon: Smile, hint: '云枢的语气体征（语气/情感/简练/主动/幽默/同理心）+ 预设人格' },
 ];
 
 /** 记住上次所在 Tab（会话级偏好，刷新不跳回） */
@@ -87,6 +87,8 @@ const readSavedTab = (): LabTab => {
     // 存量值归一（2026-11-15 三层合并）：'system-prompt' 这个 Tab 已经不存在了，
     // 老用户浏览器里还存着它 —— 不归一就会刷新后落在一个没有对应分支的 Tab 上（空白页）。
     if (v === 'system-prompt') return 'factors';
+    // 同理：'personality' Tab 已于 2026-11-15 删除（人格并进影响因素），存量值也要归一
+    if (v === 'personality') return 'factors';
     return LAB_TABS.some((t) => t.id === v) ? (v as LabTab) : 'factors';
   } catch {
     return 'factors';
@@ -154,16 +156,21 @@ export default function PromptLab() {
     identityColRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
   };
 
-  /** 人格 6 维的后端同步状态（一行小字，如实说现在是"后端值"还是"还没读到"） */
+  /**
+   * 人格 6 维的后端同步状态（一行小字，如实说现在是"后端值"还是"还没读到"）。
+   * 【2026-11-15 删除人格 Tab 后】预设/重置也在这里，故状态里要能看出"正在应用预设"。
+   */
   const personalityStatus = personality.loading
     ? '正在读取后端人格参数…'
     : personality.error
       ? personality.error
-      : personality.saving
-        ? '正在写入 /api/personality…'
-        : personality.syncedAt !== null
-          ? '已写入 /api/personality（后端档位 custom）'
-          : `已载入后端参数（档位 ${personality.profile || '未知'}）· 拖动后自动写回，停手 400ms 发一次`;
+      : personality.applying
+        ? '正在应用人格预设…'
+        : personality.saving
+          ? '正在写入 /api/personality…'
+          : personality.syncedAt !== null
+            ? `已写入 /api/personality（档位 ${personality.profile || 'custom'}）`
+            : `已载入后端参数（档位 ${personality.profile || '未知'}）· 拖动后自动写回，停手 400ms 发一次`;
 
   const runLlm = async () => {
     if (!llm.useBackend && !llm.endpoint.trim()) {
@@ -339,6 +346,34 @@ export default function PromptLab() {
                           </button>
                         </div>
                       )}
+                      {/* 预设人格 + 重置：原本在「人格」Tab 的 PageHeader 与预设卡里，
+                          Tab 删除后搬到这里（能力不能跟着 Tab 一起消失）。 */}
+                      {Object.keys(personality.profiles).length > 0 && (
+                        <div className="pl-preset-row" role="group" aria-label="人格预设">
+                          {Object.entries(personality.profiles).map(([key, preset]) => (
+                            <button
+                              key={key}
+                              type="button"
+                              className={`pl-preset-chip ${personality.profile === key ? 'active' : ''}`}
+                              onClick={() => personality.applyProfile(key)}
+                              disabled={personality.applying}
+                              title={preset.description || preset.name}
+                              aria-pressed={personality.profile === key}
+                            >
+                              {preset.name}
+                            </button>
+                          ))}
+                          <button
+                            type="button"
+                            className="pl-preset-chip"
+                            onClick={personality.reset}
+                            disabled={personality.applying}
+                            title="回到默认档（温和助人型）"
+                          >
+                            重置
+                          </button>
+                        </div>
+                      )}
                       <p className="pl-personality-status">{personalityStatus}</p>
                     </>
                   )}
@@ -404,32 +439,10 @@ export default function PromptLab() {
             />
           </div>
         </>
-      ) : tab === 'llm-monitor' ? (
+      ) : (
         /* LLM 通信监控：主内容区整屏（原页面底部并入 → 提为主 Tab） */
         <div className="pl-tab-body">
           <LlmMonitorPanel />
-        </div>
-      ) : (
-        /* 人格：原「人格与提示词 → 人格配置」独立页并入（阶段 1.1） */
-        <div className="pl-tab-body">
-          {/* 视图如实（2026-11-15）：人格参数走 /api/personality，但**进不进提示词**由
-              系统提示词的 persona 节决定；该节默认关闭 ⇒ 面板上怎么调都不会改变回答。
-              不写这条提示，这里就是个静默空转的页面（Owner 问「人格能不能并进因素」时发现的）。 */}
-          {!personaEmitted && (
-            <div className="pl-warn-strip" role="status">
-              <TriangleAlert size={13} />
-              <span>
-                这里的 6 维参数目前
-                <strong>不会进入提示词</strong>：系统提示词的「persona 节」是关闭的（约 1500 tok）。
-                要让它们真的影响回答，需要在「提示词影响因素实验室 → ② 分节配置」里开启 persona 节
-                （这 6 维在那边也有一份，两边改的是同一份后端参数）。
-              </span>
-              <button type="button" className="pl-btn" onClick={() => setTab('factors')}>
-                去分节配置
-              </button>
-            </div>
-          )}
-          <PersonalityPage />
         </div>
       )}
 

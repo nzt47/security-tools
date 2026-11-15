@@ -33,20 +33,23 @@ type Sections = Record<string, Section>
 /** 被 mock 的配置库（测试可写；每次用例前重置） */
 const h = vi.hoisted(() => ({ sections: {} as Record<string, any> }))
 
-// 阶段 1.1：人格 Tab 的内容是原 pages/hub/personality；此处打桩，避免真实 /api/personality 请求，
-// 只验证「人格」Tab 已挂载到该页组件。
-vi.mock('../hub/personality', () => ({
-  default: () => <div data-testid="personality-page-stub" />,
-}))
-
 // 2026-11-15 人格 6 维并进因素：这些滑块会 GET /api/personality（首屏覆盖默认值）并在变化后
 // 防抖 POST /api/personality/params。本文件锁的是页面结构，不锁同步机制（那条在
-// personalityFactors.test.tsx 里单独锁），故这里只给一个"读得到、写得动"的桩。
+// personalityFactors.test.tsx 里单独锁），故这里只给一个"读得到、写得动"的桩 ——
+// 顺带带上预设档，用来锁「删掉人格 Tab 之后预设没跟着消失」。
 vi.mock('@/api/envelope', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>()
   return {
     ...actual,
-    getEnvelope: vi.fn(async () => ({ current_profile: 'custom', custom_params: {}, dimensions: [], profiles: {} })),
+    getEnvelope: vi.fn(async () => ({
+      current_profile: 'custom',
+      custom_params: {},
+      dimensions: [],
+      profiles: {
+        gentle_helper: { name: '温和助人型', description: '温暖、耐心', params: {} },
+        professional: { name: '专业顾问型', description: '严谨、客观', params: {} },
+      },
+    })),
     postEnvelope: vi.fn(async () => ({ ok: true })),
   }
 })
@@ -154,6 +157,9 @@ const cardFor = (label: string) =>
 
 beforeEach(() => {
   h.sections = baseSections()
+  // Tab 偏好存在 localStorage（会话级），会被上一条用例的点击留下来 —— 不清就会渲染到错的 Tab
+  // （2026-11-15 实际踩到：新用例要断言影响因素页，却因为上一条点过「LLM 通信监控」而看到监控面板）。
+  localStorage.removeItem('yunshu.prompt-lab.tab')
 })
 
 afterEach(cleanup)
@@ -282,10 +288,11 @@ describe('需求③：LLM 通信监控位于主内容区并以 TAB 并列', () =
     const labels = within(tablist)
       .getAllByRole('tab')
       .map((t) => (t.textContent ?? '').trim())
-    // 阶段 1.1：人格并入成为第 3 个 Tab（原两 Tab 顺序不变）
-    // 2026-11-15：**三层合并**（§11.124 D-1）—— 「系统提示词」不再是独立 Tab，
-    //   改由影响因素页里的「① 基础模板」折叠块承载，故从此只有 3 个 Tab。
-    expect(labels).toEqual(['提示词影响因素实验室', 'LLM 通信监控', '人格'])
+    // 2026-11-15 两次收口后只剩 2 个 Tab：
+    //   · 三层合并（§11.124 D-1）：系统提示词 Tab 取消 → 影响因素页的「① 基础模板」折叠块；
+    //   · 人格不再两份（Owner）：「人格」Tab 删除 → 6 维 + 预设 + 重置全在影响因素页的
+    //     「人格」分类里（pages/hub/personality.tsx 同时删除）。
+    expect(labels).toEqual(['提示词影响因素实验室', 'LLM 通信监控'])
 
     // 默认在影响因素实验室：监控面板未挂载（不在页面最底部）
     expect(screen.queryByText('发送 Tokens')).toBeNull()
@@ -295,9 +302,25 @@ describe('需求③：LLM 通信监控位于主内容区并以 TAB 并列', () =
     expect(await screen.findByText('发送 Tokens')).toBeTruthy()
     expect(screen.getByText('接收 Tokens')).toBeTruthy()
 
-    // 阶段 1.1：第三个 Tab「人格」切换到原人格配置页
-    expect(screen.queryByTestId('personality-page-stub')).toBeNull()
-    fireEvent.click(within(tablist).getByRole('tab', { name: '人格' }))
-    expect(await screen.findByTestId('personality-page-stub')).toBeTruthy()
+    // 2026-11-15：「人格」Tab 已删除（人格并进影响因素），Tab 条只剩这两个
+    expect(within(tablist).queryByRole('tab', { name: '人格' })).toBeNull()
+  })
+})
+
+describe('人格不再两份（Owner 2026-11-15）：只在影响因素页，含预设与重置', () => {
+  it('人格分类里有 6 个滑块、预设档与重置按钮，且不再有「人格」Tab', async () => {
+    render(<PromptLab />)
+    await screen.findByText('身份提示词（系统提示词 · 线上配置）')
+
+    // 6 个滑块（0–1：top_p 也是 max=1，故按 aria-label 精确点）
+    for (const name of ['语气', '情感', '简练', '主动', '幽默', '同理心']) {
+      expect(screen.getByRole('slider', { name }), '人格滑块缺失：' + name).toBeTruthy()
+    }
+
+    // 原「人格」Tab 上的预设与重置搬到这里（能力不随 Tab 消失）
+    const presets = screen.getByRole('group', { name: '人格预设' })
+    expect(within(presets).getByRole('button', { name: '温和助人型' })).toBeTruthy()
+    expect(within(presets).getByRole('button', { name: '专业顾问型' })).toBeTruthy()
+    expect(within(presets).getByRole('button', { name: '重置' })).toBeTruthy()
   })
 })

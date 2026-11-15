@@ -19,7 +19,7 @@ import {
   personalityParamsDiff,
   personalityParamsOf,
 } from '../../lib/promptFactors'
-import { PERSONALITY_PARAMS } from '@/api/endpoints'
+import { PERSONALITY_PARAMS, PERSONALITY_PROFILE, PERSONALITY_RESET } from '@/api/endpoints'
 import { PERSONALITY_DEBOUNCE_MS, usePersonalityFactors } from './personalityFactors'
 
 const api = vi.hoisted(() => ({ getEnvelope: vi.fn(), postEnvelope: vi.fn() }))
@@ -43,11 +43,18 @@ function Harness() {
         {sync.loading ? 'loading' : sync.error ? 'error' : sync.saving ? 'saving' : sync.syncedAt ? 'synced' : 'idle'}
       </span>
       <span data-testid="error">{sync.error}</span>
+      <span data-testid="profile">{sync.profile}</span>
       <button type="button" onClick={() => setValues({ 'personality.tone': 0.12 })}>
         set-tone
       </button>
       <button type="button" onClick={() => setValues({ 'personality.humor': 0.34 })}>
         set-humor
+      </button>
+      <button type="button" onClick={() => sync.applyProfile('professional')}>
+        apply-professional
+      </button>
+      <button type="button" onClick={sync.reset}>
+        do-reset
       </button>
     </div>
   )
@@ -143,6 +150,48 @@ describe('usePersonalityFactors：首屏读数 / 防抖写回 / 读失败', () =
       params: { tone: 0.12, humor: 0.34 },
     })
     expect(screen.getByTestId('state').textContent).toBe('synced')
+  })
+
+  it('应用预设：6 维整份覆盖、档位跟上，且不会被当成一次拖动再 POST 一遍', async () => {
+    const PRO_PARAMS = { tone: 0.3, emotion: 0.2, conciseness: 0.7, initiative: 0.6, humor: 0.1, empathy: 0.4 }
+    api.getEnvelope.mockResolvedValue({
+      current_profile: 'custom',
+      custom_params: {},
+      profiles: { professional: { name: '专业顾问型', params: PRO_PARAMS } },
+    })
+    api.postEnvelope.mockResolvedValue({ ok: true, profile: 'professional', params: PRO_PARAMS })
+    render(<Harness />)
+    await waitFor(() => expect(screen.getByTestId('state').textContent).toBe('idle'))
+
+    fireEvent.click(screen.getByText('apply-professional'))
+    await waitFor(() => expect(screen.getByTestId('tone').textContent).toBe('0.3'))
+    expect(usePromptLabStore.getState().values['personality.empathy']).toBe(0.4)
+    expect(screen.getByTestId('profile').textContent).toBe('professional')
+    expect(api.postEnvelope).toHaveBeenCalledWith(PERSONALITY_PROFILE, { profile: 'professional' })
+
+    // 关键：预设已经把基线对齐了 ⇒ 推进一个完整防抖窗口也不该再发 params
+    vi.useFakeTimers()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(PERSONALITY_DEBOUNCE_MS + 200)
+    })
+    const paramsCalls = api.postEnvelope.mock.calls.filter((c) => c[0] === PERSONALITY_PARAMS)
+    expect(paramsCalls, '应用预设被误当成拖动写回了').toHaveLength(0)
+  })
+
+  it('重置：走 /api/personality/reset，值回到默认档', async () => {
+    api.getEnvelope.mockResolvedValue({ current_profile: 'custom', custom_params: { tone: 0.95 }, profiles: {} })
+    api.postEnvelope.mockResolvedValue({
+      ok: true,
+      profile: 'gentle_helper',
+      params: { tone: 0.6, emotion: 0.7, conciseness: 0.4, initiative: 0.5, humor: 0.3, empathy: 0.8 },
+    })
+    render(<Harness />)
+    await waitFor(() => expect(screen.getByTestId('tone').textContent).toBe('0.95'))
+
+    fireEvent.click(screen.getByText('do-reset'))
+    await waitFor(() => expect(screen.getByTestId('tone').textContent).toBe('0.6'))
+    expect(api.postEnvelope).toHaveBeenCalledWith(PERSONALITY_RESET)
+    expect(screen.getByTestId('profile').textContent).toBe('gentle_helper')
   })
 
   it('读不到后端：值保持默认，错误如实上抛（界面据此说明现在不是后端值）', async () => {

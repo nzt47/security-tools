@@ -506,6 +506,40 @@
   margin-bottom: 12px;
 }
 
+/* 人格预设（原「人格」Tab 上的预设卡 + 重置；Tab 删除后搬进这个分类）
+   300px 窄列里 4 个 chip 需要换行，故用 flex-wrap + 小字号 */
+.pl-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px 16px;
+}
+.pl-preset-chip {
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--wb-border);
+  background: transparent;
+  color: var(--wb-text-dim);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pl-preset-chip:hover {
+  color: var(--wb-text);
+  border-color: var(--wb-border-strong);
+}
+.pl-preset-chip.active {
+  color: #06121a;
+  background: #e879f9;
+  border-color: #e879f9;
+  font-weight: 600;
+}
+.pl-preset-chip:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 /* 人格 6 维的同步状态（一行小字：读的是后端值还是默认值 / 正在写回 / 写失败） */
 .pl-personality-status {
   margin: 0 0 10px 16px;

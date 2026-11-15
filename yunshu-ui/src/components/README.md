@@ -44,7 +44,7 @@
 | `PreviewPanel` | 右栏「③ 最终注入文本（只读）」+ 生成的提示词 / 真实模型试跑 / 雷达图 / Token 预算 / 导出（2026-11-15 去掉「模拟 / 真实接口」双模式与「模拟输出」，三层合并后标题改为 ③） |
 | `SystemPromptPanel` | 「① 基础模板」编辑器（骨架 + 占位符 / 保存 / 重置 / 同步状态）；原独立 TAB，2026-11-15 起由影响因素页的默认收起折叠块承载 |
 | `columnLayout.ts` | 三列宽度可拖拽 + 自动保存（localStorage `yunshu:prompt-lab:cols:v1`，下限 220/300/360，双击拖拽条复位）；2026-11-15 Owner「由我来定列宽吧」 |
-| `personalityFactors.ts` | 人格 6 维 ↔ `/api/personality` 的同步（首屏 GET 覆盖默认值 + 变化后防抖 400ms 只发改动键）；2026-11-15 人格并进因素（轻量版） |
+| `personalityFactors.ts` | 人格 6 维 ↔ `/api/personality` 的同步（首屏 GET 覆盖默认值 + 变化后防抖 400ms 只发改动键）+ 预设档/重置；2026-11-15 人格并进因素（轻量版），同日删除「人格」Tab（`pages/hub/personality.tsx` 一并删除）⇒ 这里是人格的**唯一入口** |
 | `index.tsx` | 主页面编排（状态与布局，样式见 `src/pages/PromptLab.css`）；2026-11-15 三层合并成 ① 基础模板 → ② 分节配置 → ③ 最终注入文本 一屏 |
 
 ## 使用约定

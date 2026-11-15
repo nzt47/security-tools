@@ -4,14 +4,21 @@
   · POST /api/personality/params   → status.api_personality_params
   · POST /api/personality/profile  → status.api_personality_profile
   · POST /api/personality/reset    → status.api_personality_reset
-  三者消费方各只有一个文件：pages/hub/personality.tsx（同页 GET 已在第四批迁移）。
+  三者消费方各只有一个文件（同页 GET 已在第四批迁移）。
+
+  【2026-11-15 消费方搬家】原消费方 pages/hub/personality.tsx 随「人格」Tab 一起删除
+  （Owner：「人格不要两份，合成到轻量版就可以，TAB 的可以删掉」），三条写端点现在由
+  pages/prompt-lab/personalityFactors.ts 消费（人格 6 维并进「提示词影响因素」）。
+  断言意图不变（三条都走 postEnvelope、POST 回执按后端既有键 params/profile 读），
+  故 Test前端解析 的取样文件改为新消费方；同时补一条「GET 用 GET 的键」。
 
 【动手前已按纪律核对的两件事】
   ① 活体是谁：运行期 url_map 实测三条都在 plugins/status.py；
      agent/server_routes/routes_personality.py 里那份同名同路径实现**未接线**（死副本）。
   ② 消费方预扫（**按客户端种类**）：全仓（agent/plugins/app_server/scripts）对这三个
      **视图函数**的进程内调用实测 0 处；tests/ 对响应体做顶层键访问 0 处；前端只有
-     personality.tsx 一处走 hubPost；lib/apiClient 无消费方 ⇒ 本批不需同步改既有断言。
+     personality 一处走 hubPost（2026-11-15 起是 prompt-lab/personalityFactors.ts）；
+     lib/apiClient 无消费方 ⇒ 本批不需同步改既有断言。
 
 【一条**迁移顺手修掉**的真实契约不一致（响应侧）】后端一向返回 `params` / `profile`，
   而前端读的是 `custom_params` / `current_profile`（与同文件 GET 的键名混淆）⇒ 点预设人格后
@@ -171,10 +178,18 @@ class Test结构断言:
 
 
 class Test前端解析:
+    """【2026-11-15】取样文件从 pages/hub/personality.tsx（随「人格」Tab 删除）换成
+    pages/prompt-lab/personalityFactors.ts —— 同一个契约，同一个消费方，只是位置变了。"""
+
+    CONSUMER = ROOT / "yunshu-ui" / "src" / "pages" / "prompt-lab" / "personalityFactors.ts"
+
     def _code(self):
         from scripts.audit.contract_diff import strip_comments
-        src = (ROOT / "yunshu-ui" / "src" / "pages" / "hub" / "personality.tsx").read_text(encoding="utf-8")
-        return strip_comments(src)
+        assert self.CONSUMER.exists(), (
+            "人格三写端点的前端消费方不见了："
+            + str(self.CONSUMER.relative_to(ROOT))
+        )
+        return strip_comments(self.CONSUMER.read_text(encoding="utf-8"))
 
     def test_三处POST都改用postEnvelope(self):
         import re
@@ -187,11 +202,21 @@ class Test前端解析:
         assert "hubPost(" not in code, "本页仍用 hubPost ⇒ 后端已发信封、前端还在读裸体"
 
     def test_读的是后端既有键params_profile而不是自定义键(self):
+        """POST 回执读 params / profile，GET 读 custom_params / current_profile —— 别写反。
+
+        当年的真实缺陷就是写反（POST 回执按 GET 的键读）⇒ 点预设人格后本地参数静默 undefined。
+        """
+        import re
         code = self._code()
-        assert "rr.custom_params" not in code, "仍在读后端不存在的 custom_params（静默 undefined）"
-        assert "d.params" in code and "d.profile" in code, (
-            "未按后端既有契约读 params / profile ⇒ 点预设人格后本地参数不刷新"
+        assert re.search(r"\bd\??\.params\b", code), (
+            "未按后端既有契约读 POST 回执的 params ⇒ 应用预设后本地参数不刷新"
         )
+        assert re.search(r"\bd\??\.profile\b", code), (
+            "未按后端既有契约读 POST 回执的 profile ⇒ 档位不跟随"
+        )
+        # GET 的键（首屏覆盖默认值用）也必须在：写反（拿 custom_params 去读 POST 回执）同样会被上面两条抓到
+        assert re.search(r"\bd\??\.custom_params\b", code), "GET 未读 custom_params"
+        assert re.search(r"\bd\??\.current_profile\b", code), "GET 未读 current_profile"
 
     def test_剥注释口径对合成样例成立(self):
         from scripts.audit.contract_diff import strip_comments
