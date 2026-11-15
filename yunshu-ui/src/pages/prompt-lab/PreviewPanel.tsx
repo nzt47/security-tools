@@ -75,10 +75,19 @@ export default function PreviewPanel({
       </div>
 
       <div className="pl-preview-block">
-        {/* 2026-11-15：三层合并后统一编号 —— ① 基础模板 / ② 分节配置 / ③ 就是这里。
-            原先叫「系统提示词（最终注入文本 · 只读）」，与另两层的标题同字（"系统提示词"），
-            看上去像第三份重复的东西。 */}
-        <h3>③ 最终注入文本（只读）</h3>
+        {/* 2026-11-15：编号统一 —— ① 分节配置 / ② 就是这里。
+            （基础模板那层已被 Owner 删掉：「分节配置的开关本身就是在组装基础模板，
+            只要每一个开关修改都可以在实时预览中看到就可以了」。）
+            原先叫「系统提示词（最终注入文本 · 只读）」，与另一层的标题同字（"系统提示词"），
+            看上去像重复的东西。 */}
+        <h3>② 最终注入文本（只读）</h3>
+        {/* Owner 2026-11-15 问过「影响因素的变动能不能从实时预览里看到」—— 实测：
+            左侧因素滑块改的是**下面**那块「生成的提示词」（试跑就用它），这一段 system message
+            只由「① 分节配置」的开关组装（滑块不影响）。两句写在这里，免得对着错的块找变化。 */}
+        <p className="pl-export-hint">
+          这一段是 <b>system message</b>，由「① 分节配置」的开关组装；左侧因素滑块改的是
+          下面「生成的提示词」（试跑就用它），不影响这一段。
+        </p>
         <pre className="pl-sim-out">
           {systemPrompt ? (
             hl ? (
@@ -93,13 +102,13 @@ export default function PreviewPanel({
               systemPrompt
             )
           ) : (
-            '（线上身份提示词模板未加载——编辑/保存左侧「身份提示词」区后此处实时更新）'
+            '（还没读到注入模板 —— 左侧「① 分节配置」载入后，这里会随每个开关实时更新）'
           )}
         </pre>
       </div>
 
       <div className="pl-preview-block">
-        <h3>生成的提示词</h3>
+        <h3>生成的提示词（左侧因素实时生成 · 试跑用它）</h3>
         <textarea className="pl-prompt-out" readOnly value={prompt} rows={9} spellCheck={false} />
       </div>
 

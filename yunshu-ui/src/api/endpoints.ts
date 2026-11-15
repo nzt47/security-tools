@@ -551,10 +551,13 @@ export const SEARCH_PERF_CHECK = '/api/search-performance/check';
 export const SEARCH_PERF_START = '/api/search-performance/start';
 export const SEARCH_PERF_STOP = '/api/search-performance/stop';
 
-// 系统提示词（模板读写 / 重置 / 同步状态）
-export const SYSTEM_PROMPT = '/api/system-prompt';
-export const SYSTEM_PROMPT_RESET = '/api/system-prompt/reset';
-export const SYSTEM_PROMPT_SYNC_STATUS = '/api/system-prompt/sync-status';
+// 【2026-11-15 删除】原「模板读写 / 重置 / 同步状态」三条（/api/system-prompt、
+// /api/system-prompt/reset、/api/system-prompt/sync-status）的唯一前端消费方是
+// pages/prompt-lab/SystemPromptPanel（基础模板编辑器）。Owner 定「基础模板可以不要：
+// 分节配置的开关本身就是在组装基础模板，只要每个开关改动在实时预览里看得到就可以」
+// ⇒ 编辑器与这三条常量一并删除。后端端点仍在（脚本/手工仍可读写），但 UI 不再有入口，
+// config/route_ui_intent.json 里对应的三条同时改成 should_not_be_in_ui（否则覆盖率门禁会
+// 把它们记成"该进 UI 却没进"）。分节配置走的是 /api/system-prompt/config*，不受影响。
 
 // 后台任务与异步任务（引擎 · 任务队列）
 export const BACKGROUND_TASKS = '/api/background/tasks';

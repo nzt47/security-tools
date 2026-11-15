@@ -4,7 +4,7 @@
  * Owner 2026-11-15：「改为列宽可拖拽并自动保存，由我来定列宽吧。」
  * 锁四件：
  *   ① 存档读写的健壮性（没存过 / 脏 JSON / 小到不合理的值 ⇒ 回默认，不白屏）；
- *   ② 拖拽只改被拖那一列，且三列下限与"③ 至少 360px"是硬约束；
+ *   ② 拖拽只改被拖那一列，且三列下限与"② 至少 360px"是硬约束；
  *   ③ 松手即写 localStorage（连点两下不动不该改动已保存的偏好）；
  *   ④ 双击拖拽条 = 回默认并写盘。
  */
@@ -57,18 +57,18 @@ describe('resizeColumns：只改被拖的列，三列下限是硬约束', () => 
   // 1440 屏实测内容宽 ≈ 1376，两条拖拽条 24
   const available = 1376
 
-  it('拖因素列的右边缘：只改因素列，② ③ 不动', () => {
+  it('拖因素列的右边缘：只改因素列，另两列不动', () => {
     const next = resizeColumns(DEFAULT_COLUMNS, 'factors', 80, available)
     expect(next).toEqual({ factors: 380, identity: 440 })
   })
 
-  it('因素列拖到下限 / 上限都停住（上限 = 给 ③ 留够 360）', () => {
+  it('因素列拖到下限 / 上限都停住（上限 = 给最终注入文本留够 360）', () => {
     expect(resizeColumns(DEFAULT_COLUMNS, 'factors', -9999, available).factors).toBe(MIN_COLUMNS.factors)
     const max = available - SPLITTER_TOTAL - DEFAULT_COLUMNS.identity - MIN_COLUMNS.preview
     expect(resizeColumns(DEFAULT_COLUMNS, 'factors', 9999, available).factors).toBe(max)
   })
 
-  it('拖分节列：只改分节列（③ 吸收剩余）', () => {
+  it('拖分节列：只改分节列（最终注入文本吸收剩余）', () => {
     const next = resizeColumns(DEFAULT_COLUMNS, 'identity', -60, available)
     expect(next).toEqual({ factors: 300, identity: 380 })
     expect(resizeColumns(DEFAULT_COLUMNS, 'identity', -9999, available).identity).toBe(MIN_COLUMNS.identity)

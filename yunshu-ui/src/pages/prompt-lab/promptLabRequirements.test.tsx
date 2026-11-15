@@ -244,22 +244,20 @@ describe('需求②：提示词实验室（顶栏 / 身份提示词联动）', (
   })
 })
 
-describe('三层合并（§11.124 D-1）：基础模板 / 分节配置 / 最终注入文本 排在一屏', () => {
-  it('① 基础模板块存在且默认收起，② ③ 与它同屏', async () => {
+describe('两层收口（Owner 2026-11-15）：① 分节配置 → ② 最终注入文本', () => {
+  it('基础模板编辑器已删除；① 分节配置与 ② 最终注入文本同屏；两条拖拽条在', async () => {
     render(<PromptLab />)
     // 先等身份提示词区载入（说明影响因素页已经渲染出来）
     await screen.findByText('身份提示词（系统提示词 · 线上配置）')
 
-    const block = document.querySelector('details.pl-base-block') as HTMLDetailsElement | null
-    expect(block, '基础模板必须是一个 details 折叠块（不再是独立 Tab）').toBeTruthy()
-    expect(block!.open, '基础模板默认收起：改骨架是低频动作，不该占首屏').toBe(false)
-    expect(block!.querySelector('summary')?.textContent ?? '').toContain('① 基础模板')
-    // 折叠块里就是原来那个系统提示词模板面板（3 条端点 + 占位符清单）
-    expect(block!.querySelector('[aria-label="系统提示词模板"]')).toBeTruthy()
+    // Owner：「基础模板可以不要，分节配置的开关本身就是在组装基础模板」
+    // ⇒ 那个 details.pl-base-block（模板编辑器）必须整块消失，连编辑框都不该在 DOM 里
+    expect(document.querySelector('details.pl-base-block'), '基础模板折叠块已删除').toBeNull()
+    expect(screen.queryByLabelText('系统提示词模板'), '模板编辑器已删除').toBeNull()
 
-    // 三层同屏：② 分节配置（左栏标题）与 ③ 最终注入文本（右栏块标题）
-    expect(screen.getByText('② 分节配置（哪些块进提示词）')).toBeTruthy()
-    expect(screen.getByText('③ 最终注入文本（只读）')).toBeTruthy()
+    // 同屏两层：① 分节配置（左栏标题）与 ② 最终注入文本（右栏块标题）
+    expect(screen.getByText('① 分节配置（哪些块进提示词）')).toBeTruthy()
+    expect(screen.getByText('② 最终注入文本（只读）')).toBeTruthy()
 
     // 列宽可拖拽（Owner 2026-11-15）：两条拖拽条都在，且是可访问的 vertical separator
     const splits = screen.getAllByRole('separator')
@@ -268,6 +266,30 @@ describe('三层合并（§11.124 D-1）：基础模板 / 分节配置 / 最终�
       '拖动调整分节配置列宽',
     ])
     expect(splits.every((s) => s.getAttribute('aria-orientation') === 'vertical')).toBe(true)
+  })
+
+  it('每个分节开关的改动都反映在 ② 最终注入文本里（Owner 的核心诉求）', async () => {
+    render(<PromptLab />)
+    await vi.waitFor(() => {
+      expect(promptArea()?.textContent ?? '').toContain('{tool_status}')
+    })
+    const card = cardFor('工具与技能状态')
+    expect(card).toBeTruthy()
+    const toggle = within(card as HTMLElement).getByRole('button')
+
+    vi.useFakeTimers()
+    try {
+      fireEvent.click(toggle)
+      expect(toggle.getAttribute('aria-pressed')).toBe('false')
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2000)
+      })
+    } finally {
+      vi.useRealTimers()
+    }
+    // 关掉这一节 ⇒ ② 里那一节立刻消失（其余节仍在）
+    expect(promptArea()?.textContent ?? '').not.toContain('{tool_status}')
+    expect(promptArea()?.textContent ?? '').toContain('{memory_context}')
   })
 
   it("存量 Tab 值 'system-prompt' 归一到影响因素页（老用户刷新不落到空 Tab）", async () => {
@@ -289,7 +311,7 @@ describe('需求③：LLM 通信监控位于主内容区并以 TAB 并列', () =
       .getAllByRole('tab')
       .map((t) => (t.textContent ?? '').trim())
     // 2026-11-15 两次收口后只剩 2 个 Tab：
-    //   · 三层合并（§11.124 D-1）：系统提示词 Tab 取消 → 影响因素页的「① 基础模板」折叠块；
+    //   · 系统提示词 Tab 取消（其后基础模板编辑器也整块删除，§11.125）；
     //   · 人格不再两份（Owner）：「人格」Tab 删除 → 6 维 + 预设 + 重置全在影响因素页的
     //     「人格」分类里（pages/hub/personality.tsx 同时删除）。
     expect(labels).toEqual(['提示词影响因素实验室', 'LLM 通信监控'])

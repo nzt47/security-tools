@@ -192,61 +192,10 @@
   font-weight: 600;
 }
 
-/* ── 三层合并 ①：基础模板（默认收起的折叠块，位于筛选条与主体之间） ──
-   2026-11-15：原「系统提示词」独立 Tab 取消，骨架 + 占位符并进本页第一层。
-   默认收起是刻意的：改骨架是低频动作，日常只调因素/分节；一进来就摊开一整块
-   编辑器，正是"三层看起来像三份重复"的观感来源。 */
-.pl-base-block {
-  margin: 12px 20px 0;
-  border: 1px solid var(--wb-border);
-  border-radius: var(--wb-radius);
-  background: var(--wb-panel);
-  backdrop-filter: blur(10px);
-  overflow: hidden;
-}
-.pl-base-block > summary {
-  display: flex;
-  flex-wrap: wrap; /* 窄屏（<1100）标题 + 右侧提示会挤成一条，允许换行 */
-  align-items: center;
-  gap: 8px;
-  padding: 9px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #e2e8f0;
-  cursor: pointer;
-  list-style: none; /* 自绘三角，避免各浏览器 marker 位置不一致 */
-  user-select: none;
-}
-.pl-base-block > summary::-webkit-details-marker {
-  display: none;
-}
-.pl-base-block > summary::before {
-  content: '▸';
-  font-size: 10px;
-  color: var(--wb-accent);
-  transition: transform 0.15s;
-}
-.pl-base-block[open] > summary::before {
-  content: '▾';
-}
-.pl-base-block > summary:hover {
-  background: rgba(34, 211, 238, 0.06);
-}
-.pl-base-block[open] > summary {
-  border-bottom: 1px solid var(--wb-border);
-}
-.pl-base-hint {
-  margin-left: auto;
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--wb-text-dim);
-}
-.pl-base-block-body {
-  /* 模板编辑器自带滚动（SystemPromptPanel 内部 h-full/overflow），这里只封顶高度，
-     免得展开后把 ② ③ 两列推出首屏。 */
-  max-height: min(70vh, 640px);
-  overflow-y: auto;
-}
+/* ── 基础模板折叠块（.pl-base-block）的样式已随组件一起删除 ──
+   2026-11-15 Owner：「基础模板可以不要，分节配置的开关本身就是在组装基础模板，
+   只要每一个开关修改都可以在实时预览中看到就可以了。」⇒ 页面只剩
+   ① 分节配置（因素区 + 身份提示词列）+ ② 最终注入文本，筛选条之上不再有折叠块。 */
 
 /* ── 主体布局：三列 + 两条拖拽条（列宽由 Owner 拖定，存 localStorage） ──
    间距改由拖拽条自己提供（gap:0）：每个 .pl-col-split 24px 宽、中间一条虚线，
@@ -268,7 +217,7 @@
   min-width: 0;
 }
 .pl-identity-col {
-  /* ② 分节配置：要放下分区标题 + 发出内容 + 编辑区；宽度同样由拖拽条决定（默认 440px） */
+  /* ① 分节配置：要放下分区标题 + 发出内容 + 编辑区；宽度同样由拖拽条决定（默认 440px） */
   flex: 0 0 var(--pl-col-identity, 440px);
   min-width: 0;
 }
@@ -306,7 +255,7 @@
   color: #94a3b8;
 }
 .pl-preview {
-  /* ③ 最终注入文本：三列里唯一"吃剩余"的，拖宽前两列时它自动让位
+  /* ② 最终注入文本：三列里唯一"吃剩余"的，拖宽前两列时它自动让位
      （下限 360px 在 columnLayout.ts 里由 clamp 保证）。 */
   flex: 1 1 360px;
   min-width: 0;

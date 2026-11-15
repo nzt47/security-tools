@@ -384,14 +384,24 @@
       "note": "知识库：卡片/图谱/index/lint/融合检索。"
     },
     "/api/system-prompt": {
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "area": "系统提示词",
-      "note": "系统提示词配置：组件/预览/应用/重置/同步。"
+      "note": "【2026-11-15 改判】基础模板（骨架 + 占位符）编辑器已从提示词实验室删除（Owner：「基础模板可以不要，分节配置的开关本身就是在组装基础模板」）⇒ 原始模板文本不再有 UI 入口；端点保留供脚本/手工读写。分节配置走 /api/system-prompt/config*（仍是 UI）。"
+    },
+    "/api/system-prompt/reset": {
+      "intent": "should_not_be_in_ui",
+      "area": "系统提示词",
+      "note": "【2026-11-15 改判】模板重置的唯一入口随基础模板编辑器一起删除；分节配置的重置是 /api/system-prompt/config/reset（仍是 UI）。"
+    },
+    "/api/system-prompt/sync-status": {
+      "intent": "should_not_be_in_ui",
+      "area": "系统提示词",
+      "note": "【2026-11-15 改判】配置模板与运行模板是否同步，原只在基础模板编辑器里展示；编辑器删除后无 UI 入口。"
     },
     "/api/system-prompt/*": {
       "intent": "should_be_in_ui",
       "area": "系统提示词",
-      "note": "系统提示词配置：组件/预览/应用/重置/同步。"
+      "note": "系统提示词配置（分节配置族）：组件/预览/保存/应用/重置 —— 提示词实验室的「① 分节配置」在用。"
     },
     "/api/vector": {
       "intent": "should_be_in_ui",
