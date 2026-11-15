@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-15T13:10:00+08:00",
+ "updated_at": "2026-11-15T18:35:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -737,8 +737,8 @@
    "status": "open",
    "priority": "P3",
    "title": "每日定时 test.yml 天天红：做受控复现并对齐 ci.yml 的环境/集合（不要假绿）",
-   "criteria": "现象：`云枢系统测试流程` 有两个同名 workflow —— ci.yml（push/PR，6 分片）绿，test.yml（每日定时整跑）自 2026-11-07 起天天红（11/13 ubuntu+windows 单元测试 job 都红）。\n已查证据：失败点集中在 test_s5_03_cost_brake（日预算熔断 4-5 条）、test_judge_llm_runtime（预算护栏自见 2 条）、test_settings_registry::TestMechanicalZeroGap（零缺口扫描）；本机用**完全相同的 pytest 参数**（-n auto --dist=loadfile -p no:randomly）跑这三份 222/222 全过；同一提交上 ci.yml 6 分片全绿 ⇒ 不是代码问题，是「整跑 + 环境形状」的组合问题。\n环境差异：ci.yml 设 SKILLS_OFFLINE；test.yml 设 HF_HUB_OFFLINE / TRANSFORMERS_OFFLINE / PYTHONUTF8。",
-   "next": "2026-11-15 进展（没有假绿，只有取证）：① 从 test.yml 最近一次**真红的 run**（2026-11-13T09:10Z / 43399075038）下载 junit 逐条读失败 —— ubuntu 3 条：test_settings_registry 的 PYTEST_CURRENT_TEST（538 vs 539，「多出来的那 1 个」就是它）+ test_log_system_introspection::TestIdleDetector 计时；windows 5 条：test_judge_llm_runtime 2 + test_s5_03_cost_brake 3，全是「成本台账 spent=0.0 ⇒ 护栏读写指向两本账」。② **关键发现：ci.yml 的单元测试只跑 ubuntu（ubuntu-latest / ubuntu-22.04），根本没有 Windows job** —— 所以「ci.yml 全绿 ⇒ 不是代码问题」对那 5 条 windows 失败不成立，它们只在 test.yml 可见。③ PYTEST_CURRENT_TEST 那条与 2026-11-13 已修的 f48c15251（改 sys.modules）是同一现象 ⇒ 该 run 早于修复；而 2026-11-14 的定时 run（43576958593）是 **cancelled**，所以「现在是否还红」其实**没有证据**。④ 本机受控复现：按 test.yml 的 env（PYTHONUTF8 / HF_HUB_OFFLINE / TRANSFORMERS_OFFLINE）+ 同款参数跑那三个文件 —— 成本/预算两类**全过**，只有 settings_registry 的 3 条因本机未跟踪运行时工具（local-env-noise）而红 ⇒ 本机复不出来。⑤ 已给 test.yml 加 workflow_dispatch（2026-11-15），从此可以 gh workflow run test.yml --ref master 按需复现。\n\n下一步（明天 10:00 的定时 run 或手动 dispatch 之后）：先看 windows job 的 test_judge_llm_runtime / test_s5_03_cost_brake 是否仍 spent=0.0 —— 若仍在，那是**Windows 专属**的台账问题（ci.yml 永远看不到），要按 tests 里的写入点与护栏读取点对拍路径（data/llm_usage*.jsonl vs 护栏配置的账本），必要时给 ci.yml 补一个 Windows 分片（现在没有）。ubuntu 侧若只剩 IdleDetector 那条计时 flake，按口径给它补有界轮询，别改 failures_baseline.txt。"
+   "criteria": "现象：同名两个 workflow —— ci.yml（push/PR，6 分片，只跑 ubuntu）绿，test.yml（每日定时整跑，**唯一有 Windows job**）自 2026-11-07 起天天红。2026-11-15 两轮取证（手动 dispatch 43701513634 + ci 43701504803）把红拆成**三类不同根因**，都不是 flake：① windows「成本台账 spent=0.0」7 条 = 读侧 safe_paths 不认跨盘 / 8.3 短名（事件目录在另一个盘 ⇒ event_files() 空 ⇒ 护栏 spent 恒 0 且 read_error 为空）；② ubuntu「计时 flake」= 模块级 setup_function 不覆盖类内方法，同 worker 更早文件经 plugins/chat.py:2801 串数（assert 11 == 2）；③ 清单派生漂移（safe_paths 改动让静态扫描 86→85，capability_manifest 与盘点表不同源，ubuntu+windows 同时红）；另 2 条 windows 专属：docker 容器 3 条（Windows 容器 daemon 跑不了 Linux 镜像，旧判据 cli+daemon 就算可用）与隐藏声明判否 1 条（load_tool_docs 的 relpath 跨盘抛 ValueError 被吞成空集）。",
+   "next": "2026-11-15 已全部处置并推送（b7b636f85）：safe_paths 盘符改 OS 枚举 + 8.3 短名匹配、事件目录解析不到留 WARNING、ledger_diag 自诊断、context_stats 改 autouse fixture、干净 worktree 重派生能力清单+盘点表、agent/lines/_paths.rel_to_repo 替代 5 处 relpath、DockerProbe 增 os_type（只认能跑 Linux 容器的 daemon）并把 docker stderr 带进错误消息。证据：43701513634 上 windows 单元跑满 10267 用例且成本台账类 **0 红**；干净 worktree 179 passed / 0 failed。**待复验**：下一次 windows job（test.yml，约 10 分钟）应只剩 skips；若仍红，先看它给的 docker stderr / 跨盘诊断再动。另议（未做）：ci.yml 只跑 ubuntu ⇒ 这类问题永远看不见；要不要补 Windows 分片由 Owner 定（代价约 +10 分钟/次）。"
   },
   {
    "id": "alarm-channel-env-sync",
@@ -858,6 +858,30 @@
    "title": "提示词 token：还能压的只剩 tools 段（且已 96.7% 命中缓存）",
    "criteria": "2026-11-15 实测（LLM 监控记录 84de4d7d74eb / deepseek-flash）：request_tokens=8797，system_prompt 277 字符≈130 tok、tools 26 个 16765 字符≈7.6k tok、messages 766 字符；prompt_cache_hit_tokens=6400 / miss=216 ⇒ 命中率 96.7%。★ 两次更正：① smart_tool_selection 运行时本来就是 true（plugins/chat.py:2261-2266 已在做路由，拿 26 个工具名再选 11/3/3），我上一轮说\"现在是关的\"是错的；② 记忆线索的 5000 是声明预算，实测注入只有几十字符（_render_memory_context 只输出标题+占位符，build_memory_context 截 300 字符）⇒ 按它\"改按需检索\"是砍空气。",
    "next": "若要继续压：① plugins/chat.py:1453 _plain_subset_enabled()（轻量档工具减法，当前默认关；代码注释里有当时的实测理由：换档会让整段 tools 作废，统一工具段更省）——开关前先 A/B 命中率与首字延迟；② 行白名单（agent.lines.line_whitelist）按行再收窄工具集；③ memory_context.token_limit 与历史窗口只在长会话有感。注意：tools 段省下来主要省**上下文窗口**，因缓存命中 96.7%，**不省钱**。"
+  },
+  {
+   "id": "windows-only-failure-class",
+   "status": "open",
+   "priority": "P2",
+   "title": "Windows 专属失效形态只有 test.yml 看得见（ci.yml 只跑 ubuntu）—— 要不要补 Windows 分片",
+   "criteria": "2026-11-15 一轮里 4 类 Windows 专属问题全部**只有**每日 test.yml 能暴露：跨盘 relpath/enumerate_path、8.3 短名、TEMP 形状、Docker 容器能力（Windows daemon 跑不了 Linux 镜像）。ci.yml 的单元测试只跑 ubuntu-latest / ubuntu-22.04，所以「ci.yml 全绿 ⇒ 不是代码问题」对这类失效**不成立**。",
+   "next": "待 Owner 定：① 保持现状（每日 test.yml 兜底，缺点是最多晚 24 小时才发现）；② 给 ci.yml 补一个 Windows 单元分片（代价参考：本轮 windows 单元 job 跑满 10267 用例约 10.2 分钟，fail-fast 早停时 9.4 分钟）；③ 折中：ci.yml 加一个**只跑 Windows 敏感子集**的 job（tests/unit 里带跨盘/路径/隔离/容器标记的那些）。选 ②/③ 时注意 ci.yml 的 concurrency 与失败基线门禁要同批调整。"
+  },
+  {
+   "id": "judge-cost-read-error-semantics",
+   "status": "open",
+   "priority": "P3",
+   "title": "事件目录解析不到时 judge_cost_cents 仍回 error=''（现在只剩日志留痕）",
+   "criteria": "2026-11-15 的 windows 7 条红暴露的是第二层问题：读侧 event_files() 解析不到目录时返回空集，judge_cost_cents 的 error 仍是空串（不算读失败）⇒ 护栏 spent 恒 0 却「一切正常」。本轮只做到「不再静默」（events._note_unresolved_directory 每种写法报一次 WARNING），契约没动。",
+   "next": "要真把它当读失败，得让 event_files/iter_events 把「目录解析不到」与「目录存在但没有事件」区分开，再由 judge_cost_cents / cost_brake 映射成 fail-closed（护栏停用真实 judge）或面板的「读不到」状态 —— 牵动 /api/observability、健康页与 cost_brake 的形状，属于契约变更，先出方案再动。"
+  },
+  {
+   "id": "workbench-strip-height-unified",
+   "status": "done",
+   "priority": "P3",
+   "title": "三条面板细条统一 44px（导航 / 主内容 / 右栏抓手所在的那条）",
+   "criteria": "Owner 2026-11-15 问「三条细条高度怎么都不一样」：实测 45 / 47.5 / 38.8px（1280/1440/1920 三档同值），底边 y=99 / 101.5 / 92.8。B 步删掉面板标题栏后，三条各自由自己的 py-* 与内容高凑，没有任何共用约束。",
+   "next": "已落地（e97217c62）：--wb-strip-h: 44px + .wb-strip（min-height/align-items:center），三条去掉各自 py-*；复量三档都是 44/44/44、底边同 y=98。「抓手线居中到细条中线」**没做**：那样命中区（44×9）要下移到 y≈17.5，会压住导航搜索框与会话页头按钮的点击区（HTML5 drag source 抢 mousedown）—— 已写进 workbench.css 注释与 §11.127 C-3。"
   }
  ]
 }
