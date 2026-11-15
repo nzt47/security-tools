@@ -211,8 +211,11 @@ export function buildPrompt(values: Record<string, FactorValue>): string {
 }
 
 /**
- * 模拟预览引擎：根据当前因素值拼装一段"模拟输出"。
- * 无真实 LLM 依赖，仅做直观演示；接入真实接口后可切换（见 requestLlmPreview）。
+ * 参数示意引擎：把当前因素值翻译成一段"参数画像"文字。
+ *
+ * 【口径】它**不是模型输出**，也不联网；界面上的标题就叫「参数示意（不联网，不是模型输出）」。
+ * 真正跑模型走 requestLlmPreview / 后端 /api/prompt-lab 代理（PreviewPanel 的「跑一次看效果」）。
+ * 2026-11-15 之前它被当成"模拟预览模式"和"真实接口"并列，Owner 反馈看不懂，故收敛成一条主路径。
  */
 export function simulateOutput(values: Record<string, FactorValue>): string {
   const temp = numOf(values, 'temperature');
@@ -243,7 +246,7 @@ export function simulateOutput(values: Record<string, FactorValue>): string {
     `【${role || '未设定角色'}】\n` +
     `基于当前参数组合（temperature=${temp.toFixed(1)} / top_p=${topP.toFixed(2)} / max_tokens=${maxTok}），` +
     `模拟输出风格为：${style}，${focus}；文本组织${structure}；${wording}，${precisionDesc}，${sentence}；${ctx}。\n` +
-    `（说明：此片段为参数驱动的模拟预览，用于观察各因素组合对输出的影响趋势，非真实模型输出。）`
+    `（说明：这段是本地按当前参数拼出来的"参数画像"，用来看趋势 / 核对设置，不是模型输出。）`
   );
 }
 

@@ -38,7 +38,7 @@ import {
 import type { FactorCategory, FactorValue } from '../../lib/promptFactorTypes';
 import FactorCard from './FactorCard';
 import CustomFactorForm from './CustomFactorForm';
-import PreviewPanel, { type PreviewMode } from './PreviewPanel';
+import PreviewPanel from './PreviewPanel';
 import IdentityPromptPanel, { toIdentityPromptPanelProps } from './IdentityPromptPanel';
 import LlmMonitorPanel from './LlmMonitorPanel';
 // 2026-10-18：系统提示词模板（3 条 /api/system-prompt*）并入本页 Tab ——
@@ -91,7 +91,6 @@ export default function PromptLab() {
   const [tab, setTab] = useState<LabTab>(readSavedTab);
   const [filter, setFilter] = useState<Filter>('all');
   const [showForm, setShowForm] = useState(false);
-  const [mode, setMode] = useState<PreviewMode>('sim');
   // 身份提示词面板聚焦项：悬停某面板项 → 右侧提示词区域高亮该节的发出内容
   const [focusRowKey, setFocusRowKey] = useState<string | null>(null);
   const [llmOutput, setLlmOutput] = useState<string | null>(null);
@@ -124,7 +123,7 @@ export default function PromptLab() {
 
   const runLlm = async () => {
     if (!llm.useBackend && !llm.endpoint.trim()) {
-      setLlmError('请先在上方"真实接口"设置中填写 Endpoint，或勾选「用云枢默认 LLM」。');
+      setLlmError('先勾选「用云枢默认 LLM」（推荐），或在「高级：改用自己填的接口」里填 Endpoint。');
       return;
     }
     setLlmLoading(true);
@@ -159,12 +158,7 @@ export default function PromptLab() {
 
   const onValueChange = (id: string, v: FactorValue) => {
     setValue(id, v);
-    setLlmOutput(null); // 参数变化后旧的真实输出失效，回到模拟预览
-  };
-
-  const onModeChange = (m: PreviewMode) => {
-    setMode(m);
-    setLlmError(null);
+    setLlmOutput(null); // 参数变化后旧的模型回答失效（避免拿旧答案对照新参数）
   };
 
   const exportWith = (kind: 'json' | 'csv') => {
@@ -283,8 +277,6 @@ export default function PromptLab() {
 
             {/* 第 3 列：实时预览面板（PreviewPanel） */}
             <PreviewPanel
-              mode={mode}
-              onModeChange={onModeChange}
               systemPrompt={systemPrompt}
               highlightSnippet={focusRowKey ? identity.rows.find((r) => r.key === focusRowKey)?.emitText : null}
               prompt={prompt}

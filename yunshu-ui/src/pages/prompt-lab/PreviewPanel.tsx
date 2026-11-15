@@ -1,17 +1,21 @@
 /**
  * PreviewPanel —— 提示词实验室右侧实时预览面板
- * 从 prompt-lab/index.tsx 拆分（原 aside 部分，逻辑不变）。
- * 内部经 store 获取 llm 配置，其余数据经 props 传入。
+ * 从 prompt-lab/index.tsx 拆分（原 aside 部分）。
  *
- * 深度合并说明：systemPrompt = 后端「身份提示词」生成的注入模板
- * （见 identityPrompt.ts），本地不再维护 7 段沙箱组件，token 块相应
- * 简化为「模板文本 + 用户提示词」的总量估算。
+ * 【2026-11-15 重排：去掉「模拟 / 真实接口」双模式】
+ * Owner 原话：「实时预览怎么还分 模拟 和 真实接口？看不懂。」
+ * 原来的设计把两件不同的事并列成"两种预览模式"，而"模拟"其实**不是模型输出** ——
+ * 它只是把滑块组合翻译成人话（lib/promptFactors.simulateOutput），却长得像一段回答，
+ * 所以越看越像"这个预览在骗我"。
+ * 现在：
+ *   1. 主路径只有一条 —— 「试跑一次（真实模型）」，一个按钮，默认走云枢已配置的模型；
+ *   2. 自己填 Endpoint/API Key 的入口收进折叠的「高级」里（默认不用碰）；
+ *   3. 原来那段"模拟输出"改名「参数示意（不联网，不是模型输出）」，并写清它是什么；
+ * 组件不再接收 mode / onModeChange（页面的 mode 状态与 PreviewMode 类型一并删除）。
  */
 import { Loader2, Settings2, Download, Wrench } from 'lucide-react';
 import { usePromptLabStore } from '../../stores/usePromptLabStore';
 import RadarChart from './RadarChart';
-
-export type PreviewMode = 'sim' | 'llm';
 
 export interface PreviewUsage {
   systemTotal: number;
@@ -22,13 +26,12 @@ export interface PreviewUsage {
 }
 
 interface PreviewPanelProps {
-  mode: PreviewMode;
-  onModeChange: (m: PreviewMode) => void;
   /** 注入 system message：后端身份提示词配置生成的模板（可含运行时占位符） */
   systemPrompt: string;
   /** 聚焦面板项的发出内容：命中则在该段高亮（启用状态 ↔ 内容显示联动） */
   highlightSnippet?: string | null;
   prompt: string;
+  /** 参数示意文本（不联网；只把滑块组合翻译成人话，不是模型输出） */
   sim: string;
   radar: { label: string; value: number }[];
   token: PreviewUsage;
@@ -52,8 +55,6 @@ export function splitHighlight(
 }
 
 export default function PreviewPanel({
-  mode,
-  onModeChange,
   systemPrompt,
   highlightSnippet,
   prompt,
@@ -74,60 +75,7 @@ export default function PreviewPanel({
     <aside className="pl-preview">
       <div className="pl-preview-head">
         <h2>实时预览</h2>
-        <div className="pl-mode-switch" role="tablist" aria-label="预览模式">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === 'sim'}
-            className={mode === 'sim' ? 'active' : ''}
-            onClick={() => onModeChange('sim')}
-          >
-            模拟
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === 'llm'}
-            className={mode === 'llm' ? 'active' : ''}
-            onClick={() => onModeChange('llm')}
-          >
-            真实接口
-          </button>
-        </div>
       </div>
-
-      {mode === 'llm' && (
-        <details className="pl-llm-config" open>
-          <summary>
-            <Settings2 size={12} /> LLM 接口配置
-          </summary>
-          <label className="pl-field">
-            <span>用云枢默认 LLM</span>
-            <input
-              type="checkbox"
-              checked={llm.useBackend}
-              onChange={(e) => setLlm({ useBackend: e.target.checked })}
-            />
-          </label>
-          <p className="pl-export-hint">
-            勾选后由后端用 <code>.env</code> 里已配置的模型生成（推荐，无需 Endpoint / API Key）；
-            取消勾选才直连你自己填的 OpenAI 兼容地址（直连受浏览器 CORS 限制，容易只拿到空的
-            <code>HTTP 4xx</code>）。
-          </p>
-          <label className="pl-field">
-            <span>Endpoint</span>
-            <input className="pl-text" value={llm.endpoint} disabled={llm.useBackend} onChange={(e) => setLlm({ endpoint: e.target.value })} placeholder="https://api.openai.com/v1/chat/completions" />
-          </label>
-          <label className="pl-field">
-            <span>API Key</span>
-            <input className="pl-text" type="password" value={llm.apiKey} disabled={llm.useBackend} onChange={(e) => setLlm({ apiKey: e.target.value })} placeholder="sk-…（仅本地存储）" />
-          </label>
-          <label className="pl-field">
-            <span>模型</span>
-            <input className="pl-text" value={llm.model} onChange={(e) => setLlm({ model: e.target.value })} />
-          </label>
-        </details>
-      )}
 
       <div className="pl-preview-block">
         <h3>系统提示词（身份提示词 · 注入）</h3>
@@ -155,22 +103,64 @@ export default function PreviewPanel({
         <textarea className="pl-prompt-out" readOnly value={prompt} rows={9} spellCheck={false} />
       </div>
 
+      {/* 唯一的"输出"入口：真跑一次。默认走云枢已配置的模型，不需要填任何 Key。 */}
       <div className="pl-preview-block">
-        <h3>{mode === 'sim' ? '模拟输出' : '真实输出'}</h3>
-        {mode === 'llm' ? (
-          <>
-            <div className="pl-preview-actions">
-              <button type="button" className="pl-btn primary" onClick={onRunLlm} disabled={llmLoading}>
-                {llmLoading ? <Loader2 size={13} className="spin" /> : <Wrench size={13} />}
-                {llmLoading ? '请求中…' : '请求真实输出'}
-              </button>
-            </div>
-            {llmError && <p className="pl-error">{llmError}</p>}
-            <pre className="pl-sim-out">{llmOutput ?? '尚未请求。参数变化后请重新点击"请求真实输出"。'}</pre>
-          </>
-        ) : (
-          <pre className="pl-sim-out">{sim}</pre>
-        )}
+        <h3>试跑一次（真实模型）</h3>
+        <p className="pl-export-hint">
+          用当前这套提示词真跑一次，看模型实际怎么答。默认走云枢 <code>.env</code> 里已配置的模型
+          —— 不用填 Key，每点一次消耗一次 token；改过滑块/参数后旧的回答会清空，需要重新点。
+        </p>
+        <div className="pl-preview-actions">
+          <button type="button" className="pl-btn primary" onClick={onRunLlm} disabled={llmLoading}>
+            {llmLoading ? <Loader2 size={13} className="spin" /> : <Wrench size={13} />}
+            {llmLoading ? '请求中…' : '跑一次看效果'}
+          </button>
+        </div>
+        {llmError && <p className="pl-error">{llmError}</p>}
+        <pre className="pl-sim-out">
+          {llmOutput ?? '还没跑过。点上面的按钮，用当前提示词请求一次模型。'}
+        </pre>
+
+        {/* 高级：只有想绕开云枢默认模型、自己直连 OpenAI 兼容地址时才需要展开 */}
+        <details className="pl-llm-config">
+          <summary>
+            <Settings2 size={12} /> 高级：改用自己填的接口（默认不用管）
+          </summary>
+          <label className="pl-field">
+            <span>用云枢默认 LLM</span>
+            <input
+              type="checkbox"
+              checked={llm.useBackend}
+              onChange={(e) => setLlm({ useBackend: e.target.checked })}
+            />
+          </label>
+          <p className="pl-export-hint">
+            勾选（默认）＝由后端用 <code>.env</code> 里已配置的模型生成，无需 Endpoint / API Key。
+            取消勾选才直连你自己填的 OpenAI 兼容地址（直连受浏览器 CORS 限制，容易只拿到
+            <code>HTTP 4xx</code>）。
+          </p>
+          <label className="pl-field">
+            <span>Endpoint</span>
+            <input className="pl-text" value={llm.endpoint} disabled={llm.useBackend} onChange={(e) => setLlm({ endpoint: e.target.value })} placeholder="https://api.openai.com/v1/chat/completions" />
+          </label>
+          <label className="pl-field">
+            <span>API Key</span>
+            <input className="pl-text" type="password" value={llm.apiKey} disabled={llm.useBackend} onChange={(e) => setLlm({ apiKey: e.target.value })} placeholder="sk-…（仅本地存储）" />
+          </label>
+          <label className="pl-field">
+            <span>模型</span>
+            <input className="pl-text" value={llm.model} onChange={(e) => setLlm({ model: e.target.value })} />
+          </label>
+        </details>
+      </div>
+
+      {/* 不是模型输出：只把参数组合翻译成人话，帮用户确认"滑块到底在说什么" */}
+      <div className="pl-preview-block">
+        <h3>参数示意（不联网，不是模型输出）</h3>
+        <p className="pl-export-hint">
+          这段是本地按当前参数拼出来的"参数画像"，用来看趋势、核对设置，**不代表模型会这么回答**。
+        </p>
+        <pre className="pl-sim-out">{sim}</pre>
       </div>
 
       <div className="pl-preview-block">

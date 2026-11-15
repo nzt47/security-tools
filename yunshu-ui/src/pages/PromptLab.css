@@ -398,27 +398,8 @@
   font-weight: 600;
   color: #e2e8f0;
 }
-.pl-mode-switch {
-  display: flex;
-  padding: 2px;
-  border-radius: 8px;
-  border: 1px solid var(--wb-border);
-  background: rgba(4, 8, 16, 0.6);
-}
-.pl-mode-switch button {
-  padding: 4px 10px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--wb-text-dim);
-  font-family: inherit;
-  font-size: 11px;
-  cursor: pointer;
-}
-.pl-mode-switch button.active {
-  background: rgba(34, 211, 238, 0.16);
-  color: #a5f3fc;
-}
+/* 2026-11-15：原来的「模拟 / 真实接口」双模式切换已去掉（Owner 觉得看不懂），
+   .pl-mode-switch 的样式随之删除；现在只有一条「试跑一次（真实模型）」主路径。 */
 .pl-preview-block {
   margin-bottom: 12px;
 }
