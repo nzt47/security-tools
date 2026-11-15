@@ -103,7 +103,11 @@ jobs:
     defaults:
       run:
         shell: bash
-    timeout-minutes: 30
+    # 【2026-11-15】windows 全量单测实测超过 30 分钟（job 132798559640：11:36:44→12:06:58
+    # 正好 30min14s 被 timeout 取消，conclusion=cancelled ⇒ 看起来像"被取消"，其实是超时）。
+    # 之前"windows 单元 10 分钟跑完"是 fail-fast 早停的假象（成本台账那 7 条红让它在 3159 条时停下）；
+    # 那些红修掉后它要跑满 1.5 万条 ⇒ 单独给 windows 70 分钟，ubuntu 维持 30（实测 ~22 分钟）。
+    timeout-minutes: ${{ matrix.os == 'windows-latest' && 70 || 30 }}
     strategy:
       fail-fast: false
       matrix:
