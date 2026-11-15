@@ -97,9 +97,17 @@ export default function SystemPromptPanel() {
 
   return (
     <div className="h-full overflow-y-auto p-4">
+      {/* 视图如实（2026-11-15）：这一页只编辑**基础模板**（骨架 + 占位符）。
+          占位符里填什么、哪些节参与组装，由「提示词影响因素实验室」左栏的分节配置决定；
+          最终注入文本在实验室右栏。三者同名最容易让人以为重复，故在页头写清层级。 */}
+      <p className="mb-2 text-[11px] leading-relaxed text-slate-500">
+        本页 = <strong className="text-slate-300">基础模板</strong>（骨架 + 占位符，约 150 tok）；
+        占位符填什么由「提示词影响因素实验室」左栏的分节开关决定；
+        拼好的最终注入文本见实验室右栏「系统提示词（最终注入文本 · 只读）」。
+      </p>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <FileCode2 size={14} className="text-cyan-400" />
-        <h2 className="text-sm font-semibold text-slate-100">系统提示词</h2>
+        <h2 className="text-sm font-semibold text-slate-100">系统提示词 · 基础模板</h2>
         <span className="text-[11px] text-slate-500">
           {data?.is_custom ? '当前：自定义模板' : '当前：默认模板'}
           {sync ? (sync.is_synced ? ' · 配置与运行一致' : ' · 配置与运行**不一致**') : ''}

@@ -18,7 +18,7 @@
  * CustomFactorForm / PreviewPanel / IdentityPromptPanel / LlmMonitorPanel。
  */
 import { useEffect, useMemo, useState } from 'react';
-import { FileCode2, FlaskConical, Plus, Radio, RotateCcw, Smile } from 'lucide-react';
+import { FileCode2, FlaskConical, Plus, Radio, RotateCcw, Smile, TriangleAlert } from 'lucide-react';
 import { usePromptLabStore } from '../../stores/usePromptLabStore';
 import { downloadFile } from '../../utils/system';
 import {
@@ -109,6 +109,8 @@ export default function PromptLab() {
   const prompt = useMemo(() => buildPrompt(values), [values]);
   const radar = useMemo(() => radarData(values), [values]);
   const systemPrompt = identity.template;
+  // 人格那 6 维参数是否真的进了提示词：由身份提示词的 persona 节说了算（见人格 Tab 的提示条）
+  const personaEmitted = identity.rows.some((r) => r.key === 'persona' && r.emitted);
   const token = useMemo(
     () => usageReport(systemPrompt, prompt, llm.contextWindow),
     [systemPrompt, prompt, llm.contextWindow],
@@ -300,6 +302,22 @@ export default function PromptLab() {
       ) : (
         /* 人格：原「人格与提示词 → 人格配置」独立页并入（阶段 1.1） */
         <div className="pl-tab-body">
+          {/* 视图如实（2026-11-15）：人格参数走 /api/personality，但**进不进提示词**由
+              系统提示词的 persona 节决定；该节默认关闭 ⇒ 面板上怎么调都不会改变回答。
+              不写这条提示，这里就是个静默空转的页面（Owner 问「人格能不能并进因素」时发现的）。 */}
+          {!personaEmitted && (
+            <div className="pl-warn-strip" role="status">
+              <TriangleAlert size={13} />
+              <span>
+                这里的 6 维参数目前
+                <strong>不会进入提示词</strong>：系统提示词的「persona 节」是关闭的（约 1500 tok）。
+                要让它们真的影响回答，需要在「提示词影响因素实验室 → 身份提示词」里开启 persona 节。
+              </span>
+              <button type="button" className="pl-btn" onClick={() => setTab('factors')}>
+                去分节配置
+              </button>
+            </div>
+          )}
           <PersonalityPage />
         </div>
       )}

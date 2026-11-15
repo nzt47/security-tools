@@ -75,7 +75,7 @@ export default function PreviewPanel({
       </div>
 
       <div className="pl-preview-block">
-        <h3>系统提示词（身份提示词 · 注入）</h3>
+        <h3>系统提示词（最终注入文本 · 只读）</h3>
         <pre className="pl-sim-out">
           {systemPrompt ? (
             hl ? (
