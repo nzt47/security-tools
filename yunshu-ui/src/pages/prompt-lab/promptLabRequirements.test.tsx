@@ -149,6 +149,17 @@ const baseSections = (): Sections => ({
 /** 右侧「系统提示词（身份提示词 · 注入）」区域（PreviewPanel.tsx:121，页面内首个 .pl-sim-out） */
 const promptArea = () => document.querySelector('.pl-preview .pl-sim-out') as HTMLElement | null
 
+/**
+ * 切到「身份提示词」Tab。
+ * 【2026-11-15 Owner】「把 身份提示词 及身份提示词变化产生的实时预览拆成一个 TAB」
+ * ⇒ 分节配置与最终注入文本只在那个 Tab 里渲染（同一时刻只渲染一个 Tab）。
+ */
+const openIdentityTab = async () => {
+  const tablist = await screen.findByRole('tablist', { name: '提示词实验室模块' })
+  fireEvent.click(within(tablist).getByRole('tab', { name: '身份提示词' }))
+  await screen.findByText('分节配置（哪些块进提示词）')
+}
+
 /** 按标题定位某个身份提示词面板项卡片 */
 const cardFor = (label: string) =>
   Array.from(document.querySelectorAll('.pl-factor-card')).find((c) =>
@@ -167,12 +178,13 @@ afterEach(cleanup)
 describe('需求②：提示词实验室（顶栏 / 身份提示词联动）', () => {
   it('顶栏不再提供「返回工作台」按钮', async () => {
     render(<PromptLab />)
-    await screen.findByText('身份提示词（系统提示词 · 线上配置）')
+    await openIdentityTab()
     expect(screen.queryByText('返回工作台')).toBeNull()
   })
 
   it('技能指令启用 → {skill_instructions} 显示在提示词区域；停用 → 不再显示（联动）', async () => {
     render(<PromptLab />)
+    await openIdentityTab()
 
     // 载入完成且后端模板已回填：启用态 ⇒ 提示词区域出现该节发出内容。
     // 【为什么用 vi.waitFor 而不是 RTL 的 waitFor】这一步等的是**真实 fetch 链**（GET 配置 →
@@ -232,7 +244,7 @@ describe('需求②：提示词实验室（顶栏 / 身份提示词联动）', (
   it('未启用的面板项不显示发出内容（未发出）', async () => {
     h.sections = { ...baseSections(), skill_instructions: { enabled: false, custom_content: '', label: '技能指令', token_limit: 0 } }
     render(<PromptLab />)
-    await screen.findByText('身份提示词（系统提示词 · 线上配置）')
+    await openIdentityTab()
     await waitFor(() => {
       expect(promptArea()?.textContent ?? '').not.toContain('{skill_instructions}')
     })
@@ -244,32 +256,32 @@ describe('需求②：提示词实验室（顶栏 / 身份提示词联动）', (
   })
 })
 
-describe('两层收口（Owner 2026-11-15）：① 分节配置 → ② 最终注入文本', () => {
-  it('基础模板编辑器已删除；① 分节配置与 ② 最终注入文本同屏；两条拖拽条在', async () => {
+describe('拆 Tab（Owner 2026-11-15）：身份提示词 + 它的实时预览独占一屏', () => {
+  it('基础模板编辑器已删除；两个 Tab 各自「一列可调 + 预览」，拖拽条都在', async () => {
     render(<PromptLab />)
-    // 先等身份提示词区载入（说明影响因素页已经渲染出来）
-    await screen.findByText('身份提示词（系统提示词 · 线上配置）')
 
     // Owner：「基础模板可以不要，分节配置的开关本身就是在组装基础模板」
     // ⇒ 那个 details.pl-base-block（模板编辑器）必须整块消失，连编辑框都不该在 DOM 里
     expect(document.querySelector('details.pl-base-block'), '基础模板折叠块已删除').toBeNull()
     expect(screen.queryByLabelText('系统提示词模板'), '模板编辑器已删除').toBeNull()
 
-    // 同屏两层：① 分节配置（左栏标题）与 ② 最终注入文本（右栏块标题）
-    expect(screen.getByText('① 分节配置（哪些块进提示词）')).toBeTruthy()
-    expect(screen.getByText('② 最终注入文本（只读）')).toBeTruthy()
+    // 影响因素 Tab：因素列 + 生成的提示词（因素滑块的产物）
+    expect(screen.getByText('生成的提示词（左侧因素实时生成 · 试跑用它）')).toBeTruthy()
+    let splits = screen.getAllByRole('separator')
+    expect(splits.map((s) => s.getAttribute('aria-label'))).toEqual(['拖动调整因素列宽'])
+    expect(splits.every((s) => s.getAttribute('aria-orientation') === 'vertical')).toBe(true)
 
-    // 列宽可拖拽（Owner 2026-11-15）：两条拖拽条都在，且是可访问的 vertical separator
-    const splits = screen.getAllByRole('separator')
-    expect(splits.map((s) => s.getAttribute('aria-label'))).toEqual([
-      '拖动调整因素列宽',
-      '拖动调整分节配置列宽',
-    ])
+    // 身份提示词 Tab：分节配置 + 它组装出来的最终注入文本
+    await openIdentityTab()
+    expect(screen.getByText('最终注入文本（只读）')).toBeTruthy()
+    splits = screen.getAllByRole('separator')
+    expect(splits.map((s) => s.getAttribute('aria-label'))).toEqual(['拖动调整身份提示词列宽'])
     expect(splits.every((s) => s.getAttribute('aria-orientation') === 'vertical')).toBe(true)
   })
 
-  it('每个分节开关的改动都反映在 ② 最终注入文本里（Owner 的核心诉求）', async () => {
+  it('每个分节开关的改动都反映在最终注入文本里（Owner 的核心诉求）', async () => {
     render(<PromptLab />)
+    await openIdentityTab()
     await vi.waitFor(() => {
       expect(promptArea()?.textContent ?? '').toContain('{tool_status}')
     })
@@ -310,11 +322,11 @@ describe('需求③：LLM 通信监控位于主内容区并以 TAB 并列', () =
     const labels = within(tablist)
       .getAllByRole('tab')
       .map((t) => (t.textContent ?? '').trim())
-    // 2026-11-15 两次收口后只剩 2 个 Tab：
-    //   · 系统提示词 Tab 取消（其后基础模板编辑器也整块删除，§11.125）；
-    //   · 人格不再两份（Owner）：「人格」Tab 删除 → 6 维 + 预设 + 重置全在影响因素页的
-    //     「人格」分类里（pages/hub/personality.tsx 同时删除）。
-    expect(labels).toEqual(['提示词影响因素实验室', 'LLM 通信监控'])
+    // 2026-11-15 三次收口后的 Tab 条：
+    //   · 系统提示词 Tab 取消（其后基础模板编辑器也整块删除）；
+    //   · 人格不再两份：6 维 + 预设 + 重置全在影响因素的「人格」分类里；
+    //   · 「身份提示词」独立成 Tab（分节配置 + 它组装出来的最终注入文本）。
+    expect(labels).toEqual(['提示词影响因素实验室', '身份提示词', 'LLM 通信监控'])
 
     // 默认在影响因素实验室：监控面板未挂载（不在页面最底部）
     expect(screen.queryByText('发送 Tokens')).toBeNull()
@@ -324,7 +336,7 @@ describe('需求③：LLM 通信监控位于主内容区并以 TAB 并列', () =
     expect(await screen.findByText('发送 Tokens')).toBeTruthy()
     expect(screen.getByText('接收 Tokens')).toBeTruthy()
 
-    // 2026-11-15：「人格」Tab 已删除（人格并进影响因素），Tab 条只剩这两个
+    // 2026-11-15：「人格」Tab 已删除（人格并进影响因素）
     expect(within(tablist).queryByRole('tab', { name: '人格' })).toBeNull()
   })
 })
@@ -332,7 +344,7 @@ describe('需求③：LLM 通信监控位于主内容区并以 TAB 并列', () =
 describe('人格不再两份（Owner 2026-11-15）：只在影响因素页，含预设与重置', () => {
   it('人格分类里有 6 个滑块、预设档与重置按钮，且不再有「人格」Tab', async () => {
     render(<PromptLab />)
-    await screen.findByText('身份提示词（系统提示词 · 线上配置）')
+    await screen.findByText('生成的提示词（左侧因素实时生成 · 试跑用它）')
 
     // 6 个滑块（0–1：top_p 也是 max=1，故按 aria-label 精确点）
     for (const name of ['语气', '情感', '简练', '主动', '幽默', '同理心']) {

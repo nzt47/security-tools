@@ -62,9 +62,10 @@ describe('resizeColumns：只改被拖的列，三列下限是硬约束', () => 
     expect(next).toEqual({ factors: 380, identity: 440 })
   })
 
-  it('因素列拖到下限 / 上限都停住（上限 = 给最终注入文本留够 360）', () => {
+  it('因素列拖到下限 / 上限都停住（上限 = 给预览列留够 360）', () => {
     expect(resizeColumns(DEFAULT_COLUMNS, 'factors', -9999, available).factors).toBe(MIN_COLUMNS.factors)
-    const max = available - SPLITTER_TOTAL - DEFAULT_COLUMNS.identity - MIN_COLUMNS.preview
+    // 【2026-11-15 拆 Tab 后】因素列与身份提示词列不在同一屏 ⇒ 上限只扣预览列的下限
+    const max = available - SPLITTER_TOTAL - MIN_COLUMNS.preview
     expect(resizeColumns(DEFAULT_COLUMNS, 'factors', 9999, available).factors).toBe(max)
   })
 

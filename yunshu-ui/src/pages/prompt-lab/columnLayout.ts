@@ -6,9 +6,11 @@
  * 和一种读法合适：窄了滑块的数值被切，宽了正文列被挤。改成**拖拽 + 记住**：
  * 默认 300 / 440，Owner 自己拖，松手即写 localStorage，下次进来还是他调好的那份。
  *
- * 布局模型：三列 = 因素列（固定 px）+ ① 分节配置列（固定 px）+ ② 最终注入文本（吃剩余）。
- * 两条 24px 拖拽条夹在中间；拖哪条只改它左边那一列的宽度，右边两列的关系不变
- * （② 是 flex:1，所以它总是自动吸收剩余 —— 与 mosaic 分割条的手感一致）。
+ * 布局模型（2026-11-15 拆 TAB 后）：每个 Tab 都是「一列可调配置 + 右侧预览」——
+ *   影响因素 Tab：因素列（固定 px）+ 生成的提示词/试跑/评估/Token/导出（吃剩余）
+ *   身份提示词 Tab：分节配置列（固定 px）+ 最终注入文本（吃剩余）
+ * 两个 Tab 各记各的宽度（同一份 localStorage），中间各一条 24px 拖拽条；
+ * 预览列是 flex:1，所以总是自动吸收剩余 —— 与 mosaic 分割条的手感一致。
  *
  * 下限是硬约束：因素列 220 / 分节列 300 / ② 至少 360。窗口变小（resize）时按同一套
  * 下限重新 clamp，不写盘（那只是"当前装不下"，不是 Owner 的新偏好）。
@@ -45,12 +47,15 @@ function contentWidth(el: HTMLElement | null): number {
 }
 
 /**
- * 拖拽结果：只改被拖那一列的宽度，并保证 ② 至少还能留下 MIN_COLUMNS.preview。
+ * 拖拽结果：只改被拖那一列的宽度，并保证预览列至少还能留下 MIN_COLUMNS.preview。
+ *
+ * 【2026-11-15 拆分 TAB 后】因素列与身份提示词列**不在同一屏**了（各自的 Tab 里各只有一列
+ * 可调 + 预览），所以 clamp 不再扣"另一列"的宽度 —— 扣了就等于白送一段不能用。
  *
  * @param start     拖拽开始时的两列宽度（**不是**当前状态，否则会累加跳跃）
  * @param handle    拖的是哪条
  * @param dx        相对拖拽起点的位移（px）
- * @param available 三列可用宽度（= 内容宽 - 两条拖拽条）
+ * @param available 当前 Tab 的可用宽度（= 内容宽 - 一条拖拽条）
  */
 export function resizeColumns(
   start: ColumnWidths,
@@ -59,12 +64,8 @@ export function resizeColumns(
   available: number,
 ): ColumnWidths {
   const room = Math.max(0, available - SPLITTER_TOTAL)
-  if (handle === 'factors') {
-    const max = Math.max(MIN_COLUMNS.factors, room - start.identity - MIN_COLUMNS.preview)
-    return { ...start, factors: clamp(start.factors + dx, MIN_COLUMNS.factors, max) }
-  }
-  const max = Math.max(MIN_COLUMNS.identity, room - start.factors - MIN_COLUMNS.preview)
-  return { factors: start.factors, identity: clamp(start.identity + dx, MIN_COLUMNS.identity, max) }
+  const max = Math.max(MIN_COLUMNS[handle], room - MIN_COLUMNS.preview)
+  return { ...start, [handle]: clamp(start[handle] + dx, MIN_COLUMNS[handle], max) }
 }
 
 /** 读存档；脏数据/缺字段一律回默认（不抛错、不白屏） */

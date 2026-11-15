@@ -1,17 +1,21 @@
 /**
  * PromptLab —— 提示词影响因素管理面板（主页编排）
  * ------------------------------------------------
- * 布局：顶栏（标题 + 模块 Tab 条）+ 【影响因素 Tab：分类筛选 → ① 分节配置 / 因素区 /
- *      ② 最终注入文本】/ LLM 通信监控 Tab（全宽）
+ * 布局：顶栏（标题 + 模块 Tab 条）+ 【影响因素 Tab：分类筛选 → 因素列 + 生成的提示词/试跑】
+ *      / 身份提示词 Tab（分节配置 + 最终注入文本）/ LLM 通信监控 Tab（全宽）
  * 功能：6 类因素调节（滑块/下拉/文本/开关）、实时预览（真实模型试跑 + Token/雷达/导出）、
  *       分类筛选、自定义因素添加/删除、JSON/CSV 导出。
+ *
+ * 【2026-11-15 拆 Tab】Owner：「把 身份提示词 及身份提示词变化产生的实时预览拆成一个 TAB」
+ * ⇒ 影响因素（滑块 + 生成的提示词/试跑）与 身份提示词（分节配置 + 最终注入文本）互不干扰，
+ * 各自一屏，各自可拖列宽。
  *
  * 【2026-11-15 两层收口】原先「系统提示词」是独立 Tab，与实验室左栏「身份提示词」、
  * 右栏「最终注入文本」三层同名、各在一处，看着像三份重复的东西。先改成三层同屏
  * （基础模板折叠块），Owner 又定：「基础模板可以不要，分节配置的开关本身就是在组装基础
  * 模板，只要每一个开关修改都可以在实时预览中看到就可以了」⇒ **基础模板编辑器整个删掉**
  * （SystemPromptPanel 与 /api/system-prompt 的三个端点常量一并删），
- * 页面只剩 ① 分节配置 → ② 最终注入文本。存量用户存过 'system-prompt' Tab 的，
+ * 页面只剩「分节配置 → 最终注入文本」两层（现各自在身份提示词 Tab 里）。存量用户存过 'system-prompt' Tab 的，
  * readSavedTab() 会把它归一到 'factors'（否则刷新后落在一个不存在的 Tab 上）。
  *
  * 【2026-11-15 人格并进因素（§11.124 D-2 轻量版）】人格 6 维从独立 Tab 复制一份到因素里
@@ -28,9 +32,9 @@
  * 子组件拆分见 prompt-lab/ 目录：RadarChart / FactorControl / FactorCard /
  * CustomFactorForm / PreviewPanel / IdentityPromptPanel / LlmMonitorPanel。
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { FlaskConical, Plus, Radio, RotateCcw, TriangleAlert } from 'lucide-react';
+import { FileText, FlaskConical, Plus, Radio, RotateCcw, TriangleAlert } from 'lucide-react';
 import { usePromptLabStore } from '../../stores/usePromptLabStore';
 import { downloadFile } from '../../utils/system';
 import {
@@ -71,10 +75,12 @@ type Filter = 'all' | FactorCategory;
  * 【2026-11-15 人格 Tab 删除】Owner：「人格不要两份，合成到轻量版就可以，TAB 的可以删掉。」
  * 人格 6 维 + 预设 + 重置现在只在「影响因素 → 人格」分类里（pages/hub/personality.tsx 已删）。
  */
-type LabTab = 'factors' | 'llm-monitor';
+type LabTab = 'factors' | 'identity' | 'llm-monitor';
 
 const LAB_TABS: { id: LabTab; label: string; icon: typeof FlaskConical; hint: string }[] = [
-  { id: 'factors', label: '提示词影响因素实验室', icon: FlaskConical, hint: '① 分节配置（开关即组装）→ ② 最终注入文本实时可见，外加 6 类因素（含人格与预设）与试跑' },
+  { id: 'factors', label: '提示词影响因素实验室', icon: FlaskConical, hint: '6 类因素（含人格与预设）调节 → 生成的提示词实时可见 + 试跑/评估/Token/导出' },
+  // 【2026-11-15 Owner】「把 身份提示词 及身份提示词变化产生的 实时预览拆成一个 TAB」
+  { id: 'identity', label: '身份提示词', icon: FileText, hint: '分节配置（每个开关就是一节组装）+ 它组装出来的最终注入文本（实时）' },
   { id: 'llm-monitor', label: 'LLM 通信监控', icon: Radio, hint: '每次 LLM 调用的完整收发内容（折叠展开）+ Token 统计' },
 ];
 
@@ -110,8 +116,7 @@ export default function PromptLab() {
   // 人格 6 维：首屏 GET 覆盖默认值，拖动后防抖 400ms 写回 /api/personality
   const setValues = usePromptLabStore((s) => s.setValues);
   const personality = usePersonalityFactors(values, setValues);
-  /** ① 分节配置列（人格黄条上的「去分节配置」滚到这里并高亮 persona 节） */
-  const identityColRef = useRef<HTMLElement | null>(null);
+
   /** 三列宽度：拖拽条改，松手写 localStorage（Owner：「由我来定列宽吧」） */
   const columns = useColumnLayout();
 
@@ -149,11 +154,13 @@ export default function PromptLab() {
     [filter],
   );
 
-  /** 人格黄条上的「去分节配置」：滚到 ① 分节配置列并高亮 persona 节（同一屏内，无需切 Tab） */
+  /**
+   * 人格黄条上的「去分节配置」：切到「身份提示词」Tab 并高亮 persona 节。
+   * 【2026-11-15 拆 Tab 后】分节配置不再与因素同屏，故这里是切 Tab 而不是滚动。
+   */
   const focusPersonaRow = () => {
     setFocusRowKey('persona');
-    // jsdom 里没有 scrollIntoView（用例会渲染本页）⇒ 可选调用，不写死依赖
-    identityColRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+    setTab('identity');
   };
 
   /**
@@ -320,7 +327,7 @@ export default function PromptLab() {
                     <>
                       {!personaEmitted && (
                         // 这里在 300px 窄列里，故用 pl-warn-strip-narrow（可换行、按钮独占一行），
-                        // 文案也短 —— ① 分节配置就在同一屏右边，不必长篇解释。
+                        // 文案也短 —— 分节配置在「身份提示词」Tab 里，点按钮直接过去。
                         <div className="pl-warn-strip pl-warn-strip-narrow" role="status">
                           <TriangleAlert size={13} />
                           <span>
@@ -328,7 +335,7 @@ export default function PromptLab() {
                             拖动只写后端 <code>/api/personality</code>。
                           </span>
                           <button type="button" className="pl-btn" onClick={focusPersonaRow}>
-                            去 ① 分节配置打开
+                            去「身份提示词」打开
                           </button>
                         </div>
                       )}
@@ -378,7 +385,7 @@ export default function PromptLab() {
               ))}
             </main>
 
-            {/* 拖拽条 ①：因素列 ↔ ① 分节配置（拖动只改因素列宽；双击复位） */}
+            {/* 拖拽条：因素列 ↔ 预览（拖动只改因素列宽；双击复位） */}
             <div
               className="pl-col-split"
               role="separator"
@@ -389,31 +396,11 @@ export default function PromptLab() {
               onDoubleClick={columns.reset}
             />
 
-            {/* 第 2 列：① 分节配置（哪些块进提示词）= 原「身份提示词（系统提示词 · 线上配置）」 */}
-            <section className="pl-identity-col" aria-label="身份提示词（系统提示词 · 线上配置）" ref={identityColRef}>
-              <h2 className="pl-col-title">① 分节配置（哪些块进提示词）</h2>
-              <IdentityPromptPanel
-                {...toIdentityPromptPanelProps(identity)}
-                focusedKey={focusRowKey}
-                onFocusRow={setFocusRowKey}
-              />
-            </section>
-
-            {/* 拖拽条 ②：① 分节配置 ↔ ② 最终注入文本（拖动改分节列宽，正文列自动吸收剩余） */}
-            <div
-              className="pl-col-split"
-              role="separator"
-              aria-orientation="vertical"
-              aria-label="拖动调整分节配置列宽"
-              title="拖动调整列宽（双击恢复默认）"
-              onMouseDown={columns.startDrag('identity')}
-              onDoubleClick={columns.reset}
-            />
-
-            {/* 第 3 列：实时预览面板（PreviewPanel） */}
+            {/* 右侧：因素滑块的产物（生成的提示词 / 试跑 / 评估 / Token / 导出）。
+                「身份提示词组装出来的最终注入文本」已按 Owner 要求挪到独立 Tab。 */}
             <PreviewPanel
+              part="factors"
               systemPrompt={systemPrompt}
-              highlightSnippet={focusRowKey ? identity.rows.find((r) => r.key === focusRowKey)?.emitText : null}
               prompt={prompt}
               radar={radar}
               token={token}
@@ -425,6 +412,52 @@ export default function PromptLab() {
             />
           </div>
         </>
+      ) : tab === 'identity' ? (
+        /* 【2026-11-15 Owner】「把 身份提示词 及身份提示词变化产生的 实时预览拆成一个 TAB」——
+           这个 Tab = 分节配置（开关）+ 它组装出来的最终注入文本（实时）。 */
+        <div
+          className={`pl-body ${columns.dragging ? 'pl-body-dragging' : ''}`}
+          ref={columns.bodyRef}
+          style={
+            {
+              '--pl-col-factors': `${columns.cols.factors}px`,
+              '--pl-col-identity': `${columns.cols.identity}px`,
+            } as CSSProperties
+          }
+        >
+          <section className="pl-identity-col" aria-label="身份提示词（分节配置）">
+            <h2 className="pl-col-title">分节配置（哪些块进提示词）</h2>
+            <IdentityPromptPanel
+              {...toIdentityPromptPanelProps(identity)}
+              focusedKey={focusRowKey}
+              onFocusRow={setFocusRowKey}
+            />
+          </section>
+
+          <div
+            className="pl-col-split"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="拖动调整身份提示词列宽"
+            title="拖动调整列宽（双击恢复默认）"
+            onMouseDown={columns.startDrag('identity')}
+            onDoubleClick={columns.reset}
+          />
+
+          <PreviewPanel
+            part="identity"
+            systemPrompt={systemPrompt}
+            highlightSnippet={focusRowKey ? identity.rows.find((r) => r.key === focusRowKey)?.emitText : null}
+            prompt={prompt}
+            radar={radar}
+            token={token}
+            llmOutput={llmOutput}
+            llmError={llmError}
+            llmLoading={llmLoading}
+            onRunLlm={() => void runLlm()}
+            onExport={exportWith}
+          />
+        </div>
       ) : (
         /* LLM 通信监控：主内容区整屏（原页面底部并入 → 提为主 Tab） */
         <div className="pl-tab-body">

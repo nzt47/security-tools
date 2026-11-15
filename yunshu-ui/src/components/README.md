@@ -41,10 +41,10 @@
 | `CustomFactorForm` | 添加自定义因素弹窗（按控件类型动态表单） |
 | `IdentityPromptPanel` | 身份提示词编辑区（线上配置：启停/自定义内容/保存/重置/统计；并入原「身份提示词」页） |
 | `LlmMonitorPanel` | LLM 通信监控区（统计 + 收发记录 + 10s 自动刷新/清空；并入原「LLM 通信」页） |
-| `PreviewPanel` | 右栏「② 最终注入文本（只读）」+ 生成的提示词 / 真实模型试跑 / 雷达图 / Token 预算 / 导出（2026-11-15 去掉「模拟 / 真实接口」双模式与「模拟输出」） |
+| `PreviewPanel` | 右侧实时预览，按 `part` 二选一：`identity` 只渲染「最终注入文本（只读）」；`factors` 渲染 生成的提示词 / 真实模型试跑 / 雷达图 / Token 预算 / 导出（2026-11-15 按 Owner 要求把身份提示词的预览拆成独立 Tab） |
 | `columnLayout.ts` | 三列宽度可拖拽 + 自动保存（localStorage `yunshu:prompt-lab:cols:v1`，下限 220/300/360，双击拖拽条复位）；2026-11-15 Owner「由我来定列宽吧」 |
 | `personalityFactors.ts` | 人格 6 维 ↔ `/api/personality` 的同步（首屏 GET 覆盖默认值 + 变化后防抖 400ms 只发改动键）+ 预设档/重置；2026-11-15 人格并进因素（轻量版），同日删除「人格」Tab（`pages/hub/personality.tsx` 一并删除）⇒ 这里是人格的**唯一入口** |
-| `index.tsx` | 主页面编排（状态与布局，样式见 `src/pages/PromptLab.css`）；2026-11-15 收口成 ① 分节配置 → ② 最终注入文本 一屏（基础模板编辑器已按 Owner 要求整块删除） |
+| `index.tsx` | 主页面编排（状态与布局，样式见 `src/pages/PromptLab.css`）；2026-11-15 收口成三个 Tab：提示词影响因素（滑块 + 生成的提示词/试跑）· 身份提示词（分节配置 + 最终注入文本）· LLM 通信监控 |
 
 ## 使用约定
 

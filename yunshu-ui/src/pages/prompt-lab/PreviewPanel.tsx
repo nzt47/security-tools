@@ -26,6 +26,13 @@ export interface PreviewUsage {
 }
 
 interface PreviewPanelProps {
+  /**
+   * 这个预览属于哪个 Tab（2026-11-15 Owner：「把 身份提示词 及身份提示词变化产生的实时预览
+   * 拆成一个 TAB」）：
+   *  · 'identity' —— 只显示「最终注入文本」（由 ① 分节配置的开关组装）
+   *  · 'factors'  —— 显示因素滑块的产物：生成的提示词 / 试跑 / 评估 / Token / 导出
+   */
+  part: 'identity' | 'factors';
   /** 注入 system message：后端身份提示词配置生成的模板（可含运行时占位符） */
   systemPrompt: string;
   /** 聚焦面板项的发出内容：命中则在该段高亮（启用状态 ↔ 内容显示联动） */
@@ -53,6 +60,7 @@ export function splitHighlight(
 }
 
 export default function PreviewPanel({
+  part,
   systemPrompt,
   highlightSnippet,
   prompt,
@@ -68,43 +76,48 @@ export default function PreviewPanel({
   const setLlm = usePromptLabStore((s) => s.setLlm);
   const hl = splitHighlight(systemPrompt, highlightSnippet);
 
+  if (part === 'identity') {
+    // 身份提示词 Tab：这里只有「身份提示词变化产生的实时预览」这一块
+    // （Owner 2026-11-15：「把 身份提示词 及身份提示词变化产生的实时预览拆成一个 TAB」）。
+    return (
+      <aside className="pl-preview">
+        <div className="pl-preview-head">
+          <h2>实时预览</h2>
+        </div>
+        <div className="pl-preview-block">
+          <h3>最终注入文本（只读）</h3>
+          {/* 这块只由左侧「分节配置」的开关组装；因素滑块改的是另一个 Tab 的「生成的提示词」。 */}
+          <p className="pl-export-hint">
+            这一段是 <b>system message</b>，由左侧「分节配置」的开关组装 —— 每动一个开关，
+            这里立刻是拼好的全文。
+          </p>
+          <pre className="pl-sim-out">
+            {systemPrompt ? (
+              hl ? (
+                <>
+                  {hl[0]}
+                  <mark className="pl-hl" title="左侧「身份提示词」当前聚焦的配置项发出的内容">
+                    {hl[1]}
+                  </mark>
+                  {hl[2]}
+                </>
+              ) : (
+                systemPrompt
+              )
+            ) : (
+              '（还没读到注入模板 —— 左侧「分节配置」载入后，这里会随每个开关实时更新）'
+            )}
+          </pre>
+        </div>
+      </aside>
+    )
+  }
+
+  // 因素 Tab：滑块能改的东西（生成的提示词 / 试跑 / 评估 / Token / 导出）
   return (
     <aside className="pl-preview">
       <div className="pl-preview-head">
         <h2>实时预览</h2>
-      </div>
-
-      <div className="pl-preview-block">
-        {/* 2026-11-15：编号统一 —— ① 分节配置 / ② 就是这里。
-            （基础模板那层已被 Owner 删掉：「分节配置的开关本身就是在组装基础模板，
-            只要每一个开关修改都可以在实时预览中看到就可以了」。）
-            原先叫「系统提示词（最终注入文本 · 只读）」，与另一层的标题同字（"系统提示词"），
-            看上去像重复的东西。 */}
-        <h3>② 最终注入文本（只读）</h3>
-        {/* Owner 2026-11-15 问过「影响因素的变动能不能从实时预览里看到」—— 实测：
-            左侧因素滑块改的是**下面**那块「生成的提示词」（试跑就用它），这一段 system message
-            只由「① 分节配置」的开关组装（滑块不影响）。两句写在这里，免得对着错的块找变化。 */}
-        <p className="pl-export-hint">
-          这一段是 <b>system message</b>，由「① 分节配置」的开关组装；左侧因素滑块改的是
-          下面「生成的提示词」（试跑就用它），不影响这一段。
-        </p>
-        <pre className="pl-sim-out">
-          {systemPrompt ? (
-            hl ? (
-              <>
-                {hl[0]}
-                <mark className="pl-hl" title="左侧「身份提示词」当前聚焦的配置项发出的内容">
-                  {hl[1]}
-                </mark>
-                {hl[2]}
-              </>
-            ) : (
-              systemPrompt
-            )
-          ) : (
-            '（还没读到注入模板 —— 左侧「① 分节配置」载入后，这里会随每个开关实时更新）'
-          )}
-        </pre>
       </div>
 
       <div className="pl-preview-block">
