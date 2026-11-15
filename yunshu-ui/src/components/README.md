@@ -41,7 +41,7 @@
 | `CustomFactorForm` | 添加自定义因素弹窗（按控件类型动态表单） |
 | `IdentityPromptPanel` | 身份提示词编辑区（线上配置：启停/自定义内容/保存/重置/统计；并入原「身份提示词」页） |
 | `LlmMonitorPanel` | LLM 通信监控区（统计 + 收发记录 + 10s 自动刷新/清空；并入原「LLM 通信」页） |
-| `PreviewPanel` | 右侧实时预览面板（LLM 配置/提示词/模拟输出/雷达图/Token 估算/导出） |
+| `PreviewPanel` | 右侧实时预览面板（系统提示词/生成的提示词/真实模型试跑/雷达图/Token 估算/导出；2026-11-15 去掉「模拟 / 真实接口」双模式，并整块删掉「模拟输出」） |
 | `index.tsx` | 主页面编排（状态与布局，样式见 `src/pages/PromptLab.css`） |
 
 ## 使用约定

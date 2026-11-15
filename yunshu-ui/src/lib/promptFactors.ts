@@ -1,5 +1,5 @@
 /**
- * 提示词影响因素 · 数据模型 / 默认因素 / 模拟预览引擎
+ * 提示词影响因素 · 数据模型 / 默认因素 / 提示词构建与 LLM 试跑
  * ------------------------------------------------
  * 设计约束（不易）：
  *  - 因素定义（def）与"当前值"分离：def 描述"有什么因素、怎么调节"，
@@ -210,45 +210,6 @@ export function buildPrompt(values: Record<string, FactorValue>): string {
   return lines.join('\n\n');
 }
 
-/**
- * 参数示意引擎：把当前因素值翻译成一段"参数画像"文字。
- *
- * 【口径】它**不是模型输出**，也不联网；界面上的标题就叫「参数示意（不联网，不是模型输出）」。
- * 真正跑模型走 requestLlmPreview / 后端 /api/prompt-lab 代理（PreviewPanel 的「跑一次看效果」）。
- * 2026-11-15 之前它被当成"模拟预览模式"和"真实接口"并列，Owner 反馈看不懂，故收敛成一条主路径。
- */
-export function simulateOutput(values: Record<string, FactorValue>): string {
-  const temp = numOf(values, 'temperature');
-  const topP = numOf(values, 'top_p');
-  const maxTok = numOf(values, 'max_tokens');
-  const clarity = numOf(values, 'clarity');
-  const taskClarity = numOf(values, 'task_clarity');
-  const precision = numOf(values, 'word_precision');
-  const complexity = numOf(values, 'sentence_complexity');
-  const term = strOf(values, 'terminology');
-  const history = numOf(values, 'history_len');
-  const role = strOf(values, 'role_setting');
-
-  const style =
-    temp >= 1.2 ? '发散性强、联想丰富' :
-    temp >= 0.9 ? '灵活、带适度创意' :
-    temp >= 0.5 ? '平衡、稳定可靠' : '严谨、保守、低风险';
-  const focus = topP >= 0.9 ? '词汇分布广、多样性高' : topP >= 0.7 ? '适度聚焦' : '高度聚焦、同质化倾向';
-  const structure = clarity + taskClarity >= 140 ? '结构清晰、分点到位' : '结构一般、偶有偏离';
-  const wording =
-    term === 'heavy' ? '大量专业术语，面向内行读者' :
-    term === 'none' ? '通俗措辞，面向大众读者' : '专业术语与通俗表达兼顾';
-  const precisionDesc = precision >= 70 ? '措辞精确、歧义少' : '措辞偶有含糊';
-  const sentence = complexity >= 70 ? '以长句和复杂从句为主' : complexity >= 40 ? '长短句适中' : '以短句为主、直白易读';
-  const ctx = history > 0 ? `可参考最近 ${history} 轮对话的线索` : '仅凭单轮问题作答，可能缺乏前情';
-
-  return (
-    `【${role || '未设定角色'}】\n` +
-    `基于当前参数组合（temperature=${temp.toFixed(1)} / top_p=${topP.toFixed(2)} / max_tokens=${maxTok}），` +
-    `模拟输出风格为：${style}，${focus}；文本组织${structure}；${wording}，${precisionDesc}，${sentence}；${ctx}。\n` +
-    `（说明：这段是本地按当前参数拼出来的"参数画像"，用来看趋势 / 核对设置，不是模型输出。）`
-  );
-}
 
 /** 雷达图五维数据：评估类 3 维取自用户设置，连贯性/完整性由结构与语言因素推导 */
 export function radarData(values: Record<string, FactorValue>): { label: string; value: number }[] {

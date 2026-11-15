@@ -3,7 +3,7 @@
  * ------------------------------------------------
  * 布局：顶栏（标题 + 模块 Tab 条）+ 分类筛选 + 主体（左因素区 / 右预览 PreviewPanel）
  *      / LLM 通信监控 Tab（全宽，LlmMonitorPanel）/ 人格 Tab（PersonalityPage）
- * 功能：5 类因素调节（滑块/下拉/文本/开关）、实时预览（模拟 + 真实 LLM）、
+ * 功能：5 类因素调节（滑块/下拉/文本/开关）、实时预览（真实模型试跑 + Token/雷达/导出）、
  *       分类筛选、自定义因素添加/删除、JSON/CSV 导出。
  *
  * 【深度合并（身份提示词 + LLM 通信并入）】
@@ -32,7 +32,6 @@ import {
   radarData,
   requestLlmPreview,
   requestBackendLlmPreview,
-  simulateOutput,
   usageReport,
 } from '../../lib/promptFactors';
 import type { FactorCategory, FactorValue } from '../../lib/promptFactorTypes';
@@ -108,7 +107,6 @@ export default function PromptLab() {
   const defs = useMemo(() => allFactors(customFactors), [customFactors]);
 
   const prompt = useMemo(() => buildPrompt(values), [values]);
-  const sim = useMemo(() => simulateOutput(values), [values]);
   const radar = useMemo(() => radarData(values), [values]);
   const systemPrompt = identity.template;
   const token = useMemo(
@@ -280,7 +278,6 @@ export default function PromptLab() {
               systemPrompt={systemPrompt}
               highlightSnippet={focusRowKey ? identity.rows.find((r) => r.key === focusRowKey)?.emitText : null}
               prompt={prompt}
-              sim={sim}
               radar={radar}
               token={token}
               llmOutput={llmOutput}

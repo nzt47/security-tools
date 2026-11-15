@@ -2,16 +2,16 @@
  * PreviewPanel —— 提示词实验室右侧实时预览面板
  * 从 prompt-lab/index.tsx 拆分（原 aside 部分）。
  *
- * 【2026-11-15 重排：去掉「模拟 / 真实接口」双模式】
- * Owner 原话：「实时预览怎么还分 模拟 和 真实接口？看不懂。」
+ * 【2026-11-15 重排：去掉「模拟 / 真实接口」双模式，再去掉"模拟输出"】
+ * Owner 原话：「实时预览怎么还分 模拟 和 真实接口？看不懂。」→「你真知我，按你说的做。」
  * 原来的设计把两件不同的事并列成"两种预览模式"，而"模拟"其实**不是模型输出** ——
- * 它只是把滑块组合翻译成人话（lib/promptFactors.simulateOutput），却长得像一段回答，
- * 所以越看越像"这个预览在骗我"。
- * 现在：
+ * 它只是把滑块组合翻译成人话（lib/promptFactors.simulateOutput），却长得像一段回答。
+ * 现在（两步走完）：
  *   1. 主路径只有一条 —— 「试跑一次（真实模型）」，一个按钮，默认走云枢已配置的模型；
  *   2. 自己填 Endpoint/API Key 的入口收进折叠的「高级」里（默认不用碰）；
- *   3. 原来那段"模拟输出"改名「参数示意（不联网，不是模型输出）」，并写清它是什么；
- * 组件不再接收 mode / onModeChange（页面的 mode 状态与 PreviewMode 类型一并删除）。
+ *   3. **"模拟输出"整块删除**（连带 lib 里的 simulateOutput 一起删）：面板只留
+ *      系统提示词 / 生成的提示词 / 真跑结果 / 效果评估 / Token / 导出。
+ * 组件不再接收 mode / onModeChange / sim。
  */
 import { Loader2, Settings2, Download, Wrench } from 'lucide-react';
 import { usePromptLabStore } from '../../stores/usePromptLabStore';
@@ -31,8 +31,6 @@ interface PreviewPanelProps {
   /** 聚焦面板项的发出内容：命中则在该段高亮（启用状态 ↔ 内容显示联动） */
   highlightSnippet?: string | null;
   prompt: string;
-  /** 参数示意文本（不联网；只把滑块组合翻译成人话，不是模型输出） */
-  sim: string;
   radar: { label: string; value: number }[];
   token: PreviewUsage;
   llmOutput: string | null;
@@ -58,7 +56,6 @@ export default function PreviewPanel({
   systemPrompt,
   highlightSnippet,
   prompt,
-  sim,
   radar,
   token,
   llmOutput,
@@ -152,15 +149,6 @@ export default function PreviewPanel({
             <input className="pl-text" value={llm.model} onChange={(e) => setLlm({ model: e.target.value })} />
           </label>
         </details>
-      </div>
-
-      {/* 不是模型输出：只把参数组合翻译成人话，帮用户确认"滑块到底在说什么" */}
-      <div className="pl-preview-block">
-        <h3>参数示意（不联网，不是模型输出）</h3>
-        <p className="pl-export-hint">
-          这段是本地按当前参数拼出来的"参数画像"，用来看趋势、核对设置，**不代表模型会这么回答**。
-        </p>
-        <pre className="pl-sim-out">{sim}</pre>
       </div>
 
       <div className="pl-preview-block">
