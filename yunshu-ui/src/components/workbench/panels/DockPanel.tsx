@@ -89,7 +89,7 @@ export function DockPanel() {
       <div
         role="tablist"
         aria-label="右侧面板"
-        className="flex shrink-0 items-center gap-1 border-b border-slate-800/60 px-1.5 py-1.5"
+        className="wb-strip shrink-0 gap-1 border-b border-slate-800/60 px-1.5"
       >
         {TABS.map(({ id, label, icon: Icon }) => {
           const active = id === tab

@@ -93,7 +93,8 @@ export function NavPanel() {
           顶部空间让给搜索框；品牌识别由浏览器标签页图标（/static/favicon.svg）承担。 */}
 
       {/* 搜索框（Esc 清空；命中分组时整组保留，命中子项时只留该子项） */}
-      <div className="border-b border-slate-800 px-2 py-2">
+      {/* 细条高度由 .wb-strip（--wb-strip-h 44px）统一给，别再写 py-* */}
+      <div className="wb-strip border-b border-slate-800 px-2">
         <div className="relative">
           <Search
             size={12}

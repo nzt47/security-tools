@@ -22,6 +22,8 @@
   --wb-text: #e2e8f0;
   --wb-text-dim: #64748b;
   --wb-radius: 12px;
+  /* 面板顶部「细条」统一高度（2026-11-15 Owner 第四条：导航/主内容/右栏三条要一样高） */
+  --wb-strip-h: 44px;
   --wb-font: 'Chakra Petch', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
   --wb-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 }
@@ -283,6 +285,22 @@ body,
 
 .wb-mosaic-body .mosaic-window-toolbar:active {
   cursor: grabbing;
+}
+
+/* ─── 面板「细条」高度统一（Owner 2026-11-15 第四条回调）───
+ * 删掉面板标题栏之后，三条细条（导航搜索框 / 会话页头 / 右栏 tab 条）各自被自己的
+ * 纵向 padding 与内容高凑出来 —— 实测 45 / 47.5 / 38.8px（1280/1440/1920 三档同值），
+ * 底边分别在 y=99 / 101.5 / 92.8，最大差 8.7px，一眼就能看出"三条不一样高"。
+ * 现在：细条高度只由 --wb-strip-h 决定，内容垂直居中。
+ * 【为什么用 min-height 不用 height】最窄档（1280）会话页头一旦换行，固定高度会裁内容；
+ * min-height 让它在极端情况下还能长高，正常三档三条正好都是 44。
+ * 【别再给这三条加 py-*】纵向 padding 会与 --wb-strip-h 抢高度（8+8+28+1=45 ≠ 44）。
+ */
+.wb-strip {
+  display: flex;
+  align-items: center;
+  min-height: var(--wb-strip-h);
+  box-sizing: border-box;
 }
 
 .wb-panel-grip {
