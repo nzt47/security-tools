@@ -784,19 +784,29 @@
   },
   {
    "id": "prompt-lab-merge-three-layers",
-   "status": "open",
+   "status": "done",
    "priority": "P2",
    "title": "提示词实验室：三层（基础模板 / 分节配置 / 最终注入）合并到一屏（前端）",
    "criteria": "Owner 2026-11-15：「①三层能不能合并在一起，即使只合并前端，看起来也顺眼点。」今天三层同名、各在一处：TAB「系统提示词」= 基础模板（305 字符 / 150 tok，占位符 7 个）；实验室左栏「身份提示词」= 14 个分节（enabled 11850 tok 的声明预算）；实验室右栏 = 组装后的最终注入（只读）。用户以为重复，实际是三层（§11.124 B/K-1）。",
-   "next": "按 §11.124 D-1 做（只动前端）：index.tsx 的 LAB_TABS 去掉 system-prompt、readSavedTab 把存量值归一到 factors、删 tab===system-prompt 分支；factors 分支在 pl-filter 后插默认收起的 <details className=\"pl-base-block\">（summary「① 基础模板（骨架 + 占位符，约 150 tok）」）承载 SystemPromptPanel；左栏顶部加「② 分节配置」小标题；右栏块标题改「③ 最终注入文本（只读）」。测试：promptLabRequirements.test.tsx 的 Tab 标签数组改 3 项 + 补「基础模板块存在且默认收起」。不新增 src/pages 文件、不增删路由 ⇒ 不触发 ui_reachability 重派生。"
+   "next": "2026-11-15 落地（§11.125 B）：LAB_TABS 现 3 项、readSavedTab 把存量 'system-prompt' 归一到 factors、factors 分支插默认收起的 details.pl-base-block（summary「① 基础模板（骨架 + 占位符，约 150 tok）」，内容 = SystemPromptPanel）；② 分节配置小标题 + ③ 最终注入文本（只读）同屏。实测 1440：① 收起时 open=false，展开 605px / 编辑器 285 字符；Tab 条 3 项。用例：promptLabRequirements 的 Tab 断言改 3 项 + 新增「基础模板块默认收起 + ②③ 同屏」「存量值归一」两条。提交 1c6ce474b。",
+   "done_at": "2026-11-15T13:27+08:00"
   },
   {
    "id": "prompt-lab-personality-as-factors",
-   "status": "open",
+   "status": "done",
    "priority": "P2",
    "title": "人格 6 维并进「提示词影响因素」（轻量版：滑块直接写 /api/personality）",
    "criteria": "Owner 2026-11-15：「②用轻量版。」现状：人格 TAB 改的是 /api/personality 的 6 维（tone/emotion/conciseness/initiative/humor/empathy，0–1）+ 预设，但只有系统提示词的 persona 节启用时才会被 persona 模块渲染进提示词；该节 enabled=false（1500 tok）⇒ 现在调人格不会改变回答（§11.123 K-2 / §11.124 E）。",
-   "next": "按 §11.124 D-2 做：FactorCategory 加 personality；promptFactors 加 6 个 slider（personality.tone/emotion/conciseness/initiative/humor/empathy，0–1 step 0.01，左右端文案照 /api/personality.dimensions）；首屏 GET /api/personality 用 custom_params 覆盖默认值；6 键子集变化时防抖 400ms POST /api/personality/params。沿用 persona 节关闭时的黄条提示（视图如实）。验收：拖动 → 一次 POST → custom_params 变化且 current_profile=custom；开启 persona 节后右栏最终注入文本出现人格段。"
+   "next": "2026-11-15 落地（§11.125 B/D）：FactorCategory 加 personality；PERSONALITY_DIMENSIONS 抄后端 dimensions（label/left/right）+ 默认值抄 _default().custom_params；6 个 slider（0–1 / step 0.01 / 带左右端文案，由 dimensions 派生 ⇒ 「因素 id ↔ 后端键」只有一份映射）；usePersonalityFactors（pages/prompt-lab/personalityFactors.ts）：首屏 GET 用 custom_params 覆盖默认值、变化后防抖 400ms、**只发变动键**（后端 update_params 是合并语义，整份 6 键提交会在「人格 Tab 改 A、回实验室拖 B」时把 A 覆盖回旧值）。真机验收（带令牌的页面会话）：连发两次 input（0.80→0.85）⇒ 网络里只有 1 个 POST，请求体 {\"params\":{\"humor\":0.85}}；随后 GET /api/personality = humor:0.85 / current_profile:custom。persona 节关闭时该分类顶部保留黄条 +「去 ② 分节配置打开」。提交 0580cb4d5（数据层）/ 1c6ce474b（界面接线）。已知边界见下一条。",
+   "done_at": "2026-11-15T13:27+08:00"
+  },
+  {
+   "id": "prompt-lab-personality-two-views-desync",
+   "status": "open",
+   "priority": "P3",
+   "title": "人格两份视图（人格 Tab / 因素是分类）不会互相刷新 —— 轻量版的已知边界",
+   "criteria": "轻量版把 6 维搬进「提示词影响因素」后，实验室那份读的是 zustand store（首屏来自 GET /api/personality），「人格」Tab 是独立组件、自己再 GET 一次。在 Tab 里改完再回实验室拖同一维，本地那份仍是旧值；只发变动键把它限制在「最坏只影响正在拖的那一维」，但两份视图并没有互相刷新。彻底版 = persona 节改读实验室 values（后端渲染人格文本、人格不再有独立配置），1 天量且要动后端，未做（§11.123 K-2 的「彻底版」）。",
+   "next": "要做彻底版：agent 的人格渲染改成从 system_prompt_config 的 persona 节取参数（或新增一个「人格参数来源」开关），前端删掉两份视图之一；在此之前，若要缓解，可在实验室重新挂载时（Tab 切回 factors）再 GET 一次覆盖 store —— 但会与本地未写回的拖动打架，故本轮刻意没做。"
   },
   {
    "id": "prompt-lab-token-levers",
