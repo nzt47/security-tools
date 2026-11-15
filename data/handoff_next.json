@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-15T11:35:00+08:00",
+ "updated_at": "2026-11-15T13:10:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -781,6 +781,30 @@
    "criteria": "Owner 2026-11-15：「提示词实验室 的 影响提示词因素列宽改窄到当前的三分之一。」原来 .pl-factors 是 flex:1 1 auto，吃掉整行剩余宽度 —— 2560 屏实测 1100px、1920 屏 563px，卡片里的滑块横跨整屏。",
    "next": "已落地（be96b7abd，仅 CSS）：width: calc((100% - 1000px) / 3)（= 原宽 ÷3），下限 180px（再窄滑块/下拉挤扁；1440 屏原宽只有 160px），省出的宽度给最右的实时预览（.pl-preview 改 flex:1 1 520px）；≤1300 堆叠断点里复位成满宽。实测 2560 屏 1100→367（正好 1/3）、1920 屏 563→188（正好 1/3）、1440 屏 160→180（受下限）。若 Owner 想让省下的宽度给身份列或留白，改 .pl-preview 的 flex 即可（一行）。",
    "done_at": "2026-11-15T11:30+08:00"
+  },
+  {
+   "id": "prompt-lab-merge-three-layers",
+   "status": "open",
+   "priority": "P2",
+   "title": "提示词实验室：三层（基础模板 / 分节配置 / 最终注入）合并到一屏（前端）",
+   "criteria": "Owner 2026-11-15：「①三层能不能合并在一起，即使只合并前端，看起来也顺眼点。」今天三层同名、各在一处：TAB「系统提示词」= 基础模板（305 字符 / 150 tok，占位符 7 个）；实验室左栏「身份提示词」= 14 个分节（enabled 11850 tok 的声明预算）；实验室右栏 = 组装后的最终注入（只读）。用户以为重复，实际是三层（§11.124 B/K-1）。",
+   "next": "按 §11.124 D-1 做（只动前端）：index.tsx 的 LAB_TABS 去掉 system-prompt、readSavedTab 把存量值归一到 factors、删 tab===system-prompt 分支；factors 分支在 pl-filter 后插默认收起的 <details className=\"pl-base-block\">（summary「① 基础模板（骨架 + 占位符，约 150 tok）」）承载 SystemPromptPanel；左栏顶部加「② 分节配置」小标题；右栏块标题改「③ 最终注入文本（只读）」。测试：promptLabRequirements.test.tsx 的 Tab 标签数组改 3 项 + 补「基础模板块存在且默认收起」。不新增 src/pages 文件、不增删路由 ⇒ 不触发 ui_reachability 重派生。"
+  },
+  {
+   "id": "prompt-lab-personality-as-factors",
+   "status": "open",
+   "priority": "P2",
+   "title": "人格 6 维并进「提示词影响因素」（轻量版：滑块直接写 /api/personality）",
+   "criteria": "Owner 2026-11-15：「②用轻量版。」现状：人格 TAB 改的是 /api/personality 的 6 维（tone/emotion/conciseness/initiative/humor/empathy，0–1）+ 预设，但只有系统提示词的 persona 节启用时才会被 persona 模块渲染进提示词；该节 enabled=false（1500 tok）⇒ 现在调人格不会改变回答（§11.123 K-2 / §11.124 E）。",
+   "next": "按 §11.124 D-2 做：FactorCategory 加 personality；promptFactors 加 6 个 slider（personality.tone/emotion/conciseness/initiative/humor/empathy，0–1 step 0.01，左右端文案照 /api/personality.dimensions）；首屏 GET /api/personality 用 custom_params 覆盖默认值；6 键子集变化时防抖 400ms POST /api/personality/params。沿用 persona 节关闭时的黄条提示（视图如实）。验收：拖动 → 一次 POST → custom_params 变化且 current_profile=custom；开启 persona 节后右栏最终注入文本出现人格段。"
+  },
+  {
+   "id": "prompt-lab-token-levers",
+   "status": "open",
+   "priority": "P3",
+   "title": "提示词 token：还能压的只剩 tools 段（且已 96.7% 命中缓存）",
+   "criteria": "2026-11-15 实测（LLM 监控记录 84de4d7d74eb / deepseek-flash）：request_tokens=8797，system_prompt 277 字符≈130 tok、tools 26 个 16765 字符≈7.6k tok、messages 766 字符；prompt_cache_hit_tokens=6400 / miss=216 ⇒ 命中率 96.7%。★ 两次更正：① smart_tool_selection 运行时本来就是 true（plugins/chat.py:2261-2266 已在做路由，拿 26 个工具名再选 11/3/3），我上一轮说\"现在是关的\"是错的；② 记忆线索的 5000 是声明预算，实测注入只有几十字符（_render_memory_context 只输出标题+占位符，build_memory_context 截 300 字符）⇒ 按它\"改按需检索\"是砍空气。",
+   "next": "若要继续压：① plugins/chat.py:1453 _plain_subset_enabled()（轻量档工具减法，当前默认关；代码注释里有当时的实测理由：换档会让整段 tools 作废，统一工具段更省）——开关前先 A/B 命中率与首字延迟；② 行白名单（agent.lines.line_whitelist）按行再收窄工具集；③ memory_context.token_limit 与历史窗口只在长会话有感。注意：tools 段省下来主要省**上下文窗口**，因缓存命中 96.7%，**不省钱**。"
   }
  ]
 }
