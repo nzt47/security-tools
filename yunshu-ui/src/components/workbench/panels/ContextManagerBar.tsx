@@ -124,6 +124,8 @@ export function ContextManagerBar() {
   const [error, setError] = useState('')
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
+  // 说明面板（Owner 2026-11-15：原来常驻的机制说明太占版面 ⇒ 收进「手动压缩」同一行的两个按钮）
+  const [infoTab, setInfoTab] = useState<'mechanism' | 'window' | null>(null)
   // 滑块本地值（拖动时不覆盖服务端值）
   const [localLimit, setLocalLimit] = useState<number | null>(null)
   const [localSend, setLocalSend] = useState<number | null>(null)
@@ -156,23 +158,28 @@ export function ContextManagerBar() {
 
   // 各分身的默认窗口（档案事实；取不到就空表，界面如实说"取不到"，不编数）。
   // 与 5s 水位轮询分开：主线档案不会每 5 秒变一次，60s 足够。
-  useEffect(() => {
-    let alive = true
-    const pull = () => {
-      hubGet<LineListPayload | { data?: LineListPayload }>(AGENT_LINES).then((r) => {
-        if (!alive) return
-        const payload = (r as { data?: LineListPayload })?.data ?? (r as LineListPayload)
-        setLines((payload?.lines ?? []).map((l) => ({
-          id: String(l.id ?? ''),
-          name: String(l.name || l.id || ''),
-          window: Number(l.context_window_tokens ?? 0),
-        })))
-      }).catch(() => { /* 读不到就保持空表 */ })
-    }
-    pull()
-    const t = setInterval(pull, 60000)
-    return () => { alive = false; clearInterval(t) }
+  const pullLines = useCallback(() => {
+    hubGet<LineListPayload | { data?: LineListPayload }>(AGENT_LINES).then((r) => {
+      const payload = (r as { data?: LineListPayload })?.data ?? (r as LineListPayload)
+      setLines((payload?.lines ?? []).map((l) => ({
+        id: String(l.id ?? ''),
+        name: String(l.name || l.id || ''),
+        window: Number(l.context_window_tokens ?? 0),
+      })))
+    }).catch(() => { /* 读不到就保持空表（界面会如实显示"读不到"，不编数） */ })
   }, [])
+
+  useEffect(() => {
+    pullLines()
+    const t = setInterval(pullLines, 60000)
+    return () => clearInterval(t)
+  }, [pullLines])
+
+  // 【2026-11-15】打开「窗口取值参考」时**立刻重取一次**：组件可能在本页加载早期就挂载了
+  // （那时令牌还没进 localStorage ⇒ 401 ⇒ 表为空），只靠 60s 轮询会让人以为"没有这个功能"。
+  useEffect(() => {
+    if (infoTab === 'window') pullLines()
+  }, [infoTab, pullLines])
 
   useEffect(() => {
     try {
@@ -234,9 +241,6 @@ export function ContextManagerBar() {
       load()
     }
   }
-
-  // 说明面板（Owner 2026-11-15：原来常驻的机制说明太占版面 ⇒ 收进「手动压缩」同一行的两个按钮）
-  const [infoTab, setInfoTab] = useState<'mechanism' | 'window' | null>(null)
 
   // percentage 可能为 null（后端取不到真实窗口时**如实报 None**，不拿硬编码冒充分母）
   const pct = status?.percentage ?? 0
