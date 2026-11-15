@@ -386,7 +386,12 @@ jobs:
     # 进度 ~85% 处被 "The runner has received a shutdown signal" 强制回收
     # （pytest 0 失败，非代码问题）。换用 ubuntu-22.04 避开 ubuntu-latest
     # 公共 runner 池高峰时段的长时间 job 回收。
-    runs-on: ubuntu-22.04
+    # 【2026-11-16 · C-②】加 windows-latest 腿：Windows 专属失效形态（跨盘 relpath /
+    #   8.3 短名 / TEMP 形状 / Docker 容器能力）此前**只有**每日 test.yml 看得见，
+    #   ci.yml 全绿对这类不成立。6 shard × 2 平台 = 12 job；windows 腿不采集覆盖率
+    #   （覆盖率是代码行覆盖、与平台无关，混平台合并会把分母变成并集、数字不可比），
+    #   只出测试结果，用来抓"只在 windows 上红"的用例。
+    runs-on: ${{ matrix.os }}
     # 【不易】job 级硬超时兜底：2026-07-29 排查 9c53ae88 run 卡住 16 小时发现
     # --timeout=60 --timeout-method=signal 的 SIGALRM 无法中断 C 扩展调用
     # (sentence_transformers / chromadb / sqlite-vec 的阻塞 join)，导致 pytest
@@ -417,6 +422,7 @@ jobs:
       matrix:
         python-version: ['3.12']
         shard: ['1', '2', '3', '4', '5', '6']
+        os: [ubuntu-22.04, windows-latest]
     steps:
       - name: 检出代码
         uses: actions/checkout@v6
@@ -454,7 +460,25 @@ jobs:
           # 2026-08-03 教训：该文件曾流入 Shard1/Shard2 导致 worker 崩溃
           # （node down）→ pytest 挂起 48min → runner 回收，连续多轮 job 失败。
           mkdir -p test-results
-          echo "=== 运行单元测试（Shard ${{ matrix.shard }}/6，-n 2 并行 + signal 超时法）==="
+          # 【2026-11-16 · C-②】覆盖率只从 ubuntu 腿采集：覆盖率是**代码行覆盖**，
+          #   与平台无关；把 windows 的 shard 数据也并进同一个 combine，分母会变成
+          #   两个平台的并集、与历史 40% 口径不可比。windows 腿只求"用例在 windows 上跑得通"。
+          #   --cov 必须逐个列出 pyproject 的 9 个包（见下面 D1 注释）。
+          COV_ARGS=""
+          TIMEOUT_METHOD_ARGS=""
+          # 【2026-11-15】windows runner 比 ubuntu 慢约一倍（同一份 windows 单元全量
+          # 38min vs ubuntu ~22min），单测 60s 预算在它上面会是新误伤源 ⇒ 180s。
+          PER_TEST_TIMEOUT=60
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            PER_TEST_TIMEOUT=180
+          fi
+          if [ "${{ matrix.os }}" != "windows-latest" ]; then
+            COV_ARGS="--cov=agent --cov=sensor --cov=memory --cov=planning --cov=persona --cov=core --cov=cognitive --cov=lifetrace --cov=utils --cov-report=xml --cov-report=html --cov-report=term-missing --cov-fail-under=0"
+            # 【不易】signal 超时法只在有 SIGALRM 的平台可用；Windows 上
+            #   pytest-timeout 会去 signal.signal(SIGALRM) 直接 AttributeError。
+            TIMEOUT_METHOD_ARGS="--timeout-method=signal"
+          fi
+          echo "=== 运行单元测试（Shard ${{ matrix.shard }}/6，${{ matrix.os }}，-n 2 并行）==="
           # 【增量·可观测性 2026-09-21】跑测前资源快照：nproc / cgroup memory.max /
           #   pids.max。只加"打印"，不改测试选择、超时值、分片算法、失败判定与
           #   continue-on-error 语义；命令全部容错（文件不存在 / 命令缺失 / 非 Linux
@@ -474,10 +498,15 @@ jobs:
           #   因此后台采样监控，pytest 结束后输出峰值报告（数据随 artifact 上传），
           #   为 -n/超时方法调优提供实测依据。详见
           #   docs/observability/shard3_cannot_start_new_thread_analysis_20260805.md
-          python scripts/ci_thread_monitor.py \
-            --output test-results/thread-monitor-shard${{ matrix.shard }}.log \
-            --interval 5 &
-          MONITOR_PID=$!
+          MONITOR_PID=""
+          if [ -d /proc ] && command -v nproc >/dev/null 2>&1; then
+            python scripts/ci_thread_monitor.py \
+              --output test-results/thread-monitor-shard${{ matrix.shard }}.log \
+              --interval 5 &
+            MONITOR_PID=$!
+          else
+            echo "[观测] 非 Linux 环境：跳过后台线程/内存采样（资源快照仍打印）"
+          fi
           # 【不易】捕获 pytest 退出码而非 || true：INTERNALERROR 时监控报告
           #   正是关键归因数据，必须保证报告输出后再退出。
           set +e
@@ -508,24 +537,12 @@ jobs:
             --dist=loadscope \
             -v \
             --tb=short \
-            --cov=agent \
-            --cov=sensor \
-            --cov=memory \
-            --cov=planning \
-            --cov=persona \
-            --cov=core \
-            --cov=cognitive \
-            --cov=lifetrace \
-            --cov=utils \
-            --cov-report=xml \
-            --cov-report=html \
-            --cov-report=term-missing \
-            --cov-fail-under=0 \
+            $COV_ARGS \
             -p no:randomly \
             -m "not slow and not skip_ci and not serial" \
             --ignore=tests/unit/test_sandbox_multiprocess_boundary.py \
-            --timeout=60 \
-            --timeout-method=signal \
+            --timeout=$PER_TEST_TIMEOUT \
+            $TIMEOUT_METHOD_ARGS \
             --junitxml=test-results/junit-shard${{ matrix.shard }}.xml \
             -rA
           PAR_RC=$?
@@ -549,7 +566,7 @@ jobs:
             -m "serial" \
             --ignore=tests/unit/test_sandbox_multiprocess_boundary.py \
             --timeout=300 \
-            --timeout-method=signal \
+            $TIMEOUT_METHOD_ARGS \
             --junitxml=test-results/junit-shard${{ matrix.shard }}-serial.xml \
             -rA || SERIAL_RC=$?
           if [ "$SERIAL_RC" -eq 5 ]; then SERIAL_RC=0; fi
@@ -563,8 +580,10 @@ jobs:
           PYTEST_RC=$PAR_RC
           if [ "$PAR_RC" -eq 0 ] && [ "$SERIAL_RC" -ne 0 ]; then PYTEST_RC=$SERIAL_RC; fi
           set -e
-          kill $MONITOR_PID 2>/dev/null || true
-          wait $MONITOR_PID 2>/dev/null || true
+          if [ -n "$MONITOR_PID" ]; then
+            kill $MONITOR_PID 2>/dev/null || true
+            wait $MONITOR_PID 2>/dev/null || true
+          fi
           echo "=== 单元测试 pytest 退出码: $PYTEST_RC ==="
           # 【增量·可观测性 2026-09-21】跑测后资源快照（同 before，容错打印）
           echo "=== [资源快照 · after] Shard ${{ matrix.shard }}/6 ==="
@@ -577,8 +596,10 @@ jobs:
           # 【增量·可观测性】报告现含"每 worker 峰值 RSS / 峰值线程数"（/proc VmHWM 采样）。
           #   末尾加 || echo：观测本身失败（日志缺失/被杀）不得把作业判红 ——
           #   本例此刻 set -e 已生效，原命令失败会掩盖 pytest 真实结论。
-          python scripts/ci_thread_monitor.py --report test-results/thread-monitor-shard${{ matrix.shard }}.log \
-            || echo "[观测] 线程/内存报告不可用，已跳过（不影响测试结论）"
+          if [ -f test-results/thread-monitor-shard${{ matrix.shard }}.log ]; then
+            python scripts/ci_thread_monitor.py --report test-results/thread-monitor-shard${{ matrix.shard }}.log \
+              || echo "[观测] 线程/内存报告不可用，已跳过（不影响测试结论）"
+          fi
           # 【不易】--cov-fail-under=0: 拆分后每个 shard 仅测 ~1/6 代码,
           # 单 shard 覆盖率 ~17% 必然低于 pyproject.toml 的 fail_under=40。
           # 覆盖率门槛由 coverage-check job 对合并后的完整数据统一断言
@@ -639,7 +660,9 @@ jobs:
         # Why 显式步骤而非仅依赖 Shard 6 分片: test_edit_policy.py 虽已落入 Shard 6，
         #   但分片调度随测试数波动，显式步骤保证该回归在 CI 面板可检索、失败可归因。
         # Why 只跑 -k symlink: 单个测试毫秒级，避免与分片整文件重复执行。
-        if: matrix.shard == '1'
+        # 【2026-11-16 · C-②】windows 腿跳过：Windows 无开发者模式/管理员权限时无法
+        #   创建 symlink（用例按设计 skip），这条回归只有 Linux runner 是有效验证点。
+        if: matrix.shard == '1' && matrix.os != 'windows-latest'
         run: |
           echo "=== 符号链接逃逸回归（validate_proposal resolve 拦截）==="
           python -m pytest tests/unit/test_edit_policy.py \
@@ -676,11 +699,14 @@ jobs:
           echo "=== BM25 极端场景回归测试通过 ==="
 
       - name: 准备覆盖率数据
+        # 只有 ubuntu 腿采集覆盖率（见 run 步骤里的 COV_ARGS 分支）。
+        if: matrix.os == 'ubuntu-22.04'
         run: |
           cp .coverage coverage_raw_shard${{ matrix.shard }}.data
           ls -la coverage_raw_shard${{ matrix.shard }}.data coverage.xml
 
       - name: 上传覆盖率报告
+        if: matrix.os == 'ubuntu-22.04'
         uses: actions/upload-artifact@v7
         with:
           name: coverage-report-py${{ matrix.python-version }}-shard${{ matrix.shard }}
@@ -694,7 +720,85 @@ jobs:
         uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: test-results-unit-py${{ matrix.python-version }}-shard${{ matrix.shard }}
+          # 【2026-11-16 · C-②】名字里必须带 os：两条腿同时上传同名 artifact 会
+          # 直接冲突报错（不是覆盖）。下游只有 update-ci-dashboard 按名字取 unit 结果，
+          # 而它的 pattern 是 py3.11（当前矩阵是 3.12）—— 本来就取不到，见交接记录。
+          name: test-results-unit-${{ matrix.os }}-py${{ matrix.python-version }}-shard${{ matrix.shard }}
+          path: test-results/
+          retention-days: 30
+
+  # ============================================================================
+  # Windows 敏感子集（C-③：已知四类"只有 windows 才会红"的失效形态）
+  # ============================================================================
+  # Why 单独一个小 job，而不是只用上面 6 shard 的 windows 腿：
+  #   ① 快信号：这几类一红，两分钟内就能判定是"环境形状"问题，不必等 12 个 shard；
+  #   ② 可归因：失败面固定在四类已知形态上（跨盘 relpath / 8.3 短名 / TEMP 形状 /
+  #      容器与 bash 能力）—— 2026-11-15 那一轮里这四类**全都只由每日 test.yml 暴露**过，
+  #      ci.yml 当时跑的是 ubuntu，永远看不见。
+  # 与 Windows 分片腿**有意重叠**：删掉这个 job 不影响覆盖面，只损失定位速度。
+  windows-sensitive-subset:
+    name: Windows 敏感子集（跨盘 / 8.3 / TEMP / 容器 / bash）
+    runs-on: windows-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v6
+
+      - name: 设置Python环境
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: 安装依赖 (Windows)
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-timeout pytest-mock pytest-asyncio pytest-xdist
+          pip install tiktoken
+          # 【不易】写成 `-e .` 而不是 `-e .[windows]`：pyproject 的 optional-dependencies
+          #   只有 dev 一组，`[windows]` 是个**不存在的 extra**（pip 只警告、装的还是基础包）。
+          #   这里按实际行为写，免得后来人以为 windows 有专属依赖集。
+          pip install -e .
+
+      - name: 运行 Windows 敏感子集
+        # 选文件的口径：**每个文件都至少覆盖四类形态之一**，不是"看着相关就拉进来"。
+        #   · 跨盘 / 8.3 短名 / TEMP 形状：safe_paths（盘符枚举 + 短名）、events 读侧
+        #     （事件目录解析不到会静默变空集，2026-11-15 成本台账 7 条红的真根因）、
+        #     eval_datasets（freeze 脚本的跨盘 relpath）、tool_callability / capability_spec
+        #     （清单里的 relpath 在跨盘时抛 ValueError 被吞成空集）；
+        #   · 容器能力：isolation_levels（windows daemon 跑不了 linux 镜像 → 只认 OSType=linux）；
+        #   · bash 能力：sandbox_wiring（runner 上的 bash.exe 是 WSL 空壳，which 为真但执行失败）。
+        env:
+          PYTHONUTF8: '1'
+          SKILLS_OFFLINE: '1'
+        run: |
+          mkdir -p test-results
+          echo "=== Windows 敏感子集（四类已知形态）==="
+          python -m pytest \
+            tests/unit/test_safe_paths.py \
+            tests/unit/test_events_files_guard.py \
+            tests/unit/test_eval_datasets.py \
+            tests/unit/test_tool_callability.py \
+            tests/unit/test_capability_spec.py \
+            tests/unit/test_isolation_levels.py \
+            tests/unit/test_sandbox_wiring.py \
+            tests/unit/test_s5_03_cost_brake.py \
+            tests/unit/test_judge_llm_runtime.py \
+            -v \
+            --tb=short \
+            -p no:randomly \
+            -m "not slow and not skip_ci" \
+            --timeout=300 \
+            --junitxml=test-results/windows-sensitive.xml
+
+      - name: 上传测试结果
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-windows-sensitive
           path: test-results/
           retention-days: 30
 

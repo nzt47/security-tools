@@ -108,11 +108,17 @@ jobs:
     # 之前"windows 单元 10 分钟跑完"是 fail-fast 早停的假象（成本台账那 7 条红让它在 3159 条时停下）；
     # 那些红修掉后它要跑满 1.5 万条 ⇒ 单独给 windows 70 分钟，ubuntu 维持 30（实测 ~22 分钟）。
     timeout-minutes: ${{ matrix.os == 'windows-latest' && 70 || 30 }}
+    # 【2026-11-16 · A-②】3.11 只加回 ubuntu：覆盖率硬门槛（70%）的**数据源**要一份
+    #   语言版本稳定、且集成覆盖数据可得的组合；windows 平台覆盖由 3.12 继续负责
+    #   （再加一个 3.11-windows 单元 job 等于每次多花 ~38 分钟买同一类信息）。
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.12']
+        python-version: ['3.11', '3.12']
         os: [ubuntu-latest, windows-latest]
+        exclude:
+          - python-version: '3.11'
+            os: windows-latest
     steps:
       - name: 检出代码
         uses: actions/checkout@v6
@@ -227,11 +233,16 @@ jobs:
     # ② windows runner 整体比 ubuntu 慢 ~50% (3.10-windows 15.3min vs ubuntu 9.7min),
     #    3.11-windows 曾贴线超时。40min 为最慢组合 (3.12-windows) 留足余量。
     timeout-minutes: 40
+    # 【2026-11-16 · A-②】同 unit-tests：3.11 只在 ubuntu 跑，给覆盖率硬门槛提供
+    #   「语言版本稳定 + 集成覆盖可得」的那一份数据。
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.12']
+        python-version: ['3.11', '3.12']
         os: [ubuntu-latest, windows-latest]
+        exclude:
+          - python-version: '3.11'
+            os: windows-latest
     steps:
       - name: 检出代码
         uses: actions/checkout@v6
@@ -319,16 +330,17 @@ jobs:
           # 与 git_sync._run_git 显式 encoding="utf-8" 双保险（见 integration_s10 计划 H1/H2）。
           PYTHONUTF8: "1"
         run: |
-          # 【变易·CHG-2026-0811】3.12 禁用 --cov:
-          # CPython 3.12 tracing 二次复杂度 bug (python/cpython#127953) 使 coverage
-          # 下 3.12 集成测试慢 5-30 倍 (实测 test_routes_logging_integration.py
-          # 3.11=12s vs 3.12=103s, run 31457606205 3.12-ubuntu/windows 双双超时)。
-          # 3.12 覆盖率仍由 unit-tests job (--cov=agent) 收集, 无覆盖率盲区。
-          # 【不易】3.10/3.11 保持 --cov, 覆盖率契约不变。
+          # 【2026-11-16 · A-③】3.12 **恢复** --cov（原 CHG-2026-0811 因超时关掉）：
+          #   关掉的原因是 CPython 3.12 tracing 二次复杂度（python/cpython#127953，
+          #   大 code object 的行号查找退化成平方级），实测单文件 3.11=12s vs 3.12=103s。
+          #   但 3.12 起 CPython 提供 PEP 669（sys.monitoring），coverage.py 7.4+ 可用
+          #   COVERAGE_CORE=sysmon 改用监工内核，**不再走 tracing**。本机微基准
+          #   （12000 次 await 的协程循环，单独计时）：无覆盖 0.034s / 默认 tracer 0.136s
+          #   （4.0x）/ sysmon 0.038s（1.1x）⇒ 拿回集成覆盖数据不必付那 4 倍。
+          #   3.11 没有 sysmon（coverage 的 SysMonitor 需 3.12+），保持默认 tracer。
+          COV_ARGS="--cov=agent --cov-report=xml"
           if [ "${{ matrix.python-version }}" = "3.12" ]; then
-            COV_ARGS=""
-          else
-            COV_ARGS="--cov=agent --cov-report=xml"
+            export COVERAGE_CORE=sysmon
           fi
           pytest tests/integration/ \
             -v \
@@ -339,16 +351,14 @@ jobs:
             --timeout=300
 
       - name: 上传覆盖率数据
-        # 【变易·CHG-2026-0811】集成测试覆盖率数据上传:
-        # coverage-check 设计语义为「unit + integration 合并覆盖率 ≥70」
-        # (needs: [unit-tests, integration-tests]), 此前 integration 从未上传
-        # 数据文件, 合并只含 unit (62% < 70) 必然 fail-under。
-        # 3.12 集成测试禁用 --cov (CHG-2026-0811 超时修复) 无数据文件, 跳过上传
-        # (upload-artifact 对空 path 会报错 "No files were found")。
+        # 【2026-11-16 · A-②/③】所有版本都上传（原 `if: matrix.python-version != '3.12'`
+        #   让 3.12 永远没有产物，而 coverage-check 无条件下载它 ⇒ 必然 404）。
+        # Why 以前要跳过：3.12 集成关掉 --cov 后没有数据文件，upload-artifact 对空 path
+        #   会报 "No files were found"。现在 3.12 用 sysmon 内核拿回了数据（见上一步），
+        #   于是「上传」与「下载」重新对称。
         # parallel=True 数据文件为 .coverage.<host>.<pid>.<rand>, 用 glob .coverage*。
         # 【变易·CHG-2026-0811b】include-hidden-files: true (同 unit-tests,
         # upload-artifact v4+ 默认排除 dotfiles)。
-        if: matrix.python-version != '3.12'
         uses: actions/upload-artifact@v7
         with:
           name: coverage-integration-${{ matrix.os }}-py${{ matrix.python-version }}
@@ -546,11 +556,16 @@ jobs:
 
   coverage-check:
     name: 覆盖率检查 (Python ${{ matrix.python-version }} - ${{ matrix.os }})
-    # 【变易·CHG-2026-0811】矩阵不含 3.12:
-    # 3.12 集成测试禁用 --cov (CHG-2026-0811, CPython 3.12 tracing 二次复杂度
-    # bug python/cpython#127953 使 coverage 下集成测试慢 5-30 倍而超时),
-    # 无 integration 覆盖率数据 → 合并只剩 unit (62%) 必然 fail-under。
-    # 3.12 覆盖率信息仍由 unit-tests job 的 --cov-report=term-missing 输出。
+    # 【2026-11-16 · A-②】覆盖面契约拆成两条腿、**分工明确**：
+    #   · 3.11（ubuntu）：`unit + integration` 合并后 **≥70% 硬门槛** —— 这就是原来
+    #     写在 env.COVERAGE_THRESHOLD 的那个契约，现在回到一个能真正量到它的组合上
+    #     （3.11 无 sysmon，但集成 --cov 一直可用）。
+    #   · 3.12（ubuntu / windows）：只**出报告不断言**。3.12 的集成覆盖靠
+    #     COVERAGE_CORE=sysmon 采集（见 integration-tests 步骤注释），数字与 3.11 的
+    #     采集内核不同（PEP 669 vs tracer），拿它当硬门槛等于把两个口径混成一个。
+    #   历史：CHG-2026-0811 关掉 3.12 集成的 --cov 后，矩阵又只剩 3.12 ⇒ 下载必然 404
+    #   （"Artifact not found for name: coverage-integration-ubuntu-latest-py3.12"），
+    #   而 70% 这道门从此一次都没真正跑过。
     # 注: 不采用 job 级 `if: matrix...` 排除, 因 job 级 if 上下文仅限
     # github/needs/vars/inputs, 不允许 matrix (actionlint 校验确认)。
     runs-on: ${{ matrix.os }}
@@ -561,8 +576,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.12']
+        python-version: ['3.11', '3.12']
         os: [ubuntu-latest, windows-latest]
+        exclude:
+          - python-version: '3.11'
+            os: windows-latest
     steps:
       - name: 检出代码
         uses: actions/checkout@v6
@@ -615,10 +633,26 @@ jobs:
         # WSL Linux 环境精确复现验证:
         #   目录参数   -> "No data to combine" (失败)
         #   文件参数   -> "Combined 2 files" -> TOTAL 71% (≥70 通过)
+        # 【2026-11-16】数据文件名有两形状：无后缀 `.coverage`（parallel 关）与
+        #   `.coverage.<host>.<pid>.<rand>`（xdist 的 -n 下 pytest-cov 自动开 parallel）。
+        #   只写死无后缀路径时，xdist 形状会 "No data to combine" —— 这条一直是
+        #   未被执行过的分支（下载就先 404 了）。这里按 glob 收集两种形状。
         run: |
-          coverage combine coverage-unit/.coverage coverage-integration/.coverage
+          FILES=""
+          for f in coverage-unit/.coverage* coverage-integration/.coverage*; do
+            [ -f "$f" ] || continue
+            FILES="$FILES $f"
+          done
+          echo "=== combine 输入:$FILES ==="
+          coverage combine $FILES
           coverage report
-          coverage report --fail-under=${{ env.COVERAGE_THRESHOLD }}
+          # 【口径】硬门槛只挂在 3.11；3.12 只出报告（见 job 头注释）。
+          if [ "${{ matrix.python-version }}" = "3.11" ]; then
+            echo "=== 3.11 硬门槛：--fail-under=${{ env.COVERAGE_THRESHOLD }} ==="
+            coverage report --fail-under=${{ env.COVERAGE_THRESHOLD }}
+          else
+            echo "=== 3.12 只出报告：不断言（sysmon 内核口径，与 3.11 不可比） ==="
+          fi
 
       - name: 生成覆盖率报告
         run: |
