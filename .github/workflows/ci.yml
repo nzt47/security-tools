@@ -378,7 +378,7 @@ jobs:
   # 单元测试
   # ============================================================================
   unit-tests:
-    name: 单元测试 (Python ${{ matrix.python-version }} / Shard ${{ matrix.shard }})
+    name: 单元测试 (Python ${{ matrix.python-version }} / Shard ${{ matrix.shard }} / ${{ matrix.os }})
     # 【预检依赖】先跑 chromadb-preflight（demo 12 条路径 + pytest 14 用例全 mock
     # 验证），失败即阻断，避免在已知的导入挂起/降级回归上浪费 6 shard 矩阵资源。
     needs: [chromadb-preflight]
@@ -417,6 +417,13 @@ jobs:
     # 其他 shard 稳定通过。6 shard 每个 ~1500 测试，运行时间与内存峰值
     # 均显著降低（预计 3-5min），进一步远离回收阈值。
     timeout-minutes: 90
+    # 【不易】必须显式声明 bash：ubuntu 的默认 shell 是 bash，而 **windows 默认是 pwsh**
+    #   ⇒ 本 job 的 run 脚本（$COV_ARGS / $PER_TEST_TIMEOUT / for 循环 / 行尾反斜杠续行）
+    #   在 windows 腿会被 pwsh 解析，直接 ParserError（2026-11-16 首次实跑即踩：
+    #   shard 1 的 windows 腿 3 分钟内报 "ParserError: D:\a\_temp\*.ps1:16"）。
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
