@@ -48,7 +48,7 @@ def _writer_path(store: Any) -> str:
     for attr in ("_path", "path"):
         value = getattr(store, attr, None)
         if value:
-            return str(value)
+            return str(value).replace("\\", "/")
     return f"(未知类型 {type(store).__name__})"
 
 

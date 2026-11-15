@@ -524,11 +524,13 @@ def active_writers() -> Dict[str, str]:
 
 
 def reset_event_stores() -> None:
-    """关闭并清除进程单例 + writer 登记（**测试专用**）"""
+    """关闭并清除进程单例 + writer 登记 + "解析不到"的警告去重表（**测试专用**）"""
     global _STORE, _STORE_READER
     store, reader = _STORE, _STORE_READER
     _STORE = None
     _STORE_READER = None
+    with _UNRESOLVED_WARN_LOCK:
+        _UNRESOLVED_WARNED.clear()
     for item in (store, reader):
         if item is not None:
             try:
@@ -681,18 +683,42 @@ def _append_line_bytes(path: str, data: bytes, *, ensure_dir: bool = True) -> No
         os.close(fd)
 
 
+#: 已经报过"目录解析不到"的写法（每种只报一次；上限防内存/日志量）
+_UNRESOLVED_WARNED: Set[str] = set()
+_UNRESOLVED_WARN_LOCK = threading.Lock()
+_UNRESOLVED_WARN_LIMIT = 32
+
+
+def _note_unresolved_directory(directory: str) -> None:
+    """目录解析不到 ⇒ 记一次警告（**每种写法只报一次**；不回落默认目录）
+
+    【为什么必须报】"解析不到"与"真的没有事件"在调用方眼里一模一样：跨盘 / 8.3 短名 /
+    拼错目录都会让**成本护栏**看不见自己的花销（`spent` 恒 0、日预算熔断永不触发），
+    而 `judge_cost_cents` 的 `error` 仍是空串（不算读失败）。2026-11-15 的 7 条
+    windows 专属红就是这样被藏住的。解析不到的**语义不变**（当没有事件文件、
+    绝不回落默认目录），但**不再静默**。
+    """
+    key = str(directory or "")
+    with _UNRESOLVED_WARN_LOCK:
+        if key in _UNRESOLVED_WARNED or len(_UNRESOLVED_WARNED) >= _UNRESOLVED_WARN_LIMIT:
+            return
+        _UNRESOLVED_WARNED.add(key)
+    logger.warning("事件目录无法解析（按无事件处理，不回落默认目录）: %s", key)
+
+
 def event_files(directory: Optional[str] = None) -> List[str]:
     """事件文件清单（活动文件 + 按日归档分片，按名升序；仅返回存在的文件）
 
     【C-6-B1 2026-11-04】`directory` 可能来自面板查询参数：先经
     `safe_paths.enumerate_path` 逐段列目录解析（用户输入不进路径表达式），
     解析不到就当"没有事件文件"——**不静默回落到默认目录**（那会把"你指的目录不存在"
-    伪装成"默认目录里的事件"）。
+    伪装成"默认目录里的事件"），但**要留痕**（见 `_note_unresolved_directory`）。
     """
     if directory:
         from agent.safe_paths import enumerate_path
         base = enumerate_path(directory)
         if base is None:
+            _note_unresolved_directory(directory)
             return []
     else:
         base = Path(default_events_dir())
