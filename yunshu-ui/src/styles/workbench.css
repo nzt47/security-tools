@@ -257,18 +257,23 @@ body,
   min-height: 0;
 }
 
-/* ─── 面板标题栏 → 6px 抓取条（B 步，对齐 DSH）───
- * A 步把标题栏压到 24px；B 步整条去掉，只留 6px 抓取条：
- *   - 这个 .mosaic-window-toolbar 是库的包装层，里面放着我们 renderToolbar 返回的
- *     .wb-panel-grip —— **抓取条本身就是 drag source**（MosaicWindow 用 connectDragSource
- *     包住 renderToolbar 的返回值），所以拖拽移动 / 拖到边上拆分 / 拖到窗口边缘分离三者都还在；
- *   - 高度给 0 或不渲染抓取条会让三者一起失效（§11.122 D-1），因此这里写死 6px 且不给 0；
- *   - 平时全透明，鼠标移到面板上才浮出一条 28×2 的抓手（hover 显形，不占视觉）。 */
+/* ─── 面板顶部：**整条细条不要，只留抓手**（Owner 2026-11-15 二次回调）───
+ * 演进：A 步 34→24px 标题栏 → B 步整条换成 6px 抓取条 → 本步把 6px 也去掉，
+ * 只保留一个 28×2 的抓手（视觉在面板顶边居中，命中区 44×9）。
+ *
+ * 【为什么高度可以给 0】§11.122 D-1 的坑是「高度 0 **且** 不给节点」才会让
+ * 拖拽/拆分/边缘分离一起失效。这里的 0 高度只是**不占版面**：
+ * renderToolbar 仍然返回那个 div（position:absolute 浮在面板顶边），
+ * 它照样是 react-dnd 的 drag source（MosaicWindow 用 connectDragSource 包住返回值），
+ * 所以三种拖拽行为全保留 —— 实测见 §11.123 E。
+ * 【为什么抓手常显而不是 hover 才显】它是唯一的拖拽入口，藏起来就没人找得到；
+ * 常显一条 2px 的浅线，hover 变青。 */
 .wb-mosaic-body .mosaic-window-toolbar {
+  position: relative;
   display: flex;
   align-items: center;
-  height: 6px;
-  min-height: 6px;
+  height: 0;
+  min-height: 0;
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -281,29 +286,32 @@ body,
 }
 
 .wb-panel-grip {
-  position: relative;
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 44px;
+  height: 9px;
+  transform: translateX(-50%);
   cursor: grab;
+  z-index: 5;
 }
 
-/* 抓手：hover 才显形（纯视觉提示，命中区仍是整条 6px） */
+/* 抓手本体：28×2 的浅色圆角线，hover 变青（纯视觉，命中区是外面那 44×9） */
 .wb-panel-grip::after {
   content: '';
   position: absolute;
-  top: 2px;
+  top: 3px;
   left: 50%;
   width: 28px;
   height: 2px;
   transform: translateX(-50%);
   border-radius: 999px;
-  background: rgba(148, 163, 184, 0.55);
-  opacity: 0;
-  transition: opacity 0.15s;
+  background: rgba(148, 163, 184, 0.45);
+  transition: background 0.15s;
 }
 
 .wb-mosaic-body .mosaic-window:hover .wb-panel-grip::after {
-  opacity: 1;
+  background: rgba(34, 211, 238, 0.8);
 }
 
 /* ─── 面板右上角悬浮 ⋮ 菜单（独立窗口 / 放大 / 关闭）───
@@ -1215,21 +1223,13 @@ body,
   }
 }
 
+/* 头部只有一颗靠右的关闭按钮（不放标题文字）；高度压到 22px，少占一行 */
 .wb-right-drawer-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  height: 24px;
-  padding: 0 4px 0 10px;
-  border-bottom: 1px solid var(--wb-border);
-}
-
-.wb-right-drawer-title {
-  font-family: var(--wb-mono);
-  font-size: 10px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--wb-text-dim);
+  justify-content: flex-end;
+  height: 22px;
+  padding: 0 4px;
 }
 
 .wb-right-drawer-close {

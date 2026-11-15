@@ -28,7 +28,7 @@
 import { useCallback, useEffect, useRef, useState, lazy, Suspense } from 'react';
 import { Mosaic, MosaicWindow } from 'react-mosaic-component';
 import type { MosaicNode, MosaicPath } from 'react-mosaic-component';
-import { Cloud, RotateCcw } from 'lucide-react';
+import { Cloud, MessageSquare, PanelLeft, PanelRight, RotateCcw } from 'lucide-react';
 import {
   DEFAULT_LAYOUT,
   PANEL,
@@ -110,12 +110,12 @@ const createNode = (viewId: PanelId): MosaicNode<PanelId> => ({
  *
  * 标题文字不再显示（面板身份靠内容本身辨认），但仍作为 title 传给 MosaicWindow（拖拽预览用）。
  */
-function panelGripElement(title: string) {
+function panelGripElement() {
   return (
     <div
       className="wb-panel-grip"
       data-testid="wb-panel-grip"
-      title={`拖动「${title}」：拖到别的面板边上拆分，拖到窗口边缘分离为独立窗口`}
+      title="拖动面板：拖到别的面板边上拆分，拖到窗口边缘分离为独立窗口"
     />
   );
 }
@@ -225,7 +225,7 @@ export default function WorkbenchApp() {
     <MosaicWindow<PanelId>
       path={path}
       title={PANEL_TITLES[id]}
-      renderToolbar={() => panelGripElement(PANEL_TITLES[id])}
+      renderToolbar={() => panelGripElement()}
       createNode={createNode}
       onDragStart={() => {
         dragSourcePanelId = id;
@@ -277,40 +277,45 @@ export default function WorkbenchApp() {
         <div className="flex items-center gap-3">
           <span className="hidden font-mono text-[11px] text-slate-500 sm:inline">
             {isElectron()
-              ? '拖面板顶部细条移动 · 拖到窗口边缘分离为独立窗口'
-              : '拖面板顶部细条拆分 · 布局自动保存'}
+              ? '拖面板顶部抓手移动 · 拖到窗口边缘分离为独立窗口'
+              : '拖面板顶部抓手拆分 · 布局自动保存'}
           </span>
           {/* 面板开关（2026-11-15 B 步）：关掉的面板可以从这里再打开。
               此前 ⋮/✕ 关掉面板后没有任何入口能恢复，只能「重置布局」——那是本轮要修的缺陷。
               「主内容」开关只在它真被关掉时才出现（默认顶栏就两个开关，符合 Owner 的观感要求）。 */}
+          {/* 纯图标（2026-11-15 二次回调）：顶栏不再出现「导航 / 右栏 / 主内容」这些字样，
+              可访问名仍由 aria-label 提供（读屏与测试都按名字找）。 */}
           <div className="wb-panel-toggles">
             <button
               type="button"
               className={navVisible ? 'wb-panel-toggle on' : 'wb-panel-toggle'}
               aria-pressed={navVisible}
+              aria-label="导航"
               onClick={() => togglePanel(PANEL.NAV)}
               title="显示 / 隐藏左侧导航（关掉后仍可从这里打开）"
             >
-              导航
+              <PanelLeft size={14} />
             </button>
             <button
               type="button"
               className={rightDockOpen ? 'wb-panel-toggle on' : 'wb-panel-toggle'}
               aria-pressed={rightDockOpen}
+              aria-label="右栏"
               onClick={() => togglePanel(PANEL.CODE)}
               title="显示 / 隐藏右栏（覆盖式抽屉，不挤占主内容）"
             >
-              右栏
+              <PanelRight size={14} />
             </button>
             {!chatVisible && (
               <button
                 type="button"
                 className="wb-panel-toggle"
                 aria-pressed={false}
+                aria-label="主内容"
                 onClick={() => togglePanel(PANEL.CHAT)}
                 title="主内容面板已被关掉：点这里恢复"
               >
-                主内容
+                <MessageSquare size={14} />
               </button>
             )}
           </div>

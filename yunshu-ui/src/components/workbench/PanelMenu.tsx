@@ -71,7 +71,7 @@ export function PanelMenu({ panelId, onDetach }: Props) {
         aria-label={`${title} 面板菜单`}
         aria-haspopup="menu"
         aria-expanded={open}
-        title={`${title}：独立窗口 / 放大 / 关闭`}
+        title="面板菜单：独立窗口 / 放大 / 关闭"
         data-testid="wb-panel-menu-trigger"
         onClick={() => setOpen((v) => !v)}
       >

@@ -45,8 +45,9 @@ export function RightDockDrawer({ open, onClose }: Props) {
       data-testid="wb-right-drawer"
       style={{ width: RIGHT_DOCK_WIDTH }}
     >
+      {/* 头部**不放标题文字**（Owner 2026-11-15 二次回调：面板内部也不出现「右栏」字样），
+          只留一颗靠右的关闭按钮；可访问名仍由 aside 的 aria-label="右栏" 提供。 */}
       <div className="wb-right-drawer-head">
-        <span className="wb-right-drawer-title">右栏</span>
         <button
           type="button"
           className="wb-right-drawer-close"
