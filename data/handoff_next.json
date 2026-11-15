@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-15T19:05:00+08:00",
+ "updated_at": "2026-11-15T21:25:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -734,11 +734,11 @@
   },
   {
    "id": "daily-test-yml-red-alignment",
-   "status": "open",
+   "status": "done",
    "priority": "P3",
    "title": "每日定时 test.yml 天天红：做受控复现并对齐 ci.yml 的环境/集合（不要假绿）",
    "criteria": "现象：同名两个 workflow —— ci.yml（push/PR，6 分片，只跑 ubuntu）绿，test.yml（每日定时整跑，**唯一有 Windows job**）自 2026-11-07 起天天红。2026-11-15 两轮取证（手动 dispatch 43701513634 + ci 43701504803）把红拆成**三类不同根因**，都不是 flake：① windows「成本台账 spent=0.0」7 条 = 读侧 safe_paths 不认跨盘 / 8.3 短名（事件目录在另一个盘 ⇒ event_files() 空 ⇒ 护栏 spent 恒 0 且 read_error 为空）；② ubuntu「计时 flake」= 模块级 setup_function 不覆盖类内方法，同 worker 更早文件经 plugins/chat.py:2801 串数（assert 11 == 2）；③ 清单派生漂移（safe_paths 改动让静态扫描 86→85，capability_manifest 与盘点表不同源，ubuntu+windows 同时红）；另 2 条 windows 专属：docker 容器 3 条（Windows 容器 daemon 跑不了 Linux 镜像，旧判据 cli+daemon 就算可用）与隐藏声明判否 1 条（load_tool_docs 的 relpath 跨盘抛 ValueError 被吞成空集）。",
-   "next": "2026-11-15 已全部处置并推送（b7b636f85）：safe_paths 盘符改 OS 枚举 + 8.3 短名匹配、事件目录解析不到留 WARNING、ledger_diag 自诊断、context_stats 改 autouse fixture、干净 worktree 重派生能力清单+盘点表、agent/lines/_paths.rel_to_repo 替代 5 处 relpath、DockerProbe 增 os_type（只认能跑 Linux 容器的 daemon）并把 docker stderr 带进错误消息。证据：43701513634 上 windows 单元跑满 10267 用例且成本台账类 **0 红**；干净 worktree 179 passed / 0 failed。**待复验**：下一次 windows job（test.yml，约 10 分钟）应只剩 skips；若仍红，先看它给的 docker stderr / 跨盘诊断再动。另议（未做）：ci.yml 只跑 ubuntu ⇒ 这类问题永远看不见；要不要补 Windows 分片由 Owner 定（代价约 +10 分钟/次）。"
+   "next": "**2026-11-15 收口（单元测试对齐）**：run 43715479538（31d88c89b）上 **ubuntu 单元 = success、windows 单元 = success**（windows 跑到 26244 条、约 38 分钟）。本轮四类根因全部修掉：① 成本台账 spent=0.0（读侧跨盘 / 8.3 短名，safe_paths）；② ubuntu 计时/串数（setup_function 不覆盖类内方法，autouse fixture）；③ 清单派生漂移（干净 worktree 重派生）；④ 跨盘 relpath（agent/utils/paths.rel_to_repo 替代 5+2 处直接 relpath）与 WSL 空壳 bash（探测走产品执行路径 + 如实跳过）。另修 test.yml 的 windows 单元 timeout 30→70 分钟（之前两次「取消」其实是 30min14s 超时）。**新暴露的两条**（以前 unit 一直红，这两个 job 从没真正跑过）已单独立项：coverage-check-312-artifact-mismatch / perf-windows-list-cache-ratio。"
   },
   {
    "id": "alarm-channel-env-sync",
@@ -890,6 +890,22 @@
    "title": "按智能体分身设不同的默认上下文窗口（目前**做不到**，需 Owner 定）",
    "criteria": "2026-11-15 Owner 提「给不同的智能体分身设定默认使用不同的上下文窗口」。核实结果：做不到 —— data/agent_lines/*.yaml 的字段只有 plane_weights / plane_floors / boost / mute / max_tools / effect_allow / requires_approval / skills / prompt_note，**没有窗口或 token 预算字段**；窗口是进程级一个值（/api/context/status 的 token_limit，实测 131072，来源 builtin_default，解析在 agent/orchestrator/lifecycle_manager.py:296-313，支持 config.yaml 的 memory.token_limit 与运行时覆盖）。界面已在「上下文 → 窗口取值参考」里如实写明这一条（不编能力）。",
    "next": "若要做：① 给 line schema 加字段（如 context_window_tokens，含 min/max 与注释）；② 会话装配处按当前分身在 GLOBAL 与 line 值之间取小（或 line 优先，需口径）；③ /api/context/status 增加 token_limit_source=line:<id> 的可复核来源；④ 用例覆盖「line 没配 ⇒ 回落全局」「line 配过头 ⇒ clamp」「切分身当场生效」；⑤ 界面滑块改成「显示生效值 + 来源」，并允许按分身在面板里覆盖（运行时覆盖语义与现在一致：重启回落）。取值口径待 Owner 定 —— 建议别按人数拍脑袋，直接映射到界面那张任务表（engineering→32K–64K、knowledge→64K–128K 等），上线后按延迟/成本/错误率再收紧。"
+  },
+  {
+   "id": "coverage-check-312-artifact-mismatch",
+   "status": "open",
+   "priority": "P2",
+   "title": "覆盖率检查 job 在 py3.12 上必然失败：它要下载一个故意不上传的集成覆盖率产物",
+   "criteria": "2026-11-15 首次真正跑起来（unit 绿了它才不再 skipped）：[error] Unable to download artifact(s): Artifact not found for name: coverage-integration-ubuntu-latest-py3.12。原因在 test.yml 内部自相矛盾：integration-tests 的「上传覆盖率数据」步骤写着 if: matrix.python-version != 3.12（注释：3.12 集成测试禁用 --cov 以修超时，所以没有数据文件），而 coverage-check 的矩阵是 3.12、且「下载集成测试覆盖率」步骤无条件下载同名产物 ⇒ 必然 404。",
+   "next": "三选一（都要改 test.yml，属策略决定）：① 给 3.12 的下载步骤加同样的 if 条件，combine 只合并 unit 数据 —— 但 unit-only 实测 62% < 70% 门槛，等于把门禁降到 62 或改成「只报告不门禁」；② 恢复 3.12 的集成 --cov（当年因超时才关的，要先量集成 job 时长）；③ 把 coverage-check 的矩阵改成 3.11（该版本一直有集成覆盖率数据）并把 3.12 的覆盖率改成 informational。建议 ①+③ 组合：3.11 保持硬门槛、3.12 只出报告不断言。"
+  },
+  {
+   "id": "perf-windows-list-cache-ratio",
+   "status": "open",
+   "priority": "P3",
+   "title": "windows 性能 job：test_knowledge_link_perf::test_list_cache_speedup 比例 1.85x 撞 2x 门槛",
+   "criteria": "2026-11-15 首次真正跑起来（unit 绿后）：warm=89.8ms vs cold=166.1ms，断言要求 warm < cold*0.5，实际比值 1.85x ⇒ 红；同一提交在 ubuntu 上过。两个绝对值都只有一两百毫秒，windows runner 的计时噪声与文件系统缓存让单次采样不稳；「1.85x」本身说明缓存是生效的，只是没到 2 倍。",
+   "next": "别直接放宽门槛了事（那是假绿）。建议先量：在 windows runner 上重复 5 次取中位数/最小值，看比值分布；若稳定在 1.8–1.9x，则把判据改成「warm < cold * 0.7 且 warm 的绝对值 < cold 的绝对值」（1.4x 仍能证明缓存生效），并在注释里写实测分布；若分布很散，改成「缓存命中计数 > 0 + 单次 warm < cold」双判据。"
   }
  ]
 }
