@@ -312,6 +312,7 @@ flowchart LR
     end
     subgraph lines [lines]
         agent_lines["agent.lines"]:::crosslayer
+        agent_lines__paths["agent.lines._paths"]
         agent_lines_assembler["agent.lines.assembler"]
         agent_lines_callability["agent.lines.callability"]:::crosslayer
         agent_lines_integration["agent.lines.integration"]:::crosslayer
@@ -1395,12 +1396,14 @@ flowchart LR
     agent_lines_assembler -.-> agent_capregistry_pruning
     agent_lines_assembler -.-> agent_capregistry_pruning
     agent_lines_assembler -.-> agent_capregistry_pruning
+    agent_lines_callability --> agent_lines__paths
     agent_lines_callability --> agent_lines_location
     agent_lines_callability --> agent_lines_models
     agent_lines_callability --> agent_lines_models
     agent_lines_callability --> agent_lines_assembler
     agent_lines_callability --> agent_lines_models
     agent_lines_integration --> agent
+    agent_lines_location --> agent_lines__paths
     agent_lines_models -.-> agent_topics
     agent_lines_skillpack -.-> agent_skills_mgmt_registry
     agent_lines_skillpack -.-> agent_skills_mgmt_registry
@@ -3034,9 +3037,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 766
-- 模块节点数: 665
-- 依赖边数: 2241
+- 扫描文件数: 767
+- 模块节点数: 666
+- 依赖边数: 2243
 - 跨层调用数: 1435
 - 违规调用数: 0
 - 动态 import 数: 1
