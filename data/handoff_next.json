@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-15T21:25:00+08:00",
+ "updated_at": "2026-11-15T23:10:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -885,11 +885,11 @@
   },
   {
    "id": "per-agent-line-context-window",
-   "status": "open",
+   "status": "done",
    "priority": "P3",
    "title": "按智能体分身设不同的默认上下文窗口（目前**做不到**，需 Owner 定）",
    "criteria": "2026-11-15 Owner 提「给不同的智能体分身设定默认使用不同的上下文窗口」。核实结果：做不到 —— data/agent_lines/*.yaml 的字段只有 plane_weights / plane_floors / boost / mute / max_tools / effect_allow / requires_approval / skills / prompt_note，**没有窗口或 token 预算字段**；窗口是进程级一个值（/api/context/status 的 token_limit，实测 131072，来源 builtin_default，解析在 agent/orchestrator/lifecycle_manager.py:296-313，支持 config.yaml 的 memory.token_limit 与运行时覆盖）。界面已在「上下文 → 窗口取值参考」里如实写明这一条（不编能力）。",
-   "next": "若要做：① 给 line schema 加字段（如 context_window_tokens，含 min/max 与注释）；② 会话装配处按当前分身在 GLOBAL 与 line 值之间取小（或 line 优先，需口径）；③ /api/context/status 增加 token_limit_source=line:<id> 的可复核来源；④ 用例覆盖「line 没配 ⇒ 回落全局」「line 配过头 ⇒ clamp」「切分身当场生效」；⑤ 界面滑块改成「显示生效值 + 来源」，并允许按分身在面板里覆盖（运行时覆盖语义与现在一致：重启回落）。取值口径待 Owner 定 —— 建议别按人数拍脑袋，直接映射到界面那张任务表（engineering→32K–64K、knowledge→64K–128K 等），上线后按延迟/成本/错误率再收紧。"
+   "next": "**2026-11-15 已落地**（fcfb3b022）：agent/lines/context_window.py 为单一事实源（优先级：运行时覆盖 > 当前主线档案的 context_window_tokens > 内置默认 131072；夹紧 8192–1048576）；LineProfile 新字段 + 校验；lifecycle_manager 启动按它算窗口与来源并把压缩阈值同步同一数值；POST /api/agent-lines/active 切换主线时用 apply_window_to 推给正在跑的编排器（用户手调过覆盖则不推）。7 份档案默认值：assistant 16384 / digital_life 32768 / dev 32768 / engineering 65536 / harness 32768 / knowledge 131072 / recon 65536。真机：初始（engineering）65536 line:engineering(65536) → 切 knowledge 131072 line:knowledge(131072) → 切回 65536。界面「窗口取值参考」④ 已从「目前做不到」改为「已支持」+ 机制说明。**注意行为变化**：当前生效窗口从 131072 变 65536，要改回 128K 只需改 engineering.yaml 一行。用例 10 条（tests/unit/test_line_context_window.py）。"
   },
   {
    "id": "coverage-check-312-artifact-mismatch",
