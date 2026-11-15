@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-11-14T00:58:21",
+  "generated_at": "2026-11-15T14:31:19",
   "totals": {
     "routes": 512,
     "live": 512,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 455,
+    "ui": 452,
     "cli_script": 15,
-    "runtime_only": 11,
-    "unreferenced": 31,
+    "runtime_only": 12,
+    "unreferenced": 33,
     "live_by_category": {
-      "ui": 455,
+      "ui": 452,
       "cli_script": 15,
-      "runtime_only": 11,
-      "unreferenced": 31
+      "runtime_only": 12,
+      "unreferenced": 33
     },
     "by_intent": {
-      "should_be_in_ui": 422,
-      "should_not_be_in_ui": 76,
+      "should_be_in_ui": 419,
+      "should_not_be_in_ui": 79,
       "unclassified": 14
     },
     "by_domain": {
@@ -37,7 +37,7 @@
       "记忆与知识": 42
     }
   },
-  "frontend_endpoints": 459,
+  "frontend_endpoints": 456,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -149,7 +149,7 @@
       "where": [
         "agent/server_routes/routes_agent_lines.py:672",
         "agent/server_routes/routes_agent_lines.py:777",
-        "agent/server_routes/routes_agent_lines.py:803"
+        "agent/server_routes/routes_agent_lines.py:811"
       ],
       "description": "单条档案 + 现场装配预览（不保存、不改状态）",
       "description_source": "handler",
@@ -174,7 +174,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_agent_lines.py:826"
+        "agent/server_routes/routes_agent_lines.py:834"
       ],
       "description": "设置全局激活主线：`{\"line_id\": \"<id>\"}` 或 `{\"line_id\": null}`",
       "description_source": "handler",
@@ -250,7 +250,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_agent_lines.py:853"
+        "agent/server_routes/routes_agent_lines.py:861"
       ],
       "description": "跑 `LineProfile.validate(known_tools, known_skills)` 并返回问题列表（**不保存**）",
       "description_source": "handler",
@@ -4455,7 +4455,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:991"
+        "plugins/memory.py:996"
       ],
       "description": "添加知识文档（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -4485,8 +4485,8 @@
         "scripts/dev/kb_crud_smoke.py"
       ],
       "where": [
-        "agent/server_routes/routes_knowledge.py:189",
-        "agent/server_routes/routes_knowledge.py:226"
+        "agent/server_routes/routes_knowledge.py:196",
+        "agent/server_routes/routes_knowledge.py:233"
       ],
       "description": "卡片列表（支持 ?status= & ?type= 过滤）。",
       "description_source": "handler",
@@ -4513,9 +4513,9 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_knowledge.py:210",
-        "agent/server_routes/routes_knowledge.py:256",
-        "agent/server_routes/routes_knowledge.py:318"
+        "agent/server_routes/routes_knowledge.py:217",
+        "agent/server_routes/routes_knowledge.py:263",
+        "agent/server_routes/routes_knowledge.py:325"
       ],
       "description": "卡片详情（含 links、contradictions、incoming_links）。",
       "description_source": "handler",
@@ -4540,7 +4540,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_knowledge.py:369"
+        "agent/server_routes/routes_knowledge.py:376"
       ],
       "description": "节点-边数据（关系图入口）。",
       "description_source": "handler",
@@ -4567,7 +4567,7 @@
         "agent/modules_api.py"
       ],
       "where": [
-        "agent/server_routes/routes_knowledge.py:339"
+        "agent/server_routes/routes_knowledge.py:346"
       ],
       "description": "获取 index.md 内容。",
       "description_source": "handler",
@@ -4592,7 +4592,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_knowledge.py:353"
+        "agent/server_routes/routes_knowledge.py:360"
       ],
       "description": "健康报告（lint_all）。",
       "description_source": "handler",
@@ -4617,7 +4617,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_knowledge.py:110"
+        "agent/server_routes/routes_knowledge.py:117"
       ],
       "description": "知识库融合检索：RRF 融合 + 双链扩展 + rerank 重排。",
       "description_source": "handler",
@@ -4963,7 +4963,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_memory_import.py:172"
+        "agent/server_routes/routes_memory_import.py:186"
       ],
       "description": "已写入批次清单（回滚界面的数据源；只读）。",
       "description_source": "handler",
@@ -4988,7 +4988,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_memory_import.py:209"
+        "agent/server_routes/routes_memory_import.py:223"
       ],
       "description": "按批次写入：默认 dry-run；confirm=true 才真写（并写审计）。",
       "description_source": "handler",
@@ -5013,7 +5013,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_memory_import.py:131"
+        "agent/server_routes/routes_memory_import.py:145"
       ],
       "description": "只读预览：返回分批清单与统计（**不写任何记忆**）。",
       "description_source": "handler",
@@ -5038,7 +5038,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_memory_import.py:180"
+        "agent/server_routes/routes_memory_import.py:194"
       ],
       "description": "按批次回滚：默认 dry-run；真删必须 confirm=true。",
       "description_source": "handler",
@@ -5063,7 +5063,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_memory_import.py:94"
+        "agent/server_routes/routes_memory_import.py:96"
       ],
       "description": "探测本机可解析的来源（只读；不解析内容，秒回）。",
       "description_source": "handler",
@@ -5369,7 +5369,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:1105"
+        "plugins/memory.py:1110"
       ],
       "description": "清空窗口事件记录",
       "description_source": "handler",
@@ -5395,7 +5395,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:1088"
+        "plugins/memory.py:1093"
       ],
       "description": "获取或更新窗口监控配置",
       "description_source": "handler",
@@ -5420,7 +5420,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:1078"
+        "plugins/memory.py:1083"
       ],
       "description": "获取当前活跃窗口",
       "description_source": "handler",
@@ -5445,7 +5445,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:1020"
+        "plugins/memory.py:1025"
       ],
       "description": "获取窗口切换事件",
       "description_source": "handler",
@@ -5470,7 +5470,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:1036"
+        "plugins/memory.py:1041"
       ],
       "description": "获取窗口使用统计",
       "description_source": "handler",
@@ -10490,7 +10490,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:714"
+        "agent/server_routes/routes_subagent.py:750"
       ],
       "description": "获取指定分身详情",
       "description_source": "handler",
@@ -10515,7 +10515,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:731"
+        "agent/server_routes/routes_subagent.py:767"
       ],
       "description": "导出可带走 bundle（只读；**导出前必经密钥闸**）",
       "description_source": "handler",
@@ -10540,7 +10540,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:1072"
+        "agent/server_routes/routes_subagent.py:1108"
       ],
       "description": "**真委派**：把任务交给指定分身，经真实执行器跑（八要素 + 隔离 + Trace + 成本）",
       "description_source": "handler",
@@ -10565,7 +10565,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:1018"
+        "agent/server_routes/routes_subagent.py:1054"
       ],
       "description": "销毁指定分身",
       "description_source": "handler",
@@ -10588,7 +10588,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:1040"
+        "agent/server_routes/routes_subagent.py:1076"
       ],
       "description": "在指定分身中执行任务",
       "description_source": "handler",
@@ -10613,7 +10613,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:778"
+        "agent/server_routes/routes_subagent.py:814"
       ],
       "description": "下载**预构建**的离线包（``<name>.tar.gz``）—— 把\"可带走\"交付到产品面",
       "description_source": "handler",
@@ -10638,7 +10638,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:1307"
+        "agent/server_routes/routes_subagent.py:1343"
       ],
       "description": "热更新分身配置",
       "description_source": "handler",
@@ -10661,7 +10661,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:877"
+        "agent/server_routes/routes_subagent.py:913"
       ],
       "description": "接收分身/远端的委派结果回调（**只落账，不执行任何工具、不建/改容器**）",
       "description_source": "handler",
@@ -10686,7 +10686,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:636"
+        "agent/server_routes/routes_subagent.py:672"
       ],
       "description": "主权分身能力投影（六层二十面 + 三态 + 证据）—— 组装台「主权清单」的数据源",
       "description_source": "handler",
@@ -10711,7 +10711,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:935"
+        "agent/server_routes/routes_subagent.py:971"
       ],
       "description": "创建新分身",
       "description_source": "handler",
@@ -10736,7 +10736,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:1204"
+        "agent/server_routes/routes_subagent.py:1240"
       ],
       "description": "**临时分身委派**：不要求先存在分身 —— 与模型侧 ``delegate`` 工具同一条链路",
       "description_source": "handler",
@@ -10763,7 +10763,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:658"
+        "agent/server_routes/routes_subagent.py:694"
       ],
       "description": "委派记录（最近 N 条，**最新在前**）——「子代理」下拉的历史数据源",
       "description_source": "handler",
@@ -10788,7 +10788,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:809"
+        "agent/server_routes/routes_subagent.py:845"
       ],
       "description": "从 bundle 导入一个分身（非法 bundle ⇒ 400 且**不建容器**）",
       "description_source": "handler",
@@ -10813,7 +10813,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:604"
+        "agent/server_routes/routes_subagent.py:640"
       ],
       "description": "获取所有活跃分身列表（附带委派执行通道可用性，供 UI 提前提示）。",
       "description_source": "handler",
@@ -10830,13 +10830,11 @@
         "GET",
         "POST"
       ],
-      "category": "ui",
+      "category": "runtime_only",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [
-        "yunshu-ui/src/api/endpoints.ts"
-      ],
+      "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_api.py",
         "agent/modules_registry.py"
@@ -10847,9 +10845,9 @@
       ],
       "description": "获取系统提示词模板及预览信息",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "系统提示词",
-      "intent_note": "系统提示词配置：组件/预览/应用/重置/同步。",
+      "intent_note": "【2026-11-15 改判】基础模板（骨架 + 占位符）编辑器已从提示词实验室删除（Owner：「基础模板可以不要，分节配置的开关本身就是在组装基础模板」）⇒ 原始模板文本不再有 UI 入口；端点保留供脚本/手工读写。分节配置走 /api/system-prompt/config*（仍是 UI）。",
       "ui_pending": false,
       "domain": "系统与配置"
     },
@@ -10876,7 +10874,7 @@
       "description_source": "handler",
       "intent": "should_be_in_ui",
       "intent_area": "系统提示词",
-      "intent_note": "系统提示词配置：组件/预览/应用/重置/同步。",
+      "intent_note": "系统提示词配置（分节配置族）：组件/预览/保存/应用/重置 —— 提示词实验室的「① 分节配置」在用。",
       "ui_pending": false,
       "domain": "系统与配置"
     },
@@ -10901,7 +10899,7 @@
       "description_source": "handler",
       "intent": "should_be_in_ui",
       "intent_area": "系统提示词",
-      "intent_note": "系统提示词配置：组件/预览/应用/重置/同步。",
+      "intent_note": "系统提示词配置（分节配置族）：组件/预览/保存/应用/重置 —— 提示词实验室的「① 分节配置」在用。",
       "ui_pending": false,
       "domain": "系统与配置"
     },
@@ -10926,7 +10924,7 @@
       "description_source": "handler",
       "intent": "should_be_in_ui",
       "intent_area": "系统提示词",
-      "intent_note": "系统提示词配置：组件/预览/应用/重置/同步。",
+      "intent_note": "系统提示词配置（分节配置族）：组件/预览/保存/应用/重置 —— 提示词实验室的「① 分节配置」在用。",
       "ui_pending": false,
       "domain": "系统与配置"
     },
@@ -10951,7 +10949,7 @@
       "description_source": "handler",
       "intent": "should_be_in_ui",
       "intent_area": "系统提示词",
-      "intent_note": "系统提示词配置：组件/预览/应用/重置/同步。",
+      "intent_note": "系统提示词配置（分节配置族）：组件/预览/保存/应用/重置 —— 提示词实验室的「① 分节配置」在用。",
       "ui_pending": false,
       "domain": "系统与配置"
     },
@@ -10961,22 +10959,20 @@
       "methods": [
         "POST"
       ],
-      "category": "ui",
+      "category": "unreferenced",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [
-        "yunshu-ui/src/api/endpoints.ts"
-      ],
+      "ui_refs": [],
       "non_ui_refs": [],
       "where": [
         "plugins/admin.py:197"
       ],
       "description": "重置系统提示词为默认",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "系统提示词",
-      "intent_note": "系统提示词配置：组件/预览/应用/重置/同步。",
+      "intent_note": "【2026-11-15 改判】模板重置的唯一入口随基础模板编辑器一起删除；分节配置的重置是 /api/system-prompt/config/reset（仍是 UI）。",
       "ui_pending": false,
       "domain": "系统与配置"
     },
@@ -10986,22 +10982,20 @@
       "methods": [
         "GET"
       ],
-      "category": "ui",
+      "category": "unreferenced",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [
-        "yunshu-ui/src/api/endpoints.ts"
-      ],
+      "ui_refs": [],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_system_prompt.py:234"
       ],
       "description": "检查配置模板与运行模板是否同步",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "系统提示词",
-      "intent_note": "系统提示词配置：组件/预览/应用/重置/同步。",
+      "intent_note": "【2026-11-15 改判】配置模板与运行模板是否同步，原只在基础模板编辑器里展示；编辑器删除后无 UI 入口。",
       "ui_pending": false,
       "domain": "系统与配置"
     },
@@ -11613,7 +11607,7 @@
         "agent/memory_import/targets.py"
       ],
       "where": [
-        "plugins/memory.py:806"
+        "plugins/memory.py:811"
       ],
       "description": "添加单条向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11638,7 +11632,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:829"
+        "plugins/memory.py:834"
       ],
       "description": "批量添加向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11663,7 +11657,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:966"
+        "plugins/memory.py:971"
       ],
       "description": "清空向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11689,8 +11683,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:851",
-        "plugins/memory.py:866"
+        "plugins/memory.py:856",
+        "plugins/memory.py:871"
       ],
       "description": "按 ID 获取记忆项（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11715,7 +11709,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:918"
+        "plugins/memory.py:923"
       ],
       "description": "获取最近的向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11765,7 +11759,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:792"
+        "plugins/memory.py:797"
       ],
       "description": "获取向量记忆统计（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -13139,5 +13133,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "0375aac8ee7bced5"
+  "content_hash": "36ea8991ef9223ed"
 }

@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-11-15T14:16:29",
+  "generated_at": "2026-11-15T14:31:21",
   "entry": "yunshu-ui/src/main.tsx",
   "scanned": {
-    "source_modules": 303,
-    "reachable_modules": 288,
-    "page_files": 112
+    "source_modules": 302,
+    "reachable_modules": 287,
+    "page_files": 111
   },
   "unreachable": [],
   "orphan_default": [],
-  "content_hash": "02335441b452d2eb",
+  "content_hash": "cbe1b2182c7ea112",
   "page_files": [
     "yunshu-ui/src/pages/Dashboard/index.tsx",
     "yunshu-ui/src/pages/Export/index.tsx",
@@ -108,7 +108,6 @@
     "yunshu-ui/src/pages/prompt-lab/LlmMonitorPanel.tsx",
     "yunshu-ui/src/pages/prompt-lab/PreviewPanel.tsx",
     "yunshu-ui/src/pages/prompt-lab/RadarChart.tsx",
-    "yunshu-ui/src/pages/prompt-lab/SystemPromptPanel.tsx",
     "yunshu-ui/src/pages/prompt-lab/index.tsx",
     "yunshu-ui/src/pages/system/AuditList.tsx",
     "yunshu-ui/src/pages/system/ConfigChangeLogPanel.tsx",
