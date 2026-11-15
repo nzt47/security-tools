@@ -196,13 +196,17 @@ body,
   overflow: hidden;
 }
 
+/* 【2026-11-15 A 步】面板标题栏 34px → 24px
+ * 它是 react-mosaic 的拖拽手柄（MosaicWindow 把 toolbar 包成 drag source），
+ * 功能要留、但没必要占 34px；按钮同步缩小，仍在同一行可点。
+ * B 步会把它换成 6px 抓取条 + ⋮ 菜单（见 §11.122 方案 B）。 */
 .wb-mosaic-body .mosaic-window-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 34px;
-  min-height: 34px;
-  padding: 0 6px 0 14px;
+  height: 24px;
+  min-height: 24px;
+  padding: 0 4px 0 10px;
   border-bottom: 1px solid var(--wb-border);
   background: linear-gradient(180deg, rgba(148, 163, 184, 0.08), rgba(148, 163, 184, 0.02));
   border-radius: var(--wb-radius) var(--wb-radius) 0 0;
@@ -217,8 +221,8 @@ body,
   /* 覆盖库 flex:1：不撑满 toolbar 自由空间，space-between 将标题贴左、控件贴右（与独立窗口顶栏观感一致） */
   flex: 0 1 auto;
   min-width: 0; /* 长标题仍可截断（配合库默认 ellipsis + nowrap） */
-  font-size: 11px;
-  letter-spacing: 0.18em;
+  font-size: 10px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--wb-text-dim);
   font-family: var(--wb-mono);
@@ -229,9 +233,69 @@ body,
   align-items: center;
 }
 
-/* 分割线悬停高亮 */
+/* ─── 分割条：零宽（对齐 DeepSeek Harness 的做法）───
+ * 原实现是库默认的 6px 常驻条 + hover 6px 青条，白占 12px 横向。
+ * 现在：元素宽度 0、视觉只有 1px 线（:before），命中区靠透明 :after 扩边 ±6px，
+ * 悬停时线变成青色 —— 与 DSH 的 divider 同款（它用 0.5px + ±4px）。
+ * 【为什么不能只把 width 设 0】那样拖拽就没命中区了；:after 是**属于同一个元素**的
+ * 渲染盒，指针落在它上面仍会命中该元素（DSH 线上就是这么用的）。
+ */
+.wb-mosaic-body .mosaic-split.-row {
+  width: 0;
+  margin-left: 0;
+  background: transparent;
+}
+
+.wb-mosaic-body .mosaic-split.-column {
+  height: 0;
+  margin-top: 0;
+  background: transparent;
+}
+
+.wb-mosaic-body .mosaic-split::before,
+.wb-mosaic-body .mosaic-split::after {
+  content: '';
+  position: absolute;
+}
+
+.wb-mosaic-body .mosaic-split::before {
+  background: var(--wb-border);
+}
+
+.wb-mosaic-body .mosaic-split.-row::before {
+  top: 0;
+  bottom: 0;
+  left: -0.5px;
+  width: 1px;
+}
+
+.wb-mosaic-body .mosaic-split.-column::before {
+  left: 0;
+  right: 0;
+  top: -0.5px;
+  height: 1px;
+}
+
+/* 命中区：视觉 0 宽，但指针在 ±6px 内都算抓到分割条 */
+.wb-mosaic-body .mosaic-split.-row::after {
+  inset: 0 -6px;
+}
+
+.wb-mosaic-body .mosaic-split.-column::after {
+  inset: -6px 0;
+}
+
 .wb-mosaic-body .mosaic-split:hover {
-  background: rgba(34, 211, 238, 0.3);
+  background: transparent;
+}
+
+.wb-mosaic-body .mosaic-split:hover::before {
+  background: rgba(34, 211, 238, 0.6);
+}
+
+/* 库自带的 1px 线元素：父级 width:0 后它会算成负宽，隐藏掉免得留残影 */
+.wb-mosaic-body .mosaic-split-line {
+  display: none;
 }
 
 /* 拖拽放置目标 */
