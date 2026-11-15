@@ -848,9 +848,25 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
                 target = target.strip() or None
             reg = get_line_registry()
             reg.set_active(target)
+            # 【2026-11-15】按主线分窗：切换激活主线后，把"新主线声明的窗口"推给正在跑的编排器
+            # （没有这一步的话，面板显示的来源变了、真正组装上下文用的还是旧值 —— 同一个旋钮两套账）。
+            # 用户手动设过运行时覆盖时**不推**（人手调的窗口优先，见 apply_window_to）。
+            window = None
+            try:
+                from config import MEMORY_TOKEN_LIMIT_DEFAULT as _default_limit
+                from agent.lines.context_window import apply_window_to
+                try:
+                    from app_server import _Yunshu as _runtime
+                except Exception:      # noqa: BLE001 测试/裸跑环境没有主对象
+                    _runtime = None
+                window = apply_window_to(_runtime, _default_limit)
+            except Exception as e:      # noqa: BLE001 窗口同步失败不得让切换失败
+                logger.warning("切换主线后同步上下文窗口失败（不影响激活指针）: %s", e)
             return jsonify({
                 "ok": True,
                 "active": reg.get_active(),
+                "context_window": ({"tokens": window[0], "source": window[1]}
+                                   if window else None),
                 "note": "null = 不装线（全量工具）",
             })
         except Exception as e:  # noqa: BLE001

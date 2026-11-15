@@ -533,10 +533,15 @@ export function ContextManagerBar() {
 
                   {/* ① 本机的真实数值（全部来自后端读数，不写死） */}
                   <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5 text-[11px] leading-relaxed text-slate-300">
-                    <span className="text-cyan-400">① 本机现在是多少</span>：窗口 = 全局一个值
+                    <span className="text-cyan-400">① 现在生效的窗口</span>：
                     <b className="text-slate-100"> {fmt(status.token_limit)}</b> tok
-                    （来源 <span className="font-mono text-slate-400">{status.token_limit_source ?? '-'}</span>，
-                    面板可调 8K–1M，重启回落代码默认值）· 到
+                    （来源 <span className="font-mono text-slate-400">{status.token_limit_source ?? '-'}</span>
+                    {String(status.token_limit_source ?? '').startsWith('line:')
+                      ? ' —— 这是当前分身档案里的默认值'
+                      : String(status.token_limit_source ?? '').startsWith('runtime_override')
+                        ? ' —— 你在面板上调过，进程内生效'
+                        : ' —— 没有任何覆盖，用内置默认'}
+                    ；面板滑块 = **运行时覆盖**，可调 8K–1M，重启回落）· 到
                     <b className="text-slate-100"> {Math.round(status.compress_threshold * 100)}% </b>
                     自动压缩 · 单次发送上限 <b className="text-slate-100">{fmt(status.per_message_send_limit)}</b>（超限只告警不截断）·
                     单次回复 <b className="text-slate-100">{fmt(status.per_message_recv_limit)}</b> tok。
@@ -589,14 +594,19 @@ export function ContextManagerBar() {
                     </ul>
                   </div>
 
-                  {/* ④ 分身：如实说"目前做不到" */}
+                  {/* ④ 分身：已经做了（2026-11-15）—— 讲清机制与优先级，不再写"做不到" */}
                   <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5 text-[11px] leading-relaxed text-slate-300">
-                    <span className="text-cyan-400">④ 按智能体分身设不同窗口？</span>
-                    <b className="text-amber-300"> 目前做不到</b>：{'`'}data/agent_lines/*.yaml{'`'} 的字段只有
-                    plane_weights / plane_floors / boost / mute / max_tools / effect_allow / requires_approval /
-                    skills / prompt_note，<b className="text-slate-100">没有窗口或 token 预算字段</b>；窗口是
-                    <b className="text-slate-100">进程级一个值</b>（见上方「窗口来源」）。
-                    要按分身分窗：先给 line 加字段，再在会话装配处按分身解析窗口 + 用例覆盖回落。
+                    <span className="text-cyan-400">④ 按智能体分身分窗（已支持）</span>：每个分身档案
+                    `data/agent_lines/*.yaml` 带 <b className="text-slate-100">context_window_tokens</b>，
+                    切激活主线即换默认 —— 日常/轻量 16K、通用研发 32K、代码与情报 64K、知识线 128K。
+                    <div className="mt-1 text-slate-400">
+                      优先级：<b className="text-slate-100">面板/接口的运行时覆盖</b>（你在滑块上调的值，进程内生效）
+                      &gt; <b className="text-slate-100">本分身的默认值</b>（line:…，重启后回到它） &gt;
+                      内置默认 131,072。切换主线时不会覆盖你手调过的值。
+                    </div>
+                    <div className="mt-1 text-[10px] text-slate-500">
+                      改分身默认：主线档案页（agent_lines）里改 context_window_tokens；改本机当前值：用上面的滑块。
+                    </div>
                   </div>
                 </div>
               )}

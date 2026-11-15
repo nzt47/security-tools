@@ -300,17 +300,25 @@ class LifecycleManager:
         #   现在按"值与常量默认值是否相等"如实标注，把"config.yaml 未被加载"显式写进来源。
         _configured_token_limit = memory_cfg.get("token_limit")
         _default_token_limit = _MEMORY_TOKEN_LIMIT_DEFAULT
-        if _configured_token_limit:
-            self._memory_token_limit = _configured_token_limit
+        # 【2026-11-15】按主线分窗：优先级 = 运行时覆盖 > 主线档案的 context_window_tokens > 内置默认。
+        # 运行时覆盖只认"与内置默认不同"的值（DEFAULT 恒含该键 —— 见上面的审计注释）。
+        _override = None
+        if _configured_token_limit and int(_configured_token_limit) != int(_default_token_limit):
+            _override = int(_configured_token_limit)
+        from agent.lines.context_window import resolve_window as _resolve_window
+        self._memory_token_limit, self._memory_token_limit_source = _resolve_window(
+            _override, _default_token_limit)
+        if _override:
+            # 保留原来的来源文案（"config.yaml 未被运行时加载"这句要留下，见上面注释）
             self._memory_token_limit_source = (
-                "builtin_default(%d)" % _default_token_limit
-                if int(_configured_token_limit) == int(_default_token_limit)
-                else "runtime_override(config/env, %d)｜注意 config.yaml 未被运行时加载"
-                     % int(_configured_token_limit)
-            )
-        else:
-            self._memory_token_limit = _default_token_limit
-            self._memory_token_limit_source = "builtin_default(%d)" % _default_token_limit
+                "runtime_override(config/env, %d)｜注意 config.yaml 未被运行时加载" % _override)
+        self._memory_token_limit_override = bool(_override)
+        # 压缩阈值按同一窗口算（两套账会在"面板说 50%、实际按 100% 触发"时打架）
+        try:
+            if hasattr(self._memory, "_token_limit"):
+                self._memory._token_limit = int(self._memory_token_limit)
+        except Exception:   # noqa: BLE001 记忆层还没就绪时忽略（下面 _memory 已建好，正常不会走到）
+            pass
         self._llm = self._memory._llm_service
         self._llm_pro = None  # 深度模型（由模型调度器加载）
         self._tool_calling_service = None

@@ -209,7 +209,7 @@ describe('ContextManagerBar · DSH 三组读数', () => {
     fireEvent.click(screen.getByRole('button', { name: '窗口取值参考' }))
     expect(await screen.findByText(/窗口该开多大/)).toBeTruthy()
     // ① 真实读数来自后端（fixture：131,072 / 80% / 单次 131,072 / 393,216）
-    expect(screen.getByText(/本机现在是多少/)).toBeTruthy()
+    expect(screen.getByText(/现在生效的窗口/)).toBeTruthy()
     expect(screen.getAllByText(/131,072/).length).toBeGreaterThan(0)
     // ② 建议表按任务类型给起点，且写明「不是本机配置」
     expect(screen.getByText(/日常对话/)).toBeTruthy()
@@ -218,9 +218,11 @@ describe('ContextManagerBar · DSH 三组读数', () => {
     // ③ 工程要点对着实测数字写（8.8k / 96.7%）
     expect(screen.getByText(/8.8k tok/)).toBeTruthy()
     expect(screen.getByText(/96.7%/)).toBeTruthy()
-    // ④ 分身：如实说目前做不到，并指出 lines YAML 没有窗口字段
-    expect(screen.getByText(/按智能体分身设不同窗口/)).toBeTruthy()
-    expect(screen.getByText(/没有窗口或 token 预算字段/)).toBeTruthy()
+    // ④ 分身：已支持（2026-11-15）—— 讲机制与优先级，不再写"做不到"
+    expect(screen.getByText(/按智能体分身分窗（已支持）/)).toBeTruthy()
+    expect(screen.getAllByText(/context_window_tokens/).length).toBeGreaterThan(0)
+    expect(screen.getByText(/不会覆盖你手调过的值/)).toBeTruthy()
+    expect(screen.queryByText(/目前做不到/)).toBeNull()
     // 收起
     fireEvent.click(screen.getByRole('button', { name: '收起窗口取值参考' }))
     await waitFor(() => expect(screen.queryByText(/窗口该开多大/)).toBeNull())

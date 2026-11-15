@@ -37,6 +37,8 @@ tags:
 - code
 - orchestrate
 max_tools: 26
+# 本分身默认上下文窗口（2026-11-15）：按任务类型的建议起点取中位 —— 代码 Agent / 跨文件理解：需要上下文，但推理比检索更怕噪声
+context_window_tokens: 65536
 effect_allow:
 - read
 - write

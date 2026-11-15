@@ -47,6 +47,8 @@ tags:
 - web
 - document
 max_tools: 18
+# 本分身默认上下文窗口（2026-11-15）：按任务类型的建议起点取中位 —— 日常对话/轻量调研：历史太多会稀释注意力
+context_window_tokens: 16384
 effect_allow:
 - read
 - write

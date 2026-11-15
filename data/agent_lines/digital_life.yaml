@@ -32,6 +32,8 @@ tags:
 - sensor
 - evolution
 max_tools: 18
+# 本分身默认上下文窗口（2026-11-15）：按任务类型的建议起点取中位 —— 长会话自我认知/记忆：要跨多轮，但不需要整书
+context_window_tokens: 32768
 effect_allow:
 - read
 - write

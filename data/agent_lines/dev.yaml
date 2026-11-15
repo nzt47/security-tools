@@ -40,6 +40,8 @@ mute:
 tags:
 - code
 max_tools: 22
+# 本分身默认上下文窗口（2026-11-15）：按任务类型的建议起点取中位 —— 通用研发：单文件为主，跨文件靠检索
+context_window_tokens: 32768
 effect_allow:
 - read
 - write

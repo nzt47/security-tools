@@ -129,6 +129,8 @@ def _push_runtime_window(value: int) -> bool:
     try:
         _Yunshu._memory_token_limit = int(value)
         _Yunshu._memory_token_limit_source = "runtime_override(api)"
+        # 标记"用户手动覆盖过"：切主线的自动窗口不该把它改回去（见 agent/lines/context_window.apply_window_to）
+        _Yunshu._memory_token_limit_override = True
         memory = getattr(_Yunshu, "_memory", None)
         if memory is not None and hasattr(memory, "_token_limit"):
             memory._token_limit = int(value)

@@ -725,6 +725,21 @@ def invalidate_tool_meta_cache() -> None:
     _META_CACHE_SIG.clear()
 
 
+def _window_tokens(raw: Any) -> int:
+    """解析 `context_window_tokens`（缺省/空 ⇒ 0；非整数 ⇒ 校验类异常）
+
+    【口径】0 表示"未声明、用全局默认"——**不要**把它当成"窗口 0"。
+    写错类型必须在保存路径就报错，否则会被静默当成未声明（与 max_tools 的坑同型）。
+    """
+    if raw is None or raw == "":
+        return 0
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        raise LinesValidationError(
+            f"context_window_tokens 必须是整数，收到: {raw!r}")
+
+
 @dataclass
 class LineProfile:
     """一条主线（可组装的能力档案）
@@ -757,6 +772,12 @@ class LineProfile:
 
     #: 单轮最多暴露给模型的工具数
     max_tools: int = 20
+
+    #: 本主线默认的**上下文窗口**（token；0 = 未声明 ⇒ 用全局默认）
+    #: 【2026-11-15 Owner】不同分身用途不同，窗口需求差一个量级：日常对话 16K 就够，
+    #: 代码/知识线要 64K–128K。声明在档案里比"每个会话手调滑块"可复现。
+    #: 优先级：面板/接口的运行时覆盖 > 本字段 > 内置默认（见 agent/lines/context_window.py）。
+    context_window_tokens: int = 0
 
     #: 治理策略
     effect_allow: List[str] = field(default_factory=lambda: ["read", "write", "execute"])
@@ -813,6 +834,12 @@ class LineProfile:
             issues.append("id 不能为空")
         if self.max_tools <= 0:
             issues.append("max_tools 必须为正整数")
+        if self.context_window_tokens:
+            from agent.lines.context_window import WINDOW_MAX, WINDOW_MIN
+            if not (WINDOW_MIN <= int(self.context_window_tokens) <= WINDOW_MAX):
+                issues.append(
+                    f"context_window_tokens 必须在 {WINDOW_MIN}–{WINDOW_MAX} 之间"
+                    f"（收到 {self.context_window_tokens}）")
         for eff in self.effect_allow:
             if eff not in EFFECTS:
                 issues.append(f"effect_allow 含非法值: {eff}")
@@ -890,6 +917,9 @@ class LineProfile:
             "tags": list(self.tags),
             "topics": list(self.topics),
             "max_tools": int(self.max_tools),
+            # 只在声明了才写回（0 = 未声明，别给存量档案平白加一行噪音）
+            **({"context_window_tokens": int(self.context_window_tokens)}
+               if self.context_window_tokens else {}),
             "effect_allow": list(self.effect_allow),
             "requires_approval": list(self.requires_approval),
             "allow_govern": bool(self.allow_govern),
@@ -929,6 +959,7 @@ class LineProfile:
             # 归一化只发生在读侧（那时只会更严）。静默纠正会让 typo 变成"少读一类"却没人知道。
             topics=[str(t) for t in (_split_topics(raw.get("topics")))],
             max_tools=max_tools,
+            context_window_tokens=_window_tokens(raw.get("context_window_tokens")),
             effect_allow=[str(e) for e in (raw.get("effect_allow") or ["read", "write", "execute"])],
             requires_approval=[str(e) for e in (raw.get("requires_approval") or [])],
             allow_govern=bool(raw.get("allow_govern", False)),

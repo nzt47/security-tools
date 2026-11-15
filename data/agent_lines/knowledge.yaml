@@ -44,6 +44,8 @@ tags:
 - evolution
 - knowledge
 max_tools: 20
+# 本分身默认上下文窗口（2026-11-15）：按任务类型的建议起点取中位 —— 知识 → workflow / RAG 型：关键仍是检索质量，不是无限塞上下文
+context_window_tokens: 131072
 effect_allow:
 - read
 - write

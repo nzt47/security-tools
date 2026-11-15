@@ -47,6 +47,8 @@ tags:
 - async
 - orchestrate
 max_tools: 22
+# 本分身默认上下文窗口（2026-11-15）：按任务类型的建议起点取中位 —— 情报采集（web/search/async）：多来源片段，需要较宽
+context_window_tokens: 65536
 effect_allow:
 - read
 - write
