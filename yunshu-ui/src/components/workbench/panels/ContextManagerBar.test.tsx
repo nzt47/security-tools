@@ -225,6 +225,39 @@ describe('ContextManagerBar · DSH 三组读数', () => {
     expect(screen.queryByText(/目前做不到/)).toBeNull()
     // 收起
     fireEvent.click(screen.getByRole('button', { name: '收起窗口取值参考' }))
+  })
+
+  it('窗口取值参考：会列出各分身声明的窗口（读 /api/agent-lines，不手抄）', async () => {
+    hubGetMock.mockImplementation((url: string) => Promise.resolve(
+      String(url).includes('/api/agent-lines')
+        ? {
+            active: 'engineering',
+            lines: [
+              { id: 'engineering', name: '自主编码与工程交付', context_window_tokens: 65536 },
+              { id: 'knowledge', name: '知识与过程蒸馏闭环', context_window_tokens: 131072 },
+              { id: 'assistant', name: '通用助手 / 研究检索', context_window_tokens: 0 },
+            ],
+          }
+        : { total: 1, tok_per_s: 10, cache_hit_ratio: 0.9 },
+    ))
+    render(<ContextManagerBar />)
+    expand()
+    await screen.findByText('会话统计')
+    fireEvent.click(screen.getByRole('button', { name: '窗口取值参考' }))
+    expect(await screen.findByText('自主编码与工程交付')).toBeTruthy()
+    // 64K / 128K 显示为整数 K；未声明(0) 必须显示「未声明」而不是 0
+    expect(screen.getByText('64K')).toBeTruthy()
+    expect(screen.getByText('128K')).toBeTruthy()
+    expect(screen.getByText('未声明')).toBeTruthy()
+  })
+
+  it('窗口取值参考：收起后面板消失', async () => {
+    render(<ContextManagerBar />)
+    expand()
+    await screen.findByText('会话统计')
+    fireEvent.click(screen.getByRole('button', { name: '窗口取值参考' }))
+    expect(await screen.findByText(/窗口该开多大/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '收起窗口取值参考' }))
     await waitFor(() => expect(screen.queryByText(/窗口该开多大/)).toBeNull())
   })
 })

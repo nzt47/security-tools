@@ -49,6 +49,11 @@ export interface LineProfile {
   tags: string[]
   /** 单轮最多暴露给模型的工具数 */
   max_tools: number
+  /**
+   * 本主线默认的**上下文窗口**（token；0 或未声明 = 用全局默认）。
+   * 优先级：面板/接口的运行时覆盖 > 本字段 > 内置默认（见 agent/lines/context_window.py）。
+   */
+  context_window_tokens?: number
   /** 效果上限（偏序 read < write < execute < extend） */
   effect_allow: string[]
   /** 需要人工确认的效果等级 */

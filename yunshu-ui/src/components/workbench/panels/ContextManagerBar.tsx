@@ -17,6 +17,7 @@ import { Loading, hubGet } from '../../../pages/hub/components/ui'
 import { getEnvelope, postEnvelope } from '@/api/envelope'
 
 import {
+  AGENT_LINES,
   CONTEXT_COMPRESS,
   CONTEXT_CONFIG,
   CONTEXT_STATUS,
@@ -108,6 +109,12 @@ interface CompressResp {
   error?: string
 }
 
+/** /api/agent-lines 的消费子集（各分身的默认窗口） */
+interface LineListPayload {
+  active?: string | null
+  lines?: Array<{ id?: string; name?: string; context_window_tokens?: number }>
+}
+
 const STORAGE_KEY = 'yunshu_ctx_monitor'
 
 export function ContextManagerBar() {
@@ -121,6 +128,8 @@ export function ContextManagerBar() {
   const [localLimit, setLocalLimit] = useState<number | null>(null)
   const [localSend, setLocalSend] = useState<number | null>(null)
   const [localRecv, setLocalRecv] = useState<number | null>(null)
+  // 【2026-11-15】各分身（主线）的窗口一览：直接读 /api/agent-lines（同一份档案事实，不前端另造）
+  const [lines, setLines] = useState<Array<{ id: string; name: string; window: number }>>([])
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const msgTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -135,6 +144,7 @@ export function ContextManagerBar() {
     hubGet<LlmStats | { data?: LlmStats }>(LLM_MONITOR_STATS).then((r) => {
       setLlm((r as { data?: LlmStats })?.data ?? (r as LlmStats) ?? null)
     }).catch(() => { /* 读数失败不打断上下文水位展示 */ })
+
   }, [])
 
   useEffect(() => {
@@ -143,6 +153,26 @@ export function ContextManagerBar() {
     const t = setInterval(load, 5000)
     return () => clearInterval(t)
   }, [load])
+
+  // 各分身的默认窗口（档案事实；取不到就空表，界面如实说"取不到"，不编数）。
+  // 与 5s 水位轮询分开：主线档案不会每 5 秒变一次，60s 足够。
+  useEffect(() => {
+    let alive = true
+    const pull = () => {
+      hubGet<LineListPayload | { data?: LineListPayload }>(AGENT_LINES).then((r) => {
+        if (!alive) return
+        const payload = (r as { data?: LineListPayload })?.data ?? (r as LineListPayload)
+        setLines((payload?.lines ?? []).map((l) => ({
+          id: String(l.id ?? ''),
+          name: String(l.name || l.id || ''),
+          window: Number(l.context_window_tokens ?? 0),
+        })))
+      }).catch(() => { /* 读不到就保持空表 */ })
+    }
+    pull()
+    const t = setInterval(pull, 60000)
+    return () => { alive = false; clearInterval(t) }
+  }, [])
 
   useEffect(() => {
     try {
@@ -594,18 +624,36 @@ export function ContextManagerBar() {
                     </ul>
                   </div>
 
-                  {/* ④ 分身：已经做了（2026-11-15）—— 讲清机制与优先级，不再写"做不到" */}
+                  {/* ④ 分身：已经做了（2026-11-15）—— 给出**各分身窗口一览**（读 /api/agent-lines，不手抄） */}
                   <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5 text-[11px] leading-relaxed text-slate-300">
-                    <span className="text-cyan-400">④ 按智能体分身分窗（已支持）</span>：每个分身档案
-                    `data/agent_lines/*.yaml` 带 <b className="text-slate-100">context_window_tokens</b>，
-                    切激活主线即换默认 —— 日常/轻量 16K、通用研发 32K、代码与情报 64K、知识线 128K。
+                    <span className="text-cyan-400">④ 按智能体分身分窗（已支持）</span>：每个分身档案带
+                    <b className="text-slate-100"> context_window_tokens</b>，切激活主线即换默认。各分身当前声明值：
+                    {lines.length === 0 ? (
+                      <span className="text-slate-500">（读不到 /api/agent-lines，未列出 —— 不编数）</span>
+                    ) : (
+                      <div className="mt-1 space-y-0.5">
+                        {lines.map((l) => {
+                          const isLine = String(status.token_limit_source ?? "") === `line:${l.id}(${l.window})`
+                          return (
+                            <div key={l.id} className="flex flex-wrap items-baseline gap-x-2">
+                              <span className={isLine ? "text-cyan-300" : "text-slate-300"}>{l.name}</span>
+                              <span className="font-mono text-slate-400">{l.id}</span>
+                              <span className="font-mono text-cyan-300">
+                                {l.window > 0 ? Math.round(l.window / 1024) + "K" : "未声明"}
+                              </span>
+                              {isLine && <span className="text-[10px] text-emerald-400">← 当前生效</span>}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
                     <div className="mt-1 text-slate-400">
                       优先级：<b className="text-slate-100">面板/接口的运行时覆盖</b>（你在滑块上调的值，进程内生效）
                       &gt; <b className="text-slate-100">本分身的默认值</b>（line:…，重启后回到它） &gt;
                       内置默认 131,072。切换主线时不会覆盖你手调过的值。
                     </div>
                     <div className="mt-1 text-[10px] text-slate-500">
-                      改分身默认：主线档案页（agent_lines）里改 context_window_tokens；改本机当前值：用上面的滑块。
+                      改分身默认：工作台 → 智能体主线（主线档案页，列表里有「窗口 …」徽章、编辑区有 context_window_tokens 字段）；改本机当前值：用上面的滑块。
                     </div>
                   </div>
                 </div>

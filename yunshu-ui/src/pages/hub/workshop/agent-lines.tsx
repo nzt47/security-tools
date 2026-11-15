@@ -110,6 +110,14 @@ function listToText(list?: string[]): string {
   return (list ?? []).join(', ')
 }
 
+/** 窗口显示：16384 → 16K / 65536 → 64K / 0 或未声明 → 未声明（别把"未声明"写成 0） */
+export function fmtWindowTokens(n?: number | null): string {
+  const v = Number(n ?? 0)
+  if (!Number.isFinite(v) || v <= 0) return '未声明'
+  if (v % 1024 === 0) return Math.round(v / 1024) + 'K'
+  return v.toLocaleString()
+}
+
 /** 深拷贝一份档案（编辑不污染列表里的原对象） */
 function cloneProfile(p: LineProfile): LineProfile {
   return {
@@ -123,6 +131,7 @@ function cloneProfile(p: LineProfile): LineProfile {
     mute: [...(p.mute ?? [])],
     tags: [...(p.tags ?? [])],
     max_tools: num(p.max_tools, 20),
+    context_window_tokens: num(p.context_window_tokens, 0),
     effect_allow: [...(p.effect_allow ?? [])],
     requires_approval: [...(p.requires_approval ?? [])],
     skills: [...(p.skills ?? [])],
@@ -145,6 +154,7 @@ function blankProfile(defaults?: Partial<LineProfile> | null): LineProfile {
     mute: [],
     tags: [],
     max_tools: num(d.max_tools, 20),
+    context_window_tokens: num(d.context_window_tokens, 0),
     effect_allow: d.effect_allow ? [...d.effect_allow] : ['read', 'write', 'execute'],
     requires_approval: [],
     allow_govern: d.allow_govern ?? false,
@@ -163,6 +173,8 @@ function canonical(p: LineProfile): string {
     plane_weights: pairs(p.plane_weights), plane_floors: pairs(p.plane_floors),
     boost: [...(p.boost ?? [])].sort(), mute: [...(p.mute ?? [])].sort(),
     tags: [...(p.tags ?? [])].sort(), max_tools: num(p.max_tools),
+    // 窗口是"默认值"语义：未声明(0) 与 声明了 131072 必须算不同 ⇒ 参与脏判定
+    context_window_tokens: num(p.context_window_tokens, 0),
     effect_allow: [...(p.effect_allow ?? [])].sort(),
     requires_approval: [...(p.requires_approval ?? [])].sort(),
     allow_govern: !!p.allow_govern,
@@ -1167,6 +1179,11 @@ export default function ToolsAgentLines() {
                       <div className="mt-1 truncate font-mono text-[11px] text-slate-500">{l.id}</div>
                       <div className="mt-1.5 flex flex-wrap items-center gap-1">
                         <Badge color="cyan">上限 {num(l.max_tools)}</Badge>
+                        {/* 【2026-11-15】本分身默认上下文窗口（未声明 ⇒ 用全局默认） */}
+                        <Badge color={num(l.context_window_tokens) > 0 ? 'cyan' : 'slate'}
+                          >
+                          窗口 {fmtWindowTokens(l.context_window_tokens)}
+                        </Badge>
                         <Badge color={l.allow_govern ? 'amber' : 'slate'}>
                           治理{l.allow_govern ? '开' : '关'}
                         </Badge>
@@ -1324,6 +1341,22 @@ export default function ToolsAgentLines() {
                         // 故此处就地夹到 ≥1，避免输入框显示 0 而预览显示 20 的自相矛盾
                         onChange={(e) => patch({ max_tools: Math.max(1, num(e.target.value, 20)) })}
                         className="w-24 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-200 outline-hidden"
+                      />
+                    </Field>
+                    {/* 【2026-11-15】本分身默认上下文窗口：0 = 未声明（用全局默认 131072）。
+                        范围 8192–1048576（后端 LineProfile.validate 会逐条报错，这里先夹住别让 UI 送出越界值）。 */}
+                    <Field
+                      label="context_window_tokens"
+                      hint={`本分身的默认上下文窗口（0/空 = 未声明，用全局默认）；${fmtWindowTokens(num(draft.context_window_tokens, 0))}`}
+                    >
+                      <input
+                        type="number" min={0} max={1048576} step={1024}
+                        value={num(draft.context_window_tokens, 0)}
+                        onChange={(e) => {
+                          const v = Math.min(1048576, Math.max(0, num(e.target.value, 0)))
+                          patch({ context_window_tokens: v })
+                        }}
+                        className="w-32 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-200 outline-hidden"
                       />
                     </Field>
                   </div>
