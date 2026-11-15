@@ -20,6 +20,10 @@ on:
       - develop
   schedule:
     - cron: '0 2 * * *'
+  # 【2026-11-15 新增】手动触发：本 workflow 此前只有 schedule，**没法按需复现**
+  # —— 排查「每日红」时只能等第二天 10:00，或用 push main/develop 这种脏手段。
+  # 加 dispatch 后：gh workflow run test.yml --ref master（受控复现的第一步）。
+  workflow_dispatch:
 
 env:
   PYTHON_VERSION: '3.12'
