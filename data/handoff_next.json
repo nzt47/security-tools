@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-15T01:05:00+08:00",
+ "updated_at": "2026-11-15T09:55:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -755,6 +755,14 @@
    "title": "同类型第 2 条通道也各有一份 .env（slot 家族键）",
    "criteria": "现状（2026-11-15）：只有主通道（id = email_smtp / webhook）映射 CP_ALERT_*；同类型第 2 条起的通道只存 agent/data/extensions.json 的 config（本机登记），UI 已明确标注「本机 · 不写 .env」。原因：.env 的通道键是**单值**语义，两条通道抢同一组键会互相覆盖。\n要做「每条都在 env 里各有一份」，需要：① 键名规则（如 CP_ALERT_SMTP_<SLOT>_HOST 或按通道 id 归一化）；② registry 的 dynamic_prefix 家族登记（否则「开关零缺口」门禁把动态读取判成 <unresolved> 红）；③ scripts/scan_settings.py 能推导出该家族（当前只认常量前缀 / f-string 常量段）；④ 迁移（把第 2 条起的本地值搬进新键）+ 回滚；⑤ UI 的\"哪些键属于我\"视图。",
    "next": "等 Owner 明确要不要「第 2 条通道也进 .env」。在此之前默认不做：本机登记已满足\"多通道\"的可用性，加 slot 家族是 1 天量且会动门禁白名单（要同批改 registry 说明与用例）。"
+  },
+  {
+   "id": "ui-chrome-slimming-b",
+   "status": "open",
+   "priority": "P2",
+   "title": "界面 chrome 瘦身 B 步：去面板标题栏 + 右栏默认收起点开滑出 + 整屏连续",
+   "criteria": "Owner 2026-11-15：导航/主内容/右栏的\"手柄\"太占地方，想改成 DeepSeek Harness 那样。A 步已落地（495d3dd98：标题栏 34→24、分割条 6px→0 宽 1px 线 + ±6px 命中区）。\n三条拍板（写死）：① 保留拖拽拆分与\"拖到边缘分离为独立窗口\"⇒ 不拆 mosaic；② 右栏默认收起、点开滑出；③ 改成 DSH 那种整屏连续平面（去卡片边框/阴影/大圆角）。\n★ 数字更正：三面板是横向 split，三条标题栏共占一个 34px 行（不是 3×34=102）；A 竖向只省 10px，B 再省 ~24px；真正的大头是横向——右栏 13%（1440 屏 ≈187px）。",
+   "next": "按 §11.122 D 的 7 条做（交接文档里有完整规格与坑）：\n① renderToolbar 换 6px 抓取条（库会把自定义 toolbar 包成 drag source，MosaicWindow.mjs:128-141 已实测；高度设 0 又不给抓取条会让拆分/边缘分离一起失效）；\n② 三按钮进 ⋮ 菜单，aria-label 沿用既有命名；③ 外 padding 10→6、去圆角/阴影/边框；\n④ 顶栏加「导航 / 右栏」开关（useLayoutStore 增 showPanel/hidePanel，可见性持久化），顺手修\"关掉面板无法重开、只能重置布局\"；⑤ 右栏用覆盖式 320px 抽屉，不换布局壳；\n⑥ +3~4 条用例（抓取条/菜单三动作/开关与持久化/默认收起）；⑦ tsc+eslint+vitest 全绿 + 1280/1440/1920 三档 Edge headless 截图 + 部署三处一致。\n纪律：只动 src/components/** 与样式，不新增/删除 src/pages/**、不增删路由（否则 ui_reachability 漂移）。"
   }
  ]
 }
