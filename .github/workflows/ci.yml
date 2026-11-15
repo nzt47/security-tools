@@ -416,6 +416,14 @@ jobs:
     # 回收（[gw0] node down: Not properly terminated，worker 崩溃→OOM 疑似），
     # 其他 shard 稳定通过。6 shard 每个 ~1500 测试，运行时间与内存峰值
     # 均显著降低（预计 3-5min），进一步远离回收阈值。
+    # 【不易】windows runner 默认 locale cp1252：下面两个"跑脚本"的步骤
+    #   （verify_bm25_optimization.py / verify_bm25_extreme_cases.py）会 print 中文，
+    #   在 cp1252 stdout 下直接 UnicodeEncodeError（2026-11-16 加 windows 腿后首次实跑就红：
+    #   job 132880858724 的「运行 BM25 优化回归测试」步骤；本机 PYTHONIOENCODING=cp1252
+    #   同形状复现）。test.yml 的 windows 单元 job 早就用 PYTHONUTF8=1 根治这一类，
+    #   这里放到 **job 级**，免得每加一个跑脚本的步骤都要再想一次。
+    env:
+      PYTHONUTF8: '1'
     timeout-minutes: 90
     # 【不易】必须显式声明 bash：ubuntu 的默认 shell 是 bash，而 **windows 默认是 pwsh**
     #   ⇒ 本 job 的 run 脚本（$COV_ARGS / $PER_TEST_TIMEOUT / for 循环 / 行尾反斜杠续行）
@@ -750,6 +758,8 @@ jobs:
     defaults:
       run:
         shell: bash
+    env:
+      PYTHONUTF8: '1'
     steps:
       - name: 检出代码
         uses: actions/checkout@v6
@@ -779,7 +789,6 @@ jobs:
         #   · 容器能力：isolation_levels（windows daemon 跑不了 linux 镜像 → 只认 OSType=linux）；
         #   · bash 能力：sandbox_wiring（runner 上的 bash.exe 是 WSL 空壳，which 为真但执行失败）。
         env:
-          PYTHONUTF8: '1'
           SKILLS_OFFLINE: '1'
         run: |
           mkdir -p test-results
