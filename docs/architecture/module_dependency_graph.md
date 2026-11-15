@@ -314,6 +314,7 @@ flowchart LR
         agent_lines["agent.lines"]:::crosslayer
         agent_lines_assembler["agent.lines.assembler"]
         agent_lines_callability["agent.lines.callability"]:::crosslayer
+        agent_lines_context_window["agent.lines.context_window"]:::crosslayer
         agent_lines_integration["agent.lines.integration"]:::crosslayer
         agent_lines_location["agent.lines.location"]
         agent_lines_models["agent.lines.models"]:::crosslayer
@@ -1402,9 +1403,11 @@ flowchart LR
     agent_lines_callability --> agent_lines_models
     agent_lines_callability --> agent_lines_assembler
     agent_lines_callability --> agent_lines_models
+    agent_lines_context_window --> agent_lines_registry
     agent_lines_integration --> agent
     agent_lines_location -.-> agent_utils_paths
     agent_lines_models -.-> agent_topics
+    agent_lines_models --> agent_lines_context_window
     agent_lines_skillpack -.-> agent_skills_mgmt_registry
     agent_lines_skillpack -.-> agent_skills_mgmt_registry
     agent_llm_monitor -.-> agent_monitoring_prometheus
@@ -1752,6 +1755,7 @@ flowchart LR
     agent_orchestrator_lifecycle_manager -.-> agent_monitoring_tracing
     agent_orchestrator_lifecycle_manager -.-> agent_digital_life
     agent_orchestrator_lifecycle_manager -.-> agent_sensor_config
+    agent_orchestrator_lifecycle_manager -.-> agent_lines_context_window
     agent_orchestrator_lifecycle_manager -.-> agent_tools_core_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_file_tools_reg
     agent_orchestrator_lifecycle_manager -.-> agent_tools_web_tools
@@ -2148,6 +2152,7 @@ flowchart LR
     agent_server_routes_routes_agent_lines -.-> agent_lines_callability
     agent_server_routes_routes_agent_lines -.-> agent_lines_callability
     agent_server_routes_routes_agent_lines -.-> agent_memory_topic_policy
+    agent_server_routes_routes_agent_lines -.-> agent_lines_context_window
     agent_server_routes_routes_agent_lines --> agent
     agent_server_routes_routes_approval -.-> agent_security
     agent_server_routes_routes_approval -.-> agent_security
@@ -3037,9 +3042,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 767
-- 模块节点数: 666
-- 依赖边数: 2243
-- 跨层调用数: 1437
+- 扫描文件数: 768
+- 模块节点数: 667
+- 依赖边数: 2247
+- 跨层调用数: 1439
 - 违规调用数: 0
 - 动态 import 数: 1
