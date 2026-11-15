@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-15T23:56:50+08:00",
+ "updated_at": "2026-11-16T01:42:34+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -861,11 +861,11 @@
   },
   {
    "id": "windows-only-failure-class",
-   "status": "open",
+   "status": "done",
    "priority": "P2",
    "title": "Windows 专属失效形态只有 test.yml 看得见（ci.yml 只跑 ubuntu）—— 要不要补 Windows 分片",
    "criteria": "2026-11-15 一轮里 4 类 Windows 专属问题全部**只有**每日 test.yml 能暴露：跨盘 relpath/enumerate_path、8.3 短名、TEMP 形状、Docker 容器能力（Windows daemon 跑不了 Linux 镜像）。ci.yml 的单元测试只跑 ubuntu-latest / ubuntu-22.04，所以「ci.yml 全绿 ⇒ 不是代码问题」对这类失效**不成立**。",
-   "next": "待 Owner 定：① 保持现状（每日 test.yml 兜底，缺点是最多晚 24 小时才发现）；② 给 ci.yml 补一个 Windows 单元分片（代价参考：本轮 windows 单元 job 跑满 10267 用例约 10.2 分钟，fail-fast 早停时 9.4 分钟）；③ 折中：ci.yml 加一个**只跑 Windows 敏感子集**的 job（tests/unit 里带跨盘/路径/隔离/容器标记的那些）。选 ②/③ 时注意 ci.yml 的 concurrency 与失败基线门禁要同批调整。"
+   "next": "2026-11-16 落地（Owner 选 C-②/③）：ci.yml 的 unit-tests 加 os 维（6 shard × {ubuntu-22.04, windows-latest} = 12 job）；覆盖率只从 ubuntu 腿采（代码行覆盖与平台无关，混平台合并会把分母变并集）；windows 腿单测超时 60→180s、跳过 symlink 回归（Windows 建不了软链）与 /proc 采样；artifact 名带 os。另加 windows-sensitive-subset job（9 个文件：safe_paths / events 读侧 / eval_datasets / tool_callability / capability_spec / isolation_levels / sandbox_wiring / cost_brake / judge_llm_runtime，本地 79 秒）。首次实跑抓到的两条红**都是我自己造的**、且都是 ubuntu 上永远看不见的那一类：① job 没声明 shell ⇒ windows 腿跑 pwsh，bash 语法 3 分钟 ParserError（3ea074ad2 补 shell: bash）；② BM25 校验脚本 print 中文撞 cp1252 ⇒ UnicodeEncodeError（本机 PYTHONIOENCODING=cp1252 同形状复现，e12eb155d 补 job 级 PYTHONUTF8=1）。"
   },
   {
    "id": "judge-cost-read-error-semantics",
@@ -893,11 +893,11 @@
   },
   {
    "id": "coverage-check-312-artifact-mismatch",
-   "status": "open",
+   "status": "done",
    "priority": "P2",
    "title": "覆盖率检查 job 在 py3.12 上必然失败：它要下载一个故意不上传的集成覆盖率产物",
    "criteria": "2026-11-15 首次真正跑起来（unit 绿了它才不再 skipped）：[error] Unable to download artifact(s): Artifact not found for name: coverage-integration-ubuntu-latest-py3.12。原因在 test.yml 内部自相矛盾：integration-tests 的「上传覆盖率数据」步骤写着 if: matrix.python-version != 3.12（注释：3.12 集成测试禁用 --cov 以修超时，所以没有数据文件），而 coverage-check 的矩阵是 3.12、且「下载集成测试覆盖率」步骤无条件下载同名产物 ⇒ 必然 404。",
-   "next": "三选一（都要改 test.yml，属策略决定）：① 给 3.12 的下载步骤加同样的 if 条件，combine 只合并 unit 数据 —— 但 unit-only 实测 62% < 70% 门槛，等于把门禁降到 62 或改成「只报告不门禁」；② 恢复 3.12 的集成 --cov（当年因超时才关的，要先量集成 job 时长）；③ 把 coverage-check 的矩阵改成 3.11（该版本一直有集成覆盖率数据）并把 3.12 的覆盖率改成 informational。建议 ①+③ 组合：3.11 保持硬门槛、3.12 只出报告不断言。"
+   "next": "2026-11-16 落地（Owner 选 A-②/③；② 的机制被事实否掉，见 pyproject-declares-311-but-code-is-312）：①【A-③】3.12 集成恢复 --cov，用 COVERAGE_CORE=sysmon（PEP 669）绕开 CPython 3.12 tracing 二次复杂度（python/cpython#127953）—— 本机同一文件同一 --cov=agent：默认 tracer 13.8s / sysmon 10.1s，覆盖率读数逐字相同（分母 154295 / 5%）；微基准 12000 次 await：0.034s / 0.136s(4.0x) / 0.038s(1.1x)。② 上传步骤删掉 if: python-version != '3.12' ⇒ 上传与下载对称，那个 404 从机制上消失（没加 continue-on-error）。③ 70% 硬门槛挂 3.12 ubuntu 腿（unit+integration 合并 = 原契约本身），windows 腿只出报告。④ combine 改成按 glob 收集（xdist 下 pytest-cov 走 parallel，文件名 .coverage.<host>.<pid>.<rand>，原来写死的无后缀路径是从未被执行过的分支）。实证（test.yml run 43738374450）：70% 硬门槛**实跑通过**：合并 TOTAL = **81%**（154491 行分母 / 28735 未覆盖），windows 腿只出报告也 success；整条 test.yml run 43738374450 = **success**（这套每日流程自 2026-11-07 起一直红）。"
   },
   {
    "id": "perf-windows-list-cache-ratio",
@@ -906,6 +906,30 @@
    "title": "windows 性能 job：test_knowledge_link_perf::test_list_cache_speedup 比例 1.85x 撞 2x 门槛",
    "criteria": "2026-11-15 首次真正跑起来（unit 绿后）：warm=89.8ms vs cold=166.1ms，断言要求 warm < cold*0.5，实际比值 1.85x ⇒ 红；同一提交在 ubuntu 上过。两个绝对值都只有一两百毫秒，windows runner 的计时噪声与文件系统缓存让单次采样不稳；「1.85x」本身说明缓存是生效的，只是没到 2 倍。",
    "next": "2026-11-15 落地（判据改「结构 + 中位数」，不只是调数字）：tests/performance/test_knowledge_link_perf.py::test_list_cache_speedup 三条判据 —— ① 热命中期间 _list_from_disk 调用必须为 0（缓存生效的直接证据，与计时无关；反向验证过：清空 _list_cache 后热命中共记到 1 次重载）② 冷/热各采样 5 次取中位数 ③ 中位数比 ≥1.43x（warm < cold*0.7）。读数用 record_property 写进 junit <properties>（pytest 只给失败用例写 system-out，通过用例也能回查），CI 产物 knowledge-link-perf-results.xml 里能看到 5 次原始采样 / 中位 / 重载次数。实证（ae48a9b6a + d842744f9，test.yml run 43731924068）：windows 性能 job **success**，5 次中位 cold=462.4ms / warm=3.7ms = **126x**、重载 0 次；同 run 的 ubuntu 性能 job 也 success（5 次中位 267.8ms / 8.0ms = 33.5x、重载 0 次）；本机 138x、重载 0 次。★ 更正：本条原写的「1.85x 说明缓存生效、只是没到 2 倍」也不成立 —— 同型号 runner 换成 5 次中位数就是 126x，连 cold 都从 166ms 变成 462ms ⇒ 1.85x 是**单点采样抖动**；所以真正要修的是「别拿两个单点比出一个比值」，门槛 2 倍→1.43 倍只是顺带，硬证据是结构判据。"
+  },
+  {
+   "id": "pyproject-declares-311-but-code-is-312",
+   "status": "open",
+   "priority": "P2",
+   "title": "pyproject 声明 requires-python >=3.11，但代码事实是 3.12-only（PEP 701 f-string，3.11 连 collect 都过不了）",
+   "criteria": "2026-11-16 实跑 3.11 腿（run 43735743556）暴露：unit / integration 两个 3.11 job 都在 collection 阶段死 —— agent/logging_utils.py:600 用了 PEP 701 的 f-string 嵌套同引号（f'调试模式: {('启用' if debug_mode else '关闭')}'），3.11 报 SyntaxError: f-string: unmatched '('；所有 import agent.logging_utils 的用例整批 collection error。更麻烦的是同一 job 里 coverage 打 \"Couldn't parse Python file agent/logging_utils.py (couldnt-parse)\" ⇒ 3.11 上这个文件会被静默踢出覆盖率分母，用它当门槛等于量一把坏尺子。全仓扫描（正则启发式：f-string 内嵌套同引号 / 字段内反斜杠）22 个文件：产品 4（logging_utils / memory/long_term_memory / policy/matcher / tools/code_tools）、测试 11、其余 scripts。",
+   "next": "Owner 二选一：①【最省】把 pyproject 的 requires-python 改成 \">=3.12,<3.13\"，同步 docs/wiki/Home.md 的兼容矩阵与 light_loader 门禁（现在那个门禁还在按 >=3.11 断言），并把 CI 的 3.11 说法全部清掉；②【留 3.11】做这 22 个文件的语法清理（机械活、无行为变化），再 dispatch 一次 test.yml 看语义尾巴（3.12-only 的运行时 API 可能还有），绿了就把 70% 门槛挪回 3.11。注意两条都会动到已提交的代码，②还要重派生 capability_manifest（改 agent/ 的 Python）。"
+  },
+  {
+   "id": "ci-dashboard-artifact-pattern-stale",
+   "status": "open",
+   "priority": "P3",
+   "title": "ci.yml 的 update-ci-dashboard 按 py3.11 取 unit artifact，而矩阵是 3.12 ⇒ 看板 job 一直在空转",
+   "criteria": "ci.yml 的 update-ci-dashboard 里 pattern 是 test-results-unit-py3.11-*（注释写\"取第一个支持版本 3.11\"），而 unit-tests 的矩阵只有 3.12 ⇒ 这个 job 下载不到任何 junit，脚本打「未找到 junit-shard*.xml，跳过合并」后 exit 0。2026-11-16 加 os 维后 artifact 名变成 test-results-unit-<os>-py3.12-shard<N>，pattern 依旧不匹配。",
+   "next": "把 pattern 改成 test-results-unit-ubuntu-22.04-py3.12-*（ubuntu 腿就是判读腿，windows 腿不进看板，否则同一批用例会被计两遍）。注意：它一旦真取到数据，就会在 master 上提交一次 docs/dashboards/ci_health_dashboard.md （多一条 bot push，带 [skip ci] 与否要一起确认），评估后再动。"
+  },
+  {
+   "id": "coverage-artifact-glob-too-wide",
+   "status": "open",
+   "priority": "P3",
+   "title": "覆盖率 artifact 里混进 .coveragerc_scripts（上传 path `.coverage*` 太宽），combine 报 1 file errored",
+   "criteria": "2026-11-16 实跑可见（test.yml run 43738374450 / 覆盖率检查 ubuntu / job 132896871924）：unit 与 integration 的上传 path 都是 `.coverage*`，而仓库根有个配置文件叫 `.coveragerc_scripts`，它同样匹配 ⇒ artifact 里带着一份配置文本；coverage-check 的 combine 用 glob 收集时把它当数据文件读，日志出现 `Combined 2 files, skipped 1, 1 file errored`。当前 coverage 7.15 对此**不退非零**（门槛照常断言，TOTAL 81% 通过），所以不是红，但这是一条「靠版本行为宽容」的路径。",
+   "next": "两处一起收窄：① 上传 path 写 `.coverage` 与 `.coverage.*`（两个 glob）而不是 `.coverage*`；② coverage-check 的收集循环同样改成 `.coverage` + `.coverage.*`。改完必须重新 dispatch 一次 test.yml 验证（不能只靠本地），因为这一步的退出码语义只有 CI 能确认。"
   }
  ]
 }
