@@ -192,6 +192,62 @@
   font-weight: 600;
 }
 
+/* ── 三层合并 ①：基础模板（默认收起的折叠块，位于筛选条与主体之间） ──
+   2026-11-15：原「系统提示词」独立 Tab 取消，骨架 + 占位符并进本页第一层。
+   默认收起是刻意的：改骨架是低频动作，日常只调因素/分节；一进来就摊开一整块
+   编辑器，正是"三层看起来像三份重复"的观感来源。 */
+.pl-base-block {
+  margin: 12px 20px 0;
+  border: 1px solid var(--wb-border);
+  border-radius: var(--wb-radius);
+  background: var(--wb-panel);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+}
+.pl-base-block > summary {
+  display: flex;
+  flex-wrap: wrap; /* 窄屏（<1100）标题 + 右侧提示会挤成一条，允许换行 */
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e2e8f0;
+  cursor: pointer;
+  list-style: none; /* 自绘三角，避免各浏览器 marker 位置不一致 */
+  user-select: none;
+}
+.pl-base-block > summary::-webkit-details-marker {
+  display: none;
+}
+.pl-base-block > summary::before {
+  content: '▸';
+  font-size: 10px;
+  color: var(--wb-accent);
+  transition: transform 0.15s;
+}
+.pl-base-block[open] > summary::before {
+  content: '▾';
+}
+.pl-base-block > summary:hover {
+  background: rgba(34, 211, 238, 0.06);
+}
+.pl-base-block[open] > summary {
+  border-bottom: 1px solid var(--wb-border);
+}
+.pl-base-hint {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--wb-text-dim);
+}
+.pl-base-block-body {
+  /* 模板编辑器自带滚动（SystemPromptPanel 内部 h-full/overflow），这里只封顶高度，
+     免得展开后把 ② ③ 两列推出首屏。 */
+  max-height: min(70vh, 640px);
+  overflow-y: auto;
+}
+
 /* ── 主体布局 ── */
 .pl-body {
   display: flex;
@@ -200,14 +256,15 @@
   padding: 20px;
 }
 .pl-factors {
-  /* 【Owner 2026-11-15】因素列改窄到原来的 1/3：它此前是 flex:1 1 auto，吃掉整行剩下的宽度，
-     在宽屏上被拉得很宽（2560 屏实测 1100px，卡片里的滑块横跨整屏）。
-     算式：100% = .pl-body 的内容宽；减掉两列 440+520 与两个 20px gap，就是它原来的宽度；再取 1/3。
-     下限 240px：再窄卡片里的滑块/下拉会被挤扁（1440 屏原宽只有 160px，这里不再往下压）。
-     省出来的宽度交给最右的实时预览（.pl-preview 改为可增长），避免右侧留一大块空。 */
-  flex: 0 0 auto;
-  width: calc((100% - 1000px) / 3);
-  min-width: 180px;
+  /* 【Owner 2026-11-15 两次回调，最终口径：固定 300px】
+     ① 先是从 flex:1 1 auto（2560 屏被拉到 1100px、滑块横跨整屏）压到"剩余宽度的 1/3"；
+     ② 但那个算式在 1440 屏算出 139px，被 180px 下限兜住 ⇒ 卡片内宽只有 152px，
+        滑块的数值（"2048 tok" / "100 分"）被 .pl-factor-card 的 overflow:hidden 切掉
+        （实测：数值框 154→206，卡片只到 180，每条滑块都少半截）。
+     现在改成固定 300px：卡内宽 270px，滑块 200px + 数值 60px，任何数值都放得下；
+     宽屏上多出来的宽度全部给最右的 ③ 最终注入文本（那才是要读的内容）。 */
+  flex: 0 0 300px;
+  min-width: 280px;
 }
 .pl-identity-col {
   /* 放大：身份提示词（系统提示词 · 线上配置）要放下分区标题 + 发出内容 + 编辑区 */
@@ -313,16 +370,33 @@
   gap: 10px;
 }
 .pl-slider-row input[type='range'] {
-  flex: 1;
+  /* 【为什么必须 min-width:0】range 的 flex 最小宽度默认取 min-content（Edge 约 129px），
+     flex-shrink 对它是无效的 —— 列一窄，它不缩，反而把右侧的数值挤出卡片被裁掉。
+     实测（1440 屏、因素列 180px）：数值框 left=154 宽 52，卡片只到 180 ⇒ 每条都少半截。 */
+  flex: 1 1 0;
+  min-width: 0;
   accent-color: var(--wb-accent);
   cursor: pointer;
 }
 .pl-slider-val {
-  min-width: 52px;
+  /* 数值框不参与压缩：它的宽度就是"能不能看全 100 分 / 2048 tok"的判据 */
+  flex: none;
+  min-width: 56px;
   text-align: right;
   font-family: var(--wb-mono);
   font-size: 12px;
   color: #a5f3fc;
+  white-space: nowrap;
+}
+/* slider 左右端语义（人格 6 维）：贴在滑块两侧下方，10px，不抢数值的位置 */
+.pl-slider-edges {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 2px;
+  padding-right: 66px; /* 与上面的数值框右对齐（56 + gap 10） */
+  font-size: 10px;
+  color: var(--wb-text-dim);
 }
 .pl-select,
 .pl-text,
@@ -404,6 +478,13 @@
   margin-bottom: 12px;
 }
 
+/* 人格 6 维的同步状态（一行小字：读的是后端值还是默认值 / 正在写回 / 写失败） */
+.pl-personality-status {
+  margin: 0 0 10px 16px;
+  font-size: 11px;
+  color: var(--wb-text-dim);
+}
+
 /* 「视图如实」警告条：用于"这里的调整其实不会生效"这类会被误解的页面 */
 .pl-warn-strip {
   display: flex;
@@ -424,6 +505,16 @@
 .pl-warn-strip .pl-btn {
   margin-left: auto;
   flex: none;
+}
+/* 窄列版（因素列 300px 里的「人格」分类）：可换行，按钮独占一行，别把文字挤成一条 */
+.pl-warn-strip-narrow {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+.pl-warn-strip-narrow .pl-btn {
+  margin-left: 0;
+  margin-top: 6px;
 }
 .pl-preview-block h3,
 .pl-export h3 {

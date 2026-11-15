@@ -39,6 +39,18 @@ vi.mock('../hub/personality', () => ({
   default: () => <div data-testid="personality-page-stub" />,
 }))
 
+// 2026-11-15 人格 6 维并进因素：这些滑块会 GET /api/personality（首屏覆盖默认值）并在变化后
+// 防抖 POST /api/personality/params。本文件锁的是页面结构，不锁同步机制（那条在
+// personalityFactors.test.tsx 里单独锁），故这里只给一个"读得到、写得动"的桩。
+vi.mock('@/api/envelope', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>()
+  return {
+    ...actual,
+    getEnvelope: vi.fn(async () => ({ current_profile: 'custom', custom_params: {}, dimensions: [], profiles: {} })),
+    postEnvelope: vi.fn(async () => ({ ok: true })),
+  }
+})
+
 vi.mock('../hub/components/ui', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>()
 
@@ -226,6 +238,35 @@ describe('需求②：提示词实验室（顶栏 / 身份提示词联动）', (
   })
 })
 
+describe('三层合并（§11.124 D-1）：基础模板 / 分节配置 / 最终注入文本 排在一屏', () => {
+  it('① 基础模板块存在且默认收起，② ③ 与它同屏', async () => {
+    render(<PromptLab />)
+    // 先等身份提示词区载入（说明影响因素页已经渲染出来）
+    await screen.findByText('身份提示词（系统提示词 · 线上配置）')
+
+    const block = document.querySelector('details.pl-base-block') as HTMLDetailsElement | null
+    expect(block, '基础模板必须是一个 details 折叠块（不再是独立 Tab）').toBeTruthy()
+    expect(block!.open, '基础模板默认收起：改骨架是低频动作，不该占首屏').toBe(false)
+    expect(block!.querySelector('summary')?.textContent ?? '').toContain('① 基础模板')
+    // 折叠块里就是原来那个系统提示词模板面板（3 条端点 + 占位符清单）
+    expect(block!.querySelector('[aria-label="系统提示词模板"]')).toBeTruthy()
+
+    // 三层同屏：② 分节配置（左栏标题）与 ③ 最终注入文本（右栏块标题）
+    expect(screen.getByText('② 分节配置（哪些块进提示词）')).toBeTruthy()
+    expect(screen.getByText('③ 最终注入文本（只读）')).toBeTruthy()
+  })
+
+  it("存量 Tab 值 'system-prompt' 归一到影响因素页（老用户刷新不落到空 Tab）", async () => {
+    localStorage.setItem('yunshu.prompt-lab.tab', 'system-prompt')
+    render(<PromptLab />)
+
+    const factorsTab = await screen.findByRole('tab', { name: '提示词影响因素实验室' })
+    expect(factorsTab.getAttribute('aria-selected'), '系统提示词 Tab 已取消，存量值必须归一').toBe('true')
+    // 归一后的值要写回去，否则每次刷新都要再归一一次
+    expect(localStorage.getItem('yunshu.prompt-lab.tab')).toBe('factors')
+  })
+})
+
 describe('需求③：LLM 通信监控位于主内容区并以 TAB 并列', () => {
   it('主内容区 Tab 条含「提示词影响因素实验室」与「LLM 通信监控」，切换后渲染监控', async () => {
     render(<PromptLab />)
@@ -234,8 +275,9 @@ describe('需求③：LLM 通信监控位于主内容区并以 TAB 并列', () =
       .getAllByRole('tab')
       .map((t) => (t.textContent ?? '').trim())
     // 阶段 1.1：人格并入成为第 3 个 Tab（原两 Tab 顺序不变）
-    // 2026-10-18：系统提示词模板成为第 4 个 Tab（与"模型侧配置"同类）
-    expect(labels).toEqual(['提示词影响因素实验室', 'LLM 通信监控', '人格', '系统提示词'])
+    // 2026-11-15：**三层合并**（§11.124 D-1）—— 「系统提示词」不再是独立 Tab，
+    //   改由影响因素页里的「① 基础模板」折叠块承载，故从此只有 3 个 Tab。
+    expect(labels).toEqual(['提示词影响因素实验室', 'LLM 通信监控', '人格'])
 
     // 默认在影响因素实验室：监控面板未挂载（不在页面最底部）
     expect(screen.queryByText('发送 Tokens')).toBeNull()

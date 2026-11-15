@@ -1,10 +1,19 @@
 /**
  * PromptLab —— 提示词影响因素管理面板（主页编排）
  * ------------------------------------------------
- * 布局：顶栏（标题 + 模块 Tab 条）+ 分类筛选 + 主体（左因素区 / 右预览 PreviewPanel）
- *      / LLM 通信监控 Tab（全宽，LlmMonitorPanel）/ 人格 Tab（PersonalityPage）
- * 功能：5 类因素调节（滑块/下拉/文本/开关）、实时预览（真实模型试跑 + Token/雷达/导出）、
+ * 布局：顶栏（标题 + 模块 Tab 条）+ 【影响因素 Tab：① 基础模板（默认收起）→ 分类筛选
+ *      → ② 分节配置 / 因素区 / ③ 最终注入文本】/ LLM 通信监控 Tab（全宽）/ 人格 Tab
+ * 功能：6 类因素调节（滑块/下拉/文本/开关）、实时预览（真实模型试跑 + Token/雷达/导出）、
  *       分类筛选、自定义因素添加/删除、JSON/CSV 导出。
+ *
+ * 【2026-11-15 三层合并（§11.124 D-1）】原先「系统提示词」是独立 Tab，与实验室左栏
+ * 「身份提示词」、右栏「最终注入文本」三层同名、各在一处，看着像三份重复的东西。
+ * 现在系统提示词 Tab 取消，三层按 ① 基础模板（骨架 + 占位符，默认收起）→ ② 分节配置
+ * → ③ 最终注入文本 排在同一屏里顺着读。存量用户存过 'system-prompt' Tab 的，
+ * readSavedTab() 会把它归一到 'factors'（否则刷新后落在一个不存在的 Tab 上）。
+ *
+ * 【2026-11-15 人格并进因素（§11.124 D-2 轻量版）】人格 6 维从独立 Tab 复制一份到因素里
+ * （Tab 保留）：滑块直接写 /api/personality（防抖 400ms，见 personalityFactors.ts）。
  *
  * 【深度合并（身份提示词 + LLM 通信并入）】
  *   - 「系统提示词」区不再本地沙箱：由 useIdentityPrompt 直接编辑后端
@@ -17,7 +26,7 @@
  * 子组件拆分见 prompt-lab/ 目录：RadarChart / FactorControl / FactorCard /
  * CustomFactorForm / PreviewPanel / IdentityPromptPanel / LlmMonitorPanel。
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { FileCode2, FlaskConical, Plus, Radio, RotateCcw, Smile, TriangleAlert } from 'lucide-react';
 import { usePromptLabStore } from '../../stores/usePromptLabStore';
 import { downloadFile } from '../../utils/system';
@@ -42,24 +51,28 @@ import IdentityPromptPanel, { toIdentityPromptPanelProps } from './IdentityPromp
 import LlmMonitorPanel from './LlmMonitorPanel';
 // 2026-10-18：系统提示词模板（3 条 /api/system-prompt*）并入本页 Tab ——
 // 它与"影响因素/人格"同属"模型侧配置"，此前只有后端与手改文件。
+// 2026-11-15：不再独占 Tab，改由影响因素页的「① 基础模板」（默认收起）承载
 import SystemPromptPanel from './SystemPromptPanel';
 // 人格配置（原「人格与提示词 → 人格配置」独立页）并入本页第 3 个 Tab（阶段 1.1）
 import PersonalityPage from '../hub/personality';
 import { useIdentityPrompt } from './identityPrompt';
+// 人格 6 维 ↔ /api/personality 的同步（首屏 GET 覆盖 + 防抖 400ms POST）
+import { usePersonalityFactors } from './personalityFactors';
 import '../PromptLab.css';
 
 type Filter = 'all' | FactorCategory;
 
 /** 主内容区模块 Tab（并列展示）：影响因素实验室 / LLM 通信监控 / 人格 */
-type LabTab = 'factors' | 'llm-monitor' | 'personality' | 'system-prompt';
+type LabTab = 'factors' | 'llm-monitor' | 'personality';
 
 const LAB_TABS: { id: LabTab; label: string; icon: typeof FlaskConical; hint: string }[] = [
-  { id: 'factors', label: '提示词影响因素实验室', icon: FlaskConical, hint: '5 类影响因素调节 + 身份提示词线上配置 + 实时预览' },
+  { id: 'factors', label: '提示词影响因素实验室', icon: FlaskConical, hint: '① 基础模板 → ② 分节配置 → ③ 最终注入文本，外加 6 类因素（含人格）与试跑' },
   { id: 'llm-monitor', label: 'LLM 通信监控', icon: Radio, hint: '每次 LLM 调用的完整收发内容（折叠展开）+ Token 统计' },
   // 阶段 1.1：原「人格与提示词 → 人格配置」独立页并入本页 Tab。
   // 语义：人格是"它是谁"（画像），因素实验室是"它怎么答"（行为），同属"模型侧配置"。
+  // 2026-11-15：这 6 维同时进了「影响因素 → 人格」分类（调了直接写后端），此 Tab 保留为
+  // 「预设人格 + 重置」的整体视图，两者共用同一份 /api/personality。
   { id: 'personality', label: '人格', icon: Smile, hint: '云枢的语气体征（语气/情感/简练/主动/幽默/同理心）+ 预设人格' },
-  { id: 'system-prompt', label: '系统提示词', icon: FileCode2, hint: '系统提示词模板：占位符、预览、保存与重置（写错占位符会被后端拒绝）' },
 ];
 
 /** 记住上次所在 Tab（会话级偏好，刷新不跳回） */
@@ -68,6 +81,9 @@ const TAB_STORAGE_KEY = 'yunshu.prompt-lab.tab';
 const readSavedTab = (): LabTab => {
   try {
     const v = localStorage.getItem(TAB_STORAGE_KEY);
+    // 存量值归一（2026-11-15 三层合并）：'system-prompt' 这个 Tab 已经不存在了，
+    // 老用户浏览器里还存着它 —— 不归一就会刷新后落在一个没有对应分支的 Tab 上（空白页）。
+    if (v === 'system-prompt') return 'factors';
     return LAB_TABS.some((t) => t.id === v) ? (v as LabTab) : 'factors';
   } catch {
     return 'factors';
@@ -86,6 +102,11 @@ export default function PromptLab() {
 
   // 深度合并：线上「身份提示词」配置（后端模板 = 注入 system message 的唯一来源）
   const identity = useIdentityPrompt();
+  // 人格 6 维：首屏 GET 覆盖默认值，拖动后防抖 400ms 写回 /api/personality
+  const setValues = usePromptLabStore((s) => s.setValues);
+  const personality = usePersonalityFactors(values, setValues);
+  /** ② 分节配置列（人格黄条上的「去分节配置」滚到这里并高亮 persona 节） */
+  const identityColRef = useRef<HTMLElement | null>(null);
 
   const [tab, setTab] = useState<LabTab>(readSavedTab);
   const [filter, setFilter] = useState<Filter>('all');
@@ -120,6 +141,24 @@ export default function PromptLab() {
     () => (filter === 'all' ? CATEGORIES : CATEGORIES.filter((c) => c.id === filter)),
     [filter],
   );
+
+  /** 人格黄条上的「去分节配置」：滚到 ② 分节配置列并高亮 persona 节（同一屏内，无需切 Tab） */
+  const focusPersonaRow = () => {
+    setFocusRowKey('persona');
+    // jsdom 里没有 scrollIntoView（用例会渲染本页）⇒ 可选调用，不写死依赖
+    identityColRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+  };
+
+  /** 人格 6 维的后端同步状态（一行小字，如实说现在是"后端值"还是"还没读到"） */
+  const personalityStatus = personality.loading
+    ? '正在读取后端人格参数…'
+    : personality.error
+      ? personality.error
+      : personality.saving
+        ? '正在写入 /api/personality…'
+        : personality.syncedAt !== null
+          ? '已写入 /api/personality（后端档位 custom）'
+          : `已载入后端参数（档位 ${personality.profile || '未知'}）· 拖动后自动写回，停手 400ms 发一次`;
 
   const runLlm = async () => {
     if (!llm.useBackend && !llm.endpoint.trim()) {
@@ -223,6 +262,20 @@ export default function PromptLab() {
 
       {tab === 'factors' ? (
         <>
+          {/* ① 基础模板（三层合并的第一层）：骨架 + 占位符。
+              **默认收起** —— 它是一次性配置（改骨架的机会很少），日常只调因素/分节；
+              而且这三层原先各占一个 Tab，第一眼看到一整块编辑器正是"像重复"的来源。 */}
+          <details className="pl-base-block">
+            <summary>
+              <FileCode2 size={13} />
+              ① 基础模板（骨架 + 占位符，约 150 tok）
+              <span className="pl-base-hint">下面 ② 决定哪些块真的拼进去；拼好的全文见 ③</span>
+            </summary>
+            <div className="pl-base-block-body">
+              <SystemPromptPanel />
+            </div>
+          </details>
+
           {/* 分类筛选 */}
           <nav className="pl-filter" aria-label="因素分类筛选">
             {(['all', ...CATEGORIES.map((c) => c.id)] as Filter[]).map((f) => (
@@ -238,9 +291,10 @@ export default function PromptLab() {
           </nav>
 
           <div className="pl-body">
-            {/* 第 1 列：全部因素（分类筛选在上方） */}
+            {/* 第 1 列：因素（分类筛选在上方）。
+                2026-11-15 Owner：「上面那个『全部』（不是按钮）字样也删了」—— 那一行是列标题，
+                分类标题本来就自明（还有筛选条），它只是多占一行。 */}
             <main className="pl-factors">
-              <h2 className="pl-col-title">全部</h2>
               {shownCategories.map((cat) => (
                 <section key={cat.id} className="pl-category">
                   <h2 className="pl-category-title" style={{ color: cat.color }}>
@@ -251,6 +305,26 @@ export default function PromptLab() {
                     </span>
                   </h2>
                   <p className="pl-category-desc">{cat.desc}</p>
+                  {/* 人格分类：视图如实（§11.123 K-2）—— 调了写后端，但进不进提示词由 persona 节决定 */}
+                  {cat.id === 'personality' && (
+                    <>
+                      {!personaEmitted && (
+                        // 这里在 300px 窄列里，故用 pl-warn-strip-narrow（可换行、按钮独占一行），
+                        // 文案也比「人格」Tab 上的短 —— ② 分节配置就在同一屏右边，不必长篇解释。
+                        <div className="pl-warn-strip pl-warn-strip-narrow" role="status">
+                          <TriangleAlert size={13} />
+                          <span>
+                            <strong>现在调不会进提示词</strong>：persona 节是关的（约 1500 tok），
+                            拖动只写后端 <code>/api/personality</code>。
+                          </span>
+                          <button type="button" className="pl-btn" onClick={focusPersonaRow}>
+                            去 ② 分节配置打开
+                          </button>
+                        </div>
+                      )}
+                      <p className="pl-personality-status">{personalityStatus}</p>
+                    </>
+                  )}
                   <div className="pl-card-grid">
                     {factorsOfCategory(defs, cat.id).map((def) => (
                       <FactorCard
@@ -266,8 +340,9 @@ export default function PromptLab() {
               ))}
             </main>
 
-            {/* 第 2 列：身份提示词（系统提示词 · 线上配置）——原并入实验室，现单独成列与预览并列 */}
-            <section className="pl-identity-col" aria-label="身份提示词（系统提示词 · 线上配置）">
+            {/* 第 2 列：② 分节配置（哪些块进提示词）= 原「身份提示词（系统提示词 · 线上配置）」 */}
+            <section className="pl-identity-col" aria-label="身份提示词（系统提示词 · 线上配置）" ref={identityColRef}>
+              <h2 className="pl-col-title">② 分节配置（哪些块进提示词）</h2>
               <IdentityPromptPanel
                 {...toIdentityPromptPanelProps(identity)}
                 focusedKey={focusRowKey}
@@ -295,10 +370,6 @@ export default function PromptLab() {
         <div className="pl-tab-body">
           <LlmMonitorPanel />
         </div>
-      ) : tab === 'system-prompt' ? (
-        <div className="pl-tab-body">
-          <SystemPromptPanel />
-        </div>
       ) : (
         /* 人格：原「人格与提示词 → 人格配置」独立页并入（阶段 1.1） */
         <div className="pl-tab-body">
@@ -311,7 +382,8 @@ export default function PromptLab() {
               <span>
                 这里的 6 维参数目前
                 <strong>不会进入提示词</strong>：系统提示词的「persona 节」是关闭的（约 1500 tok）。
-                要让它们真的影响回答，需要在「提示词影响因素实验室 → 身份提示词」里开启 persona 节。
+                要让它们真的影响回答，需要在「提示词影响因素实验室 → ② 分节配置」里开启 persona 节
+                （这 6 维在那边也有一份，两边改的是同一份后端参数）。
               </span>
               <button type="button" className="pl-btn" onClick={() => setTab('factors')}>
                 去分节配置

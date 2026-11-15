@@ -75,7 +75,10 @@ export default function PreviewPanel({
       </div>
 
       <div className="pl-preview-block">
-        <h3>系统提示词（最终注入文本 · 只读）</h3>
+        {/* 2026-11-15：三层合并后统一编号 —— ① 基础模板 / ② 分节配置 / ③ 就是这里。
+            原先叫「系统提示词（最终注入文本 · 只读）」，与另两层的标题同字（"系统提示词"），
+            看上去像第三份重复的东西。 */}
+        <h3>③ 最终注入文本（只读）</h3>
         <pre className="pl-sim-out">
           {systemPrompt ? (
             hl ? (

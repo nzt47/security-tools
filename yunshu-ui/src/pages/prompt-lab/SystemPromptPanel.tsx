@@ -97,13 +97,13 @@ export default function SystemPromptPanel() {
 
   return (
     <div className="h-full overflow-y-auto p-4">
-      {/* 视图如实（2026-11-15）：这一页只编辑**基础模板**（骨架 + 占位符）。
-          占位符里填什么、哪些节参与组装，由「提示词影响因素实验室」左栏的分节配置决定；
-          最终注入文本在实验室右栏。三者同名最容易让人以为重复，故在页头写清层级。 */}
+      {/* 视图如实（2026-11-15）：这里是三层里的**第 ① 层**（骨架 + 占位符），
+          已从独立 Tab 挪进「提示词影响因素实验室」的折叠块。占位符里填什么、哪些节参与组装，
+          由同屏 ② 分节配置决定；拼好的全文在 ③。三层同名最容易让人以为重复，故写清层级。 */}
       <p className="mb-2 text-[11px] leading-relaxed text-slate-500">
-        本页 = <strong className="text-slate-300">基础模板</strong>（骨架 + 占位符，约 150 tok）；
-        占位符填什么由「提示词影响因素实验室」左栏的分节开关决定；
-        拼好的最终注入文本见实验室右栏「系统提示词（最终注入文本 · 只读）」。
+        这一层 = <strong className="text-slate-300">基础模板</strong>（骨架 + 占位符，约 150 tok）；
+        占位符填什么由同屏 <strong className="text-slate-300">② 分节配置</strong>决定；
+        拼好的最终注入文本见右栏 <strong className="text-slate-300">③</strong>。
       </p>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <FileCode2 size={14} className="text-cyan-400" />
