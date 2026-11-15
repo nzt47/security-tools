@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-15T23:10:00+08:00",
+ "updated_at": "2026-11-15T23:56:50+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -901,11 +901,11 @@
   },
   {
    "id": "perf-windows-list-cache-ratio",
-   "status": "open",
+   "status": "done",
    "priority": "P3",
    "title": "windows 性能 job：test_knowledge_link_perf::test_list_cache_speedup 比例 1.85x 撞 2x 门槛",
    "criteria": "2026-11-15 首次真正跑起来（unit 绿后）：warm=89.8ms vs cold=166.1ms，断言要求 warm < cold*0.5，实际比值 1.85x ⇒ 红；同一提交在 ubuntu 上过。两个绝对值都只有一两百毫秒，windows runner 的计时噪声与文件系统缓存让单次采样不稳；「1.85x」本身说明缓存是生效的，只是没到 2 倍。",
-   "next": "别直接放宽门槛了事（那是假绿）。建议先量：在 windows runner 上重复 5 次取中位数/最小值，看比值分布；若稳定在 1.8–1.9x，则把判据改成「warm < cold * 0.7 且 warm 的绝对值 < cold 的绝对值」（1.4x 仍能证明缓存生效），并在注释里写实测分布；若分布很散，改成「缓存命中计数 > 0 + 单次 warm < cold」双判据。"
+   "next": "2026-11-15 落地（判据改「结构 + 中位数」，不只是调数字）：tests/performance/test_knowledge_link_perf.py::test_list_cache_speedup 三条判据 —— ① 热命中期间 _list_from_disk 调用必须为 0（缓存生效的直接证据，与计时无关；反向验证过：清空 _list_cache 后热命中共记到 1 次重载）② 冷/热各采样 5 次取中位数 ③ 中位数比 ≥1.43x（warm < cold*0.7）。读数用 record_property 写进 junit <properties>（pytest 只给失败用例写 system-out，通过用例也能回查），CI 产物 knowledge-link-perf-results.xml 里能看到 5 次原始采样 / 中位 / 重载次数。实证（ae48a9b6a + d842744f9，test.yml run 43731924068）：windows 性能 job **success**，5 次中位 cold=462.4ms / warm=3.7ms = **126x**、重载 0 次；本机 138x、重载 0 次。★ 更正：本条原写的「1.85x 说明缓存生效、只是没到 2 倍」也不成立 —— 同型号 runner 换成 5 次中位数就是 126x，连 cold 都从 166ms 变成 462ms ⇒ 1.85x 是**单点采样抖动**；所以真正要修的是「别拿两个单点比出一个比值」，门槛 2 倍→1.43 倍只是顺带，硬证据是结构判据。"
   }
  ]
 }
