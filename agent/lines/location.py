@@ -56,6 +56,8 @@ from __future__ import annotations
 import ast
 import os
 from functools import lru_cache
+
+from agent.lines._paths import rel_to_repo as _rel_to_repo
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -181,7 +183,7 @@ def _module_path(module: str) -> Optional[str]:
 
 
 def _module_of_path(path: str) -> str:
-    rel = os.path.relpath(path, _REPO_ROOT).replace(os.sep, "/")
+    rel = _rel_to_repo(path)
     if rel.endswith(".py"):
         rel = rel[:-3]
     if rel.endswith("/__init__"):

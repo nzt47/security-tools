@@ -89,6 +89,8 @@ from typing import Any, Dict, FrozenSet, Iterable, List, Optional, Tuple
 
 import yaml
 
+from agent.lines._paths import rel_to_repo as _rel_to_repo
+
 logger = logging.getLogger(__name__)
 
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -283,7 +285,7 @@ def static_executors() -> Dict[str, str]:
 
 
 def _module_name_of(path: str) -> str:
-    rel = os.path.relpath(path, _REPO_ROOT).replace(os.sep, "/")
+    rel = _rel_to_repo(path)
     if rel.endswith(".py"):
         rel = rel[:-3]
     if rel.endswith("/__init__"):
@@ -632,8 +634,8 @@ def load_tool_docs(defs_dir: Optional[str] = None, *,
         if isinstance(doc, dict):
             name = str(doc.get("name") or os.path.splitext(fname)[0])
             doc.setdefault("name", name)
-            doc["_declared_in"] = os.path.relpath(
-                os.path.join(root, fname), _REPO_ROOT).replace(os.sep, "/")
+            # 跨盘（Windows 上是 tmp 在 C:、仓库在 D:）由 _rel_to_repo 兜住，不抛
+            doc["_declared_in"] = _rel_to_repo(os.path.join(root, fname))
             out[name] = doc
     _TOOL_DOCS_CACHE.clear()          # 长驻进程只留最近一份（同 cost_brake 取舍）
     _TOOL_DOCS_CACHE[key] = out
@@ -1026,7 +1028,7 @@ def _skill_sources(include_runtime_catalog: bool = False) -> Dict[str, Dict[str,
                 continue
             slot = _slot(sid)
             slot["in_repo"] = True
-            slot["declared_in"] = os.path.relpath(md, _REPO_ROOT).replace(os.sep, "/")
+            slot["declared_in"] = _rel_to_repo(md)
             fm = _front_matter(md)
             slot["enabled"] = _as_bool(fm.get("enabled"), True)
             slot["status"] = str(fm.get("status") or "")
@@ -1398,7 +1400,7 @@ def has_caller(name: str) -> Dict[str, Any]:
                 if not fname.endswith(".py"):
                     continue
                 path = os.path.join(dirpath, fname)
-                rel = os.path.relpath(path, _REPO_ROOT).replace(os.sep, "/")
+                rel = _rel_to_repo(path)
                 if rel in _CALLER_EXCLUDE_FILES:
                     continue
                 try:

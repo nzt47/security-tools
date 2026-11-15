@@ -290,20 +290,33 @@ class DockerProbe:
     cli_available: bool = False
     daemon_available: bool = False
     server_version: str = ""
+    #: daemon 的容器类型（"linux" / "windows"；取不到为空串）
+    os_type: str = ""
     image_available: bool = False
     reasons: List[str] = field(default_factory=list)
     detail: Dict[str, Any] = field(default_factory=dict)
 
     @property
     def available(self) -> bool:
-        """容器等级可用 ⇔ CLI + daemon 都在（镜像缺失可拉取，只记提示不降级）"""
-        return bool(self.cli_available and self.daemon_available)
+        """容器等级可用 ⇔ CLI + daemon 都在，且 daemon 能跑 **Linux** 容器
+
+        【为什么还要 os_type（2026-11-15 windows CI 实测）】windows-latest runner 上
+        `docker --version` 与 `docker info` 都能成功（Docker CLI + Windows 容器 daemon
+        就位），于是 `available=True` ⇒ 三条容器用例真的去跑，然后 `docker run
+        python:3.12-slim` 以 exit 125 失败（Windows 容器模式跑不了 Linux 镜像）。
+        本模块的容器路径是 **Linux 专用**（uid 65534 / network=none / pids-limit / tmpfs），
+        故"能跑 Linux 容器"才是可用判据；取不到 OSType 时保持旧口径（不误伤）。
+        """
+        if not (self.cli_available and self.daemon_available):
+            return False
+        return self.os_type in ("", "linux")
 
     def to_dict(self) -> Dict[str, Any]:
         return {"cli": self.cli, "image": self.image,
                 "cli_available": self.cli_available,
                 "daemon_available": self.daemon_available,
                 "server_version": self.server_version,
+                "os_type": self.os_type,
                 "image_available": self.image_available,
                 "available": self.available,
                 "reasons": list(self.reasons), "detail": dict(self.detail)}
@@ -371,6 +384,15 @@ def probe_docker(*, env: Optional[Dict[str, str]] = None, cli: str = "",
             " ⇒ 容器等级不可用（不冒充容器）")
 
     if probe.daemon_available:
+        os_type = _run_quiet([cli_name, "info", "--format", "{{.OSType}}"], timeout_s)
+        probe.detail["ostype_rc"] = os_type[0]
+        probe.detail["ostype_out"] = os_type[1][:40]
+        if os_type[0] == 0 and os_type[1].strip():
+            probe.os_type = os_type[1].strip().splitlines()[0].lower()[:16]
+        if probe.os_type and probe.os_type != "linux":
+            probe.reasons.append(
+                f"daemon 的容器类型是 {probe.os_type}（不是 linux）：本模块的容器路径是"
+                " Linux 专用（uid/网络/pids/tmpfs）⇒ 不声称容器可用（不冒充容器）")
         listing = _run_quiet([cli_name, "image", "inspect", image_name,
                               "--format", "{{.Id}}"], timeout_s)
         probe.detail["image_rc"] = listing[0]
@@ -1242,8 +1264,12 @@ class ContainerExecutor(IsolationExecutor):
                 status=(STATUS_KILLED if (proc.returncode or 0) != 0
                         else STATUS_ERROR),
                 error_code=ERR_NO_RESULT,
+                # 【2026-11-15】把 docker 自己的 stderr 带进消息：exit 125 既可能是
+                # "Windows daemon 跑不了 Linux 镜像"，也可能是拉镜像失败 / 参数不支持 ——
+                # 只报"未产出结果 + 退出码"时，CI 上只能靠猜（上一轮就是这么被藏住的）。
                 error=("容器内进程未产出结果（疑似被 cgroup 硬限 OOM kill 或异常退出）；"
-                       f"exit_code={proc.returncode}"),
+                       f"exit_code={proc.returncode}"
+                       + (f"；docker stderr: {stderr.strip()[:400]}" if stderr.strip() else "")),
                 killed=(proc.returncode or 0) != 0, exit_code=proc.returncode,
                 command=argv, isolation=isolation, wall_ms=wall_ms,
                 stdout_tail=stdout[-2000:], stderr_tail=stderr[-2000:],

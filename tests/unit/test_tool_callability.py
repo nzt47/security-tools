@@ -18,6 +18,7 @@ from __future__ import annotations
 import importlib.util
 import ast
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -542,6 +543,30 @@ def _write_tool(path: Path, name: str, **fields) -> None:
 
 
 class TestRuntimeFilter:
+
+    def test_仓库外目录也能读声明_跨盘不抛(self, tmp_path, monkeypatch):
+        """工具定义目录在**仓库外**（甚至另一个盘）时，声明照样读得到
+
+        【2026-11-15 windows CI】`load_tool_docs` 用 `os.path.relpath(md, _REPO_ROOT)`
+        记 `_declared_in`；pytest 的临时目录在 `C:/`、仓库在 `D:/` ⇒ Windows 直接抛
+        `ValueError: path is on mount 'C:', start on mount 'D:'`，异常冒到
+        `agent.tools._non_callable_names()` 的 except 里被降级成空集 ⇒ 下面那条
+        `test_get_tool_defs_隐藏声明判否的工具` 在 windows 上断言 `[] == ['manual_b']`。
+        现在跨盘退回绝对路径（`agent/lines/_paths.rel_to_repo`）。
+        """
+        from agent.tools import _non_callable_names  # noqa: F401  (存在性)
+        from agent.lines._paths import rel_to_repo
+        from agent.lines import callability as C
+
+        _write_tool(tmp_path, "manual_b", llm_callable=False, callable_mode="manual",
+                    reason="仅人工调用")
+        monkeypatch.setattr(C, "TOOL_DEFS_DIR", str(tmp_path))
+        docs = C.load_tool_docs(str(tmp_path))
+        assert docs["manual_b"]["_declared_in"].endswith("manual_b.yaml")
+        # 同一盘（本机常态）是相对路径；**跨盘**退回绝对路径且不抛
+        assert not os.path.isabs(rel_to_repo(str(tmp_path / "x.yaml")))
+        assert rel_to_repo("Z:/somewhere/x.yaml", root=str(tmp_path)) == \
+            "Z:/somewhere/x.yaml".replace(os.sep, "/")
 
     def test_当前判否集合是_internal_的子集(self):
         """上线时点的零行为变化锁：本开关打开前后，模型可见集必须**完全相同**

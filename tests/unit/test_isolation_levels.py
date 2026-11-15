@@ -222,6 +222,25 @@ class TestDockerProbe:
         assert probe.reasons
         ISO.reset_isolation_probe_cache()
 
+    def test_windows_container_daemon_is_not_available(self):
+        """daemon 能跑 Windows 容器 ⇒ **不算可用**（本模块容器路径是 Linux 专用）
+
+        【2026-11-15 windows CI 实测】windows-latest runner 上 `docker --version` 与
+        `docker info` 都成功 ⇒ 旧的 `available = cli and daemon` 判 True，三条容器用例
+        真的去 `docker run python:3.12-slim` 并拿到 exit 125（Windows 容器模式跑不了
+        Linux 镜像）。判据补上 OSType：只有 linux（或取不到）才算可用。
+        """
+        linux = ISO.DockerProbe(cli_available=True, daemon_available=True,
+                                os_type="linux")
+        assert linux.available is True
+        win = ISO.DockerProbe(cli_available=True, daemon_available=True,
+                              os_type="windows", reasons=["daemon 的容器类型是 windows"])
+        assert win.available is False, "Windows 容器模式不得声称容器等级可用"
+        unknown = ISO.DockerProbe(cli_available=True, daemon_available=True)
+        assert unknown.available is True, "取不到 OSType 时保持旧口径（不误伤）"
+        assert ISO.DockerProbe(cli_available=True, daemon_available=False,
+                               os_type="linux").available is False
+
     def test_cli_and_daemon_are_probed_separately(self):
         """「装了 CLI 但 daemon 没起」必须能被区分 —— 那是开发机最常见状态"""
         probe = ISO.probe_docker(cli="definitely-not-a-real-cli-xyz", refresh=True,
