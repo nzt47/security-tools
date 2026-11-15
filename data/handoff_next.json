@@ -810,6 +810,14 @@
    "done_at": "2026-11-15T14:18+08:00"
   },
   {
+   "id": "prompt-lab-identity-tab",
+   "status": "done",
+   "priority": "P2",
+   "title": "「身份提示词」+ 它组装出的实时预览拆成独立 TAB（Owner 2026-11-15）",
+   "criteria": "Owner：「把 身份提示词 及身份提示词变化产生的 实时预览拆成一个 TAB」。现在 3 个 Tab，每个=「一列可调 + 右侧它自己的产物」：影响因素（6 类因素 → 生成的提示词/试跑/评估/Token/导出）· 身份提示词（分节配置 14 节开关 → 最终注入文本只读，随开关实时变）· LLM 通信监控。PreviewPanel 增 part='identity'|'factors'；两列不在同屏 ⇒ resizeColumns 的 clamp 只扣预览下限 360，两个 Tab 各记各的宽度；人格黄条按钮改成切到该 Tab。真机：关掉「工具与技能状态」⇒ 最终注入文本 285→227 字符、{tool_status} 消失（再开回 285）。",
+   "done_at": "2026-11-15T15:17+08:00"
+  },
+  {
    "id": "prompt-lab-drop-base-template",
    "status": "done",
    "priority": "P2",
