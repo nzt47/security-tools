@@ -112,6 +112,12 @@ export interface IdentityRow {
   emitOrder: number
   /** 发出阶段标签（system message 注入 / tools 参数 / …） */
   emitStageLabel: string
+  /**
+   * 发出阶段原值（system_prompt / tools / user_message / runtime）。
+   * 【2026-11-15】原先只有中文标签：判断"这一节在不在最后那段模板里"只能比字符串，
+   * 一是脆弱、二是界面无法解释"预览为什么到记忆线索就停了"。存原值即可判。
+   */
+  emitStage: string
   /** 是否真正发出 */
   emitted: boolean
 }
@@ -210,6 +216,7 @@ export function buildRows(
       emitText: enabled ? emitText : '',
       emitOrder: pos >= 0 ? pos : serverOrder,
       emitStageLabel: String(emitStageLabels?.[stage] ?? ''),
+      emitStage: String(stage || ''),
       emitted: enabled && (pos >= 0 || Boolean(em?.emitted ?? enabled)),
     }
   })

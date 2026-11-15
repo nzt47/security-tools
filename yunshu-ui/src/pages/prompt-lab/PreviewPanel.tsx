@@ -33,6 +33,13 @@ interface PreviewPanelProps {
    *  · 'factors'  —— 显示因素滑块的产物：生成的提示词 / 试跑 / 评估 / Token / 导出
    */
   part: 'identity' | 'factors';
+  /**
+   * 「不进这段模板」的启用节（emit_stage ≠ system_prompt 的那几条：tools 参数 / 用户消息前置 /
+   * 运行期注入）。2026-11-15 Owner 问「为什么到 ## 记忆线索 {memory_context} 就没有下文了」——
+   * 就是因为 LifeTrace / Persona / 工作记忆 / 工具定义这些**本来就不在模板里**，它们按发出阶段
+   * 走别的通道；这段文本只到模板的最后一行。列表由界面按后端 emit_stage 现算，不写死。
+   */
+  offTemplateSections?: { key: string; label: string; stageLabel: string; stage: string }[];
   /** 注入 system message：后端身份提示词配置生成的模板（可含运行时占位符） */
   systemPrompt: string;
   /** 聚焦面板项的发出内容：命中则在该段高亮（启用状态 ↔ 内容显示联动） */
@@ -61,6 +68,7 @@ export function splitHighlight(
 
 export default function PreviewPanel({
   part,
+  offTemplateSections,
   systemPrompt,
   highlightSnippet,
   prompt,
@@ -86,10 +94,12 @@ export default function PreviewPanel({
         </div>
         <div className="pl-preview-block">
           <h3>最终注入文本（只读）</h3>
-          {/* 这块只由左侧「分节配置」的开关组装；因素滑块改的是另一个 Tab 的「生成的提示词」。 */}
+          {/* 这块只由左侧「分节配置」的开关组装；因素滑块改的是另一个 Tab 的「生成的提示词」。
+              2026-11-15 补两句「哪份是真发的 / 为什么到记忆线索就没了」，见下面与 offTemplateSections。 */}
           <p className="pl-export-hint">
-            这一段是 <b>system message</b>，由左侧「分节配置」的开关组装 —— 每动一个开关，
-            这里立刻是拼好的全文。
+            这一段就是<b>线上每次对话真正发出的 system message</b>（配置模板 → 应用后写
+            <code> data/system_prompt.txt</code>，真实请求按同一份组装）。预览里
+            <code>{'{…}'}</code> 占位符<b>不代入</b>——真实请求才填值。
           </p>
           <pre className="pl-sim-out">
             {systemPrompt ? (
@@ -108,6 +118,31 @@ export default function PreviewPanel({
               '（还没读到注入模板 —— 左侧「分节配置」载入后，这里会随每个开关实时更新）'
             )}
           </pre>
+
+          {/* 「模板到此为止」——Owner 2026-11-15 的原话是"为什么到 ## 记忆线索 {memory_context}
+              就没有下文了？LifeTrace 语义检索 以下都没有了"。答案两半：
+              ① 模板里只有 system_prompt 阶段的节，剩下的占位符本来就到这一行为止；
+              ② LifeTrace / Persona / 工作记忆 / 工具定义 走的是别的通道，不在这一段文本里。
+              列表按后端 emit_stage 现算，B 级不写死名字（新增运行期节自动出现）。 */}
+          <div className="pl-off-template">
+            <div className="pl-off-template-head">模板到此为止 —— 下面这些启用节<b>不在</b>这段文本里</div>
+            <ul>
+              {(offTemplateSections ?? []).map((s) => (
+                <li key={s.key}>
+                  <span className="pl-off-template-name">{s.label}</span>
+                  <span className="pl-off-template-stage">{s.stageLabel || s.stage}</span>
+                </li>
+              ))}
+              {(offTemplateSections ?? []).length === 0 && <li className="pl-off-template-none">（没有：所有启用节都在模板里）</li>}
+            </ul>
+            <p>
+              标「运行期注入」的是<b>并入型</b>：LifeTrace 的检索结果并进上面「记忆线索」那一段、
+              Persona 的人格文本接在记忆线索之后——所以它们不会在模板里另起一段，而是让
+              <code>{'{memory_context}'}</code> 那一行在真实请求里变成有内容的几行。
+              标「tools 参数」的走请求体的 <code>tools</code> 字段，标「用户消息前置」的拼在你的
+              那句话前面。真实请求里这些位置到底填了什么，去「LLM 通信监控」看 system_prompt 原文。
+            </p>
+          </div>
         </div>
       </aside>
     )
@@ -122,6 +157,12 @@ export default function PreviewPanel({
 
       <div className="pl-preview-block">
         <h3>生成的提示词（左侧因素实时生成 · 试跑用它）</h3>
+        {/* 两份预览里"哪份是真发的"必须写死在这里：这一份**不是**线上对话的 system message，
+            它只在点「跑一次看效果」时作为 user 消息发出去。 */}
+        <p className="pl-export-hint">
+          这一份是<b>试跑时</b>作为 user 消息发出去的文本；线上真实对话发的是你自己输入的那句话，
+          <b>不会</b>用这一份。真发的 system message 在「身份提示词」Tab 里。
+        </p>
         <textarea className="pl-prompt-out" readOnly value={prompt} rows={9} spellCheck={false} />
       </div>
 

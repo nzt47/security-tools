@@ -455,6 +455,52 @@
   margin-bottom: 12px;
 }
 
+/* 「模板到此为止」块（2026-11-15 Owner：为什么到 ## 记忆线索 就没有下文了）
+   = 列出 emit_stage ≠ system_prompt 的启用节：它们不在最终注入文本里，各走各的通道。 */
+.pl-off-template {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px dashed var(--wb-border);
+  background: rgba(148, 163, 184, 0.05);
+  font-size: 11px;
+  line-height: 1.65;
+  color: var(--wb-text-dim);
+}
+.pl-off-template-head {
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+.pl-off-template ul {
+  margin: 0 0 6px;
+  padding-left: 16px;
+}
+.pl-off-template li {
+  display: flex;
+  gap: 8px;
+}
+.pl-off-template-name {
+  color: var(--wb-text);
+}
+.pl-off-template-stage {
+  margin-left: auto;
+  flex: none;
+  color: #fcd34d;
+}
+.pl-off-template-none {
+  list-style: none;
+  margin-left: -16px;
+}
+.pl-off-template p {
+  margin: 0;
+}
+.pl-off-template code {
+  padding: 0 3px;
+  border-radius: 3px;
+  background: rgba(148, 163, 184, 0.14);
+}
+
 /* 人格预设（原「人格」Tab 上的预设卡 + 重置；Tab 删除后搬进这个分类）
    300px 窄列里 4 个 chip 需要换行，故用 flex-wrap + 小字号 */
 .pl-preset-row {

@@ -113,6 +113,18 @@ export default function PromptLab() {
 
   // 深度合并：线上「身份提示词」配置（后端模板 = 注入 system message 的唯一来源）
   const identity = useIdentityPrompt();
+  /**
+   * 「不进最终注入文本」的启用节（emit_stage ≠ system_prompt）：tools 参数 / 用户消息前置 /
+   * 运行期注入。2026-11-15 Owner 问「为什么到 ## 记忆线索 {memory_context} 就没有下文了」——
+   * 预览只到模板最后一行，这些节按别的通道走，界面上要把它们列出来（见 PreviewPanel）。
+   */
+  const offTemplateSections = useMemo(
+    () =>
+      identity.rows
+        .filter((r) => r.enabled && r.emitStage && r.emitStage !== 'system_prompt')
+        .map((r) => ({ key: r.key, label: r.label, stageLabel: r.emitStageLabel, stage: r.emitStage })),
+    [identity.rows],
+  );
   // 人格 6 维：首屏 GET 覆盖默认值，拖动后防抖 400ms 写回 /api/personality
   const setValues = usePromptLabStore((s) => s.setValues);
   const personality = usePersonalityFactors(values, setValues);
@@ -446,6 +458,7 @@ export default function PromptLab() {
 
           <PreviewPanel
             part="identity"
+            offTemplateSections={offTemplateSections}
             systemPrompt={systemPrompt}
             highlightSnippet={focusRowKey ? identity.rows.find((r) => r.key === focusRowKey)?.emitText : null}
             prompt={prompt}

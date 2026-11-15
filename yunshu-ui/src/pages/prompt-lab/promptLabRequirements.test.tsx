@@ -94,6 +94,14 @@ vi.mock('../hub/components/ui', async (importOriginal) => {
         emitted: enabled && tpl.includes(single[k]),
       }
     })
+    // 运行期注入的一节：不在模板里（emit_stage=runtime），模板里没有它的原文
+    const lt = on(s, 'lifetrace')
+    info.lifetrace = {
+      emit_text: '',
+      emit_order: 10000 + keys.length + 1,
+      emit_stage: 'runtime',
+      emitted: lt,
+    }
     return info
   }
 
@@ -105,6 +113,8 @@ vi.mock('../hub/components/ui', async (importOriginal) => {
       sections,
       registry: [
         { key: 'identity', label: '基础身份设定', description: '定义 LLM 的角色身份认知。', editable: true, tokens: 350 },
+        // 运行期注入的一节（不在模板里）：用来锁「模板到此为止」那段说明
+        { key: 'lifetrace', label: 'LifeTrace 语义检索', description: '长期记忆检索（并入记忆线索）', tokens: 1000, emit_stage: 'runtime' },
         { key: 'principles', label: '核心原则', description: '行为铁律。', editable: true, tokens: 650 },
         { key: 'skill_instructions', label: '技能指令', description: '已启用技能的提示词片段。', tokens: 500 },
         { key: 'tool_status', label: '工具与技能状态', description: '文本形式列出已启用/禁用的工具和技能。', tokens: 350 },
@@ -144,6 +154,7 @@ const baseSections = (): Sections => ({
   skill_instructions: { enabled: true, custom_content: '', label: '技能指令', token_limit: 0 },
   tool_status: { enabled: true, custom_content: '', label: '工具与技能状态', token_limit: 0 },
   memory_context: { enabled: true, custom_content: '', label: '记忆上下文', token_limit: 8192 },
+  lifetrace: { enabled: true, custom_content: '', label: 'LifeTrace 语义检索', token_limit: 0 },
 })
 
 /** 右侧「系统提示词（身份提示词 · 注入）」区域（PreviewPanel.tsx:121，页面内首个 .pl-sim-out） */
@@ -267,6 +278,11 @@ describe('拆 Tab（Owner 2026-11-15）：身份提示词 + 它的实时预览�
 
     // 影响因素 Tab：因素列 + 生成的提示词（因素滑块的产物）
     expect(screen.getByText('生成的提示词（左侧因素实时生成 · 试跑用它）')).toBeTruthy()
+    // 这一份只在试跑时发（不是线上 system message）—— 文案里有 <b> 分段，故按整块 textContent 判
+    const factorPreviewText = document.querySelector('.pl-preview')?.textContent ?? ''
+    expect(factorPreviewText).toContain('试跑时')
+    expect(factorPreviewText).toContain('不会')
+    expect(factorPreviewText).toContain('真发的 system message 在「身份提示词」Tab')
     let splits = screen.getAllByRole('separator')
     expect(splits.map((s) => s.getAttribute('aria-label'))).toEqual(['拖动调整因素列宽'])
     expect(splits.every((s) => s.getAttribute('aria-orientation') === 'vertical')).toBe(true)
@@ -274,6 +290,13 @@ describe('拆 Tab（Owner 2026-11-15）：身份提示词 + 它的实时预览�
     // 身份提示词 Tab：分节配置 + 它组装出来的最终注入文本
     await openIdentityTab()
     expect(screen.getByText('最终注入文本（只读）')).toBeTruthy()
+
+    // 「哪份是真发的」+「模板到此为止」两句必须在（Owner 2026-11-15 两个追问的落点）
+    expect(screen.getByText(/线上每次对话真正发出的 system message/)).toBeTruthy()
+    const offTpl = document.querySelector('.pl-off-template') as HTMLElement | null
+    expect(offTpl, '要有「模板到此为止」说明块').toBeTruthy()
+    expect(offTpl!.textContent ?? '').toContain('LifeTrace 语义检索')
+    expect(offTpl!.textContent ?? '').toContain('运行期注入')
     splits = screen.getAllByRole('separator')
     expect(splits.map((s) => s.getAttribute('aria-label'))).toEqual(['拖动调整身份提示词列宽'])
     expect(splits.every((s) => s.getAttribute('aria-orientation') === 'vertical')).toBe(true)
