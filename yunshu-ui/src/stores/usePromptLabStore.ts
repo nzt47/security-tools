@@ -19,7 +19,7 @@ import type {
   FactorValue,
   PromptFactorDef,
 } from '../lib/promptFactorTypes';
-import { DEFAULT_VALUES, allFactors } from '../lib/promptFactors';
+import { CATEGORIES, DEFAULT_VALUES, allFactors } from '../lib/promptFactors';
 
 export interface LlmConfig {
   enabled: boolean;
@@ -39,6 +39,8 @@ interface PromptLabState {
   customFactors: PromptFactorDef[];
   llm: LlmConfig;
   setValue: (id: string, value: FactorValue) => void;
+  /** 批量写值（人格 6 维首屏用后端参数覆盖默认值时一次写完，避免 6 次重渲染） */
+  setValues: (patch: Record<string, FactorValue>) => void;
   addCustomFactor: (def: PromptFactorDef) => void;
   removeCustomFactor: (id: string) => void;
   resetValues: () => void;
@@ -69,7 +71,9 @@ function sanitizeValues(raw: unknown): Record<string, FactorValue> {
 /** 反序列化校验：自定义因素必须是合法结构 */
 function sanitizeCustomFactors(raw: unknown): PromptFactorDef[] {
   if (!Array.isArray(raw)) return [];
-  const cats: FactorCategory[] = ['structure', 'language', 'context', 'model', 'evaluation'];
+  // 【2026-11-15】分类白名单从 CATEGORIES 派生：原先这里硬编码 5 项，加 'personality'
+  // 时漏改就会把该分类下的自定义因素静默丢掉（脏数据回退不报错，最难查）。
+  const cats: FactorCategory[] = CATEGORIES.map((c) => c.id);
   const ctrls: FactorControl[] = ['slider', 'select', 'text', 'toggle'];
   return raw.filter(
     (f): f is PromptFactorDef =>
@@ -109,6 +113,14 @@ export const usePromptLabStore = create<PromptLabState>()(
 
       setValue: (id, value) =>
         set((s) => ({ values: { ...s.values, [id]: value } })),
+
+      setValues: (patch) =>
+        set((s) => {
+          // 空补丁不产生新对象：避免首屏"后端没回任何自定义参数"时白触发一次全页重渲染
+          const keys = Object.keys(patch);
+          if (keys.length === 0) return {};
+          return { values: { ...s.values, ...patch } };
+        }),
 
       addCustomFactor: (def) =>
         set((s) => ({ customFactors: [...s.customFactors, { ...def, custom: true }] })),

@@ -25,7 +25,55 @@ export const CATEGORIES: { id: FactorCategory; label: string; short: string; des
   { id: 'context', label: '上下文参数控制', short: '上下文', desc: '对话历史、角色与背景注入', color: '#fbbf24' },
   { id: 'model', label: '模型参数调节', short: '模型', desc: '采样与输出长度等生成控制', color: '#34d399' },
   { id: 'evaluation', label: '效果评估指标', short: '评估', desc: '对输出质量的多维量化评估', color: '#f87171' },
+  // 【2026-11-15】人格并进因素（§11.124 D-2 轻量版）：6 个 0–1 滑块直接写
+  // POST /api/personality/params（防抖 400ms）。与其它分类的区别写在 desc 里：
+  // 它不是"这一份预览提示词"的参数，而是后端的人格档位，只有 persona 节启用才进提示词。
+  {
+    id: 'personality', label: '人格（云枢的语气体征）', short: '人格',
+    desc: '这 6 维直接写后端 /api/personality（不是本页预览参数）；只有系统提示词的 persona 节启用时，它们才会被渲染进提示词',
+    color: '#e879f9',
+  },
 ];
+
+/**
+ * 人格 6 维 —— 后端 /api/personality 的 `dimensions` 原样搬来（key/label/left/right 逐字对齐，
+ * 默认值取后端 `_default().custom_params`）。这里是「因素 id ↔ 后端键」的**唯一一份**映射：
+ * 界面文案、默认值、以及 personalityParamsOf() 的收发都用它，避免两处各写一遍走样。
+ */
+export const PERSONALITY_DIMENSIONS: {
+  key: string;
+  label: string;
+  left: string;
+  right: string;
+  defaultValue: number;
+  desc: string;
+}[] = [
+  { key: 'tone', label: '语气', left: '正式', right: '随意', defaultValue: 0.6, desc: '措辞的正式程度。左端拘谨克制，右端松弛口语。' },
+  { key: 'emotion', label: '情感', left: '克制', right: '丰富', defaultValue: 0.7, desc: '情绪表达的多寡。左端只讲事实，右端会表达感受。' },
+  { key: 'conciseness', label: '简练', left: '详细', right: '简洁', defaultValue: 0.4, desc: '回答的详略。左端展开推演，右端先给结论。' },
+  { key: 'initiative', label: '主动', left: '被动', right: '主动', defaultValue: 0.5, desc: '是否主动补充/推进。左端问什么答什么，右端会接着追问。' },
+  { key: 'humor', label: '幽默', left: '严肃', right: '幽默', defaultValue: 0.3, desc: '开玩笑的密度。左端一本正经，右端会玩梗。' },
+  { key: 'empathy', label: '同理心', left: '理性', right: '感性', defaultValue: 0.8, desc: '回应的落脚点。左端先分析，右端先接住情绪。' },
+];
+
+/** 人格维度的因素 id（`personality.<后端键>`）；持久化锚点，勿改 */
+export const PERSONALITY_FACTOR_IDS: string[] = PERSONALITY_DIMENSIONS.map((d) => 'personality.' + d.key);
+
+/** 人格 6 维的因素定义（category='personality'） */
+const PERSONALITY_FACTORS: PromptFactorDef[] = PERSONALITY_DIMENSIONS.map((d) => ({
+  id: 'personality.' + d.key,
+  category: 'personality',
+  name: d.label,
+  desc: d.desc,
+  control: 'slider',
+  min: 0,
+  max: 1,
+  step: 0.01,
+  unit: '',
+  leftLabel: d.left,
+  rightLabel: d.right,
+  defaultValue: d.defaultValue,
+}));
 
 /** 默认因素（唯一 id，值为锚点，勿随意修改 id） */
 export const DEFAULT_FACTORS: PromptFactorDef[] = [
@@ -114,12 +162,46 @@ export const DEFAULT_FACTORS: PromptFactorDef[] = [
     desc: '输出中事实信息的可靠程度，受上下文完整性影响。',
     min: 0, max: 100, step: 1, unit: '分', defaultValue: 85,
   },
+  // ── 6. 人格（后端 /api/personality，定义见上方 PERSONALITY_DIMENSIONS） ──
+  ...PERSONALITY_FACTORS,
 ];
 
 /** 默认 id → 默认值映射（重置用） */
 export const DEFAULT_VALUES: Record<string, FactorValue> = Object.fromEntries(
   DEFAULT_FACTORS.map((f) => [f.id, f.defaultValue]),
 );
+
+/** 0–1 夹紧：后端只接受 0–1，越界只可能来自脏 LocalStorage */
+const clamp01 = (n: number): number => Math.min(1, Math.max(0, n));
+
+/**
+ * 从因素值取出人格 6 维参数（`{tone, emotion, conciseness, initiative, humor, empathy}`）。
+ * 键名就是后端 dimensions 的 key，可直接作为 POST /api/personality/params 的 params。
+ */
+export function personalityParamsOf(values: Record<string, FactorValue>): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const d of PERSONALITY_DIMENSIONS) out[d.key] = clamp01(numOf(values, 'personality.' + d.key));
+  return out;
+}
+
+/**
+ * 只挑出**真正变了**的键。
+ *
+ * 【为什么不是整份 6 键提交】后端 update_params() 是 `custom_params.update(params)` 的
+ * 合并语义，所以只发改动项就够了。整份提交会在一个真实场景里写坏数据：用户在「人格」
+ * Tab 里改了 A，再回到实验室拖 B —— 实验室内存里的 A 还是旧值，整份提交会把 Tab 里的
+ * 改动悄悄覆盖回去。只发改动项，最坏也只影响正在拖的那一维。
+ */
+export function personalityParamsDiff(
+  prev: Record<string, number>,
+  next: Record<string, number>,
+): Record<string, number> {
+  const diff: Record<string, number> = {};
+  for (const d of PERSONALITY_DIMENSIONS) {
+    if (prev[d.key] !== next[d.key]) diff[d.key] = next[d.key];
+  }
+  return diff;
+}
 
 /** 取值辅助：从 values 取 id 的数值，非法时回退默认 */
 export function numOf(values: Record<string, FactorValue>, id: string): number {

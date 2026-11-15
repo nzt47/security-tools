@@ -16,21 +16,31 @@ export default function FactorControl({ def, value, onChange }: FactorControlPro
     const max = def.max ?? 100;
     const step = def.step ?? 1;
     return (
-      <div className="pl-slider-row">
-        <input
-          type="range"
-          min={min}
-          max={max}
-          step={step}
-          value={typeof value === 'number' ? value : Number(def.defaultValue)}
-          onChange={(e) => onChange(Number(e.target.value))}
-          aria-label={def.name}
-        />
-        <span className="pl-slider-val">
-          {typeof value === 'number' ? value : def.defaultValue}
-          {def.unit ? ` ${def.unit}` : ''}
-        </span>
-      </div>
+      <>
+        <div className="pl-slider-row">
+          <input
+            type="range"
+            min={min}
+            max={max}
+            step={step}
+            value={typeof value === 'number' ? value : Number(def.defaultValue)}
+            onChange={(e) => onChange(Number(e.target.value))}
+            aria-label={def.name}
+          />
+          <span className="pl-slider-val">
+            {typeof value === 'number' ? value : def.defaultValue}
+            {def.unit ? ` ${def.unit}` : ''}
+          </span>
+        </div>
+        {/* 左右端语义（2026-11-15 人格 6 维引入）：0–1 这种没有单位的滑块，
+            光看数字不知道两端是什么，故按后端 dimensions 的 left/right 标注。 */}
+        {(def.leftLabel || def.rightLabel) && (
+          <div className="pl-slider-edges">
+            <span>{def.leftLabel ?? ''}</span>
+            <span>{def.rightLabel ?? ''}</span>
+          </div>
+        )}
+      </>
     );
   }
   if (def.control === 'select') {

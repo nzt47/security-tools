@@ -33,6 +33,25 @@ describe('FactorControl', () => {
     expect(onChange).toHaveBeenCalledWith(0.8)
   })
 
+  it('slider 带左右端文案时一并渲染（人格 6 维：0–1 无单位，靠两端文案看语义）', () => {
+    const def: PromptFactorDef = {
+      id: 'personality.tone',
+      category: 'personality',
+      name: '语气',
+      desc: '',
+      control: 'slider',
+      defaultValue: 0.6,
+      min: 0,
+      max: 1,
+      step: 0.01,
+      leftLabel: '正式',
+      rightLabel: '随意',
+    }
+    render(<FactorControl def={def} value={0.6} onChange={vi.fn()} />)
+    expect(screen.getByText('正式')).toBeInTheDocument()
+    expect(screen.getByText('随意')).toBeInTheDocument()
+  })
+
   it('select 渲染并回调选项值', () => {
     const onChange = vi.fn()
     const def: PromptFactorDef = {
