@@ -26,11 +26,13 @@
  * 共享 messages/thinking（真实 Electron 或 VITE_MOCK_ELECTRON 双标签联调生效）。
  */
 import { useCallback, useEffect, useRef, useState, lazy, Suspense } from 'react';
+import type { ReactElement } from 'react';
 import { Mosaic, MosaicWindow } from 'react-mosaic-component';
 import type { MosaicNode, MosaicPath } from 'react-mosaic-component';
 import { Cloud, MessageSquare, PanelLeft, PanelRight, RotateCcw } from 'lucide-react';
 import {
   DEFAULT_LAYOUT,
+  DOCK_DEFAULT_WIDTH,
   PANEL,
   PANEL_TITLES,
   layoutHasPanel,
@@ -79,7 +81,6 @@ function BuildStamp() {
   );
 }
 import { PanelMenu } from './components/workbench/PanelMenu';
-import { RightDockDrawer } from './components/workbench/RightDockDrawer';
 import { isElectron } from './electron/types';
 import type { DetachablePanelId } from './electron/ipc';
 import './styles/workbench.css';
@@ -94,6 +95,18 @@ const createNode = (viewId: PanelId): MosaicNode<PanelId> => ({
   children: [viewId, viewId],
   splitPercentages: [50, 50],
 });
+
+/**
+ * 拖拽预览块 —— 必须是真实 DOM 节点（HTML5 的 setDragImage 要拿它截图），
+ * 但 react-mosaic 默认的 renderPreview 会渲染「工具栏 + 标题 + h4」那一套，
+ * 而那东西是**在流里可见的**：去掉面板标题栏之后，导航面板里就会冒出「导航」两个字
+ * （Owner 2026-11-15 第三次回调现场指出）。这里换成自己的空块：
+ * 只画一圈青色虚线，靠 z-index:0 压在 .mosaic-window-body（z-index:1）后面 ⇒ 平时看不见，
+ * 拖拽时作为半透明幽灵图（不含任何文字）。
+ */
+function panelDragGhost(): ReactElement {
+  return <div className="wb-drag-ghost" aria-hidden="true" />;
+}
 
 /**
  * 面板抓手（面板顶边居中：44×9 命中区 + 28×2 可见线）—— 代替原面板标题栏。
@@ -126,17 +139,24 @@ export default function WorkbenchApp() {
   const layout = useLayoutStore((s) => s.layout);
   const setLayout = useLayoutStore((s) => s.setLayout);
   const resetLayout = useLayoutStore((s) => s.resetLayout);
-  // 顶栏面板开关 + 右栏抽屉（2026-11-15 B 步）：状态在 store 里持久化
-  const rightDockOpen = useLayoutStore((s) => s.rightDockOpen);
+  // 顶栏面板开关（2026-11-15）：状态全部住在布局树里（持久化由 layout 承担）
   const togglePanel = useLayoutStore((s) => s.togglePanel);
+  const showPanel = useLayoutStore((s) => s.showPanel);
   const hidePanel = useLayoutStore((s) => s.hidePanel);
 
   // 可见性以**布局树**为准（面板还在不在树里），而不是另存一份布尔：
   // 这样 ⋮ 菜单的"关闭"、拖到边缘分离、顶栏开关三处永远一致，也不会出现
-  // "开关说在、树里没有"的错位。右栏没有树节点，用 rightDockOpen 单独判。
+  // "开关说在、树里没有"的错位。右坞（code）也一样 —— 它是个真 mosaic 列。
   const baseLayout = layout ?? DEFAULT_LAYOUT;
   const navVisible = layoutHasPanel(baseLayout, PANEL.NAV);
   const chatVisible = layoutHasPanel(baseLayout, PANEL.CHAT);
+  const dockVisible = layoutHasPanel(baseLayout, PANEL.CODE);
+
+  /** 右坞插回时占的宽度：按视口把 320px 折成百分比（14%~45% 兜底） */
+  const dockPercent = () => {
+    const usable = Math.max(320, (typeof window === 'undefined' ? 1440 : window.innerWidth) - 12);
+    return Math.min(45, Math.max(14, (DOCK_DEFAULT_WIDTH / usable) * 100));
+  };
 
   // 导航状态 ⇄ 地址栏（可深链 #/workbench?panel=governance/approvals；见 useNavUrlSync）。
   // 【为什么用 useInRouterContext 而不是直接调 hook】本组件的既有挂载用例
@@ -229,6 +249,7 @@ export default function WorkbenchApp() {
       path={path}
       title={PANEL_TITLES[id]}
       renderToolbar={() => panelGripElement()}
+      renderPreview={() => panelDragGhost()}
       createNode={createNode}
       onDragStart={() => {
         dragSourcePanelId = id;
@@ -301,11 +322,15 @@ export default function WorkbenchApp() {
             </button>
             <button
               type="button"
-              className={rightDockOpen ? 'wb-panel-toggle on' : 'wb-panel-toggle'}
-              aria-pressed={rightDockOpen}
+              className={dockVisible ? 'wb-panel-toggle on' : 'wb-panel-toggle'}
+              aria-pressed={dockVisible}
               aria-label="右栏"
-              onClick={() => togglePanel(PANEL.CODE)}
-              title="显示 / 隐藏右栏（覆盖式抽屉，不挤占主内容）"
+              // 打开 = 插回布局树最右（主内容收缩、中间分割条可拖宽）；关闭 = 从树里摘掉
+              onClick={() => {
+                if (dockVisible) hidePanel(PANEL.CODE);
+                else showPanel(PANEL.CODE, dockPercent());
+              }}
+              title="显示 / 隐藏右栏（打开后是独立一列：主内容收缩，拖分割条可改宽度）"
             >
               <PanelRight size={14} />
             </button>
@@ -365,9 +390,6 @@ export default function WorkbenchApp() {
           }
         />
 
-        {/* 右栏：覆盖式 320px 抽屉（默认收起，点顶栏「右栏」滑出；不挤压主内容）
-            —— 它在 Mosaic 之外，所以开合不会触发 mosaic 重排，也就不会打断拖拽/布局。 */}
-        <RightDockDrawer open={rightDockOpen} onClose={() => hidePanel(PANEL.CODE)} />
       </div>
     </div>
   );

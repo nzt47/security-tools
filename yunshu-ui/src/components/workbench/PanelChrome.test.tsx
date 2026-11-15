@@ -64,7 +64,6 @@ beforeEach(() => {
   localStorage.clear()
   useLayoutStore.setState({
     layout: DEFAULT_LAYOUT,
-    rightDockOpen: false,
     messages: [],
     thinking: [],
     streaming: false,
@@ -81,8 +80,8 @@ afterEach(() => {
   delete (window as { electronAPI?: unknown }).electronAPI
 })
 
-describe('面板标题栏 → 6px 抓取条', () => {
-  it('每个可见面板只有一条抓取条，工具条里不再有标题文字', async () => {
+describe('面板标题栏 → 顶部抓手（细条 0 高）', () => {
+  it('每个可见面板只有一条抓手，工具条里不再有标题文字', async () => {
     const { container } = await renderApp()
 
     expect(screen.getAllByTestId('wb-panel-grip')).toHaveLength(2) // nav + chat（右栏是抽屉，不在树里）
@@ -174,24 +173,31 @@ describe('顶栏「导航 / 右栏」开关', () => {
     expect(back.splitPercentages).toEqual([16, 84])
   })
 
-  it('右栏默认收起；点开是 320px 覆盖式抽屉（不进布局树），开合状态持久化', async () => {
+  it('右栏默认收起；点开后插成一列（主内容收缩、可拖宽），再点摘除', async () => {
     await renderApp()
-    expect(screen.queryByRole('dialog', { name: '右栏' })).toBeNull()
+    // 默认收起：树里没有 code，面板只有两个
+    expect(leaves(useLayoutStore.getState().layout)).toEqual(['nav', 'chat'])
+    expect(screen.getAllByTestId('wb-panel-grip')).toHaveLength(2)
     const toggle = screen.getByRole('button', { name: '右栏' })
     expect(toggle).toHaveAttribute('aria-pressed', 'false')
 
     fireEvent.click(toggle)
-    const drawer = screen.getByRole('dialog', { name: '右栏' })
-    expect(drawer).toHaveClass('wb-right-drawer')
-    expect(drawer).toHaveStyle({ width: '320px' })
+    // 插到最右的**真 mosaic 列**：主内容被迫收缩（不是盖在上面），且分割条可拖宽
+    const layout = useLayoutStore.getState().layout as {
+      children: string[]
+      splitPercentages: number[]
+    }
+    expect(layout.children).toEqual(['nav', 'chat', 'code'])
+    expect(layout.splitPercentages).toHaveLength(3)
+    expect(layout.splitPercentages[0]).toBe(16) // 导航不动
+    expect(layout.splitPercentages[1]).toBeLessThan(84) // 主内容让出宽度
     expect(toggle).toHaveAttribute('aria-pressed', 'true')
-    // 覆盖式：布局树没变 ⇒ 主内容不被挤压（这是"省宽度"的关键）
-    expect(leaves(useLayoutStore.getState().layout)).toEqual(['nav', 'chat'])
-    // 持久化：状态进了同一个 localStorage 键
-    expect(localStorage.getItem(LAYOUT_STORAGE_KEY)).toContain('"rightDockOpen":true')
+    expect(screen.getAllByTestId('wb-panel-grip')).toHaveLength(3)
+    // 持久化：状态就在布局树里（同一个 localStorage 键）
+    expect(localStorage.getItem(LAYOUT_STORAGE_KEY)).toContain('"code"')
 
-    fireEvent.click(screen.getByRole('button', { name: '关闭右栏' }))
-    expect(screen.queryByRole('dialog', { name: '右栏' })).toBeNull()
-    expect(localStorage.getItem(LAYOUT_STORAGE_KEY)).toContain('"rightDockOpen":false')
+    fireEvent.click(toggle)
+    expect(leaves(useLayoutStore.getState().layout)).toEqual(['nav', 'chat'])
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
   })
 })

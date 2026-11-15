@@ -33,14 +33,23 @@ export const PANEL_TITLES: Record<PanelId, string> = {
 };
 
 /**
- * 右侧「右栏」从 mosaic 布局树搬到**覆盖式抽屉**（2026-11-15 B 步，Owner 拍板）：
- *  - 布局树里不再有 code 叶子（DEFAULT_LAYOUT 不含它，历史布局由迁移剔除）；
- *  - 打开/关闭由 useLayoutStore.rightDockOpen 控制（持久化，默认收起）；
- *  - 为什么不让它继续当一个 mosaic 子格：右栏 13% 会**挤压**主内容（1440 屏 ≈187px），
- *    而 Owner 要的是"点开滑出、不占常驻宽度"⇒ 抽屉才是这个语义。
- *  ★ 只是**换呈现**：panel id 仍是 code，拖拽拆分/边缘分离的 Mosaic 机制原样保留。
+ * 右栏（右坞，panel id = code）—— **默认收起、点开插回布局树**（2026-11-15 定稿）。
+ *
+ * 演进（三次回调，别再走回头路）：
+ *  1. 原本它是布局树里的常驻 13% 子格 ⇒ Owner 嫌常驻太占地方；
+ *  2. 临时改成"覆盖式 320px 抽屉"（不进布局树、盖在主内容上）⇒ Owner 否掉：
+ *     「右栏弹出主内容应收缩，不要让右栏挡在上面，并且右栏无法拖拽变宽」；
+ *  3. 定稿 = **默认收起（树里没有它）+ 打开时插到最右当一个真 mosaic 列**：
+ *     主内容跟着收缩、中间的分割条就是它的宽度拖拽手柄（零宽 + ±6px 命中区）。
+ *     ⇒ 既有"省地方"又保住"不遮挡 + 可拖宽"。
+ *
+ * 下面这个常量只用于**布局水合迁移**：把历史持久化布局里的 code 摘掉
+ * （等价于"默认收起"），用户点顶栏右栏图标即可插回。
  */
-export const DRAWER_PANEL_IDS: readonly string[] = [PANEL.CODE];
+export const DOCK_PANEL_IDS: readonly string[] = [PANEL.CODE];
+
+/** 右坞默认宽度（px）：插回布局时按当前视口折算成百分比 */
+export const DOCK_DEFAULT_WIDTH = 320;
 
 /** 左侧导航默认占根横向 split 的百分比（与 A 步前的观感一致） */
 export const NAV_DEFAULT_PERCENT = 16;
@@ -48,9 +57,8 @@ export const NAV_DEFAULT_PERCENT = 16;
 /**
  * 默认布局：nav | chat，splitPercentages 各子区占比之和须为 100
  *
- * 【2026-11-15 B 步】右栏改为默认收起的覆盖式抽屉 ⇒ 默认树里只有 nav / chat：
- * - 横向：少一条 13% 的常驻列（1440 屏 ≈187px），这是本轮"省地方"的大头；
- * - 竖向：面板标题栏已换成 6px 抓取条（见 WorkbenchApp.renderToolbar）。
+ * 【2026-11-15 定稿】右栏**默认收起**（树里没有 code）：横向少一条常驻列（1440 屏 ≈154px），
+ * 点顶栏右栏图标时再插到最右（默认 320px、主内容收缩、可拖宽）。竖向 chrome 见 WorkbenchApp.renderToolbar。
  */
 export const DEFAULT_LAYOUT: MosaicNode<PanelId> = {
   type: 'split',
@@ -232,15 +240,19 @@ export function removePanelFromLayout(
 /**
  * 把面板插回布局树的**默认位置**（顶栏开关重新打开面板时用）。
  *  - 导航 → 根横向 split 的第 0 位（16%）；主内容 → 第 1 位（其余全部）；
+ *  - 右坞（code）→ **最右**，默认 320px 折成的占比，且**不从导航身上抢宽度**
+ *    （导航是框架列：1440 屏插回后是 16% / 62% / 22%，主内容让出 22%）；
  *  - 根不是横向 split 时包一层新的横向 split（例：只有 main 时恢复成 nav | main）；
  *  - 已在树里则原样返回（幂等）。
  */
 export function addPanelToLayout(
   node: MosaicNode<PanelId> | null,
   panelId: PanelId,
+  percent?: number,
 ): MosaicNode<PanelId> {
   if (!node) return panelId;
   if (layoutHasPanel(node, panelId)) return node;
+  if (panelId === PANEL.CODE) return addDockToLayout(node, percent ?? 22);
   const pct = panelId === PANEL.NAV ? NAV_DEFAULT_PERCENT : 100 - NAV_DEFAULT_PERCENT;
   const rest = 100 - pct;
   const index = panelId === PANEL.NAV ? 0 : 1;
@@ -263,4 +275,41 @@ export function addPanelToLayout(
   return index === 0
     ? { type: 'split', direction: 'row', children: [panelId, node], splitPercentages: [pct, rest] }
     : { type: 'split', direction: 'row', children: [node, panelId], splitPercentages: [rest, pct] };
+}
+
+/**
+ * 把右坞（code）插到最右：主内容收缩让位，导航宽度保持不变。
+ * 例：默认 [nav 16, chat 84] + 22% 右坞 ⇒ [nav 16, chat 62, code 22]。
+ * 根只有单个叶子时包一层横向 split。
+ */
+function addDockToLayout(node: MosaicNode<PanelId>, pct: number): MosaicNode<PanelId> {
+  const dockPct = Math.min(45, Math.max(10, pct));
+  if (typeof node === 'string') {
+    return {
+      type: 'split',
+      direction: 'row',
+      children: [node, PANEL.CODE],
+      splitPercentages: [100 - dockPct, dockPct],
+    };
+  }
+  if (node.type === 'split' && node.direction === 'row') {
+    const pcts = splitPercentagesOf(node);
+    const hasNavHead = node.children[0] === PANEL.NAV;
+    const navPct = hasNavHead ? pcts[0] : 0;
+    const restSum = pcts.reduce((acc, p, i) => acc + (hasNavHead && i === 0 ? 0 : p), 0) || 1;
+    const budget = Math.max(5, 100 - navPct - dockPct);
+    const scaled = pcts.map((p, i) => (hasNavHead && i === 0 ? navPct : (p * budget) / restSum));
+    return {
+      type: 'split',
+      direction: 'row',
+      children: [...node.children, PANEL.CODE],
+      splitPercentages: [...scaled, dockPct],
+    };
+  }
+  return {
+    type: 'split',
+    direction: 'row',
+    children: [node, PANEL.CODE],
+    splitPercentages: [100 - dockPct, dockPct],
+  };
 }

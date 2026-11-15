@@ -31,8 +31,8 @@ const LEGACY_LAYOUT = {
 vi.stubGlobal('localStorage', {
   getItem: vi.fn((key: string) =>
     key === 'yunshu:mosaic:layout:v1'
-      ? // rightDockOpen=true：同时验证"抽屉开合状态"这条新持久化字段能水合回来
-        JSON.stringify({ state: { layout: LEGACY_LAYOUT, rightDockOpen: true }, version: 1 })
+      // 历史持久化数据（含 think / code 两个已被剔除的面板）
+      ? JSON.stringify({ state: { layout: LEGACY_LAYOUT }, version: 1 })
       : null,
   ),
   setItem: vi.fn(),
@@ -61,8 +61,8 @@ describe('布局水合：下线面板 think / 搬到抽屉的 code 自动迁移'
     expect(leaves(layout)).toEqual(['nav', 'chat'])
   })
 
-  it('右栏开合状态（rightDockOpen）随布局一起水合', () => {
-    expect(useLayoutStore.getState().rightDockOpen).toBe(true)
+  it('右坞（code）默认收起：水合后树里没有它，点顶栏开关才插回', () => {
+    expect(leaves(useLayoutStore.getState().layout)).not.toContain('code')
   })
 
   it('保留拆方向与外层比例（不因迁移而重置为默认布局）', () => {
@@ -74,9 +74,8 @@ describe('布局水合：下线面板 think / 搬到抽屉的 code 自动迁移'
     expect(layout.splitPercentages).toEqual([16, 84])
   })
 
-  it('重置布局 = 默认树（nav | chat）+ 右栏收起', () => {
+  it('重置布局 = 默认树（nav | chat），右坞收起', () => {
     useLayoutStore.getState().resetLayout()
     expect(leaves(useLayoutStore.getState().layout)).toEqual(['nav', 'chat'])
-    expect(useLayoutStore.getState().rightDockOpen).toBe(false)
   })
 })

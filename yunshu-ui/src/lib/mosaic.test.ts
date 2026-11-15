@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest'
 import type { MosaicNode } from 'react-mosaic-component'
 import {
   DEFAULT_LAYOUT,
-  DRAWER_PANEL_IDS,
+  DOCK_PANEL_IDS,
   NAV_DEFAULT_PERCENT,
   PANEL,
   PANEL_TITLES,
@@ -67,7 +67,7 @@ describe('默认布局（思考面板下线 + 右栏搬去抽屉之后）', () =
 
   it('默认布局只有 nav | chat —— 右栏默认收起（B 步：不再占 13% 常驻列）', () => {
     expect(leaves(DEFAULT_LAYOUT)).toEqual(['nav', 'chat'])
-    expect(DRAWER_PANEL_IDS).toEqual(['code'])
+    expect(DOCK_PANEL_IDS).toEqual(['code'])
     const root = DEFAULT_LAYOUT as { children: unknown[]; splitPercentages: number[] }
     expect(root.splitPercentages).toEqual([NAV_DEFAULT_PERCENT, 100 - NAV_DEFAULT_PERCENT])
   })
@@ -99,6 +99,29 @@ describe('面板显隐算子（顶栏开关用）', () => {
     expect(out.children).toEqual(['nav', 'chat'])
     expect(out.splitPercentages[0]).toBeCloseTo((20 / 70) * 100, 5)
     expect(out.splitPercentages[1]).toBeCloseTo((50 / 70) * 100, 5)
+  })
+
+  it('addPanelToLayout(右坞)：插到最右，主内容让出宽度、导航不动', () => {
+    const withDockRaw = addPanelToLayout(DEFAULT_LAYOUT, 'code', 22)
+    const withDock = withDockRaw as {
+      children: string[]
+      splitPercentages: number[]
+    }
+    expect(withDock.children).toEqual(['nav', 'chat', 'code'])
+    expect(withDock.splitPercentages[0]).toBe(16) // 导航宽度不变
+    expect(withDock.splitPercentages[2]).toBe(22) // 右坞按传入占比
+    expect(withDock.splitPercentages[1]).toBeCloseTo(62, 5) // 主内容收缩让位
+
+    // 已在树里 ⇒ 幂等
+    expect(addPanelToLayout(withDockRaw, 'code', 22)).toBe(withDockRaw)
+
+    // 只有一个面板时也能插（包一层横向 split）
+    const onlyChat = addPanelToLayout('chat', 'code', 22) as {
+      children: string[]
+      splitPercentages: number[]
+    }
+    expect(onlyChat.children).toEqual(['chat', 'code'])
+    expect(onlyChat.splitPercentages).toEqual([78, 22])
   })
 
   it('addPanelToLayout：导航插回第 0 位、主内容插回第 1 位（16/84）', () => {

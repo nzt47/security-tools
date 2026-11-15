@@ -437,7 +437,14 @@ body,
   height: 1px;
 }
 
-/* 命中区：视觉 0 宽，但指针在 ±6px 内都算抓到分割条 */
+/* 命中区：视觉 0 宽，但指针在 ±6px 内都算抓到分割条。
+ * 【必须抬 z-index】零宽元素的 ::after 会压到右侧面板的地盘上，而面板在 DOM 里更靠后
+ * ⇒ 不抬层级时右手那 6px 会被面板内容抢走（实测 elementFromPoint(分割条右侧) 命中 textarea）。
+ * 抬到 3：高于面板 body（1），低于面板工具条（4）与右上角 ⋮（6）。 */
+.wb-mosaic-body .mosaic-split {
+  z-index: 3;
+}
+
 .wb-mosaic-body .mosaic-split.-row::after {
   inset: 0 -6px;
 }
@@ -1194,67 +1201,17 @@ body,
   }
 }
 
-/* ─── 右栏：覆盖式抽屉（B 步）───
- * 浮在内容之上、从右侧滑出：不参与 mosaic 布局，所以打开/收起不会挤压主内容
- * （也不会触发一次 mosaic 重排）。右缘留 1px 线与主内容分开，其余不留卡片边。 */
-.wb-right-drawer {
+/* ─── 拖拽幽灵块（renderPreview 的替代物）───
+ * 库默认的 renderPreview 会在流里渲染「工具栏 + 标题 + h4」，去掉标题栏后
+ * 导航面板里会露出「导航」两个字。这里用自己的空块：只画一圈青色虚线，
+ * 压在 .mosaic-window-body（z-index:1）之后 ⇒ 平时不可见，拖拽时当幽灵图。 */
+.wb-drag-ghost {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  bottom: 6px;
-  z-index: 20;
-  display: flex;
-  flex-direction: column;
-  max-width: calc(100% - 12px);
-  border-left: 1px solid var(--wb-border);
-  background: rgba(4, 6, 13, 0.94);
-  backdrop-filter: blur(14px);
-  animation: wb-drawer-in 0.16s ease-out;
-}
-
-@keyframes wb-drawer-in {
-  from {
-    transform: translateX(14px);
-    opacity: 0;
-  }
-  to {
-    transform: none;
-    opacity: 1;
-  }
-}
-
-/* 头部只有一颗靠右的关闭按钮（不放标题文字）；高度压到 22px，少占一行 */
-.wb-right-drawer-head {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  height: 22px;
-  padding: 0 4px;
-}
-
-.wb-right-drawer-close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3px;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--wb-text-dim);
-  cursor: pointer;
-  transition: background 0.12s, color 0.12s;
-}
-
-.wb-right-drawer-close:hover {
-  background: rgba(148, 163, 184, 0.16);
-  color: var(--wb-text);
-}
-
-.wb-right-drawer-body {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border: 1px dashed rgba(34, 211, 238, 0.45);
+  background: rgba(4, 6, 13, 0.55);
 }
 
 /* ─── 独立窗口布局 ─── */
