@@ -1,10 +1,25 @@
 """agent.context_stats 会话读数暂存区单测（2026-10-14 对齐 DeepSeek Harness）"""
 from __future__ import annotations
 
+import pytest
+
 import agent.context_stats as cs
 
 
-def setup_function():
+@pytest.fixture(autouse=True)
+def _reset_stats():
+    """每个用例前后清空暂存区（**必须覆盖类内方法**）
+
+    【2026-11-15 修 CI 串数】原来只有模块级的 `setup_function`，而它**只对模块里的
+    普通函数生效**：`TestRecordTurn` 这些方法拿不到重置 ⇒ 同一进程里更早跑过的文件
+    （真实对话路径 `plugins/chat.py:2801` 也会 `record_turn`）留下的读数会串进断言
+    —— 每日定时 test.yml 上实测 `assert 11 == 2`（`turns` 期望 2，实际 11）。
+    换成 autouse fixture 后与执行顺序无关。
+    复现方式（修前必红）：同一进程里先 `record_turn("s1", model_ms=1)` 记 9 轮，
+    再跑本文件 ⇒ 这个用例拿到 turns==11。
+    """
+    cs.reset()
+    yield
     cs.reset()
 
 

@@ -25,6 +25,7 @@ import pytest
 
 from agent.observability import acr
 from agent.observability import events as ev
+from tests.unit.ledger_diag import ledger_blob
 from agent.observability import utc as U
 from agent.monitoring import cost_brake as CB
 
@@ -516,8 +517,11 @@ class TestDailyBreaker:
         seed_cost(store, day=BASE.date().isoformat(), cents_target=30)
         brake = self._brake(events_dir, daily_cents=100)
         status = brake.evaluate(at(0))
-        assert status["day_breaker_open"] is False
-        assert status["daily_cost_cents"] == pytest.approx(30.0)
+        assert status["day_breaker_open"] is False, ledger_blob(
+            directory=events_dir, store=store)
+        assert status["daily_cost_cents"] == pytest.approx(30.0), (
+            "当日成本必须读得到种进去的 30 cents"
+            + ledger_blob(directory=events_dir, store=store, extra={"status": status}))
         assert brake.allow_outbound(kind="shadow") is True
         assert brake.allow_outbound(kind="digestion") is True
         assert brake.allow_outbound(kind="interactive") is True
@@ -526,7 +530,8 @@ class TestDailyBreaker:
         seed_cost(store, day=BASE.date().isoformat(), cents_target=180)
         brake = self._brake(events_dir, daily_cents=100)
         status = brake.evaluate(at(0))
-        assert status["day_breaker_open"] is True
+        assert status["day_breaker_open"] is True, ledger_blob(
+            directory=events_dir, store=store, extra={"status": status})
         assert status["resume_at"]                    # 恢复时点可观测
         assert brake.allow_outbound(kind="shadow") is False
         assert brake.allow_outbound(kind="digestion") is False
@@ -557,7 +562,8 @@ class TestDailyBreaker:
         day2 = (BASE + timedelta(days=1)).date().isoformat()
         seed_cost(store, day=day1, cents_target=180)
         brake = self._brake(events_dir, daily_cents=100)
-        assert brake.evaluate(at(0))["day_breaker_open"] is True
+        assert brake.evaluate(at(0))["day_breaker_open"] is True, ledger_blob(
+            directory=events_dir, store=store)
         assert brake.allow_outbound(kind="shadow", now=at(1, 0)) is True
         status = brake.status()
         assert status["day_breaker_open"] is False
@@ -569,7 +575,8 @@ class TestDailyBreaker:
     def test_same_day_returns_below_budget_releases(self, events_dir, store):
         seed_cost(store, day=BASE.date().isoformat(), cents_target=180)
         brake = self._brake(events_dir, daily_cents=100)
-        assert brake.evaluate(at(0))["day_breaker_open"] is True
+        assert brake.evaluate(at(0))["day_breaker_open"] is True, ledger_blob(
+            directory=events_dir, store=store)
         # 阈值被调高 → 当日回到阈值内 → 释放（不留"锁死当日"的坑）
         brake.config.daily_cents = 1000
         assert brake.evaluate(at(0, 11))["day_breaker_open"] is False
@@ -577,7 +584,8 @@ class TestDailyBreaker:
     def test_budget_removed_releases(self, events_dir, store):
         seed_cost(store, day=BASE.date().isoformat(), cents_target=180)
         brake = self._brake(events_dir, daily_cents=100)
-        assert brake.evaluate(at(0))["day_breaker_open"] is True
+        assert brake.evaluate(at(0))["day_breaker_open"] is True, ledger_blob(
+            directory=events_dir, store=store)
         brake.config.daily_cents = 0.0
         assert brake.evaluate(at(0, 11))["day_breaker_open"] is False
         assert brake.allow_outbound(kind="shadow") is True

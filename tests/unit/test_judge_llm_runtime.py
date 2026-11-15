@@ -20,6 +20,7 @@ import pytest
 from agent.digestion import judge_runtime as JR
 from agent.digestion import shadow as SH
 from agent.observability import events as events_mod
+from tests.unit.ledger_diag import ledger_blob
 
 CAP = "cp.builtin.read_file"
 SECRET = "sk-this-is-a-fake-secret-value-0123456789"
@@ -915,10 +916,14 @@ class TestBudgetGuardSeesItsOwnSpend:
         runtime.guard("a", "b")                       # 真实路径：调用 + 记账
 
         assert runtime.budget.recorded, "必须已记一次成本"
-        assert not runtime.budget.record_errors
+        assert not runtime.budget.record_errors, ledger_blob(
+            directory=str(events_dir), guard=runtime.budget)
         spent = runtime.budget.state().spent_cents
+        # 诊断放在消息里：windows CI 上这条曾红成「spent=0.0」却看不出写歪还是读歪
+        # （根因见 agent/safe_paths.py：事件目录在另一个盘 / 8.3 短名时读侧返回空集）
         assert spent > 0, (
-            "护栏必须看得见自己刚花的钱；spent=0 说明读写指向了两本不同的账")
+            "护栏必须看得见自己刚花的钱；spent=0 说明读写指向了两本不同的账"
+            + ledger_blob(directory=str(events_dir), guard=runtime.budget))
         # 独立复核：直接读护栏所读的那个目录
         assert JR.JudgeBudgetGuard(
             runtime.config, events_dir=str(events_dir)).state().spent_cents > 0
@@ -947,7 +952,8 @@ class TestBudgetGuardSeesItsOwnSpend:
         runtime = self._stub_runtime(events_dir, 100.0, monkeypatch, tmp_path)
         runtime.guard("a", "b")
         spent = runtime.budget.state().spent_cents
-        assert spent > 0
+        assert spent > 0, ledger_blob(
+            directory=str(events_dir), guard=runtime.budget)
         calls_after_first = runtime.judge.calls
 
         # 把预算压到"已经花掉"的水位以下 ⇒ 下一次必须被前置拦截
