@@ -8,10 +8,11 @@
  * 数据与状态全部由 useIdentityPrompt（identityPrompt.ts）管理，本组件仅渲染。
  * 卡片样式沿用实验室 .pl- 风格。
  *
- * 启用状态 ↔ 内容显示联动（按需实现）：
- *   - 面板项**启用**时，其「发出内容」就地显示（例：技能指令启用 → {skill_instructions}）；
- *     停用则不显示发出内容（该节不参与组装）。
- *   - 鼠标悬停某面板项 → 右侧/预览区「系统提示词」按同一份发出内容高亮定位
+ * 启用状态 ↔ 右侧预览联动（2026-11-16 Owner 改）：
+ *   - 卡片内**不再**重复预览「发出内容」：右侧「系统提示词（身份提示词 · 注入）」的实时预览
+ *     已经是同一份文本，卡片里再放一份既占版面又容易和它不一致。
+ *     卡片只保留可编辑节的自定义内容编辑框（那是**输入**，不是预览）。
+ *   - 鼠标悬停某面板项 → 右侧「系统提示词」按该节发出内容高亮定位
  *     （onFocusRow 上抛 key，由页面把 emitText 传给 PreviewPanel.highlightSnippet）。
  * 排序：行序由 identityPrompt.buildRows 按「发出顺序」（模板中的注入位置）给出。
  */
@@ -84,7 +85,8 @@ export default function IdentityPromptPanel(props: IdentityPromptPanelProps) {
       <p className="pl-category-desc">
         原工作台「人格与提示词 → 身份提示词」并入。<b>面板顺序 = 发出顺序</b>（该节被拼进
         system message 的先后）＝ DeepSeek 前缀缓存命中顺序（稳定节前置、易变节后置）。
-        某节<b>启用</b>后其「发出内容」会就地显示在卡片内，并在右侧「系统提示词」区域高亮定位。
+        某节<b>启用</b>后，其「发出内容」只在右侧「系统提示词」区域显示；悬停卡片即可在那段高亮定位
+        （卡片内不再重复预览 —— 右侧实时预览已是同一份文本）。
         <b>保存</b> 仅写配置库；<b>应用</b> 再按 registry 顺序组装并写入运行时
         <code>data/system_prompt.txt</code>，后续每次 LLM 调用立即生效。
       </p>
@@ -212,21 +214,8 @@ export default function IdentityPromptPanel(props: IdentityPromptPanelProps) {
                   </div>
                 )}
 
-                {/* 启用状态 ↔ 内容显示联动：启用后就地显示该节真正发出的内容 */}
-                {row.enabled && row.emitText && (
-                  <div className="pl-emit" title="该节启用后拼进请求的内容（与右侧提示词区域一致）">
-                    <span className="pl-emit-label">
-                      发出内容{row.emitStageLabel ? ` · ${row.emitStageLabel}` : ''}
-                    </span>
-                    <pre className="pl-emit-text">{row.emitText}</pre>
-                  </div>
-                )}
-                {!row.enabled && (row.emitText || row.editable) && (
-                  <div className="pl-emit muted" title="该节当前未启用，不参与请求组装">
-                    <span className="pl-emit-label">未发出</span>
-                    <pre className="pl-emit-text">{row.emitText || '（启用后在此显示该节发出的内容）'}</pre>
-                  </div>
-                )}
+                {/* 【2026-11-16 Owner】卡片内不再预览「发出内容」：右侧实时预览里有同一份文本，
+                    这里只保留悬停→右侧高亮（onFocusRow 链路未变）。 */}
 
                 {row.moduleBadge && !row.moduleAvailable && (
                   <p className="pl-id-warn">

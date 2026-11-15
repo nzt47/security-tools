@@ -9,6 +9,7 @@
  *      - 「身份提示词（系统提示词 · 线上配置）」面板项的**启用状态 ↔ 提示词
  *        区域内容显示联动**：启用 → 右侧「系统提示词（身份提示词 · 注入）」
  *        出现该节的发出内容（技能指令 → {skill_instructions}）；停用 → 不再出现。
+ *        【2026-11-16 Owner】卡片内不再重复预览同一份内容，只保留悬停→右侧高亮。
  *
  *   ③ LLM 通信监控
  *      - 位于**主内容区**，与「提示词影响因素实验室」以 **TAB 并列**展示
@@ -208,10 +209,11 @@ describe('需求②：提示词实验室（顶栏 / 身份提示词联动）', (
     await vi.waitFor(() => {
       expect(promptArea()?.textContent ?? '').toContain('{skill_instructions}')
     })
-    // 面板项卡片内也同步显示「发出内容」（IdentityPromptPanel.tsx:209）
+    // 【2026-11-16 Owner】卡片内**不再**重复预览发出内容：同一份文本只在右侧实时预览里出现。
+    // 这里改成反向断言 —— 卡片里不能有这段文本（否则就是又长出一份会和右侧不一致的副本）。
     const card = cardFor('技能指令')
     expect(card).toBeTruthy()
-    expect(within(card as HTMLElement).getByText('{skill_instructions}')).toBeTruthy()
+    expect(card?.textContent ?? '').not.toContain('{skill_instructions}')
 
     // 点击该面板项的开关（停用）→ 600ms 防抖后重建模板 → 提示词区域不再包含占位符
     const toggle = within(card as HTMLElement).getByRole('button')
@@ -259,8 +261,8 @@ describe('需求②：提示词实验室（顶栏 / 身份提示词联动）', (
     await waitFor(() => {
       expect(promptArea()?.textContent ?? '').not.toContain('{skill_instructions}')
     })
-    // 卡片就地状态：已停用（不参与组装），且不显示该节的发出内容
-    // （IdentityPromptPanel.tsx:196-206：未启用时 emitText 置空 ⇒ 卡片与提示词区域都不显示）
+    // 卡片就地状态：已停用（不参与组装）；发出内容只在右侧提示词区域体现，卡片内不再有预览
+    // （2026-11-16 起 IdentityPromptPanel 不再渲染 pl-emit 块，只有开关/描述/编辑框/序号徽章）
     const card = cardFor('技能指令') as HTMLElement
     expect(within(card).getByText('已停用（不参与组装）')).toBeTruthy()
     expect(card.textContent ?? '').not.toContain('{skill_instructions}')
