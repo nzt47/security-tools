@@ -518,8 +518,10 @@ export default function WorkbenchChatPage() {
 
       {/* ═══ 右栏：对话区 ═══ */}
       <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
-        {/* 页头：当前会话标题 + 操作 */}
-        <div className="flex items-center justify-between gap-3 border-b border-slate-800 bg-slate-900/40 px-4 py-2.5">
+        {/* 页头：当前会话标题 + 操作
+            2026-11-15 B 步：右侧留 32px（pr-8）—— 面板右上角悬浮 ⋮ 菜单只有 20px 宽，
+            不留白的话会压住「交接文档」那颗按钮的右半。 */}
+        <div className="flex items-center justify-between gap-3 border-b border-slate-800 bg-slate-900/40 py-2.5 pl-4 pr-8">
           <div className="flex min-w-0 items-center gap-2">
             <MessageSquare size={13} className="shrink-0 text-cyan-400" />
             <span className="min-w-0 max-w-[260px] truncate text-[12px] font-medium text-slate-200" title={activeTitle}>

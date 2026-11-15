@@ -10,7 +10,19 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { MosaicNode } from 'react-mosaic-component';
-import { DEFAULT_LAYOUT, LAYOUT_STORAGE_KEY, sanitizeLayout, stripRetiredPanels, type PanelId } from '../lib/mosaic';
+import {
+  DEFAULT_LAYOUT,
+  DRAWER_PANEL_IDS,
+  LAYOUT_STORAGE_KEY,
+  PANEL,
+  RETIRED_PANEL_IDS,
+  addPanelToLayout,
+  layoutHasPanel,
+  removePanelFromLayout,
+  sanitizeLayout,
+  stripPanels,
+  type PanelId,
+} from '../lib/mosaic';
 import { createChatStream, type ThinkingStatus } from '../lib/sse';
 import { useChatPrefsStore } from './useChatPrefsStore';
 import { authHeader } from '@/lib/apiToken';
@@ -63,6 +75,14 @@ export interface PendingApproval {
 
 interface LayoutStore {
   layout: MosaicNode<PanelId> | null;
+  /**
+   * 右栏（dock，panel id = code）是否展开。
+   *
+   * 【2026-11-15 B 步】右栏不再是布局树里的常驻格子，而是**覆盖式 320px 抽屉**：
+   * 默认收起（false），点顶栏「右栏」滑出，不挤压主内容。持久化到 localStorage，
+   * 刷新后保持用户上次的选择。布局树里不再有 code 叶子（见 lib/mosaic.ts）。
+   */
+  rightDockOpen: boolean;
   messages: ChatMessage[];
   thinking: ThinkingEvent[];
   streaming: boolean;
@@ -78,6 +98,16 @@ interface LayoutStore {
 
   setLayout: (next: MosaicNode<PanelId> | null) => void;
   resetLayout: () => void;
+  /**
+   * 显示/隐藏面板（顶栏「导航 / 右栏」开关与"关掉后再打开"的入口）。
+   * 复刻 removePanelFromLayout 摘除、addPanelToLayout 插回默认位置 ⇒
+   * 关掉任何面板都能重新打开（此前只能「重置布局」，那是本轮要修的缺陷）。
+   */
+  showPanel: (panelId: PanelId) => void;
+  hidePanel: (panelId: PanelId) => void;
+  togglePanel: (panelId: PanelId) => void;
+  /** 直接设置右栏抽屉开合（抽屉内部关闭按钮用） */
+  setRightDockOpen: (open: boolean) => void;
   sendMessage: (text: string) => Promise<void>;
   stopStreaming: () => void;
   clearConversation: () => void;
@@ -92,8 +122,8 @@ interface LayoutStore {
   setPendingApproval: (v: PendingApproval | null) => void;
 }
 
-// 仅暴露给 persist 的字段（layout 之外的动态数据不做本地持久化）
-type PersistedState = Pick<LayoutStore, 'layout'>;
+// 仅暴露给 persist 的字段（layout / 右栏开合之外的动态数据不做本地持久化）
+type PersistedState = Pick<LayoutStore, 'layout' | 'rightDockOpen'>;
 
 // 模拟流的中止控制器（非响应式，仅控制生成器）
 let abortController: AbortController | null = null;
@@ -182,6 +212,7 @@ export const useLayoutStore = create<LayoutStore>()(
   persist(
     (set, get) => ({
       layout: null,
+      rightDockOpen: false,
       messages: [],
       thinking: [],
       streaming: false,
@@ -192,7 +223,50 @@ export const useLayoutStore = create<LayoutStore>()(
 
       setLayout: (next) => set({ layout: next }),
 
-      resetLayout: () => set({ layout: DEFAULT_LAYOUT }),
+      // 重置布局 = 回到"默认树 + 右栏收起"（与首次打开工作台一致）
+      resetLayout: () => set({ layout: DEFAULT_LAYOUT, rightDockOpen: false }),
+
+      showPanel: (panelId) =>
+        set((state) => {
+          // layout 为 null 表示"用默认布局" ⇒ 以默认树为基准插入，避免把另一个面板弄丢
+          const base = state.layout ?? DEFAULT_LAYOUT;
+          if (panelId === PANEL.CODE) {
+            // 右栏 = 覆盖式抽屉，不进布局树；历史布局里若还留着这一格，顺手清掉
+            return {
+              rightDockOpen: true,
+              layout: layoutHasPanel(base, PANEL.CODE)
+                ? removePanelFromLayout(base, PANEL.CODE)
+                : state.layout,
+            };
+          }
+          return { layout: addPanelToLayout(base, panelId) };
+        }),
+
+      hidePanel: (panelId) =>
+        set((state) => {
+          const base = state.layout ?? DEFAULT_LAYOUT;
+          const present = layoutHasPanel(base, panelId);
+          if (panelId === PANEL.CODE) {
+            return {
+              rightDockOpen: false,
+              layout: present ? removePanelFromLayout(base, PANEL.CODE) : state.layout,
+            };
+          }
+          // 本就不在树里：不改布局（否则会把 null 实体化成默认树，多一次无谓写入）
+          return present ? { layout: removePanelFromLayout(base, panelId) } : {};
+        }),
+
+      togglePanel: (panelId) => {
+        if (panelId === PANEL.CODE) {
+          get().setRightDockOpen(!get().rightDockOpen);
+          return;
+        }
+        const base = get().layout ?? DEFAULT_LAYOUT;
+        if (layoutHasPanel(base, panelId)) get().hidePanel(panelId);
+        else get().showPanel(panelId);
+      },
+
+      setRightDockOpen: (open) => set({ rightDockOpen: open }),
 
       sendMessage: async (text) => {
         const { streaming } = get();
@@ -476,16 +550,25 @@ export const useLayoutStore = create<LayoutStore>()(
       name: LAYOUT_STORAGE_KEY,
       version: 1,
       storage: createJSONStorage(() => localStorage),
-      partialize: (state): PersistedState => ({ layout: state.layout }),
+      partialize: (state): PersistedState => ({
+        layout: state.layout,
+        rightDockOpen: state.rightDockOpen,
+      }),
       // 反序列化：先剔除已下线面板（迁移），再校验；非法布局回退默认，保证"刷新不丢布局"且不白屏
       merge: (persisted, current) => {
         const saved = persisted as Partial<PersistedState>;
-        // 布局迁移：原 `think`（右侧「思考过程」）面板已下线（并入对话内联显示），
-        // 从历史布局中剔除它并保留其余布局意图（比例/拆分），避免整份布局被判脏而重置。
-        const migrated = saved.layout ? stripRetiredPanels(saved.layout) : null;
+        // 布局迁移（2026-11-15 B 步扩充）：
+        //  1) `think`（右侧「思考过程」）面板已下线（并入对话内联显示）；
+        //  2) `code`（右栏）已搬到覆盖式抽屉，不再是布局树里的常驻格子。
+        // 两者都从历史布局中剔除，并保留其余布局意图（比例/拆分），避免整份被
+        // 判脏后回退默认 —— 那会让用户的拖拽比例全丢。剔除后外层 16/84 仍在。
+        const migrated = saved.layout
+          ? stripPanels(saved.layout, [...RETIRED_PANEL_IDS, ...DRAWER_PANEL_IDS])
+          : null;
         return {
           ...current,
           layout: migrated ? sanitizeLayout(migrated) ?? null : null,
+          rightDockOpen: saved.rightDockOpen === true,
         };
       },
     },

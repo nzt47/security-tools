@@ -11,9 +11,14 @@ import { describe, expect, it } from 'vitest'
 import type { MosaicNode } from 'react-mosaic-component'
 import {
   DEFAULT_LAYOUT,
+  DRAWER_PANEL_IDS,
+  NAV_DEFAULT_PERCENT,
   PANEL,
   PANEL_TITLES,
   RETIRED_PANEL_IDS,
+  addPanelToLayout,
+  layoutHasPanel,
+  removePanelFromLayout,
   sanitizeLayout,
   stripRetiredPanels,
 } from './mosaic'
@@ -53,26 +58,70 @@ function leaves(node: MosaicNode<string> | null | unknown): string[] {
   return []
 }
 
-describe('默认布局（思考面板下线后）', () => {
-  it('面板集合为 nav / chat / code，不含 think', () => {
+describe('默认布局（思考面板下线 + 右栏搬去抽屉之后）', () => {
+  it('面板 ID 集合仍是 nav / chat / code，不含 think', () => {
     expect(Object.values(PANEL)).toEqual(['nav', 'chat', 'code'])
     expect('think' in PANEL_TITLES).toBe(false)
     expect(RETIRED_PANEL_IDS).toContain('think')
-    expect(leaves(DEFAULT_LAYOUT)).toEqual(['nav', 'chat', 'code'])
+  })
+
+  it('默认布局只有 nav | chat —— 右栏默认收起（B 步：不再占 13% 常驻列）', () => {
+    expect(leaves(DEFAULT_LAYOUT)).toEqual(['nav', 'chat'])
+    expect(DRAWER_PANEL_IDS).toEqual(['code'])
+    const root = DEFAULT_LAYOUT as { children: unknown[]; splitPercentages: number[] }
+    expect(root.splitPercentages).toEqual([NAV_DEFAULT_PERCENT, 100 - NAV_DEFAULT_PERCENT])
   })
 
   it('默认布局可被 sanitizeLayout 接受（比例与 children 数量对齐）', () => {
     expect(sanitizeLayout(DEFAULT_LAYOUT)).not.toBeNull()
   })
+})
 
-  it('主内容区吃掉原思考面板的宽度，代码编辑器宽度基本不变', () => {
-    const root = DEFAULT_LAYOUT as { children: unknown[]; splitPercentages: number[] }
-    expect(root.splitPercentages).toEqual([16, 84])
-    const middle = root.children[1] as { children: string[]; splitPercentages: number[] }
-    expect(middle.children).toEqual(['chat', 'code'])
-    // chat ≈ 84*0.87 ≈ 73%，code ≈ 84*0.13 ≈ 11%（下线前 code ≈ 10.6%）
-    expect(middle.splitPercentages[0]).toBeGreaterThan(80)
-    expect(84 * (middle.splitPercentages[1] / 100)).toBeCloseTo(10.9, 0)
+describe('面板显隐算子（顶栏开关用）', () => {
+  it('layoutHasPanel 认叶子与 tabs', () => {
+    expect(layoutHasPanel(DEFAULT_LAYOUT, 'nav')).toBe(true)
+    expect(layoutHasPanel(DEFAULT_LAYOUT, 'code')).toBe(false)
+    expect(layoutHasPanel({ type: 'tabs', tabs: ['chat', 'code'], activeTabIndex: 0 }, 'code')).toBe(true)
+    expect(layoutHasPanel(null, 'nav')).toBe(false)
+  })
+
+  it('removePanelFromLayout：剩多个子节点时按原占比等比放大（不偷偷变成均分）', () => {
+    const three = {
+      type: 'split' as const,
+      direction: 'row' as const,
+      children: ['nav', 'chat', 'code'] as ('nav' | 'chat' | 'code')[],
+      splitPercentages: [20, 50, 30],
+    }
+    const out = removePanelFromLayout(three, 'code') as {
+      children: string[]
+      splitPercentages: number[]
+    }
+    expect(out.children).toEqual(['nav', 'chat'])
+    expect(out.splitPercentages[0]).toBeCloseTo((20 / 70) * 100, 5)
+    expect(out.splitPercentages[1]).toBeCloseTo((50 / 70) * 100, 5)
+  })
+
+  it('addPanelToLayout：导航插回第 0 位、主内容插回第 1 位（16/84）', () => {
+    const withoutNav = addPanelToLayout(DEFAULT_LAYOUT, 'nav') // 已在树里 → 原样返回
+    expect(withoutNav).toBe(DEFAULT_LAYOUT)
+
+    const onlyChat = removePanelFromLayout(DEFAULT_LAYOUT, 'nav')
+    expect(onlyChat).toBe('chat')
+    const back = addPanelToLayout(onlyChat, 'nav') as {
+      children: string[]
+      splitPercentages: number[]
+    }
+    expect(back.children).toEqual(['nav', 'chat'])
+    expect(back.splitPercentages).toEqual([16, 84])
+
+    const onlyNav = removePanelFromLayout(DEFAULT_LAYOUT, 'chat')
+    expect(onlyNav).toBe('nav')
+    const chatBack = addPanelToLayout(onlyNav, 'chat') as {
+      children: string[]
+      splitPercentages: number[]
+    }
+    expect(chatBack.children).toEqual(['nav', 'chat'])
+    expect(chatBack.splitPercentages).toEqual([16, 84])
   })
 })
 

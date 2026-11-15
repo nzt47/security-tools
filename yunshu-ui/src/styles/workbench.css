@@ -167,13 +167,44 @@ body,
   background: rgba(34, 211, 238, 0.06);
 }
 
+/* 顶栏面板开关（导航 / 右栏）：aria-pressed=true 时点亮，纯文字不占地方 */
+.wb-panel-toggles {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.wb-panel-toggle {
+  padding: 3px 9px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--wb-text-dim);
+  font-family: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.wb-panel-toggle:hover {
+  color: var(--wb-text);
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.wb-panel-toggle.on {
+  border-color: rgba(34, 211, 238, 0.35);
+  background: rgba(34, 211, 238, 0.1);
+  color: #67e8f9;
+}
+
 /* ─── Mosaic 工作区 ─── */
+/* 【2026-11-15 B 步】外留白 10 → 6：整屏连续的第一层（配合下面"面板无卡片"） */
 .wb-mosaic-body {
   position: relative;
   z-index: 1;
   flex: 1;
   min-height: 0;
-  padding: 10px;
+  padding: 6px;
 }
 
 .wb-mosaic-body .mosaic,
@@ -182,13 +213,15 @@ body,
   background: transparent;
 }
 
-/* 玻璃面板 */
+/* 面板：**不再是卡片**（B 步）
+ * 去圆角 / 去边框 / 去阴影 / 去玻璃模糊 ⇒ 面板边缘只剩分割条那根 1px 线，
+ * 与顶栏、内容区连成一片（DeepSeek Harness 的观感）。
+ * 注意：不改 .mosaic-window 的定位/尺寸（mosaic 的拖拽拆分完全靠它）。 */
 .wb-mosaic-body .mosaic-window {
-  border-radius: var(--wb-radius);
-  border: 1px solid var(--wb-border);
-  background: var(--wb-panel);
-  backdrop-filter: blur(14px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .wb-mosaic-body .mosaic-window .mosaic-window-body {
@@ -196,20 +229,34 @@ body,
   overflow: hidden;
 }
 
-/* 【2026-11-15 A 步】面板标题栏 34px → 24px
- * 它是 react-mosaic 的拖拽手柄（MosaicWindow 把 toolbar 包成 drag source），
- * 功能要留、但没必要占 34px；按钮同步缩小，仍在同一行可点。
- * B 步会把它换成 6px 抓取条 + ⋮ 菜单（见 §11.122 方案 B）。 */
+/* 面板内容容器：给右上角悬浮 ⋮ 提供定位上下文；body 内滚动仍交给各面板自己。
+ * 【为什么用 inset:0 而不是 height:100%】库的 .mosaic-window-body 是 { flex:1; height:0 }
+ * （高度靠 flex 拉伸得出），百分比高度在那种容器上不可靠；absolute + inset:0 直接拿
+ * 父盒的实际尺寸，面板内容的 h-full / 内部滚动条才不会算出 0 高。 */
+.wb-panel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* ─── 面板标题栏 → 6px 抓取条（B 步，对齐 DSH）───
+ * A 步把标题栏压到 24px；B 步整条去掉，只留 6px 抓取条：
+ *   - 这个 .mosaic-window-toolbar 是库的包装层，里面放着我们 renderToolbar 返回的
+ *     .wb-panel-grip —— **抓取条本身就是 drag source**（MosaicWindow 用 connectDragSource
+ *     包住 renderToolbar 的返回值），所以拖拽移动 / 拖到边上拆分 / 拖到窗口边缘分离三者都还在；
+ *   - 高度给 0 或不渲染抓取条会让三者一起失效（§11.122 D-1），因此这里写死 6px 且不给 0；
+ *   - 平时全透明，鼠标移到面板上才浮出一条 28×2 的抓手（hover 显形，不占视觉）。 */
 .wb-mosaic-body .mosaic-window-toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  height: 24px;
-  min-height: 24px;
-  padding: 0 4px 0 10px;
-  border-bottom: 1px solid var(--wb-border);
-  background: linear-gradient(180deg, rgba(148, 163, 184, 0.08), rgba(148, 163, 184, 0.02));
-  border-radius: var(--wb-radius) var(--wb-radius) 0 0;
+  height: 6px;
+  min-height: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   cursor: grab;
 }
 
@@ -217,20 +264,110 @@ body,
   cursor: grabbing;
 }
 
-.wb-mosaic-body .mosaic-window-title {
-  /* 覆盖库 flex:1：不撑满 toolbar 自由空间，space-between 将标题贴左、控件贴右（与独立窗口顶栏观感一致） */
-  flex: 0 1 auto;
-  min-width: 0; /* 长标题仍可截断（配合库默认 ellipsis + nowrap） */
-  font-size: 10px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--wb-text-dim);
-  font-family: var(--wb-mono);
+.wb-panel-grip {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
 }
 
-.wb-mosaic-body .mosaic-window-controls {
+/* 抓手：hover 才显形（纯视觉提示，命中区仍是整条 6px） */
+.wb-panel-grip::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  width: 28px;
+  height: 2px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.55);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.wb-mosaic-body .mosaic-window:hover .wb-panel-grip::after {
+  opacity: 1;
+}
+
+/* ─── 面板右上角悬浮 ⋮ 菜单（独立窗口 / 放大 / 关闭）───
+ * 默认 opacity:0 且 pointer-events:none ⇒ 不遮挡面板顶部的内容按钮
+ * （会话页顶部就有「工作空间 / 技能要求 / 历史问话 / 交接文档」一排按钮）；
+ * 鼠标移到面板上（或键盘 focus 进来）才显形并可点。 */
+.wb-panel-menu {
+  position: absolute;
+  top: 1px;
+  right: 2px;
+  z-index: 6;
+}
+
+.wb-panel-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--wb-text-dim);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s, background 0.12s, color 0.12s;
+}
+
+.wb-mosaic-body .mosaic-window:hover .wb-panel-menu-trigger,
+.wb-panel-menu:focus-within .wb-panel-menu-trigger {
+  opacity: 0.75;
+  pointer-events: auto;
+}
+
+.wb-panel-menu-trigger:hover {
+  opacity: 1;
+  background: rgba(148, 163, 184, 0.16);
+  color: var(--wb-text);
+}
+
+.wb-panel-menu-pop {
+  position: absolute;
+  top: 18px;
+  right: 0;
+  min-width: 132px;
+  padding: 3px;
+  border: 1px solid var(--wb-border);
+  border-radius: 8px;
+  background: rgba(10, 14, 26, 0.96);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+
+.wb-panel-menu-item {
   display: flex;
   align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #cbd5e1;
+  font-family: inherit;
+  font-size: 11.5px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.wb-panel-menu-item:hover {
+  background: rgba(34, 211, 238, 0.12);
+  color: #a5f3fc;
+}
+
+.wb-panel-menu-item.danger:hover {
+  background: rgba(248, 113, 113, 0.14);
+  color: #fca5a5;
 }
 
 /* ─── 分割条：零宽（对齐 DeepSeek Harness 的做法）───
@@ -1033,13 +1170,84 @@ body,
   }
 }
 
+/* ─── 右栏：覆盖式抽屉（B 步）───
+ * 浮在内容之上、从右侧滑出：不参与 mosaic 布局，所以打开/收起不会挤压主内容
+ * （也不会触发一次 mosaic 重排）。右缘留 1px 线与主内容分开，其余不留卡片边。 */
+.wb-right-drawer {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  bottom: 6px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  max-width: calc(100% - 12px);
+  border-left: 1px solid var(--wb-border);
+  background: rgba(4, 6, 13, 0.94);
+  backdrop-filter: blur(14px);
+  animation: wb-drawer-in 0.16s ease-out;
+}
+
+@keyframes wb-drawer-in {
+  from {
+    transform: translateX(14px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.wb-right-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 24px;
+  padding: 0 4px 0 10px;
+  border-bottom: 1px solid var(--wb-border);
+}
+
+.wb-right-drawer-title {
+  font-family: var(--wb-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--wb-text-dim);
+}
+
+.wb-right-drawer-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--wb-text-dim);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.wb-right-drawer-close:hover {
+  background: rgba(148, 163, 184, 0.16);
+  color: var(--wb-text);
+}
+
+.wb-right-drawer-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
 /* ─── 独立窗口布局 ─── */
 .wb-detached-body {
   position: relative;
   z-index: 1;
   flex: 1;
   min-height: 0;
-  padding: 10px;
+  padding: 6px;
   overflow: hidden;
 }
 

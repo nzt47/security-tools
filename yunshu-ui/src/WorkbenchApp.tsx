@@ -11,7 +11,14 @@
  *   2. 在边缘松开（drop，捕获阶段）→ 拦截默认 DOM 拖放 → IPC detach-panel
  *   3. 主进程创建独立 BrowserWindow 加载 #/detached/<panelId>
  *   4. 本窗口从布局树摘除该面板；状态经 IPC 快照同步到新窗口
- *   5. 工具栏"独立窗口"按钮是同样逻辑的兜底入口（Web 下隐藏）
+ *   5. 面板右上角 ⋮ 菜单里的"独立窗口"是同样逻辑的兜底入口（Web 下隐藏）
+ *
+ * 界面 chrome（2026-11-15 B 步，对齐 DeepSeek Harness 观感）：
+ *   - 面板标题栏整条去掉 ⇒ 只剩 6px 抓取条（hover 才显形），它替标题栏当 drag source；
+ *   - 三个面板动作（独立窗口/放大/关闭）收进右上角悬浮 ⋮ 菜单（PanelMenu）；
+ *   - 去卡片边框/圆角/阴影，外留白 10→6 ⇒ 整屏连续；
+ *   - 右栏默认收起，点顶栏「右栏」滑出覆盖式 320px 抽屉（RightDockDrawer）；
+ *   - 顶栏「导航 / 右栏」开关可摘除/插回面板 ⇒ 修"关掉面板后只能重置布局"的老缺陷。
  *
  * 提示通道（缺陷 ①）：本组件挂载全局 <Toaster/>，系统管理（admin/*，复用
  * pages/system 页面）等 Hub 页面操作的 toast 提示在工作台内可见。
@@ -19,12 +26,14 @@
  * 共享 messages/thinking（真实 Electron 或 VITE_MOCK_ELECTRON 双标签联调生效）。
  */
 import { useCallback, useEffect, useRef, useState, lazy, Suspense } from 'react';
-import { Mosaic, MosaicWindow, ExpandButton, RemoveButton } from 'react-mosaic-component';
+import { Mosaic, MosaicWindow } from 'react-mosaic-component';
 import type { MosaicNode, MosaicPath } from 'react-mosaic-component';
 import { Cloud, RotateCcw } from 'lucide-react';
 import {
   DEFAULT_LAYOUT,
+  PANEL,
   PANEL_TITLES,
+  layoutHasPanel,
   removePanelFromLayout,
 } from './lib/mosaic';
 import type { PanelId } from './lib/mosaic';
@@ -69,7 +78,8 @@ function BuildStamp() {
     </span>
   );
 }
-import { DetachButton } from './components/workbench/DetachButton';
+import { PanelMenu } from './components/workbench/PanelMenu';
+import { RightDockDrawer } from './components/workbench/RightDockDrawer';
 import { isElectron } from './electron/types';
 import type { DetachablePanelId } from './electron/ipc';
 import './styles/workbench.css';
@@ -84,10 +94,46 @@ const createNode = (viewId: PanelId): MosaicNode<PanelId> => ({
   children: [viewId, viewId],
   splitPercentages: [50, 50],
 });
+
+/**
+ * 6px 抓取条 —— 代替原 24px 面板标题栏（B 步）。
+ *
+ * 【不易·1】MosaicWindow 会把 renderToolbar 的返回值**包成 drag source**
+ * （node_modules/react-mosaic-component/lib/MosaicWindow.mjs:128-141：connectIfDraggable(renderToolbar(...))），
+ * 所以返回的节点就是"拖这块能移动面板 / 拖到别人的边上拆分 / 拖到窗口边缘分离成独立窗口"
+ * 的命中区。**高度设 0 或者干脆不返回节点，会让三者一起失效**（§11.122 D-1 的坑）。
+ *
+ * 【不易·2】react-dnd 的 connector **只接受原生 DOM 节点**：这里不能返回 <PanelGrip/> 这种
+ * 自定义组件元素，否则运行期直接抛
+ * "Only native element nodes can now be passed to React DnD connectors"（本轮实测踩到一次）。
+ * 所以抓取条写成**返回 JSX 的普通函数**（函数调用 → 返回的仍是那个 div），不是一个组件。
+ *
+ * 标题文字不再显示（面板身份靠内容本身辨认），但仍作为 title 传给 MosaicWindow（拖拽预览用）。
+ */
+function panelGripElement(title: string) {
+  return (
+    <div
+      className="wb-panel-grip"
+      data-testid="wb-panel-grip"
+      title={`拖动「${title}」：拖到别的面板边上拆分，拖到窗口边缘分离为独立窗口`}
+    />
+  );
+}
 export default function WorkbenchApp() {
   const layout = useLayoutStore((s) => s.layout);
   const setLayout = useLayoutStore((s) => s.setLayout);
   const resetLayout = useLayoutStore((s) => s.resetLayout);
+  // 顶栏面板开关 + 右栏抽屉（2026-11-15 B 步）：状态在 store 里持久化
+  const rightDockOpen = useLayoutStore((s) => s.rightDockOpen);
+  const togglePanel = useLayoutStore((s) => s.togglePanel);
+  const hidePanel = useLayoutStore((s) => s.hidePanel);
+
+  // 可见性以**布局树**为准（面板还在不在树里），而不是另存一份布尔：
+  // 这样 ⋮ 菜单的"关闭"、拖到边缘分离、顶栏开关三处永远一致，也不会出现
+  // "开关说在、树里没有"的错位。右栏没有树节点，用 rightDockOpen 单独判。
+  const baseLayout = layout ?? DEFAULT_LAYOUT;
+  const navVisible = layoutHasPanel(baseLayout, PANEL.NAV);
+  const chatVisible = layoutHasPanel(baseLayout, PANEL.CHAT);
 
   // 导航状态 ⇄ 地址栏（可深链 #/workbench?panel=governance/approvals；见 useNavUrlSync）。
   // 【为什么用 useInRouterContext 而不是直接调 hook】本组件的既有挂载用例
@@ -171,16 +217,15 @@ export default function WorkbenchApp() {
     return startCrossWindowSync();
   }, []);
 
-  /** 渲染单个面板窗口：记录拖拽源 + 工具条（含"独立窗口"按钮） */
+  /**
+   * 渲染单个面板窗口：6px 抓取条（drag source）+ 右上角悬浮 ⋮ 菜单 + 面板内容。
+   * 不再传 toolbarControls：三动作已经进 ⋮ 菜单（PanelMenu），标题栏整条去掉。
+   */
   const renderTile = (id: PanelId, path: MosaicPath) => (
     <MosaicWindow<PanelId>
       path={path}
       title={PANEL_TITLES[id]}
-      toolbarControls={[
-        <DetachButton key="detach" panelId={id} onDetached={detachPanel} />,
-        <ExpandButton key="expand" />,
-        <RemoveButton key="remove" />,
-      ]}
+      renderToolbar={() => panelGripElement(PANEL_TITLES[id])}
       createNode={createNode}
       onDragStart={() => {
         dragSourcePanelId = id;
@@ -191,7 +236,10 @@ export default function WorkbenchApp() {
         console.info(`[mosaic] 面板拖拽结束：${id}`);
       }}
     >
-      {renderPanel(id)}
+      <div className="wb-panel">
+        <PanelMenu panelId={id} onDetach={detachPanel} />
+        {renderPanel(id)}
+      </div>
     </MosaicWindow>
   );
 
@@ -228,8 +276,44 @@ export default function WorkbenchApp() {
 
         <div className="flex items-center gap-3">
           <span className="hidden font-mono text-[11px] text-slate-500 sm:inline">
-            {isElectron() ? '拖拽面板到窗口边缘可分离为独立窗口' : '拖拽面板边框拆分 · 布局自动保存'}
+            {isElectron()
+              ? '拖面板顶部细条移动 · 拖到窗口边缘分离为独立窗口'
+              : '拖面板顶部细条拆分 · 布局自动保存'}
           </span>
+          {/* 面板开关（2026-11-15 B 步）：关掉的面板可以从这里再打开。
+              此前 ⋮/✕ 关掉面板后没有任何入口能恢复，只能「重置布局」——那是本轮要修的缺陷。
+              「主内容」开关只在它真被关掉时才出现（默认顶栏就两个开关，符合 Owner 的观感要求）。 */}
+          <div className="wb-panel-toggles">
+            <button
+              type="button"
+              className={navVisible ? 'wb-panel-toggle on' : 'wb-panel-toggle'}
+              aria-pressed={navVisible}
+              onClick={() => togglePanel(PANEL.NAV)}
+              title="显示 / 隐藏左侧导航（关掉后仍可从这里打开）"
+            >
+              导航
+            </button>
+            <button
+              type="button"
+              className={rightDockOpen ? 'wb-panel-toggle on' : 'wb-panel-toggle'}
+              aria-pressed={rightDockOpen}
+              onClick={() => togglePanel(PANEL.CODE)}
+              title="显示 / 隐藏右栏（覆盖式抽屉，不挤占主内容）"
+            >
+              右栏
+            </button>
+            {!chatVisible && (
+              <button
+                type="button"
+                className="wb-panel-toggle"
+                aria-pressed={false}
+                onClick={() => togglePanel(PANEL.CHAT)}
+                title="主内容面板已被关掉：点这里恢复"
+              >
+                主内容
+              </button>
+            )}
+          </div>
           {/* 报警器：系统运行期问题的汇报入口（读 /api/alarms，与消息中心同一张台账）。
               「查看全部」由这里注入导航动作 —— 组件本身不认识路由。 */}
           <AlarmBell onOpenAll={() => useWorkbenchNav.getState().setActiveKey('admin/notifications')} />
@@ -272,6 +356,10 @@ export default function WorkbenchApp() {
             </div>
           }
         />
+
+        {/* 右栏：覆盖式 320px 抽屉（默认收起，点顶栏「右栏」滑出；不挤压主内容）
+            —— 它在 Mosaic 之外，所以开合不会触发 mosaic 重排，也就不会打断拖拽/布局。 */}
+        <RightDockDrawer open={rightDockOpen} onClose={() => hidePanel(PANEL.CODE)} />
       </div>
     </div>
   );
