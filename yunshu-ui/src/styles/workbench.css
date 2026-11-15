@@ -224,6 +224,22 @@ body,
   box-shadow: none;
 }
 
+/* 库默认给 .mosaic-root 留 3px 内缩、给每个 .mosaic-tile 留 3px 外边距
+ * （本意是让拖放高亮的边有地方露出来）⇒ 面板之间白占 6px、贴屏再多 6px。
+ * 实测（headless Edge，1440×900）：body padding 6 + root 3 + tile 3 = 12px 才见到面板，
+ * 面板之间的缝也是 3+3=6px —— 这就是"卡片感"的另一半来源。
+ * B 步要"整屏连续"：两处都归零，面板之间只留分割条那 1px 线。 */
+.wb-mosaic-body .mosaic-root {
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.wb-mosaic-body .mosaic-tile {
+  margin: 0;
+}
+
 .wb-mosaic-body .mosaic-window .mosaic-window-body {
   background: transparent;
   overflow: hidden;
