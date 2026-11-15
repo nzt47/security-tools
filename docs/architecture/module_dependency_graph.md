@@ -312,7 +312,6 @@ flowchart LR
     end
     subgraph lines [lines]
         agent_lines["agent.lines"]:::crosslayer
-        agent_lines__paths["agent.lines._paths"]
         agent_lines_assembler["agent.lines.assembler"]
         agent_lines_callability["agent.lines.callability"]:::crosslayer
         agent_lines_integration["agent.lines.integration"]:::crosslayer
@@ -752,6 +751,7 @@ flowchart LR
         agent_utils_cross_process_lock["agent.utils.cross_process_lock"]:::crosslayer
         agent_utils_obs_hooks["agent.utils.obs_hooks"]:::crosslayer
         agent_utils_observability["agent.utils.observability"]
+        agent_utils_paths["agent.utils.paths"]:::crosslayer
         agent_utils_perf_monitor["agent.utils.perf_monitor"]
         agent_utils_periodic_sampler["agent.utils.periodic_sampler"]:::crosslayer
         agent_utils_sensitive_data_filter["agent.utils.sensitive_data_filter"]:::crosslayer
@@ -1396,14 +1396,14 @@ flowchart LR
     agent_lines_assembler -.-> agent_capregistry_pruning
     agent_lines_assembler -.-> agent_capregistry_pruning
     agent_lines_assembler -.-> agent_capregistry_pruning
-    agent_lines_callability --> agent_lines__paths
+    agent_lines_callability -.-> agent_utils_paths
     agent_lines_callability --> agent_lines_location
     agent_lines_callability --> agent_lines_models
     agent_lines_callability --> agent_lines_models
     agent_lines_callability --> agent_lines_assembler
     agent_lines_callability --> agent_lines_models
     agent_lines_integration --> agent
-    agent_lines_location --> agent_lines__paths
+    agent_lines_location -.-> agent_utils_paths
     agent_lines_models -.-> agent_topics
     agent_lines_skillpack -.-> agent_skills_mgmt_registry
     agent_lines_skillpack -.-> agent_skills_mgmt_registry
@@ -3040,6 +3040,6 @@ flowchart LR
 - 扫描文件数: 767
 - 模块节点数: 666
 - 依赖边数: 2243
-- 跨层调用数: 1435
+- 跨层调用数: 1437
 - 违规调用数: 0
 - 动态 import 数: 1
