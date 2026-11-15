@@ -810,6 +810,15 @@
    "done_at": "2026-11-15T14:18+08:00"
   },
   {
+   "id": "prompt-lab-which-preview-is-sent",
+   "status": "done",
+   "priority": "P3",
+   "title": "说清两份实时预览「哪份是真发的」+「为什么模板到记忆线索就没了」",
+   "criteria": "Owner 2026-11-15 两问。实测答案：① 真发的是「身份提示词」那份（模板 → apply 写 data/system_prompt.txt；最后一条真实调用 system_prompt 277 字符，与模板 285 同源，差异只是 {skill_instructions}/{memory_context} 代入成空）；因素 Tab 的「生成的提示词」只在试跑时作为 user 消息发出。② 模板只含 emit_stage=system_prompt 的节；lifetrace/working_memory/persona=runtime、tool_definitions/smart_tool_selection=tools ⇒ 本来就不在模板里；LifeTrace 是并入型（检索结果并进「记忆线索」那段），该条真实请求里那段为空，所以看着「到这儿就没了」。",
+   "next": "已落地（676caeb15）：身份预览加「这一段就是线上真正发出的 system message / 占位符不代入」+ 末尾「模板到此为止」清单（按后端 emit_stage 现算，实测列出 LifeTrace 语义检索 / 工具定义（tools 参数）/ 智能工具选择 / 工作记忆）；因素预览加「只在试跑时作为 user 消息发送」。IdentityRow 增 emitStage 原值。若以后新增运行期节，清单自动出现，无需改 UI。",
+   "done_at": "2026-11-15T15:35+08:00"
+  },
+  {
    "id": "prompt-lab-identity-tab",
    "status": "done",
    "priority": "P2",
