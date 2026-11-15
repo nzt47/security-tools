@@ -248,28 +248,55 @@
   overflow-y: auto;
 }
 
-/* ── 主体布局 ── */
+/* ── 主体布局：三列 + 两条拖拽条（列宽由 Owner 拖定，存 localStorage） ──
+   间距改由拖拽条自己提供（gap:0）：每个 .pl-col-split 24px 宽、中间一条虚线，
+   既是分隔线也是抓取区。宽度值由 index.tsx 以 CSS 变量下发（columnLayout.ts）。 */
 .pl-body {
   display: flex;
   align-items: flex-start;
-  gap: 20px;
+  gap: 0;
   padding: 20px;
 }
 .pl-factors {
-  /* 【Owner 2026-11-15 两次回调，最终口径：固定 300px】
-     ① 先是从 flex:1 1 auto（2560 屏被拉到 1100px、滑块横跨整屏）压到"剩余宽度的 1/3"；
-     ② 但那个算式在 1440 屏算出 139px，被 180px 下限兜住 ⇒ 卡片内宽只有 152px，
-        滑块的数值（"2048 tok" / "100 分"）被 .pl-factor-card 的 overflow:hidden 切掉
-        （实测：数值框 154→206，卡片只到 180，每条滑块都少半截）。
-     现在改成固定 300px：卡内宽 270px，滑块 200px + 数值 60px，任何数值都放得下；
-     宽屏上多出来的宽度全部给最右的 ③ 最终注入文本（那才是要读的内容）。 */
-  flex: 0 0 300px;
-  min-width: 280px;
+  /* 【Owner 2026-11-15 第三次回调，最终口径：**可拖拽 + 自动保存**】
+     ① 先是 flex:1 1 auto（2560 屏被拉到 1100px、滑块横跨整屏）→ 压到"剩余宽的 1/3"；
+     ② 那个算式在 1440 屏算出 139px，被 180px 下限兜住 ⇒ 卡片内宽只有 152px，
+        滑块数值框 154→206 被 .pl-factor-card 的 overflow:hidden 切掉（每条少半截）；
+     ③ 固定 300px 能过，但"多少合适"只有 Owner 自己知道 ⇒ 改成拖拽条 + localStorage。
+     默认 300px（够放滑块 + 数值），下限 220px 在 columnLayout.ts 里 clamp。 */
+  flex: 0 0 var(--pl-col-factors, 300px);
+  min-width: 0;
 }
 .pl-identity-col {
-  /* 放大：身份提示词（系统提示词 · 线上配置）要放下分区标题 + 发出内容 + 编辑区 */
-  flex: 0 1 440px;
+  /* ② 分节配置：要放下分区标题 + 发出内容 + 编辑区；宽度同样由拖拽条决定（默认 440px） */
+  flex: 0 0 var(--pl-col-identity, 440px);
   min-width: 0;
+}
+/* 列宽拖拽条：24px 命中区 + 中间 1px 虚线；hover/拖动时线变青。
+   与工作台的面板分割条同一手感（零宽视觉线 + 宽命中区），但这里允许显式占位，
+   因为三列之间本来就需要一条分隔，且不属于 mosaic 的"整屏连续"约束。 */
+.pl-col-split {
+  flex: 0 0 24px;
+  align-self: stretch;
+  position: relative;
+  cursor: col-resize;
+  touch-action: none;
+}
+.pl-col-split::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  border-left: 1px dashed var(--wb-border);
+}
+.pl-col-split:hover::before,
+.pl-body-dragging .pl-col-split::before {
+  border-left-color: var(--wb-accent);
+}
+/* 拖动期间别让文字被选中（否则整页会蓝一片） */
+.pl-body-dragging {
+  user-select: none;
 }
 .pl-col-title {
   margin: 0 0 12px;
@@ -279,9 +306,10 @@
   color: #94a3b8;
 }
 .pl-preview {
-  /* 放大：实时预览要放下系统提示词 / 生成的提示词 / 试跑结果 / 雷达 / Token 估算 + 导出。
-     【2026-11-15】改为可增长：因素列收窄后省下的宽度由它吸收（否则右侧会留白）。 */
-  flex: 1 1 520px;
+  /* ③ 最终注入文本：三列里唯一"吃剩余"的，拖宽前两列时它自动让位
+     （下限 360px 在 columnLayout.ts 里由 clamp 保证）。 */
+  flex: 1 1 360px;
+  min-width: 0;
   position: sticky;
   top: 158px;
   max-height: calc(100vh - 178px);
@@ -1234,6 +1262,12 @@
   .pl-body {
     flex-direction: column;
     align-items: stretch; /* column 方向下子项撑满，避免因素区 shrink-to-fit 留白 */
+    /* 纵向堆叠时间距回到 gap（横向时由 .pl-col-split 提供） */
+    gap: 20px;
+  }
+  /* 纵向堆叠没有"列宽"这回事：拖拽条隐藏，各列一律满宽 */
+  .pl-col-split {
+    display: none;
   }
   /* 【2026-11-15】堆叠模式下因素列要撑满：横向排布时的"1/3 宽"算式在 column 方向会把
      因素区压成一条 240px 的窄条（1280 屏实测），这里直接复位。 */

@@ -254,6 +254,14 @@ describe('三层合并（§11.124 D-1）：基础模板 / 分节配置 / 最终�
     // 三层同屏：② 分节配置（左栏标题）与 ③ 最终注入文本（右栏块标题）
     expect(screen.getByText('② 分节配置（哪些块进提示词）')).toBeTruthy()
     expect(screen.getByText('③ 最终注入文本（只读）')).toBeTruthy()
+
+    // 列宽可拖拽（Owner 2026-11-15）：两条拖拽条都在，且是可访问的 vertical separator
+    const splits = screen.getAllByRole('separator')
+    expect(splits.map((s) => s.getAttribute('aria-label'))).toEqual([
+      '拖动调整因素列宽',
+      '拖动调整分节配置列宽',
+    ])
+    expect(splits.every((s) => s.getAttribute('aria-orientation') === 'vertical')).toBe(true)
   })
 
   it("存量 Tab 值 'system-prompt' 归一到影响因素页（老用户刷新不落到空 Tab）", async () => {

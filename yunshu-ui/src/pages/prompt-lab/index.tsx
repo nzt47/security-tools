@@ -27,6 +27,7 @@
  * CustomFactorForm / PreviewPanel / IdentityPromptPanel / LlmMonitorPanel。
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { FileCode2, FlaskConical, Plus, Radio, RotateCcw, Smile, TriangleAlert } from 'lucide-react';
 import { usePromptLabStore } from '../../stores/usePromptLabStore';
 import { downloadFile } from '../../utils/system';
@@ -58,6 +59,8 @@ import PersonalityPage from '../hub/personality';
 import { useIdentityPrompt } from './identityPrompt';
 // 人格 6 维 ↔ /api/personality 的同步（首屏 GET 覆盖 + 防抖 400ms POST）
 import { usePersonalityFactors } from './personalityFactors';
+// 三列宽度可拖拽 + 自动保存（Owner 2026-11-15：「由我来定列宽吧」）
+import { useColumnLayout } from './columnLayout';
 import '../PromptLab.css';
 
 type Filter = 'all' | FactorCategory;
@@ -107,6 +110,8 @@ export default function PromptLab() {
   const personality = usePersonalityFactors(values, setValues);
   /** ② 分节配置列（人格黄条上的「去分节配置」滚到这里并高亮 persona 节） */
   const identityColRef = useRef<HTMLElement | null>(null);
+  /** 三列宽度：拖拽条改，松手写 localStorage（Owner：「由我来定列宽吧」） */
+  const columns = useColumnLayout();
 
   const [tab, setTab] = useState<LabTab>(readSavedTab);
   const [filter, setFilter] = useState<Filter>('all');
@@ -290,7 +295,19 @@ export default function PromptLab() {
             ))}
           </nav>
 
-          <div className="pl-body">
+          {/* 三列宽度由 Owner 拖定（两条拖拽条，松手即写 localStorage）：
+              宽度用 CSS 变量下发给 .pl-factors / .pl-identity-col，③ 仍是 flex:1 吃剩余，
+              因此窄屏（≤1300 纵向堆叠）的媒体查询可以直接把它们复位成满宽。 */}
+          <div
+            className={`pl-body ${columns.dragging ? 'pl-body-dragging' : ''}`}
+            ref={columns.bodyRef}
+            style={
+              {
+                '--pl-col-factors': `${columns.cols.factors}px`,
+                '--pl-col-identity': `${columns.cols.identity}px`,
+              } as CSSProperties
+            }
+          >
             {/* 第 1 列：因素（分类筛选在上方）。
                 2026-11-15 Owner：「上面那个『全部』（不是按钮）字样也删了」—— 那一行是列标题，
                 分类标题本来就自明（还有筛选条），它只是多占一行。 */}
@@ -340,6 +357,17 @@ export default function PromptLab() {
               ))}
             </main>
 
+            {/* 拖拽条 ①：因素列 ↔ ② 分节配置（拖动只改因素列宽；双击复位） */}
+            <div
+              className="pl-col-split"
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="拖动调整因素列宽"
+              title="拖动调整列宽（双击恢复默认）"
+              onMouseDown={columns.startDrag('factors')}
+              onDoubleClick={columns.reset}
+            />
+
             {/* 第 2 列：② 分节配置（哪些块进提示词）= 原「身份提示词（系统提示词 · 线上配置）」 */}
             <section className="pl-identity-col" aria-label="身份提示词（系统提示词 · 线上配置）" ref={identityColRef}>
               <h2 className="pl-col-title">② 分节配置（哪些块进提示词）</h2>
@@ -349,6 +377,17 @@ export default function PromptLab() {
                 onFocusRow={setFocusRowKey}
               />
             </section>
+
+            {/* 拖拽条 ②：② 分节配置 ↔ ③ 最终注入文本（拖动改分节列宽，③ 自动吸收剩余） */}
+            <div
+              className="pl-col-split"
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="拖动调整分节配置列宽"
+              title="拖动调整列宽（双击恢复默认）"
+              onMouseDown={columns.startDrag('identity')}
+              onDoubleClick={columns.reset}
+            />
 
             {/* 第 3 列：实时预览面板（PreviewPanel） */}
             <PreviewPanel
