@@ -136,6 +136,12 @@ export default function PreviewPanel({
               {(offTemplateSections ?? []).length === 0 && <li className="pl-off-template-none">（没有：所有启用节都在模板里）</li>}
             </ul>
             <p>
+              「记忆线索」那一行在 system message 里<b>恒为空</b>：模板只承载稳定前缀，检索到的
+              工作记忆 / 长期记忆片段按「稳定前缀 + 易变尾部」随<b>本轮最后一条消息</b>下发
+              （轻量档不检索 ⇒ 那一段就空着；检索 / 完整·流式档实测会带上，见「LLM 通信监控」里
+              那条请求的最后一条 user 消息）。要看实际注入内容，去那里看原文。
+            </p>
+            <p>
               标「运行期注入」的是<b>并入型</b>：LifeTrace 的检索结果并进上面「记忆线索」那一段、
               Persona 的人格文本接在记忆线索之后——所以它们不会在模板里另起一段，而是让
               <code>{'{memory_context}'}</code> 那一行在真实请求里变成有内容的几行。

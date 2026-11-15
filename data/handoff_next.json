@@ -811,11 +811,12 @@
   },
   {
    "id": "memory-context-empty-in-real-call",
-   "status": "open",
+   "status": "done",
    "priority": "P3",
    "title": "真实调用的 system_prompt 里「## 记忆线索」后面是空的 —— 待核对（只记录，不猜）",
    "criteria": "2026-11-15 复核两份预览时顺带实测：/api/llm-monitor/records 目前只有 1 条记录（source=tool_calling / deepseek-flash / request_tokens=8797），其 system_prompt 277 字符、结尾是「## 记忆线索」，后面 **0 字符**；占位符已被代入成空（不是留着 {memory_context} 没替换）。当轮 /api/context/status：本会话 6 条消息、compress_rounds=0（尚无摘要）、recent_messages 有 6 条；lifetrace 节 enabled 且 extra_params.module_available=true（模块在），working_memory enabled。该记录的最后一条 user 消息只有用户原话（71 字符），不含记忆/检索片段 ⇒ 不是「§11.71 易变尾巴挪到用户消息」那种形态。",
-   "next": "要判定需要一次 source=chat 的真实对话后再看同两处（system_prompt 尾 + 最后一条 user 消息）。三个候选，按顺序排除：① 只有 tool_calling 链路会省掉记忆线索（那要看 plugins/chat.py 两处拼装是否同源）；② build_memory_context 在该会话返回空（摘要未生成 + 最近消息未并入）；③ YUNSHU_PROMPT_VOLATILE_TAIL 开关方向与预期相反。先只读取证，别改行为 —— 记忆线索为空会让「记忆」在对话里静默失效，但这属于后端链路，需要单独一轮。"
+   "next": "2026-11-15 收口＝**不是缺陷，是设计**（证据见 §11.125 P）：① 代码口径：plugins/chat.py::_render_workbench_system_prompt 明确把 memory_context / skill_instructions 填空（只填跨请求稳定的槽位），记忆与检索片段按「稳定前缀 + 易变尾部」随**本轮最后一条消息**下发；② 真机实测（检索档、临时会话，跑完即删）：SSE 思考事件「命中并注入 120 token 的检索片段」，紧接着那条 LLM 记录 system_prompt 仍 277 字符、止于「## 记忆线索」，而**最后一条 user 消息**长 228 字符、开头就是「【ContextAssembler 增强上下文】[反思经验…] [上下文统计] token=44/budget=300」；③ 之前那条记录是轻量档 ⇒ 不检索，所以最后一条消息只有用户原话（71 字符）。ContextAssembler 本身是开着的（config.yaml learning.context_assembler.enabled=true）。⇒ 无需改后端；本轮只把这件事写进界面（身份提示词预览的「模板到此为止」块里说明那段恒为空、内容随最后一条消息下发）。",
+   "done_at": "2026-11-15T16:3x+08:00"
   },
   {
    "id": "prompt-lab-which-preview-is-sent",

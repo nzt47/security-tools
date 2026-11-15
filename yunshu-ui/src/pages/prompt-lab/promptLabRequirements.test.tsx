@@ -297,6 +297,10 @@ describe('拆 Tab（Owner 2026-11-15）：身份提示词 + 它的实时预览�
     expect(offTpl, '要有「模板到此为止」说明块').toBeTruthy()
     expect(offTpl!.textContent ?? '').toContain('LifeTrace 语义检索')
     expect(offTpl!.textContent ?? '').toContain('运行期注入')
+    // Owner 追问「为什么到记忆线索就没了」的正面答案：那段在 system message 里恒为空，
+    // 检索内容随本轮最后一条消息下发（2026-11-15 实测：检索档 120 token 挂到最后一条 user 消息）
+    expect(offTpl!.textContent ?? '').toContain('恒为空')
+    expect(offTpl!.textContent ?? '').toContain('本轮最后一条消息')
     splits = screen.getAllByRole('separator')
     expect(splits.map((s) => s.getAttribute('aria-label'))).toEqual(['拖动调整身份提示词列宽'])
     expect(splits.every((s) => s.getAttribute('aria-orientation') === 'vertical')).toBe(true)
