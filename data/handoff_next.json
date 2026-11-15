@@ -802,11 +802,12 @@
   },
   {
    "id": "prompt-lab-personality-two-views-desync",
-   "status": "open",
+   "status": "done",
    "priority": "P3",
    "title": "人格两份视图（人格 Tab / 因素是分类）不会互相刷新 —— 轻量版的已知边界",
    "criteria": "轻量版把 6 维搬进「提示词影响因素」后，实验室那份读的是 zustand store（首屏来自 GET /api/personality），「人格」Tab 是独立组件、自己再 GET 一次。在 Tab 里改完再回实验室拖同一维，本地那份仍是旧值；只发变动键把它限制在「最坏只影响正在拖的那一维」，但两份视图并没有互相刷新。彻底版 = persona 节改读实验室 values（后端渲染人格文本、人格不再有独立配置），1 天量且要动后端，未做（§11.123 K-2 的「彻底版」）。",
-   "next": "要做彻底版：agent 的人格渲染改成从 system_prompt_config 的 persona 节取参数（或新增一个「人格参数来源」开关），前端删掉两份视图之一；在此之前，若要缓解，可在实验室重新挂载时（Tab 切回 factors）再 GET 一次覆盖 store —— 但会与本地未写回的拖动打架，故本轮刻意没做。"
+   "next": "2026-11-15 收口（Owner：「人格不要两份，合成到轻量版就可以，TAB 的可以删掉」）：已删「人格」Tab 与 pages/hub/personality.tsx，6 维 + 预设 3 档 + 重置全部并入影响因素页的「人格」分类（applyProfile / reset 走 /api/personality/profile|reset；应用预设前先对齐比对基线，故不会被防抖 effect 当成拖动再 POST 一遍参数）。真机：点「专业顾问型」⇒ 网络只有 1 个 personality/profile POST、后端 professional、6 维 = 0.3/0.2/0.7/0.6/0.1/0.4；点重置 ⇒ gentle_helper + 默认值。删页面文件后 ui_reachability 在干净 worktree 重派生（113→112，hash 02335441b452d2eb）。「人格只有一份」这件事就此闭合；彻底版（persona 节改读实验室 values）如要做仍按原方案单开。提交 576ac1f51 / 121cb5ae4。",
+   "done_at": "2026-11-15T14:18+08:00"
   },
   {
    "id": "prompt-lab-token-levers",
