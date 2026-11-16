@@ -136,6 +136,15 @@ jobs:
           echo "=== logging.disable 泄漏扫描(tests/) ==="
           python scripts/check_logging_disable_leak.py --root . --only-under tests --exit-nonzero-on-risk
 
+      - name: UI 原语收敛守卫（原生控件/任意值字号只降不升）
+        # 2026-11-16 前端的三种写法并存（components/ui 原语 / 页面级 CSS 类 / 原生控件 +
+        # text-[Npx]）已经量化：741 处原生 <button>、1506 处 text-[Npx]、38 个 *btn* 选择器。
+        # 统一是分批做的，这条守卫保证**不倒退**：新增原生控件或新写任意值字号即红。
+        # 收敛后用 python scripts/audit/ui_primitive_convergence.py --write-baseline 刷新基线。
+        run: |
+          echo "=== UI 原语收敛守卫 ==="
+          python scripts/audit/ui_primitive_convergence.py --check
+
       - name: docs 链接预检诊断（失效链接阻断）
         # Why 阻塞: 本诊断是 pre-commit hook docs-broken-links-diagnose 的 CI 兜底，
         #   防止 `git commit --no-verify` 绕过本地 hook 后失效链接回归（2026-08-10
