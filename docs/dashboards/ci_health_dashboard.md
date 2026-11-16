@@ -78,6 +78,7 @@
 | 2026-11-16 | `45946ca` | 100.0% (14/14) | 0 | 0 | 32.77 | — | 0 | ↑ | docs(handoff): 4 条 Owner 拍板项按本轮结论落定（pyproject 记 done；token-levers / judge-cost / |
 | 2026-11-16 | `4c823e6` | 100.0% (14/14) | 0 | 0 | 62.89 | — | 0 | ↑ | fix(css): 全站滚动条改用 index.css 承载（theme.css 根本没被 import，上一版规则没进产物） |
 | 2026-11-16 | `e726d07` | 100.0% (14/14) | 0 | 0 | 64.07 | — | 0 | ↑ | docs(handoff): Electron 手工验收项补环境核实（本机无 electron 二进制 / Python Playwright 无 Electr |
+| 2026-11-16 | `59c7e0d` | 100.0% (14/14) | 0 | 0 | 52.35 | — | 0 | ↑ | docs(handoff): 记 llm-monitor-persist-rolling（落盘改滚动快照 / 内存 200 条 / 现场验证两条路径） |
 | YYYY-MM-DD | `<sha7>` | — | — | — | — | — | — | — | 模板占位行，请替换 |
 
 ---
