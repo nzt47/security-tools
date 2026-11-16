@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-16T23:25:00+08:00",
+ "updated_at": "2026-11-16T23:35:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -985,7 +985,15 @@
    "priority": "P1",
    "title": "Owner 2026-11-16 四项：叶子页开关统一 / 滚动条按导航栏 / 窗口取值参考被截断 / LLM 记录留 30 条",
    "criteria": "① 工具集、工作流、技能中心、消息中心的「启用/停用」原来是状态文字徽章 + 同义文字按钮（两处写同一件事），事件出站是复选框；② 导航栏滚动条是 thin/6px/半透明滑块，其它叶子面板走 theme.css 的 8px + 实心轨道；③ 「窗口取值参考」面板无界高度，底部被 mosaic 面板 overflow 裁掉（只能看到一半）；④ llm_monitor.max_records 默认 500。",
-   "next": "2026-11-16 全部落地（20d251ab9 + 4c823e686）：① 四处全部换 ui/Switch（开=主色高亮、关=灰、零文字），并删掉重复的状态列与同义按钮；hub 的 ui 桶补再导出 Switch/Slider；测试改到 role=switch 契约；② index.css 成为滚动条唯一来源（*{scrollbar-width:thin} + 6px + rgba(148,163,184,.25) 滑块 + 透明轨道），删掉 workbench.css 两处与 DevConsole.css 一处重复覆盖；③ 两个说明面板改 max-h-[52vh] + overflow-y-auto；④ 默认 500→30、校验区间 100–5000→10–5000、面板兜底值同步。真机读数：开关数 工具与接入 99 / 工作流 9 / 技能中心 53 / 消息中心 6，全部零文字且无同名文字按钮；CSSOM 里 *{scrollbar-width:thin} / ::-webkit-scrollbar{width:6px} / thumb rgba .25 各命中 1 条；窗口取值参考 clientH 466 < scrollH 635 且 overflowY=auto（不再被裁）；面板文案「仅保留最近 30 条（1/30）」。 ★ 追补（Owner 2026-11-16 23:1x 反馈「窗口取值参考最后只能看到 engineering 64K ← 当前生效」）：实测 1440×900 下面板 clientH 466 / scrollH 635 —— 内容没丢，但 ④ 的分身清单一列 11 行把「优先级」「改分身默认」两段推到折叠线以下，而滚动条是 0.25 透明的细条 ⇒ 看起来像被截断。改了 62cb7e2fc：高度上限 52vh → 70vh + [scrollbar-gutter:stable]，分身清单由单列改 two-column grid。复测：1440×900 下 scrollH == clientH == 573（整段一屏看完、无需滚动）；1280×800 下 644 > 558 仍可滚动，滚到底后最后一行「改分身默认…」完整可见。"
+   "next": "2026-11-16 全部落地（20d251ab9 + 4c823e686）：① 四处全部换 ui/Switch（开=主色高亮、关=灰、零文字），并删掉重复的状态列与同义按钮；hub 的 ui 桶补再导出 Switch/Slider；测试改到 role=switch 契约；② index.css 成为滚动条唯一来源（*{scrollbar-width:thin} + 6px + rgba(148,163,184,.25) 滑块 + 透明轨道），删掉 workbench.css 两处与 DevConsole.css 一处重复覆盖；③ 两个说明面板改 max-h-[52vh] + overflow-y-auto；④ 见下条 llm-monitor-persist-rolling（Owner 后续澄清：30 是「显示条数」，不是内存保留；已按实测重定 200 并改成滚动落盘）。真机读数：开关数 工具与接入 99 / 工作流 9 / 技能中心 53 / 消息中心 6，全部零文字且无同名文字按钮；CSSOM 里 *{scrollbar-width:thin} / ::-webkit-scrollbar{width:6px} / thumb rgba .25 各命中 1 条；窗口取值参考 clientH 466 < scrollH 635 且 overflowY=auto（不再被裁）；面板文案「仅保留最近 30 条（1/30）」。 ★ 追补（Owner 2026-11-16 23:1x 反馈「窗口取值参考最后只能看到 engineering 64K ← 当前生效」）：实测 1440×900 下面板 clientH 466 / scrollH 635 —— 内容没丢，但 ④ 的分身清单一列 11 行把「优先级」「改分身默认」两段推到折叠线以下，而滚动条是 0.25 透明的细条 ⇒ 看起来像被截断。改了 62cb7e2fc：高度上限 52vh → 70vh + [scrollbar-gutter:stable]，分身清单由单列改 two-column grid。复测：1440×900 下 scrollH == clientH == 573（整段一屏看完、无需滚动）；1280×800 下 644 > 558 仍可滚动，滚到底后最后一行「改分身默认…」完整可见。"
+  },
+  {
+   "id": "llm-monitor-persist-rolling",
+   "status": "done",
+   "priority": "P2",
+   "title": "LLM 通信记录：重启后只剩 1 条（只落盘最后一条）+ 内存上限缺乏实测依据",
+   "criteria": "Owner 观察「每次重启只看到一条记录」⇒ 误以为保留 1 条。实测两个独立事实：① 内存环形缓冲原来 500 条（我上一轮按字面理解改成了 30，是错的方向）；② 落盘 persist_last() 只写**最后一条**（data/llm_monitor_last.json 里直接是单条 dict），_restore_last() 也只回填这一条 ⇒ 重启后面板永远 1 条。面板自身 PAGE_SIZE=30（每次显示 30 条）。另：一条记录含 messages/tools/response_full，JSON 实测约 50–150KB（本机那条 144KB）。",
+   "next": "2026-11-16 落地（11f9dddbb）：① 落盘改滚动快照 {records:[最近 N 条], _count, _persisted_at}，N = 新配置 llm_monitor.persist_records（默认 30，区间 1–200），读取兼容旧版单条 dict；② 内存上限按实测重定 **200**（≈10–30MB；500 条最坏 25–75MB，且等于 records 接口单次 limit 上限）；③ 写盘节流 5s → 60s（一次序列化 30 条≈4MB），进程退出 atexit 必写；④ 面板文案改「内存最多 200 条（x/200）· 每页 30 条 · 重启回填最近 N 条」。判据：单测 12 passed（含「重启回填最近 N 条且顺序正确」「旧单条 dict 仍回填 1 条」）；现场用合成快照 + 真重启验过两条路径（新格式 3 条→回填 3 条、persisted.count=3；还原旧格式→回填 1 条）。"
   }
  ]
 }
