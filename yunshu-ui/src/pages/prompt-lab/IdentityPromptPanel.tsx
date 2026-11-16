@@ -17,7 +17,7 @@
  * 排序：行序由 identityPrompt.buildRows 按「发出顺序」（模板中的注入位置）给出。
  */
 import { Loader2, RefreshCw, RotateCcw, Save, TriangleAlert, Zap } from 'lucide-react'
-import { SectionTitle, Switch } from '@/components/ui'
+import { SectionTitle, Switch, Textarea } from '@/components/ui'
 import type { IdentityRow, IdentitySummary, UseIdentityPromptResult } from './identityPrompt'
 
 export interface IdentityPromptPanelProps {
@@ -192,8 +192,8 @@ export default function IdentityPromptPanel(props: IdentityPromptPanelProps) {
                 {row.description && <p className="pl-factor-desc">{row.description}</p>}
 
                 {row.editable ? (
-                  <textarea
-                    className={`pl-textarea pl-syspart-text ${row.enabled ? '' : 'disabled'}`}
+                  <Textarea
+                    className={`mt-2 ${row.enabled ? '' : 'opacity-45'}`}
                     rows={3}
                     value={row.customContent}
                     spellCheck={false}

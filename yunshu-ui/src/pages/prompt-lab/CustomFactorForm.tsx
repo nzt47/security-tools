@@ -3,6 +3,7 @@
  * 从 PromptLab.tsx 拆分（原 285-399 行，逻辑不变）。
  */
 import { useState } from 'react';
+import { Textarea } from '@/components/ui';
 import { usePromptLabStore } from '../../stores/usePromptLabStore';
 import { CATEGORIES } from '../../lib/promptFactors';
 import type { FactorCategory, FactorControl, PromptFactorDef } from '../../lib/promptFactorTypes';
@@ -94,7 +95,7 @@ export default function CustomFactorForm({ onClose }: CustomFactorFormProps) {
         {control === 'select' && (
           <label className="pl-field">
             <span>选项（每行 值:标签）</span>
-            <textarea className="pl-textarea" value={optionsText} onChange={(e) => setOptionsText(e.target.value)} rows={4} />
+            <Textarea size="sm" value={optionsText} onChange={(e) => setOptionsText(e.target.value)} rows={4} />
           </label>
         )}
         {control === 'text' && (
@@ -116,7 +117,7 @@ export default function CustomFactorForm({ onClose }: CustomFactorFormProps) {
         </label>
         <label className="pl-field">
           <span>说明</span>
-          <textarea className="pl-textarea" value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} placeholder="该因素影响什么？" />
+          <Textarea size="sm" value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} placeholder="该因素影响什么？" />
         </label>
         <div className="pl-modal-actions">
           <button type="button" className="pl-btn ghost" onClick={onClose}>取消</button>

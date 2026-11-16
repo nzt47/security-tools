@@ -370,28 +370,8 @@
   font-size: 10px;
   color: var(--wb-text-dim);
 }
-/* 【2026-11-16】select / text 输入已改用 ui/Select、ui/Input（语义 token + 统一圆角字号）。
-   textarea 暂留页面样式，下一批迁到 ui/Textarea。 */
-.pl-textarea {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 7px 10px;
-  border-radius: var(--radius-control);
-  border: 1px solid var(--wb-border);
-  background: rgba(4, 8, 16, 0.6);
-  color: var(--wb-text);
-  font-family: inherit;
-  font-size: var(--text-body);
-  outline: none;
-  transition: border-color 0.15s;
-}
-.pl-textarea:focus {
-  border-color: var(--wb-border-strong);
-}
-.pl-textarea {
-  resize: vertical;
-  line-height: 1.5;
-}
+/* 【2026-11-16】select / text / textarea 三类输入已全部改用原语（ui/Select、ui/Input、
+   ui/Textarea：语义 token + 统一圆角字号），.pl-textarea 已原地删除。 */
 /* 【2026-11-16】原地删除 .pl-toggle*：开关统一到 ui/Switch（胶囊轨道 + 圆形滑块，
    开=主色发光 / 关=灰；不再有「启用/停用」文字，开关本身就是状态列）。 */
 
@@ -660,14 +640,8 @@
   font-size: 10.5px;
   white-space: nowrap;
 }
-.pl-syspart-text {
-  margin-top: 8px;
-  font-size: 11.5px;
-  line-height: 1.6;
-}
-.pl-syspart-text.disabled {
-  opacity: 0.45;
-}
+/* 【2026-11-16】.pl-syspart-text 随 textarea 一起迁到 ui/Textarea：外边距与禁用淡化
+   在调用点用工具类表达（mt-2 / opacity-45），页面不再自定义文本域字号。 */
 .pl-syspart-actions {
   display: flex;
   flex-wrap: wrap;

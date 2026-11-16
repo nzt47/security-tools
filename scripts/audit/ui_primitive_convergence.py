@@ -22,7 +22,7 @@
 ## 口径
 
 - 统计范围：`yunshu-ui/src/**/*.tsx`，**排除 `src/components/ui/`**（原语内部当然用原生元素）。
-- 指标：raw_button / raw_select / raw_input / raw_range / arbitrary_text / raw_heading。
+- 指标：raw_button / raw_select / raw_input / raw_textarea / raw_range / arbitrary_text / raw_heading。
 - 基线文件：`data/ui_primitive_baseline.json`（提交入库，随收敛一起减小）。
 """
 from __future__ import annotations
@@ -42,6 +42,8 @@ METRICS: Dict[str, str] = {
     "raw_button": r"<button\b",
     "raw_select": r"<select\b",
     "raw_input": r"<input\b",
+    # 2026-11-16：ui/Textarea 补齐后把 textarea 也纳入"只降不升"（此前没有原语，故未统计）
+    "raw_textarea": r"<textarea\b",
     "raw_range": r"""type=["']range["']""",
     "arbitrary_text": r"text-\[\d+px\]",
     "raw_heading": r"<h[123]\b",
