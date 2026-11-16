@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-16T20:20:00+08:00",
+ "updated_at": "2026-11-16T21:45:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -937,15 +937,15 @@
    "priority": "P2",
    "title": "UI 原语迁移第 2/3 批：提示词实验室之外的原生按钮/下拉/输入（735/54/233 处）",
    "criteria": "2026-11-16 审计+第 1 批+第 2 批分片一之后：components/ui 仍只有 12 个文件在用（全在 pages/system + ConfirmDialog）。提示词实验室已全量迁移；workbench 的**自造按钮家族已清零**（.wb-send-btn/.wb-stop-btn/.wb-reset-btn/.wb-panel-toggle 全删，改 ui/Button；CompressPrefixSwitch 改 ui/Switch）。剩余：DockPanel 17 个手写按钮、SessionRail 行内按钮 + 1 个 select + 7 个 input、以及 workbench 的成片 text-[Npx]。守卫基线：raw_button 720 / raw_select 54 / raw_input 233 / arbitrary_text 1505。",
-   "next": "2026-11-16 分片二已落地（8b663768d）：DockPanel 17 → 2 个原生按钮、SessionRail 18 → 6 个原生按钮；原语补 size=xs（Button/Input/Select 的 24px 档）与 Input/Select 的 size 档位；会话栏的复选框改 ui/Switch；项目弹窗的紫色主按钮（第六种强调色）改 primary。**仍留原生（刻意）**：DockPanel 的 Tab 条（role=tab）与文档文件行、SessionRail 的会话行主体/分组折叠表头/4 个弹层菜单项/2 个行内重命名输入（嵌在行 <button> 里）。守卫基线 raw_button 704→678 / raw_select 54→53 / raw_input 233→229。**下一片**：hub/**（.lm- 48 / .kb- 44 / memory / ingestion）、SkillsMgmt、DevConsole、Knowledge、VisualEditor（.ve- 118）；外加一条新发现：Input 原语缺「前置/后置附加」槽位（会话栏搜索框因此只能留原生，图标会压住正文）—— 建议给 Input 加 leading/trailing 槽。"
+   "next": "2026-11-16 进度：分片二（DockPanel 17→2、SessionRail 18→6，8b663768d）+ 分片三（清 5 个自造按钮家族：hub 次级按钮 14、pl-btn 13、skmgmt-btn 28、devconsole-btn 9、kb-form-btn 2，6066b2b2b）+ 分片四（工具集/工作流/技能中心/消息中心的启停与事件出站全部换 ui/Switch，并删掉重复的状态列与同义按钮，20d251ab9）。守卫基线 raw_button **678 → 619**、raw_select 53、raw_input 229、raw_textarea 43、arbitrary_text 0、raw_heading 102。**仍剩**：hub/** 大量行内按钮与 3 个 select、SkillsMgmt 的输入框、Knowledge/VisualEditor 的 ve-btn（白底编辑器，原语缺浅色表面变体 → 不硬套）、DevConsole 剩余控件；另有 Input 缺 leading/trailing 槽。做法照旧：按模式整批换 + 删对应 CSS 家族 + tsc/eslint/vitest + 部署后量（.local/shots_*）。"
   },
   {
    "id": "ui-typography-codemod",
-   "status": "open",
+   "status": "done",
    "priority": "P2",
    "title": "1506 处 text-[Npx] 换成 9 档字号阶梯（逐页 codemod + 三档截图对拍）",
    "criteria": "2026-11-16 已把阶梯定义进 index.css @theme（micro/caption/body/body-lg/ui/title/h2/h1/display，映射表在注释里），但存量仍是硬编码：text-[11px] 722、text-[10px] 663、text-[9px] 63、text-[12px] 35、text-[13px] 17、text-[15px] 6；另有 CSS 里 193 处 font-size、17 个取值（含 9.5/10.5/11.5/12.5/13.5/14.5 半像素）。",
-   "next": "2026-11-16 批次一（bcfe0adf0）：**先修根因** —— cn 的 twMerge 没登记 9 档字号，导致 text-micro/body/ui 与任何 text-<颜色> 同时出现时字号被静默丢掉（36e6617fc，含 8 条回归测试）。修好后的第一批：工作台导航 NavPanel（26 项 12.5px→text-body，选中改 bg-primary/15+text-primary）、4 条 hub 页签（记忆/工具/分身/组装台，12.5px→text-body、选中色→primary、标题 15px→text-title 16px）、CSS 里 5 处 12.5px 半像素→var(--text-body)。arbitrary_text 1504→1451。**判据脚本**：.local/probe_fonts.py 出整页 computed font-size 直方图 + 不在 9 档的个数（分身页 1440：改前 89/121 不在档位）。**剩余**（按存量排）：SkillAssetTable 100 / governance 65 / TransformQueueDialog 57 / skill-detail-drawer 50 / agent-lines 47 / governance.settings 46 / SubagentMenu 43 / SkillCardsDialog 42 / ingestion 41 / messages-channels 40 / ContextManagerBar 37 / log-center-panel 37 …；CSS 侧仍有 18/22/24/48 与 9.5/10.5/11.5/13.5 的零散写法。"
+   "next": "2026-11-16 **收尾完成**。路径：先修根因（cn 的 twMerge 吞字号，36e6617fc）→ 分四批逐页（70a790321 / 5f03c77ac / 3947131ad / 8750cac2d）→ 最后 13 处内建档位归位（6f754b422）→ CSS 侧 193 处 font-size 同步（8750cac2d）。**收尾读数**：tsx 里 text-[Npx] = **0**；CSS 里 font-size: Npx = **0**；守卫 arbitrary_text = 0；全 37 个可达面板的 computed font-size 直方图（.local/probe_fonts_sweep.py）**每页 off=0**。下一步只剩可选清理：内置 text-xs/sm/base/xl/2xl/5xl（共 663 处）与 9 档**逐像素相同**，改名是零视觉变化的纯命名统一，属噪音，不做也不影响观感。"
   },
   {
    "id": "ui-textarea-primitive",
@@ -970,6 +970,22 @@
    "title": "cn() 会吞掉自定义字号档位：text-micro/body/ui 与 text-<颜色> 同时出现时字号静默失效",
    "criteria": "§11.132 定义的 9 档字号（--text-micro…--text-display）在 tailwind-merge 眼里不是 font-size 组：twMerge('text-micro','text-muted-foreground') === 'text-muted-foreground' ⇒ 后写的颜色类把字号吃掉。后果：ui/Button(primary) 的 text-ui 被 text-primary-foreground 吃掉、会话栏 ghost 按钮的 text-micro 被 text-muted-foreground 吃掉，真机读到的是继承来的 13px ⇒ 「档位写了等于没写」，且不会有任何报错。",
    "next": "2026-11-16 修复（36e6617fc）：src/lib/cn.ts 用 extendTailwindMerge 把 9 档登记进 classGroups['font-size']；新增 src/lib/cn.test.ts 8 条（字号×颜色双向保留 / 同组仍只留最后一个 / 普通工具类照旧）。★ 以后新增字号档位（改 index.css 的 --text-*）必须同批加进 cn.ts 的 FONT_SIZE_SCALE，否则又会被静默吞掉。副作用（预期内）：所有走 cn() 的原语字号第一次真正生效，原本继承 13px 的地方变成 12px/10px。"
+  },
+  {
+   "id": "theme-css-not-imported",
+   "status": "open",
+   "priority": "P2",
+   "title": "styles/theme.css 没有任何入口 import ⇒ 里面的规则不生效、--mascot-*/--bg-* 变量运行期未定义",
+   "criteria": "2026-11-16 踩到：把「全站滚动条」写进 theme.css 后构建产物里查不到。核实：main.tsx 只 import './index.css'；WorkbenchApp / DetachedChatApp 只 import 'styles/workbench.css'；全仓 grep 无任何 import 指向 theme.css。连带事实：theme.css 里定义的 --mascot-primary/--mascot-secondary/--bg-secondary/--bg-hover/--border-subtle/--text-primary/--accent-primary 等**都没有来源**，各处靠 var(--x, #fallback) 兜底在跑（governance/settings.tsx 手写 SWITCH_VARS 就是这个症状的补丁）。",
+   "next": "两个选项：① 在 main.tsx 里 import 'styles/theme.css' 复活它（要逐个核对 --mascot-* 与 index.css 的 --color-* 是否同一个值，避免又出现两套青）；② 把 theme.css 里仍被引用的变量（--mascot-* / --bg-* / --border-* / --text-primary / --accent-primary）搬进 index.css 的 :root，然后删掉 theme.css。选②更干净但要动 9 个 CSS 文件里的 var() 名。在此之前：**不要把新规则写进 theme.css**（文件头已加警告）。本轮滚动条已按此改到 index.css（4c823e686）。"
+  },
+  {
+   "id": "ui-switch-scrollbar-batch-20261116",
+   "status": "done",
+   "priority": "P1",
+   "title": "Owner 2026-11-16 四项：叶子页开关统一 / 滚动条按导航栏 / 窗口取值参考被截断 / LLM 记录留 30 条",
+   "criteria": "① 工具集、工作流、技能中心、消息中心的「启用/停用」原来是状态文字徽章 + 同义文字按钮（两处写同一件事），事件出站是复选框；② 导航栏滚动条是 thin/6px/半透明滑块，其它叶子面板走 theme.css 的 8px + 实心轨道；③ 「窗口取值参考」面板无界高度，底部被 mosaic 面板 overflow 裁掉（只能看到一半）；④ llm_monitor.max_records 默认 500。",
+   "next": "2026-11-16 全部落地（20d251ab9 + 4c823e686）：① 四处全部换 ui/Switch（开=主色高亮、关=灰、零文字），并删掉重复的状态列与同义按钮；hub 的 ui 桶补再导出 Switch/Slider；测试改到 role=switch 契约；② index.css 成为滚动条唯一来源（*{scrollbar-width:thin} + 6px + rgba(148,163,184,.25) 滑块 + 透明轨道），删掉 workbench.css 两处与 DevConsole.css 一处重复覆盖；③ 两个说明面板改 max-h-[52vh] + overflow-y-auto；④ 默认 500→30、校验区间 100–5000→10–5000、面板兜底值同步。真机读数：开关数 工具与接入 99 / 工作流 9 / 技能中心 53 / 消息中心 6，全部零文字且无同名文字按钮；CSSOM 里 *{scrollbar-width:thin} / ::-webkit-scrollbar{width:6px} / thumb rgba .25 各命中 1 条；窗口取值参考 clientH 466 < scrollH 635 且 overflowY=auto（不再被裁）；面板文案「仅保留最近 30 条（1/30）」。"
   }
  ]
 }
