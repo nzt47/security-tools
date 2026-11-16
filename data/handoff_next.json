@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-16T23:35:00+08:00",
+ "updated_at": "2026-11-17T01:20:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -937,7 +937,7 @@
    "priority": "P2",
    "title": "UI 原语迁移第 2/3 批：提示词实验室之外的原生按钮/下拉/输入（735/54/233 处）",
    "criteria": "2026-11-16 审计+第 1 批+第 2 批分片一之后：components/ui 仍只有 12 个文件在用（全在 pages/system + ConfirmDialog）。提示词实验室已全量迁移；workbench 的**自造按钮家族已清零**（.wb-send-btn/.wb-stop-btn/.wb-reset-btn/.wb-panel-toggle 全删，改 ui/Button；CompressPrefixSwitch 改 ui/Switch）。剩余：DockPanel 17 个手写按钮、SessionRail 行内按钮 + 1 个 select + 7 个 input、以及 workbench 的成片 text-[Npx]。守卫基线：raw_button 720 / raw_select 54 / raw_input 233 / arbitrary_text 1505。",
-   "next": "2026-11-16 进度：分片二（DockPanel 17→2、SessionRail 18→6，8b663768d）+ 分片三（清 5 个自造按钮家族：hub 次级按钮 14、pl-btn 13、skmgmt-btn 28、devconsole-btn 9、kb-form-btn 2，6066b2b2b）+ 分片四（工具集/工作流/技能中心/消息中心的启停与事件出站全部换 ui/Switch，并删掉重复的状态列与同义按钮，20d251ab9）。守卫基线 raw_button **678 → 619**、raw_select 53、raw_input 229、raw_textarea 43、arbitrary_text 0、raw_heading 102。**仍剩**：hub/** 大量行内按钮与 3 个 select、SkillsMgmt 的输入框、Knowledge/VisualEditor 的 ve-btn（白底编辑器，原语缺浅色表面变体 → 不硬套）、DevConsole 剩余控件；另有 Input 缺 leading/trailing 槽。做法照旧：按模式整批换 + 删对应 CSS 家族 + tsc/eslint/vitest + 部署后量（.local/shots_*）。"
+   "next": "2026-11-17 进度（提交 728ee5114 / 0c0f144d9）：① hub 的 BTN / BTN_EM / BTN_RED / BTN_PRIMARY（含 TABLE_BTN 四档与两处 violet 描边）整批换 ui/Button，新增 variant=accent（主色描边）与 danger-outline（危险色描边）；② INPUT / INPUT_CLASS 家族整批换 ui/Input，INPUT 模板写法的 textarea 换 ui/Textarea；③ ui/Input 补 leading/trailing 附加槽与 inputClassName，会话栏搜索框（全仓最后一个因为缺槽位而保留原生的输入框）随迁。守卫基线 raw_button 604 → 362（−242）、raw_input 227 → 161（−66）、raw_textarea 43 → 34（−9）、raw_select 53 / arbitrary_text 0 / raw_heading 102 不变。真机（.local/shots_ui_batch2.py，1280/1440/1920 各 7 页）：family_left 0、btn_offscale 0、clipped 空；按钮高度只剩 24/32/36 三档。仍剩：raw_select 53（hub 的筛选下拉，要逐个把 option 重排成 options 数组）；raw_button 362（TransformQueueDialog 22 / governance/index 12 / SessionRow 7 / ingestion 11 等）；raw_input 161（含约 40 处 type=checkbox —— 确认类复选框刻意不换 Switch：它是一次性确认，不是状态列）。另：VisualEditor 的 .ve-btn 仍是白底编辑器专用（原语缺浅色表面变体，不硬套）。"
   },
   {
    "id": "ui-typography-codemod",
@@ -973,11 +973,11 @@
   },
   {
    "id": "theme-css-not-imported",
-   "status": "open",
+   "status": "done",
    "priority": "P2",
    "title": "styles/theme.css 没有任何入口 import ⇒ 里面的规则不生效、--mascot-*/--bg-* 变量运行期未定义",
    "criteria": "2026-11-16 踩到：把「全站滚动条」写进 theme.css 后构建产物里查不到。核实：main.tsx 只 import './index.css'；WorkbenchApp / DetachedChatApp 只 import 'styles/workbench.css'；全仓 grep 无任何 import 指向 theme.css。连带事实：theme.css 里定义的 --mascot-primary/--mascot-secondary/--bg-secondary/--bg-hover/--border-subtle/--text-primary/--accent-primary 等**都没有来源**，各处靠 var(--x, #fallback) 兜底在跑（governance/settings.tsx 手写 SWITCH_VARS 就是这个症状的补丁）。",
-   "next": "两个选项：① 在 main.tsx 里 import 'styles/theme.css' 复活它（要逐个核对 --mascot-* 与 index.css 的 --color-* 是否同一个值，避免又出现两套青）；② 把 theme.css 里仍被引用的变量（--mascot-* / --bg-* / --border-* / --text-primary / --accent-primary）搬进 index.css 的 :root，然后删掉 theme.css。选②更干净但要动 9 个 CSS 文件里的 var() 名。在此之前：**不要把新规则写进 theme.css**（文件头已加警告）。本轮滚动条已按此改到 index.css（4c823e686）。"
+   "next": "2026-11-17 收口（选②，提交 915931935）：仍被引用的 16 个旧名在 index.css 的 :root 统一定义为语义 token 的别名（--text-primary→--color-foreground、--bg-secondary→--color-card、--bg-elevated/--bg-hover→--color-muted、--bg-deep/--bg-input→--color-background、--border-color/--border-subtle→--color-border、--accent-primary/--mascot-primary→--color-primary、--mascot-error→--color-danger、--radius-full=9999px），随后 git rm styles/theme.css；顺带删掉 settings.tsx 的 SWITCH_VARS（它把这一页的开关兜成 #0e7490 深青，所以设置页开关比全站暗一档）。判据：dist 的 5 个 CSS 产物里 16 个别名全部有定义；运行期 .local/verify_css_vars.py（1440）读到 16 个非空值、--mascot-primary 与 --accent-primary 解析后都等于 --color-primary rgb(35,221,246)、--mascot-error 等于 --color-danger，页面上再无 rgb(14,116,144)。遗留（另立 open 项 css-hardcoded-blue-in-kb）：knowledge 的 .kb-* CSS 里还有 8 处硬编码 #4a9eff，那是字面值不是变量，收敛守卫只量 tsx 量不到。"
   },
   {
    "id": "ui-switch-scrollbar-batch-20261116",
@@ -994,6 +994,30 @@
    "title": "LLM 通信记录：重启后只剩 1 条（只落盘最后一条）+ 内存上限缺乏实测依据",
    "criteria": "Owner 观察「每次重启只看到一条记录」⇒ 误以为保留 1 条。实测两个独立事实：① 内存环形缓冲原来 500 条（我上一轮按字面理解改成了 30，是错的方向）；② 落盘 persist_last() 只写**最后一条**（data/llm_monitor_last.json 里直接是单条 dict），_restore_last() 也只回填这一条 ⇒ 重启后面板永远 1 条。面板自身 PAGE_SIZE=30（每次显示 30 条）。另：一条记录含 messages/tools/response_full，JSON 实测约 50–150KB（本机那条 144KB）。",
    "next": "2026-11-16 落地（11f9dddbb）：① 落盘改滚动快照 {records:[最近 N 条], _count, _persisted_at}，N = 新配置 llm_monitor.persist_records（默认 30，区间 1–200），读取兼容旧版单条 dict；② 内存上限按实测重定 **200**（≈10–30MB；500 条最坏 25–75MB，且等于 records 接口单次 limit 上限）；③ 写盘节流 5s → 60s（一次序列化 30 条≈4MB），进程退出 atexit 必写；④ 面板文案改「内存最多 200 条（x/200）· 每页 30 条 · 重启回填最近 N 条」。判据：单测 12 passed（含「重启回填最近 N 条且顺序正确」「旧单条 dict 仍回填 1 条」）；现场用合成快照 + 真重启验过两条路径（新格式 3 条→回填 3 条、persisted.count=3；还原旧格式→回填 1 条）。"
+  },
+  {
+   "id": "skillsmgmt-skill-tree-unreachable",
+   "status": "open",
+   "priority": "P3",
+   "title": "components/SkillsMgmt 的 SkillManagement 树没人 import —— 那 7 个文件是死代码（§11.135 为它做的迁移是白做）",
+   "criteria": "2026-11-17 核实：src 下没有任何文件 import SkillManagement.tsx（只有它自己 import 6 个子组件：SkillList / SkillDetail / SkillCreator / SkillReviewer / WorkflowRepo / WorkflowMatcher），也没有动态 import。客观旁证：SkillManagement.css 被这 7 个文件 import，但构建产物里查不到 —— dist/assets 只有 5 个 css，全都没有 .skmgmt- 类名。所以 §11.135 的「skmgmt-btn 28 处换原语」与 handoff 里「SkillsMgmt 的输入框」这条待办，改的都是进不了产物的代码。",
+   "next": "两条路（需要 Owner 拍板）：① 删掉这 7 个文件与 SkillManagement.css（raw_button/raw_input 会再降一截，但那是删代码不是迁移）；② 它们其实是某条被砍掉的路由/入口，要复活就先接线再看迁移。在此之前不要再往这棵树里做迁移。SkillAssetTable / SkillIntakeDialog（hub 技能中心那条线）是活的，不受影响。"
+  },
+  {
+   "id": "css-hardcoded-blue-in-kb",
+   "status": "open",
+   "priority": "P3",
+   "title": "knowledge 的 .kb-* CSS 里 8 处硬编码 #4a9eff（第五支蓝），收敛守卫量不到（只量 tsx）",
+   "criteria": "2026-11-17 构建产物核实：dist/assets/knowledge-*.css 里 #4a9eff 出现 8 次（.kb-status--current 的底色、.kb-form-input:focus 的描边、.kb-link-chip:hover 等）。它不是变量、也没有经过 --accent-primary，所以 theme.css 收口（915931935）管不到它；同时 ui_primitive_convergence.py 的 arbitrary_text 只扫 .tsx，量具覆盖不到 CSS 字面值。",
+   "next": "把这 8 处换成 var(--color-primary) 或 color-mix(in srgb, var(--color-primary) N%, transparent)；若想让只降不升的守卫也覆盖 CSS 侧硬编码色，需要给守卫加一个 css_hardcoded_color 指标（先量分布再定基线，一次写死，别放宽）。"
+  },
+  {
+   "id": "guard-misses-ts-and-css",
+   "status": "open",
+   "priority": "P3",
+   "title": "收敛守卫只扫 .tsx —— lib/tableActions.ts 里还有 text-[11px]，CSS 的 font-size 与硬编码色也量不到",
+   "criteria": "2026-11-17 核实：ui_primitive_convergence.py 的 scan() 只取 *.tsx。而 lib/tableActions.ts 的 BASE 里仍有 text-[11px]（本轮排版收口声称 tsx 的 text-[Npx] 已清零是对的，但 .ts 里的同写法不在量具范围内）；CSS 侧的硬编码颜色同理（见 css-hardcoded-blue-in-kb）。",
+   "next": "把 scan() 的 glob 从 *.tsx 扩到 *.tsx 与 *.ts（会把 .ts 里的既有写法计入，属量具修正，按 §11.135 的先例一次性重写基线并在提交信息里写明增量是量具修正不是回归）；CSS 侧另立指标，别和 arbitrary_text 混用一个数。"
   }
  ]
 }
