@@ -17,6 +17,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, ChevronRight, Copy, Loader2, Radio, RefreshCw, Search, Trash2 } from 'lucide-react'
+import { SectionTitle, Switch } from '@/components/ui'
 import { hubGet, hubPost } from '../hub/components/ui'
 
 import {
@@ -229,21 +230,25 @@ export default function LlmMonitorPanel() {
   return (
     <section className="pl-category pl-llm-monitor">
       <div className="pl-monitor-head">
-        <h2 className="pl-category-title" style={{ color: '#f472b6' }}>
-          <span className="pl-category-dot" style={{ background: '#f472b6' }} />
+        <SectionTitle
+          level={2}
+          className="flex-1"
+          actions={
+            <span className="pl-category-count">
+              {loading ? '加载中…' : `${total} 条记录 · ${formatNum(stats?.total_tokens ?? 0)} tokens`}
+            </span>
+          }
+        >
           LLM 通信监控
-          <span className="pl-category-count">
-            {loading ? '加载中…' : `${total} 条记录 · ${formatNum(stats?.total_tokens ?? 0)} tokens`}
-          </span>
-        </h2>
-        <label className="pl-monitor-switch" title="启用/暂停监控记录">
-          <input
-            type="checkbox"
-            checked={stats?.enabled !== false}
-            onChange={(e) => void toggleEnabled(e.target.checked)}
-          />
-          <span>{stats?.enabled === false ? '○ 已暂停' : '● 监控中'}</span>
-        </label>
+        </SectionTitle>
+        {/* 【2026-11-16】监控开关统一成 ui/Switch：开=亮、关=灰，开关本身就是状态
+            （原来旁边还有「● 监控中 / ○ 已暂停」文字 = 另一列状态）。 */}
+        <Switch
+          checked={stats?.enabled !== false}
+          onCheckedChange={(next) => void toggleEnabled(next)}
+          size="sm"
+          label="LLM 通信监控：记录每次调用的收发内容"
+        />
       </div>
       <p className="pl-category-desc">
         查看每次 LLM 调用的完整收发内容：请求 = 发给 LLM 的全部消息 + 工具定义，响应 = LLM 返回文本 + 工具调用。

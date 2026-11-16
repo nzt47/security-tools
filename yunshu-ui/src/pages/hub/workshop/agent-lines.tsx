@@ -26,6 +26,7 @@ import {
   Target, Trash2, Users,
 } from 'lucide-react'
 import { Badge, CallabilityBadge, Card, ErrorBox, Loading, PageHeader } from '../components/ui'
+import { Slider } from '@/components/ui'
 import { callabilityCounts, callabilityLegend, hasCallabilityMark } from '@/lib/callability'
 import {
   createLine,
@@ -1380,11 +1381,12 @@ export default function ToolsAgentLines() {
                             <span className={`w-16 shrink-0 text-xs ${disabled ? 'text-slate-600' : 'text-slate-300'}`}>
                               {PLANE_LABELS[plane]}
                             </span>
-                            <input
-                              type="range" min={0} max={3} step={0.1} value={w}
+                            <Slider
+                              min={0} max={3} step={0.1} value={w}
                               disabled={disabled}
-                              onChange={(e) => setWeight(plane, num(e.target.value))}
-                              className="flex-1 accent-cyan-500 disabled:opacity-40"
+                              onValueChange={(next) => setWeight(plane, next)}
+                              className="flex-1"
+                              aria-label="平面权重"
                             />
                             <input
                               type="number" min={0} max={3} step={0.1} value={w}

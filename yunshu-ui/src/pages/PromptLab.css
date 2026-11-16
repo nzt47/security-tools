@@ -346,15 +346,10 @@
   align-items: center;
   gap: 10px;
 }
-.pl-slider-row input[type='range'] {
-  /* 【为什么必须 min-width:0】range 的 flex 最小宽度默认取 min-content（Edge 约 129px），
-     flex-shrink 对它是无效的 —— 列一窄，它不缩，反而把右侧的数值挤出卡片被裁掉。
-     实测（1440 屏、因素列 180px）：数值框 left=154 宽 52，卡片只到 180 ⇒ 每条都少半截。 */
-  flex: 1 1 0;
-  min-width: 0;
-  accent-color: var(--wb-accent);
-  cursor: pointer;
-}
+/* 【2026-11-16】滑块外观统一到 ui/Slider（.wb-slider，见 index.css）。
+   这里的 min-width:0 仍必要：range 的 flex 最小宽度默认是 min-content（Edge 约 129px），
+   只靠 flex-shrink 缩不动，会把右侧数值挤出卡片（实测 1440 窄列每条都少半截）。
+   该约束现在由 ui/Slider 的 className="min-w-0 flex-1" 施加。 */
 .pl-slider-val {
   /* 数值框不参与压缩：它的宽度就是"能不能看全 100 分 / 2048 tok"的判据 */
   flex: none;
@@ -375,23 +370,21 @@
   font-size: 10px;
   color: var(--wb-text-dim);
 }
-.pl-select,
-.pl-text,
+/* 【2026-11-16】select / text 输入已改用 ui/Select、ui/Input（语义 token + 统一圆角字号）。
+   textarea 暂留页面样式，下一批迁到 ui/Textarea。 */
 .pl-textarea {
   width: 100%;
   box-sizing: border-box;
   padding: 7px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   border: 1px solid var(--wb-border);
   background: rgba(4, 8, 16, 0.6);
   color: var(--wb-text);
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--text-body);
   outline: none;
   transition: border-color 0.15s;
 }
-.pl-select:focus,
-.pl-text:focus,
 .pl-textarea:focus {
   border-color: var(--wb-border-strong);
 }
@@ -399,34 +392,8 @@
   resize: vertical;
   line-height: 1.5;
 }
-.pl-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 5px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--wb-border);
-  background: rgba(148, 163, 184, 0.08);
-  color: var(--wb-text-dim);
-  font-family: inherit;
-  font-size: 12px;
-  cursor: pointer;
-}
-.pl-toggle .pl-toggle-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--wb-text-dim);
-  transition: background 0.15s;
-}
-.pl-toggle.on {
-  border-color: var(--wb-border-strong);
-  color: #a5f3fc;
-}
-.pl-toggle.on .pl-toggle-dot {
-  background: var(--wb-accent);
-  box-shadow: 0 0 8px var(--wb-accent);
-}
+/* 【2026-11-16】原地删除 .pl-toggle*：开关统一到 ui/Switch（胶囊轨道 + 圆形滑块，
+   开=主色发光 / 关=灰；不再有「启用/停用」文字，开关本身就是状态列）。 */
 
 /* ── 预览面板 ── */
 .pl-preview {

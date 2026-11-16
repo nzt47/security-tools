@@ -216,8 +216,10 @@ describe('需求②：提示词实验室（顶栏 / 身份提示词联动）', (
     expect(card?.textContent ?? '').not.toContain('{skill_instructions}')
 
     // 点击该面板项的开关（停用）→ 600ms 防抖后重建模板 → 提示词区域不再包含占位符
-    const toggle = within(card as HTMLElement).getByRole('button')
-    expect(toggle.getAttribute('aria-pressed')).toBe('true')
+    // 【2026-11-16】开关统一成 ui/Switch（role="switch" + aria-checked），不再是 aria-pressed 的
+    // pill 按钮；开关本身就是状态，卡片里也没有「启用/停用」文字列了。
+    const toggle = within(card as HTMLElement).getByRole('switch')
+    expect(toggle.getAttribute('aria-checked')).toBe('true')
 
     // 【为什么改成**假定时器**推进】这一步等的是组件内 600ms 防抖之后的模板重建
     // （pages/prompt-lab/identityPrompt.ts 的 PREVIEW_DEBOUNCE_MS）。原先用「真实时间 +
@@ -231,14 +233,14 @@ describe('需求②：提示词实验室（顶栏 / 身份提示词联动）', (
     try {
       fireEvent.click(toggle)
       // 【判据前移：点击必须**当场**生效】点击 → onToggle → setSections 是同步链路，act 会把它
-      // 冲刷掉，所以这里不需要任何等待：`aria-pressed` 必须立刻翻成 false。放在推进定时器
+      // 冲刷掉，所以这里不需要任何等待：`aria-checked` 必须立刻翻成 false。放在推进定时器
       // **之前**断言，是为了把"点击被吞掉"和"防抖没重建"两种坏法分开 ——
       // 2026-10-18 的 CI flake（run 39083064797 attempt 1，红在下面的模板断言）实际是前者：
       // onToggle 读到尚未被 passive effect 同步的 sectionsRef（空对象）后静默早退，于是模板
       // 仍是全启用；失败信息却指向"模板没重建"，把人往防抖那条线上带。根因已修在
       // identityPrompt.ts（ref 改用 useLayoutEffect 同步），这条断言负责**钉住它不再回来**。
       expect(
-        toggle.getAttribute('aria-pressed'),
+        toggle.getAttribute('aria-checked'),
         '点击没有生效：开关状态仍为启用（onToggle 早退 / 事件被吞），后面的模板断言会因此误报',
       ).toBe('false')
       await act(async () => {
@@ -316,12 +318,12 @@ describe('拆 Tab（Owner 2026-11-15）：身份提示词 + 它的实时预览�
     })
     const card = cardFor('工具与技能状态')
     expect(card).toBeTruthy()
-    const toggle = within(card as HTMLElement).getByRole('button')
+    const toggle = within(card as HTMLElement).getByRole('switch')
 
     vi.useFakeTimers()
     try {
       fireEvent.click(toggle)
-      expect(toggle.getAttribute('aria-pressed')).toBe('false')
+      expect(toggle.getAttribute('aria-checked')).toBe('false')
       await act(async () => {
         await vi.advanceTimersByTimeAsync(2000)
       })

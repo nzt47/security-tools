@@ -82,8 +82,11 @@ describe('FactorControl', () => {
       defaultValue: false,
     }
     render(<FactorControl def={def} value={false} onChange={onChange} />)
-    // toggle 按钮可访问名为内容文案（关闭/开启），点击后回调 true
-    fireEvent.click(screen.getByRole('button', { name: '关闭' }))
+    // 【2026-11-16】开关统一成 ui/Switch：role="switch"、可访问名取因素名，
+    // 不再有「关闭/开启」文字（开关本身就是状态）。点击后回调新值 true。
+    const sw = screen.getByRole('switch', { name: '联网搜索' })
+    expect(sw.getAttribute('aria-checked')).toBe('false')
+    fireEvent.click(sw)
     expect(onChange).toHaveBeenCalledWith(true)
   })
 })

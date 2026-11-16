@@ -10,7 +10,8 @@ import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/cn'
 
 export type ButtonVariant = 'primary' | 'default' | 'danger' | 'ghost'
-export type ButtonSize = 'sm' | 'md'
+/** icon：正方形只放图标（32×32），用于工具栏/卡片右上角 */
+export type ButtonSize = 'sm' | 'md' | 'icon'
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   /** 视觉类型，默认 default */
@@ -29,8 +30,9 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
 }
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
-  sm: 'h-8 rounded-md px-3 text-sm',
-  md: 'h-9 rounded-md px-4 text-sm',
+  sm: 'h-8 rounded-control px-3 text-body',
+  md: 'h-9 rounded-control px-4 text-ui',
+  icon: 'h-8 w-8 rounded-control p-0',
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(

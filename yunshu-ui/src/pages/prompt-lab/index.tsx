@@ -35,6 +35,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { FileText, FlaskConical, Plus, Radio, RotateCcw, TriangleAlert } from 'lucide-react';
+import { SectionTitle } from '@/components/ui';
 import { usePromptLabStore } from '../../stores/usePromptLabStore';
 import { downloadFile } from '../../utils/system';
 import {
@@ -326,13 +327,16 @@ export default function PromptLab() {
             <main className="pl-factors">
               {shownCategories.map((cat) => (
                 <section key={cat.id} className="pl-category">
-                  <h2 className="pl-category-title" style={{ color: cat.color }}>
-                    <span className="pl-category-dot" style={{ background: cat.color }} />
+                  <SectionTitle
+                    level={2}
+                    actions={
+                      <span className="pl-category-count">
+                        {factorsOfCategory(defs, cat.id).length} 项
+                      </span>
+                    }
+                  >
                     {cat.label}
-                    <span className="pl-category-count">
-                      {factorsOfCategory(defs, cat.id).length} 项
-                    </span>
-                  </h2>
+                  </SectionTitle>
                   <p className="pl-category-desc">{cat.desc}</p>
                   {/* 人格分类：视图如实（§11.123 K-2）—— 调了写后端，但进不进提示词由 persona 节决定 */}
                   {cat.id === 'personality' && (

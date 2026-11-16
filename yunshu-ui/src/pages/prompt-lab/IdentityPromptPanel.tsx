@@ -17,6 +17,7 @@
  * 排序：行序由 identityPrompt.buildRows 按「发出顺序」（模板中的注入位置）给出。
  */
 import { Loader2, RefreshCw, RotateCcw, Save, TriangleAlert, Zap } from 'lucide-react'
+import { SectionTitle, Switch } from '@/components/ui'
 import type { IdentityRow, IdentitySummary, UseIdentityPromptResult } from './identityPrompt'
 
 export interface IdentityPromptPanelProps {
@@ -75,13 +76,16 @@ export default function IdentityPromptPanel(props: IdentityPromptPanelProps) {
 
   return (
     <section className="pl-category pl-identity">
-      <h2 className="pl-category-title" style={{ color: '#22d3ee' }}>
-        <span className="pl-category-dot" style={{ background: '#22d3ee' }} />
+      <SectionTitle
+        level={2}
+        actions={
+          <span className="pl-category-count">
+            {loading ? '载入中…' : `${rows.length} 节 · 启用 ${enabledCount} 节 · 已发出 ${emittedOrder.size} 节`}
+          </span>
+        }
+      >
         身份提示词（系统提示词 · 线上配置）
-        <span className="pl-category-count">
-          {loading ? '载入中…' : `${rows.length} 节 · 启用 ${enabledCount} 节 · 已发出 ${emittedOrder.size} 节`}
-        </span>
-      </h2>
+      </SectionTitle>
       <p className="pl-category-desc">
         原工作台「人格与提示词 → 身份提示词」并入。<b>面板顺序 = 发出顺序</b>（该节被拼进
         system message 的先后）＝ DeepSeek 前缀缓存命中顺序（稳定节前置、易变节后置）。
@@ -172,23 +176,17 @@ export default function IdentityPromptPanel(props: IdentityPromptPanelProps) {
                         ~{row.estimate} tok{row.range ? ` · ${row.range}` : ''}
                       </span>
                     )}
-                    <button
-                      type="button"
-                      className={`pl-toggle ${row.enabled ? 'on' : ''}`}
-                      aria-pressed={row.enabled}
+                    <Switch
+                      checked={row.enabled}
+                      onCheckedChange={() => onToggle(row.key)}
+                      size="sm"
                       disabled={row.moduleBadge && !row.moduleAvailable}
-                      title={
+                      label={
                         row.moduleBadge && !row.moduleAvailable
-                          ? '对应 V2 模块未安装，无法启用'
-                          : row.enabled
-                            ? '停用该节（不再注入）'
-                            : '启用该节'
+                          ? `${row.label}：对应 V2 模块未安装，无法启用`
+                          : `${row.label}：${row.enabled ? '已开启' : '已关闭'}`
                       }
-                      onClick={() => onToggle(row.key)}
-                    >
-                      <span className="pl-toggle-dot" />
-                      {row.enabled ? '启用' : '停用'}
-                    </button>
+                    />
                   </div>
                 </div>
                 {row.description && <p className="pl-factor-desc">{row.description}</p>}

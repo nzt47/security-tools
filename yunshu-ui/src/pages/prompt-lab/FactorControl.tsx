@@ -1,7 +1,11 @@
 /**
  * FactorControl —— 单个因素控件（滑块 / 下拉 / 文本 / 开关）
  * 从 PromptLab.tsx 拆分（原 96-166 行，逻辑不变）。
+ * 【2026-11-16 统一】四类控件一律用 components/ui 的原语（Slider / Select / Input / Switch）：
+ *   原来这里的滑块是手写 input[type=range] + 页面 CSS，开关是带「开启/关闭」文字的 pill
+ *   按钮（= 额外的状态列）；现在开关只表达状态：开=亮、关=灰，不再有文字。
  */
+import { Input, Select, Slider, Switch } from '@/components/ui'
 import type { FactorValue, PromptFactorDef } from '../../lib/promptFactorTypes';
 
 interface FactorControlProps {
@@ -18,13 +22,13 @@ export default function FactorControl({ def, value, onChange }: FactorControlPro
     return (
       <>
         <div className="pl-slider-row">
-          <input
-            type="range"
+          <Slider
+            className="min-w-0 flex-1"
             min={min}
             max={max}
             step={step}
             value={typeof value === 'number' ? value : Number(def.defaultValue)}
-            onChange={(e) => onChange(Number(e.target.value))}
+            onValueChange={onChange}
             aria-label={def.name}
           />
           <span className="pl-slider-val">
@@ -45,25 +49,21 @@ export default function FactorControl({ def, value, onChange }: FactorControlPro
   }
   if (def.control === 'select') {
     return (
-      <select
-        className="pl-select"
+      <Select
+        className="pl-select-wrap"
+        options={def.options ?? []}
         value={typeof value === 'string' ? value : String(def.defaultValue)}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={onChange}
+        placeholder={def.placeholder ?? '请选择'}
         aria-label={def.name}
-      >
-        {(def.options ?? []).map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
+      />
     );
   }
   if (def.control === 'text') {
     return (
-      <input
+      <Input
+        className="pl-text-wrap"
         type="text"
-        className="pl-text"
         value={typeof value === 'string' ? value : String(def.defaultValue)}
         placeholder={def.placeholder ?? '输入…'}
         onChange={(e) => onChange(e.target.value)}
@@ -71,15 +71,13 @@ export default function FactorControl({ def, value, onChange }: FactorControlPro
       />
     );
   }
+  // boolean：开关即状态（无「开启/关闭」文字列），开=亮 / 关=灰
   return (
-    <button
-      type="button"
-      className={`pl-toggle ${value === true ? 'on' : ''}`}
-      onClick={() => onChange(value !== true)}
-      aria-pressed={value === true}
-    >
-      <span className="pl-toggle-dot" />
-      {value === true ? '开启' : '关闭'}
-    </button>
+    <Switch
+      checked={value === true}
+      onCheckedChange={(next) => onChange(next)}
+      label={def.name}
+      size="sm"
+    />
   );
 }

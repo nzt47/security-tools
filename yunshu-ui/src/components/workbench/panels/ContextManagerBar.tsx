@@ -25,6 +25,7 @@ import {
 } from '@/api/endpoints';
 
 import { CompressPrefixSwitch } from './CompressPrefixSwitch';
+import { Slider } from '@/components/ui';
 
 interface CtxStatus {
   /** 分子 = 本会话最近 percentage_window_messages 条正文（与压缩触发同源） */
@@ -443,11 +444,11 @@ export function ContextManagerBar() {
                       <span className="text-[10px] text-slate-500">{s.l}</span>
                       <span className="font-mono text-[11px] text-cyan-400">{fmt(s.val)}</span>
                     </div>
-                    <input
-                      type="range" min={s.min} max={s.max} step={s.step}
+                    <Slider
+                      min={s.min} max={s.max} step={s.step}
                       value={s.val}
-                      onChange={(e) => s.set(Number(e.target.value))}
-                      className="w-full accent-cyan-500"
+                      onValueChange={s.set}
+                      aria-label="预算比例"
                     />
                     <div className="mt-0.5 text-[9px] leading-tight text-slate-600">{s.hint}</div>
                   </div>
