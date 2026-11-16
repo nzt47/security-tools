@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-16T21:45:00+08:00",
+ "updated_at": "2026-11-16T22:20:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -771,7 +771,7 @@
    "priority": "P2",
    "title": "Electron 手工验收：6px 抓取条的拖拽拆分 / 拖到边缘分离独立窗口",
    "criteria": "B 步（ui-chrome-slimming-b）把面板标题栏换成 6px 抓取条后，拖拽入口从\"24px 标题栏\"变成\"6px 细条\"。已经用 CDP 在 headless Edge 里证明：真实鼠标按在抓取条上能起拖（Input.dragIntercepted 收到 react-dnd 的 application/json payload），拖到另一面板上时 mosaic 的 12 个 .drop-target 全部显形 ⇒ 抓取条确实是 HTML5 drag source。但**合成 drop 事件没能走完 mosaic 的 updateTree**（布局停在\"拖拽 hide\"，nav 0%）——这是回放限制，不能当作功能可用或不可用的证据；且\"拖到窗口边缘分离为独立窗口\"本身就只在 Electron 里成立（isElectron() false 时 detachPanel 直接 return），headless Web 根本测不到。（补充：Owner 回调后顶部细条高度为 0，拖拽入口只剩面板顶边居中的 44×9 抓手 + 28×2 可见线；验收时注意抓手是唯一的拖拽入口。）",
-   "next": "桌面版（electron 启动工作台）手工过三件：① 从任一面板的 6px 抓取条拖到另一面板边上 → 应拆成两个面板（mosaic 会写布局树，localStorage 里能看到 children 变化）；② 拖到窗口左/右/上/下 48px 边缘 → 应出现青色\"分离为独立窗口\"高亮，松手后建独立 BrowserWindow、主窗口布局摘除该面板；③ 面板右上角 ⋮ → 独立窗口（Web 下看不到这一项，Electron 下应有三项：独立窗口/放大/关闭）。失败判据：拖不动、或拖到头只回弹不拆分、或落边缘不出现高亮 ⇒ 优先查 .mosaic-window-toolbar 高度是否被其它样式改回 0/30px，以及 renderToolbar 的返回值是否被改成了自定义组件（react-dnd connector 只接受原生 DOM 节点）。"
+   "next": "【2026-11-16 环境核实】本机**没有 Electron 可执行文件**（yunshu-ui/node_modules/electron/dist/electron.exe 缺失，只装了 npm 包声明），所以桌面手工验收在这个 checkout 里**做不了**：需要先 npm i（下载 electron 二进制）或跑 npm run dist:electron 打包后再验。自动化替代方案也已排掉：Python Playwright **没有** Electron API（只有 Node 版 playwright 的 _electron 有）；可以试的路子是 electron . --remote-debugging-port=9333 + Playwright connect_over_cdp —— 这条已验证到「CDP 起不来」为止（因为二进制缺失），有二进制时可直接沿用。验收仍按原三步：① 抓取条拖到另一面板边 → 拆两个面板（localStorage 布局树能看到 children 变化）；② 拖到窗口左/右/上/下 48px 边缘 → 青色「分离为独立窗口」高亮，松手建独立 BrowserWindow、主窗口摘除该面板（可被 CDP 自动化替代的那一半：直接调 window.electronAPI.detachPanel({panelId,route:'/detached/<id>',title})，断言 app 多一个窗口且 URL 含 /detached/）；③ 面板右上角 ⋮ 在 Electron 下应有**三项**（独立窗口/放大/关闭），Web 下只有两项。脚本骨架已写好在 .local/verify_electron.py。"
   },
   {
    "id": "prompt-lab-factors-column-narrow",
