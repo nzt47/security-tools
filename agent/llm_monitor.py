@@ -46,15 +46,21 @@ except ImportError:
     _SINGLETON_AVAILABLE = False
     register_singleton = get_singleton = reset_singleton = None
 
-MAX_RECORDS = 30  # 环形缓冲区大小（向后兼容别名，运行时从 Config 读取；2026-11-16 默认 500 → 30）
+MAX_RECORDS = 200  # 环形缓冲区大小（向后兼容别名，运行时从 Config 读取）
+# 【2026-11-16】一条记录含 messages/tools/response_full，实测 50–150KB ⇒ 200 条约 10–30MB（500 条 25–75MB 太重）。
+PERSIST_RECORDS_DEFAULT = 30  # 落盘回填条数默认值（= 面板首屏页大小；可被 llm_monitor.persist_records 覆盖）
 
-# 会话最后一条通信的落盘位置：服务关闭后重开仍可在「LLM 通信监控」回看
-# （写盘时机：每记录一条即写 + 进程退出 atexit 兜底；见 LLMMonitor._persist_last）
+# 最近 N 条通信的落盘位置：服务关闭后重开仍可在「LLM 通信监控」回看最近 N 条
+# （写盘时机：节流写 + 进程退出 atexit 兜底；见 LLMMonitor.persist_last）
+# 【2026-11-16】以前只落盘**最后一条**（payload 直接是单条 dict），重启后面板只剩 1 条 ——
+#   那不是"保留 1 条"，是"只持久化 1 条"。现在改为 {"records": [...]} 的滚动快照；
+#   读取时兼容旧的单条 dict 形状。
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PERSIST_FILE = os.path.join(_PROJECT_ROOT, "data", "llm_monitor_last.json")
 
-# 写盘节流间隔（秒）：两次快照写盘的最小间隔，避免拖慢 LLM 主路径
-PERSIST_MIN_INTERVAL_S = 5.0
+# 写盘节流间隔（秒）：滚动快照一次要序列化 N 条（30 条 ≈ 4MB），比原来的单条重得多 ⇒ 5s → 60s；
+# 进程退出时 atexit 必写一次，所以"最后一次"永远不会丢。
+PERSIST_MIN_INTERVAL_S = 60.0
 
 
 @dataclass
@@ -132,6 +138,13 @@ class LLMMonitor:
                 _max_records = MAX_RECORDS
         self._records: list[LLMInteraction] = []
         self._max = _max_records
+        # 落盘回填条数（默认 30 = 面板首屏页大小；可被 llm_monitor.persist_records 覆盖）
+        self._persist_n = PERSIST_RECORDS_DEFAULT
+        try:
+            from agent.monitoring.observability_config import get_llm_monitor_persist_records
+            self._persist_n = max(1, get_llm_monitor_persist_records())
+        except Exception:  # noqa: BLE001 配置读不到就用默认
+            pass
         self._lock = threading.Lock()
         self._hooks_installed = False
         self._enabled = True
@@ -144,7 +157,12 @@ class LLMMonitor:
     # ── 会话持久化（关闭时保存最后一条通信；重启后回填） ──
 
     def _restore_last(self) -> bool:
-        """启动时回填上次会话落盘的最后一条通信（幂等，失败静默）。"""
+        """启动时回填上次会话落盘的最近 N 条通信（幂等，失败静默）。
+
+        兼容两种落盘形状：
+          · 新：{"records": [rec, ...], "_persisted_at": "...", "_count": N}
+          · 旧：单条 dict（.json 里直接是记录字段）—— 2026-11-16 之前的格式
+        """
         try:
             if not os.path.exists(self._persist_file):
                 return False
@@ -152,41 +170,64 @@ class LLMMonitor:
                 data = json.load(f)
             if not isinstance(data, dict):
                 return False
+            if isinstance(data.get("records"), list):
+                raw_items = data["records"]
+            elif "response_text" in data or "id" in data:
+                raw_items = [data]                       # 旧格式：单条
+            else:
+                return False
             allowed = {fld.name for fld in fields(LLMInteraction)}
-            payload = {k: v for k, v in data.items() if k in allowed}
-            payload["restored"] = True
-            interaction = LLMInteraction(**payload)
-            if not interaction.id:
-                interaction.id = uuid.uuid4().hex[:12]
+            restored = 0
             with self._lock:
-                self._records.append(interaction)
-            self.restored_from_disk = True
-            logger.info("LLM 监控：已回填上次会话最后一条通信记录（%s）",
-                        interaction.timestamp_str if hasattr(interaction, "timestamp_str")
-                        else interaction.id)
-            return True
+                for raw in raw_items[-self._persist_n:]:
+                    if not isinstance(raw, dict):
+                        continue
+                    payload = {k: v for k, v in raw.items() if k in allowed}
+                    payload["restored"] = True
+                    try:
+                        interaction = LLMInteraction(**payload)
+                    except TypeError:
+                        continue
+                    if not interaction.id:
+                        interaction.id = uuid.uuid4().hex[:12]
+                    self._records.append(interaction)
+                    restored += 1
+                while len(self._records) > self._max:
+                    self._records.pop(0)
+            self.restored_from_disk = restored > 0
+            if restored:
+                logger.info("LLM 监控：已回填上次会话最近 %d 条通信记录", restored)
+            return self.restored_from_disk
         except Exception as e:  # noqa: BLE001 回填失败不影响监控主流程
             logger.debug("LLM 监控记录回填失败: %s", e)
             return False
 
     def persist_last(self, interaction: Optional[LLMInteraction] = None) -> bool:
-        """把最后一条通信内容落盘（供服务关闭 / 手动调用）。
+        """把**最近 N 条**通信滚动落盘（N = llm_monitor.persist_records，默认 30）。
 
         Args:
-            interaction: 指定要落盘的记录；缺省取缓冲区最后一条
+            interaction: 指定要落盘的记录（会作为最新一条收尾）；缺省取缓冲区最后一条
 
         Returns:
             是否成功写盘
+
+        落盘形状：{"records": [rec, ...], "_count": N, "_persisted_at": "..."}（最旧在前，最新在后）
         """
         try:
-            if interaction is None:
-                with self._lock:
-                    interaction = self._records[-1] if self._records else None
-            if interaction is None:
+            with self._lock:
+                recs = list(self._records)
+            if interaction is not None and (not recs or recs[-1] is not interaction):
+                recs = recs + [interaction]
+            recs = recs[-self._persist_n:]
+            if not recs:
                 return False
-            payload = (interaction.to_dict() if hasattr(interaction, "to_dict")
-                       else dict(interaction))
-            payload["_persisted_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
+            payload = {
+                "_persisted_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "_count": len(recs),
+                "records": [
+                    (r.to_dict() if hasattr(r, "to_dict") else dict(r)) for r in recs
+                ],
+            }
             os.makedirs(os.path.dirname(self._persist_file), exist_ok=True)
             tmp = f"{self._persist_file}.tmp"
             with open(tmp, "w", encoding="utf-8") as f:
@@ -199,17 +240,25 @@ class LLMMonitor:
             return False
 
     def persisted_info(self) -> dict:
-        """已落盘的最后一条通信摘要（供前端标注「上次会话」来源）"""
+        """已落盘快照摘要（供前端标注「上次会话」来源与回填条数）"""
         try:
             if not os.path.exists(self._persist_file):
                 return {}
             with open(self._persist_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
+            if not isinstance(data, dict):
+                return {}
+            if isinstance(data.get("records"), list):
+                items = data["records"]
+                last = items[-1] if items and isinstance(items[-1], dict) else {}
+            else:                                        # 旧格式：单条
+                items, last = [data], data
             return {
                 "file": os.path.basename(self._persist_file),
                 "persisted_at": data.get("_persisted_at", ""),
-                "record_id": data.get("id", ""),
-                "timestamp_full": data.get("timestamp_full", ""),
+                "count": len(items),
+                "record_id": last.get("id", ""),
+                "timestamp_full": last.get("timestamp_full", ""),
             }
         except Exception:  # noqa: BLE001 读取失败返回空
             return {}

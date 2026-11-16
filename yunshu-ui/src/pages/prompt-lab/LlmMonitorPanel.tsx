@@ -39,7 +39,7 @@ interface LlmStats {
   estimated_cost_usd?: number
   buffer_usage?: string
   max_records?: number
-  persisted?: { file?: string; persisted_at?: string; timestamp_full?: string }
+  persisted?: { file?: string; persisted_at?: string; timestamp_full?: string; count?: number }
 }
 
 interface LlmMessage {
@@ -303,7 +303,8 @@ export default function LlmMonitorPanel() {
           </span>
         )}
         <span className="pl-id-hint" style={{ marginLeft: 'auto' }}>
-          仅保留最近 {stats?.max_records ?? 30} 条（{stats?.buffer_usage ?? '-'}）· 每 10s 自动刷新
+          内存最多 {stats?.max_records ?? 200} 条（{stats?.buffer_usage ?? '-'}）· 每页 {PAGE_SIZE} 条 ·
+          重启回填最近 {stats?.persisted?.count ?? '-'} 条 · 每 10s 自动刷新
         </span>
       </div>
 

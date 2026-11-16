@@ -442,14 +442,25 @@ OBSERVABILITY_VALIDATION_RULES: List[ValidationRule] = [
     ),
 
     # ── 14. LLM 监控（llm_monitor） ──
-    # 环形缓冲区最大记录数（【2026-11-16 Owner】默认 500 → **30**：面板是"看最近几条"的诊断面，
-    # 500 条把内存和渲染都撑起来却没人往回翻；下限同步从 100 放到 10，否则 30 落在区间外。）
+    # 环形缓冲区（内存）最大记录数。【2026-11-16 实测后重定】一条记录含 messages/tools/response_full，
+    # JSON 实测 **约 50–150KB**（本机当前那条 144KB）⇒ 500 条最坏约 25–75MB，纯诊断面板不值这个内存。
+    # 取 **200**（≈10–30MB，也正好等于 records 接口的单次 limit 上限），面板每次显示 30 条、可「加载更多」。
     ValidationRule(
         path="llm_monitor.max_records",
         validator=_range_validator(10, 5000),
-        default=30,
+        default=200,
         error_message="llm_monitor.max_records 必须在 10-5000 之间",
-        description="LLM 交互记录环形缓冲区大小，用于 llm_monitor.py 的 MAX_RECORDS",
+        description="LLM 交互记录环形缓冲区大小（内存），用于 llm_monitor.py 的 MAX_RECORDS",
+    ),
+
+    # 落盘回填条数。【2026-11-16】此前只落盘"最后一条"，重启后面板只剩 1 条（Owner 实测困惑）。
+    # 现在按最近 N 条滚动落盘，重启后可直接看到最近 N 条；N 默认 30 = 面板首屏页大小。
+    ValidationRule(
+        path="llm_monitor.persist_records",
+        validator=_range_validator(1, 200),
+        default=30,
+        error_message="llm_monitor.persist_records 必须在 1-200 之间",
+        description="LLM 监控落盘回填的最近条数（重启后能看到多少条历史）",
     ),
 
     # ── 15. Loki 日志推送（loki） ──
@@ -1412,6 +1423,11 @@ def get_scheduler_max_heartbeat_history() -> int:
 
 
 # ── LLM 监控便捷函数 ──
+
+def get_llm_monitor_persist_records() -> int:
+    """LLM 监控落盘回填条数（重启后能看到多少条历史）。"""
+    return int(get_observability_config().get("llm_monitor.persist_records", default=30))
+
 
 def get_llm_monitor_max_records() -> int:
     """读取 LLM 交互记录环形缓冲区大小（便捷函数，支持热加载）
