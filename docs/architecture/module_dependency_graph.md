@@ -1414,6 +1414,7 @@ flowchart LR
     agent_llm_monitor --> agent_logging_utils
     agent_llm_monitor -.-> agent_utils_singleton_manager
     agent_llm_monitor -.-> agent_observability_events
+    agent_llm_monitor -.-> agent_monitoring_observability_config
     agent_llm_monitor -.-> agent_monitoring
     agent_llm_monitor -.-> agent_observability
     agent_llm_monitor -.-> agent_observability
@@ -3044,7 +3045,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 768
 - 模块节点数: 667
-- 依赖边数: 2247
-- 跨层调用数: 1439
+- 依赖边数: 2248
+- 跨层调用数: 1440
 - 违规调用数: 0
 - 动态 import 数: 1
