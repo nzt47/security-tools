@@ -159,7 +159,7 @@ export function DigestionPipelinePanel() {
               <div key={lane.lane} className="flex min-h-[220px] flex-col rounded-lg border border-slate-800 bg-slate-900/60">
                 <div className="border-b border-slate-800 px-3 py-2">
                   <div className="text-xs font-medium text-slate-200">{lane.title}</div>
-                  <div className="mt-0.5 text-[11px] text-slate-500">
+                  <div className="mt-0.5 text-caption text-slate-500">
                     <MetricValue metric={lane.event_count} />
                     {lane.truncated && <span className="ml-1 text-amber-500">（已截断）</span>}
                   </div>
@@ -172,12 +172,12 @@ export function DigestionPipelinePanel() {
                   keyOf={(e) => e.event_id}
                   renderItem={(e) => (
                     <div className="mb-1 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5">
-                      <div className="truncate font-mono text-[10px] text-cyan-300">{e.capability_id || '(无能力)'}</div>
+                      <div className="truncate font-mono text-micro text-cyan-300">{e.capability_id || '(无能力)'}</div>
                       <div className="mt-0.5 flex items-center gap-1">
                         <StatusBadge tone={toneForStage(e.to_stage)}>{e.to_stage || '—'}</StatusBadge>
                         {e.applied && <StatusBadge tone="green">已落库</StatusBadge>}
                       </div>
-                      <div className="mt-0.5 truncate text-[10px] text-slate-500" title={e.reasons?.join('；')}>
+                      <div className="mt-0.5 truncate text-micro text-slate-500" title={e.reasons?.join('；')}>
                         {e.verdict || '—'} · {formatTime(e.ts)}
                       </div>
                     </div>
@@ -239,7 +239,7 @@ export function DistillAsSkillEntry({ capabilityId }: { capabilityId: string }) 
   return (
     <button
       type="button"
-      className="rounded-sm border border-slate-700 px-2 py-1 text-[11px] text-slate-300 hover:border-cyan-700"
+      className="rounded-sm border border-slate-700 px-2 py-1 text-caption text-slate-300 hover:border-cyan-700"
       onClick={() => {
         recordImplicitEntry({
           entry: 'context-menu:distill-as-skill',
@@ -265,7 +265,7 @@ function KpiTile({
 }) {
   return (
     <div className="rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2">
-      <div className="flex items-center gap-1 text-[11px] text-slate-500">
+      <div className="flex items-center gap-1 text-caption text-slate-500">
         {icon}
         {label}
       </div>
@@ -287,10 +287,10 @@ function ShadowCardView({ card }: { card: ShadowCard }) {
         <StatusBadge tone={card.degradation === 'degraded' ? 'red' : card.degradation === 'stable' ? 'green' : 'gray'}>
           {card.degradation || '—'}
         </StatusBadge>
-        <span className="text-[10px] text-slate-500">judge={card.judge_kind}</span>
-        <span className="ml-auto text-[10px] text-slate-500">{formatTime(card.generated_at)}</span>
+        <span className="text-micro text-slate-500">judge={card.judge_kind}</span>
+        <span className="ml-auto text-micro text-slate-500">{formatTime(card.generated_at)}</span>
       </div>
-      <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] md:grid-cols-4">
+      <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-caption md:grid-cols-4">
         <div>样本 <span className="text-slate-200">{card.sampled}</span></div>
         <div>通过 <span className="text-slate-200">{formatNumber(card.passed)}</span></div>
         <div>
@@ -300,7 +300,7 @@ function ShadowCardView({ card }: { card: ShadowCard }) {
           p99(墙钟·上游) <MetricValue metric={card.p99_wall_upstream_ms} format="ms" />
         </div>
       </div>
-      <div className="mt-1.5 text-[11px]">
+      <div className="mt-1.5 text-caption">
         通过率 <MetricValue metric={card.pass_rate} format="percent" />
       </div>
     </div>
@@ -321,9 +321,9 @@ function DecisionCardView({ decision }: { decision: DecisionCard }) {
         {decision.promotable && <StatusBadge tone="green">可 promote</StatusBadge>}
       </div>
       {decision.blocker && (
-        <div className="mt-1.5 text-[11px] text-red-300">阻断项：{decision.blocker}</div>
+        <div className="mt-1.5 text-caption text-red-300">阻断项：{decision.blocker}</div>
       )}
-      <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] md:grid-cols-4">
+      <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-caption md:grid-cols-4">
         <div>月省 <MetricValue metric={decision.roi.monthly_saving_cents} format="cents" /></div>
         <div>一次性投入 <MetricValue metric={decision.roi.one_time_investment_cents} format="cents" /></div>
         <div>月摊销 <MetricValue metric={decision.roi.amortized_monthly_cents} format="cents" /></div>
@@ -347,7 +347,7 @@ function DecisionCardView({ decision }: { decision: DecisionCard }) {
           }))}
         />
       </div>
-      <div className="mt-1.5 font-mono text-[10px] text-slate-600">
+      <div className="mt-1.5 font-mono text-micro text-slate-600">
         engine={decision.engine_version} · audit_seq={decision.audit_seq ?? '—'} ·
         pr={decision.pr_id || '—'}
       </div>
@@ -369,8 +369,8 @@ function ManualReviewView({ summary }: { summary: import('@/lib/cpPanelsTypes').
           {summary.closed ? '抽检闭合' : '未闭合'}
         </StatusBadge>
       </div>
-      {summary.note && <div className="mt-1.5 text-[11px] text-amber-400/80">{summary.note}</div>}
-      {summary.path && <div className="mt-1 font-mono text-[10px] text-slate-600">{summary.path}</div>}
+      {summary.note && <div className="mt-1.5 text-caption text-amber-400/80">{summary.note}</div>}
+      {summary.path && <div className="mt-1 font-mono text-micro text-slate-600">{summary.path}</div>}
     </div>
   )
 }
@@ -423,7 +423,7 @@ export function CapabilityMapPanel() {
             </select>
           </div>
 
-          <div className="mb-3 grid grid-cols-2 gap-2 text-[11px] md:grid-cols-4">
+          <div className="mb-3 grid grid-cols-2 gap-2 text-caption md:grid-cols-4">
             <DistBox title="按来源(provenance)" dist={data.distribution.by_provenance} />
             <DistBox title="按风险" dist={data.distribution.by_risk} />
             <DistBox title="按数据分级" dist={data.distribution.by_data_class} />
@@ -456,7 +456,7 @@ export function CapabilityMapPanel() {
               </div>
             )}
           />
-          <div className="mt-2 flex items-center gap-2 text-[11px] text-slate-500">
+          <div className="mt-2 flex items-center gap-2 text-caption text-slate-500">
             <button type="button" disabled={offset === 0}
               onClick={() => setOffset(Math.max(0, offset - 500))}
               className="rounded-sm border border-slate-700 px-2 py-0.5 disabled:opacity-40">上一页</button>
@@ -610,7 +610,7 @@ export function ApprovalInboxPanel() {
                 <MetricValue metric={data.pending_total} label="待审" />
                 <MetricValue metric={data.bubble_hidden} label="不出气泡" />
                 {data.inline_hidden ? (
-                  <span className="text-[11px] text-slate-500" data-testid="approvals-inline-hidden"
+                  <span className="text-caption text-slate-500" data-testid="approvals-inline-hidden"
                     title="这些审批是对话里发起的：工作台会直接弹窗让你「批准并继续 / 拒绝」，不属于要在收件箱里翻待办的那一类">
                     另有 {data.inline_hidden} 条在对话内弹窗
                   </span>
@@ -621,7 +621,7 @@ export function ApprovalInboxPanel() {
           {data.error && <div className="mb-2 text-xs text-red-300">{data.error}</div>}
 
           {/* 默认只列"需要你来翻"的待办；对话内审批可按需展开（排障/审计） */}
-          <label className="mb-2 flex items-center gap-1.5 text-[11px] text-slate-500">
+          <label className="mb-2 flex items-center gap-1.5 text-caption text-slate-500">
             <input
               type="checkbox"
               data-testid="approvals-include-inline"
@@ -646,7 +646,7 @@ export function ApprovalInboxPanel() {
                     g.record_ids.forEach((id) => { next[id] = true })
                     setSelected(next); setBatchId('')
                   }}
-                  className={`rounded border px-2 py-1 text-[11px] ${
+                  className={`rounded border px-2 py-1 text-caption ${
                     selectedGroup?.batch_key === g.batch_key
                       ? 'border-cyan-600 bg-cyan-500/15 text-cyan-200'
                       : 'border-slate-700 text-slate-300 hover:border-cyan-700'
@@ -675,14 +675,14 @@ export function ApprovalInboxPanel() {
                 {busy === 'reject' ? '提交中…' : `驳回所选（${selectedIds.length}）`}
               </button>
               {selectedIds.length === 0 && (
-                <span className="text-[11px] text-slate-500">先点上方分组（或逐条勾选）</span>
+                <span className="text-caption text-slate-500">先点上方分组（或逐条勾选）</span>
               )}
             </div>
-            {msg && <div className="mt-2 text-[11px] text-cyan-300">{msg}</div>}
+            {msg && <div className="mt-2 text-caption text-cyan-300">{msg}</div>}
             {errMsg && (
               <div
                 data-cp-approval-error="true"
-                className="mt-2 break-all rounded-sm border border-red-900/60 bg-red-950/40 px-2 py-1 text-[11px] text-red-300"
+                className="mt-2 break-all rounded-sm border border-red-900/60 bg-red-950/40 px-2 py-1 text-caption text-red-300"
               >
                 {errMsg}
               </div>
@@ -699,7 +699,7 @@ export function ApprovalInboxPanel() {
               className="rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-6 text-center text-xs text-slate-500"
             >
               暂无待审记录（pending_review = 0）
-              <div className="mt-1 text-[10px] text-slate-600">
+              <div className="mt-1 text-micro text-slate-600">
                 若预期有记录，请核对令牌与 panel.approvals 查看权——读取失败会以红条如实显示（401 / 403）
               </div>
             </div>
@@ -733,7 +733,7 @@ export function ApprovalInboxPanel() {
             </Collapsible>
           </div>
 
-          <div className="mt-2 font-mono text-[10px] text-slate-600">
+          <div className="mt-2 font-mono text-micro text-slate-600">
             {JSON.stringify(data.decision_contract)}
           </div>
         </>
@@ -788,10 +788,10 @@ function ApprovalRow({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           {/* 记录 id：批量裁决与审计追溯的唯一句柄——裁决被拒时要能把它原样报出去 */}
-          <span className="font-mono text-[10px] text-amber-300/90" title="record_id">
+          <span className="font-mono text-micro text-amber-300/90" title="record_id">
             {item.record_id}
           </span>
-          <span className="font-mono text-[11px] text-cyan-300">{item.object_type}</span>
+          <span className="font-mono text-caption text-cyan-300">{item.object_type}</span>
           <span className="truncate text-slate-300">{item.object_id}</span>
           <StatusBadge tone="blue">{item.level}</StatusBadge>
           <StatusBadge tone={toneForRisk(item.risk)}>风险 {item.risk || '未标注'}</StatusBadge>
@@ -809,7 +809,7 @@ function ApprovalRow({
         <div className="mt-1 line-clamp-2 text-slate-400">{item.description || '(无说明)'}</div>
         {/* 参数摘要：后端收件箱**不下发原始 payload**（防跨租户/防泄露），所以预览只用
             后端已给的 action + 治理退路 + 污染标记，前端不自行拼装、不猜测 */}
-        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-slate-500">
+        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-micro text-slate-500">
           <span>动作 <span className="font-mono text-slate-400">{item.action || '—'}</span></span>
           <span>
             退路{' '}
@@ -821,11 +821,11 @@ function ApprovalRow({
             <span>污染标记 <span className="text-amber-400/80">{item.taint.taint_reason}</span></span>
           )}
         </div>
-        <div className="mt-0.5 text-[10px] text-slate-600">
+        <div className="mt-0.5 text-micro text-slate-600">
           {item.actor} / {item.actor_type || '—'} · 创建于 {formatTime(item.created_at)}
         </div>
-        {msg && <div className="mt-1 text-[10px] text-cyan-300">{msg}</div>}
-        {err && <div className="mt-1 break-all text-[10px] text-red-300">{err}</div>}
+        {msg && <div className="mt-1 text-micro text-cyan-300">{msg}</div>}
+        {err && <div className="mt-1 break-all text-micro text-red-300">{err}</div>}
       </div>
       {/* ★ U2：审批按钮区挂在工作台内的 Shadow DOM 自治单元里 */}
       <ApprovalZone inline>
@@ -893,12 +893,12 @@ export function RoiPanel() {
                 <div className="mt-1 font-mono text-sm text-slate-200">
                   {data.policy_latency.full_instrumentation.hit_ms} ms / {data.policy_latency.full_instrumentation.miss_ms} ms
                 </div>
-                <div className="mt-1 text-[10px] text-amber-400/80">
+                <div className="mt-1 text-micro text-amber-400/80">
                   {data.policy_latency.full_instrumentation.note}
                 </div>
               </div>
             </div>
-            <div className="mt-2 text-[11px] text-red-300">
+            <div className="mt-2 text-caption text-red-300">
               可比性：{data.policy_latency.comparability}（两个口径**不可互换/相减/平均**）
             </div>
           </Collapsible>
@@ -926,14 +926,14 @@ export function RoiPanel() {
                     审批迟滞中位数 <MetricValue metric={decay?.latency_median_ms} format="ms" />
                   </div>
                   {decay?.fatigue_buckets && (
-                    <div className="flex flex-wrap gap-2 text-[11px] text-slate-500">
+                    <div className="flex flex-wrap gap-2 text-caption text-slate-500">
                       疲劳分桶：
                       {Object.entries(decay.fatigue_buckets).map(([k, v]) => (
                         <span key={k}>{k}:{v}</span>
                       ))}
                     </div>
                   )}
-                  {decay?.note && <div className="text-[10px] text-amber-400/80">{decay.note}</div>}
+                  {decay?.note && <div className="text-micro text-amber-400/80">{decay.note}</div>}
                 </div>
               )}
             </Collapsible>
@@ -962,7 +962,7 @@ function SloMetricsTable({
   )
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-left text-[11px]">
+      <table className="w-full text-left text-caption">
         <thead className="text-slate-500">
           <tr>
             <th className="py-1 pr-2">指标</th>
@@ -989,7 +989,7 @@ function SloMetricsTable({
                   {r.status}
                 </StatusBadge>
               </td>
-              <td className="py-1 font-mono text-[10px] text-slate-500" title={`${r.source}\n${r.formula}`}>
+              <td className="py-1 font-mono text-micro text-slate-500" title={`${r.source}\n${r.formula}`}>
                 {r.source}
               </td>
             </tr>
@@ -1025,14 +1025,14 @@ export function IncidentsPanel() {
             datasources={data.panel?.datasources}
             actions={
               <button type="button" onClick={() => setExpanded(!autoOpen)}
-                className="rounded-sm border border-slate-700 px-2 py-1 text-[11px] text-slate-400">
+                className="rounded-sm border border-slate-700 px-2 py-1 text-caption text-slate-400">
                 {autoOpen ? '折叠' : '展开'}
               </button>
             }
           />
           {data.auto_expand && <div className="mb-3"><IncidentBanner count={data.open_count.value ?? 0} note={data.auto_expand_rule} /></div>}
           {(data.open_blocked_count?.value ?? 0) > 0 && (
-            <div className="mb-2 rounded-sm border border-amber-900/60 bg-amber-950/20 px-2 py-1 text-[11px] text-amber-300">
+            <div className="mb-2 rounded-sm border border-amber-900/60 bg-amber-950/20 px-2 py-1 text-caption text-amber-300">
               其中 {data.open_blocked_count?.value} 张缺要素，按 §3 契约**不可 resolve**（不是待办事故）：
               补齐用 complete_incident()，或处置（归档）用 scripts/heal_incidents.py（默认 dry-run）。
             </div>
@@ -1044,7 +1044,7 @@ export function IncidentsPanel() {
             <KpiTile label="MTTR 中位数" metric={data.mttd_ms?.mttr_ms} format="ms" />
           </div>
           {data.load_error && (
-            <div className="mb-2 text-[11px] text-red-300">事故目录读取失败：{data.load_error}</div>
+            <div className="mb-2 text-caption text-red-300">事故目录读取失败：{data.load_error}</div>
           )}
 
           {autoOpen && (
@@ -1070,15 +1070,15 @@ export function IncidentsPanel() {
               <div className="space-y-1 text-xs text-slate-400">
                 <div className="flex items-center gap-2">
                   MTTD <MetricValue metric={data.mttd_ms?.mttd_ms} format="ms" />
-                  <span className="text-[10px] text-slate-600">样本 {data.mttd_ms?.mttd_samples ?? 0}</span>
+                  <span className="text-micro text-slate-600">样本 {data.mttd_ms?.mttd_samples ?? 0}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   MTTR <MetricValue metric={data.mttd_ms?.mttr_ms} format="ms" />
-                  <span className="text-[10px] text-slate-600">样本 {data.mttd_ms?.mttr_samples ?? 0}</span>
+                  <span className="text-micro text-slate-600">样本 {data.mttd_ms?.mttr_samples ?? 0}</span>
                 </div>
-                <div className="text-[10px] text-amber-400/80">{data.mttd_ms?.note}</div>
+                <div className="text-micro text-amber-400/80">{data.mttd_ms?.note}</div>
                 {data.mttd_ms?.by_level && (
-                  <div className="flex flex-wrap gap-2 text-[11px]">
+                  <div className="flex flex-wrap gap-2 text-caption">
                     按级别：{Object.entries(data.mttd_ms.by_level).map(([k, v]) => <span key={k}>{k}:{v}</span>)}
                   </div>
                 )}
@@ -1097,14 +1097,14 @@ function IncidentCardView({ card }: { card: IncidentsView['incidents'][number] }
     <div className={`rounded-lg border p-3 ${card.status === 'open' ? 'border-red-900/60 bg-red-950/20' : 'border-slate-800 bg-slate-900/40'}`}>
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <StatusBadge tone={toneForSeverity(card.severity)}>{card.severity}</StatusBadge>
-        <span className="font-mono text-[11px] text-slate-400">{card.id}</span>
+        <span className="font-mono text-caption text-slate-400">{card.id}</span>
         <StatusBadge tone={card.status === 'open' ? 'red' : 'green'}>{card.status}</StatusBadge>
         <StatusBadge tone={ready ? 'green' : 'yellow'} title="§3：六要素齐才可 resolved">
           {ready ? '六要素齐备' : `缺要素 ${card.missing_elements.length}`}
         </StatusBadge>
-        <span className="ml-auto text-[10px] text-slate-500">{formatTime(card.created_at)}</span>
+        <span className="ml-auto text-micro text-slate-500">{formatTime(card.created_at)}</span>
       </div>
-      <div className="mt-2 space-y-1 text-[11px] text-slate-300">
+      <div className="mt-2 space-y-1 text-caption text-slate-300">
         <div>根因：{card.root_cause || '—'}</div>
         <div>致命变更：<span className="font-mono">{card.fatal_change || '—'}</span></div>
         <div>规避规则：{card.evasion_rule || '—'}</div>
@@ -1143,18 +1143,18 @@ function BackupHealthCard({ health }: { health: Record<string, unknown> }) {
         </StatusBadge>
         <MetricValue metric={health.backup_count as never} label="备份数" />
       </div>
-      <div className="text-[11px] text-slate-500">
+      <div className="text-caption text-slate-500">
         备份目录 <span className="font-mono">{String(cfg.backup_dir || '—')}</span>
       </div>
       {latest ? (
-        <div className="text-[11px]">
+        <div className="text-caption">
           最近备份 <span className="font-mono">{String(latest.backup_id)}</span> ·{' '}
           {String(latest.timestamp)} · {formatNumber((latest.size as number) ?? null)} B
         </div>
       ) : (
-        <div className="text-[11px] text-slate-500">最近备份：—（无记录）</div>
+        <div className="text-caption text-slate-500">最近备份：—（无记录）</div>
       )}
-      <div className="text-[10px] text-amber-400/80">{String(health.event_note || '')}</div>
+      <div className="text-micro text-amber-400/80">{String(health.event_note || '')}</div>
     </div>
   )
 }
@@ -1202,12 +1202,12 @@ export function AuditExportPanel() {
             datasources={data.panel?.datasources}
             actions={
               <button type="button" onClick={onExport}
-                className="flex items-center gap-1 rounded-sm bg-cyan-700 px-2 py-1 text-[11px] text-white">
+                className="flex items-center gap-1 rounded-sm bg-cyan-700 px-2 py-1 text-caption text-white">
                 <FileDown size={12} /> 导出 CSV
               </button>
             }
           />
-          {dl && <div className="mb-2 text-[11px] text-cyan-300">{dl}</div>}
+          {dl && <div className="mb-2 text-caption text-cyan-300">{dl}</div>}
 
           <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-4">
             <KpiTile label="导出记录" metric={data.exported} icon={<ScrollText size={13} />} />
@@ -1237,8 +1237,8 @@ export function AuditExportPanel() {
                   （其后 {data.verify.bad_seqs.length} 条异常）</span>
               )}
             </div>
-            {data.verify.detail && <div className="mt-1 font-mono text-[10px] opacity-80">{data.verify.detail}</div>}
-            <div className="mt-1 text-[10px] opacity-70">
+            {data.verify.detail && <div className="mt-1 font-mono text-micro opacity-80">{data.verify.detail}</div>}
+            <div className="mt-1 text-micro opacity-70">
               验签口径：{data.verify_scope}
               （exported=仅本次导出区间；full=全链重算，耗时随链长线性增长）
             </div>
@@ -1264,7 +1264,7 @@ export function AuditExportPanel() {
             className="rounded-lg border border-slate-800"
             keyOf={(e) => String(e.seq)}
             renderItem={(e) => (
-              <div className="flex items-center gap-2 border-b border-slate-800/60 px-3 font-mono text-[10px] text-slate-400">
+              <div className="flex items-center gap-2 border-b border-slate-800/60 px-3 font-mono text-micro text-slate-400">
                 <span className="w-14 shrink-0 text-slate-500">#{e.seq}</span>
                 <span className="w-32 shrink-0 truncate">{e.actor}</span>
                 <span className="w-48 shrink-0 truncate text-cyan-300">{e.action}</span>
@@ -1286,7 +1286,7 @@ export function AuditExportPanel() {
                   const { fetchObservabilityStream: f } = await import('@/lib/cpPanelsApi')
                   setObs(await f({ days: 30 }))
                 }}
-                className="mb-2 rounded-sm border border-slate-700 px-2 py-1 text-[11px] text-slate-300">
+                className="mb-2 rounded-sm border border-slate-700 px-2 py-1 text-caption text-slate-300">
                 加载事件流聚合
               </button>
               {obs && <EventStreamView view={obs} />}
@@ -1297,7 +1297,7 @@ export function AuditExportPanel() {
                   const { fetchAuthzAlerts: f } = await import('@/lib/cpPanelsApi')
                   setAlerts(await f({ days: 30, limit: 50 }))
                 }}
-                className="mb-2 rounded-sm border border-slate-700 px-2 py-1 text-[11px] text-slate-300">
+                className="mb-2 rounded-sm border border-slate-700 px-2 py-1 text-caption text-slate-300">
                 加载越权告警
               </button>
               {alerts && <AuthzAlertsViewBox view={alerts} />}
@@ -1326,14 +1326,14 @@ function EventStreamView({ view }: { view: ObservabilityStreamView }) {
       {degrade?.edges && Object.keys(degrade.edges).length > 0 && (
         <div className="flex flex-wrap gap-2">
           {Object.entries(degrade.edges).map(([edge, n]) => (
-            <span key={edge} className="rounded-sm border border-slate-700 px-1.5 py-0.5 font-mono text-[10px] text-amber-300">
+            <span key={edge} className="rounded-sm border border-slate-700 px-1.5 py-0.5 font-mono text-micro text-amber-300">
               {edge} × {n}
             </span>
           ))}
         </div>
       )}
       {degrade?.chain && (
-        <div className="text-[10px] text-slate-500">
+        <div className="text-micro text-slate-500">
           回退链：{degrade.chain.models?.join(' → ') || '—'}（来源 {degrade.chain.source}，
           {degrade.chain.enabled ? '已启用' : '未启用'}）
         </div>
@@ -1344,10 +1344,10 @@ function EventStreamView({ view }: { view: ObservabilityStreamView }) {
           <MetricValue metric={escape?.total} />
         </span>
         {escape?.by_path && Object.entries(escape.by_path).map(([p, n]) => (
-          <span key={p} className="font-mono text-[10px] text-red-300">{p} × {n}</span>
+          <span key={p} className="font-mono text-micro text-red-300">{p} × {n}</span>
         ))}
       </div>
-      <div className="font-mono text-[10px] text-slate-600">受治理文件：{(escape?.watched || []).join(', ') || '—'}</div>
+      <div className="font-mono text-micro text-slate-600">受治理文件：{(escape?.watched || []).join(', ') || '—'}</div>
     </div>
   )
 }
@@ -1357,7 +1357,7 @@ function AuthzAlertsViewBox({ view }: { view: AuthzAlertsView }) {
   const du = view.durable
   return (
     <div className="space-y-2 text-xs">
-      <div className="rounded-sm border border-amber-900/50 bg-amber-950/20 px-2 py-1 text-[10px] text-amber-300">
+      <div className="rounded-sm border border-amber-900/50 bg-amber-950/20 px-2 py-1 text-micro text-amber-300">
         {view.realtime.note}（volatile={String(view.realtime.volatile)}）
       </div>
       <div className="flex flex-wrap items-center gap-3 text-slate-400">
@@ -1371,13 +1371,13 @@ function AuthzAlertsViewBox({ view }: { view: AuthzAlertsView }) {
           <MetricValue metric={du.total} label="总计" />
         </div>
         {du.by_source_key && (
-          <div className="mb-1 flex flex-wrap gap-2 font-mono text-[10px] text-slate-400">
+          <div className="mb-1 flex flex-wrap gap-2 font-mono text-micro text-slate-400">
             {Object.entries(du.by_source_key).map(([k, v]) => <span key={k}>{k.slice(0, 14)}… × {v}</span>)}
           </div>
         )}
         <div className="max-h-40 overflow-y-auto">
           {(du.recent || []).slice(0, 20).map((r, i) => (
-            <div key={`${r.ts}-${i}`} className="flex items-center gap-2 border-b border-slate-800/50 py-0.5 text-[10px]">
+            <div key={`${r.ts}-${i}`} className="flex items-center gap-2 border-b border-slate-800/50 py-0.5 text-micro">
               <span className="w-32 shrink-0 text-slate-500">{formatTime(r.ts)}</span>
               <span className="w-32 shrink-0 truncate text-slate-300">{r.actor}</span>
               <span className="w-40 shrink-0 truncate text-cyan-300">{r.operation}</span>
@@ -1386,7 +1386,7 @@ function AuthzAlertsViewBox({ view }: { view: AuthzAlertsView }) {
           ))}
           {(du.recent || []).length === 0 && <div className="text-slate-500">窗口内无越权事件</div>}
         </div>
-        <div className="mt-1 text-[10px] text-slate-600">{du.pii_note}</div>
+        <div className="mt-1 text-micro text-slate-600">{du.pii_note}</div>
       </div>
     </div>
   )

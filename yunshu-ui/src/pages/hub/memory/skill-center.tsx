@@ -43,8 +43,8 @@ export default function SkillCenter() {
             <Hammer size={14} className="text-cyan-400" />
           </div>
           <div>
-            <h1 className="text-[15px] font-semibold text-slate-100">技能中心</h1>
-            <p className="text-[11px] text-slate-500">
+            <h1 className="text-title font-semibold text-slate-100">技能中心</h1>
+            <p className="text-caption text-slate-500">
               LLM 技能（提示/行为注入，模型执行）—— 统一表 = 运行时技能（/api/skills）+ 技能资产（/api/skills-mgmt）按 id 合并
               <span className="ml-2 text-slate-600">· 本地确定性执行的工作流在「工作流」叶子</span>
             </p>
@@ -53,7 +53,7 @@ export default function SkillCenter() {
             type="button"
             onClick={() => setCardsOpen(true)}
             title="按能力卡（L1）列出现在到底有哪些能力：触发 / 步骤 / 参数 / 示例 / 约束"
-            className="ml-auto flex shrink-0 items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1.5 text-[11px] text-slate-300 transition-colors hover:border-cyan-700 hover:bg-cyan-500/10 hover:text-cyan-300"
+            className="ml-auto flex shrink-0 items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1.5 text-caption text-slate-300 transition-colors hover:border-cyan-700 hover:bg-cyan-500/10 hover:text-cyan-300"
           >
             <BookOpen size={12} /> 能力卡
           </button>
@@ -63,7 +63,7 @@ export default function SkillCenter() {
               type="button"
               onClick={() => setIntakeOpen(true)}
               title="把未入轨的技能提交进 git（只处理未入轨项）"
-              className="flex shrink-0 items-center gap-1.5 rounded-md border border-amber-800/70 px-2.5 py-1.5 text-[11px] text-amber-300 transition-colors hover:bg-amber-500/10"
+              className="flex shrink-0 items-center gap-1.5 rounded-md border border-amber-800/70 px-2.5 py-1.5 text-caption text-amber-300 transition-colors hover:bg-amber-500/10"
             >
               <GitBranch size={12} /> 入轨助手 · {pendingIntake}
             </button>

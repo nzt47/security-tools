@@ -341,7 +341,7 @@ function SecretValue({ item }: { item: SettingsItem }) {
       <StatusBadge tone={item.configured ? 'green' : 'gray'}>
         {item.configured ? '已配置' : '未配置'}
       </StatusBadge>
-      <span className="max-w-[220px] truncate font-mono text-[11px] text-slate-400">
+      <span className="max-w-[220px] truncate font-mono text-caption text-slate-400">
         {item.display_value}
       </span>
     </div>
@@ -354,18 +354,18 @@ function SourceLine({ item }: { item: SettingsItem }) {
   return (
     <span className="flex flex-wrap items-center gap-1.5">
       <span
-        className="rounded-sm border border-slate-700 bg-slate-950/60 px-1.5 py-0.5 text-[10px] text-slate-300"
+        className="rounded-sm border border-slate-700 bg-slate-950/60 px-1.5 py-0.5 text-micro text-slate-300"
         data-cp-setting-source={item.source}
         title={`生效来源 ${item.source}`}
       >
         来源：{item.source_label || item.source}
       </span>
       {/* 契约的四个来源 token 也直接可见，避免只有中文别名时无法对账 */}
-      <span className="font-mono text-[10px] text-slate-500">{item.source}</span>
+      <span className="font-mono text-micro text-slate-500">{item.source}</span>
       {/* L4：生效来源是代码默认值时，如实说明配置层给没给这个键（文案来自后端） */}
       {item.source === CONFIG_STATE_HINT_SOURCE && item.config_state_label && (
         <span
-          className="rounded-sm border border-slate-800 bg-slate-900/60 px-1.5 py-0.5 text-[10px] text-slate-400"
+          className="rounded-sm border border-slate-800 bg-slate-900/60 px-1.5 py-0.5 text-micro text-slate-400"
           data-cp-setting-config-state={item.config_state || 'unknown'}
         >
           {item.config_state_label}
@@ -373,7 +373,7 @@ function SourceLine({ item }: { item: SettingsItem }) {
       )}
       {shadowed.length > 0 && (
         <span
-          className="rounded-sm border border-amber-900 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-300"
+          className="rounded-sm border border-amber-900 bg-amber-500/10 px-1.5 py-0.5 text-micro text-amber-300"
           data-cp-shadowed-note={item.key}
         >
           当前被 {item.source_label || item.source}（{item.source}）覆盖：
@@ -442,7 +442,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
           label="当前值"
         />
         {item.display_value !== '' && (
-          <span className="font-mono text-[10px] text-slate-500" data-cp-setting-value={item.key}>
+          <span className="font-mono text-micro text-slate-500" data-cp-setting-value={item.key}>
             {item.display_value}
           </span>
         )}
@@ -450,7 +450,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
     )
   } else if (locked) {
     control = (
-      <span className="font-mono text-[11px] text-slate-500" data-cp-setting-value={item.key}>
+      <span className="font-mono text-caption text-slate-500" data-cp-setting-value={item.key}>
         {item.display_value}
       </span>
     )
@@ -474,7 +474,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
             }
           }}
           disabled={busy || editing}
-          className="w-44 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 font-mono text-[11px] text-slate-200 disabled:opacity-50"
+          className="w-44 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 font-mono text-caption text-slate-200 disabled:opacity-50"
         >
           {!choices.includes(String(ctx.drafts[item.key] ?? item.display_value ?? '')) && (
             <option value={String(ctx.drafts[item.key] ?? item.display_value ?? '')}>
@@ -487,11 +487,11 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
             </option>
           ))}
         </select>
-        <span className="text-[10px] text-slate-600">排它单选</span>
+        <span className="text-micro text-slate-600">排它单选</span>
         </div>
         {choiceNotes[selectValue] ? (
           <span
-            className="max-w-[26rem] text-right text-[10px] leading-relaxed text-slate-500"
+            className="max-w-[26rem] text-right text-micro leading-relaxed text-slate-500"
             data-cp-setting-choice-note={item.key}
           >
             {choiceNotes[selectValue]}
@@ -509,7 +509,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
           value={ctx.drafts[item.key] ?? String(item.display_value ?? '')}
           onChange={(e) => ctx.onDraft(item.key, e.target.value)}
           disabled={busy || confirmFirst}
-          className="w-40 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 font-mono text-[11px] text-slate-200 disabled:opacity-50"
+          className="w-40 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 font-mono text-caption text-slate-200 disabled:opacity-50"
         />
       </div>
     )
@@ -536,7 +536,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
             <SourceLine item={item} />
             {item.needs_restart && (
               <span
-                className="rounded-sm border border-amber-800 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-300"
+                className="rounded-sm border border-amber-800 bg-amber-500/10 px-1.5 py-0.5 text-micro text-amber-300"
                 data-cp-needs-restart={item.key}
               >
                 需重启
@@ -544,7 +544,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
             )}
             {item.env_only && (
               <span
-                className="rounded-sm border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-400"
+                className="rounded-sm border border-slate-700 px-1.5 py-0.5 text-micro text-slate-400"
                 data-cp-env-only={item.key}
               >
                 仅支持环境变量
@@ -552,7 +552,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
             )}
             {item.locked && (
               <span
-                className="inline-flex items-center gap-1 rounded-sm border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-400"
+                className="inline-flex items-center gap-1 rounded-sm border border-slate-700 px-1.5 py-0.5 text-micro text-slate-400"
                 data-cp-locked={item.key}
               >
                 <Lock size={9} /> 已锁定
@@ -560,7 +560,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
             )}
             {item.secret && (
               <span
-                className="inline-flex items-center gap-1 rounded-sm border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-400"
+                className="inline-flex items-center gap-1 rounded-sm border border-slate-700 px-1.5 py-0.5 text-micro text-slate-400"
                 data-cp-secret={item.key}
               >
                 <KeyRound size={9} /> 只读脱敏
@@ -572,7 +572,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
             <p className="mt-0.5 text-xs text-slate-400">{item.description}</p>
           )}
 
-          <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-slate-500">
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-micro text-slate-500">
             <span data-cp-default={item.key}>
               默认值：{item.default === null || item.default === undefined ? '—' : String(item.default)}
             </span>
@@ -586,7 +586,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
           {/* ① 锁定 ⇒ 原因必须**以文本**出现在行内 */}
           {item.locked && item.locked_reason && (
             <div
-              className="mt-1 flex items-start gap-1 text-[11px] text-slate-400"
+              className="mt-1 flex items-start gap-1 text-caption text-slate-400"
               data-cp-locked-reason={item.key}
             >
               <Lock size={10} className="mt-0.5 shrink-0" />
@@ -596,7 +596,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
 
           {/* ② 机密只读说明（来源：后端 read_only_notice） */}
           {item.secret && item.masked && (
-            <div className="mt-1 text-[10px] text-slate-500" data-cp-masked-note={item.key}>
+            <div className="mt-1 text-micro text-slate-500" data-cp-masked-note={item.key}>
               机密项：仅显示后端脱敏串（明文不返回，前端无重现入口）
             </div>
           )}
@@ -604,14 +604,14 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
           {/* ③ 需要先确认再提交（B 级 / 需二次认证 / 需双人）：理由取自 payload 字段 */}
           {!item.secret && confirmFirst && !locked && (
             <div className="mt-1 flex items-center gap-2">
-              <span className="text-[10px] text-amber-400/80">
+              <span className="text-micro text-amber-400/80">
                 {confirmReasons(item).join(' + ')}：不能直接提交，请展开确认块
               </span>
               <button
                 type="button"
                 onClick={() => (editing ? ctx.onCloseConfirm() : ctx.onOpenConfirm(item))}
                 disabled={busy}
-                className="rounded-sm border border-amber-800 px-1.5 py-0.5 text-[10px] text-amber-200 hover:bg-amber-500/10 disabled:opacity-50"
+                className="rounded-sm border border-amber-800 px-1.5 py-0.5 text-micro text-amber-200 hover:bg-amber-500/10 disabled:opacity-50"
                 data-cp-open-confirm={item.key}
               >
                 {editing ? '收起确认' : '修改（需确认）'}
@@ -625,7 +625,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
               type="button"
               onClick={() => ctx.onReset(item)}
               disabled={busy || !item.editable}
-              className="mt-1 inline-flex items-center gap-1 rounded-sm border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-300 hover:text-cyan-300 disabled:opacity-40"
+              className="mt-1 inline-flex items-center gap-1 rounded-sm border border-slate-700 px-1.5 py-0.5 text-micro text-slate-300 hover:text-cyan-300 disabled:opacity-40"
               data-cp-reset={item.key}
             >
               <RotateCcw size={9} />
@@ -635,7 +635,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
 
           {error && (
             <div
-              className="mt-1 rounded-sm border border-red-900/60 bg-red-950/40 px-2 py-1 text-[11px] text-red-300"
+              className="mt-1 rounded-sm border border-red-900/60 bg-red-950/40 px-2 py-1 text-caption text-red-300"
               data-cp-error={item.key}
             >
               {error}
@@ -644,7 +644,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
 
           {feedback && feedback.pending && (
             <div
-              className="mt-1 rounded-sm border border-amber-800 bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-200"
+              className="mt-1 rounded-sm border border-amber-800 bg-amber-500/10 px-2 py-1.5 text-caption text-amber-200"
               data-cp-pending={item.key}
             >
               <div className="flex items-center gap-1 font-medium">
@@ -652,7 +652,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
               </div>
               {/* 后端原文，前端不改写 */}
               <div className="mt-0.5">{feedback.message}</div>
-              <div className="mt-0.5 font-mono text-[10px]">
+              <div className="mt-0.5 font-mono text-micro">
                 pending_id：{feedback.pending_id || '—'}
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-1.5">
@@ -663,7 +663,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
                   value={ctx.secondFactor}
                   onChange={(e) => ctx.onSecondFactor(e.target.value)}
                   placeholder="另一位人工的二次认证码"
-                  className="w-40 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-200"
+                  className="w-40 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-caption text-slate-200"
                 />
                 <input
                   type="text"
@@ -672,13 +672,13 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
                   value={ctx.reason}
                   onChange={(e) => ctx.onReason(e.target.value)}
                   placeholder="确认理由"
-                  className="w-40 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-200"
+                  className="w-40 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-caption text-slate-200"
                 />
                 <button
                   type="button"
                   onClick={() => ctx.onConfirmPending(item, feedback.pending_id || '')}
                   disabled={busy || !feedback.pending_id}
-                  className="inline-flex items-center gap-1 rounded-sm border border-amber-700 px-2 py-0.5 text-[10px] text-amber-100 hover:bg-amber-500/10 disabled:opacity-50"
+                  className="inline-flex items-center gap-1 rounded-sm border border-amber-700 px-2 py-0.5 text-micro text-amber-100 hover:bg-amber-500/10 disabled:opacity-50"
                   data-cp-confirm-submit={item.key}
                 >
                   <Unlock size={10} /> 由另一位人工确认并生效
@@ -689,7 +689,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
 
           {feedback && feedback.applied && (
             <div
-              className="mt-1 rounded-sm border border-emerald-900 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300"
+              className="mt-1 rounded-sm border border-emerald-900 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300"
               data-cp-applied={item.key}
             >
               已生效：{item.key} → {outcomeDisplayValue(feedback, item)}
@@ -701,7 +701,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
 
           {feedback && isResetOutcome(feedback) && (
             <div
-              className="mt-1 rounded-sm border border-sky-900 bg-sky-500/10 px-2 py-1 text-[11px] text-sky-300"
+              className="mt-1 rounded-sm border border-sky-900 bg-sky-500/10 px-2 py-1 text-caption text-sky-300"
               data-cp-reset-done={item.key}
             >
               已重置为默认：{item.key} → {outcomeDisplayValue(feedback, item)}
@@ -712,7 +712,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
           {/* 未生效但成功的回执（如"该开关没有覆盖层记录，无需重置"）——后端原文 */}
           {feedback && !feedback.pending && !feedback.applied && !isResetOutcome(feedback) && (
             <div
-              className="mt-1 rounded-sm border border-slate-700 bg-slate-950/60 px-2 py-1 text-[11px] text-slate-300"
+              className="mt-1 rounded-sm border border-slate-700 bg-slate-950/60 px-2 py-1 text-caption text-slate-300"
               data-cp-noop={item.key}
             >
               {feedback.message || '后端未返回可读回执'}
@@ -725,24 +725,24 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
               className="mt-2 space-y-1 rounded-sm border border-amber-900/70 bg-slate-950/70 px-2 py-2"
               data-cp-confirm-panel={item.key}
             >
-              <div className="text-[11px] font-medium text-amber-200">
+              <div className="text-caption font-medium text-amber-200">
                 提交前确认（{item.risk_label || item.risk}）
               </div>
               {item.impact ? (
-                <div className="text-[11px] text-slate-300" data-cp-impact={item.key}>
+                <div className="text-caption text-slate-300" data-cp-impact={item.key}>
                   影响面：{item.impact}
                 </div>
               ) : (
                 <AbsentBox label="影响面" reason="后端未提供 impact" />
               )}
               {item.rollback ? (
-                <div className="text-[11px] text-slate-300" data-cp-rollback={item.key}>
+                <div className="text-caption text-slate-300" data-cp-rollback={item.key}>
                   回滚方式：{item.rollback}
                 </div>
               ) : (
                 <AbsentBox label="回滚方式" reason="后端未提供 rollback" />
               )}
-              <div className="text-[11px] text-slate-300" data-cp-effect={item.key}>
+              <div className="text-caption text-slate-300" data-cp-effect={item.key}>
                 生效方式：{item.effect_label || item.effect}
               </div>
 
@@ -762,7 +762,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
                     data-cp-confirm-value={item.key}
                     value={ctx.drafts[item.key] ?? String(item.display_value ?? '')}
                     onChange={(e) => ctx.onDraft(item.key, e.target.value)}
-                    className="w-40 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 font-mono text-[11px] text-slate-200"
+                    className="w-40 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 font-mono text-caption text-slate-200"
                   />
                 )}
                 <input
@@ -772,7 +772,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
                   value={ctx.secondFactor}
                   onChange={(e) => ctx.onSecondFactor(e.target.value)}
                   placeholder="二次认证码"
-                  className="w-36 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-200"
+                  className="w-36 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-caption text-slate-200"
                 />
                 <input
                   type="text"
@@ -781,13 +781,13 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
                   value={ctx.reason}
                   onChange={(e) => ctx.onReason(e.target.value)}
                   placeholder="变更理由（审计留痕）"
-                  className="w-44 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-200"
+                  className="w-44 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-caption text-slate-200"
                 />
                 <button
                   type="button"
                   onClick={() => ctx.onSubmitConfirm(item)}
                   disabled={busy}
-                  className="rounded-sm bg-cyan-800 px-2 py-1 text-[11px] text-cyan-50 hover:bg-cyan-700 disabled:opacity-50"
+                  className="rounded-sm bg-cyan-800 px-2 py-1 text-caption text-cyan-50 hover:bg-cyan-700 disabled:opacity-50"
                   data-cp-submit={item.key}
                 >
                   提交变更
@@ -796,7 +796,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
                   type="button"
                   onClick={ctx.onCloseConfirm}
                   disabled={busy}
-                  className="rounded-sm border border-slate-700 px-2 py-1 text-[11px] text-slate-300 disabled:opacity-50"
+                  className="rounded-sm border border-slate-700 px-2 py-1 text-caption text-slate-300 disabled:opacity-50"
                   data-cp-cancel={item.key}
                 >
                   取消
@@ -1050,13 +1050,13 @@ export function SettingsPanel({ searchDebounceMs = 250 }: SettingsPanelProps) {
             <MetricValue metric={countMetric(counts?.editable, 'editable')} label="可改" />
             <MetricValue metric={countMetric(counts?.locked, 'locked')} label="锁定" />
             <MetricValue metric={countMetric(counts?.overridden, 'overridden')} label="已覆盖" />
-            <span className="text-[10px] text-slate-600">
+            <span className="text-micro text-slate-600">
               生成时间（后端）：{data.generated_at || '—'}
             </span>
             {/* 优先级顺序取自 payload.source_priority（前端不自造） */}
             {data.source_priority && data.source_priority.length > 0 && (
               <span
-                className="font-mono text-[10px] text-slate-500"
+                className="font-mono text-micro text-slate-500"
                 data-cp-source-priority="true"
               >
                 来源优先级（高→低）：{data.source_priority.join(' > ')}
@@ -1065,7 +1065,7 @@ export function SettingsPanel({ searchDebounceMs = 250 }: SettingsPanelProps) {
           </div>
 
           {data.read_only_notice && (
-            <div className="mb-2 rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-1.5 text-[11px] text-slate-400">
+            <div className="mb-2 rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-1.5 text-caption text-slate-400">
               {data.read_only_notice}
             </div>
           )}
@@ -1112,7 +1112,7 @@ export function SettingsPanel({ searchDebounceMs = 250 }: SettingsPanelProps) {
                   onClick={() => setRisk(f.id)}
                   aria-pressed={active}
                   data-cp-risk-filter={f.id}
-                  className={`rounded-full border px-2 py-0.5 text-[11px] ${
+                  className={`rounded-full border px-2 py-0.5 text-caption ${
                     active
                       ? 'border-cyan-700 bg-cyan-500/15 text-cyan-200'
                       : 'border-slate-700 text-slate-400 hover:text-slate-200'
@@ -1130,7 +1130,7 @@ export function SettingsPanel({ searchDebounceMs = 250 }: SettingsPanelProps) {
               aria-pressed={onlyOverride}
               data-cp-override-filter="true"
               title="按『存在 ui_override（生效，或存在但被更高优先级来源覆盖）』筛选；数字为 payload.counts.overridden"
-              className={`rounded-full border px-2 py-0.5 text-[11px] ${
+              className={`rounded-full border px-2 py-0.5 text-caption ${
                 onlyOverride
                   ? 'border-cyan-700 bg-cyan-500/15 text-cyan-200'
                   : 'border-slate-700 text-slate-400 hover:text-slate-200'
@@ -1142,7 +1142,7 @@ export function SettingsPanel({ searchDebounceMs = 250 }: SettingsPanelProps) {
               )}
             </button>
 
-            <span className="text-[10px] text-slate-500">
+            <span className="text-micro text-slate-500">
               命中 {filtered.length} / 登记 {items.length} 项
               <span className="ml-1 text-slate-600">（登记表条目数，非估计值）</span>
             </span>
@@ -1164,7 +1164,7 @@ export function SettingsPanel({ searchDebounceMs = 250 }: SettingsPanelProps) {
                     setRisk('all')
                     setOnlyOverride(false)
                   }}
-                  className="rounded-sm border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-300 hover:text-cyan-300"
+                  className="rounded-sm border border-slate-700 px-1.5 py-0.5 text-micro text-slate-300 hover:text-cyan-300"
                   data-cp-clear-filters="true"
                 >
                   清除筛选

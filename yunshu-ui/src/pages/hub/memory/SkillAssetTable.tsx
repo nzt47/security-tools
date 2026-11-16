@@ -136,7 +136,7 @@ const SEV: Record<string, string> = {
   info: 'bg-slate-500/15 text-slate-400 border-slate-700',
 }
 const chip = (txt: string, cls: string, title?: string) => (
-  <span title={title} className={`inline-flex items-center whitespace-nowrap rounded-full border px-1.5 py-0.5 text-[10px] ${cls}`}>{txt}</span>
+  <span title={title} className={`inline-flex items-center whitespace-nowrap rounded-full border px-1.5 py-0.5 text-micro ${cls}`}>{txt}</span>
 )
 /** 状态 → 中文（此前直接把英文枚举名当徽章文案，用户看不出「发布」到底有没有发生） */
 const STATUS_ZH: Record<string, string> = {
@@ -575,13 +575,13 @@ export default function SkillAssessManager() {
           <div className="flex min-w-0 flex-wrap items-center gap-1.5">
             <span className="truncate font-medium text-slate-200">{it.name || it.id}</span>
             {it.class_name && (
-              <span className="inline-flex items-center gap-0.5 rounded-full border border-cyan-800/50 bg-cyan-500/10 px-1.5 py-0.5 text-[9px] text-cyan-300">
+              <span className="inline-flex items-center gap-0.5 rounded-full border border-cyan-800/50 bg-cyan-500/10 px-1.5 py-0.5 text-micro text-cyan-300">
                 <ClassIcon name={it.class_name} size={8} /> {it.class_name}
               </span>
             )}
             <CallabilityBadge info={it.callability ?? callability[it.id]} name={it.name || it.id} />
           </div>
-          <div className="mt-0.5 truncate font-mono text-[9px] text-slate-600" title={`id: ${it.id}`}>{it.id}</div>
+          <div className="mt-0.5 truncate font-mono text-micro text-slate-600" title={`id: ${it.id}`}>{it.id}</div>
         </td>
         {/* 【2026-10-28】说明独立成列：3 行截断 + 悬浮看摘要 + 「查看全文」弹窗；不再和徽章挤一格 */}
         <td className="px-2 py-2 align-top">
@@ -619,7 +619,7 @@ export default function SkillAssessManager() {
               : `指令型·命中后注入提示`, 'bg-cyan-500/10 text-cyan-400 border-cyan-800/60')}
             {it.is_sensitive && chip('敏感·隔离注入', 'bg-amber-500/10 text-amber-400 border-amber-800/60')}
             {(it.tags ?? []).slice(0, 3).map((t) => <Fragment key={t}>{chip(`#${t}`, 'bg-indigo-500/10 text-indigo-300 border-indigo-800/50')}</Fragment>)}
-            {(it.tags ?? []).length > 3 && <span className="text-[9px] text-slate-600" title={(it.tags ?? []).slice(3).join(", ")}>+{(it.tags ?? []).length - 3}</span>}
+            {(it.tags ?? []).length > 3 && <span className="text-micro text-slate-600" title={(it.tags ?? []).slice(3).join(", ")}>+{(it.tags ?? []).length - 3}</span>}
           </div>
         </td>
         <td className="px-2 py-2 align-top">
@@ -637,7 +637,7 @@ export default function SkillAssessManager() {
                 : chip('已自动评估', 'bg-cyan-500/10 text-cyan-400 border-cyan-800/60'))
               : chip('未评估', 'bg-slate-500/10 text-slate-400 border-slate-700')}
         </td>
-        <td className="px-2 py-2 font-mono text-[10px] text-slate-400">
+        <td className="px-2 py-2 font-mono text-micro text-slate-400">
           {it.runtime_only ? '—' : `${Math.round(rv?.security_score ?? 0)}/${Math.round(rv?.quality_score ?? 0)}/${Math.round(rv?.compatibility_score ?? 0)}`}
         </td>
         {/* 近 7 日使用（来自 /api/skills-mgmt/usage/stats，台账由 loader/executor 写） */}
@@ -651,7 +651,7 @@ export default function SkillAssessManager() {
             const execTip = it.has_scripts
               ? `执行 ${u?.execs ?? 0} 次（成功 ${u?.exec_ok ?? 0} / 失败 ${u?.exec_fail ?? 0}）`
               : '该技能没有 scripts/*.py：指令型技能只注入提示词，不执行代码（不适用，不是 0 次）'
-            if (it.runtime_only) return <span className="text-[10px] text-slate-600">—</span>
+            if (it.runtime_only) return <span className="text-micro text-slate-600">—</span>
             if (!u) {
               return (
                 <span className="flex flex-wrap items-center gap-1">
@@ -677,7 +677,7 @@ export default function SkillAssessManager() {
                   : chip(injected > 0 ? '已注入·未命中' : '未调用',
                     injected > 0 ? 'bg-amber-500/10 text-amber-300 border-amber-800/60'
                       : 'bg-slate-500/10 text-slate-400 border-slate-700')}
-                <span className={`font-mono text-[9px] ${tone}`}>{hits}/{injected}/{execTxt}</span>
+                <span className={`font-mono text-micro ${tone}`}>{hits}/{injected}/{execTxt}</span>
               </span>
             )
           })()}
@@ -693,7 +693,7 @@ export default function SkillAssessManager() {
                 {grouped && classOptions.length > 0 && (
                   <select value={cur} onChange={(e) => void moveClass(it, e.target.value)}
                     title="人工移动到其它分类（之后自动重判不再覆盖人工选择）"
-                    className="max-w-30 rounded-sm border border-slate-700 bg-slate-950 px-1 py-0.5 text-[10px] text-slate-300 outline-hidden focus:border-cyan-600">
+                    className="max-w-30 rounded-sm border border-slate-700 bg-slate-950 px-1 py-0.5 text-micro text-slate-300 outline-hidden focus:border-cyan-600">
                     {classOptions.map((o) => <option key={o} value={o}>{o}</option>)}
                   </select>
                 )}
@@ -770,7 +770,7 @@ export default function SkillAssessManager() {
     if (!grouped) return items.map(renderAssetRow)
     if (!classView) {
       return (
-        <tr><td colSpan={9} className="px-2 py-4 text-[11px] text-slate-500">
+        <tr><td colSpan={9} className="px-2 py-4 text-caption text-slate-500">
           <Loader2 size={12} className="mr-1 inline animate-spin" /> 分类视图加载中…
         </td></tr>
       )
@@ -786,8 +786,8 @@ export default function SkillAssessManager() {
             <button type="button" onClick={() => toggleCls(name)} className="flex w-full items-center gap-2 rounded-sm px-1.5 py-1 text-left hover:bg-slate-800/60" title={isOpen ? '折叠该类' : '展开该类'}>
               {isOpen ? <ChevronDown size={13} className="shrink-0 text-slate-400" /> : <ChevronRight size={13} className="shrink-0 text-slate-400" />}
               <ClassIcon name={name} size={13} className="shrink-0 text-cyan-400" />
-              <span className="text-[11px] font-medium text-slate-100">{name}</span>
-              <span className="rounded-full bg-slate-800 px-1.5 text-[10px] text-slate-400">{members.length}</span>
+              <span className="text-caption font-medium text-slate-100">{name}</span>
+              <span className="rounded-full bg-slate-800 px-1.5 text-micro text-slate-400">{members.length}</span>
               {g?.auto && chip('自动建类', 'bg-violet-500/10 text-violet-300 border-violet-800/60')}
             </button>
           </td>
@@ -826,14 +826,14 @@ export default function SkillAssessManager() {
   return (
     <div className="mt-5">
       <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-        <h3 className="flex items-center gap-1.5 text-[13px] font-semibold text-slate-200">
+        <h3 className="flex items-center gap-1.5 text-body-lg font-semibold text-slate-200">
           <ShieldCheck size={14} className="text-emerald-400" />
           LLM 技能 · 统一表（运行时 + 资产）
         </h3>
-        <span className="text-[11px] text-slate-500">
+        <span className="text-caption text-slate-500">
           运行时技能与技能资产按 id 合并：资产行带评审/评分/版本/发布，仅运行时行标注「无资产记录」，仍可查看内容与启停
         </span>
-        <span className="rounded-full border border-slate-700 px-1.5 py-0.5 font-mono text-[10px] text-slate-400"
+        <span className="rounded-full border border-slate-700 px-1.5 py-0.5 font-mono text-micro text-slate-400"
           title="运行时条数来自 /api/skills，资产条数来自 /api/skills-mgmt；两者差集即「仅运行时·无资产记录」">
           运行时 {counts.runtime} · 资产 {counts.assets} · 仅运行时 {runtimeOnlyCount}
         </span>
@@ -888,8 +888,8 @@ export default function SkillAssessManager() {
         </div>
       </div>
 
-      {error && <p className="mb-2 text-[11px] text-red-400">{error}</p>}
-      {msg && <p className="mb-2 rounded-md border border-cyan-900/60 bg-cyan-950/30 px-2 py-1 text-[11px] text-cyan-300">{msg}</p>}
+      {error && <p className="mb-2 text-caption text-red-400">{error}</p>}
+      {msg && <p className="mb-2 rounded-md border border-cyan-900/60 bg-cyan-950/30 px-2 py-1 text-caption text-cyan-300">{msg}</p>}
       {needAuth && <ApiTokenPrompt onSaved={() => { setNeedAuth(false); void load() }} />}
 
       {loading ? (
@@ -912,7 +912,7 @@ export default function SkillAssessManager() {
               ))}
             </colgroup>
             <thead>
-              <tr className="border-b border-slate-800 bg-slate-900/70 text-[10px] uppercase tracking-wider text-slate-500">
+              <tr className="border-b border-slate-800 bg-slate-900/70 text-micro uppercase tracking-wider text-slate-500">
                 <th className="px-2 py-1.5" />
                 <th className="px-2 py-1.5 font-medium">技能<ColResizer onStart={startColDrag('name')} onReset={() => resetCol('name')} /></th>
                 <th className="px-2 py-1.5 font-medium">说明<ColResizer onStart={startColDrag('desc')} onReset={() => resetCol('desc')} /></th>
@@ -987,8 +987,8 @@ export default function SkillAssessManager() {
       )}
       {descTarget && (
         <ModalShell title={`说明 · ${descTarget.name}`} onClose={() => setDescTarget(null)}>
-          <p className="mb-2 font-mono text-[10px] text-slate-500">技能 id：{descTarget.id} · {descTarget.text.length} 字</p>
-          <div className="max-h-96 overflow-y-auto whitespace-pre-wrap wrap-break-word rounded-md border border-slate-800 bg-slate-950 p-2.5 text-[12px] leading-relaxed text-slate-300">{descTarget.text}</div>
+          <p className="mb-2 font-mono text-micro text-slate-500">技能 id：{descTarget.id} · {descTarget.text.length} 字</p>
+          <div className="max-h-96 overflow-y-auto whitespace-pre-wrap wrap-break-word rounded-md border border-slate-800 bg-slate-950 p-2.5 text-body leading-relaxed text-slate-300">{descTarget.text}</div>
           <div className="mt-3 flex justify-end gap-2">
             <button type="button" className={BTN} onClick={() => { void navigator.clipboard?.writeText(descTarget.text) }}>复制说明</button>
             <button type="button" className={BTN} onClick={() => setDescTarget(null)}>关闭</button>
@@ -1012,13 +1012,13 @@ export default function SkillAssessManager() {
         <div className="flex flex-wrap items-center gap-2 px-3 py-2">
           <Zap size={12} className="text-cyan-400" />
           <span className="text-xs font-medium text-slate-200">评估通知</span>
-          <span className="rounded-full bg-slate-800 px-1.5 text-[10px] text-slate-400">{events.length}</span>
+          <span className="rounded-full bg-slate-800 px-1.5 text-micro text-slate-400">{events.length}</span>
           {unread > 0 && (
-            <span className="rounded-full bg-red-500/20 px-1.5 text-[10px] font-semibold text-red-300" title={`${unread} 条未读（长轮询；授权后新结果会发系统通知）`}>
+            <span className="rounded-full bg-red-500/20 px-1.5 text-micro font-semibold text-red-300" title={`${unread} 条未读（长轮询；授权后新结果会发系统通知）`}>
               {unread} 新
             </span>
           )}
-          <span className="text-[10px] text-slate-600">只显示最新 3 条 · 未读角标与浏览器通知（需授权）</span>
+          <span className="text-micro text-slate-600">只显示最新 3 条 · 未读角标与浏览器通知（需授权）</span>
           <div className="ml-auto flex flex-wrap items-center gap-1.5">
             {unread > 0 && (
               <button type="button" className={BTN} onClick={markEventsSeen} title="把当前全部事件标记为已读">
@@ -1040,14 +1040,14 @@ export default function SkillAssessManager() {
           <div className="border-t border-slate-800 px-3 pb-2 pt-2">
             <div className="flex flex-col gap-1">
               {events.slice(0, 3).map((e, i) => (
-                <div key={`${e.ts}-${i}`} className="flex flex-wrap items-center gap-1.5 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[10px] text-slate-400">
-                  <span className="font-mono text-[9px] text-slate-600">{e.kind ?? ''}</span>
+                <div key={`${e.ts}-${i}`} className="flex flex-wrap items-center gap-1.5 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-micro text-slate-400">
+                  <span className="font-mono text-micro text-slate-600">{e.kind ?? ''}</span>
                   <span className="text-cyan-300">{e.skill_id ?? ''}</span>
                   <span className={e.verdict === 'block' ? 'text-red-400' : 'text-emerald-400'}>
                     {e.verdict === 'block' ? '阻断' : e.verdict === 'ok' ? '通过' : e.verdict ?? ''}
                   </span>
                   <span className="max-w-md truncate text-slate-500">{e.summary}</span>
-                  <span className="ml-auto font-mono text-[9px] text-slate-600">{e.ts ?? ''}</span>
+                  <span className="ml-auto font-mono text-micro text-slate-600">{e.ts ?? ''}</span>
                 </div>
               ))}
             </div>
@@ -1069,11 +1069,11 @@ function PublishModal({ item, onClose, onConfirm }: {
 
   return (
     <ModalShell title={`发布前人工复核 · ${item.name || item.id}`} onClose={onClose}>
-      <p className="mb-2 text-[11px] leading-relaxed text-slate-400">
+      <p className="mb-2 text-caption leading-relaxed text-slate-400">
         发布后技能将进入运行时能力集。请人工复核下方评审-评估结论：系统评估为启发式护栏，
         最终发布决定由复核人做出。
       </p>
-      <div className="mb-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+      <div className="mb-2 flex flex-wrap items-center gap-1.5 text-caption">
         {statusChip(item.status ?? '-')}
         {rv?.review_verdict === 'block'
           ? chip('存在阻断项', 'bg-red-500/15 text-red-400 border-red-800')
@@ -1086,20 +1086,20 @@ function PublishModal({ item, onClose, onConfirm }: {
         </span>
       </div>
       {needsReason && (
-        <div className="mb-2 rounded-md border border-amber-800/70 bg-amber-950/30 px-2.5 py-2 text-[11px] text-amber-300">
+        <div className="mb-2 rounded-md border border-amber-800/70 bg-amber-950/30 px-2.5 py-2 text-caption text-amber-300">
           该技能尚未通过正式评审（或无 PASSED 审核记录）。如仍要发布，属于<strong>人工强制发布</strong>，
           必须填写复核说明（将写入审计 data/skills_mgmt_review_audit.jsonl）。
         </div>
       )}
       {blockers.length > 0 && (
         <div className="mb-2 rounded-md border border-red-900/70 bg-red-950/30 px-2.5 py-2">
-          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-red-400">
+          <div className="mb-1 text-micro font-semibold uppercase tracking-wider text-red-400">
             阻断项（{blockers.length}）——发布前必须人工裁定
           </div>
           <ul className="max-h-28 space-y-0.5 overflow-y-auto">
             {blockers.map((f, i) => (
-              <li key={i} className="flex items-start gap-1.5 text-[11px] text-red-300/90">
-                <span className="shrink-0 font-mono text-[10px] text-red-500">{f.code}</span>
+              <li key={i} className="flex items-start gap-1.5 text-caption text-red-300/90">
+                <span className="shrink-0 font-mono text-micro text-red-500">{f.code}</span>
                 <span>{f.message}</span>
               </li>
             ))}
@@ -1138,34 +1138,34 @@ function BackfillModal({ data, busy, error, onCancel, onConfirm }: {
   const cands = data?.candidates ?? []
   return (
     <ModalShell title="登记仅运行时技能为资产" onClose={onCancel}>
-      <p className="mb-2 text-[11px] leading-relaxed text-slate-400">
+      <p className="mb-2 text-caption leading-relaxed text-slate-400">
         这些技能只存在于文件轨（<code>data/skills_repo/&lt;id&gt;/skill.md</code>），没有资产记录。
         登记只补<strong className="text-slate-200">主轨</strong>（资产行 + 咨询性评估）——
         <strong className="text-slate-200">不写入文件轨、不改 front matter、不发布</strong>；
         登记后才会被评审/版本/发布门禁覆盖。
       </p>
       {busy && !data ? (
-        <div className="flex items-center gap-2 py-4 text-[11px] text-slate-500">
+        <div className="flex items-center gap-2 py-4 text-caption text-slate-500">
           <Loader2 size={12} className="animate-spin" /> 读取候选…
         </div>
       ) : cands.length === 0 ? (
-        <p className="py-3 text-[11px] text-slate-500">没有需要登记的技能。</p>
+        <p className="py-3 text-caption text-slate-500">没有需要登记的技能。</p>
       ) : (
         <ul className="max-h-72 space-y-1 overflow-y-auto pr-1">
           {cands.map((c) => (
-            <li key={c.id} className="rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1.5 text-[11px]">
+            <li key={c.id} className="rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1.5 text-caption">
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="font-mono text-cyan-300">{c.id}</span>
                 <span className="text-slate-300">{c.name}</span>
                 {c.has_scripts && chip('含脚本', 'bg-indigo-500/10 text-indigo-300 border-indigo-800/50')}
-                {c.source && <span className="ml-auto font-mono text-[9px] text-slate-600">{c.source}</span>}
+                {c.source && <span className="ml-auto font-mono text-micro text-slate-600">{c.source}</span>}
               </div>
-              {c.description && <div className="mt-0.5 line-clamp-1 text-[10px] text-slate-500">{c.description}</div>}
+              {c.description && <div className="mt-0.5 line-clamp-1 text-micro text-slate-500">{c.description}</div>}
             </li>
           ))}
         </ul>
       )}
-      {error && <p className="mt-2 text-[11px] text-red-400">{error}</p>}
+      {error && <p className="mt-2 text-caption text-red-400">{error}</p>}
       <div className="mt-3 flex flex-wrap justify-end gap-2">
         <button type="button" className={BTN} onClick={onCancel} disabled={busy}>取消</button>
         <button type="button" className={BTN_EM} onClick={onConfirm} disabled={busy || cands.length === 0}>
@@ -1240,13 +1240,13 @@ function ConflictModal({ onClose, onDone }: { onClose: () => void; onDone: () =>
 
   return (
     <ModalShell title="自动处置冲突（只停用，不删除）" onClose={onClose}>
-      <p className="text-[11px] leading-relaxed text-slate-400">
+      <p className="text-caption leading-relaxed text-slate-400">
         判据：评估里的「交互抢占冲突 / 原生重叠」+ 近 7 天使用台账。
         <strong className="text-slate-300"> 有使用记录的技能一律保持</strong>（不拿正在用的东西冒险）；
         无使用且评分 &lt; 85 才建议停用；高分但无使用的交人工确认。停用动作写审计与决策台账，可一键撤销。
       </p>
       {plan?.summary && (
-        <div className="mt-2 flex flex-wrap gap-1.5 text-[11px]">
+        <div className="mt-2 flex flex-wrap gap-1.5 text-caption">
           {chip(`扫描 ${plan.summary.scanned ?? 0}`, 'bg-slate-500/10 text-slate-300 border-slate-700')}
           {chip(`建议停用 ${plan.summary.disable ?? 0}`, 'bg-amber-500/10 text-amber-300 border-amber-800/60')}
           {chip(`保持 ${plan.summary.keep ?? 0}`, 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60')}
@@ -1254,15 +1254,15 @@ function ConflictModal({ onClose, onDone }: { onClose: () => void; onDone: () =>
         </div>
       )}
       {busy === 'plan' ? (
-        <div className="flex items-center gap-2 py-4 text-[11px] text-slate-500">
+        <div className="flex items-center gap-2 py-4 text-caption text-slate-500">
           <Loader2 size={12} className="animate-spin" /> 正在读使用台账并生成计划…
         </div>
       ) : (plan?.items ?? []).length === 0 ? (
-        <p className="py-3 text-[11px] text-slate-500">没有需要处置的冲突（评估里没有「交互抢占 / 原生重叠」发现项）。</p>
+        <p className="py-3 text-caption text-slate-500">没有需要处置的冲突（评估里没有「交互抢占 / 原生重叠」发现项）。</p>
       ) : (
         <ul className="max-h-72 mt-2 space-y-1 overflow-y-auto pr-1">
           {(plan?.items ?? []).map((it) => (
-            <li key={it.skill_id} className="rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1.5 text-[11px]">
+            <li key={it.skill_id} className="rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1.5 text-caption">
               <div className="flex flex-wrap items-center gap-1.5">
                 {it.action === 'disable' && (
                   <input type="checkbox" checked={!!picked[it.skill_id]}
@@ -1275,16 +1275,16 @@ function ConflictModal({ onClose, onDone }: { onClose: () => void; onDone: () =>
                   it.action === 'disable' ? 'bg-amber-500/10 text-amber-300 border-amber-800/60'
                     : it.action === 'keep' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60'
                       : 'bg-slate-500/10 text-slate-400 border-slate-700')}
-                {it.score != null && <span className="font-mono text-[10px] text-slate-500">评分 {it.score}</span>}
+                {it.score != null && <span className="font-mono text-micro text-slate-500">评分 {it.score}</span>}
               </div>
-              {it.reason && <div className="mt-0.5 text-[10px] text-slate-500">{it.reason}</div>}
-              {it.evidence && <div className="truncate text-[10px] text-slate-600" title={it.evidence}>依据：{it.evidence}</div>}
+              {it.reason && <div className="mt-0.5 text-micro text-slate-500">{it.reason}</div>}
+              {it.evidence && <div className="truncate text-micro text-slate-600" title={it.evidence}>依据：{it.evidence}</div>}
             </li>
           ))}
         </ul>
       )}
-      {err && <p className="mt-2 text-[11px] text-red-400">{err}</p>}
-      {msg && <p className="mt-2 text-[11px] text-cyan-300">{msg}</p>}
+      {err && <p className="mt-2 text-caption text-red-400">{err}</p>}
+      {msg && <p className="mt-2 text-caption text-cyan-300">{msg}</p>}
       <div className="mt-3 flex flex-wrap justify-end gap-2">
         <button type="button" className={BTN} onClick={onClose} disabled={busy !== ''}>关闭</button>
         <button type="button" className={BTN} onClick={() => void undoLast()} disabled={busy !== ''}
@@ -1316,7 +1316,7 @@ function ReportPanel({ item, onClose, onMerge }: { item: SkillItem; onClose: () 
           评审-评估报告 · {item.name || item.id}
           {chip('尚未评估', 'bg-slate-500/15 text-slate-400 border-slate-700')}
         </div>
-        <p className="text-[11px] leading-relaxed text-slate-500">
+        <p className="text-caption leading-relaxed text-slate-500">
           该技能还没有评估记录（新建 / 外来安装 / 生成文件轨会自动评估一次）。
           点行内「评审-评估」生成报告：综合/安全/质量/兼容四项分数 + 发现项（重复、安全、质量、兼容）。
         </p>
@@ -1325,8 +1325,8 @@ function ReportPanel({ item, onClose, onMerge }: { item: SkillItem; onClose: () 
   }
   const stat = (label: string, v?: number) => (
     <div className="rounded-md border border-slate-800 bg-slate-950/60 px-2 py-1 text-center">
-      <div className="text-[9px] uppercase tracking-wider text-slate-500">{label}</div>
-      <div className="font-mono text-[12px] text-cyan-300">{Math.round(v ?? 0)}</div>
+      <div className="text-micro uppercase tracking-wider text-slate-500">{label}</div>
+      <div className="font-mono text-body text-cyan-300">{Math.round(v ?? 0)}</div>
     </div>
   )
   return (
@@ -1338,7 +1338,7 @@ function ReportPanel({ item, onClose, onMerge }: { item: SkillItem; onClose: () 
           {rv?.review_verdict === 'block'
             ? chip('存在阻断项 · 需人工复核', 'bg-red-500/15 text-red-400 border-red-800')
             : rv?.auto_assessed ? chip('无阻断项', 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60') : null}
-          {rv?.summary && <span className="text-[10px] font-normal text-slate-500">{rv.summary}</span>}
+          {rv?.summary && <span className="text-micro font-normal text-slate-500">{rv.summary}</span>}
         </div>
         {onMerge && hasDupFinding && (
           <button type="button" className={BTN} onClick={onMerge} data-testid="report-merge-btn"
@@ -1353,15 +1353,15 @@ function ReportPanel({ item, onClose, onMerge }: { item: SkillItem; onClose: () 
         {stat('质量', rv?.quality_score)}{stat('兼容', rv?.compatibility_score)}
       </div>
       {findings.length === 0 ? (
-        <p className="text-[11px] text-slate-500">未发现评估问题（重复/安全/质量/兼容）。</p>
+        <p className="text-caption text-slate-500">未发现评估问题（重复/安全/质量/兼容）。</p>
       ) : (
         <ul className="max-h-56 space-y-1 overflow-y-auto pr-1">
           {findings.map((f, i) => (
-            <li key={`${f.code}-${i}`} className="flex items-start gap-2 text-[11px] leading-relaxed">
+            <li key={`${f.code}-${i}`} className="flex items-start gap-2 text-caption leading-relaxed">
               {chip(f.severity ?? 'info', SEV[f.severity ?? 'info'] ?? SEV.info)}
-              <span className="shrink-0 font-mono text-[10px] text-slate-500">{f.code}</span>
+              <span className="shrink-0 font-mono text-micro text-slate-500">{f.code}</span>
               <span className="min-w-0 flex-1 text-slate-300">{f.message}</span>
-              {f.location && <span className="shrink-0 text-[10px] text-slate-600">{f.location}</span>}
+              {f.location && <span className="shrink-0 text-micro text-slate-600">{f.location}</span>}
             </li>
           ))}
         </ul>
@@ -1414,7 +1414,7 @@ function CreateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
         <textarea rows={7} className={`${INPUT} font-mono`} value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })}
           placeholder="技能主体（Markdown 指令或代码）——保存后自动进入安全+兼容评估" />
       </Field>
-      {err && <p className="mt-1 text-[11px] text-red-400">{err}</p>}
+      {err && <p className="mt-1 text-caption text-red-400">{err}</p>}
       <div className="mt-3 flex justify-end gap-2">
         <button type="button" className={BTN} onClick={onClose}>取消</button>
         <button type="button" className={BTN_EM} onClick={() => void submit()} disabled={busy || !form.name.trim() || !form.content.trim()}>
@@ -1481,37 +1481,37 @@ function AdviceModal({ item, onClose, onDone }: { item: SkillItem; onClose: () =
   } else reviewAdvice.push('尚无评审记录：先「评审-评估」获取权限/合规/兼容性结论。')
   return (
     <ModalShell title={`学习/迭代建议 · ${item.name || item.id}`} onClose={onClose}>
-      <div className="mb-2 text-[11px] font-medium uppercase tracking-wider text-slate-500">评审-评估建议</div>
+      <div className="mb-2 text-caption font-medium uppercase tracking-wider text-slate-500">评审-评估建议</div>
       <ul className="mb-3 space-y-1">
         {reviewAdvice.map((t, i) => (
-          <li key={i} className="flex items-start gap-1.5 text-[11px] leading-relaxed text-slate-300">
+          <li key={i} className="flex items-start gap-1.5 text-caption leading-relaxed text-slate-300">
             <Lightbulb size={11} className="mt-0.5 shrink-0 text-cyan-400" /> {t}
           </li>
         ))}
       </ul>
-      <div className="mb-1 text-[11px] font-medium uppercase tracking-wider text-slate-500">参数优化建议（基于使用指标）</div>
-      {err && <p className="text-[11px] text-red-400">{err}</p>}
+      <div className="mb-1 text-caption font-medium uppercase tracking-wider text-slate-500">参数优化建议（基于使用指标）</div>
+      {err && <p className="text-caption text-red-400">{err}</p>}
       {busy ? (
-        <div className="flex items-center gap-2 py-2 text-[11px] text-slate-500">
+        <div className="flex items-center gap-2 py-2 text-caption text-slate-500">
           <Loader2 size={12} className="animate-spin" /> 分析中…
         </div>
       ) : sug.length === 0 ? (
-        <p className="py-2 text-[11px] text-slate-500">暂无参数优化建议（需积累足够执行记录后自动给出）。</p>
+        <p className="py-2 text-caption text-slate-500">暂无参数优化建议（需积累足够执行记录后自动给出）。</p>
       ) : (
         <ul className="space-y-1">
           {sug.map((t, i) => (
-            <li key={i} className="rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1 text-[11px] text-slate-300">{t}</li>
+            <li key={i} className="rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1 text-caption text-slate-300">{t}</li>
           ))}
         </ul>
       )}
       {fixList.length > 0 && (
         <>
-          <div className="mb-1 text-[11px] font-medium uppercase tracking-wider text-slate-500">自动修复建议（评审 → 对策）</div>
+          <div className="mb-1 text-caption font-medium uppercase tracking-wider text-slate-500">自动修复建议（评审 → 对策）</div>
           <ul className="mb-3 space-y-1">
             {fixList.map((f, i) => (
-              <li key={i} className="rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1 text-[11px]">
+              <li key={i} className="rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1 text-caption">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-mono text-[10px] text-amber-300">{f.code ?? ''}</span>
+                  <span className="font-mono text-micro text-amber-300">{f.code ?? ''}</span>
                   {f.severity && chip(f.severity, 'bg-red-500/10 text-red-400 border-red-800/60')}
                 </div>
                 <div className="mt-0.5 text-slate-300">{f.fix ?? ''}</div>
@@ -1523,8 +1523,8 @@ function AdviceModal({ item, onClose, onDone }: { item: SkillItem; onClose: () =
       {autoCodes.length > 0 && (
         <div className="mb-3 rounded-md border border-emerald-800/60 bg-emerald-950/20 px-2.5 py-2">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-medium text-emerald-300">云枢可自动完成（{autoCodes.length} 项）</span>
-            <span className="text-[10px] text-emerald-500/80">
+            <span className="text-caption font-medium text-emerald-300">云枢可自动完成（{autoCodes.length} 项）</span>
+            <span className="text-micro text-emerald-500/80">
               {autoCodes.map((c) => c === 'QUAL_NO_SCHEMA' ? '补 config_schema' : c === 'QUAL_NO_TAGS' ? '补检索标签' : '标记敏感隔离').join(' · ')}
             </span>
             <button type="button" className={`${BTN_EM} ml-auto`} onClick={() => void runAutoFix()} disabled={fixBusy}
@@ -1532,7 +1532,7 @@ function AdviceModal({ item, onClose, onDone }: { item: SkillItem; onClose: () =
               {fixBusy ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />} 一键自动修复并重新评审
             </button>
           </div>
-          {fixMsg && <p className="mt-1.5 text-[11px] text-emerald-300">{fixMsg}</p>}
+          {fixMsg && <p className="mt-1.5 text-caption text-emerald-300">{fixMsg}</p>}
         </div>
       )}
       <div className="mt-3 flex justify-end">
@@ -1588,25 +1588,25 @@ function VersionsModal({ item, onClose, onDone }: { item: SkillItem; onClose: ()
 
   return (
     <ModalShell title={`版本历史 · ${item.name || item.id}（当前 ${item.version ?? '-'}）`} onClose={onClose}>
-      {err && <p className="mb-2 text-[11px] text-red-400">{err}</p>}
-      {msg && <p className="mb-2 rounded-md border border-emerald-800/60 bg-emerald-950/30 px-2 py-1 text-[11px] text-emerald-300">{msg}</p>}
+      {err && <p className="mb-2 text-caption text-red-400">{err}</p>}
+      {msg && <p className="mb-2 rounded-md border border-emerald-800/60 bg-emerald-950/30 px-2 py-1 text-caption text-emerald-300">{msg}</p>}
       <div className="mb-2 flex flex-wrap gap-1.5">
         <button type="button" className={BTN_EM} onClick={() => void bump('patch')} disabled={busy !== ''} title="语义化 PATCH（修复级）">升级 PATCH</button>
         <button type="button" className={BTN_EM} onClick={() => void bump('minor')} disabled={busy !== ''} title="语义化 MINOR（特性级）">升级 MINOR</button>
       </div>
-      {busy !== '' && <div className="flex items-center gap-2 py-2 text-[11px] text-slate-500"><Loader2 size={12} className="animate-spin" /> 处理中…</div>}
+      {busy !== '' && <div className="flex items-center gap-2 py-2 text-caption text-slate-500"><Loader2 size={12} className="animate-spin" /> 处理中…</div>}
       {versions.length === 0 ? (
-        <p className="py-3 text-[11px] text-slate-500">暂无版本记录（首次保存/升级后出现）。</p>
+        <p className="py-3 text-caption text-slate-500">暂无版本记录（首次保存/升级后出现）。</p>
       ) : (
         <ul className="max-h-64 space-y-1 overflow-y-auto pr-1">
           {versions.map((v) => (
             <li key={v.version ?? v.created_at ?? Math.random()}
-              className="flex flex-wrap items-center gap-2 rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1.5 text-[11px]">
+              className="flex flex-wrap items-center gap-2 rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1.5 text-caption">
               <span className="font-mono text-cyan-300">{v.version}</span>
-              {v.version === item.version && <span className="text-[10px] text-slate-500">(当前)</span>}
-              <span className="font-mono text-[10px] text-slate-600">{v.created_at ?? ''}</span>
+              {v.version === item.version && <span className="text-micro text-slate-500">(当前)</span>}
+              <span className="font-mono text-micro text-slate-600">{v.created_at ?? ''}</span>
               {v.changelog && <span className="min-w-0 flex-1 truncate text-slate-400">{v.changelog}</span>}
-              <span className="text-[10px] text-slate-600">{v.content ? `${v.content.length} 字符` : ''}</span>
+              <span className="text-micro text-slate-600">{v.content ? `${v.content.length} 字符` : ''}</span>
               <button type="button" className={BTN} disabled={busy !== '' || v.version === item.version}
                 onClick={() => void roll(v.version ?? '')} title={`回滚到 ${v.version}`}>回滚到此版</button>
             </li>
@@ -1675,33 +1675,33 @@ function RedraftModal({ item, onClose, onDone }: { item: SkillItem; onClose: () 
 
   return (
     <ModalShell title={`再定义草稿 · ${item.name || item.id}`} onClose={onClose}>
-      <p className="mb-2 text-[11px] leading-relaxed text-slate-500">
+      <p className="mb-2 text-caption leading-relaxed text-slate-500">
         起草新的中文说明/展示名（LLM 不可用自动回退规则草稿），右侧可编辑；应用后自动重新评审-评估。
       </p>
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
         <button type="button" className={BTN} onClick={() => void gen(false)} disabled={busy} title="规则起草（快、确定）">规则起草</button>
         <button type="button" className={BTN_EM} onClick={() => void gen(true)} disabled={busy} title="尝试用 LLM 起草（失败回退规则）">LLM 起草</button>
-        {source && <span className="text-[10px] text-slate-600">来源：{source === 'llm' ? 'LLM' : '规则'}</span>}
-        {genAt && <span className="text-[10px] text-slate-600">· 最近生成 {genAt}</span>}
-        <span className="ml-auto text-[10px] text-slate-600">LLM 不可用会自动回退规则草稿</span>
+        {source && <span className="text-micro text-slate-600">来源：{source === 'llm' ? 'LLM' : '规则'}</span>}
+        {genAt && <span className="text-micro text-slate-600">· 最近生成 {genAt}</span>}
+        <span className="ml-auto text-micro text-slate-600">LLM 不可用会自动回退规则草稿</span>
       </div>
       {llmHint && (
-        <p className="mb-2 rounded-md border border-amber-800/60 bg-amber-950/20 px-2 py-1 text-[11px] text-amber-300">
+        <p className="mb-2 rounded-md border border-amber-800/60 bg-amber-950/20 px-2 py-1 text-caption text-amber-300">
           LLM 起草未生效：{llmHint}
         </p>
       )}
-      {err && <p className="mb-2 text-[11px] text-red-400">{err}</p>}
-      {msg && <p className="mb-2 rounded-md border border-emerald-800/60 bg-emerald-950/30 px-2 py-1 text-[11px] text-emerald-300">{msg}</p>}
+      {err && <p className="mb-2 text-caption text-red-400">{err}</p>}
+      {msg && <p className="mb-2 rounded-md border border-emerald-800/60 bg-emerald-950/30 px-2 py-1 text-caption text-emerald-300">{msg}</p>}
       <div className="mb-2 grid gap-2 md:grid-cols-2">
         <div>
-          <div className="mb-1 text-[10px] uppercase tracking-wider text-slate-500">当前</div>
-          <div className="rounded-md border border-slate-800 bg-slate-950/40 p-2 text-[11px] text-slate-500">
+          <div className="mb-1 text-micro uppercase tracking-wider text-slate-500">当前</div>
+          <div className="rounded-md border border-slate-800 bg-slate-950/40 p-2 text-caption text-slate-500">
             <div className="mb-1 font-medium text-slate-300">{cur?.name ?? item.name}</div>
             <div className="whitespace-pre-wrap">{cur?.description ?? '（无说明）'}</div>
           </div>
         </div>
         <div>
-          <div className="mb-1 text-[10px] uppercase tracking-wider text-slate-500">草稿（可编辑）</div>
+          <div className="mb-1 text-micro uppercase tracking-wider text-slate-500">草稿（可编辑）</div>
           <input className={INPUT} value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder="展示名" />
           <textarea className={`${INPUT} mt-1 font-mono`} rows={6} value={draftDesc}
             onChange={(e) => setDraftDesc(e.target.value)} placeholder="中文说明（≤160 字）" />
@@ -1754,7 +1754,7 @@ function FeedModal({ onClose, onPick }: { onClose: () => void; onPick?: (skillId
   return (
     <ModalShell title="动态中心（评估 + 人工复核）" onClose={onClose}>
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <span className="text-[11px] text-slate-500">已加载 {items.length} 条（时间倒序，分页加载）</span>
+        <span className="text-caption text-slate-500">已加载 {items.length} 条（时间倒序，分页加载）</span>
         <div className="flex items-center gap-1" role="tablist" aria-label="动态类型">
           {([
             ['all', '全部', items.length],
@@ -1787,21 +1787,21 @@ function FeedModal({ onClose, onPick }: { onClose: () => void; onPick?: (skillId
           <RefreshCw size={11} /> 刷新
         </button>
       </div>
-      {filterId && <p className="mb-1 text-[10px] text-cyan-400/80">当前过滤：skill_id 含 “{filterId}”</p>}
-      {err && <p className="mb-2 text-[11px] text-red-400">{err}</p>}
+      {filterId && <p className="mb-1 text-micro text-cyan-400/80">当前过滤：skill_id 含 “{filterId}”</p>}
+      {err && <p className="mb-2 text-caption text-red-400">{err}</p>}
       {busy ? (
-        <div className="flex items-center gap-2 py-4 text-[11px] text-slate-500"><Loader2 size={12} className="animate-spin" /> 加载中…</div>
+        <div className="flex items-center gap-2 py-4 text-caption text-slate-500"><Loader2 size={12} className="animate-spin" /> 加载中…</div>
       ) : shown.length === 0 ? (
-        <p className="py-4 text-[11px] text-slate-500">{items.length === 0 ? '暂无动态。' : '该类型暂无记录（切到「全部」看看）。'}</p>
+        <p className="py-4 text-caption text-slate-500">{items.length === 0 ? '暂无动态。' : '该类型暂无记录（切到「全部」看看）。'}</p>
       ) : (
         <ul className="max-h-104 space-y-1 overflow-y-auto pr-1">
           {shown.map((r, i) => (
-            <li key={`${r.ts}-${i}`} className="flex items-start gap-2 rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1.5 text-[11px]">
+            <li key={`${r.ts}-${i}`} className="flex items-start gap-2 rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1.5 text-caption">
               {chip(r.kind === 'audit' ? '审计' : '评估', r.kind === 'audit' ? 'bg-amber-500/10 text-amber-400 border-amber-800/60' : 'bg-cyan-500/10 text-cyan-400 border-cyan-800/60')}
               {onPick && r.skill_id ? (
                 <button type="button"
                   onClick={() => onPick(r.skill_id ?? '')}
-                  className="shrink-0 rounded-sm border border-slate-700 px-1.5 py-0.5 font-mono text-[10px] text-cyan-300 transition-colors hover:border-cyan-600 hover:bg-cyan-500/10"
+                  className="shrink-0 rounded-sm border border-slate-700 px-1.5 py-0.5 font-mono text-micro text-cyan-300 transition-colors hover:border-cyan-600 hover:bg-cyan-500/10"
                   title="在下方资产表中定位该技能（存在则展开报告并滚动定位）">
                   {r.skill_id}
                 </button>
@@ -1810,7 +1810,7 @@ function FeedModal({ onClose, onPick }: { onClose: () => void; onPick?: (skillId
               )}
               {r.tag && <span className={r.tag === 'block' ? 'text-red-400' : r.tag === '强制发布' ? 'text-amber-300' : 'text-emerald-400'}>{r.tag}</span>}
               <span className="min-w-0 flex-1 text-slate-500">{r.detail}</span>
-              <span className="shrink-0 font-mono text-[9px] text-slate-600">{r.ts ?? ''}</span>
+              <span className="shrink-0 font-mono text-micro text-slate-600">{r.ts ?? ''}</span>
             </li>
           ))}
         </ul>
@@ -1855,7 +1855,7 @@ function CommandModal({ item, onClose, onDone }: { item: SkillItem; onClose: () 
   }
   return (
     <ModalShell title={`斜杠命令 · ${item.name || item.id}`} onClose={onClose}>
-      <p className="mb-2 text-[11px] text-slate-500">技能库已接入统一 Slash 解析器（/api/skills-mgmt/slash/&lt;id&gt;）——直接执行 info / versions / execute / params。</p>
+      <p className="mb-2 text-caption text-slate-500">技能库已接入统一 Slash 解析器（/api/skills-mgmt/slash/&lt;id&gt;）——直接执行 info / versions / execute / params。</p>
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
         {['info', 'versions', 'execute', 'params'].map((c) => (
           <button key={c} type="button"
@@ -1873,8 +1873,8 @@ function CommandModal({ item, onClose, onDone }: { item: SkillItem; onClose: () 
         <textarea className={`${INPUT} mb-2 font-mono`} rows={3} value={paramsText} onChange={(e) => setParamsText(e.target.value)}
           placeholder='patch JSON，如 {"description":"…","enabled":true}' />
       )}
-      {err && <p className="mb-2 text-[11px] text-red-400">{err}</p>}
-      {out && <pre className="mb-2 max-h-56 overflow-auto rounded-md border border-slate-800 bg-slate-950/60 p-2 font-mono text-[10px] text-cyan-200">{out}</pre>}
+      {err && <p className="mb-2 text-caption text-red-400">{err}</p>}
+      {out && <pre className="mb-2 max-h-56 overflow-auto rounded-md border border-slate-800 bg-slate-950/60 p-2 font-mono text-micro text-cyan-200">{out}</pre>}
       <div className="mt-3 flex justify-end gap-2">
         <button type="button" className={BTN} onClick={onClose}>关闭</button>
         <button type="button" className={BTN_EM} onClick={() => void run()} disabled={busy}>
@@ -1898,7 +1898,7 @@ function ModalShell({ title, onClose, children }: { title: string; onClose: () =
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="mb-2.5 block">
-      <span className="mb-1 block text-[11px] text-slate-400">{label}</span>
+      <span className="mb-1 block text-caption text-slate-400">{label}</span>
       {children}
     </label>
   )

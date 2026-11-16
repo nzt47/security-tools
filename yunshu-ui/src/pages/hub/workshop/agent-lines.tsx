@@ -265,7 +265,7 @@ function Field({ label, hint, children }: {
     <label className="block">
       <div className="mb-1 flex items-baseline gap-2">
         <span className="text-xs text-slate-300">{label}</span>
-        {hint && <span className="text-[11px] text-slate-500">{hint}</span>}
+        {hint && <span className="text-caption text-slate-500">{hint}</span>}
       </div>
       {children}
     </label>
@@ -292,7 +292,7 @@ function Toggle({ on, label, hint, onChange }: {
         {on && <Check size={10} />}
       </span>
       <span>{label}</span>
-      {hint && <span className="text-[11px] text-slate-500">{hint}</span>}
+      {hint && <span className="text-caption text-slate-500">{hint}</span>}
     </button>
   )
 }
@@ -303,14 +303,14 @@ function ToolChips({ names, meta, reasons, color = 'slate' }: {
   reasons?: Record<string, string>
   color?: 'slate' | 'cyan' | 'amber' | 'red'
 }) {
-  if (!names.length) return <span className="text-[11px] text-slate-500">无</span>
+  if (!names.length) return <span className="text-caption text-slate-500">无</span>
   return (
     <div className="flex flex-wrap gap-1">
       {names.map((n) => (
         <span
           key={n}
           title={reasons?.[n] || meta?.[n]?.description || n}
-          className={`inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[11px] ${CHIP_CLASS[color]}`}
+          className={`inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-caption ${CHIP_CLASS[color]}`}
         >
           <span className="font-mono">{n}</span>
           {meta?.[n] && (
@@ -355,9 +355,9 @@ function ToolPicker({ title, hint, tone, tools, selected, exemptions, onToggle, 
       <div className="flex items-center justify-between gap-2 border-b border-slate-800 px-3 py-2">
         <div className="flex items-baseline gap-2">
           <span className="text-xs font-medium text-slate-300">{title}</span>
-          <span className="text-[11px] text-slate-500">{hint}</span>
+          <span className="text-caption text-slate-500">{hint}</span>
         </div>
-        <span className={`font-mono text-[11px] ${tone === 'cyan' ? 'text-cyan-400' : 'text-red-400'}`}>
+        <span className={`font-mono text-caption ${tone === 'cyan' ? 'text-cyan-400' : 'text-red-400'}`}>
           已选 {selected.length}
         </span>
       </div>
@@ -370,7 +370,7 @@ function ToolPicker({ title, hint, tone, tools, selected, exemptions, onToggle, 
           className="w-full bg-transparent text-xs text-slate-200 placeholder-slate-600 outline-hidden"
         />
         {q && (
-          <button onClick={() => setQ('')} className="shrink-0 text-[11px] text-slate-500 hover:text-slate-300">
+          <button onClick={() => setQ('')} className="shrink-0 text-caption text-slate-500 hover:text-slate-300">
             清空
           </button>
         )}
@@ -414,7 +414,7 @@ function ToolPicker({ title, hint, tone, tools, selected, exemptions, onToggle, 
                 </Badge>
                 {/* 可调用性标识：mark 缺失时不渲染（退化为现状） */}
                 <CallabilityBadge info={t.callability} name={t.name} />
-                <span className="truncate text-[11px] text-slate-500">{t.category}</span>
+                <span className="truncate text-caption text-slate-500">{t.category}</span>
               </button>
               {/* 「需确认」徽章 = 豁免开关（豁免清单没读到时它自己退回静态徽章） */}
               {t.needs_approval && (
@@ -485,11 +485,11 @@ export function SkillPackBlock({ skills }: { skills?: SkillPackInfo | null }) {
         <Badge color={skills.unrestricted ? 'slate' : 'cyan'}>
           {skills.unrestricted ? '不限制' : `白名单（声明 ${requested.length}）`}
         </Badge>
-        <span className="text-[11px] text-slate-500">{skills.source_label}</span>
+        <span className="text-caption text-slate-500">{skills.source_label}</span>
       </div>
 
       {skills.unrestricted ? (
-        <div className="text-[11px] text-slate-500" data-skill-unrestricted="1">
+        <div className="text-caption text-slate-500" data-skill-unrestricted="1">
           本线未限定技能范围：全局启用的技能都可注入。
           （未装线、或本线 `skills` 为空，都是这一档 —— 空 = 未表态，不等于「一个都不给」。）
         </div>
@@ -497,17 +497,17 @@ export function SkillPackBlock({ skills }: { skills?: SkillPackInfo | null }) {
         <div className="space-y-2">
           {allowed.length > 0 ? (
             <div data-skill-allowed={String(allowed.length)}>
-              <div className="mb-1 text-[11px] text-slate-500">本线允许注入的技能</div>
+              <div className="mb-1 text-caption text-slate-500">本线允许注入的技能</div>
               <ToolChips names={allowed} color="cyan" />
             </div>
           ) : (
-            <div className="text-[11px] text-amber-300" data-skill-allowed="0">
+            <div className="text-caption text-amber-300" data-skill-allowed="0">
               本线声明的技能在技能目录里一条都查不到 ⇒ 本轮不注入任何技能段。
             </div>
           )}
           {unknown.length > 0 && (
             <div data-skill-unknown={String(unknown.length)}>
-              <div className="mb-1 text-[11px] text-red-300">
+              <div className="mb-1 text-caption text-red-300">
                 声明了但技能目录里查不到（{unknown.length}）：既无实体、也无声明，保存时会被校验拦下
               </div>
               <ToolChips names={unknown} color="red" />
@@ -562,7 +562,7 @@ export function SubagentAssemblyBlock({ assembly, meta }: {
         <span>分身面（派一个分身时它拿到什么）</span>
         <Badge color={modeColor}>{modeLabel}</Badge>
         {assembly.available && (
-          <span className="font-mono text-[11px] text-slate-500">{tools.length} 个工具</span>
+          <span className="font-mono text-caption text-slate-500">{tools.length} 个工具</span>
         )}
         {assembly.needs_approval.length > 0 && (
           <Badge color="amber">需人工确认 {assembly.needs_approval.length}</Badge>
@@ -573,39 +573,39 @@ export function SubagentAssemblyBlock({ assembly, meta }: {
         <div className="space-y-2">
           {tools.length > 0 ? (
             <div data-testid="line-subagent-tools">
-              <div className="mb-1 text-[11px] text-slate-500">
+              <div className="mb-1 text-caption text-slate-500">
                 允许的工具集（已去 govern 平面、已去 §5.7 机制 3 硬禁）
               </div>
               <ToolChips names={tools} meta={meta} color="cyan" />
             </div>
           ) : (
-            <div className="text-[11px] text-amber-300" data-testid="line-subagent-tools-empty">
+            <div className="text-caption text-amber-300" data-testid="line-subagent-tools-empty">
               本线装配结果为空 ⇒ 分身一个工具都拿不到（不是"给全量"，是"一个都不给"）。
             </div>
           )}
           {assembly.needs_approval.length > 0 && (
             <div data-testid="line-subagent-approval">
-              <div className="mb-1 text-[11px] text-slate-500">其中需要人工确认</div>
+              <div className="mb-1 text-caption text-slate-500">其中需要人工确认</div>
               <ToolChips names={assembly.needs_approval} meta={meta} color="amber" />
             </div>
           )}
           <div data-testid="line-subagent-note">
-            <div className="mb-1 text-[11px] text-slate-500">
+            <div className="mb-1 text-caption text-slate-500">
               被拒 / 硬禁项 · 人读原因（后端装配单原文）
             </div>
-            <div className="text-[11px] text-slate-400">
+            <div className="text-caption text-slate-400">
               {assembly.note || '（后端未给出说明）'}
             </div>
           </div>
           {assembly.skills_note && (
-            <div className="text-[11px] text-slate-500" data-testid="line-subagent-skills-note">
+            <div className="text-caption text-slate-500" data-testid="line-subagent-skills-note">
               分身技能面：{assembly.skills_note}
             </div>
           )}
         </div>
       ) : (
         <div
-          className="rounded-sm border border-red-900/60 bg-red-950/30 px-2 py-1.5 text-[11px] text-red-300"
+          className="rounded-sm border border-red-900/60 bg-red-950/30 px-2 py-1.5 text-caption text-red-300"
           data-testid="line-subagent-unavailable"
         >
           {assembly.reason || '装配单不可用（后端未给出原因）'}
@@ -614,7 +614,7 @@ export function SubagentAssemblyBlock({ assembly, meta }: {
 
       {assembly.semantics_note && (
         <div
-          className={`mt-1.5 text-[11px] ${assembly.available ? 'text-slate-500' : 'text-amber-300'}`}
+          className={`mt-1.5 text-caption ${assembly.available ? 'text-slate-500' : 'text-amber-300'}`}
           data-testid="line-subagent-semantics"
         >
           {assembly.semantics_note}
@@ -651,7 +651,7 @@ function PreviewPanel({ preview, skills, promptFragments, promptFragmentsNote,
   return (
     <div className="space-y-3">
       {error && <ErrorBox message={error} />}
-      {pending && <div className="text-[11px] text-cyan-400">正在重算装配…</div>}
+      {pending && <div className="text-caption text-cyan-400">正在重算装配…</div>}
 
       {/* ── 本线会注入的提示词片段（role=line）───────────────────────────
           prompt_note 此前是**死字段**（UI 写着"随本线注入"，运行时无人消费）。
@@ -668,7 +668,7 @@ function PreviewPanel({ preview, skills, promptFragments, promptFragmentsNote,
           <div className="mb-1.5 flex flex-wrap items-center gap-2 text-xs text-slate-300">
             <MessageSquare size={12} className="text-cyan-400" />
             <span>本线会注入的提示词片段</span>
-            <span className="font-mono text-[11px] text-slate-500">role=line</span>
+            <span className="font-mono text-caption text-slate-500">role=line</span>
             {promptFragments.length > 0 && (
               <Badge color="cyan">{promptFragments.length} 段</Badge>
             )}
@@ -677,7 +677,7 @@ function PreviewPanel({ preview, skills, promptFragments, promptFragmentsNote,
             <div className="space-y-2">
               {promptFragments.map((f) => (
                 <div key={f.source + ':' + f.role} data-testid="line-fragment-item">
-                  <div className="mb-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
+                  <div className="mb-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-slate-500">
                     <span className="font-mono text-cyan-300" data-testid="line-fragment-source">
                       {f.source}
                     </span>
@@ -694,12 +694,12 @@ function PreviewPanel({ preview, skills, promptFragments, promptFragmentsNote,
                             : '本线未激活：激活并保存后才会注入')}
                     </span>
                   </div>
-                  <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5 text-[11px] text-slate-300">{f.content}</pre>
+                  <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5 text-caption text-slate-300">{f.content}</pre>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-[11px] text-slate-500" data-testid="line-fragment-empty">
+            <div className="text-caption text-slate-500" data-testid="line-fragment-empty">
               {promptFragmentsNote || '本线不注入任何提示词片段。'}
             </div>
           )}
@@ -729,7 +729,7 @@ function PreviewPanel({ preview, skills, promptFragments, promptFragmentsNote,
           </div>
 
           {preview.over_budget && (
-            <div className="rounded-lg border border-amber-900/60 bg-amber-950/30 px-3 py-2 text-[11px] text-amber-300">
+            <div className="rounded-lg border border-amber-900/60 bg-amber-950/30 px-3 py-2 text-caption text-amber-300">
               已启用平面的保底名额整体优先于打分名额：宁可略微超出上限，也不让某个平面清零。
               想让总数回到上限内，请下调各平面 plane_floors 或提高 max_tools。
             </div>
@@ -748,7 +748,7 @@ function PreviewPanel({ preview, skills, promptFragments, promptFragmentsNote,
           {issues.length > 0 && (
             <div className="rounded-lg border border-red-900/60 bg-red-950/30 px-3 py-2">
               <div className="mb-1 text-xs text-red-300">档案校验问题（{issues.length}）</div>
-              <ul className="list-inside list-disc space-y-0.5 text-[11px] text-red-300">
+              <ul className="list-inside list-disc space-y-0.5 text-caption text-red-300">
                 {issues.map((it) => <li key={it}>{it}</li>)}
               </ul>
             </div>
@@ -757,7 +757,7 @@ function PreviewPanel({ preview, skills, promptFragments, promptFragmentsNote,
           {notes.length > 0 && (
             <div className="rounded-lg border border-cyan-900/60 bg-cyan-950/30 px-3 py-2">
               <div className="mb-1 text-xs text-cyan-300">系统自动规范化</div>
-              <ul className="list-inside list-disc space-y-0.5 text-[11px] text-cyan-300">
+              <ul className="list-inside list-disc space-y-0.5 text-caption text-cyan-300">
                 {notes.map((it) => <li key={it}>{it}</li>)}
               </ul>
             </div>
@@ -774,8 +774,8 @@ function PreviewPanel({ preview, skills, promptFragments, promptFragmentsNote,
                 <div className="mb-1.5 flex items-center gap-2 text-xs text-slate-300">
                   <Layers size={12} className="text-cyan-400" />
                   <span>{PLANE_LABELS[plane] ?? plane}</span>
-                  <span className="font-mono text-[11px] text-slate-500">{plane}</span>
-                  <span className="ml-auto font-mono text-[11px] text-slate-400">{names.length} 个</span>
+                  <span className="font-mono text-caption text-slate-500">{plane}</span>
+                  <span className="ml-auto font-mono text-caption text-slate-400">{names.length} 个</span>
                 </div>
                 <ToolChips names={names} meta={meta} reasons={reasons} color="cyan" />
               </div>
@@ -796,14 +796,14 @@ function PreviewPanel({ preview, skills, promptFragments, promptFragmentsNote,
             <FoldList title="被 mute 显式排除" names={preview.muted} meta={meta} color="slate" />
             <FoldList title="名额不足被截断" names={preview.truncated} meta={meta} color="amber" />
             {preview.denied_unknown.length > 0 && (
-              <div className="text-[11px] text-red-300">
+              <div className="text-caption text-red-300">
                 未登记的工具一律不给（无法证明其安全边界）：请先在
                 data/tool_definitions/*.yaml 里补 plane/effect/risk。
               </div>
             )}
           </div>
 
-          <div className="text-[11px] text-slate-500">
+          <div className="text-caption text-slate-500">
             鼠标悬停工具名可看到入选理由（平面保底 / 打分入选）。
           </div>
         </>
@@ -1176,7 +1176,7 @@ export default function ToolsAgentLines() {
                         </span>
                         {active === l.id && <Badge color="green">当前</Badge>}
                       </div>
-                      <div className="mt-1 truncate font-mono text-[11px] text-slate-500">{l.id}</div>
+                      <div className="mt-1 truncate font-mono text-caption text-slate-500">{l.id}</div>
                       <div className="mt-1.5 flex flex-wrap items-center gap-1">
                         <Badge color="cyan">上限 {num(l.max_tools)}</Badge>
                         {/* 【2026-11-15】本分身默认上下文窗口（未声明 ⇒ 用全局默认） */}
@@ -1191,13 +1191,13 @@ export default function ToolsAgentLines() {
                         {active !== l.id && (
                           <span
                             onClick={(e) => { e.stopPropagation(); void doActivate(l.id) }}
-                            className="ml-auto rounded-sm border border-slate-700 px-1.5 py-0.5 text-[11px] text-slate-400 hover:bg-slate-700 hover:text-slate-200"
+                            className="ml-auto rounded-sm border border-slate-700 px-1.5 py-0.5 text-caption text-slate-400 hover:bg-slate-700 hover:text-slate-200"
                           >
                             设为当前
                           </span>
                         )}
                       </div>
-                      <div className="mt-1.5 text-[11px] text-slate-500">{planeSummary(l)}</div>
+                      <div className="mt-1.5 text-caption text-slate-500">{planeSummary(l)}</div>
                     </button>
                   )
                 })}
@@ -1207,7 +1207,7 @@ export default function ToolsAgentLines() {
 
           {/* ── 说明：四平面 / effect 偏序 / 保底 ── */}
           <Card title="怎么理解这条线">
-            <div className="space-y-2.5 text-[11px] leading-relaxed text-slate-400">
+            <div className="space-y-2.5 text-caption leading-relaxed text-slate-400">
               <div>
                 <div className="mb-1 flex items-center gap-1 text-slate-300">
                   <Layers size={12} className="text-cyan-400" /> 四平面
@@ -1366,7 +1366,7 @@ export default function ToolsAgentLines() {
                     <div className="mb-3 flex items-center gap-2 text-xs text-slate-300">
                       <Layers size={12} className="text-cyan-400" />
                       平面权重与保底
-                      <span className="text-[11px] text-slate-500">
+                      <span className="text-caption text-slate-500">
                         权重 0 = 该平面不参与；保底 = 该平面至少先占几个名额
                       </span>
                     </div>
@@ -1393,7 +1393,7 @@ export default function ToolsAgentLines() {
                               onChange={(e) => setWeight(plane, num(e.target.value))}
                               className="w-20 rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200 outline-hidden disabled:opacity-40"
                             />
-                            <span className="shrink-0 text-[11px] text-slate-500">保底</span>
+                            <span className="shrink-0 text-caption text-slate-500">保底</span>
                             <input
                               type="number" min={0} max={50} value={floor}
                               disabled={disabled}
@@ -1405,7 +1405,7 @@ export default function ToolsAgentLines() {
                       })}
                     </div>
                     {!draft.allow_govern && (
-                      <div className="mt-2 text-[11px] text-slate-500">
+                      <div className="mt-2 text-caption text-slate-500">
                         治理平面权重会被丢弃：它改变云枢自身能力集，必须显式打开「允许治理平面」。
                       </div>
                     )}
@@ -1428,7 +1428,7 @@ export default function ToolsAgentLines() {
                           )
                         })}
                       </div>
-                      <div className="mt-2 text-[11px] text-slate-500">
+                      <div className="mt-2 text-caption text-slate-500">
                         偏序上限：勾了 execute 就等于同时允许 read/write。
                       </div>
                     </div>
@@ -1447,7 +1447,7 @@ export default function ToolsAgentLines() {
                           )
                         })}
                       </div>
-                      <div className="mt-2 text-[11px] text-slate-500">
+                      <div className="mt-2 text-caption text-slate-500">
                         与工具自身的 risk 叠加：治理平面 / extend / critical 一律需要确认。
                       </div>
                     </div>
@@ -1455,7 +1455,7 @@ export default function ToolsAgentLines() {
 
                   {/* boost / mute */}
                   {showCallabilityLegend && (
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-caption text-slate-500">
                       <span className="text-slate-400">可调用性标识</span>
                       <span>{callabilityLegend(catalog?.callability_note)}</span>
                       {callabilityText && <span className="ml-auto">{callabilityText}</span>}
@@ -1514,7 +1514,7 @@ export default function ToolsAgentLines() {
                         onChange={(next) => patch({ topics: next })}
                         testId="line-topic"
                       />
-                      <div className="text-[11px] text-slate-500" data-testid="line-topic-note">
+                      <div className="text-caption text-slate-500" data-testid="line-topic-note">
                         三库（向量 / 知识 / 经验）用同一份词表；跨类读取必须把那一类加进来。
                       </div>
                     </div>
@@ -1535,7 +1535,7 @@ export default function ToolsAgentLines() {
               <Card
                 title="装配预览（实时）"
                 actions={
-                  <span className="text-[11px] text-slate-500">
+                  <span className="text-caption text-slate-500">
                     {catalog?.tool_source === 'declarations'
                       ? '候选集来自已声明工具（运行时注册表未加载）'
                       : `候选集来自运行时注册表（${catalog?.tool_count ?? 0} 个工具）`}
@@ -1558,7 +1558,7 @@ export default function ToolsAgentLines() {
 
               {(catalog?.tools_without_declaration?.length ?? 0) > 0 && (
                 <Card title="未登记的工具（fail-closed 拒绝）">
-                  <div className="mb-2 text-[11px] text-slate-500">
+                  <div className="mb-2 text-caption text-slate-500">
                     以下工具在运行时存在，但没有 plane/effect 声明，装配时一律不给
                     （无法证明其安全边界）：请先在 data/tool_definitions/*.yaml 补齐。
                   </div>
