@@ -260,4 +260,32 @@ describe('ContextManagerBar · DSH 三组读数', () => {
     fireEvent.click(screen.getByRole('button', { name: '收起窗口取值参考' }))
     await waitFor(() => expect(screen.queryByText(/窗口该开多大/)).toBeNull())
   })
+
+  /* 【2026-11-17 Owner 反馈「浮层无法关闭」】浮层必须三条路都能关，缺一条就等于关不掉：
+     Esc / 点暗底 / 面板上的「关闭」按钮。下面三条各守一条。 */
+  it('窗口取值参考是浮层，且 Esc 能关', async () => {
+    render(<ContextManagerBar />)
+    expand()
+    await screen.findByText('会话统计')
+    fireEvent.click(screen.getByRole('button', { name: '窗口取值参考' }))
+    const dlg = await screen.findByRole('dialog', { name: '窗口取值参考' })
+    expect(dlg.className).toContain('max-h-full')       // 按内容高度，不再被拉成整屏空盒子
+    expect(dlg.className).toContain('overflow-y-auto')  // 内容多了自己滚
+    fireEvent.keyDown(window, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: '窗口取值参考' })).toBeNull())
+  })
+
+  it('窗口取值参考：点浮层外的暗底能关（点面板内部不关）', async () => {
+    render(<ContextManagerBar />)
+    expand()
+    await screen.findByText('会话统计')
+    fireEvent.click(screen.getByRole('button', { name: '窗口取值参考' }))
+    const dlg = await screen.findByRole('dialog', { name: '窗口取值参考' })
+    // 点面板内部：不该关
+    fireEvent.click(dlg)
+    expect(screen.queryByRole('dialog', { name: '窗口取值参考' })).toBeTruthy()
+    // 点暗底（dialog 的父节点）：关
+    fireEvent.click(dlg.parentElement as HTMLElement)
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: '窗口取值参考' })).toBeNull())
+  })
 })

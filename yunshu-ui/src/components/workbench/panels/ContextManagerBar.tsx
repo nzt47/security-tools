@@ -10,7 +10,7 @@
  * 注：config/compress 写操作需 FLASK_API_TOKEN（401 时提示）。
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ChevronDown, Gauge, Info, RefreshCw, Minimize2 } from 'lucide-react'
+import { ChevronDown, Gauge, Info, RefreshCw, Minimize2, X } from 'lucide-react'
 import { Loading, hubGet } from '../../../pages/hub/components/ui'
 // 【P1-front 第七批】GET /api/context/status 已带 X-Envelope: v2，改用显式信封解析。
 // 【P1-front 第九批】同页两个 POST（config/compress）也已迁移，一并改用 postEnvelope。
@@ -156,6 +156,20 @@ export function ContextManagerBar() {
     const t = setInterval(load, 5000)
     return () => clearInterval(t)
   }, [load])
+
+  /* 【2026-11-17 Owner】说明面板是浮层 ⇒ 必须**关得掉**，而且要三条路都有：
+     Esc / 点浮层外的暗底 / 面板右上角的「收起」。 */
+  useEffect(() => {
+    if (!infoTab) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation()
+        setInfoTab(null)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [infoTab])
 
   // 各分身的默认窗口（档案事实；取不到就空表，界面如实说"取不到"，不编数）。
   // 与 5s 水位轮询分开：主线档案不会每 5 秒变一次，60s 足够。
@@ -503,24 +517,28 @@ export function ContextManagerBar() {
                   ⇒ 两个说明面板改成 **fixed 浮层**（inset-4 起算、自己的滚动条），祖先裁不到它。
                   判据见 .local/verify_window_ref.py：浮层矩形完全在视口内 + 滚到底能看见最后一行。 */}
               {infoTab === 'mechanism' && (
+              /* 暗底：点一下 = 关（浮层必须可关闭）。浮层本身按内容高度居中，不再被拉成整屏高的空盒子。 */
+              <div
+                role="presentation"
+                onClick={() => setInfoTab(null)}
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+              >
               <div
                 role="dialog"
                 aria-modal="true"
                 aria-label="上下文管理说明"
-                className="fixed inset-x-3 top-4 bottom-4 z-50 mx-auto max-w-3xl space-y-2 overflow-y-auto overscroll-contain rounded-xl border border-slate-700 bg-slate-950/95 p-4 shadow-2xl backdrop-blur-sm [scrollbar-gutter:stable] sm:inset-x-6"
+                onClick={(e) => e.stopPropagation()}
+                className="max-h-full w-full max-w-3xl space-y-2 overflow-y-auto overscroll-contain rounded-xl border border-slate-700 bg-slate-950 p-4 shadow-2xl [scrollbar-gutter:stable]"
               >
                 <div className="flex items-center justify-between gap-2 text-caption font-medium text-cyan-300">
                   <span className="flex items-center gap-1.5">
                     <Info size={11} /> 上下文管理机制（多层次自动策略，无需手动干预）
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => setInfoTab(null)}
-                    aria-label="收起上下文管理说明"
-                    className="text-micro text-slate-500 hover:text-slate-300"
-                  >
-                    收起
-                  </button>
+                  {/* 【2026-11-17】关闭动作要**看得见**：原来是 11px 的「收起」文字，Owner 反馈"关不掉"。
+                      现在换成带边框的小按钮 + × 图标（Esc / 点暗底 也能关）。 */}
+                  <Button variant="default" size="xs" onClick={() => setInfoTab(null)} aria-label="收起上下文管理说明">
+                    <X size={11} /> 关闭
+                  </Button>
                 </div>
                 <div className="text-caption leading-relaxed text-slate-300">
                   <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5">
@@ -555,14 +573,21 @@ export function ContextManagerBar() {
                   </div>
                 </div>
               </div>
+              </div>
               )}
 
               {infoTab === 'window' && (
                 <div
+                  role="presentation"
+                  onClick={() => setInfoTab(null)}
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+                >
+                <div
                   role="dialog"
                   aria-modal="true"
                   aria-label="窗口取值参考"
-                  className="fixed inset-x-3 top-4 bottom-4 z-50 mx-auto max-w-3xl space-y-2 overflow-y-auto overscroll-contain rounded-xl border border-slate-700 bg-slate-950/95 p-4 shadow-2xl backdrop-blur-sm [scrollbar-gutter:stable] sm:inset-x-6"
+                  onClick={(e) => e.stopPropagation()}
+                  className="max-h-full w-full max-w-3xl space-y-2 overflow-y-auto overscroll-contain rounded-xl border border-slate-700 bg-slate-950 p-4 shadow-2xl [scrollbar-gutter:stable]"
                 >
                   {/* 【2026-11-16 Owner】说明面板原来"无界高度"，底部被外层 mosaic 面板 overflow 裁掉。
                       2026-11-17：max-h-[70vh] 的尝试**没修好**（70vh 相对视口，比祖先可用高度还大 ⇒ 上限不生效，
@@ -571,14 +596,10 @@ export function ContextManagerBar() {
                     <span className="flex items-center gap-1.5">
                       <Info size={11} /> 窗口该开多大（建议值 + 我们这里的真实约束）
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => setInfoTab(null)}
-                      aria-label="收起窗口取值参考"
-                      className="text-micro text-slate-500 hover:text-slate-300"
-                    >
-                      收起
-                    </button>
+                    {/* 同上：关闭要看得见（Esc / 点暗底 / 这个按钮，三条路） */}
+                    <Button variant="default" size="xs" onClick={() => setInfoTab(null)} aria-label="收起窗口取值参考">
+                      <X size={11} /> 关闭
+                    </Button>
                   </div>
 
                   {/* ① 本机的真实数值（全部来自后端读数，不写死） */}
@@ -676,6 +697,7 @@ export function ContextManagerBar() {
                       改分身默认：工作台 → 智能体主线（主线档案页，列表里有「窗口 …」徽章、编辑区有 context_window_tokens 字段）；改本机当前值：用上面的滑块。
                     </div>
                   </div>
+                </div>
                 </div>
               )}
 
