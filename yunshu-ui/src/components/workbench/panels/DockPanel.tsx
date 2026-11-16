@@ -17,6 +17,7 @@ import { BookOpen, Bot, Code2, Globe, Loader2, Play, RefreshCw, Terminal } from 
 import { CodeEditorPanel } from './CodeEditorPanel'
 import { getEnvelope } from '@/api/envelope'
 import { hubGet, hubPost } from '../../../pages/hub/components/ui'
+import { Button } from '@/components/ui'
 import { getApiToken } from '@/lib/apiToken'
 import {
   FILESYSTEM_LIST,
@@ -75,7 +76,7 @@ function Pane({ children }: { children: ReactNode }) {
 
 function Hint({ children }: { children: ReactNode }) {
   return (
-    <p className="border-b border-slate-800/60 px-3 py-1.5 text-[10px] leading-relaxed text-slate-500">
+    <p className="border-b border-slate-800/60 px-3 py-1.5 text-micro leading-relaxed text-slate-500">
       {children}
     </p>
   )
@@ -101,10 +102,10 @@ export function DockPanel() {
               aria-selected={active}
               onClick={() => setTab(id)}
               title={`切换到${label}`}
-              className={`flex items-center gap-1 rounded-md border px-1.5 py-1 text-[10.5px] transition-colors ${
+              className={`flex items-center gap-1 rounded-control border px-1.5 py-1 text-caption transition-colors ${
                 active
-                  ? 'border-cyan-600/60 bg-cyan-500/10 text-cyan-300'
-                  : 'border-transparent text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+                  ? 'border-primary/60 bg-primary/10 text-primary'
+                  : 'border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground'
               }`}
             >
               <Icon size={11} />
@@ -182,49 +183,44 @@ function DocsPane() {
         只读浏览 <code className="text-slate-400">docs/zh</code>；点目录进入、点 .md 查看正文。
       </Hint>
       <div className="flex shrink-0 items-center gap-1 border-b border-slate-800/60 px-2 py-1">
-        <button
-          type="button"
-          onClick={() => void loadDir(DOC_ROOT)}
-          title="回到 docs/zh"
-          className="rounded-sm border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-400 hover:bg-slate-800"
-        >
+        <Button variant="default" size="xs" onClick={() => void loadDir(DOC_ROOT)} title="回到 docs/zh">
           根目录
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="default"
+          size="xs"
           onClick={() => void loadDir(path.replace(/\/[^/]+$/, '') || DOC_ROOT)}
           title="上一级"
-          className="rounded-sm border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-400 hover:bg-slate-800"
         >
           上一级
-        </button>
-        <span className="truncate font-mono text-[10px] text-slate-500" title={path}>
+        </Button>
+        <span className="truncate font-mono text-micro text-slate-500" title={path}>
           {path}
         </span>
         {loading && <Loader2 size={11} className="ml-auto animate-spin text-slate-500" />}
       </div>
-      {error && <p className="px-3 py-2 text-[10.5px] text-rose-300">{error}</p>}
+      {error && <p className="px-3 py-2 text-caption text-rose-300">{error}</p>}
       <div className="min-h-0 flex-1 overflow-y-auto px-1 py-1">
         {file ? (
           <div className="p-2">
-            <div className="mb-1 truncate font-mono text-[10px] text-cyan-300" title={file.path}>
+            <div className="mb-1 truncate font-mono text-micro text-cyan-300" title={file.path}>
               {file.path}
             </div>
-            <pre className="m-0 whitespace-pre-wrap break-words text-[10.5px] leading-relaxed text-slate-300">
+            <pre className="m-0 whitespace-pre-wrap break-words text-caption leading-relaxed text-slate-300">
               {file.content}
             </pre>
           </div>
         ) : items.length === 0 && !loading ? (
-          <p className="px-2 py-3 text-center text-[10.5px] text-slate-500">目录为空</p>
+          <p className="px-2 py-3 text-center text-caption text-slate-500">目录为空</p>
         ) : (
           items.map((it) => (
             <button
               key={it.name}
               type="button"
               onClick={() => (it.type === 'dir' ? void loadDir(`${path}/${it.name}`) : void open(it.name))}
-              className="mb-0.5 flex w-full items-center gap-1.5 rounded px-2 py-1 text-left text-[10.5px] text-slate-300 hover:bg-slate-800/70"
+              className="mb-0.5 flex w-full items-center gap-1.5 rounded-control px-2 py-1 text-left text-caption text-foreground hover:bg-muted/70"
             >
-              <span className="shrink-0 text-slate-500">{it.type === 'dir' ? '📁' : '📄'}</span>
+              <span className="shrink-0 text-muted-foreground">{it.type === 'dir' ? '📁' : '📄'}</span>
               <span className="truncate">{it.name}</span>
             </button>
           ))
@@ -269,47 +265,43 @@ function SubagentPane() {
     <Pane>
       <Hint>活跃分身 = 当前可委派对象（跑完即回收）；下方是最近的委派记录。</Hint>
       <div className="flex shrink-0 items-center gap-1 border-b border-slate-800/60 px-2 py-1">
-        <button
-          type="button"
-          onClick={() => void load()}
-          className="flex items-center gap-1 rounded-sm border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-400 hover:bg-slate-800"
-        >
+        <Button variant="default" size="xs" onClick={() => void load()}>
           {loading ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />}
           刷新
-        </button>
-        <span className="ml-auto text-[10px] text-slate-500">
+        </Button>
+        <span className="ml-auto text-micro text-slate-500">
           活跃 {rows.length} · 记录 {history.length}
         </span>
       </div>
-      {error && <p className="px-3 py-2 text-[10.5px] text-rose-300">{error}</p>}
+      {error && <p className="px-3 py-2 text-caption text-rose-300">{error}</p>}
       <div className="min-h-0 flex-1 overflow-y-auto px-2 py-1.5">
         {rows.length === 0 ? (
-          <p className="py-1 text-[10.5px] text-slate-500">暂无活跃分身（可到「装配车间 → 分身创建与组装」创建）</p>
+          <p className="py-1 text-caption text-slate-500">暂无活跃分身（可到「装配车间 → 分身创建与组装」创建）</p>
         ) : (
           rows.map((r) => (
             <div key={r.name} className="mb-1 rounded border border-slate-800 bg-slate-950/50 px-2 py-1">
-              <div className="flex items-center gap-1.5 text-[10.5px] text-slate-200">
+              <div className="flex items-center gap-1.5 text-caption text-slate-200">
                 <Bot size={11} className="text-cyan-400" />
                 <b className="truncate">{r.name}</b>
-                {r.model_id && <span className="ml-auto font-mono text-[9px] text-slate-500">{r.model_id}</span>}
+                {r.model_id && <span className="ml-auto font-mono text-micro text-slate-500">{r.model_id}</span>}
               </div>
               {r.created_at && (
-                <div className="mt-0.5 text-[9.5px] text-slate-600">创建 {r.created_at.slice(0, 19).replace('T', ' ')}</div>
+                <div className="mt-0.5 text-micro text-slate-600">创建 {r.created_at.slice(0, 19).replace('T', ' ')}</div>
               )}
             </div>
           ))
         )}
-        <div className="mt-2 mb-1 text-[10px] uppercase tracking-wider text-slate-600">最近委派</div>
+        <div className="mt-2 mb-1 text-micro uppercase tracking-wider text-slate-600">最近委派</div>
         {history.length === 0 ? (
-          <p className="text-[10.5px] text-slate-500">暂无委派记录</p>
+          <p className="text-caption text-slate-500">暂无委派记录</p>
         ) : (
           history.map((h) => (
             <div key={h.delegation_id ?? `${h.subagent}-${h.created_at}`} className="mb-1 border-l-2 border-slate-800 pl-2">
-              <div className="flex items-center gap-1.5 text-[10px]">
+              <div className="flex items-center gap-1.5 text-micro">
                 <span className={h.ok ? 'text-emerald-400' : 'text-rose-400'}>{h.ok ? '成功' : '失败'}</span>
                 <span className="truncate text-slate-400">{h.subagent ?? '—'}</span>
               </div>
-              <div className="truncate text-[9.5px] text-slate-500" title={h.goal ?? ''}>
+              <div className="truncate text-micro text-slate-500" title={h.goal ?? ''}>
                 {h.goal ?? h.error_code ?? ''}
               </div>
             </div>
@@ -356,13 +348,6 @@ interface RemoteSession {
  *     适合"同源 iframe 被 X-Frame-Options 挡住、但仍要操作"的站点；导航受 SSRF 守卫约束
  *     （默认只允许公网 http(s)，本机/内网一律 400）。
  */
-function modeBtnClass(active: boolean): string {
-  return 'rounded border px-1.5 py-0.5 text-[10px] transition-colors ' + (
-    active
-      ? 'border-cyan-600/60 bg-cyan-500/10 text-cyan-300'
-      : 'border-slate-800 text-slate-400 hover:bg-slate-800/60')
-}
-
 function BrowserPane() {
   const [url, setUrl] = useState('http://127.0.0.1:5678/')
   const [current, setCurrent] = useState('')
@@ -494,17 +479,17 @@ function BrowserPane() {
     <Pane>
       <div className="flex shrink-0 items-center gap-1 border-b border-slate-800/60 px-2 py-1">
         {(['iframe', 'remote'] as const).map((m) => (
-          <button
+          <Button
             key={m}
-            type="button"
+            variant={mode === m ? 'primary' : 'default'}
+            size="xs"
             onClick={() => switchMode(m)}
             aria-pressed={mode === m}
-            className={modeBtnClass(mode === m)}
           >
             {m === 'iframe' ? '内嵌' : '交互'}
-          </button>
+          </Button>
         ))}
-        <span className="ml-auto truncate text-[9.5px] text-slate-600">
+        <span className="ml-auto truncate text-micro text-slate-600">
           {mode === 'iframe' ? '同源内嵌 · 跨域常被 X-Frame-Options 拒绝' : '受控 Chromium · 截图流 · 内网需 CP_BROWSER_REMOTE_ALLOW_HOSTS'}
         </span>
       </div>
@@ -527,22 +512,16 @@ function BrowserPane() {
           onChange={(e) => setUrl(e.target.value)}
           aria-label="浏览器地址"
           placeholder="http(s)://…"
-          className="min-w-0 flex-1 rounded border border-slate-800 bg-slate-950/70 px-1.5 py-0.5 font-mono text-[10px] text-slate-200 placeholder:text-slate-600 focus:border-cyan-600/60 focus:outline-hidden"
+          className="min-w-0 flex-1 rounded border border-slate-800 bg-slate-950/70 px-1.5 py-0.5 font-mono text-micro text-slate-200 placeholder:text-slate-600 focus:border-cyan-600/60 focus:outline-hidden"
         />
-        <button
-          type="submit"
-          className="rounded-sm border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-300 hover:bg-slate-800"
-        >
+        <Button type="submit" variant="default" size="xs">
           打开
-        </button>
+        </Button>
         {mode === 'remote' && (
           <>
-            <button type="button" onClick={() => void send({ kind: 'back' })} aria-label="后退"
-              className="rounded-sm border border-slate-800 px-1 py-0.5 text-[10px] text-slate-400 hover:bg-slate-800">←</button>
-            <button type="button" onClick={() => void send({ kind: 'forward' })} aria-label="前进"
-              className="rounded-sm border border-slate-800 px-1 py-0.5 text-[10px] text-slate-400 hover:bg-slate-800">→</button>
-            <button type="button" onClick={() => void send({ kind: 'reload' })} aria-label="刷新画面"
-              className="rounded-sm border border-slate-800 px-1 py-0.5 text-[10px] text-slate-400 hover:bg-slate-800">⟳</button>
+            <Button variant="default" size="xs" className="px-1" onClick={() => void send({ kind: 'back' })} aria-label="后退">←</Button>
+            <Button variant="default" size="xs" className="px-1" onClick={() => void send({ kind: 'forward' })} aria-label="前进">→</Button>
+            <Button variant="default" size="xs" className="px-1" onClick={() => void send({ kind: 'reload' })} aria-label="刷新画面">⟳</Button>
           </>
         )}
       </form>
@@ -553,7 +532,7 @@ function BrowserPane() {
             onChange={(e) => setText(e.target.value)}
             aria-label="键盘输入"
             placeholder="输入文本后回车（发到当前焦点）"
-            className="min-w-0 flex-1 rounded border border-slate-800 bg-slate-950/70 px-1.5 py-0.5 text-[10px] text-slate-200 placeholder:text-slate-600 focus:border-cyan-600/60 focus:outline-hidden"
+            className="min-w-0 flex-1 rounded border border-slate-800 bg-slate-950/70 px-1.5 py-0.5 text-micro text-slate-200 placeholder:text-slate-600 focus:border-cyan-600/60 focus:outline-hidden"
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault()
@@ -562,18 +541,27 @@ function BrowserPane() {
             }}
           />
           {['Enter', 'Tab', 'Escape', 'Backspace'].map((k) => (
-            <button key={k} type="button" onClick={() => void send({ kind: 'key', key: k })}
-              className="rounded-sm border border-slate-800 px-1 py-0.5 font-mono text-[9px] text-slate-400 hover:bg-slate-800">
+            <Button
+              key={k}
+              variant="default"
+              size="xs"
+              className="px-1 font-mono"
+              onClick={() => void send({ kind: 'key', key: k })}
+            >
               {k}
-            </button>
+            </Button>
           ))}
-          <button type="button" onClick={() => void closeRemote()}
-            className="rounded-sm border border-rose-900/60 px-1 py-0.5 text-[9px] text-rose-300 hover:bg-rose-950/40">
+          <Button
+            variant="default"
+            size="xs"
+            className="border-danger/60 text-danger hover:bg-danger/10"
+            onClick={() => void closeRemote()}
+          >
             关闭会话
-          </button>
+          </Button>
         </div>
       )}
-      {error && <p className="px-3 py-1 text-[10px] text-rose-300">{error}</p>}
+      {error && <p className="px-3 py-1 text-micro text-rose-300">{error}</p>}
       <div className="relative min-h-0 flex-1">
         {mode === 'iframe' ? (
           current ? (
@@ -585,7 +573,7 @@ function BrowserPane() {
               sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-downloads"
             />
           ) : (
-            <p className="px-3 py-4 text-center text-[10.5px] text-slate-500">输入地址后点「打开」</p>
+            <p className="px-3 py-4 text-center text-caption text-slate-500">输入地址后点「打开」</p>
           )
         ) : session && frame ? (
           <img
@@ -597,12 +585,12 @@ function BrowserPane() {
             draggable={false}
           />
         ) : (
-          <p className="px-3 py-4 text-center text-[10.5px] text-slate-500">
+          <p className="px-3 py-4 text-center text-caption text-slate-500">
             {busy ? '正在启动受控浏览器…' : '输入公网地址后点「打开」，或切回内嵌模式'}
           </p>
         )}
         {mode === 'remote' && title && (
-          <span className="pointer-events-none absolute bottom-1 left-1 rounded bg-slate-950/80 px-1.5 py-0.5 text-[9px] text-slate-400">
+          <span className="pointer-events-none absolute bottom-1 left-1 rounded bg-slate-950/80 px-1.5 py-0.5 text-micro text-slate-400">
             {title}
           </span>
         )}
@@ -637,21 +625,17 @@ function TerminalPane() {
     <Pane>
       <div className="flex shrink-0 items-center gap-1 border-b border-slate-800/60 px-2 py-1">
         {(['cmd', 'activity'] as const).map((m) => (
-          <button
+          <Button
             key={m}
-            type="button"
+            variant={mode === m ? 'primary' : 'default'}
+            size="xs"
             onClick={() => setMode(m)}
             aria-pressed={mode === m}
-            className={`rounded border px-1.5 py-0.5 text-[10px] transition-colors ${
-              mode === m
-                ? 'border-cyan-600/60 bg-cyan-500/10 text-cyan-300'
-                : 'border-slate-800 text-slate-400 hover:bg-slate-800/60'
-            }`}
           >
             {m === 'cmd' ? '命令' : '实时活动'}
-          </button>
+          </Button>
         ))}
-        <span className="ml-auto text-[9.5px] text-slate-600">
+        <span className="ml-auto text-micro text-slate-600">
           {mode === 'cmd' ? '白名单执行 · 不是自由 shell' : '审计链尾部 · 3s 轮询'}
         </span>
       </div>
@@ -722,25 +706,22 @@ function CommandView() {
           {commands.map((c) => {
             const active = c.id === picked
             return (
-              <button
+              <Button
                 key={c.id}
-                type="button"
+                variant={active ? 'primary' : 'default'}
+                size="xs"
+                className="font-mono"
                 onClick={() => {
                   setPicked(c.id)
                   setOut(null)
                 }}
                 title={c.description ?? c.label}
-                className={`rounded border px-1.5 py-0.5 font-mono text-[10px] transition-colors ${
-                  active
-                    ? 'border-cyan-600/60 bg-cyan-500/10 text-cyan-300'
-                    : 'border-slate-800 text-slate-400 hover:bg-slate-800/60'
-                }`}
               >
                 {c.label}
-              </button>
+              </Button>
             )
           })}
-          {commands.length === 0 && !loading && <span className="text-[10px] text-slate-500">暂无可用命令</span>}
+          {commands.length === 0 && !loading && <span className="text-micro text-slate-500">暂无可用命令</span>}
         </div>
         <div className="mt-1.5 flex items-center gap-1">
           {needsParam && (
@@ -748,24 +729,19 @@ function CommandView() {
               value={paramText}
               onChange={(e) => setParamText(e.target.value)}
               aria-label="命令参数"
-              className="w-14 rounded border border-slate-800 bg-slate-950/70 px-1.5 py-0.5 font-mono text-[10px] text-slate-200"
+              className="w-14 rounded border border-slate-800 bg-slate-950/70 px-1.5 py-0.5 font-mono text-micro text-slate-200"
             />
           )}
-          <button
-            type="button"
-            onClick={() => void run()}
-            disabled={!picked || loading}
-            className="flex items-center gap-1 rounded-sm border border-cyan-700/60 bg-cyan-500/10 px-1.5 py-0.5 text-[10px] text-cyan-300 disabled:opacity-50"
-          >
+          <Button variant="primary" size="xs" onClick={() => void run()} disabled={!picked || loading}>
             {loading ? <Loader2 size={10} className="animate-spin" /> : <Play size={10} />} 执行
-          </button>
-          <span className="ml-auto truncate font-mono text-[9px] text-slate-600">
+          </Button>
+          <span className="ml-auto truncate font-mono text-micro text-slate-600">
             {out?.argv ? out.argv.join(' ') : ''}
           </span>
         </div>
       </div>
-      {error && <p className="px-3 py-1 text-[10px] text-rose-300">{error}</p>}
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 py-1 font-mono text-[10px] leading-relaxed">
+      {error && <p className="px-3 py-1 text-micro text-rose-300">{error}</p>}
+      <div className="min-h-0 flex-1 overflow-y-auto px-2 py-1 font-mono text-micro leading-relaxed">
         {!out ? (
           <p className="text-slate-500">选一条命令后点「执行」</p>
         ) : (
@@ -856,39 +832,35 @@ function ActivityView() {
         <span className="text-slate-400">最新的在最上面（后进置顶）。</span>
       </Hint>
       <div className="flex shrink-0 items-center gap-1 border-b border-slate-800/60 px-2 py-1">
-        <button
-          type="button"
-          onClick={() => setPaused((p) => !p)}
-          className="rounded-sm border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-300 hover:bg-slate-800"
-        >
+        <Button variant="default" size="xs" onClick={() => setPaused((p) => !p)}>
           {paused ? '继续' : '暂停'}
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="default"
+          size="xs"
           onClick={() => {
             setRows([])
             lastSeq.current = 0
           }}
-          className="rounded-sm border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-400 hover:bg-slate-800"
         >
           清空
-        </button>
-        <span className="ml-auto font-mono text-[9px] text-slate-600">
+        </Button>
+        <span className="ml-auto font-mono text-micro text-slate-600">
           seq {lastSeq.current || '—'} · {rows.length} 条
         </span>
       </div>
       {inflight.length > 0 && (
         <div className="shrink-0 border-b border-slate-800/60 bg-amber-500/5 px-2 py-1">
-          <div className="text-[9.5px] uppercase tracking-wider text-amber-300/80">进行中的委派</div>
+          <div className="text-micro uppercase tracking-wider text-amber-300/80">进行中的委派</div>
           {inflight.map((f, i) => (
-            <div key={f.task_id ?? i} className="truncate text-[10px] text-amber-200/90" title={f.goal ?? ''}>
+            <div key={f.task_id ?? i} className="truncate text-micro text-amber-200/90" title={f.goal ?? ''}>
               {f.subagent ?? '—'} · {f.goal ?? ''}
             </div>
           ))}
         </div>
       )}
-      {error && <p className="px-3 py-1 text-[10px] text-rose-300">{error}</p>}
-      <div ref={boxRef} className="min-h-0 flex-1 overflow-y-auto px-2 py-1 font-mono text-[9.5px] leading-relaxed">
+      {error && <p className="px-3 py-1 text-micro text-rose-300">{error}</p>}
+      <div ref={boxRef} className="min-h-0 flex-1 overflow-y-auto px-2 py-1 font-mono text-micro leading-relaxed">
         {rows.length === 0 ? (
           <p className="text-slate-500">暂无活动（有新执行时会自动出现）</p>
         ) : (

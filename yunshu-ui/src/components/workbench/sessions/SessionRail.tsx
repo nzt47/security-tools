@@ -28,7 +28,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { Button } from '@/components/ui';
+import { Button, Input, Select, Switch } from '@/components/ui';
 import type { Project, SessionGroup, SessionMeta } from '../../../lib/sessionApi';
 
 export interface SessionRailProps {
@@ -299,7 +299,7 @@ export function SessionRail({
           type="button"
           onClick={() => onSelect(s.id)}
           title={s.title}
-          className="min-w-0 flex-1 py-1.5 pl-2.5 text-left outline-hidden focus-visible:ring-1 focus-visible:ring-cyan-500/60"
+          className="min-w-0 flex-1 py-1.5 pl-2.5 text-left outline-hidden focus-visible:ring-1 focus-visible:ring-primary/60"
         >
           {editing ? (
             <input
@@ -317,18 +317,18 @@ export function SessionRail({
                 }
               }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full rounded-sm border border-cyan-600/60 bg-slate-950 px-1.5 py-0.5 text-[12px] text-cyan-100 outline-hidden"
+              className="w-full rounded-control border border-primary/60 bg-card px-1.5 py-0.5 text-body text-primary outline-hidden"
             />
           ) : (
             <>
               <div
-                className={`truncate text-[12px] leading-tight ${
+                className={`truncate text-body leading-tight ${
                   active ? 'font-medium text-cyan-200' : 'text-slate-200'
                 }`}
               >
                 {s.title || '（未命名）'}
               </div>
-              <div className="mt-0.5 truncate text-[9.5px] text-slate-500">
+              <div className="mt-0.5 truncate text-micro text-slate-500">
                 {formatRelTime(s.updated_at)} · {s.message_count ?? 0} 条
                 {s.agent ? ` · ${s.agent}` : ''}
               </div>
@@ -339,46 +339,50 @@ export function SessionRail({
         {/* 悬停操作（内联编辑时隐藏） */}
         {!editing && (
           <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover/sess:opacity-100 focus-within:opacity-100">
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="xs"
+              className="w-6 px-0 text-muted-foreground hover:bg-primary/10 hover:text-primary"
               title="任务工作空间（查看/打开该会话的工作目录）"
               aria-label="打开工作空间"
               onClick={() => onOpenWorkspace(s.id)}
-              className="flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-cyan-500/10 hover:text-cyan-300"
             >
               <FolderOpen size={12} />
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
+              size="xs"
+              className="w-6 px-0 text-muted-foreground"
               title="移动到分组"
               aria-label="移动到分组"
               onClick={() => setMoveFor(moveFor === s.id ? null : s.id)}
-              className="flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-violet-500/10 hover:text-violet-300"
             >
               <FolderInput size={12} />
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
+              size="xs"
+              className="w-6 px-0 text-muted-foreground hover:text-foreground"
               title="重命名会话"
               aria-label="重命名会话"
               onClick={() => startRename(s)}
-              className="flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-700/70 hover:text-slate-200"
             >
               <Pencil size={11} />
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
+              size="xs"
+              className={`w-6 px-0 ${
+                armed
+                  ? 'bg-danger/20 text-danger ring-1 ring-danger/60'
+                  : 'text-muted-foreground hover:bg-danger/10 hover:text-danger'
+              }`}
               title={armed ? '再次点击确认删除' : '删除会话'}
               aria-label="删除会话"
               onClick={() => armDelete(s.id)}
-              className={`flex h-6 w-6 items-center justify-center rounded-md transition-colors ${
-                armed
-                  ? 'bg-rose-500/20 text-rose-300 ring-1 ring-rose-500/60'
-                  : 'text-slate-500 hover:bg-rose-500/10 hover:text-rose-300'
-              }`}
             >
               <Trash2 size={11} />
-            </button>
+            </Button>
           </div>
         )}
 
@@ -388,13 +392,13 @@ export function SessionRail({
             data-move-menu
             className="absolute right-0 top-[calc(100%+2px)] z-50 w-48 rounded-lg border border-slate-700 bg-slate-900 p-1 shadow-2xl"
           >
-            <div className="px-2 py-1 text-[9.5px] uppercase tracking-[0.14em] text-slate-500">
+            <div className="px-2 py-1 text-micro uppercase tracking-[0.14em] text-slate-500">
               移动到分组
             </div>
             <button
               type="button"
               onClick={() => assign(s.id, null)}
-              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[11.5px] transition-colors hover:bg-slate-800 ${
+              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-body transition-colors hover:bg-slate-800 ${
                 currentGroup === null ? 'text-cyan-300' : 'text-slate-300'
               }`}
             >
@@ -408,7 +412,7 @@ export function SessionRail({
                 key={g.id}
                 type="button"
                 onClick={() => assign(s.id, g.id)}
-                className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[11.5px] transition-colors hover:bg-slate-800 ${
+                className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-body transition-colors hover:bg-slate-800 ${
                   currentGroup === g.id ? 'text-cyan-300' : 'text-slate-300'
                 }`}
               >
@@ -419,20 +423,20 @@ export function SessionRail({
               </button>
             ))}
             {groups.length === 0 && (
-              <div className="px-2 pb-1 pt-0.5 text-[10px] text-slate-600">
+              <div className="px-2 pb-1 pt-0.5 text-micro text-slate-600">
                 暂无分组：点击上方「＋ 新建分组」创建后即可归类
               </div>
             )}
 
             {/* 移到项目：把已有会话归到项目（调用 sessionApi.setProject） */}
             <div className="my-1 border-t border-slate-800" />
-            <div className="px-2 py-1 text-[9.5px] uppercase tracking-[0.14em] text-slate-500">
+            <div className="px-2 py-1 text-micro uppercase tracking-[0.14em] text-slate-500">
               移动到项目
             </div>
             <button
               type="button"
               onClick={() => moveProject(s.id, null)}
-              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[11.5px] transition-colors hover:bg-slate-800 ${
+              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-body transition-colors hover:bg-slate-800 ${
                 currentProject === null ? 'text-cyan-300' : 'text-slate-300'
               }`}
             >
@@ -447,7 +451,7 @@ export function SessionRail({
                 type="button"
                 onClick={() => moveProject(s.id, p.id)}
                 title={p.workspace_root}
-                className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[11.5px] transition-colors hover:bg-slate-800 ${
+                className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-body transition-colors hover:bg-slate-800 ${
                   currentProject === p.id ? 'text-cyan-300' : 'text-slate-300'
                 }`}
               >
@@ -458,7 +462,7 @@ export function SessionRail({
               </button>
             ))}
             {projects.length === 0 && (
-              <div className="px-2 pb-1 pt-0.5 text-[10px] text-slate-600">
+              <div className="px-2 pb-1 pt-0.5 text-micro text-slate-600">
                 暂无项目：点击顶部「新建项目」创建后即可归类
               </div>
             )}
@@ -506,14 +510,14 @@ export function SessionRail({
                   }
                 }}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full min-w-0 rounded-sm border border-cyan-600/60 bg-slate-950 px-1.5 py-0.5 text-[11.5px] text-cyan-100 outline-hidden"
+                className="w-full min-w-0 rounded-control border border-primary/60 bg-card px-1.5 py-0.5 text-body text-primary outline-hidden"
               />
             ) : (
               <>
-                <span className="min-w-0 flex-1 truncate text-[11.5px] font-medium text-slate-300">
+                <span className="min-w-0 flex-1 truncate text-body font-medium text-slate-300">
                   {g.name}
                 </span>
-                <span className="shrink-0 rounded-full bg-slate-800 px-1.5 font-mono text-[9px] text-slate-500">
+                <span className="shrink-0 rounded-full bg-slate-800 px-1.5 font-mono text-micro text-slate-500">
                   {rows.length}
                 </span>
               </>
@@ -521,28 +525,30 @@ export function SessionRail({
           </button>
           {!renaming && (
             <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover/g:opacity-100 focus-within:opacity-100">
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="xs"
+                className="w-6 px-0 text-muted-foreground hover:text-foreground"
                 title="重命名分组"
                 aria-label="重命名分组"
                 onClick={() => startGroupRename(g)}
-                className="flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-700/70 hover:text-slate-200"
               >
                 <Pencil size={11} />
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="ghost"
+                size="xs"
+                className={`w-6 px-0 ${
+                  armed
+                    ? 'bg-danger/20 text-danger ring-1 ring-danger/60'
+                    : 'text-muted-foreground hover:bg-danger/10 hover:text-danger'
+                }`}
                 title={armed ? '再次点击确认删除（组内会话移回未分组）' : '删除分组'}
                 aria-label="删除分组"
                 onClick={() => armGroupDelete(g.id)}
-                className={`flex h-6 w-6 items-center justify-center rounded-md transition-colors ${
-                  armed
-                    ? 'bg-rose-500/20 text-rose-300 ring-1 ring-rose-500/60'
-                    : 'text-slate-500 hover:bg-rose-500/10 hover:text-rose-300'
-                }`}
               >
                 <Trash2 size={11} />
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -563,8 +569,8 @@ export function SessionRail({
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-800 px-3 pb-2.5 pt-3">
         <div className="flex items-center gap-2">
           <MessageSquare size={13} className="text-cyan-400" />
-          <span className="text-[12.5px] font-semibold text-slate-100">会话</span>
-          <span className="rounded-full bg-slate-800 px-1.5 py-0.5 font-mono text-[9.5px] text-slate-500">
+          <span className="text-body font-semibold text-slate-100">会话</span>
+          <span className="rounded-full bg-slate-800 px-1.5 py-0.5 font-mono text-micro text-slate-500">
             {scoped.length}
           </span>
         </div>
@@ -584,20 +590,17 @@ export function SessionRail({
       <div className="shrink-0 border-b border-slate-800/70 px-3 py-2" data-project-bar>
         <div className="flex items-center gap-1.5">
           <Folder size={12} className="shrink-0 text-violet-300/80" />
-          <select
+          <Select
             aria-label="项目"
             title="切换项目：只看该项目下的会话与分组"
+            className="min-w-0 flex-1"
+            size="xs"
             value={activeProjectId ?? ''}
-            onChange={(e) => onSelectProject?.(e.target.value || null)}
-            className="min-w-0 flex-1 rounded-md border border-slate-700/80 bg-slate-900/80 px-1.5 py-1 text-[11.5px] text-slate-200 outline-hidden transition-colors focus:border-violet-600/70"
-          >
-            <option value="">未归属项目</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => onSelectProject?.(v || null)}
+            placeholder="未归属项目"
+            placeholderOptionDisabled={false}
+            options={projects.map((p) => ({ value: p.id, label: p.name }))}
+          />
           <Button
             type="button"
             variant="ghost"
@@ -618,22 +621,28 @@ export function SessionRail({
             size={11}
             className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500"
           />
+          {/* 搜索框保留原生：Input 原语没有「前置图标 / 后置清空」槽位（图标是 absolute 定位在
+              外层 relative 里的），包一层原语会把 padding 挡在 wrapper 上、图标压住正文。
+              颜色/字号已走 token（border-border / bg-card / text-body）。 */}
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="搜索会话…"
-            className="w-full rounded-md border border-slate-700/80 bg-slate-900/80 py-1.5 pl-7 pr-6 text-[11.5px] text-slate-200 outline-hidden transition-colors placeholder:text-slate-600 focus:border-cyan-600/70"
+            aria-label="搜索会话"
+            className="h-8 w-full rounded-control border border-border bg-card py-1.5 pl-7 pr-6 text-body text-foreground outline-hidden transition-colors placeholder:text-muted-foreground focus:border-primary/70"
           />
           {query && (
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="xs"
+              className="absolute right-1 top-1/2 h-5 w-5 -translate-y-1/2 px-0 text-muted-foreground hover:text-foreground"
               onClick={() => setQuery('')}
               title="清空搜索"
-              className="absolute right-1 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-slate-500 hover:text-slate-200"
+              aria-label="清空搜索"
             >
               <X size={11} />
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -641,26 +650,28 @@ export function SessionRail({
       {/* 分组工具行 + 新建分组 */}
       <div className="shrink-0 px-3 pb-0.5">
         <div className="flex items-center justify-between">
-          <span className="text-[9.5px] font-medium uppercase tracking-[0.18em] text-slate-600">
+          <span className="text-micro font-medium uppercase tracking-[0.18em] text-slate-600">
             分组
           </span>
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="xs"
+            className="w-6 px-0 text-muted-foreground"
             title="新建分组（把多个会话归到一个项目/用途下）"
             aria-label="新建分组"
             onClick={() => {
               setCreatingGroup(true);
               setGroupDraft('');
             }}
-            className="flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-amber-500/10 hover:text-amber-300"
           >
             <FolderPlus size={12} />
-          </button>
+          </Button>
         </div>
         {creatingGroup && (
           <div className="pb-1 pt-1">
-            <input
+            <Input
               autoFocus
+              size="xs"
               value={groupDraft}
               onChange={(e) => setGroupDraft(e.target.value)}
               onBlur={submitCreateGroup}
@@ -675,7 +686,7 @@ export function SessionRail({
                 }
               }}
               placeholder="分组名称，回车创建"
-              className="w-full rounded-md border border-amber-500/50 bg-slate-950 px-2 py-1 text-[11.5px] text-slate-200 outline-hidden placeholder:text-slate-600"
+              aria-label="分组名称"
             />
           </div>
         )}
@@ -684,17 +695,17 @@ export function SessionRail({
       {/* 会话列表（按分组分区） */}
       <div className="wb-think-scroll min-h-0 flex-1 overflow-y-auto px-2.5 pb-2.5">
         {error && (
-          <div className="mt-1 rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-1.5 text-[10.5px] leading-relaxed text-rose-200/90">
+          <div className="mt-1 rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-1.5 text-caption leading-relaxed text-rose-200/90">
             {error}
           </div>
         )}
         {busy && scoped.length === 0 ? (
           <div className="flex flex-col items-center gap-2 pt-10 text-slate-500">
             <Loader2 size={15} className="animate-spin text-cyan-400/70" />
-            <span className="text-[11px]">加载会话…</span>
+            <span className="text-caption">加载会话…</span>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="px-2 pt-10 text-center text-[11px] text-slate-500">
+          <div className="px-2 pt-10 text-center text-caption text-slate-500">
             {query ? '无匹配会话' : scoped.length === 0 ? '还没有会话，点击「＋」新建一个' : '—'}
           </div>
         ) : hasGroups ? (
@@ -720,10 +731,10 @@ export function SessionRail({
                     <span className="shrink-0 text-slate-500">
                       <Folder size={12} />
                     </span>
-                    <span className="min-w-0 flex-1 truncate text-[11.5px] font-medium text-slate-400">
+                    <span className="min-w-0 flex-1 truncate text-body font-medium text-slate-400">
                       未分组
                     </span>
-                    <span className="shrink-0 rounded-full bg-slate-800 px-1.5 font-mono text-[9px] text-slate-500">
+                    <span className="shrink-0 rounded-full bg-slate-800 px-1.5 font-mono text-micro text-slate-500">
                       {ungroupedList.length}
                     </span>
                   </button>
@@ -743,7 +754,7 @@ export function SessionRail({
       </div>
 
       {/* 底部提示 */}
-      <div className="shrink-0 border-t border-slate-800 px-3 py-2 text-[9.5px] leading-relaxed text-slate-600">
+      <div className="shrink-0 border-t border-slate-800 px-3 py-2 text-micro leading-relaxed text-slate-600">
         每个会话 = 一个任务工作空间（自动创建）；用「项目」归类会话与分组
       </div>
 
@@ -758,22 +769,25 @@ export function SessionRail({
           <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-[1px]" onClick={closeProjectModal} />
           <div className="relative w-[360px] max-w-full rounded-xl border border-slate-700 bg-slate-900 p-4 shadow-2xl">
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-[13px] font-semibold text-slate-100">新建项目</span>
-              <button
-                type="button"
+              <span className="text-body-lg font-semibold text-slate-100">新建项目</span>
+              <Button
+                variant="ghost"
+                size="xs"
+                className="w-6 px-0 text-muted-foreground hover:text-foreground"
                 onClick={closeProjectModal}
                 aria-label="关闭新建项目"
-                className="flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200"
               >
                 <X size={13} />
-              </button>
+              </Button>
             </div>
 
-            <label className="mb-2 block text-[10.5px] text-slate-400">
+            <label className="mb-2 block text-caption text-muted-foreground">
               项目名
-              <input
+              <Input
                 autoFocus
                 type="text"
+                size="sm"
+                className="mt-1"
                 aria-label="项目名"
                 value={projectName}
                 onChange={(e) => setProjectName(e.target.value)}
@@ -784,14 +798,15 @@ export function SessionRail({
                   }
                 }}
                 placeholder="例如：云枢前端"
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-[11.5px] text-slate-200 outline-hidden placeholder:text-slate-600 focus:border-violet-600/70"
               />
             </label>
 
-            <label className="mb-2 block text-[10.5px] text-slate-400">
+            <label className="mb-2 block text-caption text-muted-foreground">
               工作空间绝对路径
-              <input
+              <Input
                 type="text"
+                size="sm"
+                className="mt-1 [&_input]:font-mono"
                 aria-label="工作空间绝对路径"
                 value={projectPath}
                 onChange={(e) => setProjectPath(e.target.value)}
@@ -802,43 +817,39 @@ export function SessionRail({
                   }
                 }}
                 placeholder="例如：C:\Users\you\myproject"
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 font-mono text-[11px] text-slate-200 outline-hidden placeholder:text-slate-600 focus:border-violet-600/70"
               />
             </label>
 
-            <label className="flex cursor-pointer items-center gap-1.5 text-[10.5px] text-slate-400">
-              <input
-                type="checkbox"
+            {/* 「自动创建目录」是布尔状态 ⇒ 走 ui/Switch（开=主色高亮 / 关=灰），不再用复选框 */}
+            <div className="flex items-center gap-2 text-caption text-muted-foreground">
+              <Switch
+                size="sm"
                 checked={projectCreate}
-                onChange={(e) => setProjectCreate(e.target.checked)}
-                className="accent-violet-500"
+                onCheckedChange={setProjectCreate}
+                label="目录不存在时自动创建"
               />
-              目录不存在时自动创建
-            </label>
+              <span>目录不存在时自动创建</span>
+            </div>
 
             {projectError && (
-              <div className="mt-2 rounded-md border border-rose-500/40 bg-rose-500/10 px-2 py-1 text-[10.5px] text-rose-200">
+              <div className="mt-2 rounded-md border border-rose-500/40 bg-rose-500/10 px-2 py-1 text-caption text-rose-200">
                 {projectError}
               </div>
             )}
 
             <div className="mt-3 flex items-center justify-end gap-1.5">
-              <button
-                type="button"
-                onClick={closeProjectModal}
-                className="rounded-md border border-slate-700 px-2.5 py-1 text-[11px] text-slate-400 transition-colors hover:bg-slate-800"
-              >
+              <Button variant="default" size="xs" onClick={closeProjectModal}>
                 取消
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="primary"
+                size="xs"
                 onClick={() => void submitCreateProject()}
                 disabled={projectBusy || !projectName.trim() || !projectPath.trim()}
-                className="flex items-center gap-1.5 rounded-md border border-violet-600/60 bg-violet-500/15 px-2.5 py-1 text-[11px] text-violet-200 transition-colors hover:bg-violet-500/25 disabled:opacity-40"
               >
                 {projectBusy && <Loader2 size={11} className="animate-spin" />}
                 创建项目
-              </button>
+              </Button>
             </div>
           </div>
         </div>

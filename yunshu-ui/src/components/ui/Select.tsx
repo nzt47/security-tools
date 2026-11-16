@@ -10,10 +10,15 @@ export interface SelectOption {
   value: string
 }
 
+/** 尺寸档：md（默认，36px）/ sm（32px）/ xs（24px，工作台会话栏这类密集区域） */
+export type SelectSize = 'xs' | 'sm' | 'md'
+
 export interface SelectProps
-  extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'value' | 'onChange'> {
+  extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'value' | 'onChange' | 'size'> {
   /** 选项列表 */
   options: SelectOption[]
+  /** 尺寸档，默认 md */
+  size?: SelectSize
   /** 受控值；undefined 时显示 placeholder 且值为空串 */
   value?: string
   onChange?: (value: string) => void
@@ -31,9 +36,15 @@ export interface SelectProps
   error?: string
 }
 
+const SIZE_CLASSES: Record<SelectSize, string> = {
+  md: 'h-9 px-3',
+  sm: 'h-8 px-2.5',
+  xs: 'h-6 px-2',
+}
+
 const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
   { className, options, value, onChange, label, placeholder = '请选择',
-    placeholderOptionDisabled = true, error, id, ...props },
+    placeholderOptionDisabled = true, error, id, size = 'md', ...props },
   ref,
 ) {
   const autoId = useId()
@@ -53,7 +64,8 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
         value={value ?? ''}
         onChange={(e) => onChange?.(e.target.value)}
         className={cn(
-          'h-9 w-full rounded-control border bg-card px-3 text-body text-foreground',
+          'w-full rounded-control border bg-card text-body text-foreground',
+          SIZE_CLASSES[size],
           'transition-colors focus:outline-hidden focus:ring-2 focus:ring-primary/40',
           error ? 'border-danger' : 'border-border hover:border-foreground/20',
         )}
