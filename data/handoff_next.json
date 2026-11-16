@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-16T19:05:00+08:00",
+ "updated_at": "2026-11-16T19:52:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -921,7 +921,7 @@
    "priority": "P3",
    "title": "ci.yml 的 update-ci-dashboard 按 py3.11 取 unit artifact，而矩阵是 3.12 ⇒ 看板 job 一直在空转",
    "criteria": "ci.yml 的 update-ci-dashboard 里 pattern 是 test-results-unit-py3.11-*（注释写\"取第一个支持版本 3.11\"），而 unit-tests 的矩阵只有 3.12 ⇒ 这个 job 下载不到任何 junit，脚本打「未找到 junit-shard*.xml，跳过合并」后 exit 0。2026-11-16 加 os 维后 artifact 名变成 test-results-unit-<os>-py3.12-shard<N>，pattern 依旧不匹配。",
-   "next": "2026-11-16 落地（7cd8ed25b）：pattern 改 test-results-unit-ubuntu-22.04-py3.12-*（只取 ubuntu 判读腿，避免两平台把同一批用例算两遍）。判据在 ci.yml 的「更新 CI 健康度看板」job：它这次应能下载到 junit-shard*.xml 并提交一次 docs/dashboards/ci_health_dashboard.md。注意它一旦真取到数据会让 bot 在 master 上多一条提交（看板文件），评估后续再动。"
+   "next": "2026-11-16 落地（7cd8ed25b）：pattern 改 test-results-unit-ubuntu-22.04-py3.12-*（只取 ubuntu 判读腿，避免两平台把同一批用例算两遍）。判据在 ci.yml 的「更新 CI 健康度看板」job：它这次应能下载到 junit-shard*.xml 并提交一次 docs/dashboards/ci_health_dashboard.md。注意它一旦真取到数据会让 bot 在 master 上多一条提交（看板文件），评估后续再动。 ★ 已按判据验完（2026-11-16 19:4x）：ci.yml run 43855297351（7c435ed67）的「更新 CI 健康度看板」= success，并往 master 追加了 e796a4d41 docs(ci): 自动更新 CI 健康度看板趋势行 [skip ci] —— 它此前一直打「未找到 junit-shard*.xml，跳过合并」，这是第一次真正取到数据。注意以后 bot 会因看板更新在 master 上多出提交。"
   },
   {
    "id": "coverage-artifact-glob-too-wide",
@@ -929,7 +929,7 @@
    "priority": "P3",
    "title": "覆盖率 artifact 里混进 .coveragerc_scripts（上传 path `.coverage*` 太宽），combine 报 1 file errored",
    "criteria": "2026-11-16 实跑可见（test.yml run 43738374450 / 覆盖率检查 ubuntu / job 132896871924）：unit 与 integration 的上传 path 都是 `.coverage*`，而仓库根有个配置文件叫 `.coveragerc_scripts`，它同样匹配 ⇒ artifact 里带着一份配置文本；coverage-check 的 combine 用 glob 收集时把它当数据文件读，日志出现 `Combined 2 files, skipped 1, 1 file errored`。当前 coverage 7.15 对此**不退非零**（门槛照常断言，TOTAL 81% 通过），所以不是红，但这是一条「靠版本行为宽容」的路径。",
-   "next": "2026-11-16 落地（7cd8ed25b）：三处 glob 一起收窄 —— unit/integration 两处 upload path 改成 .coverage + .coverage.*，coverage-check 的收集循环同样分两种形状（循环本来就有 [ -f ] || continue 兜底）。判据是手动 dispatch 一次 test.yml（run 见交接卡），看覆盖率检查 job 的 combine 日志不再出现 '1 file errored'。"
+   "next": "2026-11-16 落地（7cd8ed25b）：三处 glob 一起收窄 —— unit/integration 两处 upload path 改成 .coverage + .coverage.*，coverage-check 的收集循环同样分两种形状（循环本来就有 [ -f ] || continue 兜底）。判据是手动 dispatch 一次 test.yml（run 见交接卡），看覆盖率检查 job 的 combine 日志不再出现 '1 file errored'。 ★ 已按判据验完（2026-11-16 19:4x）：手动 dispatch 的 test.yml run 43853456532（7cd8ed25b）= success；覆盖率检查 ubuntu 腿日志 === combine 输入: coverage-unit/.coverage coverage-integration/.coverage === → Combined 2 files（不再有 skipped 1, 1 file errored）→ TOTAL 154491 28744 81% → --fail-under=70 通过；windows 腿也 success（只报告）。"
   },
   {
    "id": "ui-primitive-migration-batch2",
