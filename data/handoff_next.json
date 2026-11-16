@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-16T19:52:00+08:00",
+ "updated_at": "2026-11-16T20:20:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -726,11 +726,11 @@
   },
   {
    "id": "memory-topics-import-classification",
-   "status": "open",
+   "status": "frozen",
    "priority": "P3",
    "title": "存量向量/知识的类回补 + 导入批次按「项目」分门别类（等 Owner 定是否需要）",
    "criteria": "主题类链路已完整（词表/写侧/读侧/装配/审计/验收）。剩下两件都是**数据问题**，不是代码问题：\n1) 存量：向量 687 条与知识 3 张仍是 general（写侧归因打标从 b49b19c3b 之后才生效，新写入会出现非 general）。要不要按来源/项目回补，需要 Owner 定 —— scripts/migrate_memory_topics.py --infer 能做，但那是「猜」，与本轮「按来源猜类就是编」的口径冲突；\n2) 导入批次按项目分类需要「项目」这一维（现在 metadata 只有 origin/period/batch_id），属新增维度（要定项目清单、要迁移历史批次），不建议在没有真实需求前先做。",
-   "next": "等 Owner 明确需求再动：若要做 1，先出 dry-run 报告（每类建议条数 + 抽样 10 条）再决定；若要做 2，先定义项目维度（与 workspace / 主线 / repo 的关系）再改 vector_metadata 与卡片 frontmatter。本轮不做，避免用猜测污染分类。"
+   "next": "2026-11-16 决定：**两项都不做**（Owner 授权自决）。①存量回补（687 向量 + 3 知识仍是 general）：scripts/migrate_memory_topics.py --infer 是「猜」，与「按来源猜类就是编」的口径直接冲突；②导入批次按项目分类要新增「项目」维度（定清单 + 迁历史批次），没有真实需求前先做等于自造维度。若哪天要做①，先出 dry-run 报告（每类建议条数 + 抽样 10 条）再决定。"
   },
   {
    "id": "daily-test-yml-red-alignment",
@@ -750,11 +750,11 @@
   },
   {
    "id": "alarm-channel-multi-env-keys",
-   "status": "open",
+   "status": "frozen",
    "priority": "P3",
    "title": "同类型第 2 条通道也各有一份 .env（slot 家族键）",
    "criteria": "现状（2026-11-15）：只有主通道（id = email_smtp / webhook）映射 CP_ALERT_*；同类型第 2 条起的通道只存 agent/data/extensions.json 的 config（本机登记），UI 已明确标注「本机 · 不写 .env」。原因：.env 的通道键是**单值**语义，两条通道抢同一组键会互相覆盖。\n要做「每条都在 env 里各有一份」，需要：① 键名规则（如 CP_ALERT_SMTP_<SLOT>_HOST 或按通道 id 归一化）；② registry 的 dynamic_prefix 家族登记（否则「开关零缺口」门禁把动态读取判成 <unresolved> 红）；③ scripts/scan_settings.py 能推导出该家族（当前只认常量前缀 / f-string 常量段）；④ 迁移（把第 2 条起的本地值搬进新键）+ 回滚；⑤ UI 的\"哪些键属于我\"视图。",
-   "next": "等 Owner 明确要不要「第 2 条通道也进 .env」。在此之前默认不做：本机登记已满足\"多通道\"的可用性，加 slot 家族是 1 天量且会动门禁白名单（要同批改 registry 说明与用例）。"
+   "next": "2026-11-16 决定：**不做**（Owner 授权自决）。理由：.env 的通道键是单值语义，slot 家族（CP_ALERT_<SLOT>_*）要动 registry 的 dynamic_prefix 家族登记（否则「开关零缺口」门禁把动态读取判成 <unresolved> 红）、还要改 scan_settings 的推导 + 迁移 + 回滚 + UI「哪些键属于我」，约 1 天量；而本机登记已经满足多通道可用性，UI 也已明确标注「本机 · 不写 .env」。没有「第 2 条通道必须进 .env」的真实需求前不做。"
   },
   {
    "id": "ui-chrome-slimming-b",
@@ -853,11 +853,11 @@
   },
   {
    "id": "prompt-lab-token-levers",
-   "status": "open",
+   "status": "frozen",
    "priority": "P3",
    "title": "提示词 token：还能压的只剩 tools 段（且已 96.7% 命中缓存）",
    "criteria": "2026-11-15 实测（LLM 监控记录 84de4d7d74eb / deepseek-flash）：request_tokens=8797，system_prompt 277 字符≈130 tok、tools 26 个 16765 字符≈7.6k tok、messages 766 字符；prompt_cache_hit_tokens=6400 / miss=216 ⇒ 命中率 96.7%。★ 两次更正：① smart_tool_selection 运行时本来就是 true（plugins/chat.py:2261-2266 已在做路由，拿 26 个工具名再选 11/3/3），我上一轮说\"现在是关的\"是错的；② 记忆线索的 5000 是声明预算，实测注入只有几十字符（_render_memory_context 只输出标题+占位符，build_memory_context 截 300 字符）⇒ 按它\"改按需检索\"是砍空气。",
-   "next": "若要继续压：① plugins/chat.py:1453 _plain_subset_enabled()（轻量档工具减法，当前默认关；代码注释里有当时的实测理由：换档会让整段 tools 作废，统一工具段更省）——开关前先 A/B 命中率与首字延迟；② 行白名单（agent.lines.line_whitelist）按行再收窄工具集；③ memory_context.token_limit 与历史窗口只在长会话有感。注意：tools 段省下来主要省**上下文窗口**，因缓存命中 96.7%，**不省钱**。"
+   "next": "2026-11-16 决定：**不做**（Owner 授权自决）。理由：①命中率 96.7% ⇒ tools 段省的是**上下文窗口**不是钱；②_plain_subset_enabled() 换档会让整段 tools 作废（代码注释里已有当时实测结论），换档收益是负的；③行白名单与 memory_context.token_limit 只在长会话有感，当前没有长会话痛点证据。若将来真要做，先 A/B「命中率 + 首字延迟」两项读数，再谈开关。"
   },
   {
    "id": "windows-only-failure-class",
@@ -869,11 +869,11 @@
   },
   {
    "id": "judge-cost-read-error-semantics",
-   "status": "open",
+   "status": "frozen",
    "priority": "P3",
    "title": "事件目录解析不到时 judge_cost_cents 仍回 error=''（现在只剩日志留痕）",
    "criteria": "2026-11-15 的 windows 7 条红暴露的是第二层问题：读侧 event_files() 解析不到目录时返回空集，judge_cost_cents 的 error 仍是空串（不算读失败）⇒ 护栏 spent 恒 0 却「一切正常」。本轮只做到「不再静默」（events._note_unresolved_directory 每种写法报一次 WARNING），契约没动。",
-   "next": "要真把它当读失败，得让 event_files/iter_events 把「目录解析不到」与「目录存在但没有事件」区分开，再由 judge_cost_cents / cost_brake 映射成 fail-closed（护栏停用真实 judge）或面板的「读不到」状态 —— 牵动 /api/observability、健康页与 cost_brake 的形状，属于契约变更，先出方案再动。"
+   "next": "2026-11-16 决定：**不做 fail-closed**（Owner 授权自决）。理由：把「目录解析不到」升格成读失败会让真 judge 在生产上被**静默停用**（cost_brake 直接不拦），这是带成本后果的行为变更，比现在的「恒 0 但留 WARNING」更危险；而且它牵动 /api/observability、健康页与 cost_brake 三处形状。最小可做的加法（留给以后）：event_files 区分「解析不到」与「目录空」，再由面板显示「读不到」而不是 0 —— 只加一个字段、不改判据。当前 WARNING 已保证不再完全静默（events._note_unresolved_directory）。"
   },
   {
    "id": "workbench-strip-height-unified",
@@ -909,11 +909,11 @@
   },
   {
    "id": "pyproject-declares-311-but-code-is-312",
-   "status": "open",
+   "status": "done",
    "priority": "P2",
    "title": "pyproject 声明 requires-python >=3.11，但代码事实是 3.12-only（PEP 701 f-string，3.11 连 collect 都过不了）",
    "criteria": "2026-11-16 实跑 3.11 腿（run 43735743556）暴露：unit / integration 两个 3.11 job 都在 collection 阶段死 —— agent/logging_utils.py:600 用了 PEP 701 的 f-string 嵌套同引号（f'调试模式: {('启用' if debug_mode else '关闭')}'），3.11 报 SyntaxError: f-string: unmatched '('；所有 import agent.logging_utils 的用例整批 collection error。更麻烦的是同一 job 里 coverage 打 \"Couldn't parse Python file agent/logging_utils.py (couldnt-parse)\" ⇒ 3.11 上这个文件会被静默踢出覆盖率分母，用它当门槛等于量一把坏尺子。全仓扫描（正则启发式：f-string 内嵌套同引号 / 字段内反斜杠）22 个文件：产品 4（logging_utils / memory/long_term_memory / policy/matcher / tools/code_tools）、测试 11、其余 scripts。",
-   "next": "Owner 二选一：①【最省】把 pyproject 的 requires-python 改成 \">=3.12,<3.13\"，同步 docs/wiki/Home.md 的兼容矩阵与 light_loader 门禁（现在那个门禁还在按 >=3.11 断言），并把 CI 的 3.11 说法全部清掉；②【留 3.11】做这 22 个文件的语法清理（机械活、无行为变化），再 dispatch 一次 test.yml 看语义尾巴（3.12-only 的运行时 API 可能还有），绿了就把 70% 门槛挪回 3.11。注意两条都会动到已提交的代码，②还要重派生 capability_manifest（改 agent/ 的 Python）。"
+   "next": "2026-11-16 落地（Owner 授权本轮自决，选①改声明；提交 8377492a6）：requires-python 改 >=3.12,<3.13；删掉 3.11 classifier；三处同步 —— pyproject / docs/wiki/Home.md 兼容矩阵 / scripts/dev/check_light_loader_compat.py 的 MIN_PYTHON=(3,12)；另把 agent/utils/compatibility.py 的 REQUIRED_PYTHON_MIN_MINOR 8→12（get_python_version_requirement() 现回 '>= 3.12, < 3.13'）。注释同步：audit_dependency_drift / run_authoritative_coverage / ci.yml / observability-ci.yml / test.yml 报告模板。判据：check_light_loader_compat=0（最低 3.12 当前 3.12.0）、compatibility.assert_python_version() 通过、相关 3 个单测 31 passed、audit_dependency_drift --fail-on-conflict --fail-on-missing=0、actionlint=0。★ 为什么不是②（清 22 个文件的 PEP 701 语法）：那是纯机械活但没收益 —— 只为让一个我们不打算支持的版本能 collect，而且清完还得再 dispatch 一轮查 3.12-only 的运行时 API 尾巴。"
   },
   {
    "id": "ci-dashboard-artifact-pattern-stale",
