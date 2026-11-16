@@ -11,6 +11,7 @@ import React, { useEffect, useState } from 'react';
 import { useSkillsStore } from '../../store/skillsStore';
 import { trackEvent } from '../../lib/skillsApi';
 import './SkillManagement.css';
+import { Button } from '@/components/ui';
 
 const SkillDetail: React.FC = () => {
   const {
@@ -177,47 +178,47 @@ const SkillDetail: React.FC = () => {
       <p className="skmgmt-detail-desc">{sk.description || '(无描述)'}</p>
 
       <div className="skmgmt-btn-row">
-        <button
-          className="skmgmt-btn skmgmt-btn-primary"
+        <Button
+          variant="primary" size="sm"
           onClick={handleToggle}
           disabled={submitting}
           type="button"
         >
           {sk.enabled ? '禁用' : '启用'}
-        </button>
-        <button
-          className="skmgmt-btn"
+        </Button>
+        <Button
+          variant="default" size="sm"
           onClick={handleReview}
           disabled={submitting}
           type="button"
           title="触发重复检测、安全扫描、质量评估"
         >
           触发审核
-        </button>
-        <button
-          className="skmgmt-btn"
+        </Button>
+        <Button
+          variant="default" size="sm"
           onClick={() => setShowEdit((v) => !v)}
           type="button"
         >
           {showEdit ? '取消编辑' : '编辑'}
-        </button>
-        <button
-          className="skmgmt-btn"
+        </Button>
+        <Button
+          variant="default" size="sm"
           onClick={handleOptimize}
           disabled={submitting}
           type="button"
           title="根据使用统计给出参数优化建议"
         >
           优化建议
-        </button>
-        <button
-          className="skmgmt-btn skmgmt-btn-danger"
+        </Button>
+        <Button
+          variant="danger" size="sm"
           onClick={handleDelete}
           disabled={submitting}
           type="button"
         >
           删除
-        </button>
+        </Button>
       </div>
 
       {/* ─── 元信息 ─── */}
@@ -325,14 +326,14 @@ const SkillDetail: React.FC = () => {
               onChange={(e) => setEditContent(e.target.value)}
             />
           </div>
-          <button
-            className="skmgmt-btn skmgmt-btn-primary"
+          <Button
+            variant="primary" size="sm"
             onClick={handleSaveEdit}
             disabled={submitting}
             type="button"
           >
             保存
-          </button>
+          </Button>
         </div>
       )}
 
@@ -443,20 +444,20 @@ const SkillDetail: React.FC = () => {
           )}
         </div>
         <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
-          <button
-            className="skmgmt-btn skmgmt-btn-sm"
+          <Button
+            variant="default" size="xs"
             onClick={() => handleTestExecution(true)}
             type="button"
           >
             记录一次成功
-          </button>
-          <button
-            className="skmgmt-btn skmgmt-btn-sm"
+          </Button>
+          <Button
+            variant="default" size="xs"
             onClick={() => handleTestExecution(false)}
             type="button"
           >
             记录一次失败
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -485,14 +486,14 @@ const SkillDetail: React.FC = () => {
             value={bumpChangelog}
             onChange={(e) => setBumpChangelog(e.target.value)}
           />
-          <button
-            className="skmgmt-btn skmgmt-btn-primary skmgmt-btn-sm"
+          <Button
+            variant="primary" size="xs"
             onClick={handleBump}
             disabled={submitting}
             type="button"
           >
             发布新版本
-          </button>
+          </Button>
         </div>
 
         {/* 版本列表 */}
@@ -522,14 +523,14 @@ const SkillDetail: React.FC = () => {
                   )}
                 </div>
                 {v.version !== sk.version && (
-                  <button
-                    className="skmgmt-btn skmgmt-btn-sm"
+                  <Button
+                    variant="default" size="xs"
                     onClick={() => handleRollback(v.version)}
                     disabled={submitting}
                     type="button"
                   >
                     回滚到此版本
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>

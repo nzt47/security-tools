@@ -10,6 +10,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSkillsStore } from '../../store/skillsStore';
 import { debounce, trackEvent, type SkillCategory, type SkillStatus } from '../../lib/skillsApi';
 import './SkillManagement.css';
+import { Button } from '@/components/ui';
 
 const ALL_CATEGORIES: SkillCategory[] = [
   'BUILTIN', 'CUSTOM', 'CLAUDE', 'COMMUNITY', 'MCP', 'AI_GENERATED',
@@ -142,7 +143,7 @@ const SkillList: React.FC = () => {
       {error && (
         <div className="skmgmt-error-banner">
           <span>{error}</span>
-          <button type="button" onClick={clearError} className="skmgmt-btn skmgmt-btn-sm">×</button>
+          <Button type="button" onClick={clearError} variant="default" size="xs">×</Button>
         </div>
       )}
 

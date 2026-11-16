@@ -3,7 +3,7 @@
  * 从 PromptLab.tsx 拆分（原 285-399 行，逻辑不变）。
  */
 import { useState } from 'react';
-import { Textarea } from '@/components/ui';
+import { Textarea, Button} from '@/components/ui';
 import { usePromptLabStore } from '../../stores/usePromptLabStore';
 import { CATEGORIES } from '../../lib/promptFactors';
 import type { FactorCategory, FactorControl, PromptFactorDef } from '../../lib/promptFactorTypes';
@@ -120,8 +120,8 @@ export default function CustomFactorForm({ onClose }: CustomFactorFormProps) {
           <Textarea size="sm" value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} placeholder="该因素影响什么？" />
         </label>
         <div className="pl-modal-actions">
-          <button type="button" className="pl-btn ghost" onClick={onClose}>取消</button>
-          <button type="button" className="pl-btn primary" onClick={submit} disabled={!name.trim()}>添加</button>
+          <Button type="button" variant="ghost" size="sm" onClick={onClose}>取消</Button>
+          <Button type="button" variant="primary" size="sm" onClick={submit} disabled={!name.trim()}>添加</Button>
         </div>
       </div>
     </div>

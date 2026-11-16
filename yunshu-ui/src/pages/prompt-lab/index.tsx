@@ -35,7 +35,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { FileText, FlaskConical, Plus, Radio, RotateCcw, TriangleAlert } from 'lucide-react';
-import { SectionTitle } from '@/components/ui';
+import { SectionTitle, Button} from '@/components/ui';
 import { usePromptLabStore } from '../../stores/usePromptLabStore';
 import { downloadFile } from '../../utils/system';
 import {
@@ -258,14 +258,14 @@ export default function PromptLab() {
         <div className="pl-topbar-actions">
           {tab === 'factors' && (
             <>
-              <button type="button" className="pl-btn" onClick={() => setShowForm(true)}>
+              <Button type="button" variant="default" size="sm" onClick={() => setShowForm(true)}>
                 <Plus size={13} />
                 添加因素
-              </button>
-              <button type="button" className="pl-btn" onClick={resetValues} title="所有因素恢复默认值">
+              </Button>
+              <Button type="button" variant="default" size="sm" onClick={resetValues} title="所有因素恢复默认值">
                 <RotateCcw size={13} />
                 重置
-              </button>
+              </Button>
             </>
           )}
         </div>
@@ -350,9 +350,9 @@ export default function PromptLab() {
                             <strong>现在调不会进提示词</strong>：persona 节是关的（约 1500 tok），
                             拖动只写后端 <code>/api/personality</code>。
                           </span>
-                          <button type="button" className="pl-btn" onClick={focusPersonaRow}>
+                          <Button type="button" variant="default" size="sm" onClick={focusPersonaRow}>
                             去「身份提示词」打开
-                          </button>
+                          </Button>
                         </div>
                       )}
                       {/* 预设人格 + 重置：原本在「人格」Tab 的 PageHeader 与预设卡里，

@@ -14,6 +14,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Route as RouteIcon, RefreshCw, Search } from 'lucide-react'
+import { Button } from '@/components/ui'
 // 该端点走 v2 统一信封（后端 _ok(payload)）⇒ 必须显式解包；
 // 直接用 request()（返回原始体、不拆信封）会在 {code,data,message} 上读 entries 而**静默拿到空**。
 import { getEnvelope } from '@/api/envelope'
@@ -150,10 +151,10 @@ export default function RouteCoveragePanel() {
             判活 = 该路径存在任一已接线定义，含死副本 = 还存在未接线定义。
           </p>
         </div>
-        <button onClick={load}
-          className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800">
+        <Button onClick={load}
+          variant="default" size="sm">
           <RefreshCw size={12} /> 重新读取
-        </button>
+        </Button>
       </div>
 
       {error && <div className="rounded-lg border border-red-900 bg-red-950/40 px-4 py-2 text-sm text-red-300">读取失败：{error}</div>}

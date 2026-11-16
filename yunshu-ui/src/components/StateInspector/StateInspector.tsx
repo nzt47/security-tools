@@ -17,6 +17,7 @@ import { copyText, formatTime, formatDuration } from '@/components/DevConsole/sh
 import { trackEvent, TrackEventName } from '@/config/observability';
 import type { StateSnapshot, StateTimelineEntry, StateDiff } from './types';
 import '../DevConsole/DevConsole.css';
+import { Button } from '@/components/ui';
 
 const StateInspector: React.FC = () => {
   const snapshots = useStateInspectorStore((s) => s.snapshots);
@@ -77,9 +78,9 @@ const StateInspector: React.FC = () => {
         >
           时间线（{timeline.length}）
         </button>
-        <button
+        <Button
           type="button"
-          className="devconsole-btn danger"
+          variant="danger" size="xs"
           onClick={() => {
             clearAll();
             // 埋点：清空全部（D5，form_submit）
@@ -91,7 +92,7 @@ const StateInspector: React.FC = () => {
           style={{ marginLeft: 'auto' }}
         >
           清空全部
-        </button>
+        </Button>
       </div>
 
       <div className="devconsole-body">
@@ -214,13 +215,13 @@ const TimelineView: React.FC<{
   return (
     <div>
       <div style={{ padding: '4px 12px', textAlign: 'right' }}>
-        <button
+        <Button
           type="button"
-          className="devconsole-btn danger"
+          variant="danger" size="xs"
           onClick={onClear}
         >
           清空时间线
-        </button>
+        </Button>
       </div>
       {timeline.map((entry) => (
         <div key={entry.id} className="stateinspector-section">

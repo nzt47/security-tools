@@ -17,7 +17,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, ChevronRight, Copy, Loader2, Radio, RefreshCw, Search, Trash2 } from 'lucide-react'
-import { SectionTitle, Switch } from '@/components/ui'
+import { SectionTitle, Switch, Button} from '@/components/ui'
 import { hubGet, hubPost } from '../hub/components/ui'
 
 import {
@@ -271,12 +271,12 @@ export default function LlmMonitorPanel() {
       </div>
 
       <div className="pl-monitor-toolbar">
-        <button type="button" className="pl-btn" onClick={() => void load()} title="立即刷新">
+        <Button type="button" variant="default" size="sm" onClick={() => void load()} title="立即刷新">
           <RefreshCw size={12} /> 刷新
-        </button>
-        <button type="button" className="pl-btn" onClick={() => void clear()} disabled={busy} title="清空全部记录（含已落盘的会话快照）">
+        </Button>
+        <Button type="button" variant="default" size="sm" onClick={() => void clear()} disabled={busy} title="清空全部记录（含已落盘的会话快照）">
           {busy ? <Loader2 size={12} className="spin" /> : <Trash2 size={12} />} 清空
-        </button>
+        </Button>
         <select
           className="pl-text pl-monitor-filter"
           value={source}
@@ -356,13 +356,13 @@ export default function LlmMonitorPanel() {
                     <div className="lm-panel">
                       <div className="lm-panel-head">
                         <span>📤 发送到 LLM（{formatNum(r.request_tokens ?? 0)} tokens）</span>
-                        <button
+                        <Button
                           type="button"
-                          className="pl-btn"
+                          variant="default" size="sm"
                           onClick={() => copyText(buildRequestText(r), setMsg)}
                         >
                           <Copy size={11} /> 复制
-                        </button>
+                        </Button>
                       </div>
                       <div className="lm-panel-body">
                         {r.system_prompt && (
@@ -402,13 +402,13 @@ export default function LlmMonitorPanel() {
                     <div className="lm-panel">
                       <div className="lm-panel-head">
                         <span>📥 LLM 返回（{formatNum(r.response_tokens ?? 0)} tokens）</span>
-                        <button
+                        <Button
                           type="button"
-                          className="pl-btn"
+                          variant="default" size="sm"
                           onClick={() => copyText(buildResponseText(r), setMsg)}
                         >
                           <Copy size={11} /> 复制
-                        </button>
+                        </Button>
                       </div>
                       <div className="lm-panel-body">
                         {r.reasoning && (
@@ -450,9 +450,9 @@ export default function LlmMonitorPanel() {
 
       {records.length < total && (
         <div className="pl-monitor-more">
-          <button type="button" className="pl-btn" onClick={() => void load({ append: true })} disabled={loading}>
+          <Button type="button" variant="default" size="sm" onClick={() => void load({ append: true })} disabled={loading}>
             <Radio size={12} /> 加载更多（已显示 {records.length}/{total}）
-          </button>
+          </Button>
         </div>
       )}
     </section>

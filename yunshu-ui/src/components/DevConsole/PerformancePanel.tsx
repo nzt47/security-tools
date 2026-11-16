@@ -8,6 +8,7 @@
 import React, { useMemo } from 'react';
 import { useDevConsoleStore } from './store';
 import { formatTime, formatDuration, durationClass } from './shared';
+import { Button } from '@/components/ui';
 
 const PerformancePanel: React.FC = () => {
   const records = useDevConsoleStore((s) => s.perfRecords);
@@ -44,13 +45,13 @@ const PerformancePanel: React.FC = () => {
           共 {stats.count} 条 | 平均 {formatDuration(stats.avg)} | 最大{' '}
           {formatDuration(stats.max)}
         </span>
-        <button
+        <Button
           type="button"
-          className="devconsole-btn danger"
+          variant="danger" size="xs"
           onClick={clearPerf}
         >
           清空
-        </button>
+        </Button>
       </div>
       <div className="devconsole-body">
         <table className="devconsole-table">

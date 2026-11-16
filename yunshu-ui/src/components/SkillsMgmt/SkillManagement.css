@@ -356,48 +356,10 @@
   font-weight: 500;
 }
 
-/* ─── 按钮 ─── */
-.skmgmt-btn {
-  background: var(--bg-hover, #232730);
-  border: 1px solid var(--border-subtle, #2a2e38);
-  color: var(--text-primary, #e8eaed);
-  padding: 7px 14px;
-  border-radius: 5px;
-  font-size: var(--text-body-lg);
-  cursor: pointer;
-  transition: all 0.15s;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.skmgmt-btn:hover:not(:disabled) {
-  background: var(--bg-hover-strong, #2c3140);
-  border-color: var(--accent-primary, #4a9eff);
-}
-.skmgmt-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.skmgmt-btn-primary {
-  background: var(--accent-primary, #4a9eff);
-  border-color: var(--accent-primary, #4a9eff);
-  color: #fff;
-}
-.skmgmt-btn-primary:hover:not(:disabled) {
-  background: var(--accent-primary-hover, #3a8eef);
-}
-.skmgmt-btn-danger {
-  border-color: rgba(244, 67, 54, 0.4);
-  color: #ef5350;
-}
-.skmgmt-btn-danger:hover:not(:disabled) {
-  background: rgba(244, 67, 54, 0.1);
-}
-.skmgmt-btn-sm {
-  padding: 4px 10px;
-  font-size: var(--text-body);
-}
-
+/* ─── 按钮 ───
+   【2026-11-16】整个 .skmgmt-btn* 家族原地删除：按钮统一走 ui/Button
+   （default/primary/danger × sm/xs）。顺带收掉这里的 --accent-primary #4a9eff —— 那是**蓝色**主色，
+   与全站语义主色（青）是两套强调色。只留这个纯布局的按钮行容器。 */
 .skmgmt-btn-row {
   display: flex;
   gap: 8px;

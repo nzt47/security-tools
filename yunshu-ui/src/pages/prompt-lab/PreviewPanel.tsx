@@ -14,6 +14,7 @@
  * 组件不再接收 mode / onModeChange / sim。
  */
 import { Loader2, Settings2, Download, Wrench } from 'lucide-react';
+import { Button } from '@/components/ui'
 import { usePromptLabStore } from '../../stores/usePromptLabStore';
 import RadarChart from './RadarChart';
 
@@ -180,10 +181,10 @@ export default function PreviewPanel({
           —— 不用填 Key，每点一次消耗一次 token；改过滑块/参数后旧的回答会清空，需要重新点。
         </p>
         <div className="pl-preview-actions">
-          <button type="button" className="pl-btn primary" onClick={onRunLlm} disabled={llmLoading}>
+          <Button type="button" variant="primary" size="sm" onClick={onRunLlm} disabled={llmLoading}>
             {llmLoading ? <Loader2 size={13} className="spin" /> : <Wrench size={13} />}
             {llmLoading ? '请求中…' : '跑一次看效果'}
-          </button>
+          </Button>
         </div>
         {llmError && <p className="pl-error">{llmError}</p>}
         <pre className="pl-sim-out">
@@ -280,12 +281,12 @@ export default function PreviewPanel({
         <h3>数据导出</h3>
         <p className="pl-export-hint">导出当前参数组合与身份提示词模板，便于提示词优化分析（JSON 可再导入，CSV 用于表格处理）。</p>
         <div className="pl-export-actions">
-          <button type="button" className="pl-btn" onClick={() => onExport('json')}>
+          <Button type="button" variant="default" size="sm" onClick={() => onExport('json')}>
             <Download size={13} /> 导出 JSON
-          </button>
-          <button type="button" className="pl-btn" onClick={() => onExport('csv')}>
+          </Button>
+          <Button type="button" variant="default" size="sm" onClick={() => onExport('csv')}>
             <Download size={13} /> 导出 CSV
-          </button>
+          </Button>
         </div>
       </div>
     </aside>

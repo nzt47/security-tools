@@ -10,6 +10,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useDevConsoleStore } from './store';
 import type { NetworkRecord } from './types';
+import { Button } from '@/components/ui';
 import {
   copyText,
   formatTime,
@@ -68,13 +69,13 @@ const NetworkPanel: React.FC = () => {
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />
-        <button
+        <Button
           type="button"
-          className="devconsole-btn danger"
+          variant="danger" size="xs"
           onClick={clearNetwork}
         >
           清空
-        </button>
+        </Button>
       </div>
       <div className="devconsole-body">
         <table className="devconsole-table">
@@ -186,13 +187,13 @@ const NetworkRecordDetail: React.FC<{ record: NetworkRecord }> = ({
           <pre className="devconsole-code">{record.requestBody}</pre>
         </div>
       )}
-      <button
+      <Button
         type="button"
-        className="devconsole-btn"
+        variant="default" size="xs"
         onClick={handleCopyAll}
       >
         {copied ? '已复制' : '复制完整记录'}
-      </button>
+      </Button>
     </div>
   );
 };

@@ -412,12 +412,12 @@ export default function PluginManagePage() {
             <div className="w-60" data-testid="plugin-api-token-wrap">
               <ApiTokenField />
             </div>
-            <button
+            <Button
               onClick={load}
-              className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+              variant="default" size="sm"
             >
               <RefreshCw size={12} /> 刷新列表
-            </button>
+            </Button>
             <button
               onClick={openMarket}
               data-testid="plugin-market-open"

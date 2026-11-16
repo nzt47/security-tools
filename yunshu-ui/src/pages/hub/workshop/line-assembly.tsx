@@ -23,6 +23,7 @@
  */
 import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Layers, RefreshCw, Search } from 'lucide-react'
+import { Button } from '@/components/ui'
 import {
   fetchLine,
   fetchLines,
@@ -143,12 +144,12 @@ export default function LineAssemblyOverview() {
             四段判定全部来自后端，本页只上屏；逐条编辑与实时预览见本页「主线档案」视图。
           </p>
         </div>
-        <button
+        <Button
           onClick={() => load()}
-          className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+          variant="default" size="sm"
         >
           <RefreshCw size={12} /> 重新读取
-        </button>
+        </Button>
       </div>
 
       {error && (

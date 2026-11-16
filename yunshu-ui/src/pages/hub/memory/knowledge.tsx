@@ -261,13 +261,13 @@ export default function MemoryKnowledge() {
             >
               <Plus size={13} /> 新建卡片
             </Button>
-            <button
+            <Button
               type="button"
-              className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+              variant="default" size="sm"
               onClick={reloadAll}
             >
               <RefreshCw size={12} /> 刷新
-            </button>
+            </Button>
           </>
         }
       />

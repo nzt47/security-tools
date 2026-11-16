@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import type { Card, CardInput, CardStatus, CardType } from '../../api/knowledge-types';
 import './CardForm.css';
+import { Button } from '@/components/ui';
 
 interface CardFormProps {
   /** 编辑模式传入原卡（用于回填）；新建模式省略 */
@@ -138,12 +139,12 @@ const CardForm: React.FC<CardFormProps> = ({ initial, onSubmit, onCancel, submit
       {error && <div className="kb-form-error">{error}</div>}
 
       <div className="kb-form-actions">
-        <button type="button" className="kb-form-btn kb-form-btn-secondary" onClick={onCancel} disabled={submitting}>
+        <Button type="button" variant="default" size="sm" onClick={onCancel} disabled={submitting}>
           取消
-        </button>
-        <button type="submit" className="kb-form-btn kb-form-btn-primary" disabled={submitting}>
+        </Button>
+        <Button type="submit" variant="primary" size="sm" disabled={submitting}>
           {submitting ? '提交中...' : initial ? '保存' : '创建'}
-        </button>
+        </Button>
       </div>
     </form>
   );

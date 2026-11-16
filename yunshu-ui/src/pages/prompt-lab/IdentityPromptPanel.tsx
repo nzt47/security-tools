@@ -17,7 +17,7 @@
  * 排序：行序由 identityPrompt.buildRows 按「发出顺序」（模板中的注入位置）给出。
  */
 import { Loader2, RefreshCw, RotateCcw, Save, TriangleAlert, Zap } from 'lucide-react'
-import { SectionTitle, Switch, Textarea } from '@/components/ui'
+import { SectionTitle, Switch, Textarea, Button} from '@/components/ui'
 import type { IdentityRow, IdentitySummary, UseIdentityPromptResult } from './identityPrompt'
 
 export interface IdentityPromptPanelProps {
@@ -113,25 +113,25 @@ export default function IdentityPromptPanel(props: IdentityPromptPanelProps) {
       )}
 
       <div className="pl-id-toolbar">
-        <button type="button" className="pl-btn" onClick={onReload} disabled={busy} title="从后端重新载入身份提示词配置">
+        <Button type="button" variant="default" size="sm" onClick={onReload} disabled={busy} title="从后端重新载入身份提示词配置">
           <RefreshCw size={12} /> 刷新
-        </button>
-        <button type="button" className="pl-btn" onClick={onReset} disabled={busy} title="恢复默认身份提示词配置">
+        </Button>
+        <Button type="button" variant="default" size="sm" onClick={onReset} disabled={busy} title="恢复默认身份提示词配置">
           <RotateCcw size={12} /> 恢复默认
-        </button>
-        <button type="button" className="pl-btn" onClick={onSave} disabled={busy} title="仅写入配置库（system_prompt_config.json），不更新运行时模板">
+        </Button>
+        <Button type="button" variant="default" size="sm" onClick={onSave} disabled={busy} title="仅写入配置库（system_prompt_config.json），不更新运行时模板">
           <Save size={12} /> {saving ? '保存中…' : '保存配置'}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className="pl-btn apply"
+          variant="primary" size="sm"
           onClick={onApply}
           disabled={busy}
           title="保存并按 registry 顺序组装模板，写入运行时 data/system_prompt.txt，后续 LLM 调用立即生效"
         >
           {applying ? <Loader2 size={12} className="spin" /> : <Zap size={12} />}
           {applying ? '应用中…' : '应用到运行时'}
-        </button>
+        </Button>
         {/* 【2026-11-10】身份提示词是 system message 的稳定前缀段：一改就会让缓存前缀整段失效一次，
             这里是唯一会「赔一次全价」的动作，必须在按钮旁说清楚（§11.81 新条目 lab-apply-cache-notice）。 */}
         <span className="pl-id-cache-note"

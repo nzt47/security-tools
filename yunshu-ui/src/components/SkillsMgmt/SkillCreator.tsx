@@ -15,6 +15,7 @@ import React, { useState } from 'react';
 import { useSkillsStore } from '../../store/skillsStore';
 import { trackEvent, type ContentType, type SkillCategory } from '../../lib/skillsApi';
 import './SkillManagement.css';
+import { Button } from '@/components/ui';
 
 type CreatorMode = 'ai' | 'manual' | 'install';
 
@@ -351,17 +352,17 @@ const SkillCreator: React.FC<SkillCreatorProps> = ({ onClose, onCreated }) => {
         </div>
 
         <div className="skmgmt-modal-footer">
-          <button className="skmgmt-btn" onClick={onClose} type="button">
+          <Button variant="default" size="sm" onClick={onClose} type="button">
             取消
-          </button>
-          <button
-            className="skmgmt-btn skmgmt-btn-primary"
+          </Button>
+          <Button
+            variant="primary" size="sm"
             onClick={handleSubmit}
             disabled={submitting}
             type="button"
           >
             {submitting ? '提交中...' : '创建'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

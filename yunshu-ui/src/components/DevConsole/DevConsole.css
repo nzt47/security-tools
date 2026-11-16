@@ -142,37 +142,6 @@
   display: flex;
   gap: 4px;
 }
-.devconsole-btn {
-  background: #21262d;
-  border: 1px solid #30363d;
-  color: #e6edf3;
-  padding: 4px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: var(--text-caption);
-  font-family: inherit;
-  white-space: nowrap;
-  transition: all 0.15s;
-}
-.devconsole-btn:hover {
-  background: #30363d;
-  border-color: #58a6ff;
-}
-.devconsole-btn.danger {
-  color: #f85149;
-}
-.devconsole-btn.danger:hover {
-  background: #f8514933;
-  border-color: #f85149;
-}
-.devconsole-btn.warning {
-  color: #d29922;
-}
-.devconsole-btn.warning:hover {
-  background: #d2992233;
-  border-color: #d29922;
-}
-
 /* 工具栏（过滤输入等） */
 .devconsole-toolbar {
   display: flex;

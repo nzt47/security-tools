@@ -12,6 +12,7 @@ import React, { useState } from 'react';
 import { useSkillsStore } from '../../store/skillsStore';
 import { trackEvent, type LearnedWorkflow } from '../../lib/skillsApi';
 import './SkillManagement.css';
+import { Button } from '@/components/ui';
 
 export interface WorkflowMatcherProps {
   onClose: () => void;
@@ -85,7 +86,7 @@ const WorkflowMatcher: React.FC<WorkflowMatcherProps> = ({ onClose }) => {
           {error && (
             <div className="skmgmt-error-banner">
               <span>{error}</span>
-              <button type="button" onClick={clearError} className="skmgmt-btn skmgmt-btn-sm">×</button>
+              <Button type="button" onClick={clearError} variant="default" size="xs">×</Button>
             </div>
           )}
 
@@ -106,22 +107,22 @@ const WorkflowMatcher: React.FC<WorkflowMatcherProps> = ({ onClose }) => {
           </div>
 
           <div className="skmgmt-btn-row">
-            <button
-              className="skmgmt-btn skmgmt-btn-sm"
+            <Button
+              variant="default" size="xs"
               onClick={handleMatch}
               disabled={loading || !taskText.trim()}
               type="button"
             >
               {loading ? '匹配中...' : '只匹配'}
-            </button>
-            <button
-              className="skmgmt-btn skmgmt-btn-sm skmgmt-btn-primary"
+            </Button>
+            <Button
+              variant="primary" size="xs"
               onClick={handleTryExecute}
               disabled={submitting || !taskText.trim()}
               type="button"
             >
               {submitting ? '执行中...' : '匹配并执行'}
-            </button>
+            </Button>
           </div>
 
           {/* ─── 执行结果 ─── */}
@@ -201,7 +202,7 @@ const WorkflowMatcher: React.FC<WorkflowMatcherProps> = ({ onClose }) => {
         </div>
 
         <div className="skmgmt-modal-footer">
-          <button className="skmgmt-btn" onClick={onClose} type="button">关闭</button>
+          <Button variant="default" size="sm" onClick={onClose} type="button">关闭</Button>
         </div>
       </div>
     </div>

@@ -11,6 +11,7 @@ import React from 'react';
 import { useSkillsStore } from '../../store/skillsStore';
 import { trackEvent } from '../../lib/skillsApi';
 import './SkillManagement.css';
+import { Button } from '@/components/ui';
 
 const WorkflowRepo: React.FC = () => {
   const {
@@ -50,13 +51,13 @@ const WorkflowRepo: React.FC = () => {
         <h3 className="skmgmt-detail-section-title" style={{ marginBottom: 0, borderBottom: 'none' }}>
           已学习工作流（共 {workflows.length} 个）
         </h3>
-        <button
-          className="skmgmt-btn skmgmt-btn-sm"
+        <Button
+          variant="default" size="xs"
           onClick={() => loadWorkflows(false)}
           type="button"
         >
           刷新
-        </button>
+        </Button>
       </div>
 
       {workflows.map((wf) => {
@@ -149,8 +150,8 @@ const WorkflowRepo: React.FC = () => {
             </div>
 
             <div className="skmgmt-workflow-actions">
-              <button
-                className="skmgmt-btn skmgmt-btn-sm"
+              <Button
+                variant="default" size="xs"
                 onClick={() => {
                   toggleWorkflow(wf.id, !wf.enabled);
                   trackEvent('workflow_toggle', { wf_id: wf.id, enabled: !wf.enabled });
@@ -159,9 +160,9 @@ const WorkflowRepo: React.FC = () => {
                 type="button"
               >
                 {wf.enabled ? '禁用' : '启用'}
-              </button>
-              <button
-                className="skmgmt-btn skmgmt-btn-sm skmgmt-btn-danger"
+              </Button>
+              <Button
+                variant="danger" size="xs"
                 onClick={() => {
                   if (confirm(`确定删除工作流「${wf.name}」吗？`)) {
                     deleteWorkflow(wf.id);
@@ -172,7 +173,7 @@ const WorkflowRepo: React.FC = () => {
                 type="button"
               >
                 删除
-              </button>
+              </Button>
             </div>
           </div>
         );

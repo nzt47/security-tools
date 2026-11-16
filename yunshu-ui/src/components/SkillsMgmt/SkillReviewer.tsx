@@ -11,6 +11,7 @@ import React, { useEffect, useState } from 'react';
 import { useSkillsStore } from '../../store/skillsStore';
 import { skillsApi, trackEvent } from '../../lib/skillsApi';
 import './SkillManagement.css';
+import { Button } from '@/components/ui';
 
 export interface SkillReviewerProps {
   onClose: () => void;
@@ -88,7 +89,7 @@ const SkillReviewer: React.FC<SkillReviewerProps> = ({ onClose, onDone }) => {
           {error && (
             <div className="skmgmt-error-banner">
               <span>{error}</span>
-              <button type="button" onClick={clearError} className="skmgmt-btn skmgmt-btn-sm">×</button>
+              <Button type="button" onClick={clearError} variant="default" size="xs">×</Button>
             </div>
           )}
 
@@ -121,15 +122,15 @@ const SkillReviewer: React.FC<SkillReviewerProps> = ({ onClose, onDone }) => {
                 </div>
               ))}
             </div>
-            <button
-              className="skmgmt-btn skmgmt-btn-sm"
+            <Button
+              variant="default" size="xs"
               style={{ marginTop: 10 }}
               onClick={handleSaveThresholds}
               disabled={savingThresholds}
               type="button"
             >
               {savingThresholds ? '保存中...' : '保存阈值'}
-            </button>
+            </Button>
           </div>
 
           {/* 待审技能列表 */}
@@ -180,15 +181,15 @@ const SkillReviewer: React.FC<SkillReviewerProps> = ({ onClose, onDone }) => {
         </div>
 
         <div className="skmgmt-modal-footer">
-          <button className="skmgmt-btn" onClick={onClose} type="button">取消</button>
-          <button
-            className="skmgmt-btn skmgmt-btn-primary"
+          <Button variant="default" size="sm" onClick={onClose} type="button">取消</Button>
+          <Button
+            variant="primary" size="sm"
             onClick={handleBatchReview}
             disabled={submitting || pendingSkills.length === 0}
             type="button"
           >
             {submitting ? '审核中...' : `一键审核 ${pendingSkills.length} 个`}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

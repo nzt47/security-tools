@@ -102,45 +102,6 @@
 }
 
 /* ── 按钮 ── */
-.pl-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--wb-border);
-  background: rgba(148, 163, 184, 0.08);
-  color: var(--wb-text);
-  font-family: inherit;
-  font-size: var(--text-body);
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-}
-.pl-btn:hover {
-  border-color: var(--wb-border-strong);
-  background: rgba(34, 211, 238, 0.08);
-}
-.pl-btn.primary {
-  border-color: var(--wb-border-strong);
-  background: rgba(34, 211, 238, 0.14);
-  color: color-mix(in srgb, var(--color-primary) 55%, white);
-}
-.pl-btn.apply {
-  border-color: rgba(52, 211, 153, 0.5);
-  background: rgba(52, 211, 153, 0.12);
-  color: #6ee7b7;
-}
-.pl-btn.apply:hover {
-  border-color: rgba(52, 211, 153, 0.85);
-  background: rgba(52, 211, 153, 0.2);
-}
-.pl-btn.ghost {
-  background: transparent;
-}
-.pl-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
 .pl-icon-btn {
   display: inline-flex;
   align-items: center;
@@ -507,19 +468,11 @@
 .pl-warn-strip strong {
   color: #fde68a;
 }
-.pl-warn-strip .pl-btn {
-  margin-left: auto;
-  flex: none;
-}
 /* 窄列版（因素列 300px 里的「人格」分类）：可换行，按钮独占一行，别把文字挤成一条 */
 .pl-warn-strip-narrow {
   flex-wrap: wrap;
   align-items: flex-start;
   margin-bottom: 8px;
-}
-.pl-warn-strip-narrow .pl-btn {
-  margin-left: 0;
-  margin-top: 6px;
 }
 .pl-preview-block h3,
 .pl-export h3 {
@@ -1102,10 +1055,6 @@
   border-bottom: 1px solid var(--wb-border);
   font-size: var(--text-caption);
   color: var(--wb-text);
-}
-.lm-panel-head .pl-btn {
-  padding: 2px 8px;
-  font-size: var(--text-micro);
 }
 .lm-panel-body {
   max-height: 420px;

@@ -1111,10 +1111,10 @@ export default function ToolsAgentLines() {
             <Button variant="primary" size="sm" onClick={startNew}>
               <Plus size={12} /> 新建
             </Button>
-            <button onClick={startCopy} disabled={!draft || busy}
-              className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800 disabled:opacity-40">
+            <Button onClick={startCopy} disabled={!draft || busy}
+              variant="default" size="sm">
               <Copy size={12} /> 复制
-            </button>
+            </Button>
             <button onClick={() => void doActivate(draft?.id ?? null)} disabled={!draft || isNew || busy}
               className="flex items-center gap-1.5 rounded-lg border border-emerald-800 px-3 py-1.5 text-xs text-emerald-300 hover:bg-emerald-950/50 disabled:opacity-40">
               <Target size={12} /> 设为当前

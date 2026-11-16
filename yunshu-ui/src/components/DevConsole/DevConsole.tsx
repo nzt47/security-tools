@@ -21,6 +21,7 @@ import NetworkPanel from './NetworkPanel';
 import ErrorPanel from './ErrorPanel';
 import PerformancePanel from './PerformancePanel';
 import './DevConsole.css';
+import { Button } from '@/components/ui';
 
 /** Tab 描述符（支持外部注入额外 Tab，如 StateInspector） */
 export interface TabDescriptor {
@@ -237,14 +238,14 @@ const DevConsole: React.FC<DevConsoleProps> = ({
                 >
                   {paused ? '▶ 恢复' : '⏸ 暂停'}
                 </button>
-                <button
+                <Button
                   type="button"
-                  className="devconsole-btn"
+                  variant="default" size="xs"
                   onClick={() => setOpen(false)}
                   title="收起"
                 >
                   ✕
-                </button>
+                </Button>
               </div>
             </div>
 

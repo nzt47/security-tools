@@ -18,6 +18,7 @@ import SkillReviewer from './SkillReviewer';
 import WorkflowRepo from './WorkflowRepo';
 import WorkflowMatcher from './WorkflowMatcher';
 import './SkillManagement.css';
+import { Button } from '@/components/ui';
 
 // 懒加载可视化编辑器（性能策略 4：延迟加载 @xyflow/react ~150KB）
 const VisualEditor = lazy(() =>
@@ -128,42 +129,42 @@ const SkillManagement: React.FC<{ onClose?: () => void }> = () => {
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, padding: '6px 0' }}>
             {tab === 'skills' && (
               <>
-                <button
-                  className="skmgmt-btn skmgmt-btn-sm"
+                <Button
+                  variant="default" size="xs"
                   onClick={() => setReviewerOpen(true)}
                   disabled={pendingCount === 0}
                   title="批量审核所有待审技能"
                   type="button"
                 >
                   批量审核 {pendingCount > 0 && `(${pendingCount})`}
-                </button>
-                <button
-                  className="skmgmt-btn skmgmt-btn-sm skmgmt-btn-primary"
+                </Button>
+                <Button
+                  variant="primary" size="xs"
                   onClick={() => setCreatorOpen(true)}
                   type="button"
                 >
                   + 新建技能
-                </button>
+                </Button>
               </>
             )}
             {tab === 'workflows' && (
               <>
-                <button
-                  className="skmgmt-btn skmgmt-btn-sm"
+                <Button
+                  variant="default" size="xs"
                   onClick={() => setMatcherOpen(true)}
                   type="button"
                   title="输入任务描述，匹配本地工作流"
                 >
                   匹配测试
-                </button>
-                <button
-                  className="skmgmt-btn skmgmt-btn-sm skmgmt-btn-primary"
+                </Button>
+                <Button
+                  variant="primary" size="xs"
                   onClick={() => loadWorkflows(false)}
                   disabled={loadingList}
                   type="button"
                 >
                   刷新
-                </button>
+                </Button>
               </>
             )}
           </div>

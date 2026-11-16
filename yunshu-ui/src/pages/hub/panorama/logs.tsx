@@ -12,7 +12,7 @@
  */
 import { useEffect, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
-import { Card, Loading, ErrorBox, PageHeader, hubGet, unwrap } from '../components/ui'
+import { Card, Loading, ErrorBox, PageHeader, hubGet, unwrap, Button} from '../components/ui'
 import LogCenterPanel from './log-center-panel'
 
 interface LogEntry {
@@ -135,9 +135,9 @@ export default function PanoramaLogs() {
               <option value={100}>100 条</option>
               <option value={200}>200 条</option>
             </select>
-            <button onClick={load} className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800">
+            <Button onClick={load} variant="default" size="sm">
               <RefreshCw size={12} /> 查询
-            </button>
+            </Button>
           </div>
         }
       />

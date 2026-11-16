@@ -17,7 +17,7 @@
  */
 import { useEffect, useState } from 'react'
 import { Activity, Cpu, MemoryStick, Battery, RefreshCw } from 'lucide-react'
-import { Card, StatCard, DataTable, Loading, ErrorBox, Badge, PageHeader, hubGet } from '../components/ui'
+import { Card, StatCard, DataTable, Loading, ErrorBox, Badge, PageHeader, hubGet, Button} from '../components/ui'
 // 【P1-front 第五批】后端 GET /api/panorama 与 GET /api/sensors 已带 X-Envelope: v2，
 // 改用显式信封解析。同页的 /api/health **不在本系列**（它有 40+ 消费方，含看门狗与就绪门），
 // 故仍走 hubGet 的旧解析。
@@ -171,9 +171,9 @@ export default function PanoramaSensors() {
         title="全景感知"
         description="实时传感器状态与健康指标"
         actions={
-          <button onClick={() => setReload((r) => r + 1)} className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800">
+          <Button onClick={() => setReload((r) => r + 1)} variant="default" size="sm">
             <RefreshCw size={12} /> 刷新
-          </button>
+          </Button>
         }
       />
 

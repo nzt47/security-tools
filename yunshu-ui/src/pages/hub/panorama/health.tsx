@@ -63,7 +63,7 @@ import {
   type AlarmRulesPayload,
 } from '@/api/alarms'
 import { formatAge } from '@/utils/format'
-import { Badge, Card, ErrorBox, Loading, PageHeader, hubGet } from '../components/ui'
+import { Badge, Card, ErrorBox, Loading, PageHeader, hubGet, Button} from '../components/ui'
 import { getEnvelope } from '@/api/envelope'
 import { downloadFile } from '../../../utils/system'
 import HealthVitals from './health-vitals'
@@ -1015,12 +1015,12 @@ export default function PanoramaHealth() {
         title="健康仪表盘"
         description="综合健康度 · 五层探针 · 心跳资源 · 指标 / 性能 / 告警 / 历史（对齐根页 health_dashboard.html）"
         actions={
-          <button
+          <Button
             onClick={load}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+            variant="default" size="sm"
           >
             <RefreshCw size={12} /> 刷新
-          </button>
+          </Button>
         }
       />
 
@@ -1558,13 +1558,13 @@ export default function PanoramaHealth() {
                   <option value="warning">警告</option>
                   <option value="critical">危险</option>
                 </select>
-                <button
+                <Button
                   data-testid="history-export"
                   onClick={exportCsv}
-                  className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+                  variant="default" size="sm"
                 >
                   <Download size={12} /> 导出CSV
-                </button>
+                </Button>
                 <span className="text-xs text-slate-500">
                   共 {historyFiltered.length} 条（区间 {hours}h）{historyFiltered.length > 200 ? '，表格仅显示最近 200 条' : ''}
                 </span>

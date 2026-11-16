@@ -8,6 +8,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useDevConsoleStore } from './store';
 import { copyText, formatTime, truncate } from './shared';
+import { Button } from '@/components/ui';
 
 const ErrorPanel: React.FC = () => {
   const records = useDevConsoleStore((s) => s.errorRecords);
@@ -38,13 +39,13 @@ const ErrorPanel: React.FC = () => {
         <span style={{ color: '#8b949e', fontSize: 11 }}>
           共 {records.length} 条错误
         </span>
-        <button
+        <Button
           type="button"
-          className="devconsole-btn danger"
+          variant="danger" size="xs"
           onClick={clearError}
         >
           清空
-        </button>
+        </Button>
       </div>
       <div className="devconsole-body">
         <table className="devconsole-table">
@@ -149,13 +150,13 @@ const ErrorRecordDetail: React.FC<{
           <pre className="devconsole-code">{record.stack}</pre>
         </div>
       )}
-      <button
+      <Button
         type="button"
-        className="devconsole-btn"
+        variant="default" size="xs"
         onClick={handleCopy}
       >
         {copied ? '已复制' : '复制堆栈'}
-      </button>
+      </Button>
     </div>
   );
 };

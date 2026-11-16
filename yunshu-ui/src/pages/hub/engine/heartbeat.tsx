@@ -4,7 +4,7 @@
  */
 import { useEffect, useState } from 'react'
 import { HeartPulse, RefreshCw } from 'lucide-react'
-import { Card, StatCard, Loading, ErrorBox, Badge, PageHeader } from '../components/ui'
+import { Card, StatCard, Loading, ErrorBox, Badge, PageHeader, Button} from '../components/ui'
 
 import {
   HEARTBEAT,
@@ -76,7 +76,7 @@ export default function EngineHeartbeat() {
       <PageHeader
         title="心跳监测"
         description="全维度健康检查与历史记录"
-        actions={<button onClick={load} className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"><RefreshCw size={12} /> 立即检测</button>}
+        actions={<Button onClick={load} variant="default" size="sm"><RefreshCw size={12} /> 立即检测</Button>}
       />
       {error && <div className="mb-4"><ErrorBox message={error} /></div>}
       {loading ? <Loading /> : (

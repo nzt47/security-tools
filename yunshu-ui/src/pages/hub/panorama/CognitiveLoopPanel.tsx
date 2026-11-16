@@ -12,7 +12,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { Brain, RefreshCw, ShieldAlert, ShieldCheck } from 'lucide-react'
-import { Badge, Card, ErrorBox, Loading, hubGet } from '../components/ui'
+import { Badge, Card, ErrorBox, Loading, hubGet, Button} from '../components/ui'
 import { COGNITIVE_REJECT, COGNITIVE_STATUS } from '@/api/endpoints'
 
 interface RejectVerdict {
@@ -63,10 +63,10 @@ export default function CognitiveLoopPanel() {
         <span className="flex items-center gap-1.5 text-xs text-slate-500">
           <Brain size={13} /> /api/cognitive/status · /api/cognitive/reject
         </span>
-        <button onClick={load}
-          className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800">
+        <Button onClick={load}
+          variant="default" size="sm">
           <RefreshCw size={12} /> 刷新
-        </button>
+        </Button>
       </div>
 
       {error && <div className="mb-3"><ErrorBox message={error} /></div>}

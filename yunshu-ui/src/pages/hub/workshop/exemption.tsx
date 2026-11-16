@@ -21,7 +21,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Loader2, Lock, RefreshCw, ShieldAlert, ShieldCheck } from 'lucide-react'
-import { Badge, ErrorBox } from '../components/ui'
+import { Badge, ErrorBox, Button} from '../components/ui'
 import {
   EXEMPTION_SOURCE_LABELS,
   exemptionErrorText,
@@ -281,12 +281,12 @@ export function ExemptionStatusBar({ state, onReload }: {
       {state.status === 'error' && (
         <div className="flex flex-wrap items-center gap-3">
           <ErrorBox message={`工具豁免状态读取失败：${state.error}`} />
-          <button
+          <Button
             onClick={onReload}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+            variant="default" size="sm"
           >
             <RefreshCw size={12} /> 重试
-          </button>
+          </Button>
           <span className="text-caption text-slate-500">
             读取失败只影响豁免开关：徽章退回只读的「需确认」标识，主线档案与装配预览照常。
           </span>

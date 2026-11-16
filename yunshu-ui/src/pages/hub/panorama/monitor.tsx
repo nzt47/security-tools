@@ -14,7 +14,7 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import { Activity, RefreshCw, Search, Server } from 'lucide-react'
-import { Card, StatCard, DataTable, Loading, ErrorBox, Badge, PageHeader } from '../components/ui'
+import { Card, StatCard, DataTable, Loading, ErrorBox, Badge, PageHeader, Button} from '../components/ui'
 // 2026-10-18：节点下钻 + 干预（/api/modules/<id>/detail 与 /actions）此前零入口
 import ModuleDetail from './ModuleDetail'
 import { getEnvelope } from '@/api/envelope'
@@ -225,12 +225,12 @@ export default function PanoramaMonitor() {
               <option value="offline">离线</option>
               <option value="disabled">未启用</option>
             </select>
-            <button
+            <Button
               onClick={load}
-              className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+              variant="default" size="sm"
             >
               <RefreshCw size={12} /> 刷新
-            </button>
+            </Button>
           </div>
         }
       />

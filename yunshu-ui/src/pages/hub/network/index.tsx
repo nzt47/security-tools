@@ -62,9 +62,9 @@ export default function NetworkPage() {
         description="LLM 与网络参数配置"
         actions={
           <div className="flex items-center gap-2">
-            <button onClick={reset} className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800">
+            <Button onClick={reset} variant="default" size="sm">
               <RotateCcw size={12} /> 重置
-            </button>
+            </Button>
             <Button variant="primary" size="sm" onClick={save} disabled={saving}>
               <Save size={12} /> {saving ? '保存中…' : '保存并应用'}
             </Button>
