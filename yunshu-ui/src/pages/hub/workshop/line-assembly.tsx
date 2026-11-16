@@ -135,7 +135,7 @@ export default function LineAssemblyOverview() {
     <div className="space-y-4 p-6" data-testid="line-assembly-overview">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="flex items-center gap-2 text-lg font-semibold text-slate-100">
+          <h1 className="flex items-center gap-2 text-title font-semibold text-slate-100">
             <Layers size={18} className="text-cyan-400" /> 主线 × 四面
           </h1>
           <p className="mt-1 text-xs text-slate-500">

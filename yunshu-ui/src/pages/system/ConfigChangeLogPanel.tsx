@@ -54,7 +54,7 @@ export default function ConfigChangeLogPanel() {
   return (
     <section className="mt-6" data-testid="config-change-log">
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+        <h2 className="flex items-center gap-2 text-title font-semibold text-foreground">
           <History size={16} /> 配置变更日志
         </h2>
         <button

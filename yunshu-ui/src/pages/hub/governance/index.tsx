@@ -269,7 +269,7 @@ function KpiTile({
         {icon}
         {label}
       </div>
-      <div className="mt-1 text-lg leading-none">
+      <div className="mt-1 text-h2 leading-none">
         <MetricValue metric={metric} format={format} />
       </div>
     </div>
@@ -886,7 +886,7 @@ export function RoiPanel() {
             <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
               <div className="rounded-sm border border-slate-800 bg-slate-950/50 p-3">
                 <div className="text-xs text-slate-400">决策本体 p99（不含埋点）</div>
-                <div className="mt-1 text-lg"><MetricValue metric={data.policy_latency.decision_body} format="ms" /></div>
+                <div className="mt-1 text-h2"><MetricValue metric={data.policy_latency.decision_body} format="ms" /></div>
               </div>
               <div className="rounded-sm border border-slate-800 bg-slate-950/50 p-3">
                 <div className="text-xs text-slate-400">全量埋点端到端（命中 / 未命中）</div>
@@ -912,7 +912,7 @@ export function RoiPanel() {
                 <div className="space-y-2 text-xs">
                   <div className="flex items-center gap-3">
                     <span className="text-slate-400">自动消化占比</span>
-                    <span className="text-lg"><MetricValue metric={decay?.decay_rate} format="percent" /></span>
+                    <span className="text-h2"><MetricValue metric={decay?.decay_rate} format="percent" /></span>
                     <StatusBadge tone={decay?.meets_target ? 'green' : 'yellow'}>
                       目标 {formatPercent((decay?.target?.value as number) ?? null)}
                     </StatusBadge>

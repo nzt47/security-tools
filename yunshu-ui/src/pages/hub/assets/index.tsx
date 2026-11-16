@@ -188,7 +188,7 @@ export default function AssetsPage({ initialCategory = 'memory' }: AssetsPagePro
             }`}
           >
             <div>
-              <div className="text-lg">{c.icon}</div>
+              <div className="text-h2">{c.icon}</div>
               <div className="mt-1 text-xs text-slate-400">{c.label}</div>
             </div>
             <span className="text-xl font-semibold text-white">{overview[c.key] ?? 0}</span>

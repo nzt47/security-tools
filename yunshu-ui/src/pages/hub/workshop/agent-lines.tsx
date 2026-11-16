@@ -711,7 +711,7 @@ function PreviewPanel({ preview, skills, promptFragments, promptFragmentsNote,
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-sm text-slate-300">
               工具数
-              <span className="ml-1.5 font-mono text-lg text-white">{preview.count}</span>
+              <span className="ml-1.5 font-mono text-h2 text-white">{preview.count}</span>
               <span className="mx-1 text-slate-500">/</span>
               <span className="font-mono text-slate-400">上限 {preview.max_tools}</span>
             </span>

@@ -37,7 +37,7 @@ function StatCard({ config }: { config: StatCardConfig }) {
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm text-muted-foreground">{config.title}</p>
-          <p className="mt-2 text-3xl font-bold tracking-tight text-foreground">{config.value}</p>
+          <p className="mt-2 text-h1 font-bold tracking-tight text-foreground">{config.value}</p>
         </div>
         <div className={'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ' + config.iconBg}>
           <Icon className={'h-5 w-5 ' + config.iconColor} />

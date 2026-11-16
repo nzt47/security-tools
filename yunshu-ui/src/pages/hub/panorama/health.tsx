@@ -1074,7 +1074,7 @@ export default function PanoramaHealth() {
           {/* ── 健康总分 + 五层维度卡（老页 .health-overview）── */}
           <div className="mb-4 grid gap-4 lg:grid-cols-[200px_1fr]">
             <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 text-center">
-              <div className={'text-5xl font-bold ' + (!latest ? 'text-slate-600' : overallLevel === 'excellent' || overallLevel === 'good' ? 'text-emerald-400' : overallLevel === 'fair' || overallLevel === 'warning' ? 'text-amber-400' : 'text-red-400')}>
+              <div className={'text-display font-bold ' + (!latest ? 'text-slate-600' : overallLevel === 'excellent' || overallLevel === 'good' ? 'text-emerald-400' : overallLevel === 'fair' || overallLevel === 'warning' ? 'text-amber-400' : 'text-red-400')}>
                 {overallPercent == null ? '--' : overallPercent.toFixed(0)}
               </div>
               <div className="mt-2">
@@ -1533,7 +1533,7 @@ export default function PanoramaHealth() {
                     ))}
                     <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
                       <div className="text-xs text-slate-500">系统状态</div>
-                      <div className="mt-1 text-lg font-semibold text-emerald-400">{adminSummary.systemStatus || MISSING}</div>
+                      <div className="mt-1 text-h2 font-semibold text-emerald-400">{adminSummary.systemStatus || MISSING}</div>
                     </div>
                   </div>
                 )}

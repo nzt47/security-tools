@@ -134,7 +134,7 @@ export default function RouteCoveragePanel() {
     <div className="space-y-4 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="flex items-center gap-2 text-lg font-semibold text-slate-100">
+          <h1 className="flex items-center gap-2 text-title font-semibold text-slate-100">
             <RouteIcon size={18} className="text-cyan-400" /> 路由覆盖
           </h1>
           <p className="mt-1 text-xs text-slate-500">

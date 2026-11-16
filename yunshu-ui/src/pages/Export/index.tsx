@@ -174,7 +174,7 @@ export default function DataExport() {
       {/* 顶部：标题 + 数据统计 + 操作 */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-foreground">数据导出</h1>
+          <h1 className="text-title font-semibold text-foreground">数据导出</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
             共 {stats.total} 条 · 启用 {stats.enabled} · 管理员 {stats.admins}
           </p>

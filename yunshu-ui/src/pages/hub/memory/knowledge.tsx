@@ -542,7 +542,7 @@ export default function MemoryKnowledge() {
                 <div>
                   <div className="flex flex-wrap items-end gap-6 rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3">
                     <div>
-                      <div className={`text-4xl font-bold ${scoreColor}`}>
+                      <div className={`text-h1 font-bold ${scoreColor}`}>
                         {report.health_score.toFixed(1)}
                       </div>
                       <div className="mt-1 text-caption text-slate-500">健康分（0-100）</div>
