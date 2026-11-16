@@ -263,7 +263,7 @@ export function ContextManagerBar() {
       {/* 折叠条（纯状态展示，无滑块） */}
       <button
         onClick={() => persistExpanded(!expanded)}
-        className="flex w-full items-center gap-2 px-4 py-1.5 text-left text-[11px] text-slate-400 transition-colors hover:bg-slate-800/40"
+        className="flex w-full items-center gap-2 px-4 py-1.5 text-left text-caption text-slate-400 transition-colors hover:bg-slate-800/40"
         title="点击展开/折叠上下文监视器"
       >
         <Gauge size={12} className="shrink-0 text-cyan-400" />
@@ -272,16 +272,16 @@ export function ContextManagerBar() {
         <div className="h-1.5 min-w-[60px] max-w-[140px] flex-1 overflow-hidden rounded-full bg-slate-800">
           <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${Math.min(pct, 100)}%` }} />
         </div>
-        <span className={`shrink-0 font-mono text-[10px] ${pct >= 80 ? 'text-red-400' : pct >= 60 ? 'text-amber-400' : 'text-slate-300'}`}>
+        <span className={`shrink-0 font-mono text-micro ${pct >= 80 ? 'text-red-400' : pct >= 60 ? 'text-amber-400' : 'text-slate-300'}`}>
           {pctKnown ? `${pct.toFixed(0)}%` : '—%'}
         </span>
-        <span className="hidden shrink-0 font-mono text-[10px] text-slate-500 sm:inline">{fmt(status?.current_tokens)}/{fmt(status?.token_limit)}</span>
+        <span className="hidden shrink-0 font-mono text-micro text-slate-500 sm:inline">{fmt(status?.current_tokens)}/{fmt(status?.token_limit)}</span>
         {llm?.tok_per_s != null && (
-          <span className="hidden shrink-0 font-mono text-[10px] text-cyan-500 md:inline">{Number(llm.tok_per_s).toFixed(0)} tok/s</span>
+          <span className="hidden shrink-0 font-mono text-micro text-cyan-500 md:inline">{Number(llm.tok_per_s).toFixed(0)} tok/s</span>
         )}
         {llm?.cache_hit_ratio != null && (
           <span
-            className="hidden shrink-0 font-mono text-[10px] text-emerald-500 lg:inline"
+            className="hidden shrink-0 font-mono text-micro text-emerald-500 lg:inline"
             title={`前缀缓存命中 ${(llm.cache_hit_ratio * 100).toFixed(1)}% · 命中 ${fmt(llm.cache_hit_tokens)} / 计 ${fmt((llm.cache_hit_tokens ?? 0) + (llm.cache_miss_tokens ?? 0))} tok`}
           >
             缓存 {(llm.cache_hit_ratio * 100).toFixed(0)}%
@@ -289,7 +289,7 @@ export function ContextManagerBar() {
         )}
         {status && (status.compress_rounds_window ?? status.compress_rounds) > 0 && (
           <span
-            className="hidden shrink-0 text-[10px] text-slate-600 md:inline"
+            className="hidden shrink-0 text-micro text-slate-600 md:inline"
             title={`当前窗口压缩 ${status.compress_rounds_window ?? status.compress_rounds} 次（累计摘要版本 ${status.compress_rounds}）`}
           >
             压缩 {status.compress_rounds_window ?? status.compress_rounds} 次
@@ -301,8 +301,8 @@ export function ContextManagerBar() {
       {/* 展开面板 */}
       {expanded && (
         <div className="space-y-3 border-t border-slate-800/70 px-4 py-3">
-          {error && <div className="text-[11px] text-red-400">状态加载失败：{error}</div>}
-          {msg && <div className="rounded-md border border-slate-700 bg-slate-800/60 px-2.5 py-1.5 text-[11px] text-cyan-400">{msg}</div>}
+          {error && <div className="text-caption text-red-400">状态加载失败：{error}</div>}
+          {msg && <div className="rounded-md border border-slate-700 bg-slate-800/60 px-2.5 py-1.5 text-caption text-cyan-400">{msg}</div>}
           {!status ? <Loading text="加载上下文状态…" /> : (
             <>
               {/* ── DeepSeek Harness 同构读数（2026-10-14）──────────────────────
@@ -341,10 +341,10 @@ export function ContextManagerBar() {
                   },
                 ] as { title: string; rows: [string, string][] }[]).map((g) => (
                   <div key={g.title} className="rounded-lg border border-slate-800 bg-slate-900/60 px-2.5 py-2">
-                    <div className="mb-1 text-[10px] font-medium text-cyan-300">{g.title}</div>
+                    <div className="mb-1 text-micro font-medium text-cyan-300">{g.title}</div>
                     <div className="space-y-0.5">
                       {g.rows.map(([label, value]) => (
-                        <div key={label} className="flex items-center justify-between gap-2 text-[11px]">
+                        <div key={label} className="flex items-center justify-between gap-2 text-caption">
                           <span className="text-slate-500">{label}</span>
                           <span className="font-mono text-slate-200">{value}</span>
                         </div>
@@ -363,14 +363,14 @@ export function ContextManagerBar() {
                   { l: '当前窗口压缩', v: `${fmt(status.compress_rounds_window ?? status.compress_rounds)} 次`, c: 'text-cyan-400' },
                 ].map((s) => (
                   <div key={s.l} className="rounded-lg border border-slate-800 bg-slate-900/60 px-2 py-1.5">
-                    <div className="text-[10px] text-slate-500">{s.l}</div>
+                    <div className="text-micro text-slate-500">{s.l}</div>
                     <div className={`font-mono text-sm font-semibold ${s.c}`}>{s.v}</div>
                   </div>
                 ))}
               </div>
 
               {/* 窗口来源与成因（读数必须可复核：分母从哪来、红色是因为什么） */}
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-slate-500">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-micro text-slate-500">
                 <span>
                   窗口来源：<span className="font-mono text-slate-400">{status.token_limit_source ?? '-'}</span>
                 </span>
@@ -388,7 +388,7 @@ export function ContextManagerBar() {
 
               {/* 进度明细（只读） */}
               <div>
-                <div className="mb-1 flex justify-between text-[10px] text-slate-500">
+                <div className="mb-1 flex justify-between text-micro text-slate-500">
                   <span>收 {fmt(status.recv_tokens)} tok · 发 {fmt(status.send_tokens)} tok</span>
                   <span>阈值 {Math.round(status.compress_threshold * 100)}%</span>
                 </div>
@@ -397,7 +397,7 @@ export function ContextManagerBar() {
                 </div>
                 {/* 【2026-11-09】口径同源：占用率 = 最近 N 条正文 token ÷ 窗口（与压缩触发同一口径，
                     工具结果不计入）；会话累计单列，避免把「累计」误读成「这一窗用了多少」。 */}
-                <div className="mt-1 text-[10px] leading-relaxed text-slate-500">
+                <div className="mt-1 text-micro leading-relaxed text-slate-500">
                   {status.percentage_note
                     ? status.percentage_note
                     : `口径：本会话最近 ${status.percentage_window_messages ?? 200} 条正文 token（与压缩触发同源；工具结果不计入）`}
@@ -408,7 +408,7 @@ export function ContextManagerBar() {
                 {/* 【2026-11-10】未分会话历史池：会话分家前的无主消息按「冻结」披露（L5：如实标无数据/冻结，
                     不折算成 0，也不藏起来让人以为压缩漏了它们）。 */}
                 {(status.legacy_pool?.legacy_messages ?? 0) > 0 && (
-                  <div className="mt-1 text-[10px] leading-relaxed text-slate-500"
+                  <div className="mt-1 text-micro leading-relaxed text-slate-500"
                     title={status.legacy_pool?.note}>
                     未分会话历史池 <span className="font-mono">{fmt(status.legacy_pool?.legacy_messages ?? 0)}</span> 条 · 已冻结（不参与压缩/摘要/最近消息）
                   </div>
@@ -418,14 +418,14 @@ export function ContextManagerBar() {
               {/* 【2026-11-05】65% 换会话提示：到 80% 才会自动压缩，压完早期细节只剩摘要，
                   所以在 65% 就提醒一次（不阻断、不自动新建会话）。 */}
               {pct >= 65 && pct < 80 && (
-                <div className="rounded-md border border-amber-800/60 bg-amber-500/10 px-2.5 py-1.5 text-[11px] leading-relaxed text-amber-200">
+                <div className="rounded-md border border-amber-800/60 bg-amber-500/10 px-2.5 py-1.5 text-caption leading-relaxed text-amber-200">
                   上下文已到 <b>{Math.round(pct)}%</b>：建议<b>生成交接文档并转入新会话</b>继续 ——
                   到 {Math.round(status.compress_threshold * 100)}% 会自动压缩，压缩后早期细节只剩摘要。
                   入口：会话头「交接文档」。
                 </div>
               )}
               {pct >= 80 && (
-                <div className="rounded-md border border-rose-800/60 bg-rose-500/10 px-2.5 py-1.5 text-[11px] leading-relaxed text-rose-200">
+                <div className="rounded-md border border-rose-800/60 bg-rose-500/10 px-2.5 py-1.5 text-caption leading-relaxed text-rose-200">
                   上下文已到 <b>{Math.round(pct)}%</b>（超过压缩阈值）：现在生成交接文档再换会话，比等到压缩后更划算。
                 </div>
               )}
@@ -441,8 +441,8 @@ export function ContextManagerBar() {
                 ].map((s) => (
                   <div key={s.l} className="rounded-lg border border-slate-800 bg-slate-900/50 px-2.5 py-2">
                     <div className="mb-1 flex items-center justify-between">
-                      <span className="text-[10px] text-slate-500">{s.l}</span>
-                      <span className="font-mono text-[11px] text-cyan-400">{fmt(s.val)}</span>
+                      <span className="text-micro text-slate-500">{s.l}</span>
+                      <span className="font-mono text-caption text-cyan-400">{fmt(s.val)}</span>
                     </div>
                     <Slider
                       min={s.min} max={s.max} step={s.step}
@@ -450,7 +450,7 @@ export function ContextManagerBar() {
                       onValueChange={s.set}
                       aria-label="预算比例"
                     />
-                    <div className="mt-0.5 text-[9px] leading-tight text-slate-600">{s.hint}</div>
+                    <div className="mt-0.5 text-micro leading-tight text-slate-600">{s.hint}</div>
                   </div>
                 ))}
               </div>
@@ -472,7 +472,7 @@ export function ContextManagerBar() {
                     type="button"
                     onClick={() => setInfoTab((v) => (v === 'mechanism' ? null : 'mechanism'))}
                     aria-expanded={infoTab === 'mechanism'}
-                    className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[11px] transition-colors ${infoTab === 'mechanism' ? 'border-cyan-700/70 bg-cyan-500/10 text-cyan-300' : 'border-slate-700 text-slate-400 hover:bg-slate-800'}`}
+                    className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-caption transition-colors ${infoTab === 'mechanism' ? 'border-cyan-700/70 bg-cyan-500/10 text-cyan-300' : 'border-slate-700 text-slate-400 hover:bg-slate-800'}`}
                     title="自动压缩 / 三级水位 / 摘要退化 / System Prompt 预算 / 主动丢弃 —— 这套机制怎么运作"
                   >
                     <Info size={11} /> 上下文管理说明
@@ -482,23 +482,23 @@ export function ContextManagerBar() {
                     onClick={() => setInfoTab((v) => (v === 'window' ? null : 'window'))}
                     aria-expanded={infoTab === 'window'}
                     aria-label="窗口取值参考"
-                    className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[11px] transition-colors ${infoTab === 'window' ? 'border-cyan-700/70 bg-cyan-500/10 text-cyan-300' : 'border-slate-700 text-slate-400 hover:bg-slate-800'}`}
+                    className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-caption transition-colors ${infoTab === 'window' ? 'border-cyan-700/70 bg-cyan-500/10 text-cyan-300' : 'border-slate-700 text-slate-400 hover:bg-slate-800'}`}
                     title="窗口该开多大：按任务类型的建议值 + 本机的真实约束（全局一个窗口；分身不各带窗口）"
                   >
                     <Info size={11} /> 窗口取值参考
                   </button>
-                  <button onClick={load} className="flex items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1.5 text-[11px] text-slate-400 hover:bg-slate-800">
+                  <button onClick={load} className="flex items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1.5 text-caption text-slate-400 hover:bg-slate-800">
                     <RefreshCw size={11} /> 刷新
                   </button>
                 </div>
-                <span className="text-[9px] text-slate-600">压缩为写操作，需 FLASK_API_TOKEN</span>
+                <span className="text-micro text-slate-600">压缩为写操作，需 FLASK_API_TOKEN</span>
               </div>
 
               {/* 说明面板（Owner 2026-11-15）：原来常驻的机制正文收进「手动压缩」同一行的按钮。
                   两个入口各自只讲一件事：① 这套自动策略怎么运作 ② 窗口该开多大 + 我们这里的真实约束。 */}
               {infoTab === 'mechanism' && (
               <div className="space-y-2 rounded-lg border border-slate-800 bg-slate-950/60 p-3">
-                <div className="flex items-center justify-between gap-2 text-[10.5px] font-medium text-cyan-300">
+                <div className="flex items-center justify-between gap-2 text-caption font-medium text-cyan-300">
                   <span className="flex items-center gap-1.5">
                     <Info size={11} /> 上下文管理机制（多层次自动策略，无需手动干预）
                   </span>
@@ -506,12 +506,12 @@ export function ContextManagerBar() {
                     type="button"
                     onClick={() => setInfoTab(null)}
                     aria-label="收起上下文管理说明"
-                    className="text-[10px] text-slate-500 hover:text-slate-300"
+                    className="text-micro text-slate-500 hover:text-slate-300"
                   >
                     收起
                   </button>
                 </div>
-                <div className="text-[11px] leading-relaxed text-slate-300">
+                <div className="text-caption leading-relaxed text-slate-300">
                   <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5">
                     <span className="text-cyan-400">① 异步后台压缩</span>：每次对话后检查 token 总量，
                     使用率超过阈值（<b className="text-slate-100">{Math.round(status.compress_threshold * 100)}%</b>）时，
@@ -539,7 +539,7 @@ export function ContextManagerBar() {
                     <span className="text-cyan-400">⑤ 主动丢弃</span>：即使压缩后仍超限，系统会从
                     <b className="text-slate-100">最旧的非摘要消息</b>开始丢弃，直到满足 token_limit。
                   </div>
-                  <div className="text-[10px] text-slate-500">
+                  <div className="text-micro text-slate-500">
                     提示：水位长期 ≥80% 或摘要严重退化时，建议新建会话继续（系统不会自动替你新建会话）。
                   </div>
                 </div>
@@ -548,7 +548,7 @@ export function ContextManagerBar() {
 
               {infoTab === 'window' && (
                 <div className="space-y-2 rounded-lg border border-slate-800 bg-slate-950/60 p-3">
-                  <div className="flex items-center justify-between gap-2 text-[10.5px] font-medium text-cyan-300">
+                  <div className="flex items-center justify-between gap-2 text-caption font-medium text-cyan-300">
                     <span className="flex items-center gap-1.5">
                       <Info size={11} /> 窗口该开多大（建议值 + 我们这里的真实约束）
                     </span>
@@ -556,14 +556,14 @@ export function ContextManagerBar() {
                       type="button"
                       onClick={() => setInfoTab(null)}
                       aria-label="收起窗口取值参考"
-                      className="text-[10px] text-slate-500 hover:text-slate-300"
+                      className="text-micro text-slate-500 hover:text-slate-300"
                     >
                       收起
                     </button>
                   </div>
 
                   {/* ① 本机的真实数值（全部来自后端读数，不写死） */}
-                  <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5 text-[11px] leading-relaxed text-slate-300">
+                  <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5 text-caption leading-relaxed text-slate-300">
                     <span className="text-cyan-400">① 现在生效的窗口</span>：
                     <b className="text-slate-100"> {fmt(status.token_limit)}</b> tok
                     （来源 <span className="font-mono text-slate-400">{status.token_limit_source ?? '-'}</span>
@@ -579,7 +579,7 @@ export function ContextManagerBar() {
                   </div>
 
                   {/* ② 按任务的建议起点（通用经验值，**不是本机配置**） */}
-                  <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5 text-[11px] leading-relaxed text-slate-300">
+                  <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5 text-caption leading-relaxed text-slate-300">
                     <div className="text-cyan-400">② 按任务类型的建议起点（通用经验，不是本机配置）</div>
                     <div className="mt-1 space-y-0.5">
                       {[
@@ -596,13 +596,13 @@ export function ContextManagerBar() {
                         </div>
                       ))}
                     </div>
-                    <div className="mt-1 text-[10px] text-slate-500">
+                    <div className="mt-1 text-micro text-slate-500">
                       用法：先按任务选一个起点，再按下面的真实约束往下压 —— 表格是起点，不是配额。
                     </div>
                   </div>
 
                   {/* ③ 工程要点（都对着本机的实测数字写） */}
-                  <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5 text-[11px] leading-relaxed text-slate-300">
+                  <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5 text-caption leading-relaxed text-slate-300">
                     <div className="text-cyan-400">③ 工程要点（对我们意味着什么）</div>
                     <ul className="mt-1 list-disc space-y-0.5 pl-4 text-slate-400">
                       <li>
@@ -626,7 +626,7 @@ export function ContextManagerBar() {
                   </div>
 
                   {/* ④ 分身：已经做了（2026-11-15）—— 给出**各分身窗口一览**（读 /api/agent-lines，不手抄） */}
-                  <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5 text-[11px] leading-relaxed text-slate-300">
+                  <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5 text-caption leading-relaxed text-slate-300">
                     <span className="text-cyan-400">④ 按智能体分身分窗（已支持）</span>：每个分身档案带
                     <b className="text-slate-100"> context_window_tokens</b>，切激活主线即换默认。各分身当前声明值：
                     {lines.length === 0 ? (
@@ -642,7 +642,7 @@ export function ContextManagerBar() {
                               <span className="font-mono text-cyan-300">
                                 {l.window > 0 ? Math.round(l.window / 1024) + "K" : "未声明"}
                               </span>
-                              {isLine && <span className="text-[10px] text-emerald-400">← 当前生效</span>}
+                              {isLine && <span className="text-micro text-emerald-400">← 当前生效</span>}
                             </div>
                           )
                         })}
@@ -653,7 +653,7 @@ export function ContextManagerBar() {
                       &gt; <b className="text-slate-100">本分身的默认值</b>（line:…，重启后回到它） &gt;
                       内置默认 131,072。切换主线时不会覆盖你手调过的值。
                     </div>
-                    <div className="mt-1 text-[10px] text-slate-500">
+                    <div className="mt-1 text-micro text-slate-500">
                       改分身默认：工作台 → 智能体主线（主线档案页，列表里有「窗口 …」徽章、编辑区有 context_window_tokens 字段）；改本机当前值：用上面的滑块。
                     </div>
                   </div>

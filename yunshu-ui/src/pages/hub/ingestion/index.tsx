@@ -339,7 +339,7 @@ export default function IngestionPage() {
       />
 
       {helpSeen ? null : (
-        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-cyan-900/50 bg-cyan-950/20 px-3 py-2 text-[11px] text-cyan-200"
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-cyan-900/50 bg-cyan-950/20 px-3 py-2 text-caption text-cyan-200"
           data-cp-help-banner="true">
           <BookOpen size={12} />
           第一次用？先看 3 分钟手册：7 站链路、哪几步自动、你要点的步骤，以及怎么少点几下。
@@ -382,7 +382,7 @@ export default function IngestionPage() {
                     预览计划
                   </button>
                 </div>
-                <p className="mt-1 text-[10px] text-slate-500">
+                <p className="mt-1 text-micro text-slate-500">
                   只读取来源，不执行来源脚本；路径可指向 claude / openclaw / trae 技能目录或任意文档。
                 </p>
               </>
@@ -393,7 +393,7 @@ export default function IngestionPage() {
                   placeholder="粘贴 markdown / 普通文档 / 提示词…"
                   onChange={(e) => { setTextInput(e.target.value); resetPlan() }} />
                 <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
-                  <span className="mr-auto text-[10px] text-slate-500">
+                  <span className="mr-auto text-micro text-slate-500">
                     直通 = 一次调用直接出草稿（含 1 次 LLM 重写与引用校验）；失败不落草稿。
                   </span>
                   <button type="button" className={BTN_EM}
@@ -412,7 +412,7 @@ export default function IngestionPage() {
                   </button>
                 </div>
                 {directResult && (
-                  <div className="mt-2 rounded-sm border border-emerald-900/50 bg-emerald-950/20 p-2 text-[10px] leading-relaxed text-emerald-200">
+                  <div className="mt-2 rounded-sm border border-emerald-900/50 bg-emerald-950/20 p-2 text-micro leading-relaxed text-emerald-200">
                     <div>
                       已直通生成草稿：<span className="font-mono">{directResult.result.skill_id}</span>
                       {' · ' + directResult.plan.level + ' · 去重提示 ' + directResult.plan.dedupe.length + ' 条'}
@@ -427,7 +427,7 @@ export default function IngestionPage() {
 
           <Card title="本机可吞噬源" actions={(
             <div className="flex items-center gap-2">
-              <span className="text-[10px] text-slate-500">
+              <span className="text-micro text-slate-500">
                 {sources ? sources.stats.candidates + ' 个候选 / ' + sources.stats.previewable + ' 个可预览' : '未探测'}
               </span>
               {/* 探测入口收在本卡片右侧：它只服务「本机可吞噬源」，放页头会让人以为是全局动作 */}
@@ -452,7 +452,7 @@ export default function IngestionPage() {
                 <div className="mb-2 flex flex-wrap gap-1.5">
                   {sources.roots.map((r) => (
                     <span key={r.ecosystem + r.path}
-                      className={'rounded-sm border px-2 py-1 text-[10px] ' + (r.exists
+                      className={'rounded-sm border px-2 py-1 text-micro ' + (r.exists
                         ? 'border-slate-700 text-slate-400'
                         : 'border-amber-900/60 text-amber-400')}
                       title={r.path}>
@@ -466,7 +466,7 @@ export default function IngestionPage() {
                   <div className="max-h-[300px] overflow-auto rounded-sm border border-slate-800">
                     {sources.candidates.slice(0, sourceShown).map((c) => (
                       <div key={c.path}
-                        className="flex w-full items-center gap-2 border-b border-slate-800/60 px-2 py-1.5 text-left text-[11px] text-slate-300 last:border-b-0 hover:bg-slate-800/50">
+                        className="flex w-full items-center gap-2 border-b border-slate-800/60 px-2 py-1.5 text-left text-caption text-slate-300 last:border-b-0 hover:bg-slate-800/50">
                         <input type="checkbox" className="shrink-0"
                           aria-label={'批量选择 ' + c.name}
                           disabled={!c.previewable}
@@ -482,26 +482,26 @@ export default function IngestionPage() {
                             if (c.previewable) void previewPath(c.path)
                           }}>
                           <Badge color={c.previewable ? 'cyan' : 'amber'}>{c.kind}</Badge>
-                          <span className="font-mono text-[10px] text-cyan-300">{c.ecosystem}</span>
+                          <span className="font-mono text-micro text-cyan-300">{c.ecosystem}</span>
                           <span className="truncate">{c.name}</span>
                           {/* 2026-11-07：这条用过没有 —— 100 个候选名字都差不多，
                               没有标记只能靠记性（实测同一批里 brainstorming / byted-* 早已用过）。 */}
                           {c.usage === 'registered' && (
-                            <span className="shrink-0 rounded-sm border border-emerald-800/70 bg-emerald-500/10 px-1 text-[10px] text-emerald-300"
+                            <span className="shrink-0 rounded-sm border border-emerald-800/70 bg-emerald-500/10 px-1 text-micro text-emerald-300"
                               title="已入轨：data/skills_repo 下已有同名技能">已入轨</span>
                           )}
                           {c.usage === 'draft' && (
-                            <span className="shrink-0 rounded-sm border border-amber-800/70 bg-amber-500/10 px-1 text-[10px] text-amber-300"
+                            <span className="shrink-0 rounded-sm border border-amber-800/70 bg-amber-500/10 px-1 text-micro text-amber-300"
                               title={'生成过草稿' + (c.usage_draft_id ? '：' + c.usage_draft_id : '') + (c.usage_at ? '（' + c.usage_at + '）' : '')}>已生成草稿</span>
                           )}
                         </button>
-                        <span className="ml-auto shrink-0 text-[10px] text-slate-600">{c.previewable ? '可预览' : '仅展示'}</span>
+                        <span className="ml-auto shrink-0 text-micro text-slate-600">{c.previewable ? '可预览' : '仅展示'}</span>
                       </div>
                     ))}
                   </div>
                 )}
                 {sources.candidates.length > 0 && (
-                  <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-slate-500">
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-micro text-slate-500">
                     <span>
                       已显示 {Math.min(sourceShown, sources.candidates.length)} / {sources.candidates.length} 条
                     </span>
@@ -521,7 +521,7 @@ export default function IngestionPage() {
                   </div>
                 )}
                 {batchRows.length > 0 && (
-                  <div className="mt-2 rounded-sm border border-slate-800 bg-slate-950/60 p-2 text-[10px]">
+                  <div className="mt-2 rounded-sm border border-slate-800 bg-slate-950/60 p-2 text-micro">
                     <div className="text-slate-500">批量结果（{batchRows.length}）：草稿只落隔离区，登记/启用到「草稿评审」逐条点</div>
                     <ul className="mt-1 space-y-0.5">
                       {batchRows.map((row) => (
@@ -552,8 +552,8 @@ export default function IngestionPage() {
               <div className="flex flex-col gap-3">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <Badge color={levelTone(plan.conformance.level)}>{plan.conformance.level}</Badge>
-                  <span className="font-mono text-[10px] text-slate-500">{plan.adapter}</span>
-                  <span className="font-mono text-[10px] text-slate-600">{plan.plan_id}</span>
+                  <span className="font-mono text-micro text-slate-500">{plan.adapter}</span>
+                  <span className="font-mono text-micro text-slate-600">{plan.plan_id}</span>
                   {plan.rewritten && <Badge color="cyan">LLM 重写</Badge>}
                   {plan.requires_rewrite && <Badge color="red">需重写</Badge>}
                 </div>
@@ -561,19 +561,19 @@ export default function IngestionPage() {
                 {plan.skill && (
                   <div className="rounded-sm border border-slate-800 bg-slate-950/60 p-2">
                     <div className="text-xs font-medium text-slate-200">{plan.skill.name}</div>
-                    <div className="mt-0.5 text-[10px] text-slate-500">
+                    <div className="mt-0.5 text-micro text-slate-500">
                       <span className="font-mono text-cyan-300">{plan.skill.id}</span>
                       {' · v' + plan.skill.version}
                       {' · scripts ' + Object.keys(plan.skill.scripts || {}).length}
                     </div>
-                    <p className="mt-1 text-[11px] leading-relaxed text-slate-400">{plan.skill.description || '（无描述）'}</p>
+                    <p className="mt-1 text-caption leading-relaxed text-slate-400">{plan.skill.description || '（无描述）'}</p>
                   </div>
                 )}
 
                 <div className="rounded-sm border border-cyan-900/50 bg-cyan-950/20 p-2">
-                  <div className="flex flex-wrap items-center gap-2 text-[11px] text-cyan-200">
+                  <div className="flex flex-wrap items-center gap-2 text-caption text-cyan-200">
                     <Layers size={12} /> 推荐形态：{plan.recommendation.form}
-                    <span className="text-[10px] text-slate-500">置信度 {plan.recommendation.confidence}</span>
+                    <span className="text-micro text-slate-500">置信度 {plan.recommendation.confidence}</span>
                     {plan.recommendation.form !== 'skill' && (
                       <div className="ml-auto flex flex-wrap items-center gap-1.5">
                         <button type="button" className={BTN}
@@ -589,9 +589,9 @@ export default function IngestionPage() {
                       </div>
                     )}
                   </div>
-                  <p className="mt-1 text-[10px] leading-relaxed text-slate-400">{plan.recommendation.reason}</p>
+                  <p className="mt-1 text-micro leading-relaxed text-slate-400">{plan.recommendation.reason}</p>
                   {plan.recommendation.form !== 'skill' && (
-                    <p className="mt-1.5 rounded-sm border border-amber-900/50 bg-amber-950/20 p-2 text-[10px] leading-relaxed text-amber-200">
+                    <p className="mt-1.5 rounded-sm border border-amber-900/50 bg-amber-950/20 p-2 text-micro leading-relaxed text-amber-200">
                       推荐的工作流/工具形态只产出<b>骨架草稿</b>：写到隔离目录、不注册、不启用，步骤没绑定工具就不能执行。
                       若你只是想把这份内容变成可检索、可注入的能力，点「改为按技能草稿」更省事（草稿仍不进模型，登记后才算能力）。
                     </p>
@@ -600,7 +600,7 @@ export default function IngestionPage() {
 
                 {plan.requires_rewrite && (
                   <div className="rounded-sm border border-amber-900/60 bg-amber-950/20 p-2">
-                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-amber-200">
+                    <div className="flex flex-wrap items-center gap-2 text-caption text-amber-200">
                       <AlertTriangle size={12} /> L2 来源不能直接生成草稿，需要 LLM 重写并人工预览。
                       <button type="button" className={BTN_EM + ' ml-auto'}
                         onClick={() => void doPreview(true)}
@@ -613,34 +613,34 @@ export default function IngestionPage() {
                 )}
 
                 {plan.archive_id && (
-                  <div className="text-[10px] text-slate-500">
+                  <div className="text-micro text-slate-500">
                     重写存档：<span className="font-mono text-cyan-300">{plan.archive_id}</span>
                     {' '}（生成草稿时原样使用这份存档，不再次调用 LLM）
                   </div>
                 )}
                 {plan.rewrite_errors.length > 0 && (
-                  <div className="rounded-sm border border-red-900/60 bg-red-950/20 p-2 text-[10px] text-red-300">
+                  <div className="rounded-sm border border-red-900/60 bg-red-950/20 p-2 text-micro text-red-300">
                     重写未通过：{plan.rewrite_errors.join('；')}
                   </div>
                 )}
 
                 {plan.warnings.length > 0 && (
-                  <div className="rounded-sm border border-amber-900/50 bg-amber-950/10 p-2 text-[10px] text-amber-300">
+                  <div className="rounded-sm border border-amber-900/50 bg-amber-950/10 p-2 text-micro text-amber-300">
                     {plan.warnings.map((w, i) => <div key={i}>· {w}</div>)}
                   </div>
                 )}
 
                 <div>
-                  <div className="mb-1 flex items-center gap-1.5 text-[11px] font-medium text-slate-300">
+                  <div className="mb-1 flex items-center gap-1.5 text-caption font-medium text-slate-300">
                     <ShieldCheck size={12} /> 去重 / 吸收建议
                   </div>
                   {plan.dedupe.length === 0 ? (
-                    <p className="text-[10px] text-slate-500">未发现同名、同功能或原生能力重叠。</p>
+                    <p className="text-micro text-slate-500">未发现同名、同功能或原生能力重叠。</p>
                   ) : (
                     <div className="flex flex-col gap-1">
                       {plan.dedupe.map((d) => (
                         <div key={d.kind + ':' + d.id}
-                          className="flex flex-wrap items-center gap-1.5 rounded-sm border border-slate-800 bg-slate-950/50 px-2 py-1 text-[10px]">
+                          className="flex flex-wrap items-center gap-1.5 rounded-sm border border-slate-800 bg-slate-950/50 px-2 py-1 text-micro">
                           <Badge color={dedupeTone(d)}>{dedupeLabel(d)}</Badge>
                           <span className="font-mono text-slate-300">{d.id}</span>
                           <span className="text-slate-500">{d.name}</span>
@@ -652,7 +652,7 @@ export default function IngestionPage() {
                     </div>
                   )}
                   {plan.merge_suggestion && (
-                    <div className="mt-1 flex flex-wrap items-center gap-2 rounded-sm border border-emerald-900/50 bg-emerald-950/20 px-2 py-1 text-[10px] text-emerald-200">
+                    <div className="mt-1 flex flex-wrap items-center gap-2 rounded-sm border border-emerald-900/50 bg-emerald-950/20 px-2 py-1 text-micro text-emerald-200">
                       <ArrowRight size={12} /> 建议合并到
                       <span className="font-mono">{plan.merge_suggestion.target_id}</span>
                       <span className="text-slate-500">{plan.merge_suggestion.reason}</span>
@@ -664,7 +664,7 @@ export default function IngestionPage() {
                 </div>
 
                 {plan.actions.length > 0 && (
-                  <details className="text-[10px] text-slate-500">
+                  <details className="text-micro text-slate-500">
                     <summary className="cursor-pointer text-slate-400">计划动作（{plan.actions.length}）</summary>
                     <ul className="mt-1 list-disc pl-4 leading-relaxed">
                       {plan.actions.map((a, i) => <li key={i}>{a}</li>)}
@@ -680,7 +680,7 @@ export default function IngestionPage() {
               <p className="text-xs text-slate-500">预览后才可提交；未确认不会写任何文件。</p>
             ) : (
               <div className="flex flex-col gap-2">
-                <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+                <div className="flex flex-wrap items-center gap-2 text-caption text-slate-400">
                   <span>形态</span>
                   <select className={INPUT + ' w-56'} value={form}
                     aria-label="落库形态"
@@ -692,12 +692,12 @@ export default function IngestionPage() {
                       <option key={k} value={k}>{FORM_LABEL[k]}</option>
                     ))}
                   </select>
-                  <span className="text-[10px] text-slate-500">
+                  <span className="text-micro text-slate-500">
                     三种形态都<b>只产出草稿</b>（不注册、不启用）；确认后在「草稿评审」同一行登记/启用
                   </span>
                 </div>
 
-                <label className="flex items-start gap-2 text-[11px] text-slate-300">
+                <label className="flex items-start gap-2 text-caption text-slate-300">
                   <input type="checkbox" className="mt-0.5" checked={confirmed}
                     aria-label="我已核对预览计划"
                     onChange={(e) => setConfirmed(e.target.checked)} />
@@ -712,12 +712,12 @@ export default function IngestionPage() {
                     {commitLabel}
                   </button>
                   {plan.requires_rewrite && (
-                    <span className="text-[10px] text-amber-400">
+                    <span className="text-micro text-amber-400">
                       L2 来源被卡在这里：先在「2. 预览计划」点「LLM 重写并预览」，回来才能生成
                     </span>
                   )}
                   {!confirmed && !plan.requires_rewrite && (
-                    <span className="text-[10px] text-amber-400">先勾选上方「我已核对预览计划」，按钮才会启用</span>
+                    <span className="text-micro text-amber-400">先勾选上方「我已核对预览计划」，按钮才会启用</span>
                   )}
                 </div>
               </div>
@@ -731,13 +731,13 @@ export default function IngestionPage() {
                 {result.draft ? '草稿' : result.queued ? '已入队' : '未落草稿'}
               </Badge>
             )}>
-              <div className="flex flex-col gap-1.5 text-[11px] text-slate-300">
+              <div className="flex flex-col gap-1.5 text-caption text-slate-300">
                 <div>
                   <span className="font-mono text-cyan-300">{result.skill_id || '—'}</span>
                   {result.name ? ' · ' + result.name : ''}
                   {result.version ? ' · v' + result.version : ''}
                 </div>
-                <div className="flex flex-wrap gap-2 text-[10px] text-slate-500">
+                <div className="flex flex-wrap gap-2 text-micro text-slate-500">
                   <span>form={result.form}</span>
                   <span>installed={String(result.installed)}</span>
                   <span>draft={String(result.draft)}</span>
@@ -747,24 +747,24 @@ export default function IngestionPage() {
                   {result.stage && <span>stage={result.stage} ({result.stage_verdict})</span>}
                 </div>
                 {result.draft_dir && (
-                  <div className="break-all rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400">
+                  <div className="break-all rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400">
                     草稿目录：{result.draft_dir}
                   </div>
                 )}
                 {result.draft && (
-                  <div className="text-[10px] leading-relaxed text-slate-500">
+                  <div className="text-micro leading-relaxed text-slate-500">
                     它<b>只是草稿</b>：不注册、不启用。到「草稿评审」页底部的「吞噬生成的骨架草稿」可以查看与删除；
                     要登记/启用就在「草稿评审」里点那一行。路径就是上面这个目录。
                   </div>
                 )}
                 {result.warnings.length > 0 && (
-                  <div className="rounded-sm border border-amber-900/50 p-2 text-[10px] text-amber-300">
+                  <div className="rounded-sm border border-amber-900/50 p-2 text-micro text-amber-300">
                     {result.warnings.map((w, i) => <div key={i}>· {w}</div>)}
                   </div>
                 )}
                 {/* 下一步直达：草稿 → 评审 → 登记，省掉「自己回想在哪一页」 */}
                 <div className="mt-1 flex flex-wrap items-center gap-2">
-                  <span className="text-[10px] text-slate-500">下一步：</span>
+                  <span className="text-micro text-slate-500">下一步：</span>
                   <button type="button" className={BTN} onClick={() => setTab('review')}>
                     去草稿评审
                   </button>

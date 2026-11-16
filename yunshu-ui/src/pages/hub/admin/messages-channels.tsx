@@ -39,12 +39,12 @@ import {
   EXTENSIONS_UNINSTALL,
 } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
+const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 /** 「下一步该点的那个」按钮（安装 / 启用）：整段独立写，不拼 BTN ——
  *  否则 border-slate-700 与 border-emerald-600 同时在 class 里，谁生效取决于样式表顺序，
  *  看起来就会"有时候高亮有时候不高亮"（2026-11-13 Owner：启用按钮应高亮）。 */
-const BTN_PRIMARY = 'inline-flex items-center gap-1 rounded-md border border-emerald-600/70 bg-emerald-500/10 px-2 py-1 text-[11px] font-medium text-emerald-300 transition-colors hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50'
+const BTN_PRIMARY = 'inline-flex items-center gap-1 rounded-md border border-emerald-600/70 bg-emerald-500/10 px-2 py-1 text-caption font-medium text-emerald-300 transition-colors hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50'
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 
 interface BuiltinChannel {
@@ -424,7 +424,7 @@ export default function HubChannelsPanel() {
     <div className="mt-4 flex flex-col gap-3">
       {err && <ErrorBox message={err} />}
       {msg && (
-        <div className="flex items-center gap-1.5 rounded-md border border-emerald-800/60 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] text-emerald-300">
+        <div className="flex items-center gap-1.5 rounded-md border border-emerald-800/60 bg-emerald-500/10 px-2.5 py-1.5 text-caption text-emerald-300">
           <CheckCircle2 size={12} /> {msg}
         </div>
       )}
@@ -432,7 +432,7 @@ export default function HubChannelsPanel() {
       {/* 接线状态：贴在组标题旁，不折叠、不灰掉 —— 用户必须一眼看到"现在会发什么" */}
       <div className="flex items-start gap-2 rounded-md border border-cyan-800/60 bg-cyan-500/10 px-2.5 py-1.5">
         <PlugZap size={12} className="mt-0.5 shrink-0 text-cyan-400" />
-        <div className="text-[11px] text-cyan-100/90">
+        <div className="text-caption text-cyan-100/90">
           已接线：<span className="text-cyan-300">监控告警（触发 / 恢复）</span> 会经**已启用**的通道自动发送摘要
           （只带告警名/级别/指标与阈值/白名单标签；同一告警 60s 冷却；失败重试 1 次）。
           <code className="font-mono">POST /api/extensions/channels/send</code> 仍只供本页「手动发送（调试）」，
@@ -445,9 +445,9 @@ export default function HubChannelsPanel() {
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <SlidersHorizontal size={12} className="text-cyan-400" />
           <h3 className="text-xs font-semibold text-slate-200">事件出站（总开关 + 3 类事件）</h3>
-          <span className="text-[10px] text-slate-500">改完热生效（不用重启）；数据源与「开关中心」同一份登记表</span>
+          <span className="text-micro text-slate-500">改完热生效（不用重启）；数据源与「开关中心」同一份登记表</span>
         </div>
-        {eventErr && <div className="mb-1 text-[10px] text-red-300">{eventErr}</div>}
+        {eventErr && <div className="mb-1 text-micro text-red-300">{eventErr}</div>}
         <div className="flex flex-col gap-1">
           {EVENT_ROWS.map((row) => {
             const it = eventItems[row.key]
@@ -455,7 +455,7 @@ export default function HubChannelsPanel() {
             const master = eventItems['CP_CHANNEL_EVENTS']
             const masterOff = row.key !== 'CP_CHANNEL_EVENTS' && !!master && !master.value
             return (
-              <div key={row.key} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+              <div key={row.key} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-caption">
                 <label className="flex items-center gap-1.5 text-slate-300">
                   <input
                     type="checkbox"
@@ -466,19 +466,19 @@ export default function HubChannelsPanel() {
                   />
                   {row.label}
                 </label>
-                <span className={'text-[10px] ' + (on ? 'text-emerald-400' : 'text-slate-500')}>
+                <span className={'text-micro ' + (on ? 'text-emerald-400' : 'text-slate-500')}>
                   {on ? '出站' : '不出站'}
                 </span>
-                <span className="truncate text-[10px] text-slate-500">{row.hint}</span>
+                <span className="truncate text-micro text-slate-500">{row.hint}</span>
                 <span className="ml-auto flex items-center gap-2">
-                  {masterOff && <span className="text-[10px] text-amber-300">总开关已关</span>}
-                  {it?.needs_restart && <span className="text-[10px] text-amber-300">需重启</span>}
+                  {masterOff && <span className="text-micro text-amber-300">总开关已关</span>}
+                  {it?.needs_restart && <span className="text-micro text-amber-300">需重启</span>}
                   {it && it.editable === false && (
-                    <span className="text-[10px] text-slate-500" title={it.locked_reason}>
+                    <span className="text-micro text-slate-500" title={it.locked_reason}>
                       {it.locked_reason || '不可改'}
                     </span>
                   )}
-                  {!it && <span className="text-[10px] text-slate-600">未取到</span>}
+                  {!it && <span className="text-micro text-slate-600">未取到</span>}
                 </span>
               </div>
             )
@@ -496,7 +496,7 @@ export default function HubChannelsPanel() {
           <h3 className="text-xs font-semibold text-slate-200">
             {'通道（' + merged.length + ' 个 · 已装 ' + installed.length + ' · 启用 ' + installed.filter((c) => c.enabled).length + '）'}
           </h3>
-          <span className="text-[10px] text-slate-500">未装的点「安装」；装了的在这里配置 / 启停 / 卸载 / 就地发一条测试消息</span>
+          <span className="text-micro text-slate-500">未装的点「安装」；装了的在这里配置 / 启停 / 卸载 / 就地发一条测试消息</span>
           <button
             type="button"
             className={BTN + ' ml-auto'}
@@ -508,7 +508,7 @@ export default function HubChannelsPanel() {
           </button>
         </div>
         {merged.length === 0 && busy !== 'load' && (
-          <div className="text-[11px] text-slate-500">没有可用的通道模板。</div>
+          <div className="text-caption text-slate-500">没有可用的通道模板。</div>
         )}
         <div className="flex flex-col gap-1">
           {merged.map((item) => {
@@ -518,12 +518,12 @@ export default function HubChannelsPanel() {
             const isConfirm = confirmUninstall === id
             const editing = configTarget?.ext_id === id
             return (
-              <div key={'installed-' + id} className="flex flex-col gap-1 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+              <div key={'installed-' + id} className="flex flex-col gap-1 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-caption">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-mono text-[10px] text-cyan-300">{id}</span>
+                  <span className="font-mono text-micro text-cyan-300">{id}</span>
                   {view && (
                     <span
-                      className={'text-[9px] ' + (view.primary ? 'text-emerald-300' : 'text-slate-500')}
+                      className={'text-micro ' + (view.primary ? 'text-emerald-300' : 'text-slate-500')}
                       title={view.primary
                         ? '主通道：值同时写进 .env（重启后仍然生效）'
                         : '本机通道：值只存本机台账，不写 .env'}
@@ -533,9 +533,9 @@ export default function HubChannelsPanel() {
                   )}
                   <span className="text-slate-300">{row?.name || item.name}</span>
                   {item.description ? (
-                    <span className="truncate text-[10px] text-slate-500">{item.description}</span>
+                    <span className="truncate text-micro text-slate-500">{item.description}</span>
                   ) : null}
-                  <span className={'text-[10px] ' + (!row ? 'text-slate-500' : row.enabled ? 'text-emerald-400' : 'text-amber-300')}>
+                  <span className={'text-micro ' + (!row ? 'text-slate-500' : row.enabled ? 'text-emerald-400' : 'text-amber-300')}>
                     {!row ? '未安装' : row.enabled ? '已启用' : '已装（未启用）'}
                   </span>
                   <span className="ml-auto flex items-center gap-1.5">
@@ -581,7 +581,7 @@ export default function HubChannelsPanel() {
                 {row && (
                   <div className="flex flex-wrap items-center gap-1.5">
                     <input
-                      className={INPUT + ' w-64 text-[11px]'}
+                      className={INPUT + ' w-64 text-caption'}
                       placeholder={row.enabled ? '发一条测试消息…' : '启用后可测试发送'}
                       value={drafts[id] ?? ''}
                       onChange={(e) => setDrafts((prev) => ({ ...prev, [id]: e.target.value }))}
@@ -597,12 +597,12 @@ export default function HubChannelsPanel() {
                     >
                       {sendBusyId === id ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />} 发送
                     </button>
-                    {!row.enabled && <span className="text-[10px] text-slate-500">先「启用」再测试发送</span>}
+                    {!row.enabled && <span className="text-micro text-slate-500">先「启用」再测试发送</span>}
                   </div>
                 )}
                 {row && isConfirm && (
                   <div className="flex flex-wrap items-center gap-2 rounded-sm border border-red-900/50 bg-red-500/5 px-2 py-1">
-                    <span className="text-[10px] text-red-300">
+                    <span className="text-micro text-red-300">
                       卸载对「文件轨独占」的扩展是不可逆删除（force=true 才允许）。确定？
                     </span>
                     <button
@@ -622,10 +622,10 @@ export default function HubChannelsPanel() {
                     {/* 空通道：范例 + 说明 + 一键复制（后端给文案，前端不抄第二份） */}
                     {view && (view.empty ?? (view.fields ?? []).every((f) => !f.configured)) && (
                       <div className="rounded-sm border border-amber-900/50 bg-amber-500/5 p-2">
-                        <div className="text-[10px] text-amber-200">
+                        <div className="text-micro text-amber-200">
                           这条通道还是空的（未配置）。照抄下面的范例，改成自己的值就能用：
                         </div>
-                        <pre className="mt-1 overflow-x-auto rounded bg-slate-950 p-2 text-[10px] leading-4 text-slate-300">
+                        <pre className="mt-1 overflow-x-auto rounded bg-slate-950 p-2 text-micro leading-4 text-slate-300">
 {JSON.stringify(view.example ?? {}, null, 2)}
                         </pre>
                         <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -637,9 +637,9 @@ export default function HubChannelsPanel() {
                           >
                             <Copy size={11} /> {copiedId === id ? '已复制' : '复制范例'}
                           </button>
-                          <span className="text-[10px] text-slate-500">保存后这些值同时写进 .env，重启后仍然生效</span>
+                          <span className="text-micro text-slate-500">保存后这些值同时写进 .env，重启后仍然生效</span>
                         </div>
-                        <ul className="mt-1 list-disc pl-4 text-[10px] text-slate-400">
+                        <ul className="mt-1 list-disc pl-4 text-micro text-slate-400">
                           {(view.notes ?? []).map((note) => (<li key={note}>{note}</li>))}
                         </ul>
                       </div>
@@ -656,18 +656,18 @@ export default function HubChannelsPanel() {
                               : '未配置')
                           return (
                             <div key={f.field} className="flex flex-col gap-0.5">
-                              <span className="flex flex-wrap items-center gap-1 text-[10px] text-slate-400">
+                              <span className="flex flex-wrap items-center gap-1 text-micro text-slate-400">
                                 {label}
-                                <code className="font-mono text-[9px] text-slate-600">{f.env_key}</code>
+                                <code className="font-mono text-micro text-slate-600">{f.env_key}</code>
                                 {f.configured && (
-                                  <span className={'text-[9px] ' + (SOURCE_BADGE[f.source ?? ''] ?? 'text-slate-500')}>
+                                  <span className={'text-micro ' + (SOURCE_BADGE[f.source ?? ''] ?? 'text-slate-500')}>
                                     {f.source_label}
                                   </span>
                                 )}
                               </span>
                               <input
                                 type={f.secret ? 'password' : 'text'}
-                                className={INPUT + ' text-[11px]'}
+                                className={INPUT + ' text-caption'}
                                 value={value}
                                 placeholder={placeholder}
                                 onChange={(ev) => setForm((prev) => ({ ...prev, [f.field]: ev.target.value }))}
@@ -676,7 +676,7 @@ export default function HubChannelsPanel() {
                               {f.secret && f.configured && (
                                 <button
                                   type="button"
-                                  className="self-start text-[9px] text-amber-300 hover:underline"
+                                  className="self-start text-micro text-amber-300 hover:underline"
                                   onClick={() => setClearedSecrets((prev) => ({ ...prev, [id]: !prev[id] }))}
                                   aria-label={'清除口令 ' + id}
                                 >
@@ -688,12 +688,12 @@ export default function HubChannelsPanel() {
                         })}
                       </div>
                     )}
-                    <div className="text-[10px] text-slate-500">
+                    <div className="text-micro text-slate-500">
                       其余字段（method / headers / use_tls …）用下面的高级 JSON；口令不会在这里回显。
                       留空字段保存后 = <strong>从 .env 删除该键</strong>（读取回落到 .env 旧键 / 默认值，不写空串占位）。
                     </div>
                     <textarea
-                      className={INPUT + ' h-32 font-mono text-[11px]'}
+                      className={INPUT + ' h-32 font-mono text-caption'}
                       value={configText}
                       onChange={(ev) => setConfigText(ev.target.value)}
                       aria-label={'通道配置 ' + id}
@@ -703,7 +703,7 @@ export default function HubChannelsPanel() {
                         {busy === 'configure' ? <Loader2 size={11} className="animate-spin" /> : null} 保存配置
                       </button>
                       <button type="button" className={BTN} onClick={() => setConfigTarget(null)} disabled={loading}>取消</button>
-                      <span className="text-[10px] text-slate-500">坏 JSON 不会提交</span>
+                      <span className="text-micro text-slate-500">坏 JSON 不会提交</span>
                     </div>
                   </div>
                 )}
@@ -718,14 +718,14 @@ export default function HubChannelsPanel() {
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <Plus size={12} className="text-cyan-400" />
           <h3 className="text-xs font-semibold text-slate-200">新增通道（多通道）</h3>
-          <span className="text-[10px] text-slate-500">
+          <span className="text-micro text-slate-500">
             同一种类型可以加多条；<span className="text-emerald-300">主通道</span>
             （id 为 email_smtp / webhook）的值会写进 .env，其余只存本机
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           <select
-            className={INPUT + ' text-[11px]'}
+            className={INPUT + ' text-caption'}
             value={newType}
             onChange={(ev) => setNewType(ev.target.value)}
             aria-label="新通道类型"
@@ -734,14 +734,14 @@ export default function HubChannelsPanel() {
             <option value="webhook">Webhook</option>
           </select>
           <input
-            className={INPUT + ' w-44 text-[11px]'}
+            className={INPUT + ' w-44 text-caption'}
             placeholder="通道 id，如 email_smtp_2"
             value={newId}
             onChange={(ev) => setNewId(ev.target.value)}
             aria-label="新通道 id"
           />
           <input
-            className={INPUT + ' w-44 text-[11px]'}
+            className={INPUT + ' w-44 text-caption'}
             placeholder="显示名称（可空）"
             value={newName}
             onChange={(ev) => setNewName(ev.target.value)}
@@ -757,7 +757,7 @@ export default function HubChannelsPanel() {
             {busy === 'add' ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} 新增
           </button>
         </div>
-        <div className="mt-1 text-[10px] text-slate-500">
+        <div className="mt-1 text-micro text-slate-500">
           范例：邮件通道填 <code className="font-mono">email_smtp_2</code> / 值班邮件；
           Webhook 填 <code className="font-mono">webhook_ops</code> / 运维群。
           新增出来是空通道，展开「配置」照抄范例填值即可（留空保存 = 从 .env 删键）。

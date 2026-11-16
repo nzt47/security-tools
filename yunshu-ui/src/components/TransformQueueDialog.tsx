@@ -156,7 +156,7 @@ const TARGET_LABEL: Record<string, string> = {
 
 function Badge({ text, style }: { text: string; style: string }) {
   return (
-    <span className={`rounded border px-1.5 py-0.5 text-[10px] ${style}`}>{text}</span>
+    <span className={`rounded border px-1.5 py-0.5 text-micro ${style}`}>{text}</span>
   )
 }
 
@@ -464,7 +464,7 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
           <div className="flex items-center gap-2">
             <Archive size={14} className="text-cyan-400" />
             <h2 className="text-sm font-semibold text-slate-100">转化队列</h2>
-            <span className="text-[11px] text-slate-500">外来技能转化归档 · 判定/审核/卡片 · 可回滚</span>
+            <span className="text-caption text-slate-500">外来技能转化归档 · 判定/审核/卡片 · 可回滚</span>
           </div>
           {!embedded && onClose && (
             <button type="button" onClick={onClose} className="rounded-md p-1 text-slate-400 hover:bg-slate-800 hover:text-slate-200">
@@ -473,7 +473,7 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
           )}
         </div>
 
-        <div className="border-b border-slate-800 bg-slate-950/40 px-4 py-2 text-[10px] leading-relaxed text-slate-500">
+        <div className="border-b border-slate-800 bg-slate-950/40 px-4 py-2 text-micro leading-relaxed text-slate-500">
           每条对应 <code className="text-slate-400">data/ingestion/transforms/&lt;sha256:12&gt;/</code>：
           判定（与自身能力逐面对比）、审核（规则 + 行号证据）、卡片草案、落地目标。
           <strong className="text-slate-300"> 回滚只删 P2 写进 skills_repo 的那几个文件</strong>
@@ -481,28 +481,28 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
         </div>
 
         {error && (
-          <div className="flex items-start gap-2 border-b border-rose-900/60 bg-rose-950/40 px-4 py-2 text-[11px] text-rose-300">
+          <div className="flex items-start gap-2 border-b border-rose-900/60 bg-rose-950/40 px-4 py-2 text-caption text-rose-300">
             <AlertTriangle size={12} className="mt-0.5 shrink-0" />
             <span>{error}</span>
           </div>
         )}
         {notice && (
-          <div className="border-b border-emerald-900/60 bg-emerald-950/30 px-4 py-2 text-[11px] text-emerald-300">{notice}</div>
+          <div className="border-b border-emerald-900/60 bg-emerald-950/30 px-4 py-2 text-caption text-emerald-300">{notice}</div>
         )}
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
           {jobs.length > 0 && (
             <div className="mb-3 rounded-lg border border-slate-800 bg-slate-900/40">
               <div className="flex items-center justify-between border-b border-slate-800 px-3 py-1.5">
-                <span className="text-[11px] text-slate-300">统一作业（S1 · 三套入口收敛）</span>
+                <span className="text-caption text-slate-300">统一作业（S1 · 三套入口收敛）</span>
                 <div className="flex items-center gap-3">
-                  <label className="flex cursor-pointer items-center gap-1 text-[10px] text-slate-400"
+                  <label className="flex cursor-pointer items-center gap-1 text-micro text-slate-400"
                          title="已归档的作业默认从队列隐藏；勾选后可找回并彻底删除">
                     <input type="checkbox" checked={showArchived}
                            onChange={(e) => setShowArchived(e.target.checked)} />
                     显示已归档
                   </label>
-                  <span className="text-[10px] text-slate-500">{jobs.length} 条</span>
+                  <span className="text-micro text-slate-500">{jobs.length} 条</span>
                 </div>
               </div>
               <ul className="divide-y divide-slate-800/70">
@@ -511,19 +511,19 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                       onClick={() => setActiveJobId(j.job_id)}
                       onDoubleClick={() => { setJobPanel(j); setRegisterJob(null); setEnableJob(null) }}
                       title="单击选中；双击打开操作面板"
-                      className={'flex cursor-pointer flex-wrap items-center gap-1.5 px-3 py-1 text-[10px] transition-colors ' +
+                      className={'flex cursor-pointer flex-wrap items-center gap-1.5 px-3 py-1 text-micro transition-colors ' +
                         (activeJobId === j.job_id
                           ? 'bg-cyan-500/10 ring-1 ring-inset ring-cyan-700/60'
                           : 'hover:bg-slate-800/40')}>
                     <Badge text={SOURCE_LABEL[j.source] || j.source} style="border-slate-700 text-slate-400" />
-                    <span className="truncate text-[11px] text-slate-200">{j.title || j.source_ref}</span>
+                    <span className="truncate text-caption text-slate-200">{j.title || j.source_ref}</span>
                     <Badge text={j.status} style={JOB_STATUS_STYLE[j.status] || 'border-slate-700 text-slate-400'} />
                     {j.target?.id && (
                       <span className="text-slate-500">{j.form} → {j.target.kind}:{j.target.id}</span>
                     )}
                     {['candidate', 'normalized', 'reviewed'].includes(j.status) && (
                       <button type="button"
-                        className="rounded border border-emerald-800/70 px-1.5 py-0.5 text-[10px] text-emerald-300 hover:bg-emerald-950/40"
+                        className="rounded border border-emerald-800/70 px-1.5 py-0.5 text-micro text-emerald-300 hover:bg-emerald-950/40"
                         onClick={() => { setJobPanel(j); setRegisterJob(j); setEnableJob(null); setNotice('') }}
                         title="把这条草稿登记进仓库（只登记、不启用）">
                         {j.form === 'tool' ? '登记为工具' : j.form === 'workflow' ? '登记为工作流' : '登记为技能'}
@@ -533,13 +533,13 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                       // 目标已不存在（演示数据 / 已删除）：按钮还在但**不可点**，并说明原因。
                       // 以前这里可点，点了只回一句「两轨都不存在」，等于空按钮。
                       <button type="button" disabled
-                        className="cursor-not-allowed rounded border border-slate-800 px-1.5 py-0.5 text-[10px] text-slate-500"
+                        className="cursor-not-allowed rounded border border-slate-800 px-1.5 py-0.5 text-micro text-slate-500"
                         title="该技能在两轨都不存在（演示数据或已被删除）：启用不适用，请重新登记或把作业归档">
                         启用（目标已不存在）
                       </button>
                     ) : (
                       <button type="button"
-                        className="rounded border border-cyan-800/70 px-1.5 py-0.5 text-[10px] text-cyan-300 hover:bg-cyan-950/40"
+                        className="rounded border border-cyan-800/70 px-1.5 py-0.5 text-micro text-cyan-300 hover:bg-cyan-950/40"
                         onClick={() => { setJobPanel(j); setEnableJob(j); setRegisterJob(null); setNotice('') }}
                         title="启用这条已登记的技能（文件轨 + 主轨双写）">
                         启用
@@ -552,14 +552,14 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                       <a href={j.form === 'tool'
                         ? hubHref('tools', { tab: 'toolset', tool: String(j.target?.id ?? '') })
                         : hubHref('workflow', { workflow: String(j.target?.id ?? '') })}
-                        className="rounded border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-300 hover:border-cyan-700 hover:bg-cyan-950/40 hover:text-cyan-300"
+                        className="rounded border border-slate-700 px-1.5 py-0.5 text-micro text-slate-300 hover:border-cyan-700 hover:bg-cyan-950/40 hover:text-cyan-300"
                         title="启用留在该页：工具要先补实现/测试并过审批，工作流要先试跑——那里才有判断依据">
                         去{j.form === 'tool' ? '工具页' : '工作流页'}启用
                       </a>
                     )}
                     {j.status !== 'archived' && (
                       <button type="button"
-                        className="rounded border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-300 hover:border-amber-700 hover:bg-amber-950/30 hover:text-amber-300"
+                        className="rounded border border-slate-700 px-1.5 py-0.5 text-micro text-slate-300 hover:border-amber-700 hover:bg-amber-950/30 hover:text-amber-300"
                         onClick={(e) => { e.stopPropagation(); void doArchive(j) }}
                         disabled={busy === j.job_id + ':archive'}
                         title="归档：从队列隐藏、台账保留证据（不删任何文件；已入库的技能/工具不受影响）">
@@ -568,7 +568,7 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                     )}
                     {j.status === 'archived' && (
                       <button type="button"
-                        className="rounded border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-300 hover:border-emerald-700 hover:bg-emerald-950/30 hover:text-emerald-300"
+                        className="rounded border border-slate-700 px-1.5 py-0.5 text-micro text-slate-300 hover:border-emerald-700 hover:bg-emerald-950/30 hover:text-emerald-300"
                         onClick={(e) => { e.stopPropagation(); void doUnarchive(j) }}
                         disabled={busy === j.job_id + ':unarchive'}
                         title="取消归档：退回归档前的状态、队列里重新可见（不删文件、不动已入库的技能/工具）">
@@ -577,7 +577,7 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                     )}
                     {j.status === 'archived' && (
                       <button type="button"
-                        className="rounded border border-rose-800/70 px-1.5 py-0.5 text-[10px] text-rose-300 hover:bg-rose-950/40"
+                        className="rounded border border-rose-800/70 px-1.5 py-0.5 text-micro text-rose-300 hover:bg-rose-950/40"
                         onClick={(e) => { e.stopPropagation(); void openDelete(j) }}
                         disabled={busy === j.job_id + ':preview'}
                         title="彻底删除：删台账行 + 该作业的工件目录（仓库内/系统临时目录）；先预览再确认">
@@ -585,7 +585,7 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                       </button>
                     )}
                     {j.status === 'register_failed' && (
-                      <span className="max-w-[420px] truncate text-[10px] text-rose-300" title={jobNote(j)}>
+                      <span className="max-w-[420px] truncate text-micro text-rose-300" title={jobNote(j)}>
                         {jobNote(j) || '登记失败'}
                       </span>
                     )}
@@ -596,12 +596,12 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
             </div>
           )}
           {loading && (
-            <div className="flex items-center gap-2 text-[11px] text-slate-400">
+            <div className="flex items-center gap-2 text-caption text-slate-400">
               <Loader2 size={12} className="animate-spin" /> 读取中…
             </div>
           )}
           {!loading && items.length === 0 && (
-            <div className="rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-6 text-center text-[11px] text-slate-500">
+            <div className="rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-6 text-center text-caption text-slate-500">
               还没有转化记录。用 <code className="text-slate-400">python scripts/skill_transform.py &lt;路径&gt; --apply</code> 落地一条后再回来。
               {broken > 0 && <div className="mt-2 text-amber-400/80">{broken} 个目录的 manifest 缺失或损坏（已跳过）</div>}
             </div>
@@ -616,7 +616,7 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
               <div className="w-full max-w-lg rounded-lg border border-cyan-900/60 bg-slate-900 shadow-2xl"
                 onClick={(e) => e.stopPropagation()}>
                 <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 px-3 py-2">
-                  <span className="text-[12px] text-cyan-200">
+                  <span className="text-body text-cyan-200">
                     {jobPanel.title || jobPanel.source_ref || jobPanel.job_id}
                   </span>
                   <Badge text={jobPanel.status} style={JOB_STATUS_STYLE[jobPanel.status] || 'border-slate-700 text-slate-400'} />
@@ -624,17 +624,17 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                   <span className="ml-auto">
                     <button type="button" onClick={() => setJobPanel(null)}
                       aria-label="关闭作业操作面板"
-                      className="rounded border border-slate-700 px-2 py-0.5 text-[10px] text-slate-400 hover:bg-slate-800">
+                      className="rounded border border-slate-700 px-2 py-0.5 text-micro text-slate-400 hover:bg-slate-800">
                       关闭
                     </button>
                   </span>
                 </div>
                 {registerJob && registerJob.job_id === jobPanel.job_id && (
                   <div className="border-b border-slate-800 bg-emerald-950/20 px-3 py-2">
-                    <div className="text-[12px] text-emerald-200">
+                    <div className="text-body text-emerald-200">
                       登记 <span className="font-mono">{jobPanel.title || jobPanel.job_id}</span> 为{jobPanel.form === 'tool' ? '工具' : jobPanel.form === 'workflow' ? '工作流' : '技能'}？
                     </div>
-                    <div className="mt-1 text-[10px] leading-relaxed text-slate-400">
+                    <div className="mt-1 text-micro leading-relaxed text-slate-400">
                       {jobPanel.form === 'tool'
                         ? '把骨架的 .py / .yaml / 测试搬到真实路径，仍 status=draft、enabled=false；目标已存在会被拒绝。'
                         : jobPanel.form === 'workflow'
@@ -643,16 +643,16 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                     </div>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       <button type="button" disabled={!!busy} onClick={() => void doRegister(true)}
-                        className="flex items-center gap-1 rounded border border-emerald-800 px-2 py-1 text-[10px] text-emerald-300 hover:bg-emerald-500/10 disabled:opacity-40">
+                        className="flex items-center gap-1 rounded border border-emerald-800 px-2 py-1 text-micro text-emerald-300 hover:bg-emerald-500/10 disabled:opacity-40">
                         {busy === registerJob.job_id ? <Loader2 size={10} className="animate-spin" /> : <CheckCircle2 size={10} />}
                         登记并开 PR
                       </button>
                       <button type="button" disabled={!!busy} onClick={() => void doRegister(false)}
-                        className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-300 hover:bg-slate-800 disabled:opacity-40">
+                        className="rounded border border-slate-700 px-2 py-1 text-micro text-slate-300 hover:bg-slate-800 disabled:opacity-40">
                         只登记到工作区
                       </button>
                       <button type="button" onClick={() => setRegisterJob(null)}
-                        className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-400 hover:bg-slate-800">
+                        className="rounded border border-slate-700 px-2 py-1 text-micro text-slate-400 hover:bg-slate-800">
                         取消
                       </button>
                     </div>
@@ -661,32 +661,32 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
 
                 {enableJob && enableJob.job_id === jobPanel.job_id && (
                   <div className="border-b border-slate-800 bg-cyan-950/20 px-3 py-2">
-                    <div className="text-[12px] text-cyan-200">
+                    <div className="text-body text-cyan-200">
                       启用 <span className="font-mono">{jobPanel.target?.id || jobPanel.title}</span>？
                     </div>
-                    <div className="mt-1 text-[10px] leading-relaxed text-slate-400">
+                    <div className="mt-1 text-micro leading-relaxed text-slate-400">
                       会双写：先改文件轨 skill.md 的 enabled: true，再走主轨 set_enabled（带审计）；主轨失败会回滚文件。
                     </div>
                     {enableJob.target_missing && (
-                      <div className="mt-1 rounded border border-amber-800/60 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-200">
+                      <div className="mt-1 rounded border border-amber-800/60 bg-amber-500/10 px-2 py-1 text-micro text-amber-200">
                         目标技能在两轨都不存在（演示数据或已被删除）—— 启用不适用，请重新登记或把作业归档。
                       </div>
                     )}
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       <button type="button" disabled={!!busy || !!enableJob.target_missing} onClick={() => void doEnable()}
-                        className="flex items-center gap-1 rounded border border-cyan-800 px-2 py-1 text-[10px] text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-40">
+                        className="flex items-center gap-1 rounded border border-cyan-800 px-2 py-1 text-micro text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-40">
                         {busy === enableJob.job_id + ':enable' ? <Loader2 size={10} className="animate-spin" /> : <CheckCircle2 size={10} />}
                         确认启用
                       </button>
                       <button type="button" onClick={() => setEnableJob(null)}
-                        className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-400 hover:bg-slate-800">
+                        className="rounded border border-slate-700 px-2 py-1 text-micro text-slate-400 hover:bg-slate-800">
                         取消
                       </button>
                     </div>
                   </div>
                 )}
 
-                <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 px-3 py-2 text-[11px] text-slate-400">
+                <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 px-3 py-2 text-caption text-slate-400">
                   <dt>作业</dt><dd className="font-mono break-all text-slate-300">{jobPanel.job_id}</dd>
                   <dt>来源</dt><dd className="break-all">{jobPanel.source_ref || jobPanel.source || '-'}</dd>
                   <dt>产物</dt><dd className="break-all">{jobPanel.artifacts || '-'}</dd>
@@ -696,13 +696,13 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                 <div className="flex flex-wrap items-center gap-2 border-t border-slate-800 px-3 py-2">
                   {['candidate', 'normalized', 'reviewed'].includes(jobPanel.status) && (
                     <button type="button" onClick={() => { setRegisterJob(jobPanel); setNotice('') }}
-                      className="rounded border border-emerald-800/70 px-2 py-1 text-[11px] text-emerald-300 hover:bg-emerald-950/40">
+                      className="rounded border border-emerald-800/70 px-2 py-1 text-caption text-emerald-300 hover:bg-emerald-950/40">
                       {jobPanel.form === 'tool' ? '登记为工具' : jobPanel.form === 'workflow' ? '登记为工作流' : '登记为技能'}
                     </button>
                   )}
                   {jobPanel.form === 'skill' && jobPanel.status === 'registered' && (
                     <button type="button" onClick={() => { setEnableJob(jobPanel); setNotice('') }}
-                      className="rounded border border-cyan-800/70 px-2 py-1 text-[11px] text-cyan-300 hover:bg-cyan-950/40">
+                      className="rounded border border-cyan-800/70 px-2 py-1 text-caption text-cyan-300 hover:bg-cyan-950/40">
                       启用
                     </button>
                   )}
@@ -710,12 +710,12 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                     <a href={jobPanel.form === 'tool'
                       ? hubHref('tools', { tab: 'toolset', tool: String(jobPanel.target?.id ?? '') })
                       : hubHref('workflow', { workflow: String(jobPanel.target?.id ?? '') })}
-                      className="rounded border border-slate-700 px-2 py-1 text-[11px] text-slate-300 hover:border-cyan-700 hover:bg-cyan-950/40 hover:text-cyan-300">
+                      className="rounded border border-slate-700 px-2 py-1 text-caption text-slate-300 hover:border-cyan-700 hover:bg-cyan-950/40 hover:text-cyan-300">
                       去{jobPanel.form === 'tool' ? '工具页' : '工作流页'}启用
                     </a>
                   )}
                   {!['candidate', 'normalized', 'reviewed', 'registered'].includes(jobPanel.status) && (
-                    <span className="text-[11px] text-slate-500">
+                    <span className="text-caption text-slate-500">
                       该状态（{jobPanel.status}）在队列里没有可执行动作；改名/合并请走「技能中心」。
                     </span>
                   )}
@@ -737,14 +737,14 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                     {expanded ? <ChevronDown size={12} className="mt-0.5 text-slate-500" /> : <ChevronRight size={12} className="mt-0.5 text-slate-500" />}
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="truncate text-[12px] text-slate-200">{it.card_title || it.transform_id}</span>
+                        <span className="truncate text-body text-slate-200">{it.card_title || it.transform_id}</span>
                         <Badge text={it.verdict || '未判定'} style={VERDICT_STYLE[it.verdict] || 'border-slate-700 text-slate-400'} />
                         <Badge text={`审核 ${it.review_verdict || '?'}`} style={REVIEW_STYLE[it.review_verdict] || 'border-slate-700 text-slate-400'} />
                         {(it.into || it.new) && <Badge text={`${it.into ? '并入' : '新建'} ${it.into || it.new}`} style="border-slate-700 text-slate-400" />}
                         {it.rolled_back_at && <Badge text="已回滚" style="border-slate-700 text-slate-500" />}
                         {!it.revertible && !it.rolled_back_at && <Badge text="不可回滚" style="border-slate-700 text-slate-500" />}
                       </div>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[10px] text-slate-500">
+                      <div className="mt-0.5 flex flex-wrap items-center gap-2 text-micro text-slate-500">
                         <code>{it.transform_id}</code>
                         <span>{it.created_at}</span>
                         {it.identical_to && <span>最近似：{it.identical_to}</span>}
@@ -755,7 +755,7 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                   </button>
 
                   {expanded && (
-                    <div className="border-t border-slate-800 px-3 py-2 text-[11px] text-slate-300">
+                    <div className="border-t border-slate-800 px-3 py-2 text-caption text-slate-300">
                       {detailLoading && (
                         <div className="flex items-center gap-2 text-slate-400">
                           <Loader2 size={11} className="animate-spin" /> 读取详情…
@@ -764,7 +764,7 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
 
                       {detail && detail.item.transform_id === it.transform_id && (
                         <>
-                          <div className="text-[10px] uppercase tracking-wide text-slate-500">落地目标</div>
+                          <div className="text-micro uppercase tracking-wide text-slate-500">落地目标</div>
                           <ul className="mt-1 space-y-0.5">
                             {detail.targets.map((t) => (
                               <li key={t.rel} className="flex items-center gap-2">
@@ -780,7 +780,7 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
 
                           {detail.findings.length > 0 && (
                             <>
-                              <div className="mt-2 text-[10px] uppercase tracking-wide text-slate-500">审核发现（行号）</div>
+                              <div className="mt-2 text-micro uppercase tracking-wide text-slate-500">审核发现（行号）</div>
                               <ul className="mt-1 space-y-0.5">
                                 {detail.findings.map((f, i) => (
                                   <li key={i} className={f.severity === 'block' ? 'text-rose-300' : f.severity === 'warn' ? 'text-amber-300' : 'text-slate-400'}>
@@ -795,7 +795,7 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
 
                           {detail.item.next.length > 0 && (
                             <>
-                              <div className="mt-2 text-[10px] uppercase tracking-wide text-slate-500">下一步建议</div>
+                              <div className="mt-2 text-micro uppercase tracking-wide text-slate-500">下一步建议</div>
                               <ul className="mt-1 list-disc space-y-0.5 pl-4 text-slate-400">
                                 {detail.item.next.map((t, i) => (
                                   <li key={i}>{t}</li>
@@ -806,8 +806,8 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
 
                           {detail.texts['card.md'] && (
                             <>
-                              <div className="mt-2 text-[10px] uppercase tracking-wide text-slate-500">卡片草案（CARD.md）</div>
-                              <pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap rounded border border-slate-800 bg-slate-950/60 p-2 text-[10px] leading-relaxed text-slate-400">
+                              <div className="mt-2 text-micro uppercase tracking-wide text-slate-500">卡片草案（CARD.md）</div>
+                              <pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap rounded border border-slate-800 bg-slate-950/60 p-2 text-micro leading-relaxed text-slate-400">
                                 {detail.texts['card.md']}
                               </pre>
                             </>
@@ -818,18 +818,18 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                               type="button"
                               disabled={!it.revertible || !!busy}
                               onClick={() => void postRollback(it.transform_id, true)}
-                              className="flex items-center gap-1 rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-300 hover:border-amber-700 hover:bg-amber-500/10 hover:text-amber-300 disabled:cursor-not-allowed disabled:opacity-40"
+                              className="flex items-center gap-1 rounded border border-slate-700 px-2 py-1 text-micro text-slate-300 hover:border-amber-700 hover:bg-amber-500/10 hover:text-amber-300 disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               {busy === it.transform_id + ':preview' ? <Loader2 size={10} className="animate-spin" /> : <RotateCcw size={10} />}
                               回滚（先预览）
                             </button>
-                            {!it.revertible && it.revert_reason && <span className="text-[10px] text-slate-500">{it.revert_reason}</span>}
+                            {!it.revertible && it.revert_reason && <span className="text-micro text-slate-500">{it.revert_reason}</span>}
                             <button
                               type="button"
                               disabled={!!busy}
                               onClick={() => void postRedraft(it.transform_id, true)}
                               title="让 LLM 只从原文摘录分节；每条必须能逐字指回原文，验不过的整条丢弃。只写 card_llm.md，不动正文与 card.md。"
-                              className="flex items-center gap-1 rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-300 hover:border-cyan-700 hover:bg-cyan-500/10 hover:text-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
+                              className="flex items-center gap-1 rounded border border-slate-700 px-2 py-1 text-micro text-slate-300 hover:border-cyan-700 hover:bg-cyan-500/10 hover:text-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               {busy === it.transform_id + ':redraft' ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
                               LLM 重写（带引用校验）
@@ -840,10 +840,10 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                             <div className="mt-2 rounded border border-cyan-900/60 bg-cyan-950/20 p-2">
                               {redraft.ok ? (
                                 <>
-                                  <div className="text-[11px] text-cyan-300">
+                                  <div className="text-caption text-cyan-300">
                                     verified {redraft.verified} / {redraft.total}（未通过已丢弃）
                                   </div>
-                                  <pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap rounded border border-slate-800 bg-slate-950/60 p-2 text-[10px] leading-relaxed text-slate-400">
+                                  <pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap rounded border border-slate-800 bg-slate-950/60 p-2 text-micro leading-relaxed text-slate-400">
                                     {redraft.card}
                                   </pre>
                                   <div className="mt-2 flex items-center gap-2">
@@ -851,21 +851,21 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                                       type="button"
                                       disabled={!!busy}
                                       onClick={() => void postRedraft(it.transform_id, false)}
-                                      className="rounded border border-cyan-800 px-2 py-1 text-[10px] text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-40"
+                                      className="rounded border border-cyan-800 px-2 py-1 text-micro text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-40"
                                     >
                                       写入 card_llm.md
                                     </button>
                                     <button
                                       type="button"
                                       onClick={() => setRedraft(null)}
-                                      className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-400 hover:bg-slate-800"
+                                      className="rounded border border-slate-700 px-2 py-1 text-micro text-slate-400 hover:bg-slate-800"
                                     >
                                       关闭
                                     </button>
                                   </div>
                                 </>
                               ) : (
-                                <div className="flex items-start gap-2 text-[10px] text-rose-300">
+                                <div className="flex items-start gap-2 text-micro text-rose-300">
                                   <AlertTriangle size={11} className="mt-0.5 shrink-0" />
                                   <span>LLM 没补上：{redraft.reason}</span>
                                 </div>
@@ -875,21 +875,21 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
 
                           {preview && preview.id === it.transform_id && (
                             <div className="mt-2 rounded border border-amber-900/60 bg-amber-950/20 p-2">
-                              <div className="text-[11px] text-amber-300">将删除 {preview.files.length} 个文件（归档保留）：</div>
+                              <div className="text-caption text-amber-300">将删除 {preview.files.length} 个文件（归档保留）：</div>
                               <ul className="mt-1 space-y-0.5">
                                 {preview.files.map((f) => (
                                   <li key={f}><code className="text-slate-400">{f}</code></li>
                                 ))}
                               </ul>
                               {preview.hints.map((h, i) => (
-                                <div key={i} className="mt-1 text-[10px] text-slate-500">{h}</div>
+                                <div key={i} className="mt-1 text-micro text-slate-500">{h}</div>
                               ))}
                               <div className="mt-2 flex items-center gap-2">
                                 <button
                                   type="button"
                                   disabled={!!busy}
                                   onClick={() => void postRollback(it.transform_id, false)}
-                                  className="flex items-center gap-1 rounded border border-rose-800 px-2 py-1 text-[10px] text-rose-300 hover:bg-rose-500/10 disabled:opacity-40"
+                                  className="flex items-center gap-1 rounded border border-rose-800 px-2 py-1 text-micro text-rose-300 hover:bg-rose-500/10 disabled:opacity-40"
                                 >
                                   {busy === it.transform_id + ':apply' ? <Loader2 size={10} className="animate-spin" /> : <RotateCcw size={10} />}
                                   确认回滚
@@ -897,7 +897,7 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                                 <button
                                   type="button"
                                   onClick={() => setPreview(null)}
-                                  className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-400 hover:bg-slate-800"
+                                  className="rounded border border-slate-700 px-2 py-1 text-micro text-slate-400 hover:bg-slate-800"
                                 >
                                   取消
                                 </button>
