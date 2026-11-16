@@ -34,11 +34,11 @@ import {
   WORKSPACE_WRITE,
 } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
+const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
-const PRE = 'max-h-64 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
+const PRE = 'max-h-64 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 interface FsItem { name?: string; type?: string; size?: number; modified?: string }
 
@@ -229,7 +229,7 @@ export default function LocalResources() {
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <HardDrive size={14} className="text-cyan-400" />
         <h2 className="text-sm font-semibold text-slate-100">本地资源</h2>
-        <span className="text-[11px] text-slate-500">文件浏览 / 工作区 / 进程管控 —— 写与删都需二次确认</span>
+        <span className="text-caption text-slate-500">文件浏览 / 工作区 / 进程管控 —— 写与删都需二次确认</span>
         <div className="ml-auto">
           <button type="button" className={BTN} onClick={() => { void loadDir(); void loadWs(); void loadProcess() }} disabled={loading} aria-label="刷新本地资源">
             {loading ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
@@ -238,7 +238,7 @@ export default function LocalResources() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
+      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
 
       <div className="mb-2 flex items-center gap-1">
         {([['files', '文件浏览'], ['workspace', '工作区'], ['process', '进程管控']] as const).map(([id, label]) => (
@@ -247,7 +247,7 @@ export default function LocalResources() {
             type="button"
             onClick={() => setTab(id)}
             aria-selected={tab === id}
-            className={'rounded-lg px-2.5 py-1 text-[11px] transition-colors ' + (
+            className={'rounded-lg px-2.5 py-1 text-caption transition-colors ' + (
               tab === id ? 'bg-cyan-500/15 font-medium text-cyan-300' : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
             )}
           >
@@ -263,13 +263,13 @@ export default function LocalResources() {
               <FolderOpen size={12} className="text-cyan-400" />
               <input className={INPUT + ' w-72'} value={path} onChange={(e) => setPath(e.target.value)} aria-label="目录路径" />
               <button type="button" className={BTN} onClick={() => void loadDir()} disabled={loading} aria-label="打开目录">打开</button>
-              <span className="font-mono text-[10px] text-slate-500">{absPath}</span>
+              <span className="font-mono text-micro text-slate-500">{absPath}</span>
             </div>
             <div className="flex flex-col gap-1">
               {items.map((it, i) => (
-                <div key={(it.name ?? '') + i} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+                <div key={(it.name ?? '') + i} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-caption">
                   <span className="text-slate-300">{it.name ?? ''}</span>
-                  <span className="text-[10px] text-slate-600">{it.type ?? ''} · {it.size ?? 0}B</span>
+                  <span className="text-micro text-slate-600">{it.type ?? ''} · {it.size ?? 0}B</span>
                   <span className="ml-auto flex items-center gap-1">
                     <button type="button" className={BTN} onClick={() => void info((path || '.') + '/' + (it.name ?? ''))} disabled={loading} aria-label={'查看 ' + (it.name ?? '')}>
                       信息
@@ -286,7 +286,7 @@ export default function LocalResources() {
                   </span>
                 </div>
               ))}
-              {items.length === 0 && <div className="text-[11px] text-slate-500">空目录或路径不存在。</div>}
+              {items.length === 0 && <div className="text-caption text-slate-500">空目录或路径不存在。</div>}
             </div>
             {fileInfo && <pre className={PRE + ' mt-2'}>{JSON.stringify(fileInfo, null, 2)}</pre>}
           </div>
@@ -301,7 +301,7 @@ export default function LocalResources() {
           </div>
 
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-            <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+            <div className="mb-2 flex flex-wrap items-center gap-2 text-caption text-slate-400">
               <FileText size={11} className="text-cyan-400" /> 读取
               <input className={INPUT + ' w-80'} value={readPath} onChange={(e) => setReadPath(e.target.value)} placeholder="文件绝对/相对路径" aria-label="读取文件路径" />
               <button type="button" className={BTN_EM} onClick={() => void readFile()} disabled={loading || readPath.trim() === ''} aria-label="读取文件">读取</button>
@@ -310,13 +310,13 @@ export default function LocalResources() {
           </div>
 
           <div className="rounded-lg border border-red-900/40 bg-red-500/5 p-3">
-            <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-red-300">
+            <div className="mb-2 flex flex-wrap items-center gap-2 text-caption text-red-300">
               写入（会覆盖同名文件；后端还会过一次安全守卫）
             </div>
             <input className={INPUT + ' mb-2 w-full'} value={writePath} onChange={(e) => setWritePath(e.target.value)} placeholder="目标文件路径" aria-label="写入文件路径" />
             <textarea className={INPUT + ' h-28 w-full font-mono'} value={writeText} onChange={(e) => setWriteText(e.target.value)} placeholder="文件内容" aria-label="写入文件内容" />
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <label className="flex items-center gap-1 text-[10px] text-slate-400">
+              <label className="flex items-center gap-1 text-micro text-slate-400">
                 <input type="checkbox" checked={confirmWrite} onChange={(e) => setConfirmWrite(e.target.checked)} aria-label="确认写入文件" />
                 我确认覆盖写入
               </label>
@@ -331,33 +331,33 @@ export default function LocalResources() {
       {tab === 'workspace' && (
         <div className="space-y-2">
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-            <div className="mb-2 flex items-center gap-2 text-[11px] text-slate-400">
+            <div className="mb-2 flex items-center gap-2 text-caption text-slate-400">
               <FolderOpen size={11} className="text-cyan-400" /> 工作区（{wsItems.length} 项）
             </div>
             {wsInfo && <pre className={PRE + ' mb-2'}>{JSON.stringify(wsInfo, null, 2)}</pre>}
             <div className="flex max-h-56 flex-col gap-1 overflow-y-auto">
               {wsItems.map((it, i) => (
-                <div key={(it.name ?? '') + i} className="flex items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+                <div key={(it.name ?? '') + i} className="flex items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-caption">
                   <span className="text-slate-300">{it.name ?? ''}</span>
-                  <span className="text-[10px] text-slate-600">{it.type ?? ''} · {it.size ?? 0}B</span>
+                  <span className="text-micro text-slate-600">{it.type ?? ''} · {it.size ?? 0}B</span>
                 </div>
               ))}
             </div>
           </div>
 
           <div className="rounded-lg border border-red-900/40 bg-red-500/5 p-3">
-            <div className="mb-2 text-[11px] text-red-300">写入 / 删除工作区文件（相对路径，不能逃出工作区）</div>
+            <div className="mb-2 text-caption text-red-300">写入 / 删除工作区文件（相对路径，不能逃出工作区）</div>
             <input className={INPUT + ' mb-2 w-full'} value={wsPath} onChange={(e) => setWsPath(e.target.value)} placeholder="相对路径，如 notes/todo.md" aria-label="工作区路径" />
             <textarea className={INPUT + ' h-24 w-full font-mono'} value={wsText} onChange={(e) => setWsText(e.target.value)} placeholder="内容" aria-label="工作区文件内容" />
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <label className="flex items-center gap-1 text-[10px] text-slate-400">
+              <label className="flex items-center gap-1 text-micro text-slate-400">
                 <input type="checkbox" checked={confirmWsWrite} onChange={(e) => setConfirmWsWrite(e.target.checked)} aria-label="确认写入工作区" />
                 我确认写入
               </label>
               <button type="button" className={BTN_EM} onClick={() => void wsWrite()} disabled={loading || !confirmWsWrite || wsPath.trim() === ''} aria-label="写入工作区">
                 {busy === 'ws-write' ? <Loader2 size={11} className="animate-spin" /> : null} 写入
               </button>
-              <label className="ml-2 flex items-center gap-1 text-[10px] text-slate-400">
+              <label className="ml-2 flex items-center gap-1 text-micro text-slate-400">
                 <input type="checkbox" checked={confirmWsDelete} onChange={(e) => setConfirmWsDelete(e.target.checked)} aria-label="确认删除工作区文件" />
                 我确认删除
               </label>
@@ -372,7 +372,7 @@ export default function LocalResources() {
       {tab === 'process' && (
         <div className="space-y-2">
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-            <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+            <div className="mb-2 flex flex-wrap items-center gap-2 text-caption text-slate-400">
               <Play size={11} className="text-cyan-400" /> 启动白名单程序
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -388,12 +388,12 @@ export default function LocalResources() {
           </div>
 
           <div className="rounded-lg border border-red-900/40 bg-red-500/5 p-3">
-            <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-red-300">
+            <div className="mb-2 flex flex-wrap items-center gap-2 text-caption text-red-300">
               <XOctagon size={11} /> 终止进程（必须给 pid，只终止白名单内的）
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <input className={INPUT + ' w-40'} value={stopPid} onChange={(e) => setStopPid(e.target.value)} placeholder="pid" aria-label="进程 pid" />
-              <label className="flex items-center gap-1 text-[10px] text-slate-400">
+              <label className="flex items-center gap-1 text-micro text-slate-400">
                 <input type="checkbox" checked={confirmStop} onChange={(e) => setConfirmStop(e.target.checked)} aria-label="确认终止进程" />
                 我确认终止
               </label>
@@ -404,7 +404,7 @@ export default function LocalResources() {
           </div>
 
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-            <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+            <div className="mb-2 flex flex-wrap items-center gap-2 text-caption text-slate-400">
               白名单（自定义 {custom.length} / 合计 {all.length}）
             </div>
             <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -413,12 +413,12 @@ export default function LocalResources() {
             </div>
             <div className="flex flex-wrap gap-1">
               {custom.map((p) => (
-                <span key={p} className="flex items-center gap-1 rounded-sm bg-slate-800/70 px-1.5 py-0.5 font-mono text-[10px] text-slate-300">
+                <span key={p} className="flex items-center gap-1 rounded-sm bg-slate-800/70 px-1.5 py-0.5 font-mono text-micro text-slate-300">
                   {p}
                   <button type="button" className="text-red-400 hover:text-red-300" onClick={() => void removeWl(p)} aria-label={'移除白名单 ' + p}>×</button>
                 </span>
               ))}
-              {custom.length === 0 && <span className="text-[10px] text-slate-600">还没有自定义条目（默认白名单不可移除）</span>}
+              {custom.length === 0 && <span className="text-micro text-slate-600">还没有自定义条目（默认白名单不可移除）</span>}
             </div>
             <pre className={PRE + ' mt-2'}>{JSON.stringify(wl ?? {}, null, 2)}</pre>
           </div>

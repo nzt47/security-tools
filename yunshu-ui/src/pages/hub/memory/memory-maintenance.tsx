@@ -37,11 +37,11 @@ import {
   vectorItem,
 } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
+const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
-const PRE = 'max-h-48 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
+const PRE = 'max-h-48 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 interface ReviewStats {
   total_entries?: number
@@ -122,7 +122,7 @@ interface VectorItem {
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="mb-1.5 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+    <label className="mb-1.5 flex flex-wrap items-center gap-2 text-caption text-slate-400">
       <span className="min-w-28">{label}</span>
       {children}
     </label>
@@ -343,14 +343,14 @@ export default function MemoryMaintenance() {
   return (
     <div className="space-y-3">
       {err && <ErrorBox message={err} />}
-      {msg && <div className="rounded-md border border-emerald-800/60 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] text-emerald-300">{msg}</div>}
+      {msg && <div className="rounded-md border border-emerald-800/60 bg-emerald-500/10 px-2.5 py-1.5 text-caption text-emerald-300">{msg}</div>}
 
       {/* 审查 / 压缩 */}
       <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
         <div className="mb-2 flex items-center gap-2">
           <ScanLine size={12} className="text-cyan-400" />
           <h3 className="text-xs font-semibold text-slate-200">记忆审查</h3>
-          <span className="text-[10px] text-slate-500">只读体检；压缩会改写来源数据</span>
+          <span className="text-micro text-slate-500">只读体检；压缩会改写来源数据</span>
           <div className="ml-auto flex items-center gap-1.5">
             <button type="button" className={BTN} onClick={() => void loadReview()} disabled={loading} aria-label="刷新记忆审查">
               {busy === 'review' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
@@ -375,8 +375,8 @@ export default function MemoryMaintenance() {
             ['向量表', stats.vec_table ?? '—'],
           ].map(([k, v]) => (
             <div key={String(k)} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5">
-              <div className="text-[10px] text-slate-500">{String(k)}</div>
-              <div className="truncate font-mono text-[12px] text-cyan-300">{String(v ?? 0)}</div>
+              <div className="text-micro text-slate-500">{String(k)}</div>
+              <div className="truncate font-mono text-body text-cyan-300">{String(v ?? 0)}</div>
             </div>
           ))}
         </div>
@@ -385,7 +385,7 @@ export default function MemoryMaintenance() {
             为什么单列：之前「审查」只读长期记忆库（0 行），对话记忆从来没被整理过；
             而且"同内容重复"不等于噪音（「继续」×17 是用户真说了 17 次），所以这里只出候选。 */}
         <div data-testid="consolidation-block" className="mt-2 rounded-sm border border-slate-800 bg-slate-950/60 p-2">
-          <div className="mb-1 flex flex-wrap items-center gap-1.5 text-[10px]">
+          <div className="mb-1 flex flex-wrap items-center gap-1.5 text-micro">
             <span className="font-medium text-slate-300">整理候选（只报告，不删除）</span>
             {consolidation ? (
               <>
@@ -402,7 +402,7 @@ export default function MemoryMaintenance() {
             )}
           </div>
           {consolidation && (
-            <div data-testid="consolidation-v2" className="mt-1 text-[10px] text-slate-400">
+            <div data-testid="consolidation-v2" className="mt-1 text-micro text-slate-400">
               agent_memory {consolidation.agent_memory?.total ?? 0} 条 / 完全重复 {consolidation.agent_memory?.duplicate_entries ?? 0} 条
               （{consolidation.agent_memory?.groups_total ?? 0} 组）· 词面近重复 {consolidation.near_duplicate_groups ?? 0} 组
               · 可省（估算）{consolidation.savings?.estimated_redundant_chars ?? 0} 字符 ≈ {consolidation.savings?.estimated_tokens ?? 0} tokens
@@ -411,22 +411,22 @@ export default function MemoryMaintenance() {
           {consolidation?.candidates?.length ? (
             <ul className="space-y-0.5">
               {consolidation.candidates.slice(0, 3).map((c, i) => (
-                <li key={String(c.content_sha256_12 || i)} className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                <li key={String(c.content_sha256_12 || i)} className="flex items-center gap-1.5 text-micro text-slate-400">
                   <span className="font-mono text-slate-500">×{c.count ?? 1}</span>
                   <span className="text-slate-500">{c.role ?? '—'}</span>
                   <span className="truncate" title={c.preview || ''}>{c.preview || '（无预览）'}</span>
-                  <span className="ml-auto font-mono text-[9px] text-slate-600">{c.content_sha256_12}</span>
+                  <span className="ml-auto font-mono text-micro text-slate-600">{c.content_sha256_12}</span>
                 </li>
               ))}
             </ul>
           ) : consolidation ? (
-            <div className="text-[10px] text-slate-500">没有「无响应近重复」候选（同内容重复不等于噪音，不在这里列）</div>
+            <div className="text-micro text-slate-500">没有「无响应近重复」候选（同内容重复不等于噪音，不在这里列）</div>
           ) : null}
-          <div className="mt-1 text-[9px] text-slate-600">
+          <div className="mt-1 text-micro text-slate-600">
             口径：同角色 + 同内容 + 10 分钟窗内 + 两次之间没有任何回复；报告只放 sha256 前 12 位与 40 字预览，不落全文。
             删除仍需人工确认（这里不提供删除按钮）。
           </div>
-          {reportPath && <div className="mt-0.5 truncate font-mono text-[9px] text-slate-600" title={reportPath}>报告：{reportPath}</div>}
+          {reportPath && <div className="mt-0.5 truncate font-mono text-micro text-slate-600" title={reportPath}>报告：{reportPath}</div>}
         </div>
       </div>
 
@@ -435,7 +435,7 @@ export default function MemoryMaintenance() {
         <div className="mb-2 flex items-center gap-2">
           <Save size={12} className="text-cyan-400" />
           <h3 className="text-xs font-semibold text-slate-200">长期摘要</h3>
-          <span className="flex items-center gap-1 text-[10px] text-amber-400">
+          <span className="flex items-center gap-1 text-micro text-amber-400">
             <AlertTriangle size={10} /> 后端没有读接口（只有 PUT）—— 这里是盲写，会覆盖现有摘要
           </span>
         </div>
@@ -447,7 +447,7 @@ export default function MemoryMaintenance() {
           placeholder="写入新的长期摘要（会整体覆盖）"
         />
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-1 text-[10px] text-slate-400">
+          <label className="flex items-center gap-1 text-micro text-slate-400">
             <input type="checkbox" checked={confirmSummary} onChange={(e) => setConfirmSummary(e.target.checked)} aria-label="确认覆盖摘要" />
             我确认覆盖现有摘要
           </label>
@@ -460,7 +460,7 @@ export default function MemoryMaintenance() {
           >
             {busy === 'summary' ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />} 保存摘要
           </button>
-          <label className="ml-2 flex items-center gap-1 text-[10px] text-slate-400">
+          <label className="ml-2 flex items-center gap-1 text-micro text-slate-400">
             <input type="checkbox" checked={confirmClearSummary} onChange={(e) => setConfirmClearSummary(e.target.checked)} aria-label="确认清空摘要" />
             我确认清空摘要
           </label>
@@ -484,26 +484,26 @@ export default function MemoryMaintenance() {
 
         <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
           <div className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5">
-            <div className="text-[10px] text-slate-500">当前窗口</div>
-            <div className="truncate text-[11px] text-cyan-300">{current?.title ?? (current?.is_idle ? '（空闲）' : '—')}</div>
-            <div className="truncate text-[10px] text-slate-500">{current?.process ?? ''}</div>
+            <div className="text-micro text-slate-500">当前窗口</div>
+            <div className="truncate text-caption text-cyan-300">{current?.title ?? (current?.is_idle ? '（空闲）' : '—')}</div>
+            <div className="truncate text-micro text-slate-500">{current?.process ?? ''}</div>
           </div>
           <div className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5">
-            <div className="text-[10px] text-slate-500">停留</div>
-            <div className="font-mono text-[12px] text-cyan-300">{Math.round(current?.elapsed_sec ?? 0)}s</div>
+            <div className="text-micro text-slate-500">停留</div>
+            <div className="font-mono text-body text-cyan-300">{Math.round(current?.elapsed_sec ?? 0)}s</div>
           </div>
           <div className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5">
-            <div className="text-[10px] text-slate-500">总切换</div>
-            <div className="font-mono text-[12px] text-cyan-300">{winTotal.switches ?? 0}</div>
+            <div className="text-micro text-slate-500">总切换</div>
+            <div className="font-mono text-body text-cyan-300">{winTotal.switches ?? 0}</div>
           </div>
           <div className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5">
-            <div className="text-[10px] text-slate-500">总时长</div>
-            <div className="font-mono text-[12px] text-cyan-300">{Math.round(winTotal.duration ?? 0)}s</div>
+            <div className="text-micro text-slate-500">总时长</div>
+            <div className="font-mono text-body text-cyan-300">{Math.round(winTotal.duration ?? 0)}s</div>
           </div>
         </div>
 
         {winStats.length > 0 && (
-          <div className="mb-2 flex flex-wrap gap-1 font-mono text-[10px] text-slate-400">
+          <div className="mb-2 flex flex-wrap gap-1 font-mono text-micro text-slate-400">
             {winStats.slice(0, 12).map((s, i) => (
               <span key={i} className="rounded-sm bg-slate-800/60 px-1.5 py-0.5">
                 {String(s.app ?? s.name ?? '?')} {Math.round(Number(s.duration_sec ?? s.total_sec ?? 0))}s
@@ -539,7 +539,7 @@ export default function MemoryMaintenance() {
           <button type="button" className={BTN_EM} onClick={() => void saveWindowConfig()} disabled={loading} aria-label="保存窗口配置">
             {busy === 'win-config' ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />} 保存配置
           </button>
-          <label className="ml-2 flex items-center gap-1 text-[10px] text-slate-400">
+          <label className="ml-2 flex items-center gap-1 text-micro text-slate-400">
             <input type="checkbox" checked={confirmClearWindows} onChange={(e) => setConfirmClearWindows(e.target.checked)} aria-label="确认清空窗口事件" />
             我确认清空事件
           </label>
@@ -567,16 +567,16 @@ export default function MemoryMaintenance() {
 
         <div className="mb-2 flex flex-col gap-1">
           {recent.slice(0, 8).map((it, i) => (
-            <div key={(it.id ?? '') + i} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+            <div key={(it.id ?? '') + i} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-caption">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-[10px] text-cyan-300">{it.id ?? ''}</span>
-                <span className="font-mono text-[10px] text-slate-600">{it.timestamp ?? ''}</span>
-                <span className="ml-auto text-[10px] text-slate-500">{String(it.metadata?.type ?? '')}</span>
+                <span className="font-mono text-micro text-cyan-300">{it.id ?? ''}</span>
+                <span className="font-mono text-micro text-slate-600">{it.timestamp ?? ''}</span>
+                <span className="ml-auto text-micro text-slate-500">{String(it.metadata?.type ?? '')}</span>
               </div>
               <div className="line-clamp-2 text-slate-400">{it.content ?? ''}</div>
             </div>
           ))}
-          {recent.length === 0 && <div className="text-[11px] text-slate-500">没有取到向量记忆。</div>}
+          {recent.length === 0 && <div className="text-caption text-slate-500">没有取到向量记忆。</div>}
         </div>
 
         <Row label="按 id 查看">
@@ -610,8 +610,8 @@ export default function MemoryMaintenance() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 rounded-sm border border-red-900/40 bg-red-500/5 p-2">
-          <span className="text-[10px] text-red-300">清空向量库不可撤销（整库删除）。</span>
-          <label className="flex items-center gap-1 text-[10px] text-slate-400">
+          <span className="text-micro text-red-300">清空向量库不可撤销（整库删除）。</span>
+          <label className="flex items-center gap-1 text-micro text-slate-400">
             <input type="checkbox" checked={confirmClearVector} onChange={(e) => setConfirmClearVector(e.target.checked)} aria-label="确认清空向量库" />
             我确认清空
           </label>

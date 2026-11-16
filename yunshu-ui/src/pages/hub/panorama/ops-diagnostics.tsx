@@ -30,11 +30,11 @@ import {
   observabilityTrace,
 } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
+const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
-const PRE = 'max-h-40 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
+const PRE = 'max-h-40 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 interface ToolRow { name?: string; category?: string; enabled?: boolean; description?: string }
 interface TraceRow { trace_id?: string; name?: string; duration_ms?: number; status?: string; start_time?: string }
@@ -178,7 +178,7 @@ export default function OpsDiagnostics() {
             type="button"
             onClick={() => setTab(id)}
             aria-selected={tab === id}
-            className={'rounded-lg px-2.5 py-1 text-[11px] transition-colors ' + (
+            className={'rounded-lg px-2.5 py-1 text-caption transition-colors ' + (
               tab === id ? 'bg-cyan-500/15 font-medium text-cyan-300' : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
             )}
           >
@@ -188,38 +188,38 @@ export default function OpsDiagnostics() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
+      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
 
       {tab === 'diag' && (
         <div className="space-y-2">
           <div className="rounded-sm border border-slate-800 bg-slate-950/60 p-2">
-            <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
+            <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
               <AlertTriangle size={11} className="text-amber-400" /> 配置摘要
               {diagConfig && 'error' in diagConfig && (
-                <span className="text-[10px] text-red-400">后端返回错误（已知缺陷，未在本轮修）</span>
+                <span className="text-micro text-red-400">后端返回错误（已知缺陷，未在本轮修）</span>
               )}
             </div>
             <pre className={PRE}>{JSON.stringify(diagConfig ?? {}, null, 2)}</pre>
           </div>
 
           <div className="rounded-sm border border-slate-800 bg-slate-950/60 p-2">
-            <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
+            <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
               <Activity size={11} className="text-cyan-400" /> 综合健康检查
             </div>
             <pre className={PRE}>{JSON.stringify(diagHealth ?? {}, null, 2)}</pre>
           </div>
 
           <div className="rounded-sm border border-slate-800 bg-slate-950/60 p-2">
-            <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
+            <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
               <AlertTriangle size={11} className="text-amber-400" /> 异常关联
             </div>
             <pre className={PRE}>{JSON.stringify(diagCorr ?? {}, null, 2)}</pre>
           </div>
 
           <div className="rounded-sm border border-slate-800 bg-slate-950/60 p-2">
-            <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
+            <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
               <Wrench size={11} className="text-cyan-400" /> 已注册工具（{tools.length}）
-              <span className="text-[10px] text-slate-600">
+              <span className="text-micro text-slate-600">
                 {Object.entries(toolCats).map(([k, v]) => k + '=' + v).join(' · ')}
               </span>
             </div>
@@ -228,17 +228,17 @@ export default function OpsDiagnostics() {
                 <span
                   key={(t.name ?? '') + i}
                   title={t.description}
-                  className={'rounded-sm px-1.5 py-0.5 font-mono text-[10px] ' + (t.enabled ? 'bg-slate-800/70 text-slate-300' : 'bg-red-500/10 text-red-300')}
+                  className={'rounded-sm px-1.5 py-0.5 font-mono text-micro ' + (t.enabled ? 'bg-slate-800/70 text-slate-300' : 'bg-red-500/10 text-red-300')}
                 >
                   {t.name ?? '?'}
                 </span>
               ))}
-              {tools.length === 0 && <span className="text-[10px] text-slate-600">—</span>}
+              {tools.length === 0 && <span className="text-micro text-slate-600">—</span>}
             </div>
           </div>
 
           <div className="rounded-sm border border-slate-800 bg-slate-950/60 p-2">
-            <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
+            <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
               <FileText size={11} className="text-cyan-400" /> 最近日志（{diagLogs.length}）
             </div>
             <pre className={PRE}>{JSON.stringify(diagLogs.slice(0, 5), null, 2)}</pre>
@@ -256,19 +256,19 @@ export default function OpsDiagnostics() {
               ['独立端点', (accessStats?.unique_endpoints as number) ?? 0],
             ].map(([k, v]) => (
               <div key={String(k)} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5">
-                <div className="text-[10px] text-slate-500">{String(k)}</div>
-                <div className="font-mono text-[12px] text-cyan-300">{String(v)}</div>
+                <div className="text-micro text-slate-500">{String(k)}</div>
+                <div className="font-mono text-body text-cyan-300">{String(v)}</div>
               </div>
             ))}
           </div>
 
           <div className="rounded-sm border border-slate-800 bg-slate-950/60 p-2">
-            <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
+            <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
               <FileText size={11} className="text-cyan-400" /> 访问日志（{accessLogs.length}）
             </div>
             <div className="max-h-52 overflow-y-auto">
-              <table className="w-full text-left text-[11px]">
-                <thead className="text-[10px] text-slate-500">
+              <table className="w-full text-left text-caption">
+                <thead className="text-micro text-slate-500">
                   <tr>
                     <th className="px-1 py-1">时间</th>
                     <th className="px-1 py-1">方法</th>
@@ -280,17 +280,17 @@ export default function OpsDiagnostics() {
                 <tbody>
                   {accessLogs.map((r, i) => (
                     <tr key={i} className="border-t border-slate-800/60">
-                      <td className="px-1 py-1 font-mono text-[10px] text-slate-500">{String(r.datetime ?? '').slice(0, 19)}</td>
+                      <td className="px-1 py-1 font-mono text-micro text-slate-500">{String(r.datetime ?? '').slice(0, 19)}</td>
                       <td className="px-1 py-1 text-slate-400">{r.method ?? ''}</td>
-                      <td className="px-1 py-1 font-mono text-[10px] text-cyan-300">{r.endpoint ?? ''}</td>
-                      <td className={'px-1 py-1 font-mono text-[10px] ' + ((r.status_code ?? 200) >= 400 ? 'text-red-400' : 'text-emerald-400')}>
+                      <td className="px-1 py-1 font-mono text-micro text-cyan-300">{r.endpoint ?? ''}</td>
+                      <td className={'px-1 py-1 font-mono text-micro ' + ((r.status_code ?? 200) >= 400 ? 'text-red-400' : 'text-emerald-400')}>
                         {r.status_code ?? ''}
                       </td>
-                      <td className="px-1 py-1 font-mono text-[10px] text-slate-500">{Math.round(r.response_time_ms ?? 0)}ms</td>
+                      <td className="px-1 py-1 font-mono text-micro text-slate-500">{Math.round(r.response_time_ms ?? 0)}ms</td>
                     </tr>
                   ))}
                   {accessLogs.length === 0 && (
-                    <tr><td colSpan={5} className="px-1 py-2 text-center text-[10px] text-slate-600">没有访问记录</td></tr>
+                    <tr><td colSpan={5} className="px-1 py-2 text-center text-micro text-slate-600">没有访问记录</td></tr>
                   )}
                 </tbody>
               </table>
@@ -298,7 +298,7 @@ export default function OpsDiagnostics() {
           </div>
 
           <div className="rounded-sm border border-slate-800 bg-slate-950/60 p-2">
-            <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
+            <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
               <Activity size={11} className="text-cyan-400" /> 追踪（{traces.length}）
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -314,11 +314,11 @@ export default function OpsDiagnostics() {
                     key={(t.trace_id ?? '') + i}
                     type="button"
                     onClick={() => setTraceId(t.trace_id ?? '')}
-                    className="flex items-center gap-2 rounded-sm border border-slate-800 bg-slate-900/40 px-2 py-1 text-left text-[11px] hover:bg-slate-800/50"
+                    className="flex items-center gap-2 rounded-sm border border-slate-800 bg-slate-900/40 px-2 py-1 text-left text-caption hover:bg-slate-800/50"
                   >
-                    <span className="font-mono text-[10px] text-cyan-300">{t.trace_id ?? ''}</span>
+                    <span className="font-mono text-micro text-cyan-300">{t.trace_id ?? ''}</span>
                     <span className="text-slate-400">{t.name ?? ''}</span>
-                    <span className="ml-auto font-mono text-[10px] text-slate-500">{Math.round(t.duration_ms ?? 0)}ms</span>
+                    <span className="ml-auto font-mono text-micro text-slate-500">{Math.round(t.duration_ms ?? 0)}ms</span>
                   </button>
                 ))}
               </div>
@@ -327,7 +327,7 @@ export default function OpsDiagnostics() {
           </div>
 
           <div className="rounded-sm border border-slate-800 bg-slate-950/60 p-2">
-            <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
+            <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
               <Save size={11} className="text-cyan-400" /> 告警规则（PUT 覆盖 / DELETE 删除）
             </div>
             <div className="mb-1 flex flex-wrap items-center gap-2">
@@ -343,7 +343,7 @@ export default function OpsDiagnostics() {
               <button type="button" className={BTN_EM} onClick={() => void saveAlert()} disabled={loading || alertName.trim() === ''} aria-label="保存告警规则">
                 {busy === 'alert' ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />} 保存规则
               </button>
-              <label className="ml-2 flex items-center gap-1 text-[10px] text-slate-400">
+              <label className="ml-2 flex items-center gap-1 text-micro text-slate-400">
                 <input type="checkbox" checked={confirmDeleteAlert} onChange={(e) => setConfirmDeleteAlert(e.target.checked)} aria-label="确认删除告警规则" />
                 我确认删除该规则
               </label>
@@ -355,7 +355,7 @@ export default function OpsDiagnostics() {
 
           {state && (
             <div className="rounded-sm border border-slate-800 bg-slate-950/60 p-2">
-              <div className="mb-1 text-[11px] text-slate-400">可观测总状态</div>
+              <div className="mb-1 text-caption text-slate-400">可观测总状态</div>
               <pre className={PRE}>{JSON.stringify(state, null, 2)}</pre>
             </div>
           )}

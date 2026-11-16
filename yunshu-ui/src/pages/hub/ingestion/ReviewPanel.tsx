@@ -21,7 +21,7 @@ import {
   skillReview,
 } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50'
+const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
 const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
@@ -306,7 +306,7 @@ export default function ReviewPanel() {
     <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <h3 className="text-sm font-medium text-slate-200">外来草稿 · 待评审</h3>
-        <span className="text-[10px] text-slate-500">
+        <span className="text-micro text-slate-500">
           外来来源先落 draft；人工审核通过后才能发布
         </span>
         <div className="ml-auto flex items-center gap-1.5">
@@ -322,26 +322,26 @@ export default function ReviewPanel() {
       </div>
 
       {err && <div className="mb-2"><ErrorBox message={err} /></div>}
-      {msg && <div className="mb-2 flex items-center gap-1.5 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300"><CheckCircle2 size={12} /> {msg}</div>}
-      {!queue && busy !== 'queue' && <div className="text-[11px] text-slate-500">未取到队列。</div>}
+      {msg && <div className="mb-2 flex items-center gap-1.5 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300"><CheckCircle2 size={12} /> {msg}</div>}
+      {!queue && busy !== 'queue' && <div className="text-caption text-slate-500">未取到队列。</div>}
       {queue && rows.length === 0 && (
-        <div className="flex items-center gap-1.5 text-[11px] text-slate-500"><Inbox size={11} /> 队列为空 —— 没有待评审/放行的外来技能。</div>
+        <div className="flex items-center gap-1.5 text-caption text-slate-500"><Inbox size={11} /> 队列为空 —— 没有待评审/放行的外来技能。</div>
       )}
 
       {batchOpen && (
-        <div className="mb-2 rounded-sm border border-amber-800/60 bg-amber-950/20 p-2 text-[11px] text-slate-300">
-          <div>将放行 {selected.length} 条：<span className="font-mono text-[10px] text-cyan-300">{selected.map((r) => r.id).join('、')}</span></div>
+        <div className="mb-2 rounded-sm border border-amber-800/60 bg-amber-950/20 p-2 text-caption text-slate-300">
+          <div>将放行 {selected.length} 条：<span className="font-mono text-micro text-cyan-300">{selected.map((r) => r.id).join('、')}</span></div>
           {hasBlocked && (
             <>
               <div className="mt-1 text-red-300">
                 其中 {blocked.length} 条被评审阻断（{blocked.map((r) => r.id).join('、')}）：force 会绕过强制审核链并写审计。
               </div>
-              <label className="mt-1 flex items-center gap-1 text-[10px] text-slate-300">
+              <label className="mt-1 flex items-center gap-1 text-micro text-slate-300">
                 <input type="checkbox" checked={batchForce} onChange={(e) => setBatchForce(e.target.checked)}
                   aria-label="确认对阻断项使用 force 豁免" />
                 我确认使用 force 豁免（写审计，可追溯）
               </label>
-              <label className="mt-1 flex flex-col gap-1 text-[10px] text-slate-400">
+              <label className="mt-1 flex flex-col gap-1 text-micro text-slate-400">
                 force 豁免原因（至少 4 字）
                 <textarea className={INPUT} rows={2} value={batchReason}
                   onChange={(e) => setBatchReason(e.target.value)} aria-label="force 豁免原因" />
@@ -354,18 +354,18 @@ export default function ReviewPanel() {
               {busy === 'batch' ? <Loader2 size={11} className="animate-spin" /> : null} 确认放行
             </button>
             <button type="button" className={BTN} onClick={() => setBatchOpen(false)} disabled={loading}>取消</button>
-            {hasBlocked && !canBatch && <span className="text-[10px] text-amber-300">先勾选豁免并填写原因</span>}
+            {hasBlocked && !canBatch && <span className="text-micro text-amber-300">先勾选豁免并填写原因</span>}
           </div>
         </div>
       )}
 
       {batchResult && (batchResult.failed ?? []).length > 0 && (
-        <div className="mb-2 flex flex-col gap-0.5 text-[10px] text-red-300">
+        <div className="mb-2 flex flex-col gap-0.5 text-micro text-red-300">
           {(batchResult.failed ?? []).map((f) => <span key={'f-' + (f.id ?? '')}>{(f.id ?? '?') + '：' + (f.error ?? '未知错误')}</span>)}
         </div>
       )}
       {batchResult && (batchResult.failed ?? []).length === 0 && (
-        <div className="mb-2 text-[10px] text-emerald-300">已放行：{(batchResult.published ?? []).join('、') || '(无)'}</div>
+        <div className="mb-2 text-micro text-emerald-300">已放行：{(batchResult.published ?? []).join('、') || '(无)'}</div>
       )}
 
       {rows.length > 0 && (
@@ -375,13 +375,13 @@ export default function ReviewPanel() {
             const isBlocked = q.review?.blocked === true
             const verdict = q.review?.review_verdict || ''
             return (
-              <div key={'q-' + id} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+              <div key={'q-' + id} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-caption">
                 <input type="checkbox" checked={sel.includes(id)} onChange={() => setSel((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])}
                   disabled={loading} aria-label={'选择外来技能 ' + id} />
-                <span className="font-mono text-[10px] text-cyan-300">{id}</span>
+                <span className="font-mono text-micro text-cyan-300">{id}</span>
                 <span className="text-slate-300">{q.name ?? ''}</span>
-                <span className="truncate text-[10px] text-slate-500">{q.source ?? ''}</span>
-                <span className={'text-[10px] ' + (isBlocked ? 'text-red-300' : verdict ? 'text-emerald-300' : 'text-slate-400')}>
+                <span className="truncate text-micro text-slate-500">{q.source ?? ''}</span>
+                <span className={'text-micro ' + (isBlocked ? 'text-red-300' : verdict ? 'text-emerald-300' : 'text-slate-400')}>
                   {isBlocked ? '评审阻断' : verdict ? '评审：' + verdict : '未审核'}
                 </span>
                 <span className="ml-auto flex items-center gap-1.5">
@@ -401,7 +401,7 @@ export default function ReviewPanel() {
             )
           })}
           {rows.some((q) => q.review?.blocked) && (
-            <div className="text-[10px] text-red-300/80">阻断项单条不放行：先处理评审问题；豁免只能「勾选 → 勾豁免 → 填原因 → 二次确认」。</div>
+            <div className="text-micro text-red-300/80">阻断项单条不放行：先处理评审问题；豁免只能「勾选 → 勾豁免 → 填原因 → 二次确认」。</div>
           )}
         </div>
       )}
@@ -410,7 +410,7 @@ export default function ReviewPanel() {
       <div className="mt-4 border-t border-slate-800 pt-3">
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <h3 className="text-sm font-medium text-slate-200">吞噬生成的草稿（隔离区 · 只读预览）</h3>
-          <span className="text-[10px] text-slate-500">
+          <span className="text-micro text-slate-500">
             技能 / 工具 / 工作流都写到隔离目录；<b>登记与启用就在这一行</b>（登记默认不启用）
           </span>
           <button type="button" className={BTN + ' ml-auto'} onClick={() => void loadDrafts()} disabled={loading}
@@ -420,7 +420,7 @@ export default function ReviewPanel() {
         </div>
         {draftErr && <div className="mb-2"><ErrorBox message={draftErr} /></div>}
         {drafts.length === 0 ? (
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+          <div className="flex items-center gap-1.5 text-caption text-slate-500">
             <Inbox size={11} /> 还没有草稿。在「能力获取」里生成草稿后会出现在这里；登记直接在这一行点（三种形态共用同一个登记口）。
           </div>
         ) : (
@@ -431,26 +431,26 @@ export default function ReviewPanel() {
               const isWorkflow = d.form === 'workflow'
               const ready = total > 0 && bound >= total
               return (
-                <div key={'d-' + d.draft_id} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
-                  <span className="font-mono text-[10px] text-cyan-300">{d.draft_id}</span>
+                <div key={'d-' + d.draft_id} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-caption">
+                  <span className="font-mono text-micro text-cyan-300">{d.draft_id}</span>
                   <Badge color="cyan">{FORM_LABEL[d.form ?? ''] ?? d.form ?? '草稿'}</Badge>
                   <span className="text-slate-300">{d.skill_name || d.skill_id || '—'}</span>
                   {d.created_at ? (
-                    <span className="text-[10px] text-slate-500" title={d.created_at}>生成 {fmtTime(d.created_at)}</span>
+                    <span className="text-micro text-slate-500" title={d.created_at}>生成 {fmtTime(d.created_at)}</span>
                   ) : null}
                   {isWorkflow && (
-                    <span className={'text-[10px] ' + (ready ? 'text-emerald-300' : 'text-amber-300')}
+                    <span className={'text-micro ' + (ready ? 'text-emerald-300' : 'text-amber-300')}
                       title={ready ? '每一步都有工具或用 LLM 步骤兜住，可以直接登记' : '没绑工具的步骤登记时会按「LLM 步骤」处理'}>
                       绑定 {bound}/{total}
                     </span>
                   )}
                   {(d.warnings ?? []).length > 0 && (
-                    <span className="text-[10px] text-amber-300" title={(d.warnings ?? []).join('\n')}>
+                    <span className="text-micro text-amber-300" title={(d.warnings ?? []).join('\n')}>
                       警告 {(d.warnings ?? []).length} 条
                     </span>
                   )}
                   <span className="ml-auto flex flex-wrap items-center gap-1.5">
-                    <span className="max-w-[300px] truncate font-mono text-[10px] text-slate-500" title={d.draft_dir}>{d.draft_dir}</span>
+                    <span className="max-w-[300px] truncate font-mono text-micro text-slate-500" title={d.draft_dir}>{d.draft_dir}</span>
                     {isWorkflow && (
                       <button type="button" className={BTN_EM} disabled={loading} onClick={() => void bindDraft(d)}
                         title="用 LLM 把步骤映射到真实工具与参数；判断/评审/写作类步骤会标成「LLM 步骤」（need_llm），执行时由模型完成。先预览，不写盘"
@@ -491,7 +491,7 @@ export default function ReviewPanel() {
                     </button>
                   </span>
                   {bind?.id === d.draft_id && (
-                    <div className="mt-1 flex w-full flex-col gap-1 rounded-sm border border-cyan-900/60 bg-cyan-950/20 p-2 text-[10px] text-slate-300">
+                    <div className="mt-1 flex w-full flex-col gap-1 rounded-sm border border-cyan-900/60 bg-cyan-950/20 p-2 text-micro text-slate-300">
                       <div>
                         AI 建议：落地 <b className="text-cyan-300">{bind.report.bound}/{bind.report.total}</b> 步
                         {bind.report.llm_steps
@@ -516,7 +516,7 @@ export default function ReviewPanel() {
                     </div>
                   )}
                   {impl?.id === d.draft_id && (
-                    <div className="mt-1 flex w-full flex-col gap-1 rounded-sm border border-cyan-900/60 bg-cyan-950/20 p-2 text-[10px] text-slate-300">
+                    <div className="mt-1 flex w-full flex-col gap-1 rounded-sm border border-cyan-900/60 bg-cyan-950/20 p-2 text-micro text-slate-300">
                       <div>
                         AI 实现：
                         <b className={impl.validation.ok ? 'text-emerald-300' : 'text-red-300'}>

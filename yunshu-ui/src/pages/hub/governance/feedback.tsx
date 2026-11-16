@@ -32,10 +32,10 @@ import {
   feedbackResolve,
 } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
+const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
-const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
+const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 interface FeedbackRow {
   feedback_id?: string
@@ -192,7 +192,7 @@ export default function FeedbackCenter() {
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <MessageSquare size={14} className="text-cyan-400" />
         <h2 className="text-sm font-semibold text-slate-100">反馈中心</h2>
-        <span className="text-[11px] text-slate-500">汇总 · 报告 · 优质案例 · 逐条受理 · 提交</span>
+        <span className="text-caption text-slate-500">汇总 · 报告 · 优质案例 · 逐条受理 · 提交</span>
         <div className="ml-auto">
           <button
             type="button"
@@ -207,7 +207,7 @@ export default function FeedbackCenter() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
+      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
 
       <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-5">
         {[
@@ -218,8 +218,8 @@ export default function FeedbackCenter() {
           ['优质案例', summary?.quality_cases_count],
         ].map(([k, v]) => (
           <div key={String(k)} className="rounded-sm border border-slate-800 bg-slate-900/50 px-2 py-1.5">
-            <div className="text-[10px] text-slate-500">{String(k)}</div>
-            <div className="font-mono text-[13px] text-cyan-300">{String(v ?? 0)}</div>
+            <div className="text-micro text-slate-500">{String(k)}</div>
+            <div className="font-mono text-body-lg text-cyan-300">{String(v ?? 0)}</div>
           </div>
         ))}
       </div>
@@ -231,7 +231,7 @@ export default function FeedbackCenter() {
             type="button"
             onClick={() => setTab(id)}
             aria-selected={tab === id}
-            className={'rounded-lg px-2.5 py-1 text-[11px] transition-colors ' + (
+            className={'rounded-lg px-2.5 py-1 text-caption transition-colors ' + (
               tab === id ? 'bg-cyan-500/15 font-medium text-cyan-300' : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
             )}
           >
@@ -261,19 +261,19 @@ export default function FeedbackCenter() {
             <button type="button" className={BTN_EM} onClick={() => void loadList()} disabled={loading} aria-label="按条件查询反馈">
               {busy === 'list' ? <Loader2 size={11} className="animate-spin" /> : null} 查询
             </button>
-            <span className="text-[10px] text-slate-600">共 {total} 条（最多显示 50）</span>
+            <span className="text-micro text-slate-600">共 {total} 条（最多显示 50）</span>
           </div>
 
           <div className="flex flex-col gap-1">
             {rows.map((r, i) => {
               const id = r.feedback_id ?? r.id ?? ''
               return (
-                <div key={id + i} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5 text-[11px]">
+                <div key={id + i} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5 text-caption">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-sm bg-slate-800 px-1.5 text-[9px] text-slate-400">{r.feedback_type ?? '?'}</span>
+                    <span className="rounded-sm bg-slate-800 px-1.5 text-micro text-slate-400">{r.feedback_type ?? '?'}</span>
                     <span className="text-slate-300">{r.category ?? ''}</span>
-                    <span className={'text-[10px] ' + (r.status === 'resolved' ? 'text-emerald-400' : 'text-amber-400')}>{r.status ?? ''}</span>
-                    <span className="font-mono text-[10px] text-slate-600">{r.created_at_iso ?? ''}</span>
+                    <span className={'text-micro ' + (r.status === 'resolved' ? 'text-emerald-400' : 'text-amber-400')}>{r.status ?? ''}</span>
+                    <span className="font-mono text-micro text-slate-600">{r.created_at_iso ?? ''}</span>
                     <span className="ml-auto flex items-center gap-1">
                       <button type="button" className={BTN} onClick={() => void openDetail(id)} disabled={loading} aria-label={'查看反馈 ' + id}>详情</button>
                       <button type="button" className={BTN_EM} onClick={() => void resolve(id)} disabled={loading || r.status === 'resolved'} aria-label={'解决反馈 ' + id}>
@@ -285,12 +285,12 @@ export default function FeedbackCenter() {
                 </div>
               )
             })}
-            {rows.length === 0 && <div className="text-[11px] text-slate-500">没有符合条件的反馈。</div>}
+            {rows.length === 0 && <div className="text-caption text-slate-500">没有符合条件的反馈。</div>}
           </div>
 
           {detail && (
             <div className="mt-2">
-              <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
+              <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
                 <FileText size={11} className="text-cyan-400" /> 详情
                 <button type="button" className={BTN} onClick={() => setDetail(null)}>关闭</button>
               </div>
@@ -302,45 +302,45 @@ export default function FeedbackCenter() {
 
       {tab === 'report' && (
         <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-          <div className="mb-2 flex items-center gap-2 text-[11px] text-slate-400">
+          <div className="mb-2 flex items-center gap-2 text-caption text-slate-400">
             <FileText size={11} className="text-cyan-400" /> 近 7 天分析报告
           </div>
           {report ? <pre className={PRE + ' max-h-112'}>{JSON.stringify(report, null, 2)}</pre>
-            : <div className="text-[11px] text-slate-500">加载中…</div>}
+            : <div className="text-caption text-slate-500">加载中…</div>}
         </div>
       )}
 
       {tab === 'cases' && (
         <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-          <div className="mb-2 flex items-center gap-2 text-[11px] text-slate-400">
+          <div className="mb-2 flex items-center gap-2 text-caption text-slate-400">
             <Star size={11} className="text-amber-400" /> 优质案例（{cases.length}）
           </div>
           <div className="flex flex-col gap-1">
             {cases.map((c, i) => (
-              <div key={i} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+              <div key={i} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-caption">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-slate-300">{String(c.title ?? c.case_id ?? '案例')}</span>
-                  <span className="ml-auto font-mono text-[10px] text-amber-300">score={String(c.quality_score ?? '-')}</span>
+                  <span className="ml-auto font-mono text-micro text-amber-300">score={String(c.quality_score ?? '-')}</span>
                 </div>
                 <div className="line-clamp-2 text-slate-400">{String(c.content_summary ?? '')}</div>
               </div>
             ))}
-            {cases.length === 0 && <div className="text-[11px] text-slate-500">还没有优质案例（正反馈达到阈值后自动沉淀）。</div>}
+            {cases.length === 0 && <div className="text-caption text-slate-500">还没有优质案例（正反馈达到阈值后自动沉淀）。</div>}
           </div>
         </div>
       )}
 
       {tab === 'submit' && (
         <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-          <div className="mb-2 flex items-center gap-2 text-[11px] text-slate-400">
+          <div className="mb-2 flex items-center gap-2 text-caption text-slate-400">
             <Send size={11} className="text-cyan-400" /> 提交一条反馈（需要 trace_id 对回具体一次调用）
           </div>
-          <label className="mb-2 block text-[11px] text-slate-400">
+          <label className="mb-2 block text-caption text-slate-400">
             trace_id
             <input className={INPUT + ' mt-1 w-full'} value={subTrace} onChange={(e) => setSubTrace(e.target.value)} aria-label="反馈 trace_id" />
           </label>
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <label className="flex items-center gap-1 text-[11px] text-slate-400">
+            <label className="flex items-center gap-1 text-caption text-slate-400">
               类型
               <select className={INPUT} value={subType} onChange={(e) => setSubType(e.target.value)} aria-label="反馈类型选择">
                 <option value="like">like</option>
@@ -349,12 +349,12 @@ export default function FeedbackCenter() {
                 <option value="suggestion">suggestion</option>
               </select>
             </label>
-            <label className="flex items-center gap-1 text-[11px] text-slate-400">
+            <label className="flex items-center gap-1 text-caption text-slate-400">
               评分(0-5)
               <input className={INPUT + ' w-16'} value={subRating} onChange={(e) => setSubRating(e.target.value)} aria-label="反馈评分" />
             </label>
           </div>
-          <label className="mb-2 block text-[11px] text-slate-400">
+          <label className="mb-2 block text-caption text-slate-400">
             备注
             <textarea className={INPUT + ' mt-1 h-20 w-full'} value={subComment} onChange={(e) => setSubComment(e.target.value)} aria-label="反馈备注" />
           </label>
@@ -368,7 +368,7 @@ export default function FeedbackCenter() {
           >
             {busy === 'submit' ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />} 提交
           </button>
-          <p className="mt-2 flex items-center gap-1 text-[10px] text-slate-600">
+          <p className="mt-2 flex items-center gap-1 text-micro text-slate-600">
             <BookOpen size={10} /> 后端要求 trace_id 非空；空值会被 400 拒绝，故此处先校验。
           </p>
         </div>

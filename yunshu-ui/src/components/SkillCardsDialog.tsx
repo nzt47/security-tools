@@ -74,7 +74,7 @@ function Section({ title, items }: { title: string; items: string[] }) {
   if (!items.length) return null
   return (
     <div className="mt-2">
-      <div className="text-[10px] uppercase tracking-wide text-slate-500">{title}</div>
+      <div className="text-micro uppercase tracking-wide text-slate-500">{title}</div>
       <ul className="mt-1 list-disc space-y-0.5 pl-4 text-slate-300">
         {items.map((t, i) => (
           <li key={i}>{t}</li>
@@ -195,7 +195,7 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
           <div className="flex items-center gap-2">
             <BookOpen size={14} className="text-cyan-400" />
             <h2 className="text-sm font-semibold text-slate-100">能力卡</h2>
-            <span className="text-[11px] text-slate-500">我到底有哪些能力</span>
+            <span className="text-caption text-slate-500">我到底有哪些能力</span>
           </div>
           <button type="button" onClick={onClose} className="rounded-md p-1 text-slate-400 hover:bg-slate-800 hover:text-slate-200">
             <X size={14} />
@@ -207,8 +207,8 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
             type="button"
             onClick={() => { setTab('skill'); setQ(''); setExpanded(null) }}
             className={tab === 'skill'
-              ? 'rounded-md border border-cyan-700/70 bg-cyan-500/10 px-2.5 py-1 text-[11px] text-cyan-300'
-              : 'rounded-md border border-slate-800 px-2.5 py-1 text-[11px] text-slate-400 hover:bg-slate-800'}
+              ? 'rounded-md border border-cyan-700/70 bg-cyan-500/10 px-2.5 py-1 text-caption text-cyan-300'
+              : 'rounded-md border border-slate-800 px-2.5 py-1 text-caption text-slate-400 hover:bg-slate-800'}
           >
             LLM 技能 {cards.length ? `(${cards.length})` : ''}
           </button>
@@ -216,15 +216,15 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
             type="button"
             onClick={() => { setTab('native'); setQ(''); setExpanded(null) }}
             className={tab === 'native'
-              ? 'rounded-md border border-violet-700/70 bg-violet-500/10 px-2.5 py-1 text-[11px] text-violet-300'
-              : 'rounded-md border border-slate-800 px-2.5 py-1 text-[11px] text-slate-400 hover:bg-slate-800'}
+              ? 'rounded-md border border-violet-700/70 bg-violet-500/10 px-2.5 py-1 text-caption text-violet-300'
+              : 'rounded-md border border-slate-800 px-2.5 py-1 text-caption text-slate-400 hover:bg-slate-800'}
           >
             <Cpu size={10} className="mr-1 inline" />
             元生功能 {nativeTotal ? `(${nativeTotal})` : ''}
           </button>
         </div>
 
-        <div className="border-b border-slate-800 bg-slate-950/40 px-4 py-2 text-[10px] leading-relaxed text-slate-500">
+        <div className="border-b border-slate-800 bg-slate-950/40 px-4 py-2 text-micro leading-relaxed text-slate-500">
           {tab === 'skill' ? (
             <p>
               <strong className="text-slate-300">只覆盖 LLM 技能</strong>（
@@ -257,16 +257,16 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={tab === 'skill' ? '按 id / 名称 / 触发条件 / 步骤 过滤…' : '按工具名 / 技能 id 过滤…'}
-            className="min-w-0 flex-1 bg-transparent text-[11px] text-slate-200 outline-none placeholder:text-slate-600"
+            className="min-w-0 flex-1 bg-transparent text-caption text-slate-200 outline-none placeholder:text-slate-600"
           />
-          <span className="shrink-0 text-[10px] text-slate-500">
+          <span className="shrink-0 text-micro text-slate-500">
             {tab === 'skill'
               ? `${filtered.length} / ${cards.length} 张`
               : `${filteredGroups.reduce((n, g) => n + g.items.length, 0)} / ${nativeTotal} 项`}
           </span>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 text-[11px] leading-relaxed">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 text-caption leading-relaxed">
           {error ? (
             <div className="mb-2 flex items-start gap-2 rounded-md border border-red-900/60 bg-red-950/30 px-2.5 py-2 text-red-200">
               <AlertTriangle size={12} className="mt-0.5 shrink-0" />
@@ -294,17 +294,17 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <span className="truncate font-medium text-slate-100">{c.name}</span>
-                            <code className="shrink-0 text-[10px] text-slate-500">{c.skill_id}</code>
+                            <code className="shrink-0 text-micro text-slate-500">{c.skill_id}</code>
                             <span className={c.layer === 'card'
-                              ? 'shrink-0 rounded border border-emerald-800/60 px-1 text-[9px] text-emerald-300'
-                              : 'shrink-0 rounded border border-slate-700 px-1 text-[9px] text-slate-400'}>
+                              ? 'shrink-0 rounded border border-emerald-800/60 px-1 text-micro text-emerald-300'
+                              : 'shrink-0 rounded border border-slate-700 px-1 text-micro text-slate-400'}>
                               {c.layer}
                             </span>
-                            <span className="shrink-0 text-[9px] text-slate-600">{Math.round(c.body_chars / 1024)} KB</span>
+                            <span className="shrink-0 text-micro text-slate-600">{Math.round(c.body_chars / 1024)} KB</span>
                           </div>
                           <div className="mt-0.5 line-clamp-2 text-slate-400">{c.summary || '（无描述）'}</div>
                         </div>
-                        <span className="shrink-0 text-[10px] text-slate-500">{isOpen ? '收起' : '展开'}</span>
+                        <span className="shrink-0 text-micro text-slate-500">{isOpen ? '收起' : '展开'}</span>
                       </button>
                       {isOpen ? (
                         <div className="border-t border-slate-800 px-3 py-2">
@@ -314,30 +314,30 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
                           <Section title="约束 / 反例" items={c.guard} />
                           {c.example ? (
                             <div className="mt-2">
-                              <div className="text-[10px] uppercase tracking-wide text-slate-500">示例</div>
-                              <pre className="mt-1 max-h-48 overflow-auto rounded bg-slate-950 p-2 text-[10px] text-slate-300">
+                              <div className="text-micro uppercase tracking-wide text-slate-500">示例</div>
+                              <pre className="mt-1 max-h-48 overflow-auto rounded bg-slate-950 p-2 text-micro text-slate-300">
                                 {c.example}
                               </pre>
                             </div>
                           ) : null}
                           {c.sections?.length ? (
-                            <div className="mt-2 text-[10px] text-slate-500">目录：{c.sections.join(' · ')}</div>
+                            <div className="mt-2 text-micro text-slate-500">目录：{c.sections.join(' · ')}</div>
                           ) : null}
                           {/* 分层加载：L1 是卡，L2 全文按需拉 —— 不在列表里一次性拉 46 份全文 */}
                           <button
                             type="button"
                             onClick={() => void loadFullText(c.skill_id)}
-                            className="mt-2 rounded-md border border-slate-700 px-2 py-0.5 text-[10px] text-slate-300 hover:bg-slate-800"
+                            className="mt-2 rounded-md border border-slate-700 px-2 py-0.5 text-micro text-slate-300 hover:bg-slate-800"
                           >
                             {fullText?.id === c.skill_id ? '收起全文（L2）' : '按需展开全文（L2）'}
                           </button>
                           {fullText?.id === c.skill_id ? (
                             <div className="mt-1">
-                              <div className="text-[10px] text-slate-500">
+                              <div className="text-micro text-slate-500">
                                 L2 全文 · {fullText.source} · {fullText.text.length} 字符
                                 {fullText.truncated ? ' · 已截断' : ''}
                               </div>
-                              <pre className="mt-1 max-h-64 overflow-auto rounded bg-slate-950 p-2 text-[10px] text-slate-300">
+                              <pre className="mt-1 max-h-64 overflow-auto rounded bg-slate-950 p-2 text-micro text-slate-300">
                                 {fullText.text}
                               </pre>
                             </div>
@@ -354,12 +354,12 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
               {/* 口径统计：清单为空时也要说清楚「为什么空」，否则 0 条看起来像 bug */}
               <div className="rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2">
                 <div className="mb-1 flex flex-wrap items-center gap-2">
-                  <span className="text-[11px] font-medium text-slate-200">重叠检测口径</span>
-                  <span className="text-[10px] text-slate-600">字面覆盖率（containment）+ 点名工具强信号</span>
+                  <span className="text-caption font-medium text-slate-200">重叠检测口径</span>
+                  <span className="text-micro text-slate-600">字面覆盖率（containment）+ 点名工具强信号</span>
                 </div>
                 {stats ? (
                   <>
-                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-400">
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-micro text-slate-400">
                       <span>阈值 <code className="text-slate-200">{stats.threshold}</code></span>
                       <span>
                         比对 <code className="text-slate-200">{stats.pairs}</code> 对（
@@ -381,27 +381,27 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
                       <span>命中 <code className="text-slate-200">{stats.hinted_skills}</code> 条</span>
                     </div>
                     {stats.why_empty ? (
-                      <div className={`mt-1 text-[10px] leading-relaxed ${stats.hinted_skills ? "text-slate-500" : "text-amber-300/90"}`}>
+                      <div className={`mt-1 text-micro leading-relaxed ${stats.hinted_skills ? "text-slate-500" : "text-amber-300/90"}`}>
                         {stats.why_empty}
                       </div>
                     ) : null}
                   </>
                 ) : (
-                  <div className="text-[10px] text-slate-500">（未取到口径统计）</div>
+                  <div className="text-micro text-slate-500">（未取到口径统计）</div>
                 )}
               </div>
 
               {/* C-7 第二步：向量候选（三种 embedding 排它单选；总开关默认关） */}
               <div className="rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2">
                 <div className="mb-1 flex flex-wrap items-center gap-2">
-                  <span className="text-[11px] font-medium text-slate-200">向量候选</span>
-                  <span className="text-[10px] text-slate-600">
+                  <span className="text-caption font-medium text-slate-200">向量候选</span>
+                  <span className="text-micro text-slate-600">
                     三种 embedding 排它单选：st_bge_m3 / native_minilm / api
                   </span>
                 </div>
                 {vector?.enabled ? (
                   <>
-                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-400">
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-micro text-slate-400">
                       <span>来源 <code className="text-slate-200">{vector.provider}</code></span>
                       <span>模型 <code className="text-slate-200">{vector.model}</code></span>
                       <span>阈值 <code className="text-slate-200">{vector.threshold}</code></span>
@@ -414,14 +414,14 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
                       <span className="text-slate-600">{vector.elapsed_ms} ms</span>
                     </div>
                     {vector.error ? (
-                      <div className="mt-1 text-[10px] text-amber-300/90">
+                      <div className="mt-1 text-micro text-amber-300/90">
                         未产出候选：{vector.error}（详情见服务端日志；api 需先配端点与密钥）
                       </div>
                     ) : null}
                     {vectorOverlaps.length > 0 ? (
                       <ul className="mt-1 space-y-1">
                         {vectorOverlaps.slice(0, 20).map((o) => (
-                          <li key={"v-" + o.skill_id} className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                          <li key={"v-" + o.skill_id} className="flex flex-wrap items-center gap-1.5 text-micro">
                             <code className="text-slate-300">{o.skill_id}</code>
                             <span className="text-slate-600">→</span>
                             {o.matches.map((m) => (
@@ -433,13 +433,13 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
                         ))}
                       </ul>
                     ) : !vector.error ? (
-                      <div className="mt-1 text-[10px] text-slate-500">
+                      <div className="mt-1 text-micro text-slate-500">
                         没有余弦 ≥ 阈值的对（阈值 0.25 未下调，属口径所致，不是 bug）
                       </div>
                     ) : null}
                   </>
                 ) : (
-                  <div className="text-[10px] leading-relaxed text-slate-500">
+                  <div className="text-micro leading-relaxed text-slate-500">
                     当前关（{vector?.error || "CP_SKILL_OVERLAP_VECTOR=0"}）。要开：
                     「设置中心 → 技能与检索」把 CP_SKILL_OVERLAP_VECTOR 打开，
                     并在 CP_SKILL_OVERLAP_VECTOR_PROVIDER 里三选一；
@@ -451,13 +451,13 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
               {filteredOverlaps.length > 0 ? (
                 <div className="rounded-lg border border-violet-900/50 bg-violet-950/20 px-3 py-2">
                   <div className="mb-1 flex items-center gap-2">
-                    <span className="text-[11px] font-medium text-violet-200">疑似重叠：技能 × 元生功能</span>
-                    <span className="text-[10px] text-slate-500">{filteredOverlaps.length} 条技能</span>
-                    <span className="text-[10px] text-slate-600">· 点名工具=强信号；其余看文本覆盖率</span>
+                    <span className="text-caption font-medium text-violet-200">疑似重叠：技能 × 元生功能</span>
+                    <span className="text-micro text-slate-500">{filteredOverlaps.length} 条技能</span>
+                    <span className="text-micro text-slate-600">· 点名工具=强信号；其余看文本覆盖率</span>
                   </div>
                   <ul className="space-y-1">
                     {filteredOverlaps.slice(0, 20).map((o) => (
-                      <li key={o.skill_id} className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                      <li key={o.skill_id} className="flex flex-wrap items-center gap-1.5 text-micro">
                         <code className="text-slate-300">{o.skill_id}</code>
                         <span className="text-slate-600">→</span>
                         {o.matches.map((m) => (
@@ -475,9 +475,9 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
               {filteredGroups.map((g) => (
                 <div key={g.kind}>
                   <div className="mb-1 flex items-center gap-2">
-                    <span className="text-[11px] font-medium text-slate-200">{g.title}</span>
-                    <span className="text-[10px] text-slate-500">{g.count} 项</span>
-                    {g.desc ? <span className="text-[10px] text-slate-600">· {g.desc}</span> : null}
+                    <span className="text-caption font-medium text-slate-200">{g.title}</span>
+                    <span className="text-micro text-slate-500">{g.count} 项</span>
+                    {g.desc ? <span className="text-micro text-slate-600">· {g.desc}</span> : null}
                   </div>
                   <ul className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                     {g.items.map((it) => (
@@ -485,13 +485,13 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
                         <div className="flex items-center gap-1.5">
                           <span className="truncate text-slate-200">{it.name}</span>
                           {it.status ? (
-                            <span className={`shrink-0 rounded border px-1 text-[9px] ${STATUS_STYLE[it.status] || 'border-slate-700 text-slate-400'}`}>
+                            <span className={`shrink-0 rounded border px-1 text-micro ${STATUS_STYLE[it.status] || 'border-slate-700 text-slate-400'}`}>
                               {it.status}
                             </span>
                           ) : null}
                         </div>
                         {it.summary ? (
-                          <div className="mt-0.5 line-clamp-2 text-[10px] text-slate-500">{it.summary}</div>
+                          <div className="mt-0.5 line-clamp-2 text-micro text-slate-500">{it.summary}</div>
                         ) : null}
                       </li>
                     ))}

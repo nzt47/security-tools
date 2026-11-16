@@ -22,8 +22,8 @@ import {
   type MemoryImportRollbackResult,
 } from '@/lib/memoryImportApi'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-cyan-700/70 px-2 py-1 text-[11px] text-cyan-300 transition-colors hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50'
-const BTN_PRIMARY = 'inline-flex items-center gap-1 rounded-md bg-cyan-600 px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-40'
+const BTN = 'inline-flex items-center gap-1 rounded-md border border-cyan-700/70 px-2 py-1 text-caption text-cyan-300 transition-colors hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50'
+const BTN_PRIMARY = 'inline-flex items-center gap-1 rounded-md bg-cyan-600 px-3 py-1.5 text-caption font-medium text-white transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-40'
 
 function errText(e: unknown): string {
   if (e instanceof MemoryImportApiError) return e.message
@@ -234,7 +234,7 @@ export default function MemoryImportPanel() {
               aria-label={'来源 ' + s.label}
             />
             {s.label}
-            {!s.available && <span className="text-[10px] text-slate-500">（未找到）</span>}
+            {!s.available && <span className="text-micro text-slate-500">（未找到）</span>}
           </label>
         ))}
         <label className="inline-flex items-center gap-1">
@@ -259,26 +259,26 @@ export default function MemoryImportPanel() {
             aria-label="用 LLM 摘要"
           />
           用 LLM 摘要（会话批次）
-          {!llmAvailable && <span className="text-[10px] text-slate-500">（未配置）</span>}
+          {!llmAvailable && <span className="text-micro text-slate-500">（未配置）</span>}
         </label>
         <button type="button" className={BTN} onClick={() => void doPreview()} disabled={busy !== ''} aria-label="生成预览">
           {busy === 'preview' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 生成预览
         </button>
       </div>
       {useLlm && plan?.digest?.reason && (
-        <div className="mb-2 text-[11px] text-amber-400/90">{digestReasonText(plan.digest.reason)}</div>
+        <div className="mb-2 text-caption text-amber-400/90">{digestReasonText(plan.digest.reason)}</div>
       )}
       {!llmAvailable && llmReason === 'llm_unconfigured' && (
-        <div className="mb-2 text-[10px] text-slate-500">LLM 摘要不可用：.env 未配置 LLM_API_KEY / DEEPSEEK_API_KEY（不影响规则式导入）</div>
+        <div className="mb-2 text-micro text-slate-500">LLM 摘要不可用：.env 未配置 LLM_API_KEY / DEEPSEEK_API_KEY（不影响规则式导入）</div>
       )}
-      {note && <div className="mb-2 text-[11px] text-slate-500">{note}</div>}
+      {note && <div className="mb-2 text-caption text-slate-500">{note}</div>}
 
-      {err && <div className="mb-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-[11px] text-red-300">{err}</div>}
-      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
+      {err && <div className="mb-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-caption text-red-300">{err}</div>}
+      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
 
       {plan && (
         <div className="mt-2">
-          <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-400">
+          <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-caption text-slate-400">
             <span>plan <span className="font-mono text-slate-300">{plan.plan_id}</span></span>
             <span>扫描 <b className="text-slate-200">{stats.scanned ?? '-'}</b></span>
             <span>去噪 <b className="text-slate-200">{stats.denoised ?? 0}</b></span>
@@ -288,7 +288,7 @@ export default function MemoryImportPanel() {
             <span>闸门拒绝 <b className="text-slate-200">{plan.redaction?.blocked ?? 0}</b></span>
           </div>
 
-          <div className="mb-2 flex items-center gap-2 text-[11px]">
+          <div className="mb-2 flex items-center gap-2 text-caption">
             <button type="button" className={BTN} onClick={() => setPickedBatches(allPicked ? [] : allBatchIds)} aria-label="全选批次">
               {allPicked ? '清空选择' : '全选批次'}
             </button>
@@ -296,7 +296,7 @@ export default function MemoryImportPanel() {
           </div>
 
           <div className="max-h-72 overflow-auto rounded-lg border border-slate-800">
-            <table className="w-full text-left text-[11px]">
+            <table className="w-full text-left text-caption">
               <thead className="sticky top-0 bg-slate-900 text-slate-400">
                 <tr>
                   <th className="w-8 px-2 py-1" />
@@ -327,7 +327,7 @@ export default function MemoryImportPanel() {
                       <td className="px-2 py-1 text-slate-400">
                         <div>{b.title}</div>
                         <span
-                          className={'mt-1 inline-block rounded px-1 text-[9px] ' + (b.digest_source === 'llm'
+                          className={'mt-1 inline-block rounded px-1 text-micro ' + (b.digest_source === 'llm'
                             ? 'bg-violet-500/15 text-violet-300'
                             : 'bg-slate-700/40 text-slate-400')}
                           title={b.digest_source === 'llm'
@@ -337,8 +337,8 @@ export default function MemoryImportPanel() {
                           {b.digest_source === 'llm' ? 'LLM' : '规则'}
                         </span>
                         <details className="mt-1">
-                          <summary className="cursor-pointer text-[10px] text-cyan-500">看摘要</summary>
-                          <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap rounded bg-slate-950 p-2 text-[10px] leading-5 text-slate-400">{b.digest.slice(0, 600)}</pre>
+                          <summary className="cursor-pointer text-micro text-cyan-500">看摘要</summary>
+                          <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap rounded bg-slate-950 p-2 text-micro leading-5 text-slate-400">{b.digest.slice(0, 600)}</pre>
                         </details>
                       </td>
                     </tr>
@@ -349,7 +349,7 @@ export default function MemoryImportPanel() {
           </div>
 
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <label className="inline-flex items-center gap-1 text-[11px] text-slate-300">
+            <label className="inline-flex items-center gap-1 text-caption text-slate-300">
               <input
                 type="checkbox"
                 checked={confirmed}
@@ -373,12 +373,12 @@ export default function MemoryImportPanel() {
           </div>
 
           {result?.dry_run && result.would && (
-            <div className="mt-2 text-[11px] text-slate-400">
+            <div className="mt-2 text-caption text-slate-400">
               将写入：{result.would.map((w) => w.batch_id + '（' + w.records + ' 条）').join('、')}
             </div>
           )}
           {result && !result.dry_run && (result.committed?.length ?? 0) > 0 && (
-            <ul className="mt-2 space-y-1 text-[11px] text-slate-400">
+            <ul className="mt-2 space-y-1 text-caption text-slate-400">
               {result.committed!.map((c) => (
                 <li key={c.batch_id}>
                   <span className="font-mono">{c.batch_id}</span> → {c.carrier_label ?? c.carrier}
@@ -389,7 +389,7 @@ export default function MemoryImportPanel() {
             </ul>
           )}
           {result?.failed && result.failed.length > 0 && (
-            <ul className="mt-2 space-y-1 text-[11px] text-red-300">
+            <ul className="mt-2 space-y-1 text-caption text-red-300">
               {result.failed.map((f) => <li key={f.batch_id}>{f.batch_id}：{f.error}</li>)}
             </ul>
           )}
@@ -400,7 +400,7 @@ export default function MemoryImportPanel() {
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <Undo2 size={13} className="text-cyan-400" />
           <h3 className="text-xs font-semibold text-slate-200">已写入批次（可回滚）</h3>
-          <span className="text-[10px] text-slate-500">
+          <span className="text-micro text-slate-500">
             批次为主键（来源徽章 = 外部来源；向量 id/ref 可对账）。回滚 = 物理删除、不可恢复：
             知识卡片凭 ref，向量记忆凭 vector_ids 按 id 真删（老批次才用 msg_id；都没有则需人工）
           </span>
@@ -414,14 +414,14 @@ export default function MemoryImportPanel() {
             {vecBusy ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
           </button>
         </div>
-        {batchErr && <div className="mb-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-[11px] text-red-300">{batchErr}</div>}
-        {vecErr && <div className="mb-2 rounded-sm border border-amber-900/60 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-300">{vecErr}</div>}
-        {batchMsg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{batchMsg}</div>}
+        {batchErr && <div className="mb-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-caption text-red-300">{batchErr}</div>}
+        {vecErr && <div className="mb-2 rounded-sm border border-amber-900/60 bg-amber-500/10 px-2 py-1 text-caption text-amber-300">{vecErr}</div>}
+        {batchMsg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{batchMsg}</div>}
         {batches.length === 0 ? (
-          <div className="py-3 text-center text-[11px] text-slate-600">还没有导入批次</div>
+          <div className="py-3 text-center text-caption text-slate-600">还没有导入批次</div>
         ) : (
           <div className="max-h-72 overflow-auto rounded-lg border border-slate-800">
-            <table className="w-full text-left text-[11px]">
+            <table className="w-full text-left text-caption">
               <thead className="sticky top-0 bg-slate-900 text-slate-400">
                 <tr>
                   <th className="px-2 py-1">批次</th>
@@ -448,13 +448,13 @@ export default function MemoryImportPanel() {
                       <td className="px-2 py-1 font-mono text-slate-400">
                         {b.batch_id}
                         {b.migrated && (
-                          <span className="ml-1 rounded bg-amber-500/15 px-1 text-[9px] text-amber-300" title="从 messages.jsonl 迁移而来">迁移</span>
+                          <span className="ml-1 rounded bg-amber-500/15 px-1 text-micro text-amber-300" title="从 messages.jsonl 迁移而来">迁移</span>
                         )}
                       </td>
                       <td className="px-2 py-1">
                         <span className="text-slate-300">{b.carrier_label}</span>
                         <span
-                          className={'ml-1 rounded px-1 text-[9px] ' + (digest === 'llm'
+                          className={'ml-1 rounded px-1 text-micro ' + (digest === 'llm'
                             ? 'bg-violet-500/15 text-violet-300'
                             : 'bg-slate-700/40 text-slate-400')}
                           title={digest === 'llm' ? 'LLM 改写：可能漏项' : '规则式：原句汇总'}
@@ -465,7 +465,7 @@ export default function MemoryImportPanel() {
                       <td className="px-2 py-1">
                         {origin ? (
                           <span
-                            className={'rounded px-1 text-[9px] ' + (origin === 'trae'
+                            className={'rounded px-1 text-micro ' + (origin === 'trae'
                               ? 'bg-violet-500/15 text-violet-300'
                               : 'bg-sky-500/15 text-sky-300')}
                             title={'外部来源：' + origin}
@@ -480,13 +480,13 @@ export default function MemoryImportPanel() {
                       <td className="px-2 py-1 font-mono text-slate-500">
                         {b.ref || vecId || '-'}
                         {(b.vector_ids ?? []).length > 1 && (
-                          <span className="ml-1 text-[9px] text-slate-600">（{b.vector_ids!.length} 条）</span>
+                          <span className="ml-1 text-micro text-slate-600">（{b.vector_ids!.length} 条）</span>
                         )}
                       </td>
                       <td className="px-2 py-1 text-slate-500">{b.committed_at || '-'}</td>
                       <td className="px-2 py-1">
                         {b.rollback === 'manual' ? (
-                          <span className="text-[10px] text-slate-500" title="该批次没有 vector_ids / msg_id 可删（老批次），无法按 id 自动删除">需人工</span>
+                          <span className="text-micro text-slate-500" title="该批次没有 vector_ids / msg_id 可删（老批次），无法按 id 自动删除">需人工</span>
                         ) : (
                           <button type="button" className={BTN} onClick={() => void beginRollback(b.batch_id)} disabled={batchBusy !== '' || previewBusy !== ''} aria-label={'回滚 ' + b.batch_id} title="先看将删除的内容，再确认（物理删除、不可恢复）">
                             <Undo2 size={11} /> 回滚（先看内容）
@@ -501,7 +501,7 @@ export default function MemoryImportPanel() {
           </div>
         )}
         {orphanVectors.length > 0 && (
-          <div className="mt-2 rounded-sm border border-amber-900/50 bg-amber-500/5 px-2 py-1 text-[10px] text-amber-300/90">
+          <div className="mt-2 rounded-sm border border-amber-900/50 bg-amber-500/5 px-2 py-1 text-micro text-amber-300/90">
             另有 {orphanVectors.length} 条导入向量在向量库里、但**没有批次清单**（多半是清单被摘除），
             无法按批回滚：{orphanVectors.slice(0, 4).map((v) => v.id).join('、')}
             {orphanVectors.length > 4 ? ' …' : ''}
@@ -511,7 +511,7 @@ export default function MemoryImportPanel() {
 
       {/* 回滚前预览：两个入口（已写入批次 / 向量文档）共用同一条预览条 */}
       {pendingRollback && (
-        <div className="mt-4 rounded-lg border border-red-900/60 bg-red-500/5 px-3 py-2 text-[11px]">
+        <div className="mt-4 rounded-lg border border-red-900/60 bg-red-500/5 px-3 py-2 text-caption">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-semibold text-red-300">即将物理删除批次 {pendingRollback}</span>
             <span className="text-slate-500">不可恢复：向量按 id 真删，批次清单同时摘除</span>
@@ -532,14 +532,14 @@ export default function MemoryImportPanel() {
               </div>
               {(rollbackPreview.items_preview ?? []).map((it) => (
                 <div key={it.id} className="mt-2 rounded border border-slate-800 bg-slate-950/60 p-2">
-                  <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-500">
+                  <div className="flex flex-wrap items-center gap-2 text-micro text-slate-500">
                     <span className="font-mono text-slate-400">{it.id}</span>
                     <span>{it.chars} 字符</span>
                     {it.metadata?.origin ? (
                       <span className="rounded bg-sky-500/15 px-1 text-sky-300">{String(it.metadata.origin)}</span>
                     ) : null}
                   </div>
-                  <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap text-[10px] leading-5 text-slate-300">
+                  <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap text-micro leading-5 text-slate-300">
                     {it.preview || '（内容为空或读取失败）'}
                   </pre>
                 </div>

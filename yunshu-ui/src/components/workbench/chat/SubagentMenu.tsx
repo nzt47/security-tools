@@ -315,7 +315,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         title="子代理：展示并选择当前任务委托的子代理"
-        className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] transition-colors ${
+        className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-caption transition-colors ${
           open
             ? 'border-emerald-600/60 bg-emerald-500/10 text-emerald-300'
             : 'border-slate-700 text-slate-400 hover:border-emerald-600/60 hover:bg-slate-800 hover:text-emerald-300'
@@ -329,19 +329,19 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
           {delegate || (list.length ? `${list.length} 个` : (recordsTotal ? `记录 ${recordsTotal}` : '未选择'))}
         </span>
         {list.length > 0 ? (
-          <span className="rounded-full bg-slate-800 px-1.5 text-[9px] text-slate-400" title="活跃分身数">
+          <span className="rounded-full bg-slate-800 px-1.5 text-micro text-slate-400" title="活跃分身数">
             {list.length}
           </span>
         ) : recordsTotal ? (
           // 没有活跃分身时也给出可见线索：否则用户只会看到"未选择"，以为整个功能是死的
-          <span className="rounded-full bg-slate-800 px-1.5 text-[9px] text-slate-500" title="历史委派记录数">
+          <span className="rounded-full bg-slate-800 px-1.5 text-micro text-slate-500" title="历史委派记录数">
             {recordsTotal}
           </span>
         ) : null}
       </button>
 
       {open && (
-        <div className="absolute right-0 top-[calc(100%+6px)] z-70 w-[380px] rounded-xl border border-slate-700 bg-slate-900/98 p-3 text-[11.5px] shadow-2xl backdrop-blur-sm">
+        <div className="absolute right-0 top-[calc(100%+6px)] z-70 w-[380px] rounded-xl border border-slate-700 bg-slate-900/98 p-3 text-body shadow-2xl backdrop-blur-sm">
           <div className="mb-2 flex items-center justify-between">
             <span className="font-medium text-slate-200">🤖 当前任务委托的子代理</span>
             <div className="flex items-center gap-1">
@@ -365,7 +365,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
             </div>
           </div>
 
-          <p className="mb-2 text-[10.5px] leading-relaxed text-slate-500">
+          <p className="mb-2 text-caption leading-relaxed text-slate-500">
             选中的子代理即「当前任务委托对象」：委托执行时任务会下发给它，按钮上会回显所选名称。
           </p>
 
@@ -377,13 +377,13 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
             {list.length === 0 && !loading && !error ? (
               <div className="rounded-md border border-slate-800 bg-slate-950/60 px-3 py-4 text-center text-slate-500">
                 暂无活跃子代理
-                <div className="mt-1 text-[10px] text-slate-600">
+                <div className="mt-1 text-micro text-slate-600">
                   委派跑完即回收，所以这里常年为空属正常；发生过什么见下方「委派记录」。
                 </div>
-                <div className="mt-0.5 text-[10px] text-slate-600">
+                <div className="mt-0.5 text-micro text-slate-600">
                   不选也能委托：没有活跃分身时走**临时分身**（现建现用、跑完即回收）。
                 </div>
-                <div className="mt-0.5 text-[10px] text-slate-600">
+                <div className="mt-0.5 text-micro text-slate-600">
                   要固定用一个分身，请到「装配车间 → 分身」创建后再回来选择。
                 </div>
               </div>
@@ -408,14 +408,14 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center gap-1.5">
                         <b className="truncate font-medium text-slate-200">{sa.name}</b>
-                        <em className={`not-italic text-[10px] ${st.cls}`}>{st.text}</em>
+                        <em className={`not-italic text-micro ${st.cls}`}>{st.text}</em>
                       </span>
-                      <span className="mt-0.5 block truncate font-mono text-[10px] text-slate-500">
+                      <span className="mt-0.5 block truncate font-mono text-micro text-slate-500">
                         {sa.model_id || '-'} · {sa.memory_provider || '-'} · 上下文{' '}
                         {sa.context_used ?? 0}/{sa.context_window ?? 0}
                       </span>
                       {(sa.tags ?? []).length > 0 && (
-                        <span className="mt-0.5 block truncate text-[10px] text-slate-600">
+                        <span className="mt-0.5 block truncate text-micro text-slate-600">
                           标签：{(sa.tags ?? []).join('、')}
                         </span>
                       )}
@@ -428,21 +428,21 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
 
           {/* 委托执行（真委派：八要素 + 隔离执行 + Trace + 成本） */}
           <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-2">
-            <div className="mb-1 flex items-center gap-1 text-[10px] uppercase tracking-wider text-slate-500">
+            <div className="mb-1 flex items-center gap-1 text-micro uppercase tracking-wider text-slate-500">
               <UserPlus size={10} /> 委托任务给 {target || '（无可选分身）'}
             </div>
 
             {/* 陈旧选择：localStorage 里的名字随分身回收而消失 —— 显式说清并给出清除入口，
                 否则它的表现是"点了委托 → 404 分身不存在"，看着像功能坏了 */}
             {staleSelection && (
-              <p className="mb-1.5 flex items-start gap-1.5 rounded-md border border-amber-900/60 bg-amber-500/10 px-2 py-1 text-[10.5px] leading-relaxed text-amber-300">
+              <p className="mb-1.5 flex items-start gap-1.5 rounded-md border border-amber-900/60 bg-amber-500/10 px-2 py-1 text-caption leading-relaxed text-amber-300">
                 <span className="min-w-0 flex-1">
                   已保存的选择「{delegate}」已不在活跃列表（分身跑完即回收或被销毁）。
                 </span>
                 <button
                   type="button"
                   onClick={clearDelegate}
-                  className="shrink-0 rounded-sm border border-amber-700/60 px-1.5 text-[10px] hover:bg-amber-500/10"
+                  className="shrink-0 rounded-sm border border-amber-700/60 px-1.5 text-micro hover:bg-amber-500/10"
                 >
                   清除选择
                 </button>
@@ -451,14 +451,14 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
 
             {/* 执行通道不可用 → 真委派必然失败：提前说清楚，而不是让用户白点 */}
             {channel && channel.ok === false && (
-              <p className="mb-1.5 rounded-md border border-amber-900/60 bg-amber-500/10 px-2 py-1 text-[10.5px] leading-relaxed text-amber-300">
+              <p className="mb-1.5 rounded-md border border-amber-900/60 bg-amber-500/10 px-2 py-1 text-caption leading-relaxed text-amber-300">
                 未配置执行通道（_llm 为空且 CP_SUBAGENT_AGENT_CLI 未设置）——真委派需要 LLM 或外部 agent CLI，
                 当前点击会返回 E_DELEGATION_NO_CHANNEL。
               </p>
             )}
 
             <textarea
-              className="mb-1.5 h-14 w-full resize-none rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-200 outline-hidden focus:border-cyan-600"
+              className="mb-1.5 h-14 w-full resize-none rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-caption text-slate-200 outline-hidden focus:border-cyan-600"
               placeholder={defaultTask ? '留空则使用当前会话最近一条用户消息' : '输入要委托的任务（①目标，≥8 字符）…'}
               value={task}
               onChange={(e) => setTask(e.target.value)}
@@ -468,54 +468,54 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
             <button
               type="button"
               onClick={() => setAdvanced((v) => !v)}
-              className="mb-1.5 flex w-full items-center gap-1 text-[10px] text-slate-500 hover:text-slate-300"
+              className="mb-1.5 flex w-full items-center gap-1 text-micro text-slate-500 hover:text-slate-300"
             >
               {advanced ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
               高级：约束 / 禁止事项 / 产物格式 / 预算 / 超时（八要素，留空用缺省）
             </button>
             {advanced && (
               <div className="mb-1.5 space-y-1.5 rounded-md border border-slate-800 bg-slate-950/70 p-2">
-                <label className="block text-[10px] text-slate-500">
+                <label className="block text-micro text-slate-500">
                   ②约束（逗号或换行分隔；缺省「只读为主，不得修改仓库文件」）
                   <input
-                    className="mt-0.5 w-full rounded-sm border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-[10.5px] text-slate-200 outline-hidden focus:border-cyan-600"
+                    className="mt-0.5 w-full rounded-sm border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-caption text-slate-200 outline-hidden focus:border-cyan-600"
                     value={constraints}
                     onChange={(e) => setConstraints(e.target.value)}
                     placeholder="例如：只读仓库，不得修改任何文件"
                   />
                 </label>
-                <label className="block text-[10px] text-slate-500">
+                <label className="block text-micro text-slate-500">
                   ④禁止事项（缺省「不得对外发送数据」；可留空列表）
                   <input
-                    className="mt-0.5 w-full rounded-sm border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-[10.5px] text-slate-200 outline-hidden focus:border-cyan-600"
+                    className="mt-0.5 w-full rounded-sm border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-caption text-slate-200 outline-hidden focus:border-cyan-600"
                     value={prohibitions}
                     onChange={(e) => setProhibitions(e.target.value)}
                     placeholder="例如：不得删除任何文件, 不得访问网络"
                   />
                 </label>
                 <div className="flex gap-1.5">
-                  <label className="flex-1 text-[10px] text-slate-500">
+                  <label className="flex-1 text-micro text-slate-500">
                     ⑤产物格式
                     <input
-                      className="mt-0.5 w-full rounded-sm border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-[10.5px] text-slate-200 outline-hidden focus:border-cyan-600"
+                      className="mt-0.5 w-full rounded-sm border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-caption text-slate-200 outline-hidden focus:border-cyan-600"
                       value={artifactFormat}
                       onChange={(e) => setArtifactFormat(e.target.value)}
                       placeholder="文本要点"
                     />
                   </label>
-                  <label className="w-20 text-[10px] text-slate-500">
+                  <label className="w-20 text-micro text-slate-500">
                     ⑥预算 tok
                     <input
-                      className="mt-0.5 w-full rounded-sm border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-[10.5px] text-slate-200 outline-hidden focus:border-cyan-600"
+                      className="mt-0.5 w-full rounded-sm border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-caption text-slate-200 outline-hidden focus:border-cyan-600"
                       value={budgetTokens}
                       onChange={(e) => setBudgetTokens(e.target.value)}
                       placeholder="4000"
                     />
                   </label>
-                  <label className="w-16 text-[10px] text-slate-500">
+                  <label className="w-16 text-micro text-slate-500">
                     ⑦超时 s
                     <input
-                      className="mt-0.5 w-full rounded-sm border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-[10.5px] text-slate-200 outline-hidden focus:border-cyan-600"
+                      className="mt-0.5 w-full rounded-sm border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-caption text-slate-200 outline-hidden focus:border-cyan-600"
                       value={timeoutSeconds}
                       onChange={(e) => setTimeoutSeconds(e.target.value)}
                       placeholder="120"
@@ -536,7 +536,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
                     ? '当前没有活跃分身：将用**临时分身**执行（现建现用、跑完即回收），与模型侧 delegate 工具同一条链路'
                     : '把任务交给所选分身执行（真委派：八要素 + 隔离 + Trace + 成本）'
               }
-              className={`flex w-full items-center justify-center gap-1.5 rounded-md border px-2 py-1 text-[11px] disabled:opacity-40 ${
+              className={`flex w-full items-center justify-center gap-1.5 rounded-md border px-2 py-1 text-caption disabled:opacity-40 ${
                 readyToDelegate
                   ? 'border-emerald-700/60 text-emerald-300 hover:bg-emerald-500/10'
                   : 'border-slate-700 text-slate-400'
@@ -557,7 +557,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
                 result.ok ? 'border-emerald-900/60 bg-emerald-500/5' : 'border-rose-900/60 bg-rose-500/5'
               }`}
             >
-              <div className="mb-1 flex items-center justify-between text-[10px] text-slate-500">
+              <div className="mb-1 flex items-center justify-between text-micro text-slate-500">
                 <span>
                   结果来源：{result.name}
                   {result.duration_ms != null && ` · ${Math.round(result.duration_ms)}ms`}
@@ -568,16 +568,16 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
                 </span>
               </div>
               {result.error && (
-                <p className="mb-1 text-[10.5px] leading-relaxed text-rose-300">
+                <p className="mb-1 text-caption leading-relaxed text-rose-300">
                   {result.error}
                   {result.sub_reason ? `（${result.sub_reason}）` : ''}
                 </p>
               )}
-              <pre className="max-h-32 overflow-auto whitespace-pre-wrap wrap-break-word font-mono text-[10.5px] text-slate-300">
+              <pre className="max-h-32 overflow-auto whitespace-pre-wrap wrap-break-word font-mono text-caption text-slate-300">
                 {result.result || (result.ok ? '（无输出）' : '（未产出交付物）')}
               </pre>
               {result.trace_id && (
-                <div className="mt-1 font-mono text-[9.5px] text-slate-600">
+                <div className="mt-1 font-mono text-micro text-slate-600">
                   trace {result.trace_id}
                   {result.delegation_id ? ` · ${result.delegation_id}` : ''}
                   {result.artifact_count ? ` · 产物 ${result.artifact_count} 件` : ''}
@@ -589,7 +589,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
           {/* 委派记录：回答"发生过什么"。活跃分身列表是"当前存活"的快照，
               在委派跑完即回收的现实下它常年为空 —— 这里是唯一能证明业务发生过的证据 */}
           <div className="mt-2 rounded-lg border border-slate-800 bg-slate-950/60 p-2">
-            <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-wider text-slate-500">
+            <div className="mb-1 flex items-center justify-between text-micro uppercase tracking-wider text-slate-500">
               <span>
                 📜 委派记录
                 {recordsTotal != null ? ` · 共 ${recordsTotal} 条` : ''}
@@ -608,15 +608,15 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
             </div>
 
             {recordsError && (
-              <p className="mb-1 rounded-md border border-amber-900/60 bg-amber-500/10 px-2 py-1 text-[10.5px] text-amber-300">
+              <p className="mb-1 rounded-md border border-amber-900/60 bg-amber-500/10 px-2 py-1 text-caption text-amber-300">
                 {recordsError}
               </p>
             )}
 
             {records.length === 0 ? (
-              <p className="px-1 py-2 text-center text-[10.5px] text-slate-500">
+              <p className="px-1 py-2 text-center text-caption text-slate-500">
                 暂无委派记录
-                <span className="mt-0.5 block text-[10px] text-slate-600">
+                <span className="mt-0.5 block text-micro text-slate-600">
                   模型工具 / 界面 / 批量委派，每发生一次都会落一条
                 </span>
               </p>
@@ -629,21 +629,21 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
                   >
                     <div className="flex items-center gap-1.5">
                       <em
-                        className={`not-italic rounded-full border px-1.5 text-[9.5px] ${
+                        className={`not-italic rounded-full border px-1.5 text-micro ${
                           r.ok ? 'border-emerald-700/60 text-emerald-300' : 'border-rose-800/60 text-rose-300'
                         }`}
                       >
                         {r.ok ? '成功' : '失败'}
                       </em>
-                      <b className="min-w-0 flex-1 truncate font-mono text-[10.5px] font-normal text-slate-300">
+                      <b className="min-w-0 flex-1 truncate font-mono text-caption font-normal text-slate-300">
                         {r.subagent || '（临时分身）'}
                       </b>
-                      <span className="shrink-0 text-[9.5px] text-slate-500">{sourceLabel(r.source)}</span>
+                      <span className="shrink-0 text-micro text-slate-500">{sourceLabel(r.source)}</span>
                     </div>
-                    <div className="mt-0.5 truncate text-[10px] text-slate-400" title={r.goal || ''}>
+                    <div className="mt-0.5 truncate text-micro text-slate-400" title={r.goal || ''}>
                       {r.goal || '（无目标）'}
                     </div>
-                    <div className="mt-0.5 flex items-center gap-2 text-[9.5px] text-slate-600">
+                    <div className="mt-0.5 flex items-center gap-2 text-micro text-slate-600">
                       <span>{fmtRecordTime(r.created_at)}</span>
                       {r.duration_ms != null && <span>{Math.round(r.duration_ms)}ms</span>}
                       {r.tier && <span>tier={r.tier}</span>}
@@ -653,14 +653,14 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
                           type="button"
                           onClick={() => setTask(r.goal || '')}
                           title="把这条记录的目标回填到输入框"
-                          className="ml-auto shrink-0 rounded-sm border border-slate-700 px-1 text-[9.5px] text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                          className="ml-auto shrink-0 rounded-sm border border-slate-700 px-1 text-micro text-slate-400 hover:bg-slate-800 hover:text-slate-200"
                         >
                           复用目标
                         </button>
                       )}
                     </div>
                     {r.error && (
-                      <div className="mt-0.5 wrap-break-word text-[9.5px] leading-relaxed text-rose-400">
+                      <div className="mt-0.5 wrap-break-word text-micro leading-relaxed text-rose-400">
                         {r.error_code ? `${r.error_code} · ` : ''}
                         {r.error}
                       </div>

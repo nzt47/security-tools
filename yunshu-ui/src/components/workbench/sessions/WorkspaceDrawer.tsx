@@ -246,8 +246,8 @@ export function WorkspaceDrawer({ session, onClose }: WorkspaceDrawerProps) {
               <FolderOpen size={13} />
             </div>
             <div className="min-w-0">
-              <div className="text-[13px] font-semibold text-slate-100">任务工作空间</div>
-              <div className="truncate font-mono text-[9.5px] uppercase tracking-[0.16em] text-slate-500">
+              <div className="text-body-lg font-semibold text-slate-100">任务工作空间</div>
+              <div className="truncate font-mono text-micro uppercase tracking-[0.16em] text-slate-500">
                 {session ? `会话 · ${session.title}` : '—'}
               </div>
             </div>
@@ -282,21 +282,21 @@ export function WorkspaceDrawer({ session, onClose }: WorkspaceDrawerProps) {
           {data ? (
             <>
               <div className="flex items-center gap-2">
-                <code className="min-w-0 flex-1 truncate rounded-md border border-slate-800 bg-slate-950/80 px-2 py-1.5 font-mono text-[10.5px] text-slate-400">
+                <code className="min-w-0 flex-1 truncate rounded-md border border-slate-800 bg-slate-950/80 px-2 py-1.5 font-mono text-caption text-slate-400">
                   {data.root}
                 </code>
                 <button
                   type="button"
                   onClick={() => void handleCopyPath()}
                   title={copied ? '已复制' : '复制完整路径'}
-                  className="flex h-7 shrink-0 items-center gap-1 rounded-md border border-slate-800 px-2 text-[11px] text-slate-400 transition-colors hover:border-cyan-500/40 hover:text-cyan-300"
+                  className="flex h-7 shrink-0 items-center gap-1 rounded-md border border-slate-800 px-2 text-caption text-slate-400 transition-colors hover:border-cyan-500/40 hover:text-cyan-300"
                 >
                   {copied ? <Check size={12} className="text-cyan-400" /> : <Copy size={12} />}
                   {copied ? '已复制' : '复制路径'}
                 </button>
               </div>
               <div className="flex items-center justify-between gap-2">
-                <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-slate-600">
+                <span className="font-mono text-micro uppercase tracking-[0.14em] text-slate-600">
                   {rootMissing
                     ? '目录当前不可用'
                     : `${fileCount} 个文件 · ${dirCount} 个目录${data.truncated ? '（已达上限截断）' : ''}`}
@@ -306,7 +306,7 @@ export function WorkspaceDrawer({ session, onClose }: WorkspaceDrawerProps) {
                   onClick={() => void handleReveal()}
                   disabled={rootMissing}
                   title="在系统文件管理器中打开该目录（桌面场景）"
-                  className="flex items-center gap-1.5 rounded-md border border-cyan-700/50 px-2.5 py-1 text-[11px] text-cyan-300 transition-colors hover:bg-cyan-500/10 disabled:opacity-40"
+                  className="flex items-center gap-1.5 rounded-md border border-cyan-700/50 px-2.5 py-1 text-caption text-cyan-300 transition-colors hover:bg-cyan-500/10 disabled:opacity-40"
                 >
                   <ExternalLink size={11} />
                   在文件夹中打开
@@ -315,14 +315,14 @@ export function WorkspaceDrawer({ session, onClose }: WorkspaceDrawerProps) {
 
               {/* 绑定状态 + 添加/切换工作区 */}
               <div className="flex flex-wrap items-center gap-2">
-                <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] ${sourceBadge.cls}`}>
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-micro ${sourceBadge.cls}`}>
                   {sourceBadge.text}
                 </span>
                 <button
                   type="button"
                   onClick={() => setBindOpen((v) => !v)}
                   aria-expanded={bindOpen}
-                  className="flex items-center gap-1.5 rounded-md border border-cyan-700/50 px-2.5 py-1 text-[11px] text-cyan-300 transition-colors hover:bg-cyan-500/10"
+                  className="flex items-center gap-1.5 rounded-md border border-cyan-700/50 px-2.5 py-1 text-caption text-cyan-300 transition-colors hover:bg-cyan-500/10"
                 >
                   <FolderPlus size={11} />
                   {customBound ? '切换工作区' : '添加工作区'}
@@ -332,7 +332,7 @@ export function WorkspaceDrawer({ session, onClose }: WorkspaceDrawerProps) {
                     type="button"
                     onClick={() => void resetDefault()}
                     title="解除绑定，恢复为会话默认工作空间"
-                    className="flex items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1 text-[11px] text-slate-400 transition-colors hover:border-slate-500 hover:text-slate-200"
+                    className="flex items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1 text-caption text-slate-400 transition-colors hover:border-slate-500 hover:text-slate-200"
                   >
                     <RotateCcw size={11} />
                     恢复默认工作空间
@@ -342,12 +342,12 @@ export function WorkspaceDrawer({ session, onClose }: WorkspaceDrawerProps) {
 
               {/* 来源说明：随项目 / 本会话自绑（与「恢复默认」语义对齐） */}
               {workspaceSource === 'project' && (
-                <p className="text-[10px] leading-relaxed text-slate-500">
+                <p className="text-micro leading-relaxed text-slate-500">
                   随项目的工作空间（{data.root}）：点「添加工作区」可为本会话临时覆盖其他目录，解除后回到项目工作空间。
                 </p>
               )}
               {workspaceSource === 'session' && (
-                <p className="text-[10px] leading-relaxed text-slate-500">
+                <p className="text-micro leading-relaxed text-slate-500">
                   当前为本会话自绑工作区；解除后回到项目工作空间（若属项目）或默认工作空间。
                 </p>
               )}
@@ -357,7 +357,7 @@ export function WorkspaceDrawer({ session, onClose }: WorkspaceDrawerProps) {
                 <div className="space-y-2 rounded-lg border border-cyan-800/40 bg-slate-950/60 p-2.5">
                   <div className="flex items-center gap-1.5">
                     <FolderPlus size={12} className="shrink-0 text-cyan-400" />
-                    <span className="text-[11px] text-slate-300">
+                    <span className="text-caption text-slate-300">
                       绑定本地目录为该会话的工作区（绝对路径）
                     </span>
                   </div>
@@ -373,7 +373,7 @@ export function WorkspaceDrawer({ session, onClose }: WorkspaceDrawerProps) {
                         }
                       }}
                       placeholder="输入工作区绝对路径，如 C:\Users\you\myproject"
-                      className="w-full rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 font-mono text-[11px] text-slate-200 outline-hidden placeholder:text-slate-600 focus:border-cyan-600/70"
+                      className="w-full rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 font-mono text-caption text-slate-200 outline-hidden placeholder:text-slate-600 focus:border-cyan-600/70"
                     />
                     {isElectron() && window.electronAPI && (
                       <button
@@ -381,14 +381,14 @@ export function WorkspaceDrawer({ session, onClose }: WorkspaceDrawerProps) {
                         onClick={() => void browseDirectory()}
                         disabled={binding}
                         title="打开系统文件夹选择器（Electron 桌面版）"
-                        className="flex h-7 shrink-0 items-center gap-1 rounded-md border border-slate-700 px-2 text-[11px] text-slate-300 transition-colors hover:border-cyan-500/50 hover:text-cyan-200 disabled:opacity-40"
+                        className="flex h-7 shrink-0 items-center gap-1 rounded-md border border-slate-700 px-2 text-caption text-slate-300 transition-colors hover:border-cyan-500/50 hover:text-cyan-200 disabled:opacity-40"
                       >
                         <FolderOpen size={11} />
                         浏览…
                       </button>
                     )}
                   </div>
-                  <label className="flex cursor-pointer items-center gap-1.5 text-[10.5px] text-slate-400">
+                  <label className="flex cursor-pointer items-center gap-1.5 text-caption text-slate-400">
                     <input
                       type="checkbox"
                       checked={bindCreate}
@@ -405,7 +405,7 @@ export function WorkspaceDrawer({ session, onClose }: WorkspaceDrawerProps) {
                         setBindPath('');
                         setBindCreate(false);
                       }}
-                      className="rounded-md border border-slate-700 px-2.5 py-1 text-[11px] text-slate-400 hover:bg-slate-800"
+                      className="rounded-md border border-slate-700 px-2.5 py-1 text-caption text-slate-400 hover:bg-slate-800"
                     >
                       取消
                     </button>
@@ -413,7 +413,7 @@ export function WorkspaceDrawer({ session, onClose }: WorkspaceDrawerProps) {
                       type="button"
                       onClick={() => void doBind(bindPath, bindCreate)}
                       disabled={binding || !bindPath.trim()}
-                      className="flex items-center gap-1.5 rounded-md border border-cyan-600/60 bg-cyan-500/15 px-2.5 py-1 text-[11px] text-cyan-200 transition-colors hover:bg-cyan-500/25 disabled:opacity-40"
+                      className="flex items-center gap-1.5 rounded-md border border-cyan-600/60 bg-cyan-500/15 px-2.5 py-1 text-caption text-cyan-200 transition-colors hover:bg-cyan-500/25 disabled:opacity-40"
                     >
                       {binding && <Loader2 size={11} className="animate-spin" />}
                       绑定工作区
@@ -421,7 +421,7 @@ export function WorkspaceDrawer({ session, onClose }: WorkspaceDrawerProps) {
                   </div>
                   {known.length > 0 && (
                     <div className="pt-0.5">
-                      <div className="mb-1 text-[9.5px] uppercase tracking-[0.14em] text-slate-600">
+                      <div className="mb-1 text-micro uppercase tracking-[0.14em] text-slate-600">
                         已添加的工作区（点击复用）
                       </div>
                       <div className="flex max-h-24 flex-wrap gap-1 overflow-y-auto">
@@ -432,7 +432,7 @@ export function WorkspaceDrawer({ session, onClose }: WorkspaceDrawerProps) {
                             title={w.path}
                             onClick={() => void doBind(w.path, false)}
                             disabled={binding}
-                            className="max-w-full truncate rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 text-[10px] text-slate-300 transition-colors hover:border-amber-500/50 hover:text-amber-200 disabled:opacity-50"
+                            className="max-w-full truncate rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 text-micro text-slate-300 transition-colors hover:border-amber-500/50 hover:text-amber-200 disabled:opacity-50"
                           >
                             {w.name}
                           </button>
@@ -443,21 +443,21 @@ export function WorkspaceDrawer({ session, onClose }: WorkspaceDrawerProps) {
                 </div>
               )}
               {notice && (
-                <div className="rounded-md border border-cyan-700/40 bg-cyan-500/10 px-2 py-1 text-[10.5px] text-cyan-200/90">
+                <div className="rounded-md border border-cyan-700/40 bg-cyan-500/10 px-2 py-1 text-caption text-cyan-200/90">
                   {notice}
                 </div>
               )}
             </>
           ) : (
             <div className="flex items-center justify-between">
-              <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-slate-600">
+              <span className="font-mono text-micro uppercase tracking-[0.14em] text-slate-600">
                 会话工作空间
               </span>
               <button
                 type="button"
                 onClick={() => void handleReveal()}
                 title="在系统文件管理器中打开该目录"
-                className="flex items-center gap-1.5 rounded-md border border-cyan-700/50 px-2.5 py-1 text-[11px] text-cyan-300 transition-colors hover:bg-cyan-500/10"
+                className="flex items-center gap-1.5 rounded-md border border-cyan-700/50 px-2.5 py-1 text-caption text-cyan-300 transition-colors hover:bg-cyan-500/10"
               >
                 <ExternalLink size={11} />
                 在文件夹中打开
@@ -471,15 +471,15 @@ export function WorkspaceDrawer({ session, onClose }: WorkspaceDrawerProps) {
           {loading ? (
             <div className="flex flex-col items-center gap-2 pt-14 text-slate-500">
               <Loader2 size={16} className="animate-spin text-cyan-400/70" />
-              <span className="text-[11.5px]">读取工作空间…</span>
+              <span className="text-body">读取工作空间…</span>
             </div>
           ) : error ? (
             <div className="flex flex-col items-center gap-2 pt-14 text-slate-500">
-              <p className="text-[11.5px] text-rose-400/80">{error}</p>
+              <p className="text-body text-rose-400/80">{error}</p>
               <button
                 type="button"
                 onClick={() => void load()}
-                className="flex items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1 text-[11px] text-slate-400 hover:bg-slate-800"
+                className="flex items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1 text-caption text-slate-400 hover:bg-slate-800"
               >
                 <RefreshCw size={11} /> 重试
               </button>
@@ -487,10 +487,10 @@ export function WorkspaceDrawer({ session, onClose }: WorkspaceDrawerProps) {
           ) : rootMissing ? (
             <div className="px-6 pt-14 text-center">
               <Folder size={22} className="mx-auto mb-2 text-rose-400/70" />
-              <p className="text-[11.5px] text-slate-300">
+              <p className="text-body text-slate-300">
                 {customBound ? '绑定的工作区目录不存在或已被移动' : '工作空间目录不可用'}
               </p>
-              <p className="mt-1 text-[10.5px] leading-relaxed text-slate-600">
+              <p className="mt-1 text-caption leading-relaxed text-slate-600">
                 {customBound
                   ? '可重新「切换工作区」指向正确目录，或「恢复默认工作空间」。'
                   : '刷新后仍不可用，可尝试「添加工作区」绑定其他目录。'}
@@ -499,8 +499,8 @@ export function WorkspaceDrawer({ session, onClose }: WorkspaceDrawerProps) {
           ) : (data?.files ?? []).length === 0 ? (
             <div className="px-6 pt-14 text-center">
               <Folder size={22} className="mx-auto mb-2 text-slate-700" />
-              <p className="text-[11.5px] text-slate-500">工作空间是空的</p>
-              <p className="mt-1 text-[10.5px] leading-relaxed text-slate-600">
+              <p className="text-body text-slate-500">工作空间是空的</p>
+              <p className="mt-1 text-caption leading-relaxed text-slate-600">
                 会话产生的任务文件会存放在此目录。
                 <br />
                 也可点击上方「在文件夹中打开」直接查看，
@@ -526,14 +526,14 @@ export function WorkspaceDrawer({ session, onClose }: WorkspaceDrawerProps) {
                       {isDir ? <Folder size={13} /> : fileIcon(f.name)}
                     </span>
                     <span
-                      className={`min-w-0 flex-1 truncate text-[11.5px] ${
+                      className={`min-w-0 flex-1 truncate text-body ${
                         isDir ? 'text-slate-200' : 'text-slate-400'
                       }`}
                     >
                       {f.name}
                     </span>
                     {!isDir && f.size > 0 && (
-                      <span className="shrink-0 font-mono text-[9.5px] text-slate-600">
+                      <span className="shrink-0 font-mono text-micro text-slate-600">
                         {formatSize(f.size)}
                       </span>
                     )}
@@ -545,7 +545,7 @@ export function WorkspaceDrawer({ session, onClose }: WorkspaceDrawerProps) {
         </div>
 
         {/* 底部说明 */}
-        <div className="shrink-0 border-t border-slate-800 px-4 py-2 text-[9.5px] text-slate-600">
+        <div className="shrink-0 border-t border-slate-800 px-4 py-2 text-micro text-slate-600">
           默认目录：data/sessions/&lt;会话ID&gt;/workspace；可绑定本地任意项目目录（删除会话时仅清理默认目录）
         </div>
       </motion.aside>
