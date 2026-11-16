@@ -1,7 +1,8 @@
 /**
  * Button —— 通用按钮（语义 Token 驱动）
- * - variant：primary（主操作）/ default（次级）/ danger（危险）/ ghost（幽灵）
- * - size：sm / md
+ * - variant：primary（主操作）/ default（次级）/ accent（描边强调）/ danger（实心危险）
+ *            / danger-outline（描边危险）/ ghost（幽灵）
+ * - size：xs / sm / md / icon
  * - loading：加载态（禁用 + 旋转图标，防重复提交）
  * - 颜色一律取自语义 Token（tailwind.config.js / index.css），禁止硬编码
  */
@@ -9,7 +10,14 @@ import { forwardRef } from 'react'
 import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/cn'
 
-export type ButtonVariant = 'primary' | 'default' | 'danger' | 'ghost'
+/**
+ * accent / danger-outline 是 2026-11-17 补的两个**描边**变体：
+ * 表格行内与密集面板里的"信息/进阶动作"（原 cyan 描边字）与"删除"（原 rose 描边字）都不该做成实心块
+ * —— 一行 5 个按钮时实心会把正文的视觉权重抢走（lib/tableActions.ts 的老口径）。
+ * 此前这两档只能靠各页手拼 `border-cyan-700/70 text-cyan-300` 这类第五、第六种强调色，
+ * 现在收口到语义 token：accent = 主色描边，danger-outline = 危险色描边。
+ */
+export type ButtonVariant = 'primary' | 'default' | 'accent' | 'danger' | 'danger-outline' | 'ghost'
 /**
  * icon：正方形只放图标（32×32），用于工具栏/卡片右上角
  * xs  ：行内/工具条上的紧凑控件（24px 高，text-micro）—— 用于右侧面板、会话行等密集区域；
@@ -29,7 +37,9 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
   default: 'border border-border bg-card text-foreground hover:bg-muted',
+  accent: 'border border-primary/50 text-primary hover:bg-primary/10',
   danger: 'bg-danger text-danger-foreground hover:bg-danger/90',
+  'danger-outline': 'border border-danger/50 text-danger hover:bg-danger/10',
   ghost: 'text-foreground hover:bg-muted',
 }
 

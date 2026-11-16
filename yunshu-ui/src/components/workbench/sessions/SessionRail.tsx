@@ -616,35 +616,32 @@ export function SessionRail({
 
       {/* 搜索 */}
       <div className="shrink-0 px-3 pb-1.5 pt-2">
-        <div className="relative">
-          <Search
-            size={11}
-            className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500"
-          />
-          {/* 搜索框保留原生：Input 原语没有「前置图标 / 后置清空」槽位（图标是 absolute 定位在
-              外层 relative 里的），包一层原语会把 padding 挡在 wrapper 上、图标压住正文。
-              颜色/字号已走 token（border-border / bg-card / text-body）。 */}
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="搜索会话…"
-            aria-label="搜索会话"
-            className="h-8 w-full rounded-control border border-border bg-card py-1.5 pl-7 pr-6 text-body text-foreground outline-hidden transition-colors placeholder:text-muted-foreground focus:border-primary/70"
-          />
-          {query && (
-            <Button
-              variant="ghost"
-              size="xs"
-              className="absolute right-1 top-1/2 h-5 w-5 -translate-y-1/2 px-0 text-muted-foreground hover:text-foreground"
-              onClick={() => setQuery('')}
-              title="清空搜索"
-              aria-label="清空搜索"
-            >
-              <X size={11} />
-            </Button>
-          )}
-        </div>
+        {/* 2026-11-17：从原生 input 迁到 ui/Input —— 原语补了 leading/trailing 附加槽，
+            图标不再 absolute 压住正文（正文让位 pl-8/pr-8 由原语按尺寸档给）。
+            原来这里是全仓唯一"因为缺槽位而保留原生"的输入框（见 handoff §11.135 D）。 */}
+        <Input
+          type="text"
+          size="sm"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="搜索会话…"
+          aria-label="搜索会话"
+          leading={<Search size={11} />}
+          trailing={
+            query ? (
+              <Button
+                variant="ghost"
+                size="xs"
+                className="h-5 w-5 px-0 text-muted-foreground hover:text-foreground"
+                onClick={() => setQuery('')}
+                title="清空搜索"
+                aria-label="清空搜索"
+              >
+                <X size={11} />
+              </Button>
+            ) : undefined
+          }
+        />
       </div>
 
       {/* 分组工具行 + 新建分组 */}
