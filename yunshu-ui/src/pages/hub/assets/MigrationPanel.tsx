@@ -14,11 +14,11 @@ import { Download, Loader2, RotateCcw, Trash2 } from 'lucide-react'
 import { hubDelete, hubPost } from '../components/ui'
 import { ASSETS_EXPORT, ASSETS_RESTORE, assetBackupById } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
+const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
-const PRE = 'max-h-40 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
+const PRE = 'max-h-40 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 export default function AssetsMigration() {
   const [busy, setBusy] = useState('')
@@ -59,7 +59,7 @@ export default function AssetsMigration() {
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <Download size={13} className="text-cyan-400" />
         <h3 className="text-xs font-semibold text-slate-200">备份与迁移</h3>
-        <span className="text-[10px] text-slate-500">导出全部资产 / 从备份恢复 / 删除指定备份</span>
+        <span className="text-micro text-slate-500">导出全部资产 / 从备份恢复 / 删除指定备份</span>
         <div className="ml-auto">
           <a href={ASSETS_EXPORT} download className={BTN} aria-label="导出全部资产">
             <Download size={11} /> 导出 JSON
@@ -67,8 +67,8 @@ export default function AssetsMigration() {
         </div>
       </div>
 
-      {err && <div className="mb-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-[11px] text-red-300">{err}</div>}
-      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
+      {err && <div className="mb-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-caption text-red-300">{err}</div>}
+      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
 
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <input
@@ -81,14 +81,14 @@ export default function AssetsMigration() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <label className="flex items-center gap-1 text-[10px] text-slate-400">
+        <label className="flex items-center gap-1 text-micro text-slate-400">
           <input type="checkbox" checked={confirmRestore} onChange={(e) => setConfirmRestore(e.target.checked)} aria-label="确认恢复资产" />
           我确认用该备份覆盖当前资产
         </label>
         <button type="button" className={BTN_EM} onClick={() => void restore()} disabled={loading || !confirmRestore || backupId.trim() === ''} aria-label="恢复资产">
           {busy === 'restore' ? <Loader2 size={11} className="animate-spin" /> : <RotateCcw size={11} />} 恢复
         </button>
-        <label className="ml-3 flex items-center gap-1 text-[10px] text-slate-400">
+        <label className="ml-3 flex items-center gap-1 text-micro text-slate-400">
           <input type="checkbox" checked={confirmDelete} onChange={(e) => setConfirmDelete(e.target.checked)} aria-label="确认删除备份" />
           我确认删除该备份
         </label>

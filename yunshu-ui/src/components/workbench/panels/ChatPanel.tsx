@@ -268,7 +268,7 @@ export function ChatPanel() {
         <span className="mx-1 h-3.5 w-px bg-slate-700/70" />
 
         {/* 对话输出格式（多种展示样式切换） */}
-        <span className="text-[10px] uppercase tracking-wider text-slate-500">输出格式</span>
+        <span className="text-micro uppercase tracking-wider text-slate-500">输出格式</span>
         <div className="flex overflow-hidden rounded-md border border-slate-700">
           {(Object.keys(CHAT_FORMATS) as ChatFormat[]).map((f) => (
             <button
@@ -277,7 +277,7 @@ export function ChatPanel() {
               onClick={() => setStyle({ format: f })}
               aria-pressed={format === f}
               title={CHAT_FORMATS[f].hint}
-              className={`px-2 py-0.5 text-[11px] transition-colors ${
+              className={`px-2 py-0.5 text-caption transition-colors ${
                 format === f ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-400 hover:bg-slate-800'
               }`}
             >
@@ -297,7 +297,7 @@ export function ChatPanel() {
         <ApprovalPrompt />
 
         <div className="ml-auto flex items-center gap-2">
-          <span className="hidden text-[10px] text-slate-600 sm:inline">风格设置可调主题 / 气泡 / 字号</span>
+          <span className="hidden text-micro text-slate-600 sm:inline">风格设置可调主题 / 气泡 / 字号</span>
           <ChatStyleMenu />
         </div>
       </div>
@@ -363,8 +363,8 @@ export function ChatPanel() {
         {slashHits.length > 0 && (
           <div className="mb-2 rounded-lg border border-slate-800 bg-slate-900/95 p-1 shadow-xl">
             <div className="flex items-center justify-between px-2 pb-1 pt-0.5">
-              <span className="text-[9px] uppercase tracking-wider text-slate-500">已注册技能斜杠（↑↓ 选择 · Enter 选中即发送 · Tab 仅插入）</span>
-              {slashHits.length > 1 && <span className="font-mono text-[9px] text-cyan-400/70">{hiSafe + 1}/{slashHits.length}</span>}
+              <span className="text-micro uppercase tracking-wider text-slate-500">已注册技能斜杠（↑↓ 选择 · Enter 选中即发送 · Tab 仅插入）</span>
+              {slashHits.length > 1 && <span className="font-mono text-micro text-cyan-400/70">{hiSafe + 1}/{slashHits.length}</span>}
             </div>
             {slashHits.map((c, idx) => (
               <button
@@ -374,12 +374,12 @@ export function ChatPanel() {
                 onMouseEnter={() => setHi(idx)}
                 className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-cyan-500/10 ${idx === hiSafe ? 'bg-cyan-500/15 ring-1 ring-cyan-600/50' : ''}`}
               >
-                <span className="shrink-0 font-mono text-[11px] text-cyan-300">{c.token}</span>
-                <span className="shrink-0 rounded-sm border border-cyan-800/50 bg-cyan-500/10 px-1 text-[9px] font-medium text-cyan-300" title={`类型 ${c.content_type ?? ''}`}>{typeLabel(c)}</span>
-                <span className="min-w-0 flex-1 truncate text-[11px] text-slate-200">{c.name}</span>
-                <span className="shrink-0 text-[9px] text-slate-600">{c.version ? `v${c.version}` : ''}</span>
-                <span className="shrink-0 text-[9px] text-slate-600">{c.category ? `[${c.category}]` : ''}</span>
-                <span className="hidden max-w-40 min-w-0 truncate text-[10px] text-slate-500 sm:inline">{c.description}</span>
+                <span className="shrink-0 font-mono text-caption text-cyan-300">{c.token}</span>
+                <span className="shrink-0 rounded-sm border border-cyan-800/50 bg-cyan-500/10 px-1 text-micro font-medium text-cyan-300" title={`类型 ${c.content_type ?? ''}`}>{typeLabel(c)}</span>
+                <span className="min-w-0 flex-1 truncate text-caption text-slate-200">{c.name}</span>
+                <span className="shrink-0 text-micro text-slate-600">{c.version ? `v${c.version}` : ''}</span>
+                <span className="shrink-0 text-micro text-slate-600">{c.category ? `[${c.category}]` : ''}</span>
+                <span className="hidden max-w-40 min-w-0 truncate text-micro text-slate-500 sm:inline">{c.description}</span>
               </button>
             ))}
           </div>

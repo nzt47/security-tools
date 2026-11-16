@@ -88,7 +88,7 @@ export function PanelShell({
         <button
           type="button"
           onClick={onRefresh || reload}
-          className="flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-400 hover:text-cyan-300"
+          className="flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-400 hover:text-cyan-300"
         >
           <RefreshCw size={11} /> 刷新
         </button>
@@ -290,7 +290,7 @@ export function MetricValue({
       {metric.insufficient_sample && (
         <span
           title={`${metric.note || '样本不足'}（样本 ${metric.sample_size ?? 0} < ${metric.min_sample ?? 20}）`}
-          className="rounded-sm border border-amber-800 bg-amber-500/10 px-1 text-[10px] text-amber-300"
+          className="rounded-sm border border-amber-800 bg-amber-500/10 px-1 text-micro text-amber-300"
         >
           仅披露
         </span>
@@ -304,7 +304,7 @@ export function MetricValue({
         <Info size={11} />
       </button>
       {open && (
-        <span className="ml-1 block w-full rounded-sm border border-slate-800 bg-slate-950/80 px-2 py-1 font-mono text-[10px] leading-relaxed text-slate-400">
+        <span className="ml-1 block w-full rounded-sm border border-slate-800 bg-slate-950/80 px-2 py-1 font-mono text-micro leading-relaxed text-slate-400">
           <span className="block">来源：{metric.source || '（未标注，禁止上屏）'}</span>
           {metric.formula && <span className="block">公式：{metric.formula}</span>}
           {metric.dataset && <span className="block">数据集：{metric.dataset}</span>}
@@ -450,14 +450,14 @@ export function ReasonChain({
         />
         <span className="font-medium">{title}</span>
         {formula && (
-          <span className="ml-auto font-mono text-[10px] text-slate-600">{formula}</span>
+          <span className="ml-auto font-mono text-micro text-slate-600">{formula}</span>
         )}
       </button>
       {open && (
         <ol className="space-y-1.5 border-t border-slate-800 px-3 py-2">
           {nodes.map((n, i) => (
             <li key={`${n.label}-${i}`} className="flex items-start gap-2 text-xs">
-              <span className="mt-0.5 font-mono text-[10px] text-slate-600">
+              <span className="mt-0.5 font-mono text-micro text-slate-600">
                 {String(i + 1).padStart(2, '0')}
               </span>
               {n.passed !== undefined && (
@@ -478,7 +478,7 @@ export function ReasonChain({
                   <span className="ml-1.5 text-slate-500">{n.detail}</span>
                 )}
                 {n.source && (
-                  <span className="mt-0.5 block font-mono text-[10px] text-slate-600">
+                  <span className="mt-0.5 block font-mono text-micro text-slate-600">
                     证据：{n.source}
                   </span>
                 )}
@@ -508,7 +508,7 @@ export function TaintBadge({ source, label }: { source?: string; label?: string 
   if (!badge) return null // 常量缺位 ⇒ 不渲染（U1）
   return (
     <span
-      className={`${badge.class} ${badge.base_class} inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px]`}
+      className={`${badge.class} ${badge.base_class} inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-micro`}
       {...{ [badge.attr]: source || 'foreign' }}
       title={`外来内容（不可信来源）：${source || '未标注'}`}
     >
@@ -649,7 +649,7 @@ export function PanelHeader({
             <button
               type="button"
               onClick={() => setOpen((v) => !v)}
-              className="text-[10px] text-slate-500 underline decoration-dotted hover:text-cyan-400"
+              className="text-micro text-slate-500 underline decoration-dotted hover:text-cyan-400"
             >
               数据源（{datasources.length}）
             </button>
@@ -659,7 +659,7 @@ export function PanelHeader({
         {open && datasources && (
           <ul className="mt-1.5 space-y-0.5">
             {datasources.map((d) => (
-              <li key={d} className="font-mono text-[10px] text-slate-500">
+              <li key={d} className="font-mono text-micro text-slate-500">
                 · {d}
               </li>
             ))}

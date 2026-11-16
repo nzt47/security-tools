@@ -237,7 +237,7 @@ export default function PanoramaMonitor() {
       {error && <div className="mb-4"><ErrorBox message={error} /></div>}
 
       {/* 【2026-11-01】读图须知：三个服务节点同源，避免把"一个低分"看成"三处故障" */}
-      <div className="mb-3 rounded-lg border border-slate-800 bg-slate-900/50 px-3 py-2 text-[11px] text-slate-400">
+      <div className="mb-3 rounded-lg border border-slate-800 bg-slate-900/50 px-3 py-2 text-caption text-slate-400">
         <span className="text-slate-300">读图提示：</span>
         服务层的「Web 主服务」「API 网关」与运维层的「健康系统」都取<strong className="text-slate-200">同一个</strong>五层探针分数
         （<code className="text-cyan-300">get_probe_overview</code>），所以一条低分会在这三处同时变黄 ——
@@ -256,7 +256,7 @@ export default function PanoramaMonitor() {
             <StatCard label="异常项" value={healthIssues} icon={<Activity size={16} />} color="text-amber-400" />
           </div>
           {other > 0 && (
-            <p className="mb-4 text-[11px] text-amber-400">
+            <p className="mb-4 text-caption text-amber-400">
               另有 {other} 个模块处于其他状态（如 warning / degraded），未计入在线 / 离线 / 未启用。
             </p>
           )}
@@ -268,7 +268,7 @@ export default function PanoramaMonitor() {
           {unregistered.length > 0 && (
             <div className="mb-4" data-testid="module-unregistered">
             <Card title={'未登记模块（' + unregistered.length + '）'}>
-              <p className="mb-2 text-[11px] text-slate-400">
+              <p className="mb-2 text-caption text-slate-400">
                 这些包声明了「我是个功能面」，但<strong className="text-slate-300">没有声明状态源</strong>
                 （<code className="text-cyan-300">MODULE_STATUS_SOURCE</code>）⇒ 不生成节点、
                 <strong className="text-slate-200">不参与健康分</strong>。
@@ -279,9 +279,9 @@ export default function PanoramaMonitor() {
                   <div key={u.package ?? u.name} className="rounded-lg border border-dashed border-slate-700 bg-slate-900/40 px-3 py-2">
                     <div className="flex items-center gap-2">
                       <span className="truncate text-sm text-slate-300">{u.name ?? u.package}</span>
-                      <span className="shrink-0 font-mono text-[10px] text-slate-600">{u.package}</span>
+                      <span className="shrink-0 font-mono text-micro text-slate-600">{u.package}</span>
                     </div>
-                    {u.reason && <div className="mt-1 text-[10px] text-slate-500">{u.reason}</div>}
+                    {u.reason && <div className="mt-1 text-micro text-slate-500">{u.reason}</div>}
                   </div>
                 ))}
               </div>
@@ -290,7 +290,7 @@ export default function PanoramaMonitor() {
           )}
 
           {autodiscovery?.enabled === false && (
-            <p className="mb-4 text-[11px] text-slate-500" data-testid="autodiscovery-off">
+            <p className="mb-4 text-caption text-slate-500" data-testid="autodiscovery-off">
               模块自动发现已关闭（CP_MODULE_AUTODISCOVERY=0）⇒ 拓扑只含手写清单里的节点。
             </p>
           )}
@@ -320,7 +320,7 @@ export default function PanoramaMonitor() {
           {/* ── 模块明细（按域分组；搜索/筛选共用页头输入）── */}
           <div className="mb-2 flex items-center gap-2">
             <h2 className="text-sm font-medium text-slate-200">模块明细</h2>
-            <span className="text-[11px] text-slate-500">
+            <span className="text-caption text-slate-500">
               {query.trim() || statusFilter ? '筛选 ' + filteredCount + ' / ' + allModules.length : '全部 ' + allModules.length}
             </span>
           </div>
@@ -340,27 +340,27 @@ export default function PanoramaMonitor() {
                           <span className="truncate text-sm font-medium text-slate-200">{m.name}</span>
                           {m.origin === 'discovered' && (
                             <span
-                              className="shrink-0 rounded-sm bg-cyan-950 px-1.5 py-0.5 text-[9px] text-cyan-300"
+                              className="shrink-0 rounded-sm bg-cyan-950 px-1.5 py-0.5 text-micro text-cyan-300"
                               data-testid={'origin-badge-' + m.module_id}
                               title={'该节点由包自己声明（agent/<pkg>/__init__.py 的 MODULE_STATUS_SOURCE），不是手写清单里的一行'}
                             >
                               自动发现
                             </span>
                           )}
-                          <span className="shrink-0 font-mono text-[10px] text-slate-600">{m.module_id}</span>
+                          <span className="shrink-0 font-mono text-micro text-slate-600">{m.module_id}</span>
                         </div>
-                        <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-500">
+                        <div className="mt-1 flex items-center gap-2 text-caption text-slate-500">
                           <span className="rounded-sm bg-slate-800 px-1.5 py-0.5">{TYPE_LABEL[m.type ?? 'module'] ?? m.type}</span>
                           {m.path && <span className="truncate font-mono">{m.path}</span>}
                         </div>
                       </div>
                       <div className="flex shrink-0 flex-col items-end gap-1">
                         <Badge color={STATUS_COLOR[m.status ?? ''] ?? 'slate'}>{m.status ?? '?'}</Badge>
-                        {m.status_detail && <span className="text-[10px] text-slate-600">{m.status_detail}</span>}
+                        {m.status_detail && <span className="text-micro text-slate-600">{m.status_detail}</span>}
                         <button
                           type="button"
                           onClick={() => setOpenModule(openModule === m.module_id ? '' : m.module_id)}
-                          className="rounded-sm border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-300 hover:bg-slate-800"
+                          className="rounded-sm border border-slate-700 px-1.5 py-0.5 text-micro text-slate-300 hover:bg-slate-800"
                           aria-label={'模块详情 ' + m.module_id}
                         >
                           {openModule === m.module_id ? '收起' : '详情 / 干预'}

@@ -67,7 +67,7 @@ export function WorkflowDetailModal({ wf, onClose }: { wf: WorkflowDetail; onClo
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h2 className="truncate text-sm font-semibold text-slate-100">{wf.name || wf.id}</h2>
-            <p className="mt-0.5 font-mono text-[11px] text-slate-500">{wf.id}</p>
+            <p className="mt-0.5 font-mono text-caption text-slate-500">{wf.id}</p>
           </div>
           <button type="button" onClick={onClose} aria-label="关闭" className="rounded-md p-1 text-slate-400 hover:bg-slate-800 hover:text-slate-200">
             <X size={16} />
@@ -78,7 +78,7 @@ export function WorkflowDetailModal({ wf, onClose }: { wf: WorkflowDetail; onClo
           {wf.description || wf.source_user_input || '（该工作流没有填写说明）'}
         </p>
 
-        <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px] text-slate-400 sm:grid-cols-3">
+        <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-caption text-slate-400 sm:grid-cols-3">
           <div><dt className="text-slate-500">类型</dt><dd className="text-slate-300">{typeLabel(wf.workflow_type)}</dd></div>
           <div><dt className="text-slate-500">状态</dt><dd className="text-slate-300">{wf.enabled ? '启用' : '停用'} · {wf.status ?? '—'}</dd></div>
           <div><dt className="text-slate-500">置信度</dt><dd className="font-mono text-slate-300">{typeof wf.confidence === 'number' ? wf.confidence.toFixed(2) : '—'}</dd></div>
@@ -92,23 +92,23 @@ export function WorkflowDetailModal({ wf, onClose }: { wf: WorkflowDetail; onClo
 
         {triggers.length > 0 && (
           <div className="mt-3">
-            <div className="text-[11px] text-slate-500">触发模式（命中即本地执行）</div>
+            <div className="text-caption text-slate-500">触发模式（命中即本地执行）</div>
             <div className="mt-1 flex flex-wrap gap-1">
               {triggers.slice(0, 24).map((t, i) => (
-                <span key={`${t}-${i}`} className="rounded border border-slate-700 bg-slate-950 px-1.5 py-0.5 font-mono text-[10px] text-slate-300">{t}</span>
+                <span key={`${t}-${i}`} className="rounded border border-slate-700 bg-slate-950 px-1.5 py-0.5 font-mono text-micro text-slate-300">{t}</span>
               ))}
-              {triggers.length > 24 && <span className="text-[10px] text-slate-500">…共 {triggers.length} 个</span>}
+              {triggers.length > 24 && <span className="text-micro text-slate-500">…共 {triggers.length} 个</span>}
             </div>
           </div>
         )}
 
         <div className="mt-4">
-          <div className="mb-1 text-[11px] text-slate-500">步骤（{steps.length}）</div>
+          <div className="mb-1 text-caption text-slate-500">步骤（{steps.length}）</div>
           {steps.length === 0 ? (
             <p className="text-xs text-slate-500">该工作流没有定义步骤。</p>
           ) : (
             <div className="overflow-x-auto rounded-lg border border-slate-800">
-              <table className="w-full text-left text-[11px]">
+              <table className="w-full text-left text-caption">
                 <thead>
                   <tr className="border-b border-slate-800 text-slate-500">
                     <th className="px-2 py-1.5 font-medium">#</th>
@@ -139,7 +139,7 @@ export function WorkflowDetailModal({ wf, onClose }: { wf: WorkflowDetail; onClo
           )}
         </div>
 
-        <div className="mt-3 grid gap-1 text-[11px] text-slate-500">
+        <div className="mt-3 grid gap-1 text-caption text-slate-500">
           {wf.source_user_input && <p className="truncate" title={wf.source_user_input}>来源任务：{wf.source_user_input}</p>}
           {wf.source_session_id && <p className="font-mono">来源会话：{wf.source_session_id}</p>}
           {wf.converted_to_skill_id && <p className="font-mono">已导出 LLM 参考：{wf.converted_to_skill_id}</p>}

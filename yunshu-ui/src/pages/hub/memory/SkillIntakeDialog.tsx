@@ -129,14 +129,14 @@ export default function SkillIntakeDialog({ open, onClose }: Props) {
           <div className="flex items-center gap-2">
             <GitBranch size={14} className="text-cyan-400" />
             <h2 className="text-sm font-semibold text-slate-100">入轨助手</h2>
-            <span className="text-[11px] text-slate-500">把技能从「只在本机」变成「在仓库里」</span>
+            <span className="text-caption text-slate-500">把技能从「只在本机」变成「在仓库里」</span>
           </div>
           <button type="button" onClick={onClose} className="rounded-md p-1 text-slate-400 hover:bg-slate-800 hover:text-slate-200">
             <X size={14} />
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 text-[11px] leading-relaxed text-slate-400">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 text-caption leading-relaxed text-slate-400">
           <div className="mb-3 rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-2">
             <p className="font-medium text-slate-200">为什么要入轨？</p>
             <p className="mt-1">
@@ -191,12 +191,12 @@ export default function SkillIntakeDialog({ open, onClose }: Props) {
               未入轨 <strong className="text-amber-300">{pending.length}</strong> 条 · 已入轨 {tracked} 条
             </span>
             <div className="flex items-center gap-2">
-              <label className="flex items-center gap-1 text-[10px] text-slate-400">
+              <label className="flex items-center gap-1 text-micro text-slate-400">
                 <input type="checkbox" checked={autoFix} onChange={(e) => setAutoFix(e.target.checked)} />
                 自动补全元数据
               </label>
               <label
-                className="flex items-center gap-1 text-[10px] text-slate-400"
+                className="flex items-center gap-1 text-micro text-slate-400"
                 title="刷新 tests/unit 里那几处能力面基线（== 142 / by_kind / envelope…）。它们等于「干净 worktree 重派生」的结果，是发现清单被手改的哨兵 —— 所以默认不勾，等你在 diff 里确认过派生结果再勾。"
               >
                 <input type="checkbox" checked={refreshBaselines} onChange={(e) => setRefreshBaselines(e.target.checked)} />
@@ -204,7 +204,7 @@ export default function SkillIntakeDialog({ open, onClose }: Props) {
               </label>
               {items.some((i) => i.llm_available) ? (
                 <label
-                  className="flex items-center gap-1 text-[10px] text-slate-400"
+                  className="flex items-center gap-1 text-micro text-slate-400"
                   title="让 LLM 从正文摘录能力卡分节；每条必须能逐字指回原文，验不过的整条丢弃。只写 CARD.md，不改 skill.md 正文。"
                 >
                   <input type="checkbox" checked={useLlm} onChange={(e) => setUseLlm(e.target.checked)} />
@@ -214,7 +214,7 @@ export default function SkillIntakeDialog({ open, onClose }: Props) {
               <button
                 type="button"
                 onClick={() => void load()}
-                className="rounded-md border border-slate-700 px-2 py-1 text-[10px] text-slate-300 hover:bg-slate-800"
+                className="rounded-md border border-slate-700 px-2 py-1 text-micro text-slate-300 hover:bg-slate-800"
               >
                 刷新
               </button>
@@ -258,7 +258,7 @@ export default function SkillIntakeDialog({ open, onClose }: Props) {
                       type="button"
                       disabled={busy !== null || it.errors.length > 0}
                       onClick={() => void runIntake(it.skill_id, 'workspace')}
-                      className="rounded-md border border-cyan-700/70 px-2.5 py-1 text-[10px] text-cyan-300 transition-colors hover:bg-cyan-500/10 disabled:opacity-40"
+                      className="rounded-md border border-cyan-700/70 px-2.5 py-1 text-micro text-cyan-300 transition-colors hover:bg-cyan-500/10 disabled:opacity-40"
                     >
                       {busy === it.skill_id ? '入轨中…' : '一键入轨'}
                     </button>
@@ -266,7 +266,7 @@ export default function SkillIntakeDialog({ open, onClose }: Props) {
                       type="button"
                       disabled={busy !== null || it.errors.length > 0}
                       onClick={() => void runIntake(it.skill_id, 'pr')}
-                      className="rounded-md border border-emerald-700/70 px-2.5 py-1 text-[10px] text-emerald-300 transition-colors hover:bg-emerald-500/10 disabled:opacity-40"
+                      className="rounded-md border border-emerald-700/70 px-2.5 py-1 text-micro text-emerald-300 transition-colors hover:bg-emerald-500/10 disabled:opacity-40"
                       title="commit → push 分支 → 开 PR（要求当前在 master，且改动全在白名单内）"
                     >
                       {busy === it.skill_id ? '处理中…' : '入轨并建 PR'}

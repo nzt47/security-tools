@@ -64,13 +64,13 @@
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.92);
   color: #475569;
-  font-size: 12px;
+  font-size: var(--text-body);
   white-space: nowrap;
 }
 
 .ve-palette-hint {
   padding: 0 12px 8px;
-  font-size: 11px;
+  font-size: var(--text-caption);
   color: #94a3b8;
 }
 
@@ -86,7 +86,7 @@
 .ve-palette-header {
   padding: 12px;
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--text-ui);
   color: #1e293b;
   border-bottom: 1px solid #f1f5f9;
 }
@@ -97,7 +97,7 @@
 
 .ve-palette-group-title {
   padding: 4px 12px;
-  font-size: 11px;
+  font-size: var(--text-caption);
   font-weight: 600;
   color: #94a3b8;
   text-transform: uppercase;
@@ -109,7 +109,7 @@
   gap: 8px;
   padding: 8px 12px;
   cursor: grab;
-  font-size: 13px;
+  font-size: var(--text-body-lg);
   color: #334155;
   transition: background 0.15s;
 }
@@ -123,7 +123,7 @@
 }
 
 .ve-palette-icon {
-  font-size: 16px;
+  font-size: var(--text-title);
   width: 20px;
   text-align: center;
 }
@@ -135,7 +135,7 @@
   background: #fff;
   border: 2px solid #e2e8f0;
   border-radius: 8px;
-  font-size: 12px;
+  font-size: var(--text-body);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: border-color 0.15s;
 }
@@ -156,7 +156,7 @@
 }
 
 .ve-node-icon {
-  font-size: 14px;
+  font-size: var(--text-ui);
 }
 
 .ve-node-body {
@@ -165,7 +165,7 @@
 
 .ve-node-meta {
   color: #64748b;
-  font-size: 11px;
+  font-size: var(--text-caption);
   line-height: 1.5;
 }
 
@@ -210,7 +210,7 @@
 .ve-properties-header {
   padding: 12px;
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--text-ui);
   color: #1e293b;
   border-bottom: 1px solid #f1f5f9;
 }
@@ -219,7 +219,7 @@
   padding: 40px 12px;
   text-align: center;
   color: #94a3b8;
-  font-size: 13px;
+  font-size: var(--text-body-lg);
 }
 
 .ve-properties-body {
@@ -234,7 +234,7 @@
 
 .ve-field-label {
   display: block;
-  font-size: 12px;
+  font-size: var(--text-body);
   font-weight: 500;
   color: #475569;
   margin-bottom: 4px;
@@ -245,7 +245,7 @@
   padding: 6px 8px;
   border: 1px solid #cbd5e1;
   border-radius: 4px;
-  font-size: 13px;
+  font-size: var(--text-body-lg);
   color: #1e293b;
   background: #fff;
   box-sizing: border-box;
@@ -277,7 +277,7 @@ textarea.ve-field-input {
   border-radius: 4px;
   background: #fff;
   color: #334155;
-  font-size: 13px;
+  font-size: var(--text-body-lg);
   cursor: pointer;
   transition: all 0.15s;
 }
@@ -331,13 +331,13 @@ textarea.ve-field-input {
   justify-content: space-between;
   align-items: center;
   padding: 6px 12px;
-  font-size: 12px;
+  font-size: var(--text-body);
   color: #94a3b8;
   background: #0f172a;
 }
 
 .ve-yaml-stats {
-  font-size: 11px;
+  font-size: var(--text-caption);
   color: #64748b;
 }
 
@@ -347,7 +347,7 @@ textarea.ve-field-input {
   margin: 0;
   padding: 12px;
   font-family: 'Cascadia Code', 'Fira Code', monospace;
-  font-size: 12px;
+  font-size: var(--text-body);
   line-height: 1.6;
   color: #e2e8f0;
   white-space: pre-wrap;

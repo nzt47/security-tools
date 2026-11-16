@@ -107,7 +107,7 @@ export default function PlatformCapability() {
           <button
             type="button"
             onClick={() => void load()}
-            className="flex items-center gap-1 rounded-md border border-slate-700 px-2.5 py-1.5 text-[11px] text-slate-300 hover:bg-slate-800"
+            className="flex items-center gap-1 rounded-md border border-slate-700 px-2.5 py-1.5 text-caption text-slate-300 hover:bg-slate-800"
           >
             <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> 刷新
           </button>
@@ -119,8 +119,8 @@ export default function PlatformCapability() {
           type="button"
           onClick={() => { setTab('units'); setQ('') }}
           className={tab === 'units'
-            ? 'flex items-center gap-1 rounded-md border border-cyan-700/70 bg-cyan-500/10 px-2.5 py-1 text-[11px] text-cyan-300'
-            : 'flex items-center gap-1 rounded-md border border-slate-800 px-2.5 py-1 text-[11px] text-slate-400 hover:bg-slate-800'}
+            ? 'flex items-center gap-1 rounded-md border border-cyan-700/70 bg-cyan-500/10 px-2.5 py-1 text-caption text-cyan-300'
+            : 'flex items-center gap-1 rounded-md border border-slate-800 px-2.5 py-1 text-caption text-slate-400 hover:bg-slate-800'}
         >
           <Activity size={11} /> 功能单位 {unitList.length ? `(${unitList.length})` : ''}
         </button>
@@ -128,8 +128,8 @@ export default function PlatformCapability() {
           type="button"
           onClick={() => { setTab('tools'); setQ('') }}
           className={tab === 'tools'
-            ? 'flex items-center gap-1 rounded-md border border-violet-700/70 bg-violet-500/10 px-2.5 py-1 text-[11px] text-violet-300'
-            : 'flex items-center gap-1 rounded-md border border-slate-800 px-2.5 py-1 text-[11px] text-slate-400 hover:bg-slate-800'}
+            ? 'flex items-center gap-1 rounded-md border border-violet-700/70 bg-violet-500/10 px-2.5 py-1 text-caption text-violet-300'
+            : 'flex items-center gap-1 rounded-md border border-slate-800 px-2.5 py-1 text-caption text-slate-400 hover:bg-slate-800'}
         >
           <Cpu size={11} /> 工具 {tools.length ? `(${tools.length})` : ''}
         </button>
@@ -137,8 +137,8 @@ export default function PlatformCapability() {
           type="button"
           onClick={() => { setTab('tasks'); setQ('') }}
           className={tab === 'tasks'
-            ? 'flex items-center gap-1 rounded-md border border-amber-700/70 bg-amber-500/10 px-2.5 py-1 text-[11px] text-amber-300'
-            : 'flex items-center gap-1 rounded-md border border-slate-800 px-2.5 py-1 text-[11px] text-slate-400 hover:bg-slate-800'}
+            ? 'flex items-center gap-1 rounded-md border border-amber-700/70 bg-amber-500/10 px-2.5 py-1 text-caption text-amber-300'
+            : 'flex items-center gap-1 rounded-md border border-slate-800 px-2.5 py-1 text-caption text-slate-400 hover:bg-slate-800'}
         >
           <ListChecks size={11} /> 调度 {tasks.length ? `(${tasks.length})` : ''}
         </button>
@@ -149,7 +149,7 @@ export default function PlatformCapability() {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="搜索"
-              className="w-40 bg-transparent text-[11px] text-slate-200 outline-none placeholder:text-slate-600"
+              className="w-40 bg-transparent text-caption text-slate-200 outline-none placeholder:text-slate-600"
             />
           </div>
         ) : null}
@@ -161,7 +161,7 @@ export default function PlatformCapability() {
 
         {tab === 'units' ? (
           <Card>
-            <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+            <div className="mb-3 flex flex-wrap items-center gap-2 text-caption text-slate-400">
               <span>健康分 <strong className="text-slate-100">{units.health_score ?? '—'}</strong></span>
               <span>ok <strong className="text-emerald-300">{summary.ok ?? '—'}</strong></span>
               <span>warn <strong className="text-amber-300">{summary.warn ?? '—'}</strong></span>
@@ -173,19 +173,19 @@ export default function PlatformCapability() {
                 <li key={u.id} className="flex items-start gap-2 py-1.5">
                   <Badge color={STATUS_COLOR[u.status] || 'slate'}>{u.status}</Badge>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[12px] text-slate-200">{u.id}</div>
-                    {u.headline ? <div className="text-[10px] text-slate-500">{u.headline}</div> : null}
+                    <div className="text-body text-slate-200">{u.id}</div>
+                    {u.headline ? <div className="text-micro text-slate-500">{u.headline}</div> : null}
                   </div>
                 </li>
               ))}
-              {unitList.length === 0 && !loading ? <li className="py-4 text-[11px] text-slate-500">没有数据</li> : null}
+              {unitList.length === 0 && !loading ? <li className="py-4 text-caption text-slate-500">没有数据</li> : null}
             </ul>
           </Card>
         ) : null}
 
         {tab === 'tools' ? (
           <Card>
-            <div className="mb-3 text-[11px] text-slate-400">
+            <div className="mb-3 text-caption text-slate-400">
               共 <strong className="text-slate-100">{tools.length}</strong> 个 · 启用{' '}
               <strong className="text-emerald-300">{enabledTools}</strong> · 停用{' '}
               <strong className="text-slate-400">{disabledTools}</strong>
@@ -196,22 +196,22 @@ export default function PlatformCapability() {
                 <li key={t.name} className="flex items-start gap-2 py-1.5">
                   <Badge color={t.enabled ? 'green' : 'slate'}>{t.enabled ? 'on' : 'off'}</Badge>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[12px] text-slate-200">{t.name}</div>
+                    <div className="text-body text-slate-200">{t.name}</div>
                     {t.description ? (
-                      <div className="line-clamp-2 text-[10px] text-slate-500">{t.description}</div>
+                      <div className="line-clamp-2 text-micro text-slate-500">{t.description}</div>
                     ) : null}
                   </div>
-                  <span className="shrink-0 text-[10px] text-slate-600">调用 {t.call_count ?? 0}</span>
+                  <span className="shrink-0 text-micro text-slate-600">调用 {t.call_count ?? 0}</span>
                 </li>
               ))}
-              {filteredTools.length === 0 ? <li className="py-4 text-[11px] text-slate-500">没有匹配项</li> : null}
+              {filteredTools.length === 0 ? <li className="py-4 text-caption text-slate-500">没有匹配项</li> : null}
             </ul>
           </Card>
         ) : null}
 
         {tab === 'tasks' ? (
           <Card>
-            <div className="mb-3 text-[11px] text-slate-400">
+            <div className="mb-3 text-caption text-slate-400">
               共 <strong className="text-slate-100">{tasks.length}</strong> 个 · 启用{' '}
               <strong className="text-emerald-300">{enabledTasks}</strong> · 零 token{' '}
               <strong className="text-cyan-300">{tasks.filter((t) => t.zero_token).length}</strong>
@@ -222,14 +222,14 @@ export default function PlatformCapability() {
                   <Badge color={t.enabled ? 'green' : 'slate'}>{t.enabled ? 'on' : 'off'}</Badge>
                   {t.zero_token ? <Badge color="cyan">0-token</Badge> : null}
                   <div className="min-w-0 flex-1">
-                    <div className="text-[12px] text-slate-200">{t.name}</div>
-                    <div className="text-[10px] text-slate-500">
+                    <div className="text-body text-slate-200">{t.name}</div>
+                    <div className="text-micro text-slate-500">
                       {t.schedule_text || '—'} · 上次 {t.last_run || '—'}
                     </div>
                   </div>
                 </li>
               ))}
-              {filteredTasks.length === 0 ? <li className="py-4 text-[11px] text-slate-500">没有匹配项</li> : null}
+              {filteredTasks.length === 0 ? <li className="py-4 text-caption text-slate-500">没有匹配项</li> : null}
             </ul>
           </Card>
         ) : null}

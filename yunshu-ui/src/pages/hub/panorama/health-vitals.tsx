@@ -26,7 +26,7 @@ import {
   HEALTH_WEIGHTS,
 } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
+const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 
@@ -128,7 +128,7 @@ export default function HealthVitals() {
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <ShieldCheck size={13} className="text-cyan-400" />
         <h3 className="text-xs font-semibold text-slate-200">健康体检</h3>
-        <span className="text-[10px] text-slate-500">
+        <span className="text-micro text-slate-500">
           分维度得分 / 趋势 / 历史 / 告警 / 权重 / 一次毫秒级快速体检
         </span>
         <div className="ml-auto flex items-center gap-1.5">
@@ -146,7 +146,7 @@ export default function HealthVitals() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
+      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
 
       <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
         {[
@@ -156,33 +156,33 @@ export default function HealthVitals() {
           ['历史快照', history.length],
         ].map(([k, v]) => (
           <div key={String(k)} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5">
-            <div className="text-[10px] text-slate-500">{String(k)}</div>
-            <div className="truncate font-mono text-[12px] text-cyan-300">{String(v)}</div>
+            <div className="text-micro text-slate-500">{String(k)}</div>
+            <div className="truncate font-mono text-body text-cyan-300">{String(v)}</div>
           </div>
         ))}
       </div>
 
       {quick && (
         <div className="mb-2 rounded-sm border border-slate-800 bg-slate-950/60 p-2">
-          <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
+          <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
             <Activity size={11} className="text-cyan-400" /> 快速体检 · {quick.level ?? '-'} · {quick.score ?? '-'} 分
-            <span className="ml-auto font-mono text-[10px] text-slate-600">{Math.round(quick.elapsed_ms ?? 0)}ms</span>
+            <span className="ml-auto font-mono text-micro text-slate-600">{Math.round(quick.elapsed_ms ?? 0)}ms</span>
           </div>
-          <div className="flex flex-wrap gap-1 font-mono text-[10px] text-slate-400">
+          <div className="flex flex-wrap gap-1 font-mono text-micro text-slate-400">
             {Object.entries(quick.metrics ?? {}).map(([k, v]) => (
               <span key={k} className="rounded-sm bg-slate-800/60 px-1.5 py-0.5">{k}={Math.round(v)}</span>
             ))}
           </div>
           {(quick.issues?.length ?? 0) > 0 && (
-            <div className="mt-1 text-[10px] text-amber-300">问题 {quick.issues?.length} 条</div>
+            <div className="mt-1 text-micro text-amber-300">问题 {quick.issues?.length} 条</div>
           )}
         </div>
       )}
 
       {dims.length > 0 && (
         <div className="mb-2 overflow-x-auto">
-          <table className="w-full text-left text-[11px]">
-            <thead className="text-[10px] text-slate-500">
+          <table className="w-full text-left text-caption">
+            <thead className="text-micro text-slate-500">
               <tr>
                 <th className="px-1 py-1">维度</th>
                 <th className="px-1 py-1">得分</th>
@@ -196,7 +196,7 @@ export default function HealthVitals() {
                   <td className="px-1 py-1 text-slate-300">{name}</td>
                   <td className="px-1 py-1 font-mono text-cyan-300">{Math.round(d.score ?? 0)}</td>
                   <td className="px-1 py-1 font-mono text-slate-400">{d.weight ?? '—'}</td>
-                  <td className="px-1 py-1 font-mono text-[10px] text-slate-500">
+                  <td className="px-1 py-1 font-mono text-micro text-slate-500">
                     {Object.entries(d.indicators ?? {}).map(([k, v]) => k + '=' + v).join(' · ')}
                   </td>
                 </tr>
@@ -208,15 +208,15 @@ export default function HealthVitals() {
 
       {(alerts?.length ?? 0) > 0 && (
         <div className="mb-2">
-          <div className="mb-1 flex items-center gap-1 text-[11px] text-amber-300">
+          <div className="mb-1 flex items-center gap-1 text-caption text-amber-300">
             <AlertTriangle size={11} /> 健康度告警（{alerts?.length}）
           </div>
           <div className="flex flex-col gap-1">
             {alerts?.map((a, i) => (
-              <div key={(a.name ?? '') + i} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
-                <span className="font-mono text-[10px] text-cyan-300">{a.name ?? '?'}</span>
+              <div key={(a.name ?? '') + i} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-caption">
+                <span className="font-mono text-micro text-cyan-300">{a.name ?? '?'}</span>
                 <span className="text-slate-400">{a.condition ?? ''}</span>
-                <span className="ml-auto text-[10px] text-slate-500">{a.severity ?? ''}</span>
+                <span className="ml-auto text-micro text-slate-500">{a.severity ?? ''}</span>
               </div>
             ))}
           </div>
@@ -224,7 +224,7 @@ export default function HealthVitals() {
       )}
 
       <div className="rounded-sm border border-slate-800 bg-slate-950/60 p-2">
-        <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
+        <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
           <Gauge size={11} className="text-cyan-400" /> 维度权重（改它会改变所有人看到的健康度）
         </div>
         <textarea
@@ -234,14 +234,14 @@ export default function HealthVitals() {
           aria-label="健康维度权重 JSON"
         />
         <div className="mt-1 flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-1 text-[10px] text-slate-400">
+          <label className="flex items-center gap-1 text-micro text-slate-400">
             <input type="checkbox" checked={confirmWeights} onChange={(e) => setConfirmWeights(e.target.checked)} aria-label="确认修改权重" />
             我确认修改权重
           </label>
           <button type="button" className={BTN_EM} onClick={() => void saveWeights()} disabled={loading || !confirmWeights} aria-label="保存权重">
             {busy === 'weights' ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />} 保存权重
           </button>
-          <span className="text-[10px] text-slate-600">
+          <span className="text-micro text-slate-600">
             可选维度：{(weights?.dimensions ?? []).join(' / ')}
           </span>
         </div>

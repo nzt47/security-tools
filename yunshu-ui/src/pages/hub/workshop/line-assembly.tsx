@@ -63,7 +63,7 @@ function Chip({ children, tone = 'slate' }: { children: ReactNode; tone?: string
     green: 'border-emerald-800 bg-emerald-950/40 text-emerald-300',
   }
   return (
-    <span className={`inline-block rounded-sm border px-1.5 py-0.5 font-mono text-[11px] ${cls[tone] ?? cls.slate}`}>
+    <span className={`inline-block rounded-sm border px-1.5 py-0.5 font-mono text-caption ${cls[tone] ?? cls.slate}`}>
       {children}
     </span>
   )
@@ -250,25 +250,25 @@ export default function LineAssemblyOverview() {
                       <td className="px-3 py-3" colSpan={5} data-testid={`line-detail-${r.line.id}`}>
                         <div className="grid gap-3 md:grid-cols-2">
                           <div>
-                            <div className="mb-1 text-[11px] text-slate-500">① 工具面（主智能体装配；后端 trace 原文）</div>
+                            <div className="mb-1 text-caption text-slate-500">① 工具面（主智能体装配；后端 trace 原文）</div>
                             <div className="flex flex-wrap gap-1">
                               {(d?.preview.tools ?? []).map((t) => <Chip key={t}>{t}</Chip>)}
-                              {!(d?.preview.tools ?? []).length && <span className="text-[11px] text-slate-600">{DASH}</span>}
+                              {!(d?.preview.tools ?? []).length && <span className="text-caption text-slate-600">{DASH}</span>}
                             </div>
                           </div>
                           <div>
-                            <div className="mb-1 text-[11px] text-slate-500">② 技能面（本线允许注入的技能）</div>
+                            <div className="mb-1 text-caption text-slate-500">② 技能面（本线允许注入的技能）</div>
                             <div className="flex flex-wrap gap-1">
                               {skills?.unrestricted
-                                ? <span className="text-[11px] text-slate-500">不限制（本线未限定技能范围）</span>
+                                ? <span className="text-caption text-slate-500">不限制（本线未限定技能范围）</span>
                                 : (skills?.allowed ?? []).map((s) => <Chip key={s} tone="cyan">{s}</Chip>)}
                               {(skills?.unknown ?? []).map((s) => <Chip key={s} tone="red">{s}（查不到）</Chip>)}
-                              {!skills && <span className="text-[11px] text-slate-600">{DASH}</span>}
+                              {!skills && <span className="text-caption text-slate-600">{DASH}</span>}
                             </div>
                           </div>
                           <div>
-                            <div className="mb-1 text-[11px] text-slate-500">③ 提示词面（role=line 片段）</div>
-                            <div className="text-[11px] text-slate-400">
+                            <div className="mb-1 text-caption text-slate-500">③ 提示词面（role=line 片段）</div>
+                            <div className="text-caption text-slate-400">
                               {frags === null
                                 ? DASH
                                 : (frags > 0
@@ -277,22 +277,22 @@ export default function LineAssemblyOverview() {
                             </div>
                           </div>
                           <div>
-                            <div className="mb-1 text-[11px] text-slate-500">④ 分身面（派一个分身时它拿到什么）</div>
+                            <div className="mb-1 text-caption text-slate-500">④ 分身面（派一个分身时它拿到什么）</div>
                             {!sa.present
-                              ? <div className="text-[11px] text-slate-600">{DASH}</div>
+                              ? <div className="text-caption text-slate-600">{DASH}</div>
                               : sa.assembly!.available ? (
                                 <>
                                   <div className="flex flex-wrap gap-1">
                                     {sa.assembly!.tools.map((t) => <Chip key={t} tone="green">{t}</Chip>)}
-                                    {!sa.assembly!.tools.length && <span className="text-[11px] text-amber-300">一个都不给</span>}
+                                    {!sa.assembly!.tools.length && <span className="text-caption text-amber-300">一个都不给</span>}
                                   </div>
-                                  <div className="mt-1 text-[11px] text-slate-500">{sa.assembly!.note}</div>
+                                  <div className="mt-1 text-caption text-slate-500">{sa.assembly!.note}</div>
                                 </>
                               ) : (
-                                <div className="text-[11px] text-red-300">{sa.assembly!.reason}</div>
+                                <div className="text-caption text-red-300">{sa.assembly!.reason}</div>
                               )}
                             {sa.present && sa.assembly!.semantics_note && (
-                              <div className="mt-1 text-[11px] text-slate-500">{sa.assembly!.semantics_note}</div>
+                              <div className="mt-1 text-caption text-slate-500">{sa.assembly!.semantics_note}</div>
                             )}
                           </div>
                         </div>
@@ -309,7 +309,7 @@ export default function LineAssemblyOverview() {
         )}
       </div>
 
-      <div className="text-[11px] text-slate-500">
+      <div className="text-caption text-slate-500">
         判定出处：工具面 <span className="font-mono">agent/lines/assembler.py</span> ·
         技能面 <span className="font-mono">agent/lines/skillpack.py</span> ·
         提示词面 <span className="font-mono">agent/orchestrator/prompt_builder.py</span> ·

@@ -79,8 +79,8 @@ function EnvFlag({ ok, text }: { ok: boolean; text: string }) {
   return (
     <span
       className={ok
-        ? 'rounded-sm bg-emerald-950/40 px-2 py-0.5 text-[11px] text-emerald-300'
-        : 'rounded-sm bg-amber-950/40 px-2 py-0.5 text-[11px] text-amber-300'}
+        ? 'rounded-sm bg-emerald-950/40 px-2 py-0.5 text-caption text-emerald-300'
+        : 'rounded-sm bg-amber-950/40 px-2 py-0.5 text-caption text-amber-300'}
     >{text}</span>
   )
 }
@@ -244,7 +244,7 @@ export default function WorkshopReplicate() {
         {text && (
           <pre
             data-testid="replicate-json"
-            className="mt-3 max-h-[420px] overflow-auto rounded-lg border border-slate-800 bg-slate-950 p-3 text-[11px] leading-5 text-slate-300"
+            className="mt-3 max-h-[420px] overflow-auto rounded-lg border border-slate-800 bg-slate-950 p-3 text-caption leading-5 text-slate-300"
           >{text}</pre>
         )}
       </Card>
@@ -254,14 +254,14 @@ export default function WorkshopReplicate() {
           <div className="flex flex-wrap items-center gap-2">
             <EnvFlag ok={env.offline_ready === true}
               text={'offline_ready=' + String(env.offline_ready === true)} />
-            <span className="text-[11px] text-slate-500">
+            <span className="text-caption text-slate-500">
               satisfied_locally={String(env.satisfied_locally === true)}（只说明导出机装了）
             </span>
-            <span className="text-[11px] text-slate-500">source_status={env.source_status || '?'}</span>
-            <span className="text-[11px] text-slate-500">artifacts.mode={env.artifacts?.mode || '?'}</span>
+            <span className="text-caption text-slate-500">source_status={env.source_status || '?'}</span>
+            <span className="text-caption text-slate-500">artifacts.mode={env.artifacts?.mode || '?'}</span>
           </div>
           <p className="mt-2 text-xs leading-5 text-slate-400">{env.reason || ''}</p>
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-400">
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-caption text-slate-400">
             <span>declared={env.counts?.declared ?? 0}</span>
             <span>ok={env.counts?.ok ?? 0}</span>
             <span>missing={env.counts?.missing ?? 0}</span>
@@ -303,7 +303,7 @@ export default function WorkshopReplicate() {
             onChange={(e) => setImportText(e.target.value)}
             data-testid="replicate-import-text"
             placeholder="或直接粘贴 bundle JSON 文本"
-            className="mt-3 h-28 w-full rounded-lg border border-slate-700 bg-slate-900 p-2 font-mono text-[11px] leading-5 text-slate-200 placeholder-slate-600 outline-hidden"
+            className="mt-3 h-28 w-full rounded-lg border border-slate-700 bg-slate-900 p-2 font-mono text-caption leading-5 text-slate-200 placeholder-slate-600 outline-hidden"
           />
           {importError && (
             <div className="mt-3" data-testid="replicate-import-error"><ErrorBox message={importError} /></div>
@@ -327,7 +327,7 @@ export default function WorkshopReplicate() {
           )}
           {importCheck && (
             <div
-              className="mt-3 rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2 text-[11px] leading-5 text-slate-400"
+              className="mt-3 rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2 text-caption leading-5 text-slate-400"
               data-testid="replicate-import-envcheck"
             >
               到达端对拍：satisfied={String(importCheck.satisfied === true)}

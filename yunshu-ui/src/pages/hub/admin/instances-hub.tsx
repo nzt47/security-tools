@@ -54,7 +54,7 @@ export default function InstancesHub() {
             <Icon size={13} />{label}
           </button>
         ))}
-        <span className="ml-auto font-mono text-[10px] text-slate-600">{active[3]}</span>
+        <span className="ml-auto font-mono text-micro text-slate-600">{active[3]}</span>
       </div>
       <div className="min-h-0 flex-1">
         {tab === 'instances' && <InstancesPanel />}

@@ -110,7 +110,7 @@ export function NavPanel() {
             placeholder="搜索功能（如：审批）"
             aria-label="搜索功能"
             data-cp-nav-search
-            className="w-full rounded-md border border-slate-800 bg-slate-950/60 py-1 pl-6 pr-6 text-[12px] text-slate-200 placeholder:text-slate-600 focus:border-cyan-600/60 focus:outline-hidden"
+            className="w-full rounded-md border border-slate-800 bg-slate-950/60 py-1 pl-6 pr-6 text-body text-slate-200 placeholder:text-slate-600 focus:border-cyan-600/60 focus:outline-hidden"
           />
           {searching && (
             <button
@@ -131,7 +131,7 @@ export function NavPanel() {
         {tree.length === 0 ? (
           <div
             data-cp-nav-empty
-            className="px-2 py-6 text-center text-[11.5px] leading-relaxed text-slate-500"
+            className="px-2 py-6 text-center text-body leading-relaxed text-slate-500"
           >
             没有匹配「{query.trim()}」的功能
             <br />

@@ -23,10 +23,10 @@ import {
   PROCESS_DISTILL_HEALTH,
 } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
+const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
-const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
+const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 export default function EngineOrchestration() {
   const [busy, setBusy] = useState('')
@@ -112,7 +112,7 @@ export default function EngineOrchestration() {
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Settings2 size={14} className="text-cyan-400" />
         <h2 className="text-sm font-semibold text-slate-100">编排与蒸馏</h2>
-        <span className="text-[11px] text-slate-500">语义层热更 / 规划引擎开关 / 过程蒸馏（把素材固化成 workflow 或技能）</span>
+        <span className="text-caption text-slate-500">语义层热更 / 规划引擎开关 / 过程蒸馏（把素材固化成 workflow 或技能）</span>
         <div className="ml-auto">
           <button type="button" className={BTN} onClick={() => void load()} disabled={loading} aria-label="刷新编排配置">
             {busy === 'load' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
@@ -121,15 +121,15 @@ export default function EngineOrchestration() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
+      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
 
       <div className="grid gap-2 lg:grid-cols-2">
         <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-          <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
+          <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
             <Settings2 size={11} className="text-cyan-400" /> 语义层配置（当前生效）
           </div>
           <pre className={PRE}>{JSON.stringify(sem ?? {}, null, 2)}</pre>
-          <div className="mt-2 mb-1 text-[11px] text-slate-400">API 覆盖层（提交后即时生效；只接受已知键）</div>
+          <div className="mt-2 mb-1 text-caption text-slate-400">API 覆盖层（提交后即时生效；只接受已知键）</div>
           <textarea
             className={INPUT + ' h-32 w-full font-mono'}
             value={draft}
@@ -140,23 +140,23 @@ export default function EngineOrchestration() {
             <button type="button" className={BTN_EM} onClick={() => void saveSemantic()} disabled={loading} aria-label="提交语义层配置">
               {busy === 'sem' ? <Loader2 size={11} className="animate-spin" /> : null} 提交热更
             </button>
-            <span className="text-[10px] text-slate-500">已知键：enabled / min_score / top_k / use_vector / use_bm25 / use_reranker / fusion_mode</span>
+            <span className="text-micro text-slate-500">已知键：enabled / min_score / top_k / use_vector / use_bm25 / use_reranker / fusion_mode</span>
           </div>
           {override && Object.keys(override).length === 0 && (
-            <div className="mt-1 text-[10px] text-slate-600">当前没有 API 覆盖（用的是 env/config.yaml 的值）。</div>
+            <div className="mt-1 text-micro text-slate-600">当前没有 API 覆盖（用的是 env/config.yaml 的值）。</div>
           )}
         </div>
 
         <div className="space-y-2">
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-            <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
+            <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
               <Play size={11} className="text-cyan-400" /> 规划引擎（运行期开关）
             </div>
-            <div className="mb-1 text-[10px] text-amber-400">
+            <div className="mb-1 text-micro text-amber-400">
               热生效、**不落配置**：重启后以 config.yaml 的 planning.enabled 为准。
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <label className="flex items-center gap-1 text-[10px] text-slate-400">
+              <label className="flex items-center gap-1 text-micro text-slate-400">
                 <input type="checkbox" checked={confirmPlan} onChange={(e) => setConfirmPlan(e.target.checked)} aria-label="确认切换规划引擎" />
                 我确认切换
               </label>
@@ -166,12 +166,12 @@ export default function EngineOrchestration() {
               <button type="button" className={BTN} onClick={() => void togglePlanning(false)} disabled={loading || !confirmPlan} aria-label="停用规划引擎">
                 停用
               </button>
-              {planning !== null && <span className="text-[10px] text-slate-400">上次结果：{planning ? '已启用' : '已停用'}</span>}
+              {planning !== null && <span className="text-micro text-slate-400">上次结果：{planning ? '已启用' : '已停用'}</span>}
             </div>
           </div>
 
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-            <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
+            <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
               <FileStack size={11} className="text-cyan-400" /> 过程蒸馏可用性
             </div>
             <pre className={PRE}>{JSON.stringify(health ?? {}, null, 2)}</pre>
@@ -180,7 +180,7 @@ export default function EngineOrchestration() {
       </div>
 
       <div className="mt-2 rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-        <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
+        <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
           <Wand2 size={11} className="text-cyan-400" /> 从素材蒸馏（query 与 paths 至少一个）
         </div>
         <div className="grid gap-2 lg:grid-cols-2">
@@ -203,7 +203,7 @@ export default function EngineOrchestration() {
           <button type="button" className={BTN_EM} onClick={() => void runDistill()} disabled={loading} aria-label="执行蒸馏">
             {busy === 'distill' ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />} 开始蒸馏
           </button>
-          <span className="text-[10px] text-slate-500">产物会固化为 workflow / skill；这里是唯一入口（此前只有 API）。</span>
+          <span className="text-micro text-slate-500">产物会固化为 workflow / skill；这里是唯一入口（此前只有 API）。</span>
         </div>
         {distill && <pre className={PRE + ' mt-2 max-h-72'}>{JSON.stringify(distill, null, 2)}</pre>}
       </div>

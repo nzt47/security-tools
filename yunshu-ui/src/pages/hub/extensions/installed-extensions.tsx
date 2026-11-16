@@ -26,9 +26,9 @@ import {
   EXTENSIONS_UNINSTALL,
 } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
+const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
-const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 font-mono text-[11px] text-slate-200 outline-hidden focus:border-cyan-600'
+const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 font-mono text-caption text-slate-200 outline-hidden focus:border-cyan-600'
 
 export interface ExtRow {
   ext_id?: string
@@ -155,7 +155,7 @@ export default function InstalledExtensions({ types, title, hint, emptyText, exc
     <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-3" data-testid={'installed-ext-' + typeSet}>
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <h3 className="text-xs font-semibold text-slate-200">{title}</h3>
-        <span className="text-[10px] text-slate-500">{rows.length} 项</span>
+        <span className="text-micro text-slate-500">{rows.length} 项</span>
         <button
           type="button"
           onClick={() => void load()}
@@ -166,15 +166,15 @@ export default function InstalledExtensions({ types, title, hint, emptyText, exc
           <RefreshCw size={11} className={loading ? 'animate-spin' : ''} /> 刷新
         </button>
       </div>
-      {hint && <p className="mb-2 text-[10px] leading-relaxed text-slate-500">{hint}</p>}
+      {hint && <p className="mb-2 text-micro leading-relaxed text-slate-500">{hint}</p>}
       {err && <div className="mb-2"><ErrorBox message={err} /></div>}
-      {msg && <div className="mb-2 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-cyan-300">{msg}</div>}
+      {msg && <div className="mb-2 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-caption text-cyan-300">{msg}</div>}
 
       {loading && rows.length === 0 && (
-        <div className="py-3 text-center text-[11px] text-slate-500"><Loader2 size={12} className="mr-1 inline animate-spin" />读取中…</div>
+        <div className="py-3 text-center text-caption text-slate-500"><Loader2 size={12} className="mr-1 inline animate-spin" />读取中…</div>
       )}
       {!loading && rows.length === 0 && (
-        <div className="py-3 text-center text-[11px] text-slate-500">{emptyText ?? '没有通过扩展系统安装的条目。'}</div>
+        <div className="py-3 text-center text-caption text-slate-500">{emptyText ?? '没有通过扩展系统安装的条目。'}</div>
       )}
 
       <div className="flex flex-col gap-1">
@@ -185,10 +185,10 @@ export default function InstalledExtensions({ types, title, hint, emptyText, exc
           const editingConfig = configKey === id
           return (
             <div key={key} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5">
-              <div className="flex flex-wrap items-center gap-2 text-[11px]">
+              <div className="flex flex-wrap items-center gap-2 text-caption">
                 <span className="font-mono text-cyan-300">{id}</span>
                 <span className="text-slate-300">{row.name ?? ''}</span>
-                {row.version && <span className="font-mono text-[10px] text-slate-600">v{row.version}</span>}
+                {row.version && <span className="font-mono text-micro text-slate-600">v{row.version}</span>}
                 <span className={row.enabled ? 'text-emerald-400' : 'text-slate-500'}>
                   {row.enabled ? '启用' : '停用'}
                 </span>
@@ -223,11 +223,11 @@ export default function InstalledExtensions({ types, title, hint, emptyText, exc
                   </button>
                 </span>
               </div>
-              {row.description && <div className="mt-0.5 text-[10px] text-slate-500">{row.description}</div>}
+              {row.description && <div className="mt-0.5 text-micro text-slate-500">{row.description}</div>}
 
               {editingConfig && (
                 <div className="mt-1.5 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1.5">
-                  <div className="mb-1 text-[10px] text-slate-500">配置（JSON）</div>
+                  <div className="mb-1 text-micro text-slate-500">配置（JSON）</div>
                   <textarea
                     className={INPUT + ' h-24 resize-y'}
                     value={configText}
@@ -252,7 +252,7 @@ export default function InstalledExtensions({ types, title, hint, emptyText, exc
               {confirming && (
                 <div className="mt-1.5 flex flex-wrap items-center gap-2 rounded-sm border border-red-900/50 bg-red-500/5 px-2 py-1.5">
                   <TriangleAlert size={12} className="text-red-400" />
-                  <span className="text-[10px] text-red-300">
+                  <span className="text-micro text-red-300">
                     卸载对「文件轨独占」的扩展是不可逆删除（force=true 才允许）。确定？
                   </span>
                   <button

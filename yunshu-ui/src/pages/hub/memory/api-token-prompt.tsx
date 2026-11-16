@@ -17,7 +17,7 @@ export default function ApiTokenPrompt({ onSaved }: { onSaved?: () => void }) {
   }
   return (
     <div className="mb-3 rounded-lg border border-amber-800/60 bg-amber-950/20 px-3 py-2.5">
-      <div className="flex items-start gap-2 text-[11px] leading-relaxed text-amber-200">
+      <div className="flex items-start gap-2 text-caption leading-relaxed text-amber-200">
         <KeyRound size={13} className="mt-0.5 shrink-0" />
         <div>
           <div className="font-medium text-amber-100">受保护写接口需要 API 令牌（FLASK_API_TOKEN）</div>
@@ -31,7 +31,7 @@ export default function ApiTokenPrompt({ onSaved }: { onSaved?: () => void }) {
         <input className={INPUT} type="password" value={value} onChange={(e) => setValue(e.target.value)}
           placeholder="FLASK_API_TOKEN（留空保存=清除）" autoComplete="off" />
         <button type="button"
-          className="shrink-0 rounded-md border border-cyan-700/70 px-3 py-1.5 text-[11px] text-cyan-300 transition-colors hover:bg-cyan-500/10"
+          className="shrink-0 rounded-md border border-cyan-700/70 px-3 py-1.5 text-caption text-cyan-300 transition-colors hover:bg-cyan-500/10"
           onClick={save}>保存并重试</button>
       </div>
     </div>

@@ -77,8 +77,8 @@ export default function WorkflowHub() {
             <Workflow size={14} className="text-emerald-400" />
           </div>
           <div>
-            <h1 className="text-[15px] font-semibold text-slate-100">工作流</h1>
-            <p className="text-[11px] text-slate-500">
+            <h1 className="text-title font-semibold text-slate-100">工作流</h1>
+            <p className="text-caption text-slate-500">
               学习/编排得到的确定性步骤 —— 命中任务描述即本地执行并跳过 LLM；可视化编辑是它的画布入口
             </p>
           </div>
@@ -106,7 +106,7 @@ export default function WorkflowHub() {
             </button>
           )
         })}
-        <span className="ml-auto hidden font-mono text-[10px] text-slate-600 md:inline">{active.desc}</span>
+        <span className="ml-auto hidden font-mono text-micro text-slate-600 md:inline">{active.desc}</span>
       </div>
 
       <div className="min-h-0 flex-1">

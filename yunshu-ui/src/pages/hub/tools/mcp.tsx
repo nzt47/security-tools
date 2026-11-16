@@ -187,16 +187,16 @@ export default function ToolsMcp() {
                         <Trash2 size={11} /> {armed ? '确认卸载' : '卸载'}
                       </button>
                       {armed && (
-                        <span className="flex items-center gap-1 text-[10px] text-red-300">
+                        <span className="flex items-center gap-1 text-micro text-red-300">
                           不可逆（服务配置 + 扩展登记一并删除）
                           <button
                             onClick={() => void uninstall(id)}
                             aria-label={'确认卸载 MCP ' + id}
-                            className="rounded-sm border border-red-800/70 px-2 py-1 text-[10px] text-red-200 hover:bg-red-500/10"
+                            className="rounded-sm border border-red-800/70 px-2 py-1 text-micro text-red-200 hover:bg-red-500/10"
                           >
                             确定
                           </button>
-                          <button onClick={() => setConfirmUninstall('')} className="rounded-sm border border-slate-700 px-2 py-1 text-[10px] text-slate-300 hover:bg-slate-800">取消</button>
+                          <button onClick={() => setConfirmUninstall('')} className="rounded-sm border border-slate-700 px-2 py-1 text-micro text-slate-300 hover:bg-slate-800">取消</button>
                         </span>
                       )}
                     </div>
@@ -210,30 +210,30 @@ export default function ToolsMcp() {
 
       {/* ── 内置 MCP 服务：发现 → 就地安装（原「扩展市场 · 内置 MCP 服务」组） ── */}
       <Card title={'内置 MCP 服务（可安装）' + (builtin.length ? '（' + builtin.length + '）' : '')} className="mt-4">
-        <p className="mb-2 text-[10px] text-slate-500">
+        <p className="mb-2 text-micro text-slate-500">
           来自内置模板；安装后立即出现在上方服务表（不必回扩展市场看结果）。
         </p>
-        {builtin.length === 0 && <div className="text-[11px] text-slate-500">没有可安装的内置模板。</div>}
+        {builtin.length === 0 && <div className="text-caption text-slate-500">没有可安装的内置模板。</div>}
         <div className="flex flex-col gap-1">
           {builtin.map((b) => {
             const id = b.id ?? ''
             return (
-              <div key={'builtin-mcp-' + id} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
-                <span className="font-mono text-[10px] text-cyan-300">{id}</span>
+              <div key={'builtin-mcp-' + id} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-caption">
+                <span className="font-mono text-micro text-cyan-300">{id}</span>
                 <span className="text-slate-300">{b.name ?? ''}</span>
-                <span className="truncate text-[10px] text-slate-500">{b.description ?? ''}</span>
+                <span className="truncate text-micro text-slate-500">{b.description ?? ''}</span>
                 <span className="ml-auto flex items-center gap-1.5">
                   {b.enabled
-                    ? <span className="text-[10px] text-emerald-400">已启用</span>
+                    ? <span className="text-micro text-emerald-400">已启用</span>
                     : b.installed
-                      ? <span className="text-[10px] text-slate-400">已装（未启用）</span>
+                      ? <span className="text-micro text-slate-400">已装（未启用）</span>
                       : (
                         <button
                           type="button"
                           onClick={() => void installBuiltin(id)}
                           disabled={installing !== ''}
                           aria-label={'安装内置 MCP ' + id}
-                          className="flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {installing === id ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />} 安装
                         </button>

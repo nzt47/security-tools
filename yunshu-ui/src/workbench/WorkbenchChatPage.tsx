@@ -524,10 +524,10 @@ export default function WorkbenchChatPage() {
         <div className="wb-strip justify-between gap-3 border-b border-slate-800 bg-slate-900/40 pl-4 pr-8">
           <div className="flex min-w-0 items-center gap-2">
             <MessageSquare size={13} className="shrink-0 text-cyan-400" />
-            <span className="min-w-0 max-w-[260px] truncate text-[12px] font-medium text-slate-200" title={activeTitle}>
+            <span className="min-w-0 max-w-[260px] truncate text-body font-medium text-slate-200" title={activeTitle}>
               {activeTitle}
             </span>
-            <span className="shrink-0 rounded-full bg-slate-800 px-2 py-0.5 text-[10px] text-slate-500">
+            <span className="shrink-0 rounded-full bg-slate-800 px-2 py-0.5 text-micro text-slate-500">
               SSE 流式
             </span>
           </div>
@@ -550,7 +550,7 @@ export default function WorkbenchChatPage() {
                 onClick={() => handleOpenWorkspace(sessionId)}
                 aria-label="打开任务工作空间"
                 title="任务工作空间：查看/打开当前会话的工作目录"
-                className="flex items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1 text-[11px] text-slate-400 transition-colors hover:border-amber-500/50 hover:bg-amber-500/10 hover:text-amber-300"
+                className="flex items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1 text-caption text-slate-400 transition-colors hover:border-amber-500/50 hover:bg-amber-500/10 hover:text-amber-300"
               >
                 <FolderOpen size={11} />
                 工作空间
@@ -563,7 +563,7 @@ export default function WorkbenchChatPage() {
                 setSkillGenOpen(true)
               }}
               title="把对话中出现的可用能力要求直接生成技能草稿（自动评审-评估；预填最近一条用户消息）"
-              className="flex items-center gap-1.5 rounded-md border border-cyan-700/60 px-2.5 py-1 text-[11px] text-cyan-300 transition-colors hover:bg-cyan-500/10"
+              className="flex items-center gap-1.5 rounded-md border border-cyan-700/60 px-2.5 py-1 text-caption text-cyan-300 transition-colors hover:bg-cyan-500/10"
             >
               <Lightbulb size={11} />
               技能要求
@@ -573,7 +573,7 @@ export default function WorkbenchChatPage() {
               onClick={() => setHistoryOpen(true)}
               title="打开历史问话面板（当前会话）"
               aria-expanded={historyOpen}
-              className="flex items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1 text-[11px] text-slate-400 transition-colors hover:border-cyan-600/60 hover:bg-slate-800 hover:text-cyan-300"
+              className="flex items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1 text-caption text-slate-400 transition-colors hover:border-cyan-600/60 hover:bg-slate-800 hover:text-cyan-300"
             >
               <History size={11} />
               历史问话
@@ -583,7 +583,7 @@ export default function WorkbenchChatPage() {
               onClick={() => setHandoffOpen((v) => !v)}
               title="把当前会话压缩成交接文档（Markdown，含脱敏，落盘到临时目录）"
               aria-expanded={handoffOpen}
-              className="flex items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1 text-[11px] text-slate-400 transition-colors hover:border-cyan-600/60 hover:bg-slate-800 hover:text-cyan-300"
+              className="flex items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1 text-caption text-slate-400 transition-colors hover:border-cyan-600/60 hover:bg-slate-800 hover:text-cyan-300"
             >
               <FileText size={11} />
               交接文档
@@ -606,7 +606,7 @@ export default function WorkbenchChatPage() {
         {handoffOpen && (
           <div className="border-t border-slate-800 bg-slate-950/60 px-4 py-3">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-[11px] text-slate-500">交接文档（Markdown，含脱敏；生成后落盘到临时目录）</span>
+              <span className="text-caption text-slate-500">交接文档（Markdown，含脱敏；生成后落盘到临时目录）</span>
               <button
                 type="button"
                 onClick={() => setHandoffOpen(false)}
@@ -644,11 +644,11 @@ export default function WorkbenchChatPage() {
           }}
           onContextMenu={(e) => e.preventDefault()}
         >
-          <div className="px-2 py-1 text-[10px] text-slate-500">对话内容 → 技能要求（选中 {ctx.text.length} 字）</div>
+          <div className="px-2 py-1 text-micro text-slate-500">对话内容 → 技能要求（选中 {ctx.text.length} 字）</div>
           <button
             type="button"
             onClick={openFromSelection}
-            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[11.5px] text-cyan-300 hover:bg-cyan-500/10"
+            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-body text-cyan-300 hover:bg-cyan-500/10"
           >
             <Lightbulb size={12} /> 生成技能（自动评审-评估）
           </button>

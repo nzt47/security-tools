@@ -60,7 +60,7 @@ export function PermissionModeMenu() {
         aria-haspopup="menu"
         data-testid="permission-mode-menu"
         title={`权限档位：${current.label} —— ${current.hint}`}
-        className={`flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] transition-colors ${TONE[permissionMode]}`}
+        className={`flex items-center gap-1 rounded-md border px-2 py-0.5 text-caption transition-colors ${TONE[permissionMode]}`}
       >
         <span>{current.icon}</span>
         <span>权限：{current.label}</span>
@@ -70,9 +70,9 @@ export function PermissionModeMenu() {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-[calc(100%+6px)] z-80 w-[340px] rounded-xl border border-slate-700 bg-slate-900/98 p-2 text-[11.5px] shadow-2xl backdrop-blur-sm"
+          className="absolute right-0 top-[calc(100%+6px)] z-80 w-[340px] rounded-xl border border-slate-700 bg-slate-900/98 p-2 text-body shadow-2xl backdrop-blur-sm"
         >
-          <div className="mb-1.5 px-1 text-[10px] uppercase tracking-wider text-slate-500">权限档位</div>
+          <div className="mb-1.5 px-1 text-micro uppercase tracking-wider text-slate-500">权限档位</div>
           {(Object.keys(PERMISSION_MODES) as PermissionMode[]).map((m) => {
             const item = PERMISSION_MODES[m]
             const active = m === permissionMode
@@ -94,13 +94,13 @@ export function PermissionModeMenu() {
                 <span className="flex items-center gap-1.5">
                   <span>{item.icon}</span>
                   <b className="font-medium text-slate-200">{item.label}</b>
-                  {active && <span className="ml-auto text-[10px] text-cyan-300">✓ 当前</span>}
+                  {active && <span className="ml-auto text-micro text-cyan-300">✓ 当前</span>}
                 </span>
-                <span className="mt-0.5 block text-[10.5px] leading-relaxed text-slate-500">{item.hint}</span>
+                <span className="mt-0.5 block text-caption leading-relaxed text-slate-500">{item.hint}</span>
               </button>
             )
           })}
-          <div className="mt-1 px-1 text-[10px] leading-relaxed text-slate-600">
+          <div className="mt-1 px-1 text-micro leading-relaxed text-slate-600">
             档位随每条消息发给后端、即时生效；它只决定"要不要逐条审批"，不改任何工具能力。
             完全权限会跳过 L2/L3 审批，请只在可信环境使用。
           </div>

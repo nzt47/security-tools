@@ -114,7 +114,7 @@ export function CompressPrefixSwitch() {
       </div>
 
       {open && (
-        <div className="max-w-[560px] space-y-1 rounded-md border border-slate-800 bg-slate-950/70 px-2.5 py-2 text-[10.5px] leading-relaxed text-slate-300">
+        <div className="max-w-[560px] space-y-1 rounded-md border border-slate-800 bg-slate-950/70 px-2.5 py-2 text-caption leading-relaxed text-slate-300">
           <div className="text-cyan-300">压缩（摘要）调用是否复用本轮对话的前缀缓存</div>
           <div>
             <b className="text-slate-100">开</b>：压缩请求与本轮对话<b className="text-slate-100">逐字同前缀</b>
@@ -135,7 +135,7 @@ export function CompressPrefixSwitch() {
             生效方式：热生效，下一次压缩即按新口径；回滚 = 关掉。
           </div>
           {item && (
-            <div className="text-[10px] text-slate-500">
+            <div className="text-micro text-slate-500">
               当前：{on ? '开' : '关'} · 来源 {item.source_label || valueOrDash(item.value)}
               {item.effect_label ? ' · ' + item.effect_label : ''}
               {item.needs_restart ? ' · 需重启' : ''}
@@ -145,8 +145,8 @@ export function CompressPrefixSwitch() {
         </div>
       )}
 
-      {note && <div className="text-[10px] text-emerald-300">{note}</div>}
-      {err && <div className="text-[10px] text-rose-300">{err}</div>}
+      {note && <div className="text-micro text-emerald-300">{note}</div>}
+      {err && <div className="text-micro text-rose-300">{err}</div>}
     </div>
   )
 }

@@ -560,7 +560,7 @@ function MetricTile({ card }: { card: OverviewCard }) {
       <div className={'mt-2 text-xl font-semibold ' + (card.missing ? 'text-slate-500' : TONE_CLASS[card.tone])}>
         {card.value}
       </div>
-      {card.sub && <div className="mt-1 truncate text-[11px] text-slate-600" title={card.sub}>{card.sub}</div>}
+      {card.sub && <div className="mt-1 truncate text-caption text-slate-600" title={card.sub}>{card.sub}</div>}
     </div>
   )
 }
@@ -680,7 +680,7 @@ export function AlarmCoverageBlock({
     <Card
       title="监控覆盖（它到底看得到什么）"
       actions={
-        <span className="text-[11px] text-slate-500">
+        <span className="text-caption text-slate-500">
           {cov ? String(cov.rules_total) + ' 条规则' : MISSING}
         </span>
       }
@@ -702,14 +702,14 @@ export function AlarmCoverageBlock({
                   <span className="text-sm text-slate-200">{s.name}</span>
                   <Badge color={st.color}>{st.label}</Badge>
                 </div>
-                <div className="mt-1 text-[11px] text-slate-500">{s.detail}</div>
+                <div className="mt-1 text-caption text-slate-500">{s.detail}</div>
               </div>
             )
           })}
           {!coverage && <div className="text-xs text-slate-500">事件源清单取不到（{MISSING}）</div>}
         </div>
 
-        <div className="text-[11px] text-slate-500">
+        <div className="text-caption text-slate-500">
           采样环：{samples == null ? MISSING : String(samples) + ' 个点'}
           {' （'}窗口类规则 rate / increase / 分位数需要 ≥2 个点；
           {samples != null && samples < 2 ? '当前不足，规则会报「样本不足」' : '当前够用'}
@@ -725,7 +725,7 @@ export function AlarmCoverageBlock({
             </div>
             <ul className="mt-1 space-y-0.5">
               {blocked.map((b) => (
-                <li key={b.alert} className="text-[11px] text-slate-400">
+                <li key={b.alert} className="text-caption text-slate-400">
                   <span className="font-mono text-slate-300">{b.alert}</span>
                   {' · '}{b.state_label ?? ALERT_STATE_LABEL[b.state] ?? b.state}
                   {b.reason ? ' · ' + b.reason : ''}
@@ -735,7 +735,7 @@ export function AlarmCoverageBlock({
           </div>
         )}
 
-        <div data-testid="alarm-coverage-prometheus" className="text-[11px] text-slate-500">
+        <div data-testid="alarm-coverage-prometheus" className="text-caption text-slate-500">
           外部 Prometheus：{prom
             ? (prom.configured
               ? '已配置（最近一轮' + (prom.last_ok === true ? '可用' : prom.last_ok === false
@@ -748,7 +748,7 @@ export function AlarmCoverageBlock({
         {/* 覆盖缺口（2026-11-12，monitoring-gap-detector）：新增能力有没有被感知/监控/告警覆盖。
             口径：没跑过 ⇒ 「读数不可用」，不写 0 条（L5：没测到 ≠ 0 条）。 */}
         <div data-testid="alarm-coverage-gaps"
-          className={'rounded-lg border px-3 py-2 text-[11px] '
+          className={'rounded-lg border px-3 py-2 text-caption '
             + (gaps?.count ? 'border-amber-900/40 bg-amber-950/20 text-amber-200'
               : 'border-slate-800 text-slate-400')}>
           <div className="flex items-center justify-between gap-2">
@@ -756,7 +756,7 @@ export function AlarmCoverageBlock({
               {'未覆盖能力：' + (gaps && gaps.count != null ? String(gaps.count) : MISSING)}
             </span>
             {gaps?.pushed ? (
-              <span className="text-[10px] text-slate-500">{'已外发提示 ' + gaps.pushed + ' 条'}</span>
+              <span className="text-micro text-slate-500">{'已外发提示 ' + gaps.pushed + ' 条'}</span>
             ) : null}
           </div>
           <div className="mt-1 text-slate-500">
@@ -779,7 +779,7 @@ export function AlarmCoverageBlock({
 
         {/* 两个「静默缺口」（2026-11-12）：此前过期是**无声的**，只能靠人翻文件/日志发现 */}
         <div data-testid="alarm-coverage-silent-gaps"
-          className="rounded-lg border border-slate-800 px-3 py-2 text-[11px] text-slate-400">
+          className="rounded-lg border border-slate-800 px-3 py-2 text-caption text-slate-400">
           <div data-testid="alarm-coverage-ci-gap">
             {'CI 最后同步：' + ciGapText(coverage?.ci)}
             {coverage?.ci?.detail ? ' · ' + coverage.ci.detail : ''}
@@ -1082,7 +1082,7 @@ export default function PanoramaHealth() {
                   {latest ? LEVEL_TEXT[overallLevel] : '无数据'}
                 </Badge>
               </div>
-              <div className="mt-3 text-[11px] text-slate-500" data-testid="health-assess-time">
+              <div className="mt-3 text-caption text-slate-500" data-testid="health-assess-time">
                 评估时间: {fmtTime(latest?.timestamp)}
               </div>
             </div>
@@ -1097,7 +1097,7 @@ export default function PanoramaHealth() {
                     <div className="text-xl">{l.icon}</div>
                     <div className="mt-1 text-xs text-slate-500">{l.label}</div>
                     {/* 数据来源：回答"这个分数是谁算的/读的什么"（2026-11-08 Operator 要求） */}
-                    <div className="mt-1 truncate text-[9px] text-slate-600" title={l.originDetail} data-testid={'origin-' + l.key}>
+                    <div className="mt-1 truncate text-micro text-slate-600" title={l.originDetail} data-testid={'origin-' + l.key}>
                       来源：{l.origin}
                     </div>
                     <div className={'mt-1 text-2xl font-semibold ' + (lv === 'excellent' || lv === 'good' ? 'text-emerald-400' : lv === 'fair' || lv === 'warning' ? 'text-amber-400' : lv === 'critical' ? 'text-red-400' : 'text-slate-600')}>
@@ -1105,14 +1105,14 @@ export default function PanoramaHealth() {
                     </div>
                     {/* 合并进来的原始比率（L3 错误率 / L4 成功率）：只在这里出现一次 */}
                     {metricLine && (
-                      <div className="mt-0.5 text-[10px] text-slate-500" data-testid={'metric-' + l.key}>
+                      <div className="mt-0.5 text-micro text-slate-500" data-testid={'metric-' + l.key}>
                         {metricLine}
                       </div>
                     )}
                     <div className="mt-2 h-1 overflow-hidden rounded-sm bg-slate-800">
                       <div className="h-full rounded-sm" style={{ width: (score ?? 0) + '%', background: l.color }} />
                     </div>
-                    {d?.detail && <div className="mt-2 truncate text-[10px] text-slate-600" title={d.detail}>{d.detail}</div>}
+                    {d?.detail && <div className="mt-2 truncate text-micro text-slate-600" title={d.detail}>{d.detail}</div>}
                   </div>
                 )
               })}
@@ -1125,7 +1125,7 @@ export default function PanoramaHealth() {
 
               {/* 「—（端点未返回）」不是页面坏了：那个字段后端端点确实没给，前端不重算、不编造。
                   2026-11-08 Operator 问"很多端点未返回是怎么回事" ⇒ 把三处结构性缺口写清楚。 */}
-              <p className="mt-2 text-[10px] leading-relaxed text-slate-600" data-testid="missing-note">
+              <p className="mt-2 text-micro leading-relaxed text-slate-600" data-testid="missing-note">
                 <span className="text-slate-500">「—（端点未返回）」= 那个字段在后端端点里<strong>不存在</strong></span>（不是加载失败）：
                 前端只显示真实返回的值，不拿浏览器侧的数去补。已知三处结构性缺口 ——
                 ① 心跳端点只有 CPU/内存的<strong className="text-slate-500">使用率</strong>，没有核心数/可用量/磁盘，
@@ -1173,7 +1173,7 @@ export default function PanoramaHealth() {
                       </ResponsiveContainer>
                     </div>
                   )}
-                  <div className="mt-1 text-[11px] text-slate-600">
+                  <div className="mt-1 text-caption text-slate-600">
                     共 {points.length} 个数据点；图表点数超过 240 时按均匀步长抽稀（导出与表格不受影响）。
                   </div>
                 </Card>
@@ -1356,7 +1356,7 @@ export default function PanoramaHealth() {
                   {filteredMetrics.length === 0 && <Empty text="没有匹配的指标" />}
                 </div>
               )}
-              <div className="mt-2 text-[11px] text-slate-600">
+              <div className="mt-2 text-caption text-slate-600">
                 gauges 键实测未返回（新老后端均只给 counters/histograms）；缺失不补零，如实呈现端点现状。
                 {generatedAt ? ' 生成时间: ' + fmtTime(generatedAt) : ''}
               </div>
@@ -1478,9 +1478,9 @@ export default function PanoramaHealth() {
                             <td className="px-3 py-2 text-slate-200">{r.alert ?? '-'}</td>
                             <td className="px-3 py-2 text-xs text-slate-400">
                               {r.annotations?.summary || r.annotations?.description || '-'}
-                              {r.annotations?.impact && <div className="text-[11px] text-slate-600">影响：{r.annotations.impact}</div>}
+                              {r.annotations?.impact && <div className="text-caption text-slate-600">影响：{r.annotations.impact}</div>}
                             </td>
-                            <td className="px-3 py-2 font-mono text-[11px] text-slate-500">{r.expr || '-'}</td>
+                            <td className="px-3 py-2 font-mono text-caption text-slate-500">{r.expr || '-'}</td>
                             {/* 实测规则无 state / activeAt：如实标注，不把「有规则」当成「已触发」。
                                 不可求值的规则给中文态（无数据 / 样本不足 / 需 Prometheus），
                                 悬浮看原因 —— 与 L5 同口径：没测到不等于正常。 */}
@@ -1495,7 +1495,7 @@ export default function PanoramaHealth() {
                   </table>
                 </div>
               )}
-              <div className="mt-2 text-[11px] text-slate-600">
+              <div className="mt-2 text-caption text-slate-600">
                 共 {alerts?.groups?.length ?? 0} 个告警组 / {alertRules.length} 条规则；
                 状态与触发时间来自**报警器的本进程规则引擎**（agent/alarms/rules.py，解析 alerts.yml 的
                 PromQL 子集求值）与 alert_evaluator 的运行态（runtime_state={String(alerts?.runtime_state ?? false)}）；
@@ -1511,7 +1511,7 @@ export default function PanoramaHealth() {
           {tab === 'admin' && (
             <div data-testid="panel-admin">
               <Card title="管理概览（数据源 /api/dashboard/summary · 需管理后台登录或 API 令牌）"
-                actions={<span className="text-[11px] text-slate-500">明细（用户/角色/通知/审计）仍在「系统管理 · 仪表盘」</span>}
+                actions={<span className="text-caption text-slate-500">明细（用户/角色/通知/审计）仍在「系统管理 · 仪表盘」</span>}
               >
                 {adminErr ? (
                   <ErrorBox message={'取不到管理概览：' + adminErr + '（该接口由服务端 _require_admin 校验，未登录/无权限属正常降级）'} />

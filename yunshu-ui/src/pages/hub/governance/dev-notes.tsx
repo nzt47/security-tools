@@ -18,7 +18,7 @@ import { AlertTriangle, CheckCircle2, Lightbulb, Loader2, RefreshCw, Save } from
 import { ErrorBox, hubGet, hubPost } from '../components/ui'
 import { FEEDBACK_LIST, FEEDBACK_SUBMIT, feedbackResolve } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
+const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 
@@ -103,11 +103,11 @@ export default function DevNotesPanel() {
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <Lightbulb size={13} className="text-cyan-400" />
         <span className="text-xs font-medium text-slate-200">问题与想法（开发随记）</span>
-        <span className="text-[10px] text-slate-500">
+        <span className="text-micro text-slate-500">
           待解决 {openCount} · 共 {rows.length}（复用反馈存储，category=dev-note）
         </span>
         <div className="ml-auto flex items-center gap-2">
-          <label className="flex items-center gap-1 text-[10px] text-slate-400">
+          <label className="flex items-center gap-1 text-micro text-slate-400">
             <input type="checkbox" checked={showResolved} onChange={(e) => setShowResolved(e.target.checked)} aria-label="显示已解决" />
             显示已解决
           </label>
@@ -118,7 +118,7 @@ export default function DevNotesPanel() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
+      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
 
       <div className="mb-2 flex items-start gap-2">
         <textarea
@@ -135,7 +135,7 @@ export default function DevNotesPanel() {
       </div>
 
       {visible.length === 0 ? (
-        <div className="flex items-center gap-2 py-4 text-[11px] text-slate-500">
+        <div className="flex items-center gap-2 py-4 text-caption text-slate-500">
           <CheckCircle2 size={12} /> 没有待解决的条目{showResolved ? '' : '（勾「显示已解决」看历史）'}
         </div>
       ) : (
@@ -147,10 +147,10 @@ export default function DevNotesPanel() {
               <li key={id} className="flex items-start gap-2 rounded-sm border border-slate-800 bg-slate-950/50 px-2 py-1.5">
                 <AlertTriangle size={11} className={resolved ? 'mt-0.5 shrink-0 text-slate-600' : 'mt-0.5 shrink-0 text-amber-400'} />
                 <div className="min-w-0 flex-1">
-                  <div className={'whitespace-pre-wrap wrap-break-word text-[11px] ' + (resolved ? 'text-slate-500 line-through' : 'text-slate-200')}>
+                  <div className={'whitespace-pre-wrap wrap-break-word text-caption ' + (resolved ? 'text-slate-500 line-through' : 'text-slate-200')}>
                     {row.comment || '（空）'}
                   </div>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[10px] text-slate-600">
+                  <div className="mt-0.5 flex flex-wrap items-center gap-2 text-micro text-slate-600">
                     <code>{id}</code>
                     {row.created_at && <span>{String(row.created_at).slice(0, 19)}</span>}
                     <span>{row.status || 'open'}</span>

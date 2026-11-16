@@ -44,20 +44,20 @@ export default function ModeCard() {
       <div className="flex flex-wrap items-center gap-2">
         <Activity size={13} className="text-cyan-400" />
         <h3 className="text-xs font-semibold text-slate-200">运行模式</h3>
-        {data?.label && <span className="text-[11px] text-cyan-300">{data.label}</span>}
+        {data?.label && <span className="text-caption text-cyan-300">{data.label}</span>}
         {data?.can_accept_tasks === false && (
-          <span className="rounded-sm bg-amber-500/15 px-1.5 py-0.5 text-[10px] text-amber-300">当前不接受新任务</span>
+          <span className="rounded-sm bg-amber-500/15 px-1.5 py-0.5 text-micro text-amber-300">当前不接受新任务</span>
         )}
         {data?.can_accept_tasks === true && (
-          <span className="rounded-sm bg-emerald-500/15 px-1.5 py-0.5 text-[10px] text-emerald-300">可接新任务</span>
+          <span className="rounded-sm bg-emerald-500/15 px-1.5 py-0.5 text-micro text-emerald-300">可接新任务</span>
         )}
-        <button type="button" className="ml-auto inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 hover:bg-slate-800" onClick={() => void load()} disabled={busy} aria-label="刷新运行模式">
+        <button type="button" className="ml-auto inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 hover:bg-slate-800" onClick={() => void load()} disabled={busy} aria-label="刷新运行模式">
           {busy ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
         </button>
       </div>
-      {err && <div className="mt-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-[11px] text-red-300">{err}</div>}
-      {data?.description && <div className="mt-1.5 text-[11px] text-slate-400">{data.description}</div>}
-      <div className="mt-1.5 flex flex-wrap gap-2 text-[10px] text-slate-500">
+      {err && <div className="mt-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-caption text-red-300">{err}</div>}
+      {data?.description && <div className="mt-1.5 text-caption text-slate-400">{data.description}</div>}
+      <div className="mt-1.5 flex flex-wrap gap-2 text-micro text-slate-500">
         {data?.mode && <span className="rounded-sm bg-slate-800 px-1.5 py-0.5 font-mono">{data.mode}</span>}
         {data?.thinking_mode && <span className="rounded-sm bg-slate-800 px-1.5 py-0.5">思考模式 {data.thinking_mode}</span>}
         {data?.enable_reflection != null && <span className="rounded-sm bg-slate-800 px-1.5 py-0.5">反思 {data.enable_reflection ? '开' : '关'}</span>}

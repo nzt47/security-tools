@@ -112,13 +112,13 @@ export function ImplicitEntryLog({
         <button
           type="button"
           onClick={clear}
-          className="ml-auto rounded-sm border border-slate-700 px-2 py-0.5 text-[10px] text-slate-400 hover:text-cyan-300"
+          className="ml-auto rounded-sm border border-slate-700 px-2 py-0.5 text-micro text-slate-400 hover:text-cyan-300"
         >
           清空
         </button>
       </div>
       {rows.length === 0 ? (
-        <div className="flex items-center gap-2 py-3 text-[11px] text-slate-500">
+        <div className="flex items-center gap-2 py-3 text-caption text-slate-500">
           <Link2 size={12} /> 暂无隐式入口记录
         </div>
       ) : (
@@ -130,7 +130,7 @@ export function ImplicitEntryLog({
                 onClick={() => onReplay?.(r)}
                 disabled={!onReplay}
                 data-cp-implicit-entry={r.entry}
-                className="flex w-full items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/50 px-2 py-1 text-left text-[11px] disabled:cursor-default hover:border-cyan-800"
+                className="flex w-full items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/50 px-2 py-1 text-left text-caption disabled:cursor-default hover:border-cyan-800"
               >
                 <span
                   className={
@@ -142,7 +142,7 @@ export function ImplicitEntryLog({
                   }
                 />
                 <span className="shrink-0 text-slate-300">{r.entryLabel}</span>
-                <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-cyan-300">
+                <span className="min-w-0 flex-1 truncate font-mono text-micro text-cyan-300">
                   {r.target}
                 </span>
                 {r.detail && (
@@ -150,8 +150,8 @@ export function ImplicitEntryLog({
                     {r.detail}
                   </span>
                 )}
-                <span className="shrink-0 text-[10px] text-slate-600">{formatTime(r.at)}</span>
-                {onReplay && <span className="shrink-0 text-[10px] text-slate-500">点回入口 ›</span>}
+                <span className="shrink-0 text-micro text-slate-600">{formatTime(r.at)}</span>
+                {onReplay && <span className="shrink-0 text-micro text-slate-500">点回入口 ›</span>}
               </button>
             </li>
           ))}

@@ -203,7 +203,7 @@ export function CallabilityBadge({ info, name, className = '', compact = false }
   return (
     <span
       title={title}
-      className={`inline-flex shrink-0 cursor-help items-center whitespace-nowrap rounded-full border ${compact ? 'px-1 py-0 text-[10px]' : 'px-2 py-0.5 text-xs'} ${BADGE_CLASS[callabilityColor(mark)]} ${className}`}
+      className={`inline-flex shrink-0 cursor-help items-center whitespace-nowrap rounded-full border ${compact ? 'px-1 py-0 text-micro' : 'px-2 py-0.5 text-xs'} ${BADGE_CLASS[callabilityColor(mark)]} ${className}`}
     >
       {glyph}
     </span>

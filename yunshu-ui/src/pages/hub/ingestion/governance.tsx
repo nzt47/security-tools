@@ -22,7 +22,7 @@ import {
   type GovernanceScan,
 } from './governanceApi'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50'
+const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 
 const ACTION_META: Record<string, { label: string; icon: typeof Merge; tone: 'green' | 'amber' | 'red' | 'cyan' | 'slate' }> = {
@@ -93,14 +93,14 @@ export default function GovernancePanel() {
           盘点并生成计划
         </button>
       )}>
-        <p className="text-[11px] leading-relaxed text-slate-500">
+        <p className="text-caption leading-relaxed text-slate-500">
           扫描现有技能，给出合并 / 归档 / 拆分 / 补描述 / 清理孤儿建议。默认 dry-run；
           归档不删除、拆分只写子草稿，真执行需勾确认并留审计。
           原「技能中心 · 维护」的清理/淘汰/合并已并入本页：重复走 merge、孤儿走 delete_orphans、
           停用零使用走 archive；「从记忆抽象」在「获取外来能力」页。
         </p>
         {error && <div className="mt-2"><ErrorBox message={error} /></div>}
-        {msg && <div className="mt-2 rounded-sm border border-cyan-900/60 bg-cyan-950/20 px-2 py-1 text-[11px] text-cyan-300">{msg}</div>}
+        {msg && <div className="mt-2 rounded-sm border border-cyan-900/60 bg-cyan-950/20 px-2 py-1 text-caption text-cyan-300">{msg}</div>}
         {scan && (
           <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
             {[
@@ -112,7 +112,7 @@ export default function GovernancePanel() {
               ['孤儿', scan.summary.orphan ?? 0],
             ].map(([label, value]) => (
               <div key={String(label)} className="rounded-sm border border-slate-800 bg-slate-950/50 px-2 py-1.5">
-                <div className="text-[10px] text-slate-500">{label}</div>
+                <div className="text-micro text-slate-500">{label}</div>
                 <div className="font-mono text-sm text-cyan-300">{value}</div>
               </div>
             ))}
@@ -122,7 +122,7 @@ export default function GovernancePanel() {
 
       {plan && (
         <Card title={'治理计划 · ' + plan.plan_id} actions={(
-          <span className="text-[10px] text-slate-500">{plan.actions.length} 条动作</span>
+          <span className="text-micro text-slate-500">{plan.actions.length} 条动作</span>
         )}>
           {plan.actions.length === 0 ? (
             <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -130,7 +130,7 @@ export default function GovernancePanel() {
             </div>
           ) : (
             <>
-              <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+              <div className="mb-2 flex flex-wrap items-center gap-2 text-caption text-slate-400">
                 <label className="flex items-center gap-1.5">
                   <input type="checkbox" checked={confirmed}
                     aria-label="我已核对治理计划"
@@ -145,7 +145,7 @@ export default function GovernancePanel() {
                   }}>
                   <CheckCircle2 size={12} /> 执行所选
                 </button>
-                {picked && <span className="font-mono text-[10px] text-cyan-300">{picked}</span>}
+                {picked && <span className="font-mono text-micro text-cyan-300">{picked}</span>}
               </div>
               <div className="flex flex-col divide-y divide-slate-800 overflow-hidden rounded-sm border border-slate-800">
                 {plan.actions.map((a) => {
@@ -153,7 +153,7 @@ export default function GovernancePanel() {
                   const Icon = m.icon
                   const key = a.action + ':' + a.target
                   return (
-                    <div key={key} className="flex flex-wrap items-center gap-2 bg-slate-950/40 px-2 py-1.5 text-[11px]">
+                    <div key={key} className="flex flex-wrap items-center gap-2 bg-slate-950/40 px-2 py-1.5 text-caption">
                       <input type="radio" name="governance-action" checked={picked === key}
                         aria-label={'选择 ' + a.title}
                         onChange={() => { setPicked(key); setConfirmed(false); setPreview(null); setApplied(null) }} />
@@ -180,10 +180,10 @@ export default function GovernancePanel() {
 
       {preview && (
         <Card title="dry-run 影响（未执行）">
-          <div className="text-[11px] text-slate-300">
+          <div className="text-caption text-slate-300">
             <span className="font-mono text-cyan-300">{preview.action}</span> / {preview.target}
           </div>
-          <pre className="mt-2 max-h-48 overflow-auto rounded-sm border border-slate-800 bg-slate-950 p-2 text-[10px] text-slate-400">
+          <pre className="mt-2 max-h-48 overflow-auto rounded-sm border border-slate-800 bg-slate-950 p-2 text-micro text-slate-400">
             {JSON.stringify(preview.would ?? {}, null, 2)}
           </pre>
         </Card>
@@ -191,11 +191,11 @@ export default function GovernancePanel() {
 
       {applied && (
         <Card title="执行结果">
-          <div className="text-[11px] text-slate-300">
+          <div className="text-caption text-slate-300">
             <span className="font-mono text-cyan-300">{applied.action}</span> / {applied.target}
             {applied.audit?.seq ? <span className="ml-2 text-slate-500">audit seq {applied.audit.seq}</span> : null}
           </div>
-          <pre className="mt-2 max-h-48 overflow-auto rounded-sm border border-slate-800 bg-slate-950 p-2 text-[10px] text-slate-400">
+          <pre className="mt-2 max-h-48 overflow-auto rounded-sm border border-slate-800 bg-slate-950 p-2 text-micro text-slate-400">
             {JSON.stringify(applied.result ?? {}, null, 2)}
           </pre>
         </Card>

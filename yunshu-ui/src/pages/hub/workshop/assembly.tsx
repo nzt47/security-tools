@@ -198,7 +198,7 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
               key={s.id}
               type="button"
               onClick={() => jump(s.id)}
-              className="rounded-md px-2 py-1.5 text-left text-[12.5px] text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
+              className="rounded-md px-2 py-1.5 text-left text-body text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
             >{s.label}</button>
           ))}
         </nav>
@@ -247,7 +247,7 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
             </div>
             {/* 自由文本 + 默认档 = 会被后端 400；提前说清，不让使用者白提交（不静默吞掉） */}
             {form.roleText.trim() && form.roleMode === 'template' && (
-              <p className="mt-2 text-[11px] text-amber-400/80" data-testid="assembly-role-text-hint">
+              <p className="mt-2 text-caption text-amber-400/80" data-testid="assembly-role-text-hint">
                 自由文本只在 template+text / full-system 档生效；默认档提交会被后端 400（不静默忽略）。
               </p>
             )}
@@ -278,7 +278,7 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
                 className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden"
               />
             </div>
-            <p className="mt-2 text-[11px] text-slate-500">
+            <p className="mt-2 text-caption text-slate-500">
               执行后端（inproc / subprocess / container）由部署配置决定，不在本页选；
               当前可用性与缺口见右侧「执行后端」面。
             </p>
@@ -305,7 +305,7 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
             </div>
 
             <div className="mt-3">
-              <div className="mb-1.5 text-[12px] text-slate-400">
+              <div className="mb-1.5 text-body text-slate-400">
                 可装载的主题类（向量记忆 / 知识库 / 经验 同用一份词表）
               </div>
               <TopicPicker
@@ -313,14 +313,14 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
                 onChange={(next) => set('topics', next)}
                 testId="assembly-topic"
               />
-              <div className="mt-1 text-[11px] text-slate-500" data-testid="assembly-topic-hint">
+              <div className="mt-1 text-caption text-slate-500" data-testid="assembly-topic-hint">
                 只选 <code>general</code> 时不发声明（后端按未声明处理，只读兜底类）；
                 勾了别的类才随创建请求发 <code>memory_topics</code> —— 与记忆档位无关，
                 none 档也能声明。
               </div>
             </div>
 
-            <p className="mt-2 text-[11px] text-slate-500" data-testid="assembly-memory-note">
+            <p className="mt-2 text-caption text-slate-500" data-testid="assembly-memory-note">
               记忆档 <code>memory_mode</code>（none / brokered / scoped）**已接线**，由后端消费；
               scoped 档还要求 <code>memory_scope</code> 的 tenant/workspace/subject 三要素，
               本页不给域输入，故不提供 scoped（会 400，不做假选项）。
@@ -332,16 +332,16 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
 
           <Card title="④ 工具与技能（只读说明）">
             <div
-              className="mb-3 rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2 text-[12px] text-slate-300"
+              className="mb-3 rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2 text-body text-slate-300"
               data-testid="assembly-active-line"
             >
               当前生效主线：
               <span className="font-mono text-cyan-300">
                 {activeLine === undefined ? '未取到（后端不可用）' : (activeLine === null ? '未装线（只读默认集）' : activeLine)}
               </span>
-              <span className="ml-2 text-[11px] text-slate-500">与「主线档案」视图同源（GET /api/agent-lines 的 active）</span>
+              <span className="ml-2 text-caption text-slate-500">与「主线档案」视图同源（GET /api/agent-lines 的 active）</span>
             </div>
-            <p id="step-hands" className="text-[12px] text-slate-400">
+            <p id="step-hands" className="text-body text-slate-400">
               分身的工具集由「主线档案 + SubAgentToolset」在**委派时**装配（去 govern、去 §5.7 机制 3 硬禁），
               SubagentConfig 里没有 line 字段，本页不提供"选主线"——那会暗示它能决定工具集。
               如需调整，请到「主线档案」视图。
@@ -382,7 +382,7 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
                 placeholder="TTL 秒（留空 = 永久；委派时后端按契约⑦收敛）"
                 className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden"
               />
-              <p className="text-[11px] text-slate-500">
+              <p className="text-caption text-slate-500">
                 权限交给容器沙箱（Sandbox.allowed_permissions）；自主权 L1–L5 与审批在派发侧生效，
                 尚未进 SubagentConfig（见右侧「自主权分级」面）。
               </p>
@@ -394,7 +394,7 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
               <div className="flex items-center gap-2">
                 <pre
                   data-testid="assembly-preview"
-                  className="max-h-56 flex-1 overflow-auto rounded-lg border border-slate-800 bg-slate-950 p-3 text-[11px] leading-5 text-slate-300"
+                  className="max-h-56 flex-1 overflow-auto rounded-lg border border-slate-800 bg-slate-950 p-3 text-caption leading-5 text-slate-300"
                 >{previewText}</pre>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -411,9 +411,9 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
                   data-testid="assembly-create"
                   className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-500 disabled:opacity-40"
                 >{busy ? <Loader2 size={14} className="animate-spin" /> : <Rocket size={14} />} 生成分身</button>
-                <span className="text-[11px] text-slate-600">预览即真实请求体（同一序列化函数）</span>
+                <span className="text-caption text-slate-600">预览即真实请求体（同一序列化函数）</span>
               </div>
-              <div className="rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2 text-[11px] text-slate-500">
+              <div className="rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2 text-caption text-slate-500">
                 可带走（bundle 导出/导入 + 离线包下载）已接线；离线运行：local 推理已接线、container 需镜像内对端；
                 离线依赖清单 <code>environment.offline_ready</code> 是**覆盖判定**（用
                 scripts/build_offline_pack.py 在联网机预构建 wheelhouse）—— 见「可带走 bundle」面。
@@ -435,10 +435,10 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
                     : null}
                   <Badge color="cyan">{sovereignty.maturity.current}</Badge>
                 </div>
-                <p className="text-[11px] text-slate-500">点任一面看"凭什么"（证据 / 边界或缺口 / 计划阶段）</p>
+                <p className="text-caption text-slate-500">点任一面看"凭什么"（证据 / 边界或缺口 / 计划阶段）</p>
                 {sovereignty.layers.map((layer) => (
                   <div key={layer.key} className="flex flex-col gap-1">
-                    <div className="mt-1 text-[11px] font-medium text-slate-500">{layer.label} · {layer.question}</div>
+                    <div className="mt-1 text-caption font-medium text-slate-500">{layer.label} · {layer.question}</div>
                     {layer.faces.map((key) => {
                       const face = sovereignty.faces.find((f) => f.key === key)
                       if (!face) return null
@@ -464,16 +464,16 @@ function FaceRow({ face, expanded, onToggle }: { face: SovereigntyFace; expanded
         type="button"
         onClick={onToggle}
         aria-expanded={expanded}
-        className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1 text-left text-[12px] text-slate-300 hover:bg-slate-800/60"
+        className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1 text-left text-body text-slate-300 hover:bg-slate-800/60"
       >
         <span>{face.label}</span>
         <Badge color={STATE_COLOR[face.state] ?? 'slate'}>{face.state_label}</Badge>
       </button>
       {expanded && (
-        <div className="mb-1 rounded-md border border-slate-800 bg-slate-950/60 px-2 py-1.5 text-[11px] leading-5 text-slate-400">
+        <div className="mb-1 rounded-md border border-slate-800 bg-slate-950/60 px-2 py-1.5 text-caption leading-5 text-slate-400">
           <div>{face.evidence}</div>
           {face.evidence_files.length > 0 && (
-            <div className="mt-1 font-mono text-[10px] text-slate-500">{face.evidence_files.join('  ')}</div>
+            <div className="mt-1 font-mono text-micro text-slate-500">{face.evidence_files.join('  ')}</div>
           )}
           {face.gap && (
             <div className={face.state === 'owned' ? 'mt-1 text-slate-400' : 'mt-1 text-amber-400/80'}>

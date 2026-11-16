@@ -26,11 +26,11 @@ import {
   TOOLS_STATUS_BATCH,
 } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
+const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
-const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
+const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 interface CatRow { key?: string; label?: string; icon?: string; description?: string; always?: boolean; tools?: string[] }
 interface StatusRow { name?: string; enabled?: boolean; description?: string }
@@ -130,7 +130,7 @@ export default function ToolsGovernance() {
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Wrench size={14} className="text-cyan-400" />
         <h2 className="text-sm font-semibold text-slate-100">工具治理</h2>
-        <span className="text-[11px] text-slate-500">分类 / 健康 / 关键词（决定路由选中哪类工具）/ 启用总览</span>
+        <span className="text-caption text-slate-500">分类 / 健康 / 关键词（决定路由选中哪类工具）/ 启用总览</span>
         <div className="ml-auto">
           <button type="button" className={BTN} onClick={() => void load()} disabled={loading} aria-label="刷新工具治理">
             {loading ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
@@ -139,7 +139,7 @@ export default function ToolsGovernance() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
+      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
 
       <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
         {[
@@ -149,33 +149,33 @@ export default function ToolsGovernance() {
           ['分类数', cats.length],
         ].map(([k, v]) => (
           <div key={String(k)} className="rounded-sm border border-slate-800 bg-slate-900/50 px-2 py-1.5">
-            <div className="text-[10px] text-slate-500">{String(k)}</div>
-            <div className="font-mono text-[13px] text-cyan-300">{String(v)}</div>
+            <div className="text-micro text-slate-500">{String(k)}</div>
+            <div className="font-mono text-body-lg text-cyan-300">{String(v)}</div>
           </div>
         ))}
       </div>
 
       <div className="mb-2 rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-        <div className="mb-2 flex items-center gap-2 text-[11px] text-slate-400">
+        <div className="mb-2 flex items-center gap-2 text-caption text-slate-400">
           <Activity size={11} className="text-cyan-400" /> 能力分类（{cats.length}）
         </div>
         <div className="flex flex-col gap-1">
           {cats.map((c) => (
-            <div key={c.key ?? ''} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+            <div key={c.key ?? ''} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-caption">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-slate-300">{c.icon ?? ''} {c.label ?? c.key}</span>
-                <span className="font-mono text-[10px] text-slate-600">{c.key}</span>
-                {c.always && <span className="rounded-sm bg-cyan-500/10 px-1 text-[9px] text-cyan-300">常驻</span>}
-                <span className="ml-auto text-[10px] text-slate-600">{(c.tools ?? []).length} 个工具</span>
+                <span className="font-mono text-micro text-slate-600">{c.key}</span>
+                {c.always && <span className="rounded-sm bg-cyan-500/10 px-1 text-micro text-cyan-300">常驻</span>}
+                <span className="ml-auto text-micro text-slate-600">{(c.tools ?? []).length} 个工具</span>
               </div>
-              <div className="text-[10px] text-slate-500">{c.description ?? ''}</div>
+              <div className="text-micro text-slate-500">{c.description ?? ''}</div>
             </div>
           ))}
         </div>
       </div>
 
       <div className="mb-2 rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-        <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+        <div className="mb-2 flex flex-wrap items-center gap-2 text-caption text-slate-400">
           <Tags size={11} className="text-cyan-400" /> 路由关键词
           <select className={INPUT} value={cat} onChange={(e) => setCat(e.target.value)} aria-label="关键词分类">
             {cats.map((c) => <option key={c.key} value={c.key}>{c.label ?? c.key}</option>)}
@@ -202,7 +202,7 @@ export default function ToolsGovernance() {
           >
             {busy === 'kw-upd' ? <Loader2 size={11} className="animate-spin" /> : null} 改名
           </button>
-          <label className="ml-2 flex items-center gap-1 text-[10px] text-slate-400">
+          <label className="ml-2 flex items-center gap-1 text-micro text-slate-400">
             <input type="checkbox" checked={confirmReset} onChange={(e) => setConfirmReset(e.target.checked)} aria-label="确认重置关键词" />
             我确认重置为默认
           </label>
@@ -214,10 +214,10 @@ export default function ToolsGovernance() {
         <div className="flex flex-col gap-1">
           {Object.entries(keywords).map(([k, list]) => (
             <div key={k} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1">
-              <div className="text-[11px] text-slate-300">{k}（{list.length}）</div>
+              <div className="text-caption text-slate-300">{k}（{list.length}）</div>
               <div className="mt-0.5 flex flex-wrap gap-1">
                 {list.map((w) => (
-                  <span key={w} className="flex items-center gap-1 rounded-sm bg-slate-800/70 px-1.5 py-0.5 font-mono text-[10px] text-slate-300">
+                  <span key={w} className="flex items-center gap-1 rounded-sm bg-slate-800/70 px-1.5 py-0.5 font-mono text-micro text-slate-300">
                     {w}
                     <button
                       type="button"
@@ -233,12 +233,12 @@ export default function ToolsGovernance() {
               </div>
             </div>
           ))}
-          {Object.keys(keywords).length === 0 && <div className="text-[11px] text-slate-500">没有取到关键词表。</div>}
+          {Object.keys(keywords).length === 0 && <div className="text-caption text-slate-500">没有取到关键词表。</div>}
         </div>
       </div>
 
       <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-        <div className="mb-1 text-[11px] text-slate-400">工具与技能启用总览（{statusRows.length}）</div>
+        <div className="mb-1 text-caption text-slate-400">工具与技能启用总览（{statusRows.length}）</div>
         <pre className={PRE}>{JSON.stringify(statusRows.slice(0, 20), null, 2)}</pre>
       </div>
     </div>

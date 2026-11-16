@@ -168,7 +168,7 @@ export default function MemoryWorkflowVisual() {
           <PenTool size={14} className="text-cyan-400" />
           <span className="font-medium">可视化编辑</span>
         </div>
-        <span className="hidden text-[11px] text-slate-500 lg:inline">
+        <span className="hidden text-caption text-slate-500 lg:inline">
           拖拽编排 → 保存到后端 /api/visual-workflows，随时重新加载
         </span>
 
@@ -204,7 +204,7 @@ export default function MemoryWorkflowVisual() {
               加载
               <ChevronDown size={11} className={`transition-transform ${listOpen ? 'rotate-180' : ''}`} />
               {drafts.length > 0 && (
-                <span className="rounded-full bg-cyan-500/15 px-1.5 text-[10px] text-cyan-300">
+                <span className="rounded-full bg-cyan-500/15 px-1.5 text-micro text-cyan-300">
                   {drafts.length}
                 </span>
               )}
@@ -216,11 +216,11 @@ export default function MemoryWorkflowVisual() {
                 data-testid="ve-save-list"
               >
                 <div className="flex items-center justify-between px-2 pb-1.5 pt-1">
-                  <span className="text-[11px] uppercase tracking-wider text-slate-500">后端已保存草稿</span>
+                  <span className="text-caption uppercase tracking-wider text-slate-500">后端已保存草稿</span>
                   <button
                     type="button"
                     onClick={() => void refresh()}
-                    className="text-[11px] text-cyan-400 hover:text-cyan-300"
+                    className="text-caption text-cyan-400 hover:text-cyan-300"
                     title="刷新列表"
                   >
                     刷新
@@ -248,9 +248,9 @@ export default function MemoryWorkflowVisual() {
                         >
                           <span className="block truncate text-slate-200">
                             {d.name || d.id}
-                            {currentId === d.id && <span className="ml-1 text-[10px] text-cyan-400">(当前)</span>}
+                            {currentId === d.id && <span className="ml-1 text-micro text-cyan-400">(当前)</span>}
                           </span>
-                          <span className="block text-[10px] text-slate-500">
+                          <span className="block text-micro text-slate-500">
                             {d.node_count ?? 0} 节点 / {d.edge_count ?? 0} 连线 · {d.updated_at ?? d.id}
                           </span>
                         </button>

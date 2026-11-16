@@ -21,7 +21,7 @@ import {
   skillDuplicates,
 } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
+const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = `${BTN} border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10`
 
 interface DupRow {
@@ -102,29 +102,29 @@ export default function MergeDuplicatesModal({ skillId, skillName, onClose, onDo
           </h3>
           <button type="button" onClick={onClose} aria-label="关闭合并重复弹窗" className="text-slate-500 hover:text-slate-300"><X size={14} /></button>
         </div>
-        <p className="mb-3 text-[11px] leading-relaxed text-slate-400">
+        <p className="mb-3 text-caption leading-relaxed text-slate-400">
           「合并到本技能」= 把对方的内容/标签并进来并删除对方；后端**先写两侧快照**，
           可用「撤销合并」按 merge_id 回滚。判据是<strong className="text-slate-300">同一触发面只留一个主人</strong>；
           若对方确实是重复复述，也可以直接在行内「停用/删除」。
         </p>
         <div className="mb-2 flex flex-wrap items-center gap-1.5">
-          <label className="flex items-center gap-1 text-[10px] text-slate-500">
+          <label className="flex items-center gap-1 text-micro text-slate-500">
             Jaccard ≥
             <input value={minJaccard} onChange={(e) => setMinJaccard(e.target.value)} aria-label="重复阈值"
-              className="w-16 rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-200 outline-hidden focus:border-cyan-600" />
+              className="w-16 rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-caption text-slate-200 outline-hidden focus:border-cyan-600" />
           </label>
           <button type="button" className={BTN} onClick={() => void load()} disabled={busy !== ''} aria-label="重新查重">
             {busy === 'load' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 重新查重
           </button>
-          {dups?.total !== undefined && <span className="text-[10px] text-slate-500">共 {dups.total} 条候选</span>}
+          {dups?.total !== undefined && <span className="text-micro text-slate-500">共 {dups.total} 条候选</span>}
         </div>
       {busy === 'load' && !dups && (
-        <div className="flex items-center gap-2 py-4 text-[11px] text-slate-500">
+        <div className="flex items-center gap-2 py-4 text-caption text-slate-500">
           <Loader2 size={12} className="animate-spin" /> 读取重复技能…
         </div>
       )}
       {dups && rows.length === 0 && (
-        <p className="py-3 text-[11px] text-slate-500">没有超过阈值的重复技能（阈值可调低再试）。</p>
+        <p className="py-3 text-caption text-slate-500">没有超过阈值的重复技能（阈值可调低再试）。</p>
       )}
       {rows.length > 0 && (
         <ul className="max-h-72 space-y-1 overflow-y-auto pr-1">
@@ -133,31 +133,31 @@ export default function MergeDuplicatesModal({ skillId, skillName, onClose, onDo
             const key = d.other_id || d.skill_id || d.id || ''
             const label = d.other_name || d.name || ''
             return (
-              <li key={key || ('row-' + String(d.other_name || 'x'))} className="rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1.5 text-[11px]">
+              <li key={key || ('row-' + String(d.other_name || 'x'))} className="rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1.5 text-caption">
                 <div className="flex flex-wrap items-center gap-2">
                   {/* 合并前先认人：名字（主）+ id（副）+ 分类 + 相似度 */}
                   <span className="font-medium text-slate-200">{label || '（接口没给名字）'}</span>
-                  <span className="font-mono text-[10px] text-cyan-300">{key}</span>
-                  {d.other_category && <span className="rounded-full border border-slate-700 bg-slate-800/60 px-1.5 py-0.5 text-[9px] text-slate-400">{d.other_category}</span>}
-                  {d.content_hash_match && <span className="rounded-full border border-emerald-800/60 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] text-emerald-300">内容完全相同</span>}
-                  {d.recommend_action === 'merge' && !d.content_hash_match && <span className="rounded-full border border-cyan-800/60 bg-cyan-500/10 px-1.5 py-0.5 text-[9px] text-cyan-300">建议合并</span>}
-                  <span className="ml-auto font-mono text-[10px] text-amber-300" title="Jaccard 相似度（1.0 = 完全相同）">
+                  <span className="font-mono text-micro text-cyan-300">{key}</span>
+                  {d.other_category && <span className="rounded-full border border-slate-700 bg-slate-800/60 px-1.5 py-0.5 text-micro text-slate-400">{d.other_category}</span>}
+                  {d.content_hash_match && <span className="rounded-full border border-emerald-800/60 bg-emerald-500/10 px-1.5 py-0.5 text-micro text-emerald-300">内容完全相同</span>}
+                  {d.recommend_action === 'merge' && !d.content_hash_match && <span className="rounded-full border border-cyan-800/60 bg-cyan-500/10 px-1.5 py-0.5 text-micro text-cyan-300">建议合并</span>}
+                  <span className="ml-auto font-mono text-micro text-amber-300" title="Jaccard 相似度（1.0 = 完全相同）">
                     {d.jaccard !== undefined ? Number(d.jaccard).toFixed(3) : ''}
                   </span>
                 </div>
                 {d.other_description ? (
-                  <div className="mt-1 line-clamp-2 text-[10px] leading-relaxed text-slate-500" title={d.other_description}>{d.other_description}</div>
+                  <div className="mt-1 line-clamp-2 text-micro leading-relaxed text-slate-500" title={d.other_description}>{d.other_description}</div>
                 ) : (
-                  <div className="mt-1 text-[10px] text-slate-600">（没有说明）</div>
+                  <div className="mt-1 text-micro text-slate-600">（没有说明）</div>
                 )}
                 <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                  {d.other_content_chars !== undefined && <span className="text-[9px] text-slate-600">正文 {d.other_content_chars} 字</span>}
-                  <span className="text-[9px] text-slate-600">合并后：对方被删除，内容/标签并入本技能（可撤销）</span>
+                  {d.other_content_chars !== undefined && <span className="text-micro text-slate-600">正文 {d.other_content_chars} 字</span>}
+                  <span className="text-micro text-slate-600">合并后：对方被删除，内容/标签并入本技能（可撤销）</span>
                   {!key ? (
-                    <span className="text-[10px] text-red-400" title="接口没有返回 other_id/id ⇒ 无法安全合并">缺少技能 id，无法合并</span>
+                    <span className="text-micro text-red-400" title="接口没有返回 other_id/id ⇒ 无法安全合并">缺少技能 id，无法合并</span>
                   ) : pending === key ? (
                     <span className="ml-auto flex flex-wrap items-center gap-1">
-                      <span className="text-[10px] text-amber-300">确认合并「{label || key}」？会删除它并写备份</span>
+                      <span className="text-micro text-amber-300">确认合并「{label || key}」？会删除它并写备份</span>
                       <button type="button" className={BTN} onClick={() => void mergeInto(key)} disabled={busy !== ''}>确认合并</button>
                       <button type="button" className={BTN} onClick={() => setPending('')}>取消</button>
                     </span>
@@ -172,8 +172,8 @@ export default function MergeDuplicatesModal({ skillId, skillName, onClose, onDo
           })}
         </ul>
       )}
-      {err && <p className="mt-2 text-[11px] text-red-400">{err}</p>}
-      {msg && <p className="mt-2 text-[11px] text-emerald-300">{msg}</p>}
+      {err && <p className="mt-2 text-caption text-red-400">{err}</p>}
+      {msg && <p className="mt-2 text-caption text-emerald-300">{msg}</p>}
       <div className="mt-3 flex flex-wrap justify-end gap-2">
         {mergeId && (
           <button type="button" className={BTN} onClick={() => void undo()} disabled={busy !== ''}>

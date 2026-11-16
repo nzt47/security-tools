@@ -465,7 +465,7 @@ export default function MemoryKnowledge() {
 
           {/* ═══ Tab 2 · 融合检索 ═══ */}
           {tab === 'search' && (
-            <HubCard title="融合检索" actions={<span className="text-[11px] text-slate-500">RRF 融合 + 双链扩展 + 精排</span>}>
+            <HubCard title="融合检索" actions={<span className="text-caption text-slate-500">RRF 融合 + 双链扩展 + 精排</span>}>
               <div className="flex gap-2">
                 <input
                   className={inputCls}
@@ -503,7 +503,7 @@ export default function MemoryKnowledge() {
                     >
                       {h.title}
                     </button>
-                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-slate-500">
                       <StatusBadge status={h.status} />
                       <span className="font-mono text-slate-400">{h.source_ref}</span>
                       <span className="font-mono text-cyan-500">
@@ -545,7 +545,7 @@ export default function MemoryKnowledge() {
                       <div className={`text-4xl font-bold ${scoreColor}`}>
                         {report.health_score.toFixed(1)}
                       </div>
-                      <div className="mt-1 text-[11px] text-slate-500">健康分（0-100）</div>
+                      <div className="mt-1 text-caption text-slate-500">健康分（0-100）</div>
                     </div>
                     <div className="text-xs text-slate-500">
                       共 {report.total_cards} 张卡片 · 巡检于 {report.checked_at}
@@ -561,7 +561,7 @@ export default function MemoryKnowledge() {
                     ].map((s) => (
                       <div key={s.label} className="rounded-lg border border-slate-800 bg-slate-900/60 p-3 text-center">
                         <div className="text-xl font-semibold text-slate-100">{s.value}</div>
-                        <div className="mt-0.5 text-[11px] text-slate-500">{s.label}</div>
+                        <div className="mt-0.5 text-caption text-slate-500">{s.label}</div>
                       </div>
                     ))}
                   </div>
@@ -657,7 +657,7 @@ export default function MemoryKnowledge() {
             className="max-h-[88vh] w-[560px] max-w-[94vw] overflow-y-auto rounded-xl border border-slate-700 bg-[#1b1e24] p-5 text-slate-200 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="mb-3 text-[15px] font-semibold text-slate-100">
+            <h3 className="mb-3 text-title font-semibold text-slate-100">
               {editing ? `编辑卡片: ${editing.slug}` : '新建卡片'}
             </h3>
             <CardForm

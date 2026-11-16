@@ -19,7 +19,7 @@
 }
 
 .kb-form-label {
-  font-size: 12px;
+  font-size: var(--text-body);
   color: #9aa1ac;
 }
 
@@ -29,7 +29,7 @@
   border-radius: 6px;
   color: #e8eaed;
   padding: 7px 10px;
-  font-size: 13px;
+  font-size: var(--text-body-lg);
   outline: none;
   transition: border-color 0.15s;
 }
@@ -47,7 +47,7 @@
 
 .kb-form-error {
   color: #ff7a7a;
-  font-size: 12px;
+  font-size: var(--text-body);
   background: rgba(255, 80, 80, 0.1);
   border-radius: 4px;
   padding: 6px 10px;
@@ -63,7 +63,7 @@
   padding: 7px 16px;
   border-radius: 6px;
   border: 1px solid transparent;
-  font-size: 13px;
+  font-size: var(--text-body-lg);
   cursor: pointer;
   transition: opacity 0.15s;
 }

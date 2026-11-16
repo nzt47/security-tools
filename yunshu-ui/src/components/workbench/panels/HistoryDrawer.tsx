@@ -243,8 +243,8 @@ export function HistoryDrawer({ sessionId, onClose }: HistoryDrawerProps) {
               <History size={13} />
             </div>
             <div className="min-w-0">
-              <div className="text-[13px] font-semibold text-slate-100">历史问话</div>
-              <div className="font-mono text-[9.5px] uppercase tracking-[0.16em] text-slate-500">
+              <div className="text-body-lg font-semibold text-slate-100">历史问话</div>
+              <div className="font-mono text-micro uppercase tracking-[0.16em] text-slate-500">
                 {loading ? '加载中…' : `${items.length} 条 · 当前会话`}
               </div>
             </div>
@@ -286,7 +286,7 @@ export function HistoryDrawer({ sessionId, onClose }: HistoryDrawerProps) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="搜索问话…"
-              className="w-full rounded-md border border-slate-700/80 bg-slate-900/80 py-1.5 pl-8 pr-7 text-[12px] text-slate-200 outline-hidden transition-colors placeholder:text-slate-600 focus:border-cyan-600/70"
+              className="w-full rounded-md border border-slate-700/80 bg-slate-900/80 py-1.5 pl-8 pr-7 text-body text-slate-200 outline-hidden transition-colors placeholder:text-slate-600 focus:border-cyan-600/70"
             />
             {search && (
               <button
@@ -306,21 +306,21 @@ export function HistoryDrawer({ sessionId, onClose }: HistoryDrawerProps) {
           {loading ? (
             <div className="flex flex-col items-center gap-2 pt-14 text-slate-500">
               <Loader2 size={16} className="animate-spin text-cyan-400/70" />
-              <span className="text-[11.5px]">加载中…</span>
+              <span className="text-body">加载中…</span>
             </div>
           ) : error ? (
             <div className="flex flex-col items-center gap-2 pt-14 text-slate-500">
-              <p className="text-[11.5px] text-rose-400/80">加载失败，请重试</p>
+              <p className="text-body text-rose-400/80">加载失败，请重试</p>
               <button
                 type="button"
                 onClick={() => void loadItems()}
-                className="flex items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1 text-[11px] text-slate-400 hover:bg-slate-800"
+                className="flex items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1 text-caption text-slate-400 hover:bg-slate-800"
               >
                 <RefreshCw size={11} /> 重试
               </button>
             </div>
           ) : rows.length === 0 ? (
-            <div className="pt-14 text-center text-[11.5px] text-slate-500">
+            <div className="pt-14 text-center text-body text-slate-500">
               {search ? '无匹配问话' : '暂无历史问话'}
             </div>
           ) : (
@@ -346,7 +346,7 @@ export function HistoryDrawer({ sessionId, onClose }: HistoryDrawerProps) {
                       className="group cursor-pointer rounded-lg border border-slate-800/80 bg-slate-900/40 px-2.5 py-2 outline-hidden transition-colors hover:border-cyan-500/35 hover:bg-slate-800/50 focus-visible:border-cyan-500/60"
                     >
                       <div className="flex items-start gap-2">
-                        <p className="min-w-0 flex-1 whitespace-pre-wrap wrap-break-word text-[12px] leading-relaxed text-slate-200 group-hover:text-slate-100">
+                        <p className="min-w-0 flex-1 whitespace-pre-wrap wrap-break-word text-body leading-relaxed text-slate-200 group-hover:text-slate-100">
                           {preview}
                         </p>
                         <span
@@ -394,7 +394,7 @@ export function HistoryDrawer({ sessionId, onClose }: HistoryDrawerProps) {
                           <Trash2 size={11} />
                         </span>
                       </div>
-                      <div className="mt-1 flex items-center justify-between font-mono text-[9.5px] text-slate-600">
+                      <div className="mt-1 flex items-center justify-between font-mono text-micro text-slate-600">
                         <span>{formatHistTime(entry.timestamp)}</span>
                         <span className="text-cyan-500/0 transition-colors group-hover:text-cyan-400/70">
                           定位到消息
@@ -410,7 +410,7 @@ export function HistoryDrawer({ sessionId, onClose }: HistoryDrawerProps) {
 
         {/* 底部提示（跳转降级/删除失败） */}
         {hint && (
-          <div className="shrink-0 border-t border-slate-800/80 px-4 py-2 text-[10.5px] text-amber-400/90">
+          <div className="shrink-0 border-t border-slate-800/80 px-4 py-2 text-caption text-amber-400/90">
             {hint}
           </div>
         )}

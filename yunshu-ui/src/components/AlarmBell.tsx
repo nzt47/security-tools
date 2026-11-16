@@ -148,14 +148,14 @@ export default function AlarmBell({ onOpenAll }: AlarmBellProps) {
         data-testid="alarm-bell"
         aria-label={unread > 0 ? '报警器（' + unread + ' 条未读）' : '报警器'}
         title={error ? '报警器不可用：' + error : unread > 0 ? unread + ' 条未读报警' : '报警器：暂无未读'}
-        className="relative flex items-center gap-1.5 rounded-md border border-slate-800 bg-slate-900/70 px-2.5 py-1 text-[11px] text-slate-300 hover:bg-slate-800"
+        className="relative flex items-center gap-1.5 rounded-md border border-slate-800 bg-slate-900/70 px-2.5 py-1 text-caption text-slate-300 hover:bg-slate-800"
       >
         {error ? <BellOff size={13} className="text-slate-500" /> : <Bell size={13} />}
         <span className="hidden sm:inline">报警</span>
         {unread > 0 && (
           <span
             data-testid="alarm-badge"
-            className="ml-0.5 min-w-[16px] rounded-full bg-rose-500 px-1 text-center text-[10px] font-semibold leading-4 text-white"
+            className="ml-0.5 min-w-[16px] rounded-full bg-rose-500 px-1 text-center text-micro font-semibold leading-4 text-white"
           >
             {unread > 99 ? '99+' : unread}
           </span>
@@ -174,20 +174,20 @@ export default function AlarmBell({ onOpenAll }: AlarmBellProps) {
               data-testid="alarm-mark-all"
               onClick={() => void handleMarkAll()}
               disabled={unread === 0}
-              className="flex items-center gap-1 rounded-sm border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-300 disabled:opacity-40 hover:bg-slate-800"
+              className="flex items-center gap-1 rounded-sm border border-slate-700 px-1.5 py-0.5 text-micro text-slate-300 disabled:opacity-40 hover:bg-slate-800"
             >
               <CheckCheck size={11} /> 全部已读
             </button>
           </div>
 
           {error && (
-            <p data-testid="alarm-error" className="mb-2 rounded-md border border-rose-900/60 bg-rose-950/30 px-2 py-1 text-[10px] text-rose-300">
+            <p data-testid="alarm-error" className="mb-2 rounded-md border border-rose-900/60 bg-rose-950/30 px-2 py-1 text-micro text-rose-300">
               报警器不可用：{error}
             </p>
           )}
 
           {!error && items.length === 0 && (
-            <p data-testid="alarm-empty" className="py-4 text-center text-[11px] text-slate-500">
+            <p data-testid="alarm-empty" className="py-4 text-center text-caption text-slate-500">
               {firing > 0
                 ? '暂无未读报警 —— 但仍有 ' + firing + ' 条未恢复（见消息中心的告警记录）'
                 : resolvedUnacked > 0
@@ -209,11 +209,11 @@ export default function AlarmBell({ onOpenAll }: AlarmBellProps) {
                     aria-label={SEVERITY_TEXT[item.severity] ?? item.severity}
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-[11px] text-slate-200" title={item.title}>{item.title}</div>
+                    <div className="truncate text-caption text-slate-200" title={item.title}>{item.title}</div>
                     {item.detail && (
-                      <div className="mt-0.5 line-clamp-2 text-[10px] text-slate-500" title={item.detail}>{item.detail}</div>
+                      <div className="mt-0.5 line-clamp-2 text-micro text-slate-500" title={item.detail}>{item.detail}</div>
                     )}
-                    <div className="mt-1 flex items-center gap-1.5 text-[10px] text-slate-500">
+                    <div className="mt-1 flex items-center gap-1.5 text-micro text-slate-500">
                       <span>{fmtClock(item.last_seen)}</span>
                       {item.state === 'resolved' && (
                         <span
@@ -228,7 +228,7 @@ export default function AlarmBell({ onOpenAll }: AlarmBellProps) {
                       <button
                         type="button"
                         onClick={() => void handleSilence(item)}
-                        className="ml-auto flex items-center gap-0.5 rounded-sm border border-slate-700 px-1 text-[9px] text-slate-400 hover:bg-slate-800"
+                        className="ml-auto flex items-center gap-0.5 rounded-sm border border-slate-700 px-1 text-micro text-slate-400 hover:bg-slate-800"
                         title={'静默 1 小时（不删除、到期自动恢复提醒）'}
                       >
                         <Clock size={9} /> 静默
@@ -236,7 +236,7 @@ export default function AlarmBell({ onOpenAll }: AlarmBellProps) {
                       <button
                         type="button"
                         onClick={() => void handleAck(item)}
-                        className="rounded-sm border border-slate-700 px-1 text-[9px] text-slate-400 hover:bg-slate-800"
+                        className="rounded-sm border border-slate-700 px-1 text-micro text-slate-400 hover:bg-slate-800"
                         title="确认已知悉（记谁在何时确认）"
                       >
                         确认
@@ -245,7 +245,7 @@ export default function AlarmBell({ onOpenAll }: AlarmBellProps) {
                         <button
                           type="button"
                           onClick={() => void markAlarmRead(item.id).then(load).catch(() => undefined)}
-                          className="rounded-sm border border-slate-700 px-1 text-[9px] text-slate-400 hover:bg-slate-800"
+                          className="rounded-sm border border-slate-700 px-1 text-micro text-slate-400 hover:bg-slate-800"
                         >
                           已读
                         </button>
@@ -258,14 +258,14 @@ export default function AlarmBell({ onOpenAll }: AlarmBellProps) {
           </ul>
 
           <div className="mt-2 flex items-center justify-between border-t border-slate-800 pt-2">
-            <span className="text-[10px] text-slate-500">
+            <span className="text-micro text-slate-500">
               审批单据不在报警器里（去「审批收件箱」裁决）
             </span>
             <button
               type="button"
               data-testid="alarm-open-all"
               onClick={() => { setOpen(false); onOpenAll?.() }}
-              className="flex items-center gap-0.5 text-[10px] text-cyan-300 hover:underline"
+              className="flex items-center gap-0.5 text-micro text-cyan-300 hover:underline"
             >
               查看全部 <ExternalLink size={10} />
             </button>

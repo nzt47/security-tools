@@ -48,7 +48,7 @@ export function ChatModeMenu() {
         aria-expanded={open}
         aria-haspopup="menu"
         title={`对话模式：${current.label} —— ${current.hint}`}
-        className={`flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] transition-colors ${
+        className={`flex items-center gap-1 rounded-md border px-2 py-0.5 text-caption transition-colors ${
           mode === 'full'
             ? 'border-violet-600/60 text-violet-300'
             : mode === 'retrieval'
@@ -64,9 +64,9 @@ export function ChatModeMenu() {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-[calc(100%+6px)] z-80 w-[330px] rounded-xl border border-slate-700 bg-slate-900/98 p-2 text-[11.5px] shadow-2xl backdrop-blur-sm"
+          className="absolute right-0 top-[calc(100%+6px)] z-80 w-[330px] rounded-xl border border-slate-700 bg-slate-900/98 p-2 text-body shadow-2xl backdrop-blur-sm"
         >
-          <div className="mb-1.5 px-1 text-[10px] uppercase tracking-wider text-slate-500">对话模式</div>
+          <div className="mb-1.5 px-1 text-micro uppercase tracking-wider text-slate-500">对话模式</div>
           {(Object.keys(CHAT_MODES) as ChatMode[]).map((m) => {
             const item = CHAT_MODES[m]
             const active = m === mode
@@ -89,13 +89,13 @@ export function ChatModeMenu() {
                 <span className="flex items-center gap-1.5">
                   <span>{item.icon}</span>
                   <b className="font-medium text-slate-200">{item.label}</b>
-                  {active && <span className="ml-auto text-[10px] text-cyan-300">✓ 当前</span>}
+                  {active && <span className="ml-auto text-micro text-cyan-300">✓ 当前</span>}
                 </span>
-                <span className="mt-0.5 block text-[10.5px] leading-relaxed text-slate-500">{item.hint}</span>
+                <span className="mt-0.5 block text-caption leading-relaxed text-slate-500">{item.hint}</span>
               </button>
             )
           })}
-          <div className="mt-1 px-1 text-[10px] leading-relaxed text-slate-600">
+          <div className="mt-1 px-1 text-micro leading-relaxed text-slate-600">
             代价是真实的：完整模式单轮可能触发多次模型调用（规划最多 10 步），延迟与花费都会上去；
             日常问答用轻量，需要"记得住"时用检索；不想每次挑就用「自动」（它只会在任务型/长输入时升档）。
           </div>

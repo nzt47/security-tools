@@ -30,9 +30,9 @@ import {
   dashboardTrace,
 } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
+const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
-const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
+const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 interface MetricDef {
   name?: string
@@ -136,7 +136,7 @@ export default function BusinessBoard() {
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <BarChart3 size={14} className="text-cyan-400" />
         <h2 className="text-sm font-semibold text-slate-100">业务看板</h2>
-        <span className="text-[11px] text-slate-500">业务指标（产品面）与系统仪表盘（运行面）</span>
+        <span className="text-caption text-slate-500">业务指标（产品面）与系统仪表盘（运行面）</span>
         <div className="ml-auto flex items-center gap-1.5">
           <a href={BUSINESS_PROMETHEUS} target="_blank" rel="noreferrer" className={BTN} aria-label="导出 Prometheus 指标">
             <ExternalLink size={11} /> Prometheus
@@ -156,7 +156,7 @@ export default function BusinessBoard() {
             type="button"
             onClick={() => setTab(id)}
             aria-selected={tab === id}
-            className={'rounded-lg px-2.5 py-1 text-[11px] transition-colors ' + (
+            className={'rounded-lg px-2.5 py-1 text-caption transition-colors ' + (
               tab === id ? 'bg-cyan-500/15 font-medium text-cyan-300' : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
             )}
           >
@@ -166,7 +166,7 @@ export default function BusinessBoard() {
       </div>
 
       {tab === 'dashboard' && (
-        <div className="mb-2 rounded-md border border-slate-800 bg-slate-900/40 px-2 py-1.5 text-[10px] text-slate-500" data-testid="dashboard-scope-note">
+        <div className="mb-2 rounded-md border border-slate-800 bg-slate-900/40 px-2 py-1.5 text-micro text-slate-500" data-testid="dashboard-scope-note">
           运行面口径：服务健康（/api/dashboard/health）· 记忆命中率 · 评审分数分布 · 追踪。
           与「全景看板 · 健康仪表盘」的 L1~L5 探针、「系统管理 · 仪表盘」的用户/角色/审计计数都不是同一份数据。
         </div>
@@ -182,26 +182,26 @@ export default function BusinessBoard() {
               ['指标分类', Object.keys(cats).length],
             ].map(([k, v]) => (
               <div key={String(k)} className="rounded-sm border border-slate-800 bg-slate-900/50 px-2 py-1.5">
-                <div className="text-[10px] text-slate-500">{String(k)}</div>
-                <div className="font-mono text-[13px] text-cyan-300">{String(v ?? '—')}</div>
+                <div className="text-micro text-slate-500">{String(k)}</div>
+                <div className="font-mono text-body-lg text-cyan-300">{String(v ?? '—')}</div>
               </div>
             ))}
           </div>
 
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-            <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+            <div className="mb-2 flex flex-wrap items-center gap-2 text-caption text-slate-400">
               <Gauge size={11} className="text-cyan-400" /> 指标定义（{defs.length}）
               <select className={INPUT} value={catFilter} onChange={(e) => setCatFilter(e.target.value)} aria-label="指标分类筛选">
                 <option value="">全部分类</option>
                 {Object.keys(cats).map((c) => <option key={c} value={c}>{c}（{cats[c]}）</option>)}
               </select>
               {Object.keys(bizCats).length > 0 && (
-                <span className="text-[10px] text-slate-600">在线分组：{bizCats.join(' / ')}</span>
+                <span className="text-micro text-slate-600">在线分组：{bizCats.join(' / ')}</span>
               )}
             </div>
             <div className="max-h-72 overflow-y-auto">
-              <table className="w-full text-left text-[11px]">
-                <thead className="text-[10px] text-slate-500">
+              <table className="w-full text-left text-caption">
+                <thead className="text-micro text-slate-500">
                   <tr>
                     <th className="px-1 py-1">指标</th>
                     <th className="px-1 py-1">分类</th>
@@ -214,7 +214,7 @@ export default function BusinessBoard() {
                   {defs.filter((d) => !catFilter || d.category === catFilter).map((d, i) => (
                     <tr key={(d.name ?? '') + i} className="border-t border-slate-800/60 hover:bg-slate-800/30">
                       <td className="px-1 py-1">
-                        <button type="button" className="font-mono text-[10px] text-cyan-300 underline-offset-2 hover:underline" onClick={() => setMetricName(d.name ?? '')}>
+                        <button type="button" className="font-mono text-micro text-cyan-300 underline-offset-2 hover:underline" onClick={() => setMetricName(d.name ?? '')}>
                           {d.name ?? ''}
                         </button>
                       </td>
@@ -230,7 +230,7 @@ export default function BusinessBoard() {
           </div>
 
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-            <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+            <div className="mb-2 flex flex-wrap items-center gap-2 text-caption text-slate-400">
               <Search size={11} className="text-cyan-400" /> 单个指标详情
               <input className={INPUT + ' w-72'} value={metricName} onChange={(e) => setMetricName(e.target.value)} placeholder="指标名，如 yunshu_interaction_total" aria-label="指标名" />
               <button type="button" className={BTN} onClick={() => void loadMetric()} disabled={loading || metricName.trim() === ''} aria-label="查询指标详情">
@@ -242,7 +242,7 @@ export default function BusinessBoard() {
 
           {bizHealth && (
             <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-              <div className="mb-1 text-[11px] text-slate-400">业务指标健康检查</div>
+              <div className="mb-1 text-caption text-slate-400">业务指标健康检查</div>
               <pre className={PRE}>{JSON.stringify(bizHealth, null, 2)}</pre>
             </div>
           )}
@@ -259,35 +259,35 @@ export default function BusinessBoard() {
               ['追踪数', traces.length],
             ].map(([k, v]) => (
               <div key={String(k)} className="rounded-sm border border-slate-800 bg-slate-900/50 px-2 py-1.5">
-                <div className="text-[10px] text-slate-500">{String(k)}</div>
-                <div className="truncate font-mono text-[13px] text-cyan-300">{String(v ?? '—')}</div>
+                <div className="text-micro text-slate-500">{String(k)}</div>
+                <div className="truncate font-mono text-body-lg text-cyan-300">{String(v ?? '—')}</div>
               </div>
             ))}
           </div>
 
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-            <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
+            <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
               <Activity size={11} className="text-cyan-400" /> 服务健康
             </div>
             <pre className={PRE}>{JSON.stringify(svcHealth ?? {}, null, 2)}</pre>
           </div>
 
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-            <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
+            <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
               <Gauge size={11} className="text-cyan-400" /> 质量监控（评审分数分布与趋势）
             </div>
             <pre className={PRE}>{JSON.stringify(quality ?? {}, null, 2)}</pre>
           </div>
 
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-            <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
+            <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
               <Server size={11} className="text-cyan-400" /> 记忆使用（命中率与分布）
             </div>
             <pre className={PRE}>{JSON.stringify(mem ?? {}, null, 2)}</pre>
           </div>
 
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-            <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
+            <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
               <Search size={11} className="text-cyan-400" /> 追踪（{traces.length}）
             </div>
             <div className="mb-1 flex flex-wrap items-center gap-2">
@@ -303,11 +303,11 @@ export default function BusinessBoard() {
                     key={(t.trace_id ?? '') + i}
                     type="button"
                     onClick={() => setTraceId(t.trace_id ?? '')}
-                    className="flex items-center gap-2 rounded-sm border border-slate-800 bg-slate-900/40 px-2 py-1 text-left text-[11px] hover:bg-slate-800/50"
+                    className="flex items-center gap-2 rounded-sm border border-slate-800 bg-slate-900/40 px-2 py-1 text-left text-caption hover:bg-slate-800/50"
                   >
-                    <span className="font-mono text-[10px] text-cyan-300">{t.trace_id ?? ''}</span>
+                    <span className="font-mono text-micro text-cyan-300">{t.trace_id ?? ''}</span>
                     <span className="text-slate-400">{t.name ?? ''}</span>
-                    <span className="ml-auto font-mono text-[10px] text-slate-500">{Math.round(t.duration_ms ?? 0)}ms</span>
+                    <span className="ml-auto font-mono text-micro text-slate-500">{Math.round(t.duration_ms ?? 0)}ms</span>
                   </button>
                 ))}
               </div>

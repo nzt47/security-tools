@@ -60,14 +60,14 @@ export default function MemoryDraftPanel() {
       <div className="mb-2 flex items-center gap-2">
         <Sparkles size={13} className="text-cyan-400" />
         <h3 className="text-sm font-medium text-slate-200">从记忆生成技能草稿</h3>
-        <span className="text-[10px] text-slate-500">聚类最近记忆 → 质量闸 → 草稿（进「转化队列」，不自动注册/启用）</span>
+        <span className="text-micro text-slate-500">聚类最近记忆 → 质量闸 → 草稿（进「转化队列」，不自动注册/启用）</span>
       </div>
       <div className="flex flex-wrap items-end gap-2">
-        <label className="flex flex-col gap-1 text-[10px] text-slate-500">
+        <label className="flex flex-col gap-1 text-micro text-slate-500">
           回溯天数
           <input className={INPUT + ' w-20'} value={days} onChange={(e) => setDays(e.target.value)} aria-label="抽象回溯天数" />
         </label>
-        <label className="flex flex-col gap-1 text-[10px] text-slate-500">
+        <label className="flex flex-col gap-1 text-micro text-slate-500">
           最多草稿
           <input className={INPUT + ' w-20'} value={maxSkills} onChange={(e) => setMaxSkills(e.target.value)} aria-label="最多草稿数" />
         </label>
@@ -75,10 +75,10 @@ export default function MemoryDraftPanel() {
           {busy ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} 生成草稿
         </button>
       </div>
-      {err && <p className="mt-2 text-[11px] text-red-400">{err}</p>}
+      {err && <p className="mt-2 text-caption text-red-400">{err}</p>}
       {result && (
-        <div className="mt-2 rounded-sm border border-slate-800 bg-slate-950/60 p-2 text-[11px] text-slate-300">
-          <div className="text-[10px] text-slate-500">
+        <div className="mt-2 rounded-sm border border-slate-800 bg-slate-950/60 p-2 text-caption text-slate-300">
+          <div className="text-micro text-slate-500">
             聚类 {result.total_clusters ?? 0} · 过闸 {result.passed_clusters ?? 0}
             {' · 草稿 ' + (result.drafts ?? []).filter((d) => d.drafted).length}
             <span className="ml-1 text-slate-600">（登记/启用去「草稿评审」）</span>

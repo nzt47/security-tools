@@ -257,13 +257,13 @@ function SubagentView({ onShowAssembly }: { onShowAssembly?: () => void }) {
                       </span>
                       {/* 温度：null/undefined = 未干预（**不显示 T=0**，那会把"没表态"说成"最确定性"） */}
                       {typeof t === 'number' && (
-                        <span className="font-mono text-[11px] text-slate-400" data-testid="subagent-llm-temperature">
+                        <span className="font-mono text-caption text-slate-400" data-testid="subagent-llm-temperature">
                           T={t}
                         </span>
                       )}
                       <LlmSourceBadge llm={llm} />
                       {llm?.error && (
-                        <span className="text-[10px] text-red-300" title={String(llm.error)}>
+                        <span className="text-micro text-red-300" title={String(llm.error)}>
                           回退原因
                         </span>
                       )}
@@ -294,11 +294,11 @@ function SubagentView({ onShowAssembly }: { onShowAssembly?: () => void }) {
                   return (
                     <span className="flex flex-wrap items-center gap-1.5" data-testid={`subagent-memory-${String(r.name)}`}>
                       <Badge color="cyan">{String(r.memory_provider ?? 'default')}</Badge>
-                      <span className="text-[11px] text-slate-500">{mode}</span>
+                      <span className="text-caption text-slate-500">{mode}</span>
                       {topics.length > 0 && (
                         <span className="flex flex-wrap gap-1" data-testid={`subagent-topics-${String(r.name)}`}>
                           {topics.map((t) => (
-                            <span key={t} className="rounded-full border border-slate-700 bg-slate-800/60 px-2 py-0.5 font-mono text-[10px] text-slate-300">
+                            <span key={t} className="rounded-full border border-slate-700 bg-slate-800/60 px-2 py-0.5 font-mono text-micro text-slate-300">
                               {t}
                             </span>
                           ))}

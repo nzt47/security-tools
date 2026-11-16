@@ -14,9 +14,9 @@ import { FileText, Loader2 } from 'lucide-react'
 import { hubPost } from '../../pages/hub/components/ui'
 import { HANDOFF, SESSIONS_FROM_HANDOFF } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
+const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
-const PRE = 'max-h-64 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
+const PRE = 'max-h-64 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 export default function HandoffPanel({ sessionId }: { sessionId: string }) {
   const [intent, setIntent] = useState('')
@@ -67,9 +67,9 @@ export default function HandoffPanel({ sessionId }: { sessionId: string }) {
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <FileText size={12} className="text-cyan-400" />
         <h3 className="text-xs font-semibold text-slate-200">会话交接文档</h3>
-        <span className="text-[10px] text-slate-500">把当前会话压缩成 Markdown（含脱敏），落盘到临时目录</span>
+        <span className="text-micro text-slate-500">把当前会话压缩成 Markdown（含脱敏），落盘到临时目录</span>
       </div>
-      {err && <div className="mb-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-[11px] text-red-300">{err}</div>}
+      {err && <div className="mb-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-caption text-red-300">{err}</div>}
       <div className="flex flex-wrap items-center gap-2">
         <input
           className={INPUT + ' w-72'}
@@ -81,10 +81,10 @@ export default function HandoffPanel({ sessionId }: { sessionId: string }) {
         <button type="button" className={BTN} onClick={() => void run()} disabled={busy || !sessionId} aria-label="生成交接文档">
           {busy ? <Loader2 size={11} className="animate-spin" /> : <FileText size={11} />} 生成交接文档
         </button>
-        <span className="text-[10px] text-slate-600">会话：{sessionId || '未选中'}</span>
+        <span className="text-micro text-slate-600">会话：{sessionId || '未选中'}</span>
       </div>
       {path && (
-        <div className="mt-2 text-[10px] text-slate-400">
+        <div className="mt-2 text-micro text-slate-400">
           已落盘：<span className="font-mono text-slate-300">{path}</span>
         </div>
       )}
@@ -96,7 +96,7 @@ export default function HandoffPanel({ sessionId }: { sessionId: string }) {
             {creating ? <Loader2 size={11} className="animate-spin" /> : <FileText size={11} />} 用这份文档开新会话
           </button>
           {created && (
-            <span className="text-[10px] text-emerald-300">
+            <span className="text-micro text-emerald-300">
               已创建：{created.title || created.id}（左侧会话列表可切换）
             </span>
           )}

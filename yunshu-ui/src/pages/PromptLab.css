@@ -42,14 +42,14 @@
 }
 .pl-title {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--text-title);
   font-weight: 600;
   letter-spacing: 0.06em;
   color: #e2e8f0;
 }
 .pl-subtitle {
   margin: 1px 0 0;
-  font-size: 11px;
+  font-size: var(--text-caption);
   color: var(--wb-text-dim);
 }
 .pl-topbar-actions {
@@ -112,7 +112,7 @@
   background: rgba(148, 163, 184, 0.08);
   color: var(--wb-text);
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--text-body);
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
 }
@@ -177,7 +177,7 @@
   background: transparent;
   color: var(--wb-text-dim);
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--text-body);
   cursor: pointer;
   transition: all 0.15s;
 }
@@ -249,7 +249,7 @@
 }
 .pl-col-title {
   margin: 0 0 12px;
-  font-size: 13px;
+  font-size: var(--text-body-lg);
   font-weight: 600;
   letter-spacing: 0.02em;
   color: #94a3b8;
@@ -274,7 +274,7 @@
   align-items: center;
   gap: 8px;
   margin: 0 0 2px;
-  font-size: 14px;
+  font-size: var(--text-ui);
   font-weight: 600;
   letter-spacing: 0.04em;
 }
@@ -286,13 +286,13 @@
 }
 .pl-category-count {
   margin-left: auto;
-  font-size: 11px;
+  font-size: var(--text-caption);
   font-weight: 400;
   color: var(--wb-text-dim);
 }
 .pl-category-desc {
   margin: 0 0 10px 16px;
-  font-size: 11px;
+  font-size: var(--text-caption);
   color: var(--wb-text-dim);
 }
 .pl-card-grid {
@@ -322,13 +322,13 @@
   gap: 8px;
 }
 .pl-factor-name {
-  font-size: 13px;
+  font-size: var(--text-body-lg);
   font-weight: 600;
   color: #e2e8f0;
 }
 .pl-factor-desc {
   margin: 5px 0 10px;
-  font-size: 11px;
+  font-size: var(--text-caption);
   line-height: 1.55;
   color: var(--wb-text-dim);
 }
@@ -356,7 +356,7 @@
   min-width: 56px;
   text-align: right;
   font-family: var(--wb-mono);
-  font-size: 12px;
+  font-size: var(--text-body);
   color: color-mix(in srgb, var(--color-primary) 55%, white);
   white-space: nowrap;
 }
@@ -367,7 +367,7 @@
   gap: 10px;
   margin-top: 2px;
   padding-right: 66px; /* 与上面的数值框右对齐（56 + gap 10） */
-  font-size: 10px;
+  font-size: var(--text-micro);
   color: var(--wb-text-dim);
 }
 /* 【2026-11-16】select / text / textarea 三类输入已全部改用原语（ui/Select、ui/Input、
@@ -392,7 +392,7 @@
 }
 .pl-preview-head h2 {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--text-ui);
   font-weight: 600;
   color: #e2e8f0;
 }
@@ -410,7 +410,7 @@
   border-radius: 8px;
   border: 1px dashed var(--wb-border);
   background: rgba(148, 163, 184, 0.05);
-  font-size: 11px;
+  font-size: var(--text-caption);
   line-height: 1.65;
   color: var(--wb-text-dim);
 }
@@ -463,7 +463,7 @@
   background: transparent;
   color: var(--wb-text-dim);
   font-family: inherit;
-  font-size: 11px;
+  font-size: var(--text-caption);
   cursor: pointer;
   transition: all 0.15s;
 }
@@ -486,7 +486,7 @@
 /* 人格 6 维的同步状态（一行小字：读的是后端值还是默认值 / 正在写回 / 写失败） */
 .pl-personality-status {
   margin: 0 0 10px 16px;
-  font-size: 11px;
+  font-size: var(--text-caption);
   color: var(--wb-text-dim);
 }
 
@@ -501,7 +501,7 @@
   border-radius: 8px;
   background: rgba(251, 191, 36, 0.08);
   color: #fcd34d;
-  font-size: 11.5px;
+  font-size: var(--text-body);
   line-height: 1.6;
 }
 .pl-warn-strip strong {
@@ -524,7 +524,7 @@
 .pl-preview-block h3,
 .pl-export h3 {
   margin: 0 0 6px;
-  font-size: 12px;
+  font-size: var(--text-body);
   font-weight: 600;
   color: var(--wb-text-dim);
   letter-spacing: 0.08em;
@@ -541,7 +541,7 @@
   background: rgba(4, 8, 16, 0.75);
   color: #cbd5e1;
   font-family: var(--wb-mono);
-  font-size: 11.5px;
+  font-size: var(--text-body);
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
@@ -562,7 +562,7 @@
   border: 1px solid rgba(248, 113, 113, 0.35);
   background: rgba(248, 113, 113, 0.1);
   color: #fca5a5;
-  font-size: 11px;
+  font-size: var(--text-caption);
   line-height: 1.5;
 }
 
@@ -579,7 +579,7 @@
   align-items: center;
   gap: 6px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--text-body);
   color: var(--wb-text);
 }
 .pl-field {
@@ -589,7 +589,7 @@
 .pl-field > span {
   display: block;
   margin-bottom: 4px;
-  font-size: 11px;
+  font-size: var(--text-caption);
   color: var(--wb-text-dim);
 }
 .pl-modal-grid {
@@ -605,11 +605,11 @@
 }
 .pl-radar-label {
   fill: var(--wb-text-dim);
-  font-size: 10.5px;
+  font-size: var(--text-caption);
 }
 .pl-radar-value {
   fill: color-mix(in srgb, var(--color-primary) 55%, white);
-  font-size: 10.5px;
+  font-size: var(--text-caption);
   font-family: var(--wb-mono);
 }
 
@@ -620,7 +620,7 @@
 }
 .pl-export-hint {
   margin: 0 0 8px;
-  font-size: 11px;
+  font-size: var(--text-caption);
   color: var(--wb-text-dim);
   line-height: 1.5;
 }
@@ -637,7 +637,7 @@
   background: rgba(244, 114, 182, 0.08);
   color: #f9a8d4;
   font-family: var(--wb-mono);
-  font-size: 10.5px;
+  font-size: var(--text-caption);
   white-space: nowrap;
 }
 /* 【2026-11-16】.pl-syspart-text 随 textarea 一起迁到 ui/Textarea：外边距与禁用淡化
@@ -666,7 +666,7 @@
   justify-content: space-between;
   gap: 8px;
   padding: 5px 10px;
-  font-size: 11.5px;
+  font-size: var(--text-body);
   color: var(--wb-text);
   border-bottom: 1px solid var(--wb-border);
 }
@@ -705,21 +705,21 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  font-size: 11px;
+  font-size: var(--text-caption);
   color: var(--wb-text-dim);
 }
 .pl-token-window-label {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: var(--text-caption);
   color: var(--wb-text-dim);
 }
 .pl-token-window {
   width: 88px;
   padding: 3px 8px;
   font-family: var(--wb-mono);
-  font-size: 11px;
+  font-size: var(--text-caption);
 }
 
 /* ── 自定义因素弹层 ── */
@@ -747,7 +747,7 @@
 }
 .pl-modal-title {
   margin: 0 0 12px;
-  font-size: 15px;
+  font-size: var(--text-title);
   font-weight: 600;
   color: #e2e8f0;
 }
@@ -769,7 +769,7 @@
   border: 1px solid rgba(34, 211, 238, 0.4);
   background: rgba(34, 211, 238, 0.1);
   color: color-mix(in srgb, var(--color-primary) 72%, white);
-  font-size: 10px;
+  font-size: var(--text-micro);
   font-style: normal;
   font-weight: 400;
   vertical-align: 2px;
@@ -788,13 +788,13 @@
   border-radius: 10px;
   border: 1px solid var(--wb-border);
   background: rgba(148, 163, 184, 0.06);
-  font-size: 11px;
+  font-size: var(--text-caption);
   color: var(--wb-text-dim);
 }
 .pl-id-stat b {
   color: #e2e8f0;
   font-family: var(--wb-mono);
-  font-size: 13px;
+  font-size: var(--text-body-lg);
 }
 .pl-id-stat b.ok {
   color: var(--color-primary);
@@ -809,7 +809,7 @@
 .pl-id-dirty {
   margin-left: 4px;
   color: #fbbf24;
-  font-size: 11px;
+  font-size: var(--text-caption);
 }
 .pl-id-msg {
   margin: 0 0 10px;
@@ -818,7 +818,7 @@
   border: 1px solid rgba(34, 211, 238, 0.3);
   background: rgba(34, 211, 238, 0.08);
   color: color-mix(in srgb, var(--color-primary) 72%, white);
-  font-size: 11.5px;
+  font-size: var(--text-body);
 }
 .pl-id-loading {
   display: flex;
@@ -826,18 +826,18 @@
   gap: 8px;
   padding: 18px 0;
   color: var(--wb-text-dim);
-  font-size: 12px;
+  font-size: var(--text-body);
 }
 .pl-id-warn {
   display: flex;
   align-items: center;
   gap: 5px;
   margin: 8px 0 0;
-  font-size: 11px;
+  font-size: var(--text-caption);
   color: #fbbf24;
 }
 .pl-id-hint {
-  font-size: 11px;
+  font-size: var(--text-caption);
   line-height: 1.5;
   color: var(--wb-text-dim);
 }
@@ -847,7 +847,7 @@
   border-radius: 8px;
   border: 1px solid var(--wb-border);
   background: rgba(4, 8, 16, 0.4);
-  font-size: 11.5px;
+  font-size: var(--text-body);
   color: var(--wb-text-dim);
 }
 .pl-syspart-limit,
@@ -855,7 +855,7 @@
   margin-left: 10px;
   font-family: var(--wb-mono);
   color: #f9a8d4;
-  font-size: 10.5px;
+  font-size: var(--text-caption);
 }
 
 /* ── 发出顺序徽章（#n）——卡片内的「发出内容」预览已于 2026-11-16 移除，只留这个徽章 ── */
@@ -867,7 +867,7 @@
   background: rgba(34, 211, 238, 0.12);
   color: color-mix(in srgb, var(--color-primary) 72%, white);
   font-family: var(--wb-mono);
-  font-size: 10px;
+  font-size: var(--text-micro);
   font-style: normal;
 }
 /* 面板项聚焦：与右侧提示词区域的高亮片段呼应 */
@@ -903,7 +903,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11.5px;
+  font-size: var(--text-body);
   color: var(--wb-text-dim);
   cursor: pointer;
 }
@@ -924,7 +924,7 @@
 }
 .lm-stat-box b {
   font-family: var(--wb-mono);
-  font-size: 15px;
+  font-size: var(--text-title);
   font-weight: 600;
   color: #e2e8f0;
 }
@@ -935,7 +935,7 @@
   color: #fbbf24;
 }
 .lm-stat-box span {
-  font-size: 10.5px;
+  font-size: var(--text-caption);
   color: var(--wb-text-dim);
 }
 .pl-monitor-filter {
@@ -957,7 +957,7 @@
 .pl-monitor-empty {
   padding: 40px;
   text-align: center;
-  font-size: 12px;
+  font-size: var(--text-body);
   color: var(--wb-text-dim);
 }
 .pl-monitor-more {
@@ -991,7 +991,7 @@
   background: transparent;
   color: var(--wb-text);
   font-family: inherit;
-  font-size: 11.5px;
+  font-size: var(--text-body);
   text-align: left;
   cursor: pointer;
 }
@@ -1008,13 +1008,13 @@
   background: rgba(148, 163, 184, 0.12);
   color: var(--wb-accent);
   font-family: var(--wb-mono);
-  font-size: 10.5px;
+  font-size: var(--text-caption);
 }
 .lm-badge {
   flex-shrink: 0;
   padding: 0 6px;
   border-radius: 3px;
-  font-size: 10px;
+  font-size: var(--text-micro);
   background: rgba(148, 163, 184, 0.14);
   color: var(--wb-text-dim);
 }
@@ -1034,7 +1034,7 @@
 .lm-time {
   flex-shrink: 0;
   font-family: var(--wb-mono);
-  font-size: 10.5px;
+  font-size: var(--text-caption);
   color: var(--wb-text-dim);
 }
 /* Token 数量 */
@@ -1046,7 +1046,7 @@
   background: rgba(34, 211, 238, 0.08);
   color: color-mix(in srgb, var(--color-primary) 55%, white);
   font-family: var(--wb-mono);
-  font-size: 10.5px;
+  font-size: var(--text-caption);
 }
 .lm-tokens em {
   margin-left: 3px;
@@ -1055,7 +1055,7 @@
 }
 .lm-flag {
   flex-shrink: 0;
-  font-size: 10.5px;
+  font-size: var(--text-caption);
   color: var(--wb-text-dim);
 }
 .lm-flag.err {
@@ -1066,13 +1066,13 @@
   border-radius: 4px;
   background: rgba(251, 191, 36, 0.14);
   color: #fcd34d;
-  font-size: 10px;
+  font-size: var(--text-micro);
 }
 .lm-duration {
   margin-left: auto;
   flex-shrink: 0;
   font-family: var(--wb-mono);
-  font-size: 10.5px;
+  font-size: var(--text-caption);
   color: var(--wb-text-dim);
 }
 .lm-record-detail {
@@ -1100,12 +1100,12 @@
   gap: 8px;
   padding: 6px 9px;
   border-bottom: 1px solid var(--wb-border);
-  font-size: 11px;
+  font-size: var(--text-caption);
   color: var(--wb-text);
 }
 .lm-panel-head .pl-btn {
   padding: 2px 8px;
-  font-size: 10px;
+  font-size: var(--text-micro);
 }
 .lm-panel-body {
   max-height: 420px;
@@ -1125,7 +1125,7 @@
   display: block;
   margin-bottom: 3px;
   font-family: var(--wb-mono);
-  font-size: 10px;
+  font-size: var(--text-micro);
   color: var(--wb-accent);
 }
 .lm-msg .lm-content {
@@ -1133,7 +1133,7 @@
   white-space: pre-wrap;
   word-break: break-word;
   font-family: var(--wb-mono);
-  font-size: 11px;
+  font-size: var(--text-caption);
   line-height: 1.5;
   color: #cbd5e1;
 }
@@ -1167,13 +1167,13 @@
   background: rgba(4, 8, 16, 0.6);
   color: #d8b4fe;
   font-family: var(--wb-mono);
-  font-size: 10.5px;
+  font-size: var(--text-caption);
   white-space: pre-wrap;
   word-break: break-word;
 }
 .lm-empty {
   padding: 10px;
-  font-size: 11px;
+  font-size: var(--text-caption);
   color: var(--wb-text-dim);
 }
 

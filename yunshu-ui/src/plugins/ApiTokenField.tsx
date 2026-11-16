@@ -82,7 +82,7 @@ export function ApiTokenField() {
               清除
             </button>
           </div>
-          <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500">
+          <p className="mt-1.5 text-caption leading-relaxed text-slate-500">
             启用 FLASK_API_TOKEN 时，刷新插件清单 / 提交配置需携带令牌；令牌仅保存在本机浏览器。
           </p>
         </div>

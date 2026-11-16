@@ -127,7 +127,7 @@ export function MessageItem({
       </div>
 
       <div className={`wb-msg-col flex min-w-0 max-w-[82%] flex-col gap-1 ${isUser ? 'items-end' : 'items-start'}`}>
-        <span className="wb-msg-time font-mono text-[11px] text-slate-500">
+        <span className="wb-msg-time font-mono text-caption text-slate-500">
           {format === 'compact' && <em className="wb-msg-role">{isUser ? '我' : '云枢'}</em>}
           {formatTime(message.createdAt)}
         </span>
@@ -196,7 +196,7 @@ export function MessageItem({
 
         <div className={`wb-bubble ${isUser ? 'wb-bubble-user' : 'wb-bubble-bot'}`}>
           {isUser ? (
-            <p className="whitespace-pre-wrap wrap-break-word text-[13.5px] leading-relaxed">
+            <p className="whitespace-pre-wrap wrap-break-word text-body-lg leading-relaxed">
               {message.content}
             </p>
           ) : (

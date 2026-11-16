@@ -248,20 +248,20 @@ export default function MemoryPage({ mode = 'manual' }: MemoryPageProps) {
 
           {delCheck && (
             <div className="mt-3 rounded-lg border border-amber-900/50 bg-amber-950/20 px-3 py-2 text-xs text-amber-200/90">
-              <div className="font-mono text-[11px] text-amber-300">{delCheck.msg_id}</div>
+              <div className="font-mono text-caption text-amber-300">{delCheck.msg_id}</div>
               <div className="mt-1 text-slate-300">{delCheck.preview}</div>
-              <div className="mt-1 text-[11px] leading-5 text-slate-500">{delCheck.note}</div>
+              <div className="mt-1 text-caption leading-5 text-slate-500">{delCheck.note}</div>
               <button
                 onClick={() => void doDelete()}
                 disabled={delBusy !== ''}
-                className="mt-2 rounded-lg bg-red-600 px-3 py-1.5 text-[11px] font-medium text-white hover:bg-red-500 disabled:opacity-40"
+                className="mt-2 rounded-lg bg-red-600 px-3 py-1.5 text-caption font-medium text-white hover:bg-red-500 disabled:opacity-40"
               >
                 {delBusy === 'delete' ? '删除中…' : '确认删除（不可恢复）'}
               </button>
             </div>
           )}
-          {delErr && <div className="mt-2 text-[11px] text-red-300">{delErr}</div>}
-          {delMsg && <div className="mt-2 text-[11px] text-emerald-300">{delMsg}</div>}
+          {delErr && <div className="mt-2 text-caption text-red-300">{delErr}</div>}
+          {delMsg && <div className="mt-2 text-caption text-emerald-300">{delMsg}</div>}
         </Card>
       </div>
 

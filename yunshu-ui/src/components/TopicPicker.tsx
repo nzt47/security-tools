@@ -45,10 +45,10 @@ export function TopicPicker({
             title={t.hint}
             onClick={() => toggle(t.id)}
             data-testid={`${testId}-${t.id}`}
-            className={`rounded-full border px-2.5 py-1 text-[12px] transition ${on ? ON : OFF} ${disabled ? 'opacity-60' : ''}`}
+            className={`rounded-full border px-2.5 py-1 text-body transition ${on ? ON : OFF} ${disabled ? 'opacity-60' : ''}`}
           >
             {t.label}
-            <span className="ml-1 font-mono text-[10px] opacity-70">{t.id}</span>
+            <span className="ml-1 font-mono text-micro opacity-70">{t.id}</span>
           </button>
         )
       })}

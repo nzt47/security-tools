@@ -3,7 +3,7 @@
  *
  * 【为什么要抽出来（2026-11-07 Operator 反馈）】三张表的说明列此前各写一份：
  * - 工作流：line-clamp-3 + max-w-[420px]（#1495 才从 truncate 改过来）；
- * - 技能中心：line-clamp-3 + text-[11px]，另带「查看全文」按钮；
+ * - 技能中心：line-clamp-3 + text-caption，另带「查看全文」按钮；
  * - 工具：**根本没有说明列**，描述挤在「工具」列名字底下。
  * 于是同一个字段在三个地方三种长相。现在统一到这里：最多 3 行 + 自动换行 + 悬停看全文，
  * 宽度上限与字号只有一处定义。新增列表要显示说明，直接用本组件，不要再手写 className。
@@ -31,7 +31,7 @@ export default function DescriptionCell({
 }: DescriptionCellProps) {
   const body = String(text ?? '').trim()
   if (!body) {
-    return <span className="text-[10px] text-slate-600">（无说明）</span>
+    return <span className="text-micro text-slate-600">（无说明）</span>
   }
   return (
     <div style={{ maxWidth }}>
@@ -43,7 +43,7 @@ export default function DescriptionCell({
       {onExpand && (
         <button
           type="button"
-          className="mt-1 text-[10px] text-cyan-400 hover:text-cyan-300"
+          className="mt-1 text-micro text-cyan-400 hover:text-cyan-300"
           onClick={onExpand}
           title="在弹窗里看完整说明（列宽不会被撑开）"
         >

@@ -17,8 +17,8 @@ import {
   type MemorySessionReport, type MemorySessionSource,
 } from '@/lib/memoryImportApi'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-cyan-700/70 px-2 py-1 text-[11px] text-cyan-300 transition-colors hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50'
-const BTN_PRIMARY = 'inline-flex items-center gap-1 rounded-md bg-cyan-600 px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-40'
+const BTN = 'inline-flex items-center gap-1 rounded-md border border-cyan-700/70 px-2 py-1 text-caption text-cyan-300 transition-colors hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50'
+const BTN_PRIMARY = 'inline-flex items-center gap-1 rounded-md bg-cyan-600 px-3 py-1.5 text-caption font-medium text-white transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-40'
 
 const SOURCE_LABEL: Record<string, string> = {
   dsh: 'DeepSeek Harness',
@@ -116,7 +116,7 @@ export default function MemorySessionsImportCard() {
               aria-label={'会话来源 ' + s.label}
             />
             {s.label}
-            <span className="text-[10px] text-slate-500">
+            <span className="text-micro text-slate-500">
               {!s.available ? '（未找到）'
                 : s.sessions > 0 ? '(' + s.sessions + ' 个会话)'
                   : '（本地仅提问轨迹）'}
@@ -132,7 +132,7 @@ export default function MemorySessionsImportCard() {
             value={limit}
             disabled={busy !== ''}
             onChange={(e) => setLimit(Math.max(0, Number(e.target.value) || 0))}
-            className="w-14 rounded border border-slate-700 bg-slate-900 px-1 py-0.5 text-[11px]"
+            className="w-14 rounded border border-slate-700 bg-slate-900 px-1 py-0.5 text-caption"
             aria-label="最多待导入会话数"
           />
           个待导入会话（0=全部）
@@ -158,7 +158,7 @@ export default function MemorySessionsImportCard() {
         </button>
       </div>
 
-      <label className="mb-2 inline-flex items-center gap-1 text-[11px] text-slate-400">
+      <label className="mb-2 inline-flex items-center gap-1 text-caption text-slate-400">
         <input
           type="checkbox"
           checked={confirmed}
@@ -169,11 +169,11 @@ export default function MemorySessionsImportCard() {
         我已确认：只追加新行、不删既有消息（重跑幂等）
       </label>
 
-      {err && <div className="mb-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-[11px] text-red-300">{err}</div>}
-      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
+      {err && <div className="mb-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-caption text-red-300">{err}</div>}
+      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
 
       {report && (
-        <div className="mt-1 text-[11px] text-slate-400">
+        <div className="mt-1 text-caption text-slate-400">
           <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1">
             <span>来源 <b className="text-slate-200">{SOURCE_LABEL[report.source] ?? report.source}</b></span>
             <span>{report.dry_run ? 'dry-run（未写入）' : '已写入'}</span>
@@ -197,12 +197,12 @@ export default function MemorySessionsImportCard() {
             <span>字符 <b className="text-slate-200">{num(report.chars?.imported)}</b></span>
           </div>
           {report.redactions && Object.keys(report.redactions).length > 0 && (
-            <div className="mt-1 text-[10px] text-slate-500">
+            <div className="mt-1 text-micro text-slate-500">
               脱敏命中：{Object.entries(report.redactions).map(([k, v]) => k + ' ' + v).join(' / ')}
             </div>
           )}
           {report.report_path && (
-            <div className="mt-1 break-all font-mono text-[10px] text-slate-600">报告：{report.report_path}</div>
+            <div className="mt-1 break-all font-mono text-micro text-slate-600">报告：{report.report_path}</div>
           )}
         </div>
       )}

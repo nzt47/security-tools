@@ -67,7 +67,7 @@ export function ApprovalPrompt() {
             <div>审批单：<span className="font-mono text-slate-300">{pending.approvalId}</span></div>
           )}
           {pending.message && (
-            <div className="rounded-md border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px] leading-relaxed text-slate-400">
+            <div className="rounded-md border border-slate-800 bg-slate-950/60 px-2 py-1 text-caption leading-relaxed text-slate-400">
               {pending.message}
             </div>
           )}
@@ -80,7 +80,7 @@ export function ApprovalPrompt() {
           data-testid="approval-note"
           className="mt-3 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-200 placeholder-slate-600 outline-hidden focus:border-amber-600"
         />
-        {err && <div className="mt-2 text-[11px] text-red-400">{err}</div>}
+        {err && <div className="mt-2 text-caption text-red-400">{err}</div>}
 
         <div className="mt-3 flex items-center justify-end gap-2">
           <button

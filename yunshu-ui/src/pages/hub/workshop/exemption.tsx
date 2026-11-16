@@ -287,7 +287,7 @@ export function ExemptionStatusBar({ state, onReload }: {
           >
             <RefreshCw size={12} /> 重试
           </button>
-          <span className="text-[11px] text-slate-500">
+          <span className="text-caption text-slate-500">
             读取失败只影响豁免开关：徽章退回只读的「需确认」标识，主线档案与装配预览照常。
           </span>
         </div>
@@ -309,7 +309,7 @@ export function ExemptionStatusBar({ state, onReload }: {
           )}
           <button
             onClick={onReload}
-            className="ml-auto flex items-center gap-1.5 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 hover:bg-slate-800"
+            className="ml-auto flex items-center gap-1.5 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 hover:bg-slate-800"
           >
             <RefreshCw size={11} /> 刷新
           </button>
@@ -317,7 +317,7 @@ export function ExemptionStatusBar({ state, onReload }: {
       )}
 
       {state.status === 'ready' && state.items.length === 0 && (
-        <div className="rounded-lg border border-slate-800 bg-slate-900/40 px-4 py-2 text-[11px] text-slate-500">
+        <div className="rounded-lg border border-slate-800 bg-slate-900/40 px-4 py-2 text-caption text-slate-500">
           后端未返回任何可豁免条目：工具行上的「需确认」保持只读标识，页面其它功能不受影响。
         </div>
       )}

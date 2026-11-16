@@ -185,7 +185,7 @@ export function MemoryWorkflowTable() {
                       <span className="truncate text-slate-200" title={String(r.name ?? r.id)}>{String(r.name ?? r.id)}</span>
                       {dupNames.has(String(r.name ?? '').trim()) && <Badge color="amber">同名重复</Badge>}
                     </div>
-                    <div className="font-mono text-[10px] text-slate-500">{r.id}</div>
+                    <div className="font-mono text-micro text-slate-500">{r.id}</div>
                   </div>
                 ),
               },
@@ -201,7 +201,7 @@ export function MemoryWorkflowTable() {
                 render: (r) => (
                   <div className="min-w-0">
                     <div className="text-slate-300">{(r.steps ?? []).length} 步</div>
-                    <div className="max-w-[220px] truncate font-mono text-[10px] text-slate-500" title={workflowChain(r.steps)}>{workflowChain(r.steps)}</div>
+                    <div className="max-w-[220px] truncate font-mono text-micro text-slate-500" title={workflowChain(r.steps)}>{workflowChain(r.steps)}</div>
                   </div>
                 ),
               },
@@ -218,16 +218,16 @@ export function MemoryWorkflowTable() {
                 render: (r) => (
                   <div className="flex flex-col items-start gap-1">
                     <Badge color={r.enabled ? 'green' : 'slate'}>{r.enabled ? '启用' : '停用'}</Badge>
-                    {r.status && r.status !== 'active' ? <span className="font-mono text-[10px] text-slate-500">{r.status}</span> : null}
+                    {r.status && r.status !== 'active' ? <span className="font-mono text-micro text-slate-500">{r.status}</span> : null}
                   </div>
                 ),
               },
               {
                 key: 'stats', title: '执行',
                 render: (r) => (
-                  <div className="whitespace-nowrap font-mono text-[11px] text-slate-400">
+                  <div className="whitespace-nowrap font-mono text-caption text-slate-400">
                     成功 {r.success_count ?? 0} · 失败 {r.failure_count ?? 0}
-                    {typeof r.confidence === 'number' ? <div className="text-[10px] text-slate-500">置信 {r.confidence.toFixed(2)}</div> : null}
+                    {typeof r.confidence === 'number' ? <div className="text-micro text-slate-500">置信 {r.confidence.toFixed(2)}</div> : null}
                   </div>
                 ),
               },

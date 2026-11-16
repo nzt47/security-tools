@@ -293,14 +293,14 @@ export default function WorkbenchApp() {
             <span className="wb-pulse-dot" />
             {isElectron() ? '桌面模式' : 'Web 模式'}
           </span>
-          <span className="ml-1 hidden items-center gap-1.5 rounded-md border border-slate-800 bg-slate-900/70 px-2.5 py-1 text-[11px] text-cyan-300/90 sm:flex">
+          <span className="ml-1 hidden items-center gap-1.5 rounded-md border border-slate-800 bg-slate-900/70 px-2.5 py-1 text-caption text-cyan-300/90 sm:flex">
             {ActiveNavLabel()}
           </span>
           <BuildStamp />
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="hidden font-mono text-[11px] text-slate-500 sm:inline">
+          <span className="hidden font-mono text-caption text-slate-500 sm:inline">
             {isElectron()
               ? '拖面板顶部抓手移动 · 拖到窗口边缘分离为独立窗口'
               : '拖面板顶部抓手拆分 · 布局自动保存'}

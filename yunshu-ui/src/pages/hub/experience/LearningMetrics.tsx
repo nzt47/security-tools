@@ -12,8 +12,8 @@ import { BarChart3, Loader2, RefreshCw } from 'lucide-react'
 import { hubGet } from '../components/ui'
 import { LEARNING_METRICS } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
+const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
+const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 interface Metrics {
   days?: number
@@ -47,12 +47,12 @@ export default function LearningMetrics() {
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <BarChart3 size={13} className="text-cyan-400" />
         <h3 className="text-xs font-semibold text-slate-200">学习有效性度量</h3>
-        {data?.days != null && <span className="text-[10px] text-slate-500">窗口 {data.days} 天</span>}
+        {data?.days != null && <span className="text-micro text-slate-500">窗口 {data.days} 天</span>}
         <button type="button" className={BTN + ' ml-auto'} onClick={() => void load()} disabled={busy} aria-label="刷新学习度量">
           {busy ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
         </button>
       </div>
-      {err && <div className="mb-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-[11px] text-red-300">{err}</div>}
+      {err && <div className="mb-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-caption text-red-300">{err}</div>}
       <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
         {[
           ['评估样本', ev?.total ?? 0],
@@ -61,12 +61,12 @@ export default function LearningMetrics() {
           ['失败率', ((ev?.failure_rate ?? 0) * 100).toFixed(1) + '%'],
         ].map(([k, v]) => (
           <div key={String(k)} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5">
-            <div className="text-[10px] text-slate-500">{String(k)}</div>
-            <div className="font-mono text-[13px] text-cyan-300">{String(v)}</div>
+            <div className="text-micro text-slate-500">{String(k)}</div>
+            <div className="font-mono text-body-lg text-cyan-300">{String(v)}</div>
           </div>
         ))}
       </div>
-      {empty && <div className="mb-2 text-[10px] text-slate-500">窗口内没有评估样本 —— 全 0 是正常态（不是接口坏了）。</div>}
+      {empty && <div className="mb-2 text-micro text-slate-500">窗口内没有评估样本 —— 全 0 是正常态（不是接口坏了）。</div>}
       <pre className={PRE}>{JSON.stringify(data?.kpis ?? {}, null, 2)}</pre>
     </div>
   )

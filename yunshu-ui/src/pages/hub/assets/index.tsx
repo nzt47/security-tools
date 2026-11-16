@@ -217,7 +217,7 @@ export default function AssetsPage({ initialCategory = 'memory' }: AssetsPagePro
                       render: (r) => (
                         // 真实子系统条目只读：不给删除按钮，避免点了必然 404
                         r.source === 'system' ? (
-                          <span className="text-[10px] text-slate-500" title="来自子系统，只读；请到对应页面处理">系统</span>
+                          <span className="text-micro text-slate-500" title="来自子系统，只读；请到对应页面处理">系统</span>
                         ) : (
                           <button onClick={() => delItem(String(r.id))} className="flex items-center gap-1 rounded-md border border-red-900/60 px-2 py-1 text-xs text-red-400 hover:bg-red-950">
                             <Trash2 size={11} /> 删除

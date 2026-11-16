@@ -26,10 +26,10 @@ import {
   replayData,
 } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
+const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
-const PRE = 'max-h-64 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
+const PRE = 'max-h-64 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 interface ReplayRow {
   replay_id?: string
@@ -113,7 +113,7 @@ export default function ReplayCenter() {
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Film size={14} className="text-cyan-400" />
         <h2 className="text-sm font-semibold text-slate-100">回放中心</h2>
-        <span className="text-[11px] text-slate-500">会话回放：排障时唯一的现场 —— 清理前必须先看会删多少</span>
+        <span className="text-caption text-slate-500">会话回放：排障时唯一的现场 —— 清理前必须先看会删多少</span>
         <div className="ml-auto flex flex-wrap items-center gap-1.5">
           <select className={INPUT} value={limit} onChange={(e) => { setLimit(e.target.value); void load(e.target.value) }} aria-label="回放条数">
             <option value="20">20 条</option>
@@ -127,7 +127,7 @@ export default function ReplayCenter() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
+      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
 
       <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
         {[
@@ -137,25 +137,25 @@ export default function ReplayCenter() {
           ['带 trace', (stats?.with_trace_id as number) ?? 0],
         ].map(([k, v]) => (
           <div key={String(k)} className="rounded-sm border border-slate-800 bg-slate-900/50 px-2 py-1.5">
-            <div className="text-[10px] text-slate-500">{String(k)}</div>
-            <div className="font-mono text-[13px] text-cyan-300">{String(v ?? 0)}</div>
+            <div className="text-micro text-slate-500">{String(k)}</div>
+            <div className="font-mono text-body-lg text-cyan-300">{String(v ?? 0)}</div>
           </div>
         ))}
       </div>
 
       <div className="mb-2 rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-        <div className="mb-2 flex items-center gap-2 text-[11px] text-slate-400">
+        <div className="mb-2 flex items-center gap-2 text-caption text-slate-400">
           <Search size={11} className="text-cyan-400" /> 回放列表（{rows.length}/{total}）
         </div>
         <div className="flex flex-col gap-1">
           {rows.map((r) => {
             const id = (r.replay_id ?? r.id ?? '') as string
             return (
-              <div key={id} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
-                <span className="font-mono text-[10px] text-cyan-300">{id}</span>
+              <div key={id} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-caption">
+                <span className="font-mono text-micro text-cyan-300">{id}</span>
                 <span className="text-slate-300">{String(r.url ?? '')}</span>
-                <span className="font-mono text-[10px] text-slate-600">{String(r.created_at ?? '')}</span>
-                {r.size_bytes != null && <span className="text-[10px] text-slate-500">{Math.round(Number(r.size_bytes) / 1024)} KB</span>}
+                <span className="font-mono text-micro text-slate-600">{String(r.created_at ?? '')}</span>
+                {r.size_bytes != null && <span className="text-micro text-slate-500">{Math.round(Number(r.size_bytes) / 1024)} KB</span>}
                 <span className="ml-auto flex items-center gap-1">
                   <button type="button" className={BTN} onClick={() => void openMeta(id)} disabled={loading} aria-label={'回放元数据 ' + id}>元数据</button>
                   <button type="button" className={BTN} onClick={() => void openData(id)} disabled={loading} aria-label={'回放数据 ' + id}>数据</button>
@@ -163,24 +163,24 @@ export default function ReplayCenter() {
               </div>
             )
           })}
-          {rows.length === 0 && <div className="text-[11px] text-slate-500">没有回放记录（采样率 VITE_REPLAY_SAMPLE_RATE 默认 1\%）。</div>}
+          {rows.length === 0 && <div className="text-caption text-slate-500">没有回放记录（采样率 VITE_REPLAY_SAMPLE_RATE 默认 1\%）。</div>}
         </div>
       </div>
 
       <div className="mb-2 rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-        <div className="mb-1 text-[11px] text-slate-400">关联统计（错误 / 追踪 / 会话）</div>
+        <div className="mb-1 text-caption text-slate-400">关联统计（错误 / 追踪 / 会话）</div>
         <pre className={PRE}>{JSON.stringify(stats ?? {}, null, 2)}</pre>
       </div>
 
       <div className="mb-2 rounded-lg border border-red-900/40 bg-red-500/5 p-3">
-        <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-red-300">
+        <div className="mb-2 flex flex-wrap items-center gap-2 text-caption text-red-300">
           <Trash2 size={11} /> 清理过期回放（按保留期物理删除）
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" className={BTN} onClick={() => void cleanup(true)} disabled={loading} aria-label="预览清理回放">
             {busy === 'cleanup' ? <Loader2 size={11} className="animate-spin" /> : null} 预览（dry_run）
           </button>
-          <label className="flex items-center gap-1 text-[10px] text-slate-400">
+          <label className="flex items-center gap-1 text-micro text-slate-400">
             <input type="checkbox" checked={confirmCleanup} onChange={(e) => setConfirmCleanup(e.target.checked)} aria-label="确认清理回放" />
             我确认删除过期回放
           </label>
@@ -193,19 +193,19 @@ export default function ReplayCenter() {
 
       {(meta || data) && (
         <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-          <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
+          <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
             <Film size={11} className="text-cyan-400" /> {activeId}
             <button type="button" className={BTN + ' ml-auto'} onClick={() => { setMeta(null); setData(null); setActiveId('') }}>关闭</button>
           </div>
           {meta && (
             <>
-              <div className="mb-1 text-[10px] text-slate-500">元数据</div>
+              <div className="mb-1 text-micro text-slate-500">元数据</div>
               <pre className={PRE}>{JSON.stringify(meta, null, 2)}</pre>
             </>
           )}
           {data && (
             <>
-              <div className="mt-2 mb-1 text-[10px] text-slate-500">回放数据</div>
+              <div className="mt-2 mb-1 text-micro text-slate-500">回放数据</div>
               <pre className={PRE + ' max-h-80'}>{JSON.stringify(data, null, 2)}</pre>
             </>
           )}

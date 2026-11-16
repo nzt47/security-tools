@@ -100,7 +100,7 @@ export default function IngestionHelp({ open, onClose, onGo }: Props) {
           <div className="flex items-center gap-2">
             <BookOpen size={14} className="text-cyan-400" />
             <h2 className="text-sm font-semibold text-slate-100">能力获取 · 使用手册</h2>
-            <span className="text-[11px] text-slate-500">从入口材料到最终能力</span>
+            <span className="text-caption text-slate-500">从入口材料到最终能力</span>
           </div>
           <button type="button" onClick={onClose} aria-label="关闭使用手册"
             className="rounded-md p-1 text-slate-400 hover:bg-slate-800 hover:text-slate-200">
@@ -108,7 +108,7 @@ export default function IngestionHelp({ open, onClose, onGo }: Props) {
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 text-[11px] leading-relaxed text-slate-300">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 text-caption leading-relaxed text-slate-300">
           <p className="rounded-md border border-cyan-900/50 bg-cyan-950/20 px-2.5 py-2">
             <strong className="text-cyan-200">一句话：</strong>
             这一页把「外来材料」变成<strong className="text-slate-100">可评审的草稿</strong>；
@@ -117,26 +117,26 @@ export default function IngestionHelp({ open, onClose, onGo }: Props) {
             <strong className="text-amber-300">{manualCount} 站需要你点</strong>。
           </p>
 
-          <h3 className="mt-3 text-[12px] font-medium text-slate-100">工作过程（7 站）</h3>
+          <h3 className="mt-3 text-body font-medium text-slate-100">工作过程（7 站）</h3>
           <ol className="mt-1 space-y-1.5" data-cp-help-stations="true">
             {STATIONS.map((s) => (
               <li key={s.no} className="rounded-md border border-slate-800 bg-slate-950/40 px-2.5 py-1.5">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="rounded bg-slate-800 px-1 font-mono text-[10px] text-slate-400">{s.no}</span>
+                  <span className="rounded bg-slate-800 px-1 font-mono text-micro text-slate-400">{s.no}</span>
                   <span className="font-medium text-slate-100">{s.title}</span>
                   <span className={s.auto
-                    ? 'rounded border border-emerald-800/60 px-1 text-[9px] text-emerald-300'
-                    : 'rounded border border-amber-800/60 px-1 text-[9px] text-amber-300'}>
+                    ? 'rounded border border-emerald-800/60 px-1 text-micro text-emerald-300'
+                    : 'rounded border border-amber-800/60 px-1 text-micro text-amber-300'}>
                     {s.auto ? '自动' : '需要你点'}
                   </span>
-                  <span className="ml-auto text-[10px] text-slate-500">{s.where}</span>
+                  <span className="ml-auto text-micro text-slate-500">{s.where}</span>
                 </div>
                 <div className="mt-0.5 text-slate-400">{s.detail}</div>
               </li>
             ))}
           </ol>
 
-          <h3 className="mt-3 text-[12px] font-medium text-slate-100">你要操作的步骤（照着点）</h3>
+          <h3 className="mt-3 text-body font-medium text-slate-100">你要操作的步骤（照着点）</h3>
           <ol className="mt-1 list-decimal space-y-0.5 pl-5 text-slate-300" data-cp-help-steps="true">
             <li>贴路径或选「本机可吞噬源」里的候选（也可切「粘贴文本」）。</li>
             <li>点「预览计划」——看 L0/L1/L2、去重结论、推荐形态与警告。</li>
@@ -147,14 +147,14 @@ export default function IngestionHelp({ open, onClose, onGo }: Props) {
             <li>（可选）在「技能中心 / 工具页」确认启用状态与审批边界。</li>
           </ol>
 
-          <h3 className="mt-3 text-[12px] font-medium text-slate-100">少点几下（自动化的三条路径）</h3>
+          <h3 className="mt-3 text-body font-medium text-slate-100">少点几下（自动化的三条路径）</h3>
           <ul className="mt-1 list-disc space-y-0.5 pl-5 text-slate-300">
             {SHORTCUTS.map((s) => (
               <li key={s.title}><strong className="text-slate-100">{s.title}：</strong>{s.detail}</li>
             ))}
           </ul>
 
-          <h3 className="mt-3 text-[12px] font-medium text-slate-100">常见问题</h3>
+          <h3 className="mt-3 text-body font-medium text-slate-100">常见问题</h3>
           <dl className="mt-1 space-y-1">
             {FAQ.map((f) => (
               <div key={f.q}>
@@ -164,7 +164,7 @@ export default function IngestionHelp({ open, onClose, onGo }: Props) {
             ))}
           </dl>
 
-          <h3 className="mt-3 text-[12px] font-medium text-slate-100">术语</h3>
+          <h3 className="mt-3 text-body font-medium text-slate-100">术语</h3>
           <ul className="mt-1 space-y-0.5 text-slate-400">
             <li><strong className="text-slate-300">L0 / L1 / L2</strong>：合规等级。L0 结构完整可直接用；L1 结构可补齐；L2 只有正文，必须重写。</li>
             <li><strong className="text-slate-300">草稿</strong>：隔离区里的候选能力，未注册、未启用，模型看不见。</li>
@@ -175,15 +175,15 @@ export default function IngestionHelp({ open, onClose, onGo }: Props) {
 
         <div className="flex items-center justify-end gap-2 border-t border-slate-800 px-4 py-2">
           <button type="button" onClick={() => { onGo('review'); onClose() }}
-            className="rounded-md border border-slate-700 px-2.5 py-1 text-[11px] text-slate-300 hover:bg-slate-800">
+            className="rounded-md border border-slate-700 px-2.5 py-1 text-caption text-slate-300 hover:bg-slate-800">
             去草稿评审
           </button>
           <button type="button" onClick={() => { onGo('queue'); onClose() }}
-            className="rounded-md border border-slate-700 px-2.5 py-1 text-[11px] text-slate-300 hover:bg-slate-800">
+            className="rounded-md border border-slate-700 px-2.5 py-1 text-caption text-slate-300 hover:bg-slate-800">
             去转化队列
           </button>
           <button type="button" onClick={onClose}
-            className="rounded-md bg-cyan-800 px-2.5 py-1 text-[11px] text-cyan-50 hover:bg-cyan-700">
+            className="rounded-md bg-cyan-800 px-2.5 py-1 text-caption text-cyan-50 hover:bg-cyan-700">
             知道了
           </button>
         </div>

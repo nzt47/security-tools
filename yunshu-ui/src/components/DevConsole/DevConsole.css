@@ -16,7 +16,7 @@
   right: 0;
   z-index: 99999;
   font-family: 'Cascadia Code', 'Consolas', 'Menlo', monospace;
-  font-size: 12px;
+  font-size: var(--text-body);
   color: #e6edf3;
   pointer-events: none; /* 容器本身不拦截事件，仅浮层与图标拦截 */
 }
@@ -36,7 +36,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: var(--text-h2);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   pointer-events: auto;
   user-select: none;
@@ -60,7 +60,7 @@
   border-radius: 8px;
   background: #f85149;
   color: #fff;
-  font-size: 10px;
+  font-size: var(--text-micro);
   line-height: 16px;
   text-align: center;
   pointer-events: none;
@@ -107,7 +107,7 @@
   padding: 4px 12px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--text-body);
   font-family: inherit;
   transition: all 0.15s;
 }
@@ -128,7 +128,7 @@
   border-radius: 8px;
   background: #30363d;
   color: #e6edf3;
-  font-size: 10px;
+  font-size: var(--text-micro);
   line-height: 14px;
   text-align: center;
 }
@@ -149,7 +149,7 @@
   padding: 4px 10px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--text-caption);
   font-family: inherit;
   white-space: nowrap;
   transition: all 0.15s;
@@ -190,7 +190,7 @@
   color: #e6edf3;
   padding: 4px 10px;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: var(--text-body);
   font-family: inherit;
   outline: none;
 }
@@ -227,7 +227,7 @@
   padding: 6px 10px;
   color: #8b949e;
   font-weight: 500;
-  font-size: 11px;
+  font-size: var(--text-caption);
   background: #161b22;
   border-bottom: 1px solid #30363d;
   position: sticky;
@@ -263,7 +263,7 @@
   display: inline-block;
   padding: 1px 8px;
   border-radius: 10px;
-  font-size: 11px;
+  font-size: var(--text-caption);
   font-weight: 500;
   white-space: nowrap;
 }
@@ -293,7 +293,7 @@
   display: inline-block;
   padding: 1px 6px;
   border-radius: 4px;
-  font-size: 10px;
+  font-size: var(--text-micro);
   font-weight: 600;
   letter-spacing: 0.5px;
 }
@@ -321,7 +321,7 @@
 /* trace_id 单元格 */
 .devconsole-trace {
   color: #8b949e;
-  font-size: 11px;
+  font-size: var(--text-caption);
   cursor: pointer;
 }
 .devconsole-trace:hover {
@@ -336,7 +336,7 @@
   border-radius: 6px;
   padding: 8px 10px;
   font-family: inherit;
-  font-size: 11px;
+  font-size: var(--text-caption);
   white-space: pre-wrap;
   word-break: break-all;
   max-height: 240px;
@@ -350,7 +350,7 @@
   padding: 40px 20px;
   text-align: center;
   color: #8b949e;
-  font-size: 12px;
+  font-size: var(--text-body);
 }
 
 /* ─── StateInspector 专用 ─── */
@@ -360,7 +360,7 @@
 }
 .stateinspector-section-title {
   color: #7ee787;
-  font-size: 11px;
+  font-size: var(--text-caption);
   margin: 0 0 8px 0;
   font-weight: 600;
 }
@@ -368,7 +368,7 @@
   display: flex;
   gap: 8px;
   padding: 3px 0;
-  font-size: 11px;
+  font-size: var(--text-caption);
   border-bottom: 1px dotted #21262d;
   align-items: flex-start;
 }
@@ -386,7 +386,7 @@
 }
 .stateinspector-countdown {
   color: #d29922;
-  font-size: 11px;
+  font-size: var(--text-caption);
 }
 .stateinspector-countdown.expired {
   color: #f85149;
@@ -420,10 +420,10 @@
     right: 8px;
     width: 36px;
     height: 36px;
-    font-size: 16px;
+    font-size: var(--text-title);
   }
   .devconsole-table {
-    font-size: 11px;
+    font-size: var(--text-caption);
   }
   .devconsole-table th,
   .devconsole-table td {

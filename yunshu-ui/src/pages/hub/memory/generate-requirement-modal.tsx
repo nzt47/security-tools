@@ -57,36 +57,36 @@ export default function GenerateRequirementModal({ initialIntent = '', onClose, 
         <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-slate-100">
           <Lightbulb size={15} className="text-cyan-400" /> 从对话要求生成技能（自动评审-评估）
         </h3>
-        <p className="mb-3 text-[11px] leading-relaxed text-slate-500">
+        <p className="mb-3 text-caption leading-relaxed text-slate-500">
           对话提示词里出现的“能力要求 / 新处理规则”可直接沉淀为技能草稿：AI 生成（失败自动回退模板）→
           自动进入权限 / 合规 / 兼容性评审；有审核兜底，不满意可编辑或删除。
         </p>
         <label className="mb-2.5 block">
-          <span className="mb-1 block text-[11px] text-slate-400">技能名称（可选）</span>
+          <span className="mb-1 block text-caption text-slate-400">技能名称（可选）</span>
           <input className={INPUT} value={name} onChange={(e) => setName(e.target.value)} placeholder="留空自动命名" />
         </label>
         <label className="mb-2.5 block">
-          <span className="mb-1 block text-[11px] text-slate-400">对话中的要求 / 能力描述 *</span>
+          <span className="mb-1 block text-caption text-slate-400">对话中的要求 / 能力描述 *</span>
           <textarea className={`${INPUT} font-mono`} rows={5} value={intent}
             onChange={(e) => setIntent(e.target.value)}
             placeholder="例如：当用户提到『查天气』时先调用 weather_api，超时 5s 内重试一次并返回结构化结果" />
         </label>
-        {err && <p className="mt-1 text-[11px] text-red-400">{err}</p>}
-        {okMsg && <p className="mt-1 rounded-md border border-emerald-800/60 bg-emerald-950/30 px-2 py-1.5 text-[11px] text-emerald-300">{okMsg}</p>}
+        {err && <p className="mt-1 text-caption text-red-400">{err}</p>}
+        {okMsg && <p className="mt-1 rounded-md border border-emerald-800/60 bg-emerald-950/30 px-2 py-1.5 text-caption text-emerald-300">{okMsg}</p>}
         <div className="mt-3 flex flex-wrap justify-end gap-2">
           {okMsg ? (
             <button type="button"
-              className="inline-flex items-center gap-1 rounded-md border border-cyan-700/70 px-3 py-1.5 text-[11px] text-cyan-300 transition-colors hover:bg-cyan-500/10"
+              className="inline-flex items-center gap-1 rounded-md border border-cyan-700/70 px-3 py-1.5 text-caption text-cyan-300 transition-colors hover:bg-cyan-500/10"
               onClick={() => { onDone?.(createdId); onClose() }}>
               <ShieldCheck size={12} /> 完成
             </button>
           ) : (
             <>
               <button type="button"
-                className="inline-flex items-center gap-1 rounded-md border border-slate-700 px-3 py-1.5 text-[11px] text-slate-300 hover:bg-slate-800"
+                className="inline-flex items-center gap-1 rounded-md border border-slate-700 px-3 py-1.5 text-caption text-slate-300 hover:bg-slate-800"
                 onClick={onClose}>取消</button>
               <button type="button"
-                className="inline-flex items-center gap-1 rounded-md border border-cyan-700/70 px-3 py-1.5 text-[11px] text-cyan-300 transition-colors hover:bg-cyan-500/10"
+                className="inline-flex items-center gap-1 rounded-md border border-cyan-700/70 px-3 py-1.5 text-caption text-cyan-300 transition-colors hover:bg-cyan-500/10"
                 disabled={busy || !intent.trim()}
                 onClick={() => void submit()}>
                 {busy ? <Loader2 size={12} className="animate-spin" /> : <Lightbulb size={12} />} 生成并评审

@@ -25,10 +25,10 @@ import {
   SEARCH_PERF_SUMMARY,
 } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
+const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
-const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
+const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 interface PerfStatus {
   running?: boolean
@@ -93,7 +93,7 @@ export default function SearchPerformance() {
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Activity size={14} className="text-cyan-400" />
         <h2 className="text-sm font-semibold text-slate-100">搜索性能监控</h2>
-        <span className={'text-[11px] ' + (running ? 'text-emerald-400' : 'text-slate-500')}>
+        <span className={'text-caption ' + (running ? 'text-emerald-400' : 'text-slate-500')}>
           {running ? '正在运行（' + (status?.interval ?? '?') + ' 秒间隔）' : '未运行'}
         </span>
         <div className="ml-auto flex items-center gap-1.5">
@@ -116,7 +116,7 @@ export default function SearchPerformance() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
+      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
 
       <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
         {[
@@ -126,35 +126,35 @@ export default function SearchPerformance() {
           ['成功率', ((summary?.tavily_success_rate ?? 0) * 100).toFixed(1) + '%'],
         ].map(([k, v]) => (
           <div key={String(k)} className="rounded-sm border border-slate-800 bg-slate-900/50 px-2 py-1.5">
-            <div className="text-[10px] text-slate-500">{String(k)}</div>
-            <div className="truncate font-mono text-[12px] text-cyan-300">{String(v)}</div>
+            <div className="text-micro text-slate-500">{String(k)}</div>
+            <div className="truncate font-mono text-body text-cyan-300">{String(v)}</div>
           </div>
         ))}
       </div>
 
       <div className="mb-2 rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-        <div className="mb-1 text-[11px] text-slate-400">
+        <div className="mb-1 text-caption text-slate-400">
           最近摘要（成功 {summary?.tavily_success_count ?? 0} / 失败 {summary?.tavily_failed_count ?? 0} · 平均 {Math.round(summary?.tavily_avg_time ?? 0)}ms）
         </div>
         <pre className={PRE}>{JSON.stringify(summary ?? {}, null, 2)}</pre>
       </div>
 
       <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-        <div className="mb-1 text-[11px] text-slate-400">检测历史（{history.length}）</div>
+        <div className="mb-1 text-caption text-slate-400">检测历史（{history.length}）</div>
         <div className="flex flex-col gap-1">
           {history.slice(0, 10).map((h, i) => (
-            <div key={i} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+            <div key={i} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-caption">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-[10px] text-slate-500">{String(h.timestamp ?? '')}</span>
+                <span className="font-mono text-micro text-slate-500">{String(h.timestamp ?? '')}</span>
                 <span className={(h.status === 'ok' ? 'text-emerald-400' : 'text-amber-400')}>{String(h.status ?? '')}</span>
-                <span className="ml-auto font-mono text-[10px] text-slate-600">#{String(h.check_id ?? '')}</span>
+                <span className="ml-auto font-mono text-micro text-slate-600">#{String(h.check_id ?? '')}</span>
               </div>
               {(h.errors as string[] | undefined)?.length ? (
-                <div className="text-[10px] text-red-300">{(h.errors as string[]).slice(0, 2).join('；')}</div>
+                <div className="text-micro text-red-300">{(h.errors as string[]).slice(0, 2).join('；')}</div>
               ) : null}
             </div>
           ))}
-          {history.length === 0 && <div className="text-[11px] text-slate-500">还没有检测记录。</div>}
+          {history.length === 0 && <div className="text-caption text-slate-500">还没有检测记录。</div>}
         </div>
       </div>
     </div>

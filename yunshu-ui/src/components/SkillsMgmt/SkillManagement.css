@@ -55,13 +55,13 @@
 }
 
 .skmgmt-title {
-  font-size: 18px;
+  font-size: var(--text-h2);
   font-weight: 600;
   margin: 0;
 }
 
 .skmgmt-subtitle {
-  font-size: 12px;
+  font-size: var(--text-body);
   color: var(--text-secondary, #8b92a0);
   margin-left: 8px;
 }
@@ -74,7 +74,7 @@
   height: 32px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 18px;
+  font-size: var(--text-h2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -102,7 +102,7 @@
   color: var(--text-secondary, #8b92a0);
   padding: 12px 16px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--text-ui);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -118,7 +118,7 @@
 .skmgmt-tab-badge {
   background: var(--bg-hover, #232730);
   color: var(--text-secondary, #8b92a0);
-  font-size: 11px;
+  font-size: var(--text-caption);
   padding: 2px 6px;
   border-radius: 10px;
   margin-left: 4px;
@@ -170,7 +170,7 @@
   border-radius: 6px;
   padding: 8px 12px 8px 32px;
   color: var(--text-primary, #e8eaed);
-  font-size: 13px;
+  font-size: var(--text-body-lg);
   outline: none;
   transition: border-color 0.15s;
 }
@@ -184,7 +184,7 @@
   position: absolute;
   left: 10px;
   color: var(--text-tertiary, #5f6675);
-  font-size: 14px;
+  font-size: var(--text-ui);
 }
 
 .skmgmt-filter-row {
@@ -199,7 +199,7 @@
   color: var(--text-secondary, #8b92a0);
   padding: 3px 10px;
   border-radius: 12px;
-  font-size: 11px;
+  font-size: var(--text-caption);
   cursor: pointer;
   transition: all 0.15s;
 }
@@ -237,7 +237,7 @@
 }
 
 .skmgmt-item-title {
-  font-size: 14px;
+  font-size: var(--text-ui);
   font-weight: 500;
   margin: 0 0 4px 0;
   display: flex;
@@ -246,7 +246,7 @@
 }
 
 .skmgmt-item-desc {
-  font-size: 12px;
+  font-size: var(--text-body);
   color: var(--text-secondary, #8b92a0);
   margin: 0 0 6px 0;
   overflow: hidden;
@@ -257,7 +257,7 @@
 .skmgmt-item-meta {
   display: flex;
   gap: 8px;
-  font-size: 11px;
+  font-size: var(--text-caption);
   color: var(--text-tertiary, #5f6675);
   align-items: center;
 }
@@ -267,7 +267,7 @@
   display: inline-block;
   padding: 2px 8px;
   border-radius: 10px;
-  font-size: 10px;
+  font-size: var(--text-micro);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.3px;
@@ -286,7 +286,7 @@
   display: inline-block;
   padding: 1px 6px;
   border-radius: 3px;
-  font-size: 10px;
+  font-size: var(--text-micro);
   background: var(--bg-hover, #232730);
   color: var(--text-secondary, #8b92a0);
 }
@@ -297,7 +297,7 @@
 }
 
 .skmgmt-detail-section-title {
-  font-size: 13px;
+  font-size: var(--text-body-lg);
   font-weight: 600;
   color: var(--text-secondary, #8b92a0);
   text-transform: uppercase;
@@ -313,19 +313,19 @@
   color: var(--text-tertiary, #5f6675);
 }
 .skmgmt-detail-empty-icon {
-  font-size: 48px;
+  font-size: var(--text-display);
   margin-bottom: 12px;
   opacity: 0.5;
 }
 
 .skmgmt-detail-title {
-  font-size: 22px;
+  font-size: var(--text-h2);
   font-weight: 600;
   margin: 0 0 8px 0;
 }
 
 .skmgmt-detail-desc {
-  font-size: 14px;
+  font-size: var(--text-ui);
   color: var(--text-secondary, #8b92a0);
   margin: 0 0 16px 0;
   line-height: 1.5;
@@ -345,14 +345,14 @@
   border: 1px solid var(--border-subtle, #2a2e38);
 }
 .skmgmt-meta-label {
-  font-size: 11px;
+  font-size: var(--text-caption);
   color: var(--text-tertiary, #5f6675);
   text-transform: uppercase;
   letter-spacing: 0.3px;
   margin-bottom: 2px;
 }
 .skmgmt-meta-value {
-  font-size: 14px;
+  font-size: var(--text-ui);
   font-weight: 500;
 }
 
@@ -363,7 +363,7 @@
   color: var(--text-primary, #e8eaed);
   padding: 7px 14px;
   border-radius: 5px;
-  font-size: 13px;
+  font-size: var(--text-body-lg);
   cursor: pointer;
   transition: all 0.15s;
   display: inline-flex;
@@ -395,7 +395,7 @@
 }
 .skmgmt-btn-sm {
   padding: 4px 10px;
-  font-size: 12px;
+  font-size: var(--text-body);
 }
 
 .skmgmt-btn-row {
@@ -412,7 +412,7 @@
   border-radius: 6px;
   padding: 12px;
   font-family: 'Consolas', 'Monaco', monospace;
-  font-size: 12px;
+  font-size: var(--text-body);
   white-space: pre-wrap;
   word-break: break-all;
   max-height: 400px;
@@ -426,7 +426,7 @@
 }
 .skmgmt-form-label {
   display: block;
-  font-size: 12px;
+  font-size: var(--text-body);
   color: var(--text-secondary, #8b92a0);
   margin-bottom: 4px;
 }
@@ -439,7 +439,7 @@
   border-radius: 5px;
   padding: 8px 10px;
   color: var(--text-primary, #e8eaed);
-  font-size: 13px;
+  font-size: var(--text-body-lg);
   outline: none;
   transition: border-color 0.15s;
   font-family: inherit;
@@ -488,7 +488,7 @@
   justify-content: space-between;
 }
 .skmgmt-modal-title {
-  font-size: 16px;
+  font-size: var(--text-title);
   font-weight: 600;
   margin: 0;
 }
@@ -529,15 +529,15 @@
   background: rgba(74, 158, 255, 0.08);
 }
 .skmgmt-creator-mode-icon {
-  font-size: 24px;
+  font-size: var(--text-h1);
   margin-bottom: 6px;
 }
 .skmgmt-creator-mode-name {
-  font-size: 13px;
+  font-size: var(--text-body-lg);
   font-weight: 500;
 }
 .skmgmt-creator-mode-desc {
-  font-size: 11px;
+  font-size: var(--text-caption);
   color: var(--text-tertiary, #5f6675);
   margin-top: 2px;
 }
@@ -563,17 +563,17 @@
   border-radius: 4px;
 }
 .skmgmt-review-score-label {
-  font-size: 10px;
+  font-size: var(--text-micro);
   color: var(--text-tertiary, #5f6675);
   text-transform: uppercase;
 }
 .skmgmt-review-score-value {
-  font-size: 18px;
+  font-size: var(--text-h2);
   font-weight: 600;
   margin-top: 2px;
 }
 .skmgmt-finding {
-  font-size: 12px;
+  font-size: var(--text-body);
   padding: 6px 8px;
   border-left: 3px solid var(--text-tertiary, #5f6675);
   background: var(--bg-input, #0f1116);
@@ -600,24 +600,24 @@
   margin-bottom: 8px;
 }
 .skmgmt-workflow-name {
-  font-size: 14px;
+  font-size: var(--text-ui);
   font-weight: 500;
   margin: 0;
 }
 .skmgmt-workflow-desc {
-  font-size: 12px;
+  font-size: var(--text-body);
   color: var(--text-secondary, #8b92a0);
   margin: 4px 0 8px 0;
 }
 .skmgmt-workflow-stats {
   display: flex;
   gap: 12px;
-  font-size: 11px;
+  font-size: var(--text-caption);
   color: var(--text-tertiary, #5f6675);
   margin-bottom: 8px;
 }
 .skmgmt-workflow-steps {
-  font-size: 11px;
+  font-size: var(--text-caption);
   color: var(--text-secondary, #8b92a0);
   background: var(--bg-input, #0f1116);
   padding: 6px 8px;
@@ -639,7 +639,7 @@
   text-align: center;
   padding: 40px 20px;
   color: var(--text-tertiary, #5f6675);
-  font-size: 13px;
+  font-size: var(--text-body-lg);
 }
 .skmgmt-loading-spinner {
   display: inline-block;
@@ -661,7 +661,7 @@
   color: #ef5350;
   padding: 8px 12px;
   border-radius: 5px;
-  font-size: 12px;
+  font-size: var(--text-body);
   margin-bottom: 12px;
   display: flex;
   justify-content: space-between;
@@ -670,7 +670,7 @@
 
 /* ─── 帮助提示（自解释 UI）─── */
 .skmgmt-help-tip {
-  font-size: 11px;
+  font-size: var(--text-caption);
   color: var(--text-tertiary, #5f6675);
   background: var(--bg-secondary, #14171c);
   border-left: 2px solid var(--accent-primary, #4a9eff);

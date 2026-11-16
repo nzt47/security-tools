@@ -33,11 +33,11 @@ import {
   WINDOW_CONSENT,
 } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
+const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
-const PRE = 'max-h-52 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
+const PRE = 'max-h-52 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 const TOGGLE_LABEL: Record<string, string> = {
   dangerous_ops: '危险操作',
@@ -177,7 +177,7 @@ export default function SecurityPanel() {
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Shield size={14} className="text-cyan-400" />
         <h2 className="text-sm font-semibold text-slate-100">安全与权限</h2>
-        <span className="text-[11px] text-slate-500">权限开关 · 紧急控制 · 危险关键词 · 隐私清单</span>
+        <span className="text-caption text-slate-500">权限开关 · 紧急控制 · 危险关键词 · 隐私清单</span>
         <div className="ml-auto">
           <button type="button" className={BTN} onClick={() => { void loadPerm(); void loadSafety(); void loadPrivacy() }} disabled={loading} aria-label="刷新安全与权限">
             {loading ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
@@ -186,14 +186,14 @@ export default function SecurityPanel() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
+      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
 
       {/* 紧急控制：出事时第一个要按的 */}
       <div className="mb-3 rounded-lg border border-red-900/50 bg-red-500/5 p-3">
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <ShieldAlert size={12} className="text-red-400" />
           <h3 className="text-xs font-semibold text-red-200">紧急控制</h3>
-          <span className="text-[10px] text-red-300/80">
+          <span className="text-micro text-red-300/80">
             当前：{emer.stopped ? '已停止' : '运行中'}
             {emer.paused ? ' · 已暂停' : ''}
             {emer.network_blocked ? ' · 网络已封锁' : ''}
@@ -224,7 +224,7 @@ export default function SecurityPanel() {
         </div>
         {confirmEmergency === 'stop' && (
           <div className="flex flex-wrap items-center gap-2 rounded-sm border border-red-800/60 bg-red-500/10 px-2 py-1.5">
-            <span className="text-[10px] text-red-200">紧急停止会中止正在进行的操作并锁定危险动作。确定？</span>
+            <span className="text-micro text-red-200">紧急停止会中止正在进行的操作并锁定危险动作。确定？</span>
             <button type="button" className={BTN_RED} onClick={() => void emergency('stop')} disabled={loading} aria-label="确认紧急停止">
               {busy === 'emergency:stop' ? <Loader2 size={11} className="animate-spin" /> : null} 确认停止
             </button>
@@ -240,7 +240,7 @@ export default function SecurityPanel() {
             type="button"
             onClick={() => setTab(id)}
             aria-selected={tab === id}
-            className={'rounded-lg px-2.5 py-1 text-[11px] transition-colors ' + (
+            className={'rounded-lg px-2.5 py-1 text-caption transition-colors ' + (
               tab === id ? 'bg-cyan-500/15 font-medium text-cyan-300' : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
             )}
           >
@@ -259,23 +259,23 @@ export default function SecurityPanel() {
               ['告警', st.total_alerts],
             ].map(([k, v]) => (
               <div key={String(k)} className="rounded-sm border border-slate-800 bg-slate-900/50 px-2 py-1.5">
-                <div className="text-[10px] text-slate-500">{String(k)}</div>
-                <div className="font-mono text-[13px] text-cyan-300">{String(v ?? 0)}</div>
+                <div className="text-micro text-slate-500">{String(k)}</div>
+                <div className="font-mono text-body-lg text-cyan-300">{String(v ?? 0)}</div>
               </div>
             ))}
           </div>
 
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-            <div className="mb-2 flex items-center gap-2 text-[11px] text-slate-400">
+            <div className="mb-2 flex items-center gap-2 text-caption text-slate-400">
               <Sliders size={11} className="text-cyan-400" /> 权限开关（切换后回读，界面只说后端真实状态）
             </div>
             <div className="flex flex-col gap-1">
               {Object.keys(TOGGLE_LABEL).map((key) => {
                 const on = toggles[key] === true
                 return (
-                  <div key={key} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+                  <div key={key} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-caption">
                     <span className="text-slate-300">{TOGGLE_LABEL[key]}</span>
-                    <span className="font-mono text-[10px] text-slate-600">{key}</span>
+                    <span className="font-mono text-micro text-slate-600">{key}</span>
                     <span className={on ? 'text-emerald-400' : 'text-slate-500'}>{on ? '开' : '关'}</span>
                     <button
                       type="button"
@@ -293,15 +293,15 @@ export default function SecurityPanel() {
           </div>
 
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-            <div className="mb-1 text-[11px] text-slate-400">权限统计</div>
+            <div className="mb-1 text-caption text-slate-400">权限统计</div>
             <pre className={PRE}>{JSON.stringify(stats ?? {}, null, 2)}</pre>
           </div>
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-            <div className="mb-1 text-[11px] text-slate-400">操作 / 权限日志（最近 20 条）</div>
+            <div className="mb-1 text-caption text-slate-400">操作 / 权限日志（最近 20 条）</div>
             <pre className={PRE}>{JSON.stringify(logs ?? {}, null, 2)}</pre>
           </div>
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-            <div className="mb-1 text-[11px] text-slate-400">数据访问记录（最近 20 条）</div>
+            <div className="mb-1 text-caption text-slate-400">数据访问记录（最近 20 条）</div>
             <pre className={PRE}>{JSON.stringify(accessLogs ?? {}, null, 2)}</pre>
           </div>
         </div>
@@ -310,7 +310,7 @@ export default function SecurityPanel() {
       {tab === 'safety' && (
         <div className="space-y-2">
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-            <div className="mb-2 flex items-center gap-2 text-[11px] text-slate-400">
+            <div className="mb-2 flex items-center gap-2 text-caption text-slate-400">
               <Lock size={11} className="text-cyan-400" /> 文本危险校验
             </div>
             <textarea
@@ -329,14 +329,14 @@ export default function SecurityPanel() {
           </div>
 
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-            <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
+            <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
               <AlertTriangle size={11} className="text-amber-400" /> 最近告警
             </div>
             <pre className={PRE}>{JSON.stringify(alerts ?? {}, null, 2)}</pre>
           </div>
 
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-            <div className="mb-2 flex items-center gap-2 text-[11px] text-slate-400">
+            <div className="mb-2 flex items-center gap-2 text-caption text-slate-400">
               <Lock size={11} className="text-cyan-400" /> 危险关键词库
             </div>
             <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -358,16 +358,16 @@ export default function SecurityPanel() {
       {tab === 'privacy' && (
         <div className="space-y-2">
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-            <div className="mb-1 text-[11px] text-slate-400">数据采集范围与用途</div>
+            <div className="mb-1 text-caption text-slate-400">数据采集范围与用途</div>
             <pre className={PRE + ' max-h-80'}>{JSON.stringify(privacy ?? {}, null, 2)}</pre>
           </div>
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-            <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+            <div className="mb-2 flex flex-wrap items-center gap-2 text-caption text-slate-400">
               <Lock size={11} className="text-cyan-400" /> 窗口活动授权
-              <span className="text-[10px] text-slate-500">需要用户明确同意才会读取窗口标题与进程</span>
+              <span className="text-micro text-slate-500">需要用户明确同意才会读取窗口标题与进程</span>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <label className="flex items-center gap-1 text-[10px] text-slate-400">
+              <label className="flex items-center gap-1 text-micro text-slate-400">
                 <input type="checkbox" checked={confirmConsent} onChange={(e) => setConfirmConsent(e.target.checked)} aria-label="确认窗口授权" />
                 我同意读取窗口活动
               </label>

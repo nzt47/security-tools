@@ -29,10 +29,10 @@ import {
   backgroundTaskResult,
 } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
+const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
-const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
+const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 interface TaskRow {
   task_id?: string
@@ -123,14 +123,14 @@ export default function TaskQueue() {
         const status = String(r.status ?? '')
         const canCancel = kind === 'bg' ? ['pending', 'running'].includes(status) : true
         return (
-          <div key={key} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5 text-[11px]">
+          <div key={key} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5 text-caption">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-[10px] text-cyan-300">{id}</span>
+              <span className="font-mono text-micro text-cyan-300">{id}</span>
               <span className="text-slate-300">{String(r.name ?? '')}</span>
-              <span className={'text-[10px] ' + (status === 'completed' || status === 'success' ? 'text-emerald-400' : status === 'failed' || status === 'error' ? 'text-red-400' : 'text-amber-400')}>
+              <span className={'text-micro ' + (status === 'completed' || status === 'success' ? 'text-emerald-400' : status === 'failed' || status === 'error' ? 'text-red-400' : 'text-amber-400')}>
                 {status || '—'}
               </span>
-              <span className="font-mono text-[10px] text-slate-600">{String(r.created_at ?? '')}</span>
+              <span className="font-mono text-micro text-slate-600">{String(r.created_at ?? '')}</span>
               <span className="ml-auto flex flex-wrap items-center gap-1">
                 <button type="button" className={BTN} onClick={() => void openDetail(kind, id)} disabled={loading} aria-label={'任务详情 ' + id}>
                   <FileText size={11} /> 详情
@@ -153,7 +153,7 @@ export default function TaskQueue() {
             </div>
             {isOpen && (
               <div className="mt-1.5 flex flex-wrap items-center gap-2 rounded-sm border border-red-900/50 bg-red-500/5 px-2 py-1.5">
-                <span className="text-[10px] text-red-300">
+                <span className="text-micro text-red-300">
                   取消 {id}（当前 {status || '未知'}）可能留下半成品。确定？
                 </span>
                 <button type="button" className={BTN_RED} onClick={() => void cancel(kind, id)} disabled={loading} aria-label={'确认取消 ' + id}>
@@ -165,7 +165,7 @@ export default function TaskQueue() {
           </div>
         )
       })}
-      {rows.length === 0 && <div className="text-[11px] text-slate-500">没有任务。</div>}
+      {rows.length === 0 && <div className="text-caption text-slate-500">没有任务。</div>}
     </div>
   )
 
@@ -174,7 +174,7 @@ export default function TaskQueue() {
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <ListChecks size={14} className="text-cyan-400" />
         <h2 className="text-sm font-semibold text-slate-100">任务队列</h2>
-        <span className="text-[11px] text-slate-500">后台任务（DAG）与异步任务表 —— 同一个问题的两代实现</span>
+        <span className="text-caption text-slate-500">后台任务（DAG）与异步任务表 —— 同一个问题的两代实现</span>
         <div className="ml-auto flex items-center gap-1.5">
           <select className={INPUT} value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); void load(e.target.value) }} aria-label="后台任务状态过滤">
             <option value="">全部状态</option>
@@ -191,7 +191,7 @@ export default function TaskQueue() {
 
       {err && <ErrorBox message={err} />}
       {msg && (
-        <div className="mb-2 flex items-center gap-1 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">
+        <div className="mb-2 flex items-center gap-1 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">
           <CheckCircle2 size={11} /> {msg}
         </div>
       )}
@@ -204,21 +204,21 @@ export default function TaskQueue() {
           ['异步任务', asyncRows.length],
         ].map(([k, v]) => (
           <div key={String(k)} className="rounded-sm border border-slate-800 bg-slate-900/50 px-2 py-1.5">
-            <div className="text-[10px] text-slate-500">{String(k)}</div>
-            <div className="font-mono text-[13px] text-cyan-300">{String(v)}</div>
+            <div className="text-micro text-slate-500">{String(k)}</div>
+            <div className="font-mono text-body-lg text-cyan-300">{String(v)}</div>
           </div>
         ))}
       </div>
 
       <div className="mb-2 rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-        <div className="mb-2 flex items-center gap-2 text-[11px] text-slate-400">
+        <div className="mb-2 flex items-center gap-2 text-caption text-slate-400">
           <Clock size={11} className="text-cyan-400" /> 后台任务（{bgRows.length}）
         </div>
         {renderRows(bgRows, 'bg')}
       </div>
 
       <div className="mb-2 rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-        <div className="mb-2 flex items-center gap-2 text-[11px] text-slate-400">
+        <div className="mb-2 flex items-center gap-2 text-caption text-slate-400">
           <ListChecks size={11} className="text-cyan-400" /> 异步任务（{asyncRows.length}）
         </div>
         {renderRows(asyncRows, 'async')}
@@ -226,7 +226,7 @@ export default function TaskQueue() {
 
       {detail && (
         <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-          <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
+          <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
             <FileText size={11} className="text-cyan-400" /> {detailLabel}
             <button type="button" className={BTN + ' ml-auto'} onClick={() => setDetail(null)}>关闭</button>
           </div>

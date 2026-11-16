@@ -136,7 +136,7 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
             ? '本会话智能体：选母体或某个分身来承接这段对话'
             : '未选择会话，无法切换智能体'
         }
-        className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] transition-colors disabled:opacity-40 ${
+        className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-caption transition-colors disabled:opacity-40 ${
           open
             ? 'border-cyan-600/60 bg-cyan-500/10 text-cyan-300'
             : 'border-slate-700 text-slate-400 hover:border-cyan-600/60 hover:bg-slate-800 hover:text-cyan-300'
@@ -150,7 +150,7 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
         {error && !open && (
           <span
             title={error}
-            className="rounded-full bg-rose-500/20 px-1.5 text-[9px] text-rose-300"
+            className="rounded-full bg-rose-500/20 px-1.5 text-micro text-rose-300"
           >
             !
           </span>
@@ -159,7 +159,7 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
       </button>
 
       {open && (
-        <div className="absolute right-0 top-[calc(100%+6px)] z-70 w-[300px] rounded-xl border border-slate-700 bg-slate-900/98 p-3 text-[11.5px] shadow-2xl backdrop-blur-sm">
+        <div className="absolute right-0 top-[calc(100%+6px)] z-70 w-[300px] rounded-xl border border-slate-700 bg-slate-900/98 p-3 text-body shadow-2xl backdrop-blur-sm">
           <div className="mb-2 flex items-center justify-between">
             <span className="font-medium text-slate-200">🧠 本会话智能体</span>
             <div className="flex items-center gap-1">
@@ -183,7 +183,7 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
             </div>
           </div>
 
-          <p className="mb-2 text-[10.5px] leading-relaxed text-slate-500">
+          <p className="mb-2 text-caption leading-relaxed text-slate-500">
             选中的智能体用于**本会话**（与「子代理」按钮的一次性委托是两件事）；母体 = 不指定分身。
           </p>
 
@@ -209,7 +209,7 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
                 <span className="flex items-center gap-1.5">
                   <b className="truncate font-medium text-slate-200">母体（默认）</b>
                 </span>
-                <span className="mt-0.5 block text-[10px] text-slate-500">
+                <span className="mt-0.5 block text-micro text-slate-500">
                   不指定分身，由母体承接本会话
                 </span>
               </span>
@@ -228,7 +228,7 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
                 </span>
                 <span className="min-w-0 flex-1">
                   <b className="truncate font-medium text-slate-200">{current}</b>
-                  <span className="mt-0.5 block text-[10px] text-amber-300">
+                  <span className="mt-0.5 block text-micro text-amber-300">
                     已不在活跃列表（分身跑完即回收或被销毁）
                   </span>
                 </span>
@@ -240,9 +240,9 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
             ) : list.length === 0 && !error ? (
               // 【2026-10-30】列表拉失败时不再同时显示「暂无活跃分身」——
               // 那会把"解析失败"说成"你没有分身"，正是本次误判的根源。
-              <div className="rounded-md border border-slate-800 bg-slate-950/60 px-3 py-3 text-center text-[10.5px] leading-relaxed text-slate-500">
+              <div className="rounded-md border border-slate-800 bg-slate-950/60 px-3 py-3 text-center text-caption leading-relaxed text-slate-500">
                 暂无活跃分身
-                <div className="mt-1 text-[10px] text-slate-600">
+                <div className="mt-1 text-micro text-slate-600">
                   要固定用一个分身，请到「装配车间 → 分身」创建后再回来选择。
                 </div>
               </div>
@@ -267,9 +267,9 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center gap-1.5">
                         <b className="truncate font-medium text-slate-200">{sa.name}</b>
-                        {sa.status && <em className="not-italic text-[10px] text-slate-500">{sa.status}</em>}
+                        {sa.status && <em className="not-italic text-micro text-slate-500">{sa.status}</em>}
                       </span>
-                      <span className="mt-0.5 block truncate font-mono text-[10px] text-slate-500">
+                      <span className="mt-0.5 block truncate font-mono text-micro text-slate-500">
                         {sa.model_id || '-'}
                         {sa.memory_provider ? ` · ${sa.memory_provider}` : ''}
                       </span>
@@ -281,7 +281,7 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
           </div>
 
           {saving && (
-            <div className="mt-1 flex items-center gap-1.5 text-[10px] text-cyan-300">
+            <div className="mt-1 flex items-center gap-1.5 text-micro text-cyan-300">
               <Loader2 size={10} className="animate-spin" /> 切换中…
             </div>
           )}

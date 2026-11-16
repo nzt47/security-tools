@@ -105,7 +105,7 @@ export function LlmHealthMenu() {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         title="LLM 自检：key 是否有效 / 模型名是否被识别 / 地址是否正确（无需命令行）"
-        className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] transition-colors ${
+        className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-caption transition-colors ${
           open
             ? 'border-amber-600/60 bg-amber-500/10 text-amber-300'
             : 'border-slate-700 text-slate-400 hover:border-amber-600/60 hover:bg-slate-800 hover:text-amber-300'
@@ -121,7 +121,7 @@ export function LlmHealthMenu() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-[calc(100%+6px)] z-70 w-[420px] rounded-xl border border-slate-700 bg-slate-900/98 p-3 text-[11.5px] shadow-2xl backdrop-blur-sm">
+        <div className="absolute right-0 top-[calc(100%+6px)] z-70 w-[420px] rounded-xl border border-slate-700 bg-slate-900/98 p-3 text-body shadow-2xl backdrop-blur-sm">
           <div className="mb-2 flex items-center justify-between">
             <span className="font-medium text-slate-200">🩺 LLM 连通性自检</span>
             <div className="flex items-center gap-1">
@@ -130,7 +130,7 @@ export function LlmHealthMenu() {
                 onClick={() => void run()}
                 disabled={loading}
                 title="重新自检（会向 LLM 端点发一次极小的真实请求）"
-                className="rounded-sm px-1.5 py-0.5 text-[10px] text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                className="rounded-sm px-1.5 py-0.5 text-micro text-slate-400 hover:bg-slate-800 hover:text-slate-200"
               >
                 {loading ? <Loader2 size={11} className="animate-spin" /> : '重新自检'}
               </button>
@@ -170,8 +170,8 @@ export function LlmHealthMenu() {
               </div>
 
               {/* 配置（密钥掩码） */}
-              <div className="mb-2 rounded-lg border border-slate-800 bg-slate-950/60 p-2 font-mono text-[10.5px] text-slate-300">
-                <div className="mb-1 flex items-center gap-1 font-sans text-[10px] text-slate-500">
+              <div className="mb-2 rounded-lg border border-slate-800 bg-slate-950/60 p-2 font-mono text-caption text-slate-300">
+                <div className="mb-1 flex items-center gap-1 font-sans text-micro text-slate-500">
                   <Activity size={10} /> 当前生效配置（.env，密钥已掩码）
                 </div>
                 <div>provider : {data.config?.provider || '-'}</div>
@@ -185,15 +185,15 @@ export function LlmHealthMenu() {
 
               {/* 工作台判定 */}
               {data.workbench_demo_mode && (
-                <p className="mb-2 rounded-md border border-amber-900/60 bg-amber-500/10 px-2 py-1 text-[10.5px] leading-relaxed text-amber-300">
+                <p className="mb-2 rounded-md border border-amber-900/60 bg-amber-500/10 px-2 py-1 text-caption leading-relaxed text-amber-300">
                   {data.workbench_note}
                 </p>
               )}
 
               {/* 探测结果 */}
               {probe && (
-                <div className="mb-2 rounded-lg border border-slate-800 bg-slate-950/60 p-2 font-mono text-[10.5px] text-slate-300">
-                  <div className="mb-1 font-sans text-[10px] text-slate-500">
+                <div className="mb-2 rounded-lg border border-slate-800 bg-slate-950/60 p-2 font-mono text-caption text-slate-300">
+                  <div className="mb-1 font-sans text-micro text-slate-500">
                     最小真实调用：{probe.endpoint || '-'}
                   </div>
                   <div>
@@ -212,7 +212,7 @@ export function LlmHealthMenu() {
               {/* 修复建议 */}
               {(probe?.hints ?? []).length > 0 && (
                 <div className="mb-1 rounded-lg border border-slate-800 bg-slate-950/60 p-2">
-                  <div className="mb-1 text-[10px] text-slate-500">下一步该改什么</div>
+                  <div className="mb-1 text-micro text-slate-500">下一步该改什么</div>
                   <ul className="space-y-1">
                     {(probe?.hints ?? []).map((h, i) => (
                       <li key={i} className="flex gap-1 leading-relaxed text-slate-300">
@@ -225,7 +225,7 @@ export function LlmHealthMenu() {
               )}
 
               {data.checked_at && (
-                <div className="font-mono text-[9.5px] text-slate-600">检查于 {data.checked_at}</div>
+                <div className="font-mono text-micro text-slate-600">检查于 {data.checked_at}</div>
               )}
             </>
           )}

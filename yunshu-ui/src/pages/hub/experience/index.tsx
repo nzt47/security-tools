@@ -159,7 +159,7 @@ export default function ExperiencePanel() {
                 <span className="font-mono text-xs text-cyan-500">{h.score.toFixed(4)}</span>
                 <span className="flex-1 text-xs text-slate-300">{h.task}</span>
                 <Badge color={VERIFIED_COLOR[h.verified || ''] || 'slate'}>{h.verified || '?'}</Badge>
-                <span className="text-[10px] text-slate-600">{h.legs.join('+')}</span>
+                <span className="text-micro text-slate-600">{h.legs.join('+')}</span>
               </div>
             ))}
           </div>
@@ -182,7 +182,7 @@ export default function ExperiencePanel() {
             <Undo2 size={14} /> 回滚
           </button>
         </div>
-        <div className="mt-1.5 text-[10px] text-slate-600">回滚会写审计链留痕，batch_id 即回滚凭据。</div>
+        <div className="mt-1.5 text-micro text-slate-600">回滚会写审计链留痕，batch_id 即回滚凭据。</div>
       </Card>
 
       {/* 列表 + 详情 */}
@@ -216,7 +216,7 @@ export default function ExperiencePanel() {
                   <span className="flex-1 truncate text-xs text-slate-300">{it.task || it.id}</span>
                   <Badge color={VERIFIED_COLOR[it.verified || ''] || 'slate'}>{it.verified || '?'}</Badge>
                 </div>
-                <div className="mt-1 flex gap-2 font-mono text-[10px] text-slate-600">
+                <div className="mt-1 flex gap-2 font-mono text-micro text-slate-600">
                   <span>{it.task_type}</span>
                   <span>{it.stack?.lang}</span>
                   <span>diff×{it.diffs?.length ?? 0}</span>
@@ -257,18 +257,18 @@ export default function ExperiencePanel() {
               <div className="max-h-[420px] space-y-2 overflow-y-auto">
                 {(selected.diffs || []).map((d, i) => (
                   <div key={i} className="rounded-lg border border-slate-800 bg-slate-950/60">
-                    <div className="flex items-center gap-2 border-b border-slate-800 px-2 py-1 font-mono text-[10px] text-slate-500">
+                    <div className="flex items-center gap-2 border-b border-slate-800 px-2 py-1 font-mono text-micro text-slate-500">
                       <span>{d.op}</span><span className="flex-1 truncate">{d.path}</span>
                       <span>{d.bytes}B{d.truncated ? ' 已截断' : ''}</span>
                     </div>
-                    <pre className="max-h-52 overflow-auto px-2 py-1.5 font-mono text-[11px] leading-relaxed text-slate-400 whitespace-pre-wrap">{d.diff}</pre>
+                    <pre className="max-h-52 overflow-auto px-2 py-1.5 font-mono text-caption leading-relaxed text-slate-400 whitespace-pre-wrap">{d.diff}</pre>
                   </div>
                 ))}
                 {(selected.pitfalls || []).length > 0 && (
                   <div className="rounded-lg border border-amber-900/50 bg-amber-950/20 px-2 py-1.5">
-                    <div className="mb-1 text-[10px] text-amber-500">踩坑（{selected.pitfalls?.length}）</div>
+                    <div className="mb-1 text-micro text-amber-500">踩坑（{selected.pitfalls?.length}）</div>
                     {(selected.pitfalls || []).map((p, i) => (
-                      <div key={i} className="font-mono text-[10px] text-amber-600/80">{p.symptom} · {p.verified_by}</div>
+                      <div key={i} className="font-mono text-micro text-amber-600/80">{p.symptom} · {p.verified_by}</div>
                     ))}
                   </div>
                 )}

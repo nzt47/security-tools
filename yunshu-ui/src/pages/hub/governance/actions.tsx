@@ -142,10 +142,10 @@ export function AbsoluteActionBar({ target, targetLabel, onDone }: ActionsBarPro
               {busy === a.action ? <Loader2 size={11} className="inline animate-spin" /> : a.icon}
               <span className="ml-1">{a.label}</span>
               {(a.action === 'remove_source' || a.action === 'rollback') && (
-                <span className="ml-1 text-[10px] text-amber-400/80" title="需先填 reason">*</span>
+                <span className="ml-1 text-micro text-amber-400/80" title="需先填 reason">*</span>
               )}
               {a.action === 'switch_forge' && (
-                <span className="ml-1 text-[10px] text-amber-400/80" title="需二次认证码">*</span>
+                <span className="ml-1 text-micro text-amber-400/80" title="需二次认证码">*</span>
               )}
             </button>
           ))}
@@ -172,13 +172,13 @@ export function AbsoluteActionBar({ target, targetLabel, onDone }: ActionsBarPro
         />
       )}
       {neverOpen && !sec && (
-        <div className="mt-2 text-[11px] text-amber-400">
+        <div className="mt-2 text-caption text-amber-400">
           安全常量未就绪（U1）：未拿到 `never_automated` / `60s` 常量前，本 UI 不渲染五类按钮
         </div>
       )}
 
       {error && (
-        <div className="mt-2 rounded-sm border border-red-900/60 bg-red-950/30 px-2 py-1 text-[11px] text-red-300">
+        <div className="mt-2 rounded-sm border border-red-900/60 bg-red-950/30 px-2 py-1 text-caption text-red-300">
           {error}
         </div>
       )}
@@ -189,7 +189,7 @@ export function AbsoluteActionBar({ target, targetLabel, onDone }: ActionsBarPro
 
 function ActionResultBox({ result }: { result: ActionResponse }) {
   return (
-    <div className="mt-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5 text-[11px] text-slate-300">
+    <div className="mt-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5 text-caption text-slate-300">
       <div className="flex flex-wrap items-center gap-2">
         <StatusBadge tone={result.ok === false ? 'red' : 'green'}>
           {result.ok === false ? (result.code || '被拒') : '已受理'}
@@ -203,10 +203,10 @@ function ActionResultBox({ result }: { result: ActionResponse }) {
       </div>
       {result.message && <div className="mt-1 text-red-300">{result.message}</div>}
       {result.decision?.reason && <div className="mt-1 text-slate-400">判定：{result.decision.reason}</div>}
-      {result.executor && <div className="mt-1 font-mono text-[10px] text-slate-500">执行入口：{result.executor}</div>}
-      {result.note && <div className="mt-1 text-[10px] text-amber-400/80">{result.note}</div>}
+      {result.executor && <div className="mt-1 font-mono text-micro text-slate-500">执行入口：{result.executor}</div>}
+      {result.note && <div className="mt-1 text-micro text-amber-400/80">{result.note}</div>}
       {result.plan && (
-        <div className="mt-1 font-mono text-[10px] text-slate-500">
+        <div className="mt-1 font-mono text-micro text-slate-500">
           计划：{String((result.plan as { bundle_id?: string }).bundle_id)} ·
           组件 {(result.plan as { component_count?: number }).component_count} 个（整包）
         </div>
@@ -214,7 +214,7 @@ function ActionResultBox({ result }: { result: ActionResponse }) {
       {result.stage_events && result.stage_events.length > 0 && (
         <div className="mt-1 space-y-0.5">
           {result.stage_events.slice(0, 5).map((e, i) => (
-            <div key={i} className="font-mono text-[10px] text-slate-500">
+            <div key={i} className="font-mono text-micro text-slate-500">
               {String(e.ts)} {String(e.from_stage ?? '—')} → {String(e.to_stage ?? '—')}（{String(e.verdict ?? '')}）
             </div>
           ))}
@@ -311,11 +311,11 @@ function NeverAutomatedPanel({
           placeholder={`可判定文本（缺省示例：${NEVER_TEXT_TEMPLATE[category] || '—'}）`}
           className="w-72 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 placeholder:text-slate-600" />
         <button type="button" onClick={doIssue} disabled={busy}
-          className="rounded-sm border border-slate-600 px-2 py-1 text-[11px] text-slate-200 disabled:opacity-40">
+          className="rounded-sm border border-slate-600 px-2 py-1 text-caption text-slate-200 disabled:opacity-40">
           {busy ? '处理中…' : '1) 显式确认（签发单次凭据）'}
         </button>
         <button type="button" onClick={doExecute} disabled={busy || !token || expired}
-          className="rounded-sm bg-red-800 px-2 py-1 text-[11px] text-white disabled:opacity-40">
+          className="rounded-sm bg-red-800 px-2 py-1 text-caption text-white disabled:opacity-40">
           2) 提交（转审批提案）
         </button>
         {expiresAt > 0 && (
@@ -324,7 +324,7 @@ function NeverAutomatedPanel({
           </StatusBadge>
         )}
       </div>
-      {msg && <div className="mt-2 text-[11px] text-cyan-300">{msg}</div>}
+      {msg && <div className="mt-2 text-caption text-cyan-300">{msg}</div>}
     </div>
   )
 }

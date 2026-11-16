@@ -150,7 +150,7 @@ export function BackgroundTasksMenu() {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         title="后台任务：查看/管理系统中后台运行的任务"
-        className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] transition-colors ${
+        className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-caption transition-colors ${
           open
             ? 'border-violet-600/60 bg-violet-500/10 text-violet-300'
             : 'border-slate-700 text-slate-400 hover:border-violet-600/60 hover:bg-slate-800 hover:text-violet-300'
@@ -159,18 +159,18 @@ export function BackgroundTasksMenu() {
         <Zap size={11} />
         后台任务
         {active > 0 && (
-          <span className="rounded-full bg-cyan-500/20 px-1.5 text-[9px] font-medium text-cyan-300" title="运行中任务数">
+          <span className="rounded-full bg-cyan-500/20 px-1.5 text-micro font-medium text-cyan-300" title="运行中任务数">
             {active}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 top-[calc(100%+6px)] z-70 w-[420px] rounded-xl border border-slate-700 bg-slate-900/98 p-3 text-[11.5px] shadow-2xl backdrop-blur-sm">
+        <div className="absolute right-0 top-[calc(100%+6px)] z-70 w-[420px] rounded-xl border border-slate-700 bg-slate-900/98 p-3 text-body shadow-2xl backdrop-blur-sm">
           <div className="mb-2 flex items-center justify-between">
             <span className="font-medium text-slate-200">
               ⚡ 后台任务
-              <span className="ml-1.5 text-[10px] font-normal text-slate-500">
+              <span className="ml-1.5 text-micro font-normal text-slate-500">
                 共 {total} · 运行中 {active} · 每 5s 刷新
                 {historyTotal ? ` · 历史 ${historyTotal}` : ''}
               </span>
@@ -203,14 +203,14 @@ export function BackgroundTasksMenu() {
             {tasks.length === 0 ? (
               <div className="rounded-md border border-slate-800 bg-slate-950/60 px-3 py-4 text-center text-slate-500">
                 {loading ? '加载中…' : '暂无后台任务'}
-                <div className="mt-1 text-[10px] text-slate-600">
+                <div className="mt-1 text-micro text-slate-600">
                   长耗时工具（process_distill_run / submit_task 等）会在此出现
                 </div>
                 {/* 空态的**关键补充**：内存里没有 ≠ 从来没跑过。历史读的是执行器落盘的 JSONL，
                     所以"跑过但已被 TTL 清理/进程重启"也能在这里看见 */}
                 {history.length > 0 && (
                   <div className="mt-2 border-t border-slate-800 pt-2 text-left">
-                    <div className="mb-1 text-[10px] leading-relaxed text-slate-500">
+                    <div className="mb-1 text-micro leading-relaxed text-slate-500">
                       历史提交{historyTotal != null ? ` ${historyTotal} 条` : '（条数未统计）'}
                       <span className="block text-slate-600">
                         已完成的任务保留 1 小时后从内存清理，故"当前为空"不代表"从来没跑过"
@@ -221,13 +221,13 @@ export function BackgroundTasksMenu() {
                       return (
                         <div
                           key={h.id || `${h.created_at || '?'}-${i}`}
-                          className="flex items-center gap-1.5 py-0.5 font-mono text-[10px] text-slate-500"
+                          className="flex items-center gap-1.5 py-0.5 font-mono text-micro text-slate-500"
                         >
                           <span className="shrink-0 text-slate-600">{fmtTime(h.created_at) || '-'}</span>
                           <span className="min-w-0 flex-1 truncate text-slate-400" title={h.error || h.tool_name || ''}>
                             {h.name || h.tool_name || h.id}
                           </span>
-                          <em className={`shrink-0 not-italic rounded-full border px-1.5 text-[9px] ${st.cls}`}>
+                          <em className={`shrink-0 not-italic rounded-full border px-1.5 text-micro ${st.cls}`}>
                             {st.label}
                           </em>
                         </div>
@@ -253,9 +253,9 @@ export function BackgroundTasksMenu() {
                         <span className="min-w-0 flex-1">
                           <span className="flex items-center gap-1.5">
                             <b className="truncate font-medium text-slate-200">{t.name || t.tool_name || t.id}</b>
-                            <em className={`not-italic rounded-full border px-1.5 text-[9.5px] ${st.cls}`}>{st.label}</em>
+                            <em className={`not-italic rounded-full border px-1.5 text-micro ${st.cls}`}>{st.label}</em>
                           </span>
-                          <span className="mt-0.5 block truncate font-mono text-[10px] text-slate-500">
+                          <span className="mt-0.5 block truncate font-mono text-micro text-slate-500">
                             {t.tool_name || '-'} · {t.id}
                             {t.progress ? ` · ${t.progress}` : ''}
                           </span>
@@ -266,14 +266,14 @@ export function BackgroundTasksMenu() {
                           type="button"
                           onClick={() => void cancel(t.id)}
                           title="取消该后台任务（仅排队/运行中可取消）"
-                          className="flex shrink-0 items-center gap-1 rounded-md border border-amber-700/60 px-1.5 py-0.5 text-[10px] text-amber-300 hover:bg-amber-500/10"
+                          className="flex shrink-0 items-center gap-1 rounded-md border border-amber-700/60 px-1.5 py-0.5 text-micro text-amber-300 hover:bg-amber-500/10"
                         >
                           <Ban size={10} /> 取消
                         </button>
                       )}
                     </div>
                     {shown && (
-                      <div className="border-t border-slate-800 px-2 py-1.5 font-mono text-[10.5px] text-slate-400">
+                      <div className="border-t border-slate-800 px-2 py-1.5 font-mono text-caption text-slate-400">
                         <div>创建：{fmtTime(t.created_at) || '-'}</div>
                         <div>开始：{fmtTime(t.started_at) || '-'}</div>
                         <div>完成：{fmtTime(t.completed_at) || '-'}</div>

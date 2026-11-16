@@ -27,7 +27,7 @@ import {
   searchInstanceTest,
 } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
+const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
@@ -194,7 +194,7 @@ export default function InstancesPanel() {
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Cpu size={14} className="text-cyan-400" />
         <h2 className="text-sm font-semibold text-slate-100">实例管理</h2>
-        <span className="text-[11px] text-slate-500">LLM 实例与搜索实例：新建 / 设为默认 / 连通性测试 / 删除</span>
+        <span className="text-caption text-slate-500">LLM 实例与搜索实例：新建 / 设为默认 / 连通性测试 / 删除</span>
         <div className="ml-auto">
           <button type="button" className={BTN} onClick={() => { void loadLlm(); void loadSearch() }} disabled={loading} aria-label="刷新实例列表">
             {loading ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
@@ -203,7 +203,7 @@ export default function InstancesPanel() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
+      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
 
       <div className="mb-2 flex items-center gap-1">
         {([['llm', 'LLM 实例'], ['search', '搜索实例']] as const).map(([id, label]) => (
@@ -212,7 +212,7 @@ export default function InstancesPanel() {
             type="button"
             onClick={() => setTab(id)}
             aria-selected={tab === id}
-            className={'rounded-lg px-2.5 py-1 text-[11px] transition-colors ' + (
+            className={'rounded-lg px-2.5 py-1 text-caption transition-colors ' + (
               tab === id ? 'bg-cyan-500/15 font-medium text-cyan-300' : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
             )}
           >
@@ -222,22 +222,22 @@ export default function InstancesPanel() {
       </div>
 
       <div className="mb-2 rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-        <div className="mb-2 flex items-center gap-2 text-[11px] text-slate-400">
+        <div className="mb-2 flex items-center gap-2 text-caption text-slate-400">
           {tab === 'llm' ? <Cpu size={11} className="text-cyan-400" /> : <Search size={11} className="text-cyan-400" />}
           已配置（{rows.length}）
         </div>
-        {rows.length === 0 && <div className="text-[11px] text-slate-500">还没有实例。用下面的表单建一个。</div>}
+        {rows.length === 0 && <div className="text-caption text-slate-500">还没有实例。用下面的表单建一个。</div>}
         <div className="flex flex-col gap-1">
           {rows.map((it) => {
             const id = it.id ?? ''
             const isOpen = confirmDelete === tab + ':' + id
             return (
-              <div key={id} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5 text-[11px]">
+              <div key={id} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5 text-caption">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-slate-200">{it.name ?? '(未命名)'}</span>
-                  <span className="font-mono text-[10px] text-slate-500">{tab === 'llm' ? (it.provider ?? '') + '/' + (it.model ?? '') : (it.engine_type ?? '')}</span>
-                  {it.is_default && <span className="flex items-center gap-0.5 text-[10px] text-amber-300"><Star size={9} /> 默认</span>}
-                  <span className={it.enabled === false ? 'text-[10px] text-slate-500' : 'text-[10px] text-emerald-400'}>
+                  <span className="font-mono text-micro text-slate-500">{tab === 'llm' ? (it.provider ?? '') + '/' + (it.model ?? '') : (it.engine_type ?? '')}</span>
+                  {it.is_default && <span className="flex items-center gap-0.5 text-micro text-amber-300"><Star size={9} /> 默认</span>}
+                  <span className={it.enabled === false ? 'text-micro text-slate-500' : 'text-micro text-emerald-400'}>
                     {it.enabled === false ? '停用' : '启用'}
                   </span>
                   <span className="ml-auto flex flex-wrap items-center gap-1">
@@ -259,7 +259,7 @@ export default function InstancesPanel() {
                 </div>
                 {isOpen && (
                   <div className="mt-1.5 flex flex-wrap items-center gap-2 rounded-sm border border-red-900/50 bg-red-500/5 px-2 py-1.5">
-                    <span className="text-[10px] text-red-300">
+                    <span className="text-micro text-red-300">
                       删除后该实例立即不可用{it.is_default ? '，且它当前是默认实例' : ''}。确定？
                     </span>
                     <button type="button" className={BTN_RED} onClick={() => void remove(tab, id)} disabled={loading} aria-label={'确认删除 ' + id}>
@@ -275,14 +275,14 @@ export default function InstancesPanel() {
       </div>
 
       <div className="mb-2 rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-        <div className="mb-2 flex items-center gap-2 text-[11px] text-slate-400">
+        <div className="mb-2 flex items-center gap-2 text-caption text-slate-400">
           <Plus size={11} className="text-cyan-400" /> 新建{tab === 'llm' ? ' LLM ' : '搜索'}实例
         </div>
         <div className="grid gap-2 sm:grid-cols-2">
-          <label className="text-[11px] text-slate-400">名称
+          <label className="text-caption text-slate-400">名称
             <input className={INPUT + ' mt-1 w-full'} value={fName} onChange={(e) => setFName(e.target.value)} aria-label="实例名称" />
           </label>
-          <label className="text-[11px] text-slate-400">
+          <label className="text-caption text-slate-400">
             {tab === 'llm' ? 'provider' : 'engine_type'}
             <input
               className={INPUT + ' mt-1 w-full'}
@@ -294,18 +294,18 @@ export default function InstancesPanel() {
           </label>
           {tab === 'llm' && (
             <>
-              <label className="text-[11px] text-slate-400">model
+              <label className="text-caption text-slate-400">model
                 <input className={INPUT + ' mt-1 w-full'} value={fModel} onChange={(e) => setFModel(e.target.value)} aria-label="模型名" />
               </label>
-              <label className="text-[11px] text-slate-400">base_url
+              <label className="text-caption text-slate-400">base_url
                 <input className={INPUT + ' mt-1 w-full'} value={fBaseUrl} onChange={(e) => setFBaseUrl(e.target.value)} aria-label="接口基址" />
               </label>
             </>
           )}
-          <label className="text-[11px] text-slate-400">api_key（可空）
+          <label className="text-caption text-slate-400">api_key（可空）
             <input className={INPUT + ' mt-1 w-full'} value={fApiKey} onChange={(e) => setFApiKey(e.target.value)} aria-label="实例密钥" />
           </label>
-          <label className="text-[11px] text-slate-400">timeout(s)
+          <label className="text-caption text-slate-400">timeout(s)
             <input className={INPUT + ' mt-1 w-full'} value={fTimeout} onChange={(e) => setFTimeout(e.target.value)} aria-label="实例超时秒" />
           </label>
         </div>
@@ -319,13 +319,13 @@ export default function InstancesPanel() {
           >
             {busy === 'create' ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} 新建
           </button>
-          <span className="ml-2 text-[10px] text-slate-600">名称与类型必填，其余按引擎要求填写</span>
+          <span className="ml-2 text-micro text-slate-600">名称与类型必填，其余按引擎要求填写</span>
         </div>
       </div>
 
       {detail && (
         <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-          <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
+          <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
             <CheckCircle2 size={11} className="text-cyan-400" /> 实例详情（可直接编辑后保存，PUT 会整体替换）
             <span className="ml-auto flex items-center gap-1">
               <button

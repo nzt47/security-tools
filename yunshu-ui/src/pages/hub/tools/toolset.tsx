@@ -214,7 +214,7 @@ export default function ToolsToolset() {
 
   // 定位横幅：高亮 8 秒会消失，把"到底定位到没有"用文字说清楚（没找到也给原因）
   const focusBanner = focusTool ? (
-    <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-cyan-900/60 bg-cyan-950/20 px-3 py-1.5 text-[11px]">
+    <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-cyan-900/60 bg-cyan-950/20 px-3 py-1.5 text-caption">
       {focusState === 'found' ? (
         <span className="text-cyan-200">已定位到 <span className="font-mono">{focusTool}</span>（高亮 8 秒）</span>
       ) : focusState === 'missing' ? (
@@ -226,7 +226,7 @@ export default function ToolsToolset() {
           ③ 注册名被改过。①→用「能力获取 → 草稿评审 → 登记为工具」重登记；②→在下方列表启用。
         </span>
         <a href={hubHref('tools', { tab: 'governance' })}
-          className="rounded border border-amber-800/70 px-2 py-0.5 text-[10px] text-amber-200 hover:bg-amber-950/40">
+          className="rounded border border-amber-800/70 px-2 py-0.5 text-micro text-amber-200 hover:bg-amber-950/40">
           去工具治理看注册名
         </a>
         </>
@@ -234,7 +234,7 @@ export default function ToolsToolset() {
         <span className="text-slate-400">正在定位 <span className="font-mono">{focusTool}</span> …</span>
       )}
       <button type="button" onClick={() => { setFocusTool(''); setFocusRow(''); setFocusState('') }}
-        className="ml-auto rounded border border-slate-700 px-2 py-0.5 text-[10px] text-slate-400 hover:bg-slate-800">
+        className="ml-auto rounded border border-slate-700 px-2 py-0.5 text-micro text-slate-400 hover:bg-slate-800">
         清除定位
       </button>
     </div>
@@ -366,12 +366,12 @@ export default function ToolsToolset() {
             {/* 可调用性标识：mark 缺失时该组件不渲染任何东西 */}
             <CallabilityBadge info={r.callability} name={String(r.name)} />
             {r.needs_approval && (
-              <span className="inline-flex items-center gap-1 rounded-sm bg-red-500/15 px-1.5 py-0.5 text-[10px] text-red-300">
+              <span className="inline-flex items-center gap-1 rounded-sm bg-red-500/15 px-1.5 py-0.5 text-micro text-red-300">
                 <ShieldAlert size={10} /> 需审批
               </span>
             )}
             {r.internal && (
-              <span className="rounded-sm bg-slate-700 px-1.5 py-0.5 text-[10px] text-slate-400">内部</span>
+              <span className="rounded-sm bg-slate-700 px-1.5 py-0.5 text-micro text-slate-400">内部</span>
             )}
           </div>
         </div>
@@ -513,7 +513,7 @@ export default function ToolsToolset() {
 
       {/* 可调用性图例：三档标识均为后端判定结果的直接映射，此处只做说明 */}
       {showLegend && (
-        <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500">
+        <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-caption text-slate-500">
           <span className="text-slate-400">可调用性标识</span>
           <span>{callabilityLegend(callabilityNote)}</span>
           {marksText && <span className="ml-auto text-slate-500">{marksText}</span>}

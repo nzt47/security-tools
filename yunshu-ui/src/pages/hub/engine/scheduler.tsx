@@ -308,13 +308,13 @@ export default function EngineScheduler() {
           而本页的「删除/暂停」走的是 /api/schedules/<id>（agent.scheduling）。两个调度器，
           两块数据；合成一张表会让人分不清"这条记录是哪族跑出来的"。 */}
       <Card className="mt-4" title="执行记录（/api/schedules 那一族调度器）">
-        <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+        <div className="mb-2 flex flex-wrap items-center gap-2 text-caption text-slate-500">
           <HistoryIcon size={11} className="text-cyan-400" />
           <span>与上方任务表**不是同一个调度器** —— 这里只列通过 /api/schedules 登记的调度器跑出的记录。</span>
           <button
             type="button"
             onClick={() => { setHistOpen((v) => !v); if (!histOpen) void loadHist() }}
-            className="ml-auto flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 hover:bg-slate-800"
+            className="ml-auto flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 hover:bg-slate-800"
             aria-label="展开执行记录"
           >
             {histBusy ? <Loader2 size={10} className="animate-spin" /> : <HistoryIcon size={10} />} {histOpen ? '收起' : '查看最近 20 条'}
@@ -323,16 +323,16 @@ export default function EngineScheduler() {
         {histOpen && (
           <div className="flex flex-col gap-1">
             {histRows.map((h, i) => (
-              <div key={String(h.id ?? h.task_id ?? i)} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
-                <span className="font-mono text-[10px] text-slate-500">{String(h.finished_at ?? h.timestamp ?? h.started_at ?? '')}</span>
+              <div key={String(h.id ?? h.task_id ?? i)} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-caption">
+                <span className="font-mono text-micro text-slate-500">{String(h.finished_at ?? h.timestamp ?? h.started_at ?? '')}</span>
                 <span className="text-slate-300">{String(h.name ?? h.task_name ?? h.task_id ?? '')}</span>
                 <Badge color={h.ok === false || h.success === false ? 'red' : 'green'}>
                   {h.ok === false || h.success === false ? '失败' : '成功'}
                 </Badge>
-                <span className="truncate text-[10px] text-slate-600">{String(h.error ?? h.result ?? '')}</span>
+                <span className="truncate text-micro text-slate-600">{String(h.error ?? h.result ?? '')}</span>
               </div>
             ))}
-            {histRows.length === 0 && <div className="text-[11px] text-slate-500">没有记录。</div>}
+            {histRows.length === 0 && <div className="text-caption text-slate-500">没有记录。</div>}
           </div>
         )}
       </Card>

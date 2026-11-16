@@ -361,7 +361,7 @@ export default function PluginManagePage() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-xs font-medium text-slate-300">配置项（schema 驱动）</span>
           {plugin.submitUrl && (
-            <code className="break-all font-mono text-[10px] text-slate-600">提交端点：{plugin.submitUrl}</code>
+            <code className="break-all font-mono text-micro text-slate-600">提交端点：{plugin.submitUrl}</code>
           )}
         </div>
         {valuesLoading && (
@@ -455,7 +455,7 @@ export default function PluginManagePage() {
                   <Badge color="cyan">v{p.version}</Badge>
                   {p.description}
                 </p>
-                <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                <div className="flex flex-wrap items-center gap-2 text-caption">
                   <Badge color="slate">{p.routes?.length ?? 0} 条路由</Badge>
                   {isConfigurable(p) && <Badge color="green">可配置</Badge>}
                   {p.clientSlot && <Badge color="amber">前端插槽</Badge>}
@@ -465,7 +465,7 @@ export default function PluginManagePage() {
                   <button
                     data-testid={`plugin-config-toggle-${p.name}`}
                     onClick={() => openConfig(p)}
-                    className={`flex flex-1 items-center justify-center gap-1 rounded-md border px-3 py-1.5 text-[11px] transition-colors ${
+                    className={`flex flex-1 items-center justify-center gap-1 rounded-md border px-3 py-1.5 text-caption transition-colors ${
                       config?.name === p.name
                         ? 'border-cyan-800 bg-cyan-950/40 text-cyan-300'
                         : 'border-slate-800 text-slate-400 hover:bg-slate-800/60'
@@ -477,7 +477,7 @@ export default function PluginManagePage() {
                   <button
                     data-testid={`plugin-routes-toggle-${p.name}`}
                     onClick={() => setRouteName(routeName === p.name ? null : p.name)}
-                    className="flex flex-1 items-center justify-center gap-1 rounded-md border border-slate-800 py-1.5 text-[11px] text-slate-400 hover:bg-slate-800/60"
+                    className="flex flex-1 items-center justify-center gap-1 rounded-md border border-slate-800 py-1.5 text-caption text-slate-400 hover:bg-slate-800/60"
                   >
                     <ChevronDown size={11} className={`transition-transform ${routeName === p.name ? 'rotate-180' : ''}`} />
                     {routeName === p.name ? '收起明细' : '路由明细'}
@@ -501,14 +501,14 @@ export default function PluginManagePage() {
                     {(p.routes ?? []).map((rt) => (
                       <div
                         key={rt}
-                        className="flex items-center gap-2 rounded-sm px-2 py-0.5 font-mono text-[10.5px] text-slate-500 hover:bg-slate-800/50"
+                        className="flex items-center gap-2 rounded-sm px-2 py-0.5 font-mono text-caption text-slate-500 hover:bg-slate-800/50"
                       >
                         <Server size={9} className="shrink-0 text-slate-700" />
                         {rt}
                       </div>
                     ))}
                     {(p.routes ?? []).length === 0 && (
-                      <div className="py-2 text-center text-[11px] text-slate-600">无路由</div>
+                      <div className="py-2 text-center text-caption text-slate-600">无路由</div>
                     )}
                   </div>
                 )}
@@ -519,7 +519,7 @@ export default function PluginManagePage() {
                     className="rounded-lg border border-slate-800 bg-slate-950/60 p-3"
                     data-testid={`plugin-client-slot-${p.name}`}
                   >
-                    <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+                    <div className="mb-2 flex flex-wrap items-center gap-2 text-caption text-slate-400">
                       <span className="font-medium text-slate-300">插件界面</span>
                       <span className="font-mono text-slate-600">{p.clientSlot.module}</span>
                       {!mounted[p.name] && <span className="text-slate-600">加载中…</span>}
@@ -532,7 +532,7 @@ export default function PluginManagePage() {
                     </div>
                     {(mounted[p.name]?.entries ?? []).map((e, i) => (
                       <div key={(e.id || 'entry') + i} className="border-t border-slate-800 pt-2">
-                        {e.title && <div className="mb-1 text-[11px] text-slate-400">{e.icon} {e.title}</div>}
+                        {e.title && <div className="mb-1 text-caption text-slate-400">{e.icon} {e.title}</div>}
                         {e.component ? createElement(e.component as React.ComponentType) : null}
                       </div>
                     ))}
@@ -566,7 +566,7 @@ export default function PluginManagePage() {
             <div className="mb-3 flex items-center gap-2">
               <PackagePlus size={14} className="text-cyan-400" />
               <h3 className="text-sm font-semibold text-slate-100">从市场安装插件包</h3>
-              <span className="text-[10px] text-slate-500">只列 `type=plugin`；装完自动刷新清单</span>
+              <span className="text-micro text-slate-500">只列 `type=plugin`；装完自动刷新清单</span>
               <button
                 type="button"
                 onClick={() => setMarketOpen(false)}
@@ -597,25 +597,25 @@ export default function PluginManagePage() {
             </div>
             {marketNotice && (
               <div
-                className={`mb-2 rounded-md border px-2 py-1.5 text-[11px] ${marketNotice.kind === 'ok' ? 'border-slate-700 bg-slate-950 text-cyan-300' : 'border-red-900/60 bg-red-950/40 text-red-300'}`}
+                className={`mb-2 rounded-md border px-2 py-1.5 text-caption ${marketNotice.kind === 'ok' ? 'border-slate-700 bg-slate-950 text-cyan-300' : 'border-red-900/60 bg-red-950/40 text-red-300'}`}
                 role={marketNotice.kind === 'err' ? 'alert' : undefined}
               >
                 {marketNotice.text}
               </div>
             )}
             {marketRows.length === 0 && marketBusy !== 'search' && (
-              <div className="py-6 text-center text-[11px] text-slate-500">没有可安装的插件包。</div>
+              <div className="py-6 text-center text-caption text-slate-500">没有可安装的插件包。</div>
             )}
             <div className="flex max-h-80 flex-col gap-1 overflow-y-auto">
               {marketRows.map((m) => {
                 const id = m.id ?? ''
                 return (
-                  <div key={'market-plugin-' + id} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
-                    <span className="font-mono text-[10px] text-cyan-300">{id}</span>
+                  <div key={'market-plugin-' + id} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-caption">
+                    <span className="font-mono text-micro text-cyan-300">{id}</span>
                     <span className="text-slate-300">{m.name ?? ''}</span>
-                    <span className="truncate text-[10px] text-slate-500">{m.description ?? ''}</span>
+                    <span className="truncate text-micro text-slate-500">{m.description ?? ''}</span>
                     <span className="ml-auto flex items-center gap-1.5">
-                      <span className="rounded-sm bg-slate-800 px-1.5 py-0.5 text-[9px] text-slate-400">
+                      <span className="rounded-sm bg-slate-800 px-1.5 py-0.5 text-micro text-slate-400">
                         {m.market_type ?? m.source ?? 'plugin'}
                       </span>
                       <button
@@ -623,7 +623,7 @@ export default function PluginManagePage() {
                         onClick={() => void installMarketPlugin(id)}
                         disabled={marketBusy !== ''}
                         aria-label={'安装插件包 ' + id}
-                        className="flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 hover:bg-slate-800 disabled:opacity-40"
+                        className="flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 hover:bg-slate-800 disabled:opacity-40"
                       >
                         {marketBusy === 'install:' + id ? <Loader2 size={11} className="animate-spin" /> : <PackagePlus size={11} />} 安装
                       </button>

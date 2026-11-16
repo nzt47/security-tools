@@ -28,11 +28,11 @@ export function SidebarPanel() {
       {/* 品牌区 */}
       <div className="flex items-center gap-2.5 px-4 pb-3 pt-4">
         <div className="wb-logo-badge">
-          <span className="text-[13px] font-semibold">枢</span>
+          <span className="text-body-lg font-semibold">枢</span>
         </div>
         <div>
           <div className="wb-brand-title">云枢 CLOUD HUB</div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-slate-500">
+          <div className="font-mono text-micro uppercase tracking-[0.22em] text-slate-500">
             workbench v0.1
           </div>
         </div>
@@ -56,7 +56,7 @@ export function SidebarPanel() {
       <div className="my-3 border-t border-slate-800/70" />
 
       {/* 历史记录 */}
-      <div className="flex items-center gap-1.5 px-4 pb-2 text-[10px] uppercase tracking-[0.2em] text-slate-500">
+      <div className="flex items-center gap-1.5 px-4 pb-2 text-micro uppercase tracking-[0.2em] text-slate-500">
         <History size={11} />
         历史记录
       </div>
@@ -69,7 +69,7 @@ export function SidebarPanel() {
             className={`wb-history-item ${currentSession === s.id ? 'active' : ''}`}
           >
             <span className="min-w-0 flex-1 truncate text-left">{s.title}</span>
-            <span className="shrink-0 font-mono text-[10px] text-slate-600">{s.time}</span>
+            <span className="shrink-0 font-mono text-micro text-slate-600">{s.time}</span>
           </button>
         ))}
       </div>

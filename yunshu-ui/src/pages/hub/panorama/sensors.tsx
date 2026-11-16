@@ -266,7 +266,7 @@ export default function PanoramaSensors() {
                     <div key={cat} className="rounded-lg border border-slate-800 bg-slate-950/40 p-3" data-testid={`sensor-cat-${cat}`}>
                       <div className="mb-2 flex items-center justify-between">
                         <span className="text-xs font-medium text-slate-300">{cat}</span>
-                        <span className="text-[11px] text-slate-500">
+                        <span className="text-caption text-slate-500">
                           {items.length} 个 · 在线 {items.filter((i) => i.enabled).length}
                         </span>
                       </div>
@@ -279,7 +279,7 @@ export default function PanoramaSensors() {
                               key={s.name}
                               data-testid={`sensor-chip-${s.name}`}
                               title={`${s.label || s.name}（${s.category}）` + (rd ? ` 读数：${fmtReadingValue(rd)} [${rd.severity ?? 'unknown'}]` : ' 无读数')}
-                              className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] ${SEV_CHIP[color]} ${s.enabled ? '' : 'opacity-50'}`}
+                              className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-caption ${SEV_CHIP[color]} ${s.enabled ? '' : 'opacity-50'}`}
                             >
                               <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.enabled ? '#3fb950' : '#30363d' }} />
                               {s.label || s.name}
@@ -313,7 +313,7 @@ export default function PanoramaSensors() {
                       <div className="mb-2 text-xs font-medium text-slate-300">{dim.label}</div>
                       <div className="flex flex-wrap gap-1.5">
                         {dim.values.map((v) => (
-                          <span key={v} className="rounded-sm border border-slate-700 bg-slate-800/60 px-2 py-0.5 text-[11px] text-slate-400">{v}</span>
+                          <span key={v} className="rounded-sm border border-slate-700 bg-slate-800/60 px-2 py-0.5 text-caption text-slate-400">{v}</span>
                         ))}
                       </div>
                     </div>

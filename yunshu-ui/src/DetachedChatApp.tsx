@@ -64,7 +64,7 @@ export function DetachedChatApp({ panelId }: { panelId: PanelId }) {
       <header className="wb-topbar">
         <div className="flex items-center gap-2.5">
           <div className="wb-logo-badge">
-            <span className="text-[12px] font-semibold">枢</span>
+            <span className="text-body font-semibold">枢</span>
           </div>
           <span className="wb-brand-title">云枢 · {PANEL_LABEL[panelId]}</span>
           <span className="wb-status-pill">

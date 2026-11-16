@@ -134,12 +134,12 @@ export default function MemoryStructure() {
         <button
           type="button"
           onClick={load}
-          className="flex items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1.5 text-[11px] text-slate-400 hover:bg-slate-800"
+          className="flex items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1.5 text-caption text-slate-400 hover:bg-slate-800"
         >
           <RefreshCw size={12} /> 刷新
         </button>
-        {loading && <span className="text-[11px] text-slate-500">加载中…</span>}
-        {error && <span className="text-[11px] text-amber-400">部分读数不可用：{error.slice(0, 120)}</span>}
+        {loading && <span className="text-caption text-slate-500">加载中…</span>}
+        {error && <span className="text-caption text-amber-400">部分读数不可用：{error.slice(0, 120)}</span>}
       </div>
 
       {/* ── 组成总览（真实数量）──────────────────────────────────── */}
@@ -156,8 +156,8 @@ export default function MemoryStructure() {
         <div className="space-y-3">
           {LAYERS.map((l) => (
             <div key={l.name} className="rounded-lg border border-slate-800 bg-slate-950/50 px-3.5 py-2.5">
-              <div className="text-[13px] font-medium text-slate-100">{l.name}</div>
-              <dl className="mt-1.5 grid gap-1 text-[11.5px] sm:grid-cols-[7rem_1fr]">
+              <div className="text-body-lg font-medium text-slate-100">{l.name}</div>
+              <dl className="mt-1.5 grid gap-1 text-body sm:grid-cols-[7rem_1fr]">
                 <dt className="text-slate-500">承载物</dt>
                 <dd className="text-slate-300">{l.holds}</dd>
                 <dt className="text-slate-500">生命周期</dt>
@@ -177,17 +177,17 @@ export default function MemoryStructure() {
             const Icon = p.icon
             return (
               <div key={p.name} className="rounded-lg border border-slate-800 bg-slate-950/50 px-3.5 py-2.5">
-                <div className="flex items-center gap-1.5 text-[13px] font-medium text-cyan-300">
+                <div className="flex items-center gap-1.5 text-body-lg font-medium text-cyan-300">
                   <Icon size={13} /> {p.name}
                 </div>
-                <div className="mt-1 text-[11.5px] text-slate-300">{p.role}</div>
-                <div className="mt-1 text-[11px] text-slate-500">写入方：{p.write}</div>
-                <div className="text-[11px] text-slate-500">读取方：{p.read}</div>
+                <div className="mt-1 text-body text-slate-300">{p.role}</div>
+                <div className="mt-1 text-caption text-slate-500">写入方：{p.write}</div>
+                <div className="text-caption text-slate-500">读取方：{p.read}</div>
               </div>
             )
           })}
         </div>
-        <p className="mt-3 text-[11px] text-slate-500">
+        <p className="mt-3 text-caption text-slate-500">
           提示：三者的统一入口在「全库检索」；「向量记忆」提供手动录入与自动沉淀两种视图。
           压缩与窗口水位见「会话与配置 · 会话任务」底部的上下文面板。
         </p>
@@ -195,8 +195,8 @@ export default function MemoryStructure() {
 
       {/* ── 治理视图（只读）：原「治理面板 · 记忆技能库」，2026-10-18 并入 ────── */}
       <div className="mt-6">
-        <h3 className="text-[13px] font-medium text-slate-200">治理视图（只读）· 召回优先级与四层清单</h3>
-        <p className="mb-3 mt-1 text-[11px] text-slate-500">
+        <h3 className="text-body-lg font-medium text-slate-200">治理视图（只读）· 召回优先级与四层清单</h3>
+        <p className="mb-3 mt-1 text-caption text-slate-500">
           从「治理面板」并入这里：四层记忆（策略/事实/偏好/工作）的跨层清单（<b>内容已脱敏</b>）+
           U5 召回优先级契约，走审计口径 /api/cp/memory/skills。此处<b>只呈现</b>，不改变召回结果；
           写入 / 压缩 / 遗忘候选的处置仍在「向量记忆」「记忆运维」两个 Tab。

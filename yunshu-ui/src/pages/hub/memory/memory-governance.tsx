@@ -62,9 +62,9 @@ export function MemoryGovernancePanel() {
                     </span>
                   ))}
                 </div>
-                <div className="font-mono text-[10px] text-slate-500">来源：{(rp as { source?: string })?.source}</div>
-                <div className="text-[11px] text-slate-500">公式：{(rp as { formula?: string })?.formula}</div>
-                <div className="text-[11px] text-amber-400/80">{(rp as { contract?: string })?.contract}</div>
+                <div className="font-mono text-micro text-slate-500">来源：{(rp as { source?: string })?.source}</div>
+                <div className="text-caption text-slate-500">公式：{(rp as { formula?: string })?.formula}</div>
+                <div className="text-caption text-amber-400/80">{(rp as { contract?: string })?.contract}</div>
               </div>
             )}
           </Collapsible>
@@ -91,7 +91,7 @@ export function MemoryGovernancePanel() {
                       <StatusBadge tone={m.layer === 'strategy' ? 'green' : m.layer === 'fact' ? 'blue' : 'gray'}>
                         {m.layer}
                       </StatusBadge>
-                      <span className="w-24 shrink-0 truncate font-mono text-[10px] text-slate-500" title={m.memory_id}>
+                      <span className="w-24 shrink-0 truncate font-mono text-micro text-slate-500" title={m.memory_id}>
                         {m.memory_id}
                       </span>
                       {/* content_redacted 已是脱敏文本（§3.4 脱敏先于哈希） */}
@@ -99,7 +99,7 @@ export function MemoryGovernancePanel() {
                       {m.org_level && <StatusBadge tone="blue">org 级</StatusBadge>}
                       {m.degraded && <StatusBadge tone="yellow">降级</StatusBadge>}
                       {m.forget_candidate && <StatusBadge tone="red">遗忘候选</StatusBadge>}
-                      <span className="shrink-0 text-[10px] text-slate-600">{m.scope}</span>
+                      <span className="shrink-0 text-micro text-slate-600">{m.scope}</span>
                     </div>
                   )}
                 />
