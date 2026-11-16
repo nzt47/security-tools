@@ -16,6 +16,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { HelpCircle, Loader2 } from 'lucide-react'
 
+import { Switch } from '@/components/ui'
 import { CP_SETTINGS, cpSetting } from '@/api/endpoints'
 import { request } from '@/lib/apiClient'
 
@@ -90,20 +91,16 @@ export function CompressPrefixSwitch() {
   return (
     <div className="flex flex-col gap-1" data-testid="compress-prefix-switch">
       <div className="flex flex-wrap items-center gap-1.5">
-        <button
-          type="button"
-          role="switch"
-          aria-checked={on}
-          aria-label="压缩复用对话前缀"
-          onClick={() => { void toggle() }}
+        {/* 【2026-11-16 统一】原来是手写开关（bg-emerald-500 绿），与全站主色开关不一致 ⇒ 换 ui/Switch。
+            开关本身就是状态；旁边的文字是**这一项叫什么**（名称），不是第二列状态。 */}
+        <Switch
+          checked={on}
+          onCheckedChange={() => { void toggle() }}
           disabled={busy || !editable}
-          className={`relative h-4 w-8 shrink-0 rounded-full transition-colors ${on ? 'bg-emerald-500' : 'bg-slate-700'} ${busy || !editable ? 'opacity-40' : 'hover:opacity-90'}`}
-        >
-          <span
-            className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-all ${on ? 'left-4' : 'left-0.5'}`}
-          />
-        </button>
-        <span className="text-[11px] text-slate-300">压缩复用对话前缀</span>
+          size="sm"
+          label="压缩复用对话前缀"
+        />
+        <span className="text-caption text-slate-300">压缩复用对话前缀</span>
         {busy && <Loader2 size={11} className="animate-spin text-slate-500" />}
         <button
           type="button"

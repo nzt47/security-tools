@@ -30,6 +30,7 @@ import type { ReactElement } from 'react';
 import { Mosaic, MosaicWindow } from 'react-mosaic-component';
 import type { MosaicNode, MosaicPath } from 'react-mosaic-component';
 import { Cloud, MessageSquare, PanelLeft, PanelRight, RotateCcw } from 'lucide-react';
+import { Button } from '@/components/ui';
 import {
   DEFAULT_LAYOUT,
   DOCK_DEFAULT_WIDTH,
@@ -310,19 +311,23 @@ export default function WorkbenchApp() {
           {/* 纯图标（2026-11-15 二次回调）：顶栏不再出现「导航 / 右栏 / 主内容」这些字样，
               可访问名仍由 aria-label 提供（读屏与测试都按名字找）。 */}
           <div className="wb-panel-toggles">
-            <button
+            {/* 【2026-11-16 统一】图标开关改 ui/Button：选中（面板可见）= primary 高亮，未选 = ghost。
+                原来 .wb-panel-toggle.on 是页面自定义的青色描边，和全站按钮不是一回事。 */}
+            <Button
               type="button"
-              className={navVisible ? 'wb-panel-toggle on' : 'wb-panel-toggle'}
+              variant={navVisible ? 'primary' : 'ghost'}
+              size="icon"
               aria-pressed={navVisible}
               aria-label="导航"
               onClick={() => togglePanel(PANEL.NAV)}
               title="显示 / 隐藏左侧导航（关掉后仍可从这里打开）"
             >
               <PanelLeft size={14} />
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              className={dockVisible ? 'wb-panel-toggle on' : 'wb-panel-toggle'}
+              variant={dockVisible ? 'primary' : 'ghost'}
+              size="icon"
               aria-pressed={dockVisible}
               aria-label="右栏"
               // 打开 = 插回布局树最右（主内容收缩、中间分割条可拖宽）；关闭 = 从树里摘掉
@@ -333,27 +338,28 @@ export default function WorkbenchApp() {
               title="显示 / 隐藏右栏（打开后是独立一列：主内容收缩，拖分割条可改宽度）"
             >
               <PanelRight size={14} />
-            </button>
+            </Button>
             {!chatVisible && (
-              <button
+              <Button
                 type="button"
-                className="wb-panel-toggle"
+                variant="ghost"
+                size="icon"
                 aria-pressed={false}
                 aria-label="主内容"
                 onClick={() => togglePanel(PANEL.CHAT)}
                 title="主内容面板已被关掉：点这里恢复"
               >
                 <MessageSquare size={14} />
-              </button>
+              </Button>
             )}
           </div>
           {/* 报警器：系统运行期问题的汇报入口（读 /api/alarms，与消息中心同一张台账）。
               「查看全部」由这里注入导航动作 —— 组件本身不认识路由。 */}
           <AlarmBell onOpenAll={() => useWorkbenchNav.getState().setActiveKey('admin/notifications')} />
-          <button type="button" className="wb-reset-btn" onClick={resetLayout} title="恢复默认布局">
+          <Button type="button" variant="default" size="sm" onClick={resetLayout} title="恢复默认布局">
             <RotateCcw size={13} />
             重置布局
-          </button>
+          </Button>
         </div>
       </header>
       {/* Mosaic 工作区 */}
@@ -382,10 +388,10 @@ export default function WorkbenchApp() {
           zeroStateView={
             <div className="flex h-full flex-col items-center justify-center gap-3">
               <p className="text-sm text-slate-400">所有面板已关闭</p>
-              <button type="button" className="wb-reset-btn" onClick={resetLayout}>
+              <Button type="button" variant="default" size="sm" onClick={resetLayout}>
                 <RotateCcw size={13} />
                 恢复默认布局
-              </button>
+              </Button>
             </div>
           }
         />

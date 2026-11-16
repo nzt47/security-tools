@@ -30,6 +30,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
+import { Button } from '@/components/ui';
 import { historyApi, type HistoryEntry } from '../../../lib/historyApi';
 import { useLayoutStore } from '../../../stores/useLayoutStore';
 
@@ -249,23 +250,27 @@ export function HistoryDrawer({ sessionId, onClose }: HistoryDrawerProps) {
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1">
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={() => void loadItems()}
               title="刷新"
+              aria-label="刷新"
               disabled={loading}
-              className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-800 text-slate-400 transition-colors hover:border-cyan-500/40 hover:text-cyan-300 disabled:opacity-40"
             >
               <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={onClose}
               title="关闭 (Esc)"
-              className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-800 text-slate-400 transition-colors hover:border-rose-500/40 hover:text-rose-300"
+              aria-label="关闭"
             >
               <X size={14} />
-            </button>
+            </Button>
           </div>
         </div>
 

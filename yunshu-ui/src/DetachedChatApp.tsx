@@ -17,6 +17,7 @@
  */
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
+import { Button } from '@/components/ui';
 import { renderPanel } from './components/workbench/panels/renderPanel';
 import { useLayoutStore } from './stores/useLayoutStore';
 import type { ChatMessage, ThinkingEvent } from './stores/useLayoutStore';
@@ -72,15 +73,16 @@ export function DetachedChatApp({ panelId }: { panelId: PanelId }) {
           </span>
         </div>
         {isElectron() && (
-          <button
+          <Button
             type="button"
-            className="wb-reset-btn"
+            variant="default"
+            size="sm"
             onClick={() => window.close()}
             title="关闭独立窗口"
           >
             <X size={13} />
             关闭窗口
-          </button>
+          </Button>
         )}
       </header>
 

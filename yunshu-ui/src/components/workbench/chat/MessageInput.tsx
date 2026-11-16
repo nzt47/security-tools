@@ -3,6 +3,7 @@
  */
 import { useEffect, useRef } from 'react';
 import { CornerDownLeft } from 'lucide-react';
+import { Button } from '@/components/ui';
 
 interface Props {
   value: string;
@@ -41,15 +42,18 @@ export function MessageInput({ value, onChange, onSend, disabled }: Props) {
         placeholder="输入消息，Enter 发送，Shift+Enter 换行…"
         className="wb-input"
       />
-      <button
+      <Button
         type="button"
+        variant="primary"
+        size="icon"
         onClick={onSend}
         disabled={disabled || !value.trim()}
-        className="wb-send-btn"
+        aria-label="发送"
         title="发送"
+        className="mb-1.5 shrink-0 self-end"
       >
         <CornerDownLeft size={15} />
-      </button>
+      </Button>
     </div>
   );
 }

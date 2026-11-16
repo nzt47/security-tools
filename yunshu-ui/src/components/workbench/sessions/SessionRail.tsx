@@ -28,6 +28,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
+import { Button } from '@/components/ui';
 import type { Project, SessionGroup, SessionMeta } from '../../../lib/sessionApi';
 
 export interface SessionRailProps {
@@ -567,15 +568,16 @@ export function SessionRail({
             {scoped.length}
           </span>
         </div>
-        <button
+        <Button
           type="button"
+          variant="primary"
+          size="icon"
           onClick={onCreate}
           title="新建会话（每个会话 = 一个任务，自动拥有独立工作空间）"
           aria-label="新建会话"
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-cyan-600/50 bg-cyan-500/10 text-cyan-300 transition-colors hover:bg-cyan-500/25 hover:text-cyan-200"
         >
           <Plus size={14} />
-        </button>
+        </Button>
       </div>
 
       {/* 项目选择条：当前项目（null = 未归属项目）+ 新建项目 */}
@@ -596,15 +598,16 @@ export function SessionRail({
               </option>
             ))}
           </select>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             onClick={openProjectModal}
             title="新建项目（项目名 + 工作空间绝对路径；可自动创建目录）"
             aria-label="新建项目"
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-violet-600/50 bg-violet-500/10 text-violet-300 transition-colors hover:bg-violet-500/25 hover:text-violet-200"
           >
             <FolderPlus size={13} />
-          </button>
+          </Button>
         </div>
       </div>
 

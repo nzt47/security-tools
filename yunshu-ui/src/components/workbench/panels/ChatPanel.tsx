@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Sparkles, Square } from 'lucide-react';
+import { Button } from '@/components/ui';
 import { isHistoryMessageId, subscribeStreamLog, useLayoutStore } from '../../../stores/useLayoutStore';
 import { CHAT_FORMATS, chatStyleVars, useChatPrefsStore, type ChatFormat } from '../../../stores/useChatPrefsStore';
 import { MessageItem, isToolStep } from '../chat/MessageItem';
@@ -353,14 +354,10 @@ export function ChatPanel() {
               <span className="wb-pulse-dot" />
               正在生成…
             </span>
-            <button
-              type="button"
-              onClick={stopStreaming}
-              className="wb-stop-btn"
-            >
+            <Button type="button" variant="danger" size="sm" onClick={stopStreaming}>
               <Square size={11} fill="currentColor" />
               停止生成
-            </button>
+            </Button>
           </div>
         )}
         {slashHits.length > 0 && (
