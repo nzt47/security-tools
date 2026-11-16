@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-16T12:58:03+08:00",
+ "updated_at": "2026-11-16T18:17:44+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -954,6 +954,14 @@
    "title": "缺 ui/Textarea 原语：.pl-textarea 等仍是页面样式",
    "criteria": "表单控件里 Button/Input/Select/Switch/Slider 已有原语，text-area 没有；提示词实验室的身份提示词编辑框仍用 .pl-textarea（页面 CSS，字号/圆角与 Input 不完全一致）。",
    "next": "补 ui/Textarea（同 Input 的 token/焦点环/错误态），把 .pl-textarea 与其它页面的 textarea 迁过去，再删对应页面样式。"
+  },
+  {
+   "id": "ui-hub-blue-primary",
+   "status": "open",
+   "priority": "P2",
+   "title": "hub 页面有 17 处 bg-blue-600 的「主操作按钮」= 第五种强调色",
+   "criteria": "2026-11-16 审计：pages/hub/** 的保存/搜索/新建/备份等主按钮写的是 bg-blue-600 + hover:bg-blue-500/700，与全站主色（--color-primary，青）并列出现 ⇒ 同一个「主操作」在不同页面是两种颜色；本轮已收掉洋红（人格预设选中）与绿色（压缩开关），蓝色是最后一个。",
+   "next": "① 纯 className 替换：bg-blue-600/hover:bg-blue-500|700 → bg-primary text-primary-foreground hover:bg-primary/90（或直接换 components/ui 的 Button variant=primary，一并把 h/px/text 收进 size 档）；② 逐个页面核：assets / experience / engine/scheduler / memory / memory/knowledge / plugin-manage / tools/computer-use / workshop/agents / network / tools/mcp / error/ForbiddenPage；③ 三档截图 + python scripts/audit/ui_primitive_convergence.py --write-baseline。"
   }
  ]
 }
