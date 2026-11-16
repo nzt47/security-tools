@@ -14,7 +14,7 @@
 import LearningMetrics from './LearningMetrics'
 import { useCallback, useEffect, useState } from 'react'
 import { Search, RefreshCw, Undo2, CheckCircle2, XCircle, Archive } from 'lucide-react'
-import { Badge, Card, ErrorBox, Loading, PageHeader, StatCard } from '../components/ui'
+import { Badge, Button, Card, ErrorBox, Loading, PageHeader, StatCard } from '../components/ui'
 import {
   fetchDetail, fetchList, fetchStats, reviewItem, rollbackBatch, searchPreview,
   type ExperienceHit, type ExperienceItem, type ExperienceStats,
@@ -148,9 +148,9 @@ export default function ExperiencePanel() {
             aria-label="检索预览输入"
             className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden focus:border-cyan-600"
           />
-          <button onClick={() => void onSearch()} className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-500">
+          <Button variant="primary" size="md" onClick={() => void onSearch()}>
             <Search size={14} /> 预览
-          </button>
+          </Button>
         </div>
         {hits.length > 0 && (
           <div className="mt-3 space-y-1.5">

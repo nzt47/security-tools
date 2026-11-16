@@ -8,7 +8,7 @@
  */
 import { useState } from 'react'
 import { Camera, Clipboard, ClipboardPaste, Loader2, Monitor, Navigation, X } from 'lucide-react'
-import { Card, PageHeader, hubGet, hubPost } from '../components/ui'
+import { Button, Card, PageHeader, hubGet, hubPost } from '../components/ui'
 
 import {
   BROWSER_NAVIGATE,
@@ -127,10 +127,9 @@ export default function ToolsComputerUse() {
               placeholder="输入 URL（如 https://example.com）"
               className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden focus:border-cyan-600"
             />
-            <button onClick={navigate} disabled={busy}
-              className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-500 disabled:opacity-40">
+            <Button variant="primary" size="md" onClick={navigate} disabled={busy}>
               {busy ? <Loader2 size={14} className="animate-spin" /> : <Navigation size={14} />} {busy ? '执行中…' : '导航'}
-            </button>
+            </Button>
           </div>
           <div className="mt-2 flex gap-2">
             <button onClick={screenshot} disabled={busyShot} title="GET /api/browser/screenshot"
@@ -175,10 +174,9 @@ export default function ToolsComputerUse() {
               aria-label="剪贴板写入内容"
               className="h-20 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden focus:border-cyan-600"
             />
-            <button onClick={writeClipboard} disabled={busyClip || !clipDraft}
-              className="flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-500 disabled:opacity-40">
+            <Button variant="primary" size="md" onClick={writeClipboard} disabled={busyClip || !clipDraft}>
               <ClipboardPaste size={14} /> 写入剪贴板
-            </button>
+            </Button>
           </div>
         </Card>
       </div>

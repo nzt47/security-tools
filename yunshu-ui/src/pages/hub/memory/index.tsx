@@ -8,7 +8,7 @@
  */
 import { useEffect, useState } from 'react'
 import { Brain, Search, Plus } from 'lucide-react'
-import { Card, StatCard, Loading, ErrorBox, PageHeader } from '../components/ui'
+import { Button, Card, StatCard, Loading, ErrorBox, PageHeader } from '../components/ui'
 // 【P1-front 第六批】三个端点都已带 X-Envelope: v2（overview 是 GET，另两个是 POST），
 // 改用显式信封解析：GET 走 getEnvelope、POST 走 postEnvelope（后者的请求头语义与 hubPost 逐条对齐）。
 import { getEnvelope, postEnvelope } from '@/api/envelope'
@@ -185,13 +185,15 @@ export default function MemoryPage({ mode = 'manual' }: MemoryPageProps) {
               placeholder="输入要记住的内容…"
               className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden focus:border-cyan-600"
             />
-            <button
+            <Button
+              variant="primary"
+              size="md"
+              className="mt-3"
               onClick={saveManual}
               disabled={saving || !manualText.trim()}
-              className="mt-3 flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-500 disabled:opacity-40"
             >
               <Plus size={14} /> {saving ? '保存中…' : '保存记忆'}
-            </button>
+            </Button>
           </Card>
         )}
 

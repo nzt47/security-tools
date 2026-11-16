@@ -28,7 +28,7 @@
  */
 import { createElement, useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronDown, Loader2, PackagePlus, RefreshCw, Search, Server, Settings2, X } from 'lucide-react'
-import { Card, Badge, PageHeader, Loading, ErrorBox } from './components/ui'
+import { Button, Card, Badge, PageHeader, Loading, ErrorBox } from './components/ui'
 import InstalledExtensions from './extensions/installed-extensions'
 import { SchemaRenderer } from '@/plugins/schema'
 import { ApiTokenField } from '@/plugins/ApiTokenField'
@@ -425,14 +425,10 @@ export default function PluginManagePage() {
             >
               <PackagePlus size={12} /> 从市场安装插件包
             </button>
-            <button
-              onClick={reload}
-              disabled={refreshing}
-              className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-1.5 text-xs text-white hover:bg-blue-500 disabled:opacity-40"
-            >
+            <Button variant="primary" size="sm" onClick={reload} disabled={refreshing}>
               <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
               {refreshing ? '刷新中…' : '刷新清单'}
-            </button>
+            </Button>
           </div>
         }
       />

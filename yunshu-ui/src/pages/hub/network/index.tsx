@@ -5,7 +5,7 @@
 import NetworkTransfer from './TransferPanel'
 import { useEffect, useState } from 'react'
 import { Globe, Save, RotateCcw } from 'lucide-react'
-import { Card, Loading, ErrorBox, PageHeader, hubGet, hubPost, unwrap } from '../components/ui'
+import { Button, Card, Loading, ErrorBox, PageHeader, hubGet, hubPost, unwrap } from '../components/ui'
 
 import {
   APPLY_NETWORK_CONFIG,
@@ -65,9 +65,9 @@ export default function NetworkPage() {
             <button onClick={reset} className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800">
               <RotateCcw size={12} /> 重置
             </button>
-            <button onClick={save} disabled={saving} className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-1.5 text-xs text-white hover:bg-blue-500 disabled:opacity-40">
+            <Button variant="primary" size="sm" onClick={save} disabled={saving}>
               <Save size={12} /> {saving ? '保存中…' : '保存并应用'}
-            </button>
+            </Button>
           </div>
         }
       />

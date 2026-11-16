@@ -1,6 +1,12 @@
 /**
  * Hub 通用 UI 组件：卡片 / 数据表格 / 徽章 / 加载 / 错误 / 空态
+ *
+ * 按钮不在这里自造：hub 页面的主/次/危险按钮统一走全局原语 components/ui/Button
+ * （variant=primary 取语义主色 --color-primary，不再出现 bg-blue-600 这类第五种强调色）。
+ * 仍从本文件导入，避免页面里同时出现两个 ui 命名空间。
  */
+export { Button } from '@/components/ui'
+
 import type { ReactNode } from 'react'
 import { Loader2, AlertTriangle, Inbox } from 'lucide-react'
 import { getApiToken } from '../../../lib/apiToken'

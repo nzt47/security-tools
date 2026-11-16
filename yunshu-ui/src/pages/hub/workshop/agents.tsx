@@ -26,7 +26,7 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { Hammer, Layers, Loader2, Package, Route, Trash2, Users } from 'lucide-react'
-import { Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubPost } from '../components/ui'
+import { Button, Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubPost } from '../components/ui'
 
 import SubagentRowActions from './SubagentRowActions'
 import {
@@ -234,7 +234,7 @@ function SubagentView({ onShowAssembly }: { onShowAssembly?: () => void }) {
           （受控模板；自由文本须显式选 template+text / full-system 档）。
           记忆提供商业已接线（scoped 档按 provider 选真实后端）；工具源（tool_sources）仍是**声明字段**（尚未接线）。
         </span>
-        <button onClick={onShowAssembly} data-testid="go-assembly" className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-500"><Hammer size={12} /> 前往组装台</button>
+        <Button variant="primary" size="sm" onClick={onShowAssembly} data-testid="go-assembly"><Hammer size={12} /> 前往组装台</Button>
       </div>
       {error && <div className="mb-4"><ErrorBox message={error} /></div>}
       {loading ? <Loading /> : (

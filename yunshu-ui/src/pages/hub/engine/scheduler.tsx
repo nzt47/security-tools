@@ -4,7 +4,7 @@
  */
 import { useEffect, useState } from 'react'
 import { Plus, Trash2, Pause, Play, Zap, Loader2, History as HistoryIcon } from 'lucide-react'
-import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubDelete, hubGet, hubPost } from '../components/ui'
+import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, Button, hubDelete, hubGet, hubPost } from '../components/ui'
 
 import {
   SCHEDULES,
@@ -172,7 +172,7 @@ export default function EngineScheduler() {
       <PageHeader
         title="定时任务"
         description="调度任务管理（间隔 / cron）"
-        actions={<button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-500"><Plus size={12} /> 新建任务</button>}
+        actions={<Button variant="primary" size="sm" onClick={() => setShowForm(!showForm)}><Plus size={12} /> 新建任务</Button>}
       />
       {error && <div className="mb-4"><ErrorBox message={error} /></div>}
       {showForm && (

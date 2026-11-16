@@ -10,7 +10,7 @@
 import AssetsMigration from './MigrationPanel'
 import { useEffect, useState } from 'react'
 import { Archive, Plus, Trash2 } from 'lucide-react'
-import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost, hubDelete } from '../components/ui'
+import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, Button, hubGet, hubPost, hubDelete } from '../components/ui'
 import {
   ASSETS_OVERVIEW,
   ASSETS_BACKUP,
@@ -169,9 +169,9 @@ export default function AssetsPage({ initialCategory = 'memory' }: AssetsPagePro
         title="资产管理"
         description="集中式管理与备份系统 —— 8 类资产"
         actions={
-          <button onClick={backup} className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-1.5 text-xs text-white hover:bg-blue-500">
+          <Button variant="primary" size="sm" onClick={backup}>
             <Archive size={12} /> 创建备份
-          </button>
+          </Button>
         }
       />
       {error && <div className="mb-4"><ErrorBox message={error} /></div>}
@@ -235,9 +235,9 @@ export default function AssetsPage({ initialCategory = 'memory' }: AssetsPagePro
                     placeholder={`添加${activeCat?.label ?? active}条目…`}
                     className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden focus:border-cyan-600"
                   />
-                  <button onClick={addItem} className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-500">
+                  <Button variant="primary" size="md" onClick={addItem}>
                     <Plus size={14} /> 添加
-                  </button>
+                  </Button>
                 </div>
               </>
             )}

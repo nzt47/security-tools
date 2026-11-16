@@ -25,7 +25,7 @@ import {
   Check, Copy, Info, Layers, MessageSquare, Plus, Save, Search, ShieldAlert, Sparkles,
   Target, Trash2, Users,
 } from 'lucide-react'
-import { Badge, CallabilityBadge, Card, ErrorBox, Loading, PageHeader } from '../components/ui'
+import { Badge, Button, CallabilityBadge, Card, ErrorBox, Loading, PageHeader } from '../components/ui'
 import { Slider } from '@/components/ui'
 import { callabilityCounts, callabilityLegend, hasCallabilityMark } from '@/lib/callability'
 import {
@@ -1108,10 +1108,9 @@ export default function ToolsAgentLines() {
         description="按四平面（常驻/感知/行动/治理）给不同 Agent 配一条能力主线；改权重可即时看到装配结果"
         actions={
           <div className="flex items-center gap-2">
-            <button onClick={startNew}
-              className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-500">
+            <Button variant="primary" size="sm" onClick={startNew}>
               <Plus size={12} /> 新建
-            </button>
+            </Button>
             <button onClick={startCopy} disabled={!draft || busy}
               className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800 disabled:opacity-40">
               <Copy size={12} /> 复制

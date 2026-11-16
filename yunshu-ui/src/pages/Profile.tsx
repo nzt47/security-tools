@@ -79,7 +79,7 @@ export default function Profile() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-sm bg-blue-500 px-4 py-2 text-white disabled:opacity-50"
+          className="w-full rounded-sm bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           {loading ? '登录中...' : '登录'}
         </button>

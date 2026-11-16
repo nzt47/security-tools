@@ -30,6 +30,7 @@ import {
 } from '../../../api/knowledge'
 import { ApiError } from '../../../lib/apiClient'
 import {
+  Button,
   Card as HubCard,
   StatCard,
   Loading,
@@ -253,13 +254,13 @@ export default function MemoryKnowledge() {
         description="知识卡片管理 · 融合检索 · 健康巡检 · 双链图谱"
         actions={
           <>
-            <button
-              type="button"
-              className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-500"
+            <Button
+              variant="primary"
+              size="sm"
               onClick={() => { setEditing(null); setFormError(''); setFormOpen(true) }}
             >
               <Plus size={13} /> 新建卡片
-            </button>
+            </Button>
             <button
               type="button"
               className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
@@ -473,14 +474,14 @@ export default function MemoryKnowledge() {
                   onKeyDown={(e) => { if (e.key === 'Enter') handleSearch() }}
                   placeholder="输入问题，检索知识库（RRF 融合）"
                 />
-                <button
-                  type="button"
-                  className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40"
+                <Button
+                  variant="primary"
+                  size="md"
                   onClick={handleSearch}
                   disabled={searching || !query.trim()}
                 >
                   <Search size={14} /> {searching ? '检索中…' : '检索'}
-                </button>
+                </Button>
               </div>
 
               {searchError && <div className="mt-3"><ErrorBox message={searchError} /></div>}

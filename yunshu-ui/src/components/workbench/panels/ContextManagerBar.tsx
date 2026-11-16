@@ -25,7 +25,7 @@ import {
 } from '@/api/endpoints';
 
 import { CompressPrefixSwitch } from './CompressPrefixSwitch';
-import { Slider } from '@/components/ui';
+import { Button, Slider } from '@/components/ui';
 
 interface CtxStatus {
   /** 分子 = 本会话最近 percentage_window_messages 条正文（与压缩触发同源） */
@@ -458,13 +458,9 @@ export function ContextManagerBar() {
               {/* 操作 */}
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={manualCompress}
-                    disabled={busy}
-                    className="flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-[11px] text-white hover:bg-blue-500 disabled:opacity-40"
-                  >
+                  <Button variant="primary" size="sm" onClick={manualCompress} disabled={busy}>
                     <Minimize2 size={11} /> {busy ? '压缩中…' : '手动压缩'}
-                  </button>
+                  </Button>
                   {/* 【2026-11-09】压缩复用对话前缀：与「手动压缩」同一行 —— 按下去压什么、
                       这一次压缩怎么算钱，两个问题在同一处可见（开关中心是同一份登记表）。 */}
                   <CompressPrefixSwitch />

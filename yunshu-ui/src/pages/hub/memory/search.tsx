@@ -14,7 +14,7 @@
  */
 import { useState } from 'react'
 import { Search } from 'lucide-react'
-import { Card, Loading, ErrorBox, PageHeader } from '../components/ui'
+import { Button, Card, Loading, ErrorBox, PageHeader } from '../components/ui'
 // 【P1-front 第六批】两个 POST 端点都已带 X-Envelope: v2，改用 postEnvelope 显式解析。
 import { postEnvelope } from '@/api/envelope'
 // 经验库面复用既有 API 封装（GET + Authorization），不新建 HTTP 层。
@@ -114,9 +114,9 @@ export default function MemorySearch() {
             placeholder="输入检索关键词…"
             className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden focus:border-cyan-600"
           />
-          <button onClick={search} disabled={loading} className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-500">
+          <Button variant="primary" size="md" onClick={search} disabled={loading}>
             <Search size={14} /> 搜索
-          </button>
+          </Button>
         </div>
         {loading && <div className="mt-4"><Loading /></div>}
         <div className="mt-4 space-y-2">

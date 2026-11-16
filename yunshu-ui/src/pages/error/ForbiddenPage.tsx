@@ -12,7 +12,7 @@ export default function ForbiddenPage() {
       <p className="text-sm text-slate-500">抱歉，你无权访问该页面</p>
       <Link
         to="/"
-        className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+        className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
       >
         返回仪表盘
       </Link>
