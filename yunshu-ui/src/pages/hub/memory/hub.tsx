@@ -77,10 +77,10 @@ export interface MemoryHubProps {
 }
 
 function tabClass(selected: boolean): string {
-  const base = 'flex items-center gap-1.5 rounded-t-lg border border-b-0 px-3 py-1.5 text-[12.5px] transition-colors '
+  const base = 'flex items-center gap-1.5 rounded-t-lg border border-b-0 px-3 py-1.5 text-body transition-colors '
   return base + (selected
-    ? 'border-slate-700 bg-slate-950 font-medium text-cyan-300'
-    : 'border-transparent text-slate-400 hover:bg-slate-800/60 hover:text-slate-200')
+    ? 'border-border bg-background font-medium text-primary'
+    : 'border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground')
 }
 
 export default function MemoryHub({ initialTab }: MemoryHubProps) {
@@ -102,9 +102,9 @@ export default function MemoryHub({ initialTab }: MemoryHubProps) {
     <div className="flex h-full min-h-0 flex-col">
       <header className="shrink-0 border-b border-slate-800 bg-slate-900/40 px-5 pt-4">
         <div className="mb-3 flex items-center gap-2">
-          <Brain size={14} className="text-cyan-400" />
-          <h1 className="text-[15px] font-semibold text-slate-100">记忆管理</h1>
-          <span className="text-[11px] text-slate-500">{active.hint}</span>
+          <Brain size={14} className="text-primary" />
+          <h1 className="text-title font-semibold text-foreground">记忆管理</h1>
+          <span className="text-caption text-muted-foreground">{active.hint}</span>
         </div>
 
         <nav className="-mb-px flex flex-wrap gap-1" role="tablist" aria-label="记忆管理子模块">
@@ -121,7 +121,7 @@ export default function MemoryHub({ initialTab }: MemoryHubProps) {
                 onClick={() => setTab(t.id)}
                 title={t.hint}
               >
-                <Icon size={13} className={selected ? 'text-cyan-400' : 'text-slate-500'} />
+                <Icon size={13} className={selected ? 'text-primary' : 'text-muted-foreground'} />
                 {t.label}
               </button>
             )
@@ -132,7 +132,7 @@ export default function MemoryHub({ initialTab }: MemoryHubProps) {
       <div className="min-h-0 flex-1 overflow-y-auto bg-slate-950">
         <Suspense
           fallback={
-            <div className="flex h-full items-center justify-center gap-2 text-slate-500">
+            <div className="flex h-full items-center justify-center gap-2 text-muted-foreground">
               <Loader2 size={16} className="animate-spin" /> 载入中…
             </div>
           }
@@ -150,14 +150,14 @@ export default function MemoryHub({ initialTab }: MemoryHubProps) {
                       aria-selected={vectorMode === id}
                       onClick={() => setVectorMode(id)}
                       className={vectorMode === id
-                        ? 'bg-cyan-500/15 px-3 py-1 text-[11.5px] font-medium text-cyan-300'
-                        : 'px-3 py-1 text-[11.5px] text-slate-400 hover:bg-slate-800'}
+                        ? 'bg-primary/15 px-3 py-1 text-body font-medium text-primary'
+                        : 'px-3 py-1 text-body text-muted-foreground hover:bg-muted'}
                     >
                       {label}
                     </button>
                   ))}
                 </div>
-                <span className="text-[11px] text-slate-500">
+                <span className="text-caption text-muted-foreground">
                   {vectorMode === 'manual' ? '手动录入关键信息' : '对话过程中自动沉淀的记忆'}
                 </span>
               </div>

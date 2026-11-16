@@ -482,7 +482,7 @@ body,
   border: 1px solid transparent;
   background: transparent;
   color: var(--wb-text-dim);
-  font-size: 12.5px;
+  font-size: var(--text-body);
   cursor: pointer;
   transition: all 0.15s;
 }
@@ -968,7 +968,7 @@ body,
 .wb-markdown table {
   margin: 8px 0;
   border-collapse: collapse;
-  font-size: 12.5px;
+  font-size: var(--text-body);
 }
 
 .wb-markdown th,
@@ -1195,7 +1195,7 @@ body,
   background: transparent;
   color: #d7e2f0;
   font-family: var(--wb-mono);
-  font-size: 12.5px;
+  font-size: var(--text-body);
   line-height: 1.7;
   tab-size: 2;
   white-space: pre;
@@ -1222,7 +1222,7 @@ body,
 .wb-editor-pre {
   padding: 12px 14px;
   font-family: var(--wb-mono);
-  font-size: 12.5px;
+  font-size: var(--text-body);
   line-height: 1.7;
   color: #d7e2f0;
   overflow: auto;

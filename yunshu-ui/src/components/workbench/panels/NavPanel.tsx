@@ -25,14 +25,14 @@ function NavLeaf({ item, depth }: { item: HubNavItem; depth: number }) {
     <button
       type="button"
       onClick={() => setActiveKey(item.key)}
-      className={`flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12.5px] transition-colors ${
+      className={`flex w-full items-center gap-2 rounded-control px-2.5 py-1.5 text-left text-body transition-colors ${
         active
-          ? 'bg-cyan-500/15 font-medium text-cyan-300'
-          : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+          ? 'bg-primary/15 font-medium text-primary'
+          : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
       }`}
       style={{ paddingLeft: `${depth * 12 + 10}px` }}
     >
-      {Icon && <Icon size={13} className={active ? 'text-cyan-400' : 'text-slate-500'} />}
+      {Icon && <Icon size={13} className={active ? 'text-primary' : 'text-muted-foreground'} />}
       <span className="truncate">{item.label}</span>
     </button>
   )
@@ -58,16 +58,16 @@ function NavGroup({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className={`flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12.5px] font-medium transition-colors ${
-          hasActiveChild ? 'text-cyan-300' : 'text-slate-300 hover:bg-slate-800/60'
+        className={`flex w-full items-center gap-2 rounded-control px-2.5 py-1.5 text-left text-body font-medium transition-colors ${
+          hasActiveChild ? 'text-primary' : 'text-foreground/80 hover:bg-muted/60'
         }`}
       >
-        {Icon && <Icon size={13} className={hasActiveChild ? 'text-cyan-400' : 'text-slate-500'} />}
+        {Icon && <Icon size={13} className={hasActiveChild ? 'text-primary' : 'text-muted-foreground'} />}
         <span className="flex-1 truncate">{item.label}</span>
         <ChevronDown size={12} className={`shrink-0 transition-transform ${expanded ? '' : '-rotate-90'}`} />
       </button>
       {expanded && (
-        <div className="ml-2 mt-0.5 space-y-0.5 border-l border-slate-800 pl-1.5">
+        <div className="ml-2 mt-0.5 space-y-0.5 border-l border-border pl-1.5">
           {item.children?.map((child) =>
             child.children ? (
               <NavGroup key={child.key} item={child} depth={depth + 1} forceOpen={forceOpen} />

@@ -351,9 +351,9 @@ export default function WorkshopAgents({ initialView }: WorkshopAgentsProps) {
       {/* 顶栏：模块标题 + 四视图 Tab 条（子视图即 Tab，点击切换、无需回导航树） */}
       <header className="shrink-0 border-b border-slate-800 bg-slate-900/40 px-5 pt-4">
         <div className="mb-3 flex items-center gap-2">
-          <Users size={14} className="text-cyan-400" />
-          <h1 className="text-[15px] font-semibold text-slate-100">分身</h1>
-          <span className="text-[11px] text-slate-500">{active.hint}</span>
+          <Users size={14} className="text-primary" />
+          <h1 className="text-title font-semibold text-foreground">分身</h1>
+          <span className="text-caption text-muted-foreground">{active.hint}</span>
         </div>
 
         <nav className="-mb-px flex flex-wrap gap-1" role="tablist" aria-label="分身装配视图">
@@ -366,15 +366,15 @@ export default function WorkshopAgents({ initialView }: WorkshopAgentsProps) {
                 type="button"
                 role="tab"
                 aria-selected={selected}
-                className={`flex items-center gap-1.5 rounded-t-lg border border-b-0 px-3 py-1.5 text-[12.5px] transition-colors ${
+                className={`flex items-center gap-1.5 rounded-t-lg border border-b-0 px-3 py-1.5 text-body transition-colors ${
                   selected
-                    ? 'border-slate-700 bg-slate-950 font-medium text-cyan-300'
-                    : 'border-transparent text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+                    ? 'border-border bg-background font-medium text-primary'
+                    : 'border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground'
                 }`}
                 onClick={() => setView(t.id)}
                 title={t.hint}
               >
-                <Icon size={13} className={selected ? 'text-cyan-400' : 'text-slate-500'} />
+                <Icon size={13} className={selected ? 'text-primary' : 'text-muted-foreground'} />
                 {t.label}
               </button>
             )
