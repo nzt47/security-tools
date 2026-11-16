@@ -115,13 +115,9 @@ const SOURCE_ZH: Record<string, string> = {
  */
 const CONFIG_STATE_HINT_SOURCE = 'default'
 
-/** SwitchField 引用的 `--mascot-*` 变量只在未挂载的 theme.css 里定义 ⇒ 在此给回退值 */
-const SWITCH_VARS = {
-  '--mascot-primary': '#0e7490',
-  '--mascot-error': '#f87171',
-  '--border-color': '#334155',
-  '--bg-elevated': '#0f172a',
-} as unknown as CSSProperties
+/* 【2026-11-17 删除】这里原来有 SWITCH_VARS（--mascot-primary #0e7490 / --mascot-error #f87171 …），
+   是给"只存在于未被 import 的 theme.css"的变量兜底。现在这些名字在 index.css :root 统一定义为
+   语义 token 的别名 ⇒ 本页不再自带一套深青：开关底色与全站同一个主色（原来这一页是 #0e7490）。 */
 
 /** 虚拟滚动行高（仅在 >500 行的分组里启用） */
 const ROW_HEIGHT = 136
@@ -1029,7 +1025,7 @@ export function SettingsPanel({ searchDebounceMs = 250 }: SettingsPanelProps) {
   return (
     <SettingsShell loading={loading} error={error} reload={reload}>
       {data && (
-        <div style={SWITCH_VARS} data-cp-settings-root="true">
+        <div data-cp-settings-root="true">
           <PanelHeader
             title="开关中心"
             description="后端登记的每一个开关：生效来源 / 风险分级 / 生效方式 / 锁定原因；B 级须先确认再提交"

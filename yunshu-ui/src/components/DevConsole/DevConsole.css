@@ -173,7 +173,7 @@
   overflow-y: auto;
   overflow-x: hidden;
 }
-/* 【2026-11-16】滚动条统一到 theme.css（这里不再自带 8px/#30363d 的一套） */
+/* 【2026-11-16】滚动条统一到 index.css（唯一来源；这里不再自带 8px/#30363d 的一套） */
 
 /* 表格 */
 .devconsole-table {

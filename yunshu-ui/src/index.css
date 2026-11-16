@@ -71,8 +71,9 @@
    【2026-11-16 Owner】所有叶子面板的滚动条**参照导航栏**：细（thin / 6px）+ 半透明滑块
    + **透明**轨道（原来 theme.css 那套是 8px + 实心 --bg-secondary 轨道，会在叶子面板里
    画出一条比内容还抢眼的灰带）。
-   ★ 为什么放在 index.css：styles/theme.css 当前**没有任何入口 import**（main.tsx 只 import
-   index.css），写在那里的规则不会进构建产物 —— 上一版就踩了这个坑（构建产物里查不到）。 */
+   ★ 为什么放在 index.css：styles/theme.css **没有任何入口 import**（main.tsx 只 import
+   index.css），写在那里的规则不会进构建产物 —— 上一版就踩了这个坑（构建产物里查不到）。
+   2026-11-17：theme.css 已删除，它里面**仍被引用**的变量名已按语义 token 在下面 :root 里重新定义。 */
 * {
   scrollbar-width: thin;
   scrollbar-color: rgba(148, 163, 184, 0.25) transparent;
@@ -214,4 +215,35 @@
   --danger-foreground: 0 0% 100%;
 
   --success: 152 60% 45%;
+
+  /* ── 旧变量名 → 语义 token 的唯一映射（2026-11-17）────────────────────
+     为什么在这里：styles/theme.css **没有任何入口 import**（main.tsx 只 import 本文件），
+     它里面这些定义从来没进过构建产物 —— 而全仓仍有 16 个名字在用
+     （SkillManagement.css 的 var(--bg-secondary, #14171c) 一族、SchemaRenderer/SwitchField
+     等 7 个 schema 字段组件的 Tailwind v4 写法 text-(--mascot-primary)），
+     也就是说它们此前**全部靠 #fallback 在跑**：--accent-primary 回落成 #4a9eff（那支蓝），
+     --mascot-primary 回落成各处各写一个值。现在统一指到语义 token，theme.css 随之删除。
+     ★ 新代码不要再写这些名字：直接用 text-foreground / bg-card / border-border / text-primary。
+     保留它们只是为了不一次性改 9 个消费点（改了行为相同，风险只是白改）。 */
+  --text-primary: var(--color-foreground);
+  --text-secondary: var(--color-muted-foreground);
+  --text-muted: var(--color-muted-foreground);
+
+  --bg-deep: var(--color-background);
+  --bg-secondary: var(--color-card);
+  --bg-elevated: var(--color-muted);
+  --bg-hover: var(--color-muted);
+  --bg-input: var(--color-background);
+
+  --border-color: var(--color-border);
+  --border-subtle: var(--color-border);
+  --border-hover: color-mix(in srgb, var(--color-primary) 45%, transparent);
+
+  --accent-primary: var(--color-primary);
+  --mascot-primary: var(--color-primary);
+  --mascot-secondary: color-mix(in srgb, var(--color-primary) 72%, white);
+  --mascot-error: var(--color-danger);
+
+  /* 滑块等组件用 var(--radius-full, 9999px) 引用；之前它只定义在没被 import 的 theme.css 上 */
+  --radius-full: 9999px;
 }

@@ -527,7 +527,7 @@ body,
 
 /* ─── 对话面板 ───
    【2026-11-16】原来这里给 .wb-chat-scroll/.wb-think-scroll 单独定义滚动条（细 + 半透明滑块），
-   全站统一到 theme.css 的那一份之后原地删除：否则"对话/导航"与"其它叶子面板"又是两套。
+   全站统一到 index.css 的那一份之后原地删除：否则"对话/导航"与"其它叶子面板"又是两套。
    .wb-think-scroll 仍是导航栏用的类名（语义不变）。 */
 
 .wb-msg-avatar {
@@ -861,7 +861,7 @@ body,
   font-size: var(--text-body-lg);
   line-height: 1.5;
   outline: none;
-  /* 【2026-11-16】滚动条样式统一到 theme.css（输入框不再自带一套 5px/0.35 的变体） */
+  /* 【2026-11-16】滚动条样式统一到 index.css 的唯一来源（输入框不再自带一套 5px/0.35 的变体） */
   transition: border-color 0.18s, box-shadow 0.18s;
 }
 

@@ -1,7 +1,7 @@
 /**
  * 字段公共样式与标签块（任务 T3.2）。
  *
- * 样式约定：复用 Tailwind 工具类 + styles/theme.css 主题变量（--bg-* / --text-* / --mascot-*），
+ * 样式约定：复用 Tailwind 工具类 + index.css 的语义 token（--color-*；--bg-* / --mascot-* 是旧名别名），
  * 不引入任何 UI 库。label 与控件通过 htmlFor/id 关联（useId），保证 getByLabelText 可测。
  */
 import React from 'react';
