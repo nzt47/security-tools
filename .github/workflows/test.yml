@@ -205,12 +205,18 @@ jobs:
         # upload-artifact v4+ 默认忽略 dotfiles, .coverage* 以点开头被排除,
         # 导致 artifact 实测只有 coverage.xml+htmlcov 无数据文件 (run 31492484437
         # 下载验证), coverage-check 的 combine 依旧无数据可合并。
+        # 【2026-11-16 · coverage-artifact-glob-too-wide】原来写 `.coverage*`，
+        #   仓库根的配置文件 `.coveragerc_scripts` 同样匹配 ⇒ 产物里混进一份配置文本，
+        #   combine 把它当数据文件读（日志 `Combined 2 files, skipped 1, 1 file errored`；
+        #   当前 coverage 7.15 对此不退非零，属"靠版本行为宽容"）。
+        #   收窄成两个 glob：无后缀 `.coverage` + 带后缀 `.coverage.*`。
         uses: actions/upload-artifact@v7
         with:
           name: coverage-report-${{ matrix.os }}-py${{ matrix.python-version }}
           path: |
             coverage.xml
-            .coverage*
+            .coverage
+            .coverage.*
             htmlcov/
           include-hidden-files: true
           retention-days: 30
@@ -358,12 +364,15 @@ jobs:
         # parallel=True 数据文件为 .coverage.<host>.<pid>.<rand>, 用 glob .coverage*。
         # 【变易·CHG-2026-0811b】include-hidden-files: true (同 unit-tests,
         # upload-artifact v4+ 默认排除 dotfiles)。
+        # 【2026-11-16】同上：`.coverage*` 会带上 `.coveragerc_scripts`，
+        #   收窄为 `.coverage` + `.coverage.*`。
         uses: actions/upload-artifact@v7
         with:
           name: coverage-integration-${{ matrix.os }}-py${{ matrix.python-version }}
           path: |
             coverage.xml
-            .coverage*
+            .coverage
+            .coverage.*
           include-hidden-files: true
           retention-days: 30
 
@@ -632,8 +641,11 @@ jobs:
         #   只写死无后缀路径时，xdist 形状会 "No data to combine" —— 这条一直是
         #   未被执行过的分支（下载就先 404 了）。这里按 glob 收集两种形状。
         run: |
+          # 【2026-11-16】两种形状分别列举（不用 .coverage*）：后者会匹配到
+          #   .coveragerc_scripts 这类非数据文件，combine 会报 "1 file errored"。
           FILES=""
-          for f in coverage-unit/.coverage* coverage-integration/.coverage*; do
+          for f in coverage-unit/.coverage coverage-unit/.coverage.* \
+                   coverage-integration/.coverage coverage-integration/.coverage.*; do
             [ -f "$f" ] || continue
             FILES="$FILES $f"
           done

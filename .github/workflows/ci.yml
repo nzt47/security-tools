@@ -1038,13 +1038,18 @@ jobs:
           # Why token: 用默认 GITHUB_TOKEN，触发 push 不会递归触发 CI（GitHub 设计）
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 下载测试结果 artifacts (py3.11)
+      - name: 下载测试结果 artifacts (ubuntu 腿 · py3.12)
         # 【变易】单元测试已拆分为 6 个 shard，下载全部 shard 的 junit 后合并
-        # 【校准 2026-08-28】矩阵移除 3.10（numpy 2.4/scipy 1.17 已要求 >=3.11），
-        #   取第一个支持版本 3.11 的 artifact 作为看板数据源
+        # 【校准 2026-08-28】矩阵移除 3.10（numpy 2.4/scipy 1.17 已要求 >=3.11）
+        # 【2026-11-16】矩阵统一到 3.12 且 2026-11-16 起加了 os 维 ⇒ artifact 名变成
+        #   test-results-unit-<os>-py3.12-shard<N>。原 pattern 写的是 ...-py3.11-*，
+        #   对应不上任何产物 ⇒ 本 job 一直空转（脚本打「未找到 junit-shard*.xml，跳过合并」
+        #   后 exit 0，看板从没更新过）。
+        #   只取 ubuntu 腿：它就是判读腿（覆盖率/windows 只出报告），
+        #   两平台都取会把同一批用例在趋势里计两遍。
         uses: actions/download-artifact@v8
         with:
-          pattern: test-results-unit-py3.11-*
+          pattern: test-results-unit-ubuntu-22.04-py3.12-*
           # Why path: test-results + merge-multiple: 还原 ci.yml 上传时的原始目录结构
           #   上传时 path: test-results/，下载到 test-results/ 后脚本可按默认路径读取
           path: test-results
