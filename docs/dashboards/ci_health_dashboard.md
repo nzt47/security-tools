@@ -77,6 +77,7 @@
 | 2026-11-16 | `7c435ed` | 100.0% (14/14) | 0 | 0 | 62.86 | — | 0 | ↑ | docs(handoff): §11.135 第八十六轮（hub 蓝按钮清零 / 分片二 / 字号档位三个真缺陷 / ui/Textarea / 两条 CI 空 |
 | 2026-11-16 | `45946ca` | 100.0% (14/14) | 0 | 0 | 32.77 | — | 0 | ↑ | docs(handoff): 4 条 Owner 拍板项按本轮结论落定（pyproject 记 done；token-levers / judge-cost / |
 | 2026-11-16 | `4c823e6` | 100.0% (14/14) | 0 | 0 | 62.89 | — | 0 | ↑ | fix(css): 全站滚动条改用 index.css 承载（theme.css 根本没被 import，上一版规则没进产物） |
+| 2026-11-16 | `e726d07` | 100.0% (14/14) | 0 | 0 | 64.07 | — | 0 | ↑ | docs(handoff): Electron 手工验收项补环境核实（本机无 electron 二进制 / Python Playwright 无 Electr |
 | YYYY-MM-DD | `<sha7>` | — | — | — | — | — | — | — | 模板占位行，请替换 |
 
 ---
