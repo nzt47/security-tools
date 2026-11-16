@@ -30,6 +30,41 @@
   --color-success: hsl(var(--success));
 
   --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.4), 0 1px 3px 0 rgb(0 0 0 / 0.3);
+
+  /* ── 字号阶梯（2026-11-16 统一：全仓唯一来源）────────────────────────────
+     此前排版没有任何阶梯：1506 处 Tailwind 任意值 text-[Npx] + 193 处 CSS
+     font-size，共 17 个取值（含 9.5/10.5/11.5/12.5/13.5/14.5 半像素）。
+     这里收敛成 9 档，映射口径：
+       9 / 9.5 / 10        → text-micro
+       10.5 / 11           → text-caption
+       11.5 / 12 / 12.5    → text-body
+       13 / 13.5           → text-body-lg
+       14 / 14.5           → text-ui
+       15 / 16             → text-title
+       18 / 22             → text-h2
+       24                  → text-h1
+       48                  → text-display（品牌大数字，仅登陆/看板） */
+  --text-micro: 10px;
+  --text-caption: 11px;
+  --text-body: 12px;
+  --text-body-lg: 13px;
+  --text-ui: 14px;
+  --text-title: 16px;
+  --text-h2: 20px;
+  --text-h1: 24px;
+  --text-display: 48px;
+
+  /* ── 圆角阶梯（同上：原来 10 个取值 3/4/5/6/8/9/10/12px/999px/50%）──
+     控制件（按钮/输入/开关）6px · 卡片 10px · 面板 12px · 胶囊 full */
+  --radius-control: 6px;
+  --radius-card: 10px;
+  --radius-panel: 12px;
+
+  /* ── 字体栈（唯一来源；不再从 Google Fonts 拉 Chakra Petch）──────────
+     远程字体在离线/被墙时静默回退 ⇒ 同一台机器上不同页字体不同。 */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', 'PingFang SC',
+    'Microsoft YaHei', Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
 }
 
 /*
@@ -60,10 +95,57 @@
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
   }
+
+  /* 【2026-11-16】选中态统一：所有 role=tab 的 aria-selected=true 至少拿到品牌色字，
+     组件层若有自己的高亮（下划线/底色）优先于这条（:where 零特异性）。 */
+  :where([role='tab'][aria-selected='true']) {
+    color: var(--color-primary);
+  }
+
+  /* 选中文本：与主色一致（原来写死 rgba(79, 209, 197, .3) 是另一套青） */
+  ::selection {
+    background: color-mix(in srgb, var(--color-primary) 30%, transparent);
+    color: var(--color-foreground);
+  }
+
+  /* ── 统一滑块外观（ui/Slider 用；原来 3 种手写写法各一套）─────────────────
+     4px 轨道 + 12px 圆拇指 + 主色；禁用态由组件的 opacity-40 处理。 */
+  .wb-slider {
+    height: 16px;
+    background: transparent;
+  }
+  .wb-slider::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: var(--radius-full, 9999px);
+    background: var(--color-muted);
+  }
+  .wb-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    margin-top: -4px;
+    border-radius: var(--radius-full, 9999px);
+    background: var(--color-primary);
+    border: 1px solid color-mix(in srgb, var(--color-primary) 70%, black);
+    box-shadow: 0 0 6px -1px var(--color-primary);
+  }
+  .wb-slider::-moz-range-track {
+    height: 4px;
+    border-radius: var(--radius-full, 9999px);
+    background: var(--color-muted);
+  }
+  .wb-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: var(--radius-full, 9999px);
+    background: var(--color-primary);
+    border: 1px solid color-mix(in srgb, var(--color-primary) 70%, black);
+  }
 }
 
 :root {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  font-family: var(--font-sans);
   line-height: 1.5;
   font-weight: 400;
 

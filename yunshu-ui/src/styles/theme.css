@@ -1,11 +1,15 @@
 /* 云枢全局主题样式 */
 
-/* CSS 变量定义 */
+/* CSS 变量定义
+   【2026-11-16 统一】本文件不再自持色值/圆角：全部指到 index.css @theme 的语义 token。
+   历史上有三套主色（--mascot-primary #4fd1c5 / --wb-accent #22d3ee / --color-primary
+   hsl(187 92% 55%)），同一个青三个值 ⇒ 不同页面的按钮/链接看起来就不是一套。
+   新增颜色请写进 index.css 的 @theme，别在这里加字面值。 */
 :root {
   /* 主题色 */
-  --mascot-primary: #4fd1c5;
-  --mascot-secondary: #81e6d9;
-  --mascot-glow: rgba(79, 209, 197, 0.4);
+  --mascot-primary: var(--color-primary);
+  --mascot-secondary: color-mix(in srgb, var(--color-primary) 72%, white);
+  --mascot-glow: color-mix(in srgb, var(--color-primary) 40%, transparent);
 
   /* 情绪色 */
   --mascot-happy: #4fd1c5;
@@ -15,21 +19,21 @@
   --mascot-thinking: #9f7aea;
   --mascot-error: #fc8181;
 
-  /* 背景色 */
-  --bg-deep: #0a0a0f;
-  --bg-primary: #0a0a0f;
-  --bg-secondary: #12121a;
-  --bg-elevated: #1a1a2e;
-  --bg-overlay: rgba(10, 10, 15, 0.8);
+  /* 背景色（语义 token 派生） */
+  --bg-deep: var(--color-background);
+  --bg-primary: var(--color-background);
+  --bg-secondary: var(--color-card);
+  --bg-elevated: var(--color-muted);
+  --bg-overlay: color-mix(in srgb, var(--color-background) 80%, transparent);
 
   /* 文字色 */
-  --text-primary: #e2e8f0;
-  --text-secondary: #a0aec0;
-  --text-muted: #718096;
+  --text-primary: var(--color-foreground);
+  --text-secondary: var(--color-muted-foreground);
+  --text-muted: var(--color-muted-foreground);
 
   /* 边框色 */
-  --border-color: rgba(79, 209, 197, 0.2);
-  --border-hover: rgba(79, 209, 197, 0.4);
+  --border-color: var(--color-border);
+  --border-hover: color-mix(in srgb, var(--color-primary) 45%, transparent);
 
   /* 阴影 */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
@@ -44,10 +48,10 @@
   --space-lg: 24px;
   --space-xl: 32px;
 
-  /* 圆角 */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
+  /* 圆角（指向统一阶梯：control 6 / card 10 / panel 12） */
+  --radius-sm: var(--radius-control);
+  --radius-md: var(--radius-card);
+  --radius-lg: var(--radius-panel);
   --radius-xl: 16px;
   --radius-full: 9999px;
 
@@ -80,8 +84,7 @@ html {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
-    'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans);
   background: var(--bg-deep);
   color: var(--text-primary);
   line-height: 1.5;
@@ -106,10 +109,8 @@ button {
   outline: none;
 }
 
-button:focus {
-  outline: 2px solid var(--mascot-primary);
-  outline-offset: 2px;
-}
+/* 【2026-11-16】删掉 button:focus 的独立描边：它与 index.css 的 :focus-visible 是两套
+   焦点样式（前者连鼠标点击也描边、且用的是另一套青）。统一交给 :focus-visible。 */
 
 /* 输入框 */
 input,
@@ -142,11 +143,7 @@ textarea:focus {
   background: var(--border-hover);
 }
 
-/* 选中颜色 */
-::selection {
-  background: rgba(79, 209, 197, 0.3);
-  color: var(--text-primary);
-}
+/* 选中颜色（已并入 index.css 的统一 ::selection，此处删除重复定义） */
 
 /* 动画类 */
 .fade-in {

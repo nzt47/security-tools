@@ -7,25 +7,26 @@
  */
 @import 'react-mosaic-component/react-mosaic-component.css';
 @import 'highlight.js/styles/atom-one-dark.css';
-@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+/* 【2026-11-16 统一】原先这里从 Google Fonts 拉 Chakra Petch + JetBrains Mono：离线/被墙时
+   静默回退系统字体 ⇒ 同一台机器上工作台与其它页字体不同。现在字体栈只有 index.css 一份。 */
 
-/* ─── 主题变量 ─── */
+/* ─── 主题变量（全部指到 index.css @theme 的语义 token）─── */
 :root {
-  --wb-bg: #04060d;
-  --wb-bg-2: #0a101f;
-  --wb-panel: rgba(13, 18, 32, 0.55);
-  --wb-panel-strong: rgba(10, 14, 26, 0.72);
-  --wb-border: rgba(148, 163, 184, 0.14);
-  --wb-border-strong: rgba(34, 211, 238, 0.35);
-  --wb-accent: #22d3ee;
-  --wb-accent-2: #38bdf8;
-  --wb-text: #e2e8f0;
-  --wb-text-dim: #64748b;
-  --wb-radius: 12px;
+  --wb-bg: var(--color-background);
+  --wb-bg-2: var(--color-card);
+  --wb-panel: color-mix(in srgb, var(--color-card) 55%, transparent);
+  --wb-panel-strong: color-mix(in srgb, var(--color-card) 72%, transparent);
+  --wb-border: var(--color-border);
+  --wb-border-strong: color-mix(in srgb, var(--color-primary) 35%, transparent);
+  --wb-accent: var(--color-primary);
+  --wb-accent-2: color-mix(in srgb, var(--color-primary) 78%, white);
+  --wb-text: var(--color-foreground);
+  --wb-text-dim: var(--color-muted-foreground);
+  --wb-radius: var(--radius-panel);
   /* 面板顶部「细条」统一高度（2026-11-15 Owner 第四条：导航/主内容/右栏三条要一样高） */
   --wb-strip-h: 44px;
-  --wb-font: 'Chakra Petch', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
-  --wb-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --wb-font: var(--font-sans);
+  --wb-mono: var(--font-mono);
 }
 
 html,
