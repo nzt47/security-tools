@@ -45,7 +45,10 @@ METRICS: Dict[str, str] = {
     # 2026-11-16：ui/Textarea 补齐后把 textarea 也纳入"只降不升"（此前没有原语，故未统计）
     "raw_textarea": r"<textarea\b",
     "raw_range": r"""type=["']range["']""",
-    "arbitrary_text": r"text-\[\d+px\]",
+    # 【2026-11-16 修正】原来只写 text-\[\d+px\]，**漏掉了半像素写法**（9.5/10.5/11.5/12.5/13.5），
+    #   而半像素恰恰是最需要收敛的那批（17 个取值里 6 个是半像素）。补上小数后同一份代码的
+    #   读数从 1451 变成 1519（+68），这是**量具修正**不是放宽门槛：基线随之重写，之后仍然只降不升。
+    "arbitrary_text": r"text-\[\d+(?:\.\d+)?px\]",
     "raw_heading": r"<h[123]\b",
 }
 

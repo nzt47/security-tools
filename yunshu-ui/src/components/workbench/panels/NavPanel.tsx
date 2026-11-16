@@ -148,7 +148,7 @@ export function NavPanel() {
         )}
       </div>
 
-      <div className="border-t border-slate-800 p-3 text-[9.5px] text-slate-600">
+      <div className="border-t border-border p-3 text-micro text-muted-foreground">
         云枢 · 统一工作台 v3
       </div>
     </div>

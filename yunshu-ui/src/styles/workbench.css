@@ -618,7 +618,7 @@ body,
   border-radius: 999px;
   background: rgba(148, 163, 184, 0.18);
   font-family: var(--wb-mono);
-  font-size: 9.5px;
+  font-size: var(--text-micro);
   line-height: 14px;
   text-align: center;
 }
