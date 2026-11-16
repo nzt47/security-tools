@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-16T18:17:44+08:00",
+ "updated_at": "2026-11-16T19:05:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -917,19 +917,19 @@
   },
   {
    "id": "ci-dashboard-artifact-pattern-stale",
-   "status": "open",
+   "status": "done",
    "priority": "P3",
    "title": "ci.yml 的 update-ci-dashboard 按 py3.11 取 unit artifact，而矩阵是 3.12 ⇒ 看板 job 一直在空转",
    "criteria": "ci.yml 的 update-ci-dashboard 里 pattern 是 test-results-unit-py3.11-*（注释写\"取第一个支持版本 3.11\"），而 unit-tests 的矩阵只有 3.12 ⇒ 这个 job 下载不到任何 junit，脚本打「未找到 junit-shard*.xml，跳过合并」后 exit 0。2026-11-16 加 os 维后 artifact 名变成 test-results-unit-<os>-py3.12-shard<N>，pattern 依旧不匹配。",
-   "next": "把 pattern 改成 test-results-unit-ubuntu-22.04-py3.12-*（ubuntu 腿就是判读腿，windows 腿不进看板，否则同一批用例会被计两遍）。注意：它一旦真取到数据，就会在 master 上提交一次 docs/dashboards/ci_health_dashboard.md （多一条 bot push，带 [skip ci] 与否要一起确认），评估后再动。"
+   "next": "2026-11-16 落地（7cd8ed25b）：pattern 改 test-results-unit-ubuntu-22.04-py3.12-*（只取 ubuntu 判读腿，避免两平台把同一批用例算两遍）。判据在 ci.yml 的「更新 CI 健康度看板」job：它这次应能下载到 junit-shard*.xml 并提交一次 docs/dashboards/ci_health_dashboard.md。注意它一旦真取到数据会让 bot 在 master 上多一条提交（看板文件），评估后续再动。"
   },
   {
    "id": "coverage-artifact-glob-too-wide",
-   "status": "open",
+   "status": "done",
    "priority": "P3",
    "title": "覆盖率 artifact 里混进 .coveragerc_scripts（上传 path `.coverage*` 太宽），combine 报 1 file errored",
    "criteria": "2026-11-16 实跑可见（test.yml run 43738374450 / 覆盖率检查 ubuntu / job 132896871924）：unit 与 integration 的上传 path 都是 `.coverage*`，而仓库根有个配置文件叫 `.coveragerc_scripts`，它同样匹配 ⇒ artifact 里带着一份配置文本；coverage-check 的 combine 用 glob 收集时把它当数据文件读，日志出现 `Combined 2 files, skipped 1, 1 file errored`。当前 coverage 7.15 对此**不退非零**（门槛照常断言，TOTAL 81% 通过），所以不是红，但这是一条「靠版本行为宽容」的路径。",
-   "next": "两处一起收窄：① 上传 path 写 `.coverage` 与 `.coverage.*`（两个 glob）而不是 `.coverage*`；② coverage-check 的收集循环同样改成 `.coverage` + `.coverage.*`。改完必须重新 dispatch 一次 test.yml 验证（不能只靠本地），因为这一步的退出码语义只有 CI 能确认。"
+   "next": "2026-11-16 落地（7cd8ed25b）：三处 glob 一起收窄 —— unit/integration 两处 upload path 改成 .coverage + .coverage.*，coverage-check 的收集循环同样分两种形状（循环本来就有 [ -f ] || continue 兜底）。判据是手动 dispatch 一次 test.yml（run 见交接卡），看覆盖率检查 job 的 combine 日志不再出现 '1 file errored'。"
   },
   {
    "id": "ui-primitive-migration-batch2",
@@ -937,7 +937,7 @@
    "priority": "P2",
    "title": "UI 原语迁移第 2/3 批：提示词实验室之外的原生按钮/下拉/输入（735/54/233 处）",
    "criteria": "2026-11-16 审计+第 1 批+第 2 批分片一之后：components/ui 仍只有 12 个文件在用（全在 pages/system + ConfirmDialog）。提示词实验室已全量迁移；workbench 的**自造按钮家族已清零**（.wb-send-btn/.wb-stop-btn/.wb-reset-btn/.wb-panel-toggle 全删，改 ui/Button；CompressPrefixSwitch 改 ui/Switch）。剩余：DockPanel 17 个手写按钮、SessionRail 行内按钮 + 1 个 select + 7 个 input、以及 workbench 的成片 text-[Npx]。守卫基线：raw_button 720 / raw_select 54 / raw_input 233 / arbitrary_text 1505。",
-   "next": "继续按页：① workbench 分片二（DockPanel / SessionRail 的 select+input+行内按钮）② hub/**（.lm- 48 / .kb- 44 / memory / ingestion，注意 hub 里还有 15+ 处 bg-blue-600 的蓝色主按钮 = 第五种强调色，应与 primary 统一）③ SkillsMgmt（.skmgmt- 44 + 5 个按钮类）④ DevConsole / Knowledge / VisualEditor（.ve- 118）。每片：换原语 → 删对应 CSS 家族 → tsc/eslint/vitest → 三档截图 → --write-baseline。"
+   "next": "2026-11-16 分片二已落地（8b663768d）：DockPanel 17 → 2 个原生按钮、SessionRail 18 → 6 个原生按钮；原语补 size=xs（Button/Input/Select 的 24px 档）与 Input/Select 的 size 档位；会话栏的复选框改 ui/Switch；项目弹窗的紫色主按钮（第六种强调色）改 primary。**仍留原生（刻意）**：DockPanel 的 Tab 条（role=tab）与文档文件行、SessionRail 的会话行主体/分组折叠表头/4 个弹层菜单项/2 个行内重命名输入（嵌在行 <button> 里）。守卫基线 raw_button 704→678 / raw_select 54→53 / raw_input 233→229。**下一片**：hub/**（.lm- 48 / .kb- 44 / memory / ingestion）、SkillsMgmt、DevConsole、Knowledge、VisualEditor（.ve- 118）；外加一条新发现：Input 原语缺「前置/后置附加」槽位（会话栏搜索框因此只能留原生，图标会压住正文）—— 建议给 Input 加 leading/trailing 槽。"
   },
   {
    "id": "ui-typography-codemod",
@@ -945,23 +945,31 @@
    "priority": "P2",
    "title": "1506 处 text-[Npx] 换成 9 档字号阶梯（逐页 codemod + 三档截图对拍）",
    "criteria": "2026-11-16 已把阶梯定义进 index.css @theme（micro/caption/body/body-lg/ui/title/h2/h1/display，映射表在注释里），但存量仍是硬编码：text-[11px] 722、text-[10px] 663、text-[9px] 63、text-[12px] 35、text-[13px] 17、text-[15px] 6；另有 CSS 里 193 处 font-size、17 个取值（含 9.5/10.5/11.5/12.5/13.5/14.5 半像素）。",
-   "next": "按页做机械替换（9/9.5/10→text-micro；10.5/11→text-caption；11.5/12/12.5→text-body；13/13.5→text-body-lg；14/14.5→text-ui；15/16→text-title；18/22→text-h2；24→text-h1；48→text-display），每页替换后必须三档截图对拍（字号会改布局：卡片换行/表头截断是最常见的副作用），并把 arbitrary_text 基线随之下调。禁止一次性全仓替换后不看图。"
+   "next": "2026-11-16 批次一（bcfe0adf0）：**先修根因** —— cn 的 twMerge 没登记 9 档字号，导致 text-micro/body/ui 与任何 text-<颜色> 同时出现时字号被静默丢掉（36e6617fc，含 8 条回归测试）。修好后的第一批：工作台导航 NavPanel（26 项 12.5px→text-body，选中改 bg-primary/15+text-primary）、4 条 hub 页签（记忆/工具/分身/组装台，12.5px→text-body、选中色→primary、标题 15px→text-title 16px）、CSS 里 5 处 12.5px 半像素→var(--text-body)。arbitrary_text 1504→1451。**判据脚本**：.local/probe_fonts.py 出整页 computed font-size 直方图 + 不在 9 档的个数（分身页 1440：改前 89/121 不在档位）。**剩余**（按存量排）：SkillAssetTable 100 / governance 65 / TransformQueueDialog 57 / skill-detail-drawer 50 / agent-lines 47 / governance.settings 46 / SubagentMenu 43 / SkillCardsDialog 42 / ingestion 41 / messages-channels 40 / ContextManagerBar 37 / log-center-panel 37 …；CSS 侧仍有 18/22/24/48 与 9.5/10.5/11.5/13.5 的零散写法。"
   },
   {
    "id": "ui-textarea-primitive",
-   "status": "open",
+   "status": "done",
    "priority": "P3",
    "title": "缺 ui/Textarea 原语：.pl-textarea 等仍是页面样式",
    "criteria": "表单控件里 Button/Input/Select/Switch/Slider 已有原语，text-area 没有；提示词实验室的身份提示词编辑框仍用 .pl-textarea（页面 CSS，字号/圆角与 Input 不完全一致）。",
-   "next": "补 ui/Textarea（同 Input 的 token/焦点环/错误态），把 .pl-textarea 与其它页面的 textarea 迁过去，再删对应页面样式。"
+   "next": "2026-11-16 落地（b6b8f76e4）：新增 components/ui/Textarea（语义 token / size=md|sm / error 红描边 / focus ring 与 Input 一致；只渲染控件本身不带 label —— 这样能替换「文本域本身就是布局元素」的位置）。迁移 CustomFactorForm 两处 + IdentityPromptPanel 分节文本域；删除 PromptLab.css 的 .pl-textarea（两条规则）与 .pl-syspart-text。守卫新增 raw_textarea 指标（存量 43，只降不升）。真机读数：身份提示词 2 个文本域 = 12px/6px 圆角/无 pl-* 类。**剩余**：其余页面还有 40 处原生 <textarea>（hub/local、ingestion、governance、messages-channels、Knowledge/CardForm、SkillsMgmt、VisualEditor…），各自带页面级 INPUT/kb-form/skmgmt-form 样式，按页迁；其中 hub 那批用的是共享常量 INPUT，可整批换。"
   },
   {
    "id": "ui-hub-blue-primary",
-   "status": "open",
+   "status": "done",
    "priority": "P2",
    "title": "hub 页面有 17 处 bg-blue-600 的「主操作按钮」= 第五种强调色",
    "criteria": "2026-11-16 审计：pages/hub/** 的保存/搜索/新建/备份等主按钮写的是 bg-blue-600 + hover:bg-blue-500/700，与全站主色（--color-primary，青）并列出现 ⇒ 同一个「主操作」在不同页面是两种颜色；本轮已收掉洋红（人格预设选中）与绿色（压缩开关），蓝色是最后一个。",
-   "next": "① 纯 className 替换：bg-blue-600/hover:bg-blue-500|700 → bg-primary text-primary-foreground hover:bg-primary/90（或直接换 components/ui 的 Button variant=primary，一并把 h/px/text 收进 size 档）；② 逐个页面核：assets / experience / engine/scheduler / memory / memory/knowledge / plugin-manage / tools/computer-use / workshop/agents / network / tools/mcp / error/ForbiddenPage；③ 三档截图 + python scripts/audit/ui_primitive_convergence.py --write-baseline。"
+   "next": "2026-11-16 落地（bbc7f1399）：pages/hub/** 的 15 处「主操作」+ ContextManagerBar 的「手动压缩」全部改 ui/Button variant=primary（text-xs+py-1.5 → size=sm，text-sm+py-2 → size=md）；hub 的本地 ui 桶再导出 Button，页面仍单点导入。error/ForbiddenPage 的「返回仪表盘」是 <Link>，只换色 bg-primary/primary-foreground；legacy /profile 的 bg-blue-500 同样只换色。全仓 src 已无 blue-[0-9]（只剩 ui.tsx 里一行注释）。真机读数 12 个页面 × 3 档（1280/1440/1920）：blue600=0、主按钮底色=主色、foreground=rgb(11,17,30)、圆角 6px、高 32px、无文字溢出；守卫 raw_button 720→704。★ 途中发现并修掉一个真回归：Button 的固定高度下标签会折行溢出（「前往组装台」被挤到 61px 宽、scrollHeight 43px），已在 Button 基类加 whitespace-nowrap（同时借 flex 的 min-width:auto 让按钮不被挤窄）。"
+  },
+  {
+   "id": "cn-text-scale-merge-collision",
+   "status": "done",
+   "priority": "P1",
+   "title": "cn() 会吞掉自定义字号档位：text-micro/body/ui 与 text-<颜色> 同时出现时字号静默失效",
+   "criteria": "§11.132 定义的 9 档字号（--text-micro…--text-display）在 tailwind-merge 眼里不是 font-size 组：twMerge('text-micro','text-muted-foreground') === 'text-muted-foreground' ⇒ 后写的颜色类把字号吃掉。后果：ui/Button(primary) 的 text-ui 被 text-primary-foreground 吃掉、会话栏 ghost 按钮的 text-micro 被 text-muted-foreground 吃掉，真机读到的是继承来的 13px ⇒ 「档位写了等于没写」，且不会有任何报错。",
+   "next": "2026-11-16 修复（36e6617fc）：src/lib/cn.ts 用 extendTailwindMerge 把 9 档登记进 classGroups['font-size']；新增 src/lib/cn.test.ts 8 条（字号×颜色双向保留 / 同组仍只留最后一个 / 普通工具类照旧）。★ 以后新增字号档位（改 index.css 的 --text-*）必须同批加进 cn.ts 的 FONT_SIZE_SCALE，否则又会被静默吞掉。副作用（预期内）：所有走 cn() 的原语字号第一次真正生效，原本继承 13px 的地方变成 12px/10px。"
   }
  ]
 }
