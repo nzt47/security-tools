@@ -497,7 +497,7 @@ export function ContextManagerBar() {
               {/* 说明面板（Owner 2026-11-15）：原来常驻的机制正文收进「手动压缩」同一行的按钮。
                   两个入口各自只讲一件事：① 这套自动策略怎么运作 ② 窗口该开多大 + 我们这里的真实约束。 */}
               {infoTab === 'mechanism' && (
-              <div className="max-h-[52vh] space-y-2 overflow-y-auto overscroll-contain rounded-lg border border-slate-800 bg-slate-950/60 p-3">
+              <div className="max-h-[70vh] space-y-2 overflow-y-auto overscroll-contain rounded-lg border border-slate-800 bg-slate-950/60 p-3 [scrollbar-gutter:stable]">
                 <div className="flex items-center justify-between gap-2 text-caption font-medium text-cyan-300">
                   <span className="flex items-center gap-1.5">
                     <Info size={11} /> 上下文管理机制（多层次自动策略，无需手动干预）
@@ -547,7 +547,7 @@ export function ContextManagerBar() {
               )}
 
               {infoTab === 'window' && (
-                <div className="max-h-[52vh] space-y-2 overflow-y-auto overscroll-contain rounded-lg border border-slate-800 bg-slate-950/60 p-3">
+                <div className="max-h-[70vh] space-y-2 overflow-y-auto overscroll-contain rounded-lg border border-slate-800 bg-slate-950/60 p-3 [scrollbar-gutter:stable]">
                   {/* 【2026-11-16 Owner】说明面板原来是"无界高度"：内容比面板可用空间高时，底部整段
                       被外层 mosaic 面板的 overflow 裁掉（实测「窗口取值参考」只能看到一半）。
                       这里给它自己的高度上限 + 内部滚动，文案一条都不丢。 */}
@@ -635,7 +635,7 @@ export function ContextManagerBar() {
                     {lines.length === 0 ? (
                       <span className="text-slate-500">（读不到 /api/agent-lines，未列出 —— 不编数）</span>
                     ) : (
-                      <div className="mt-1 space-y-0.5">
+                      <div className="mt-1 grid grid-cols-1 gap-x-4 gap-y-0.5 sm:grid-cols-2">
                         {lines.map((l) => {
                           const isLine = String(status.token_limit_source ?? "") === `line:${l.id}(${l.window})`
                           return (
