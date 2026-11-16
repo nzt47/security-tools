@@ -16,13 +16,16 @@ maintainers = [
 ]
 # 【校准 2026-08-28】依赖 numpy>=2.0/scipy>=1.13 在 3.10 上解析到 numpy 2.4.6/scipy 1.17.1
 # （均要求 >=3.11，无 3.10 wheel）→ 3.10 无法安装。声明与依赖实际兼容性对齐，下限升至 3.11。
-requires-python = ">=3.11,<3.13"
+# 【校准 2026-11-16】下限再升到 3.12：代码事实就是 3.12-only —— 产品 4 个文件用了 PEP 701 的
+# f-string（agent/logging_utils.py:600 等），3.11 连 collect 都过不了；更糟的是 3.11 上的 coverage
+# 对解析不了的文件**静默跳过**（run 43735743556 里 coverage 打 couldnt-parse 后照常算百分比）
+# ⇒ 拿 3.11 当覆盖率门槛等于量一把坏尺子。声明与事实对齐，CI 矩阵也只剩 3.12。
+requires-python = ">=3.12,<3.13"
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
   "Topic :: Software Development :: Libraries :: Python Modules"

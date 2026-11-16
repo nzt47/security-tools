@@ -714,7 +714,7 @@ jobs:
           - 性能趋势: TBD
 
           ## 兼容性测试
-          - Python 版本: 3.10, 3.11, 3.12
+          - Python 版本: 3.12
           - 平台: Ubuntu, Windows
 
           ## 建议

@@ -89,7 +89,7 @@ def read_declared_packages() -> list[str]:
     Why 不硬编码：硬编码就会再次出现"脚本写的包"与"pyproject 声明的包"分叉，
     这正是本任务要消灭的那种第二真相源。
     """
-    import tomllib  # Python >= 3.11（pyproject requires-python >=3.11）
+    import tomllib  # Python >= 3.11 起有 tomllib（本仓 pyproject requires-python 已 >=3.12）
 
     with (ROOT / "pyproject.toml").open("rb") as fh:
         data = tomllib.load(fh)

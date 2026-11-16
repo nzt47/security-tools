@@ -746,7 +746,7 @@ jobs:
         with:
           # 【2026-11-16 · C-②】名字里必须带 os：两条腿同时上传同名 artifact 会
           # 直接冲突报错（不是覆盖）。下游只有 update-ci-dashboard 按名字取 unit 结果，
-          # 而它的 pattern 是 py3.11（当前矩阵是 3.12）—— 本来就取不到，见交接记录。
+          # 而它的 pattern 曾是 py3.11（矩阵早已是 3.12）—— 2026-11-16 已改成 ubuntu-22.04-py3.12-*。
           name: test-results-unit-${{ matrix.os }}-py${{ matrix.python-version }}-shard${{ matrix.shard }}
           path: test-results/
           retention-days: 30
@@ -830,8 +830,8 @@ jobs:
   # ============================================================================
   # light_loader 环境兼容性自动校验（每次提交自动运行）
   # ============================================================================
-  # Why 将 docs/wiki/Home.md 的版本兼容矩阵固化为 CI 门禁：当前环境 Python>=3.11（2026-08-28
-  #   校准：numpy>=2.0/scipy>=1.13 已要求 >=3.11，3.10 不再支持）、
+  # Why 将 docs/wiki/Home.md 的版本兼容矩阵固化为 CI 门禁：当前环境 Python>=3.12（2026-11-16
+  #   校准：代码用 PEP 701 f-string，3.11 连 collect 都过不了；3.10 早在 2026-08-28 出局）、
   #   PyYAML>=6.0 为必需项；libyaml C 扩展为可选项（缺失仅提示，自动回退）。
   #   退出码 0=兼容；1=必需项缺失（job 失败）。--json 输出供日志解析。
   light-loader-compat-check:

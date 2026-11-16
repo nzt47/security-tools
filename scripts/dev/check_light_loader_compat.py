@@ -5,7 +5,7 @@ Python 环境是否满足运行要求：
 
 | 依赖项 | 最低版本 | 检测方式 |
 |---|---|---|
-| Python | 3.10 | sys.version_info |
+| Python | 3.12 | sys.version_info |
 | PyYAML | 6.0 | importlib.metadata.version("PyYAML") |
 | libyaml（C 扩展） | 可选 | yaml.CSafeLoader 是否存在 |
 
@@ -23,7 +23,8 @@ import sys
 from importlib import metadata
 
 # 兼容矩阵（与 docs/wiki/Home.md §二 保持一致，改需三处同步）
-MIN_PYTHON = (3, 10)
+# 【2026-11-16】3.10 → 3.12：与 pyproject 的 requires-python 和代码事实（PEP 701）对齐。
+MIN_PYTHON = (3, 12)
 MIN_PYYAML = (6, 0)
 
 

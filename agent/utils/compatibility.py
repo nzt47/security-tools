@@ -4,7 +4,9 @@ import platform
 from typing import Tuple, Optional, Dict, Any
 
 REQUIRED_PYTHON_MAJOR = 3
-REQUIRED_PYTHON_MIN_MINOR = 8
+# 【2026-11-16】下限 8 → 12：与 pyproject requires-python 和代码事实（PEP 701 f-string）对齐；
+# 3.11 及以下连 import agent.logging_utils 都过不了，声明"支持"反而是误导。
+REQUIRED_PYTHON_MIN_MINOR = 12
 REQUIRED_PYTHON_MAX_MINOR = 12
 
 SUPPORTED_PLATFORMS = {

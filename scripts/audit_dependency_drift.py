@@ -78,7 +78,7 @@ def _read_pyproject(path: Path) -> dict[str, Requirement]:
     """读取 pyproject.toml 的 [project].dependencies → {规范名: Requirement}。
 
     Why 用 tomllib：Python 3.11+ 标准库自带，避免为本脚本引入 tomli/tomlkit
-    依赖（D3 不引入重依赖）。requires-python >=3.11 已由 pyproject 保证。
+    依赖（D3 不引入重依赖）。requires-python >=3.12 已由 pyproject 保证。
     """
     import tomllib
 
