@@ -14,11 +14,17 @@ const api = vi.hoisted(() => ({
   hubPost: vi.fn(),
 }))
 
-vi.mock('../components/ui', () => ({
-  ErrorBox: ({ message }: { message: string }) => <div role="alert">{message}</div>,
-  hubGet: api.hubGet,
-  hubPost: api.hubPost,
-}))
+// 【2026-11-17】这是**部分 mock**：只替换数据层（hubGet/hubPost）与 ErrorBox，
+//   其余（Button 等原语）走真实实现 —— 少了这一步，页面用上 ui/Button 后 mock 里没有 Button 会直接炸。
+vi.mock('../components/ui', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../components/ui')>()
+  return {
+    ...actual,
+    ErrorBox: ({ message }: { message: string }) => <div role="alert">{message}</div>,
+    hubGet: api.hubGet,
+    hubPost: api.hubPost,
+  }
+})
 
 vi.mock('@/api/endpoints', () => ({
   FEEDBACK_LIST: '/api/feedback/list',

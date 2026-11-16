@@ -16,7 +16,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { Activity, AlertTriangle, BookOpen, Lightbulb, Loader2, RefreshCw, Search, Sparkles } from 'lucide-react'
-import { ErrorBox, hubGet, hubPost } from '../components/ui'
+import { Input, Button, ErrorBox, hubGet, hubPost } from '../components/ui'
 import {
   LOGS_API_ACTIONS,
   LOGS_API_ERRORS,
@@ -31,7 +31,7 @@ import {
 } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
+
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 
 type Tab = 'overview' | 'errors' | 'insights' | 'query' | 'introspection'
@@ -219,9 +219,9 @@ export default function LogCenterPanel() {
           <a href={LOGS_DASHBOARD} target="_blank" rel="noreferrer" className={BTN} aria-label="打开日志仪表盘">
             打开日志仪表盘 ↗
           </a>
-          <button
+          <Button
             type="button"
-            className={BTN}
+            variant="default" size="xs"
             aria-label="刷新日志中心"
             disabled={loading}
             onClick={() => {
@@ -233,7 +233,7 @@ export default function LogCenterPanel() {
             }}
           >
             {loading ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -377,7 +377,7 @@ export default function LogCenterPanel() {
       {tab === 'query' && (
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <input className={INPUT + ' w-52'} placeholder="关键字" value={q} onChange={(e) => setQ(e.target.value)}
+            <Input size="sm" className="w-52" placeholder="关键字" value={q} onChange={(e) => setQ(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') void runQuery() }} aria-label="操作日志关键字" />
             <select className={INPUT} value={level} onChange={(e) => setLevel(e.target.value)} aria-label="操作日志级别">
               <option value="">全部级别</option>
@@ -391,9 +391,9 @@ export default function LogCenterPanel() {
               <option value="50">50 条</option>
               <option value="100">100 条</option>
             </select>
-            <button type="button" className={BTN_EM} onClick={() => void runQuery()} disabled={loading} aria-label="查询操作日志">
+            <Button type="button" variant="accent" size="xs" onClick={() => void runQuery()} disabled={loading} aria-label="查询操作日志">
               {busy === 'query' ? <Loader2 size={11} className="animate-spin" /> : <Search size={11} />} 查询
-            </button>
+            </Button>
           </div>
           <div className="max-h-72 overflow-y-auto">
             <table className="w-full text-left text-caption">
@@ -446,9 +446,9 @@ export default function LogCenterPanel() {
               ))}
             </div>
           ) : <div className="text-caption text-slate-500">未取到内省状态。</div>}
-          <button type="button" className={BTN_EM} onClick={() => void triggerIntrospection()} disabled={loading || insight?.running === true} aria-label="手动触发内省">
+          <Button type="button" variant="accent" size="xs" onClick={() => void triggerIntrospection()} disabled={loading || insight?.running === true} aria-label="手动触发内省">
             {busy === 'run-introspection' ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />} 手动触发一次内省
-          </button>
+          </Button>
         </div>
       )}
     </div>

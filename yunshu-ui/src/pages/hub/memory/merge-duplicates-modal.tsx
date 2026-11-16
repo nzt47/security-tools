@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { Copy, Loader2, RefreshCw, X } from 'lucide-react'
-import { hubGet, hubPost } from '../components/ui'
+import { Button, hubGet, hubPost } from '../components/ui'
 import {
   SKILLS_MGMT_ASSESS_MERGE_SAFE,
   SKILLS_MGMT_ASSESS_MERGE_UNDO,
@@ -22,7 +22,6 @@ import {
 } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-const BTN_EM = `${BTN} border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10`
 
 interface DupRow {
   // 后端 find_duplicates_for 的字段是 other_id / other_name（不是 skill_id/name）——2026-10-30 实测踩坑：
@@ -113,9 +112,9 @@ export default function MergeDuplicatesModal({ skillId, skillName, onClose, onDo
             <input value={minJaccard} onChange={(e) => setMinJaccard(e.target.value)} aria-label="重复阈值"
               className="w-16 rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-caption text-slate-200 outline-hidden focus:border-cyan-600" />
           </label>
-          <button type="button" className={BTN} onClick={() => void load()} disabled={busy !== ''} aria-label="重新查重">
+          <Button type="button" variant="default" size="xs" onClick={() => void load()} disabled={busy !== ''} aria-label="重新查重">
             {busy === 'load' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 重新查重
-          </button>
+          </Button>
           {dups?.total !== undefined && <span className="text-micro text-slate-500">共 {dups.total} 条候选</span>}
         </div>
       {busy === 'load' && !dups && (
@@ -158,8 +157,8 @@ export default function MergeDuplicatesModal({ skillId, skillName, onClose, onDo
                   ) : pending === key ? (
                     <span className="ml-auto flex flex-wrap items-center gap-1">
                       <span className="text-micro text-amber-300">确认合并「{label || key}」？会删除它并写备份</span>
-                      <button type="button" className={BTN} onClick={() => void mergeInto(key)} disabled={busy !== ''}>确认合并</button>
-                      <button type="button" className={BTN} onClick={() => setPending('')}>取消</button>
+                      <Button type="button" variant="default" size="xs" onClick={() => void mergeInto(key)} disabled={busy !== ''}>确认合并</Button>
+                      <Button type="button" variant="default" size="xs" onClick={() => setPending('')}>取消</Button>
                     </span>
                   ) : (
                     <button type="button" className={BTN + ' ml-auto'} onClick={() => setPending(key)} disabled={busy !== ''}
@@ -176,11 +175,11 @@ export default function MergeDuplicatesModal({ skillId, skillName, onClose, onDo
       {msg && <p className="mt-2 text-caption text-emerald-300">{msg}</p>}
       <div className="mt-3 flex flex-wrap justify-end gap-2">
         {mergeId && (
-          <button type="button" className={BTN} onClick={() => void undo()} disabled={busy !== ''}>
+          <Button type="button" variant="default" size="xs" onClick={() => void undo()} disabled={busy !== ''}>
             撤销合并（{mergeId}）
-          </button>
+          </Button>
         )}
-        <button type="button" className={BTN_EM} onClick={onClose}>关闭</button>
+        <Button type="button" variant="accent" size="xs" onClick={onClose}>关闭</Button>
       </div>
       </div>
     </div>

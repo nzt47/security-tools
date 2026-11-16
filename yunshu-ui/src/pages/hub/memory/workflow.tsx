@@ -8,7 +8,7 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import { Eye, Play, Trash2 } from 'lucide-react'
-import { Card, Loading, ErrorBox, DataTable, Badge, Switch, hubPost, hubDelete } from '../components/ui'
+import { Button, Card, Loading, ErrorBox, DataTable, Badge, Switch, hubPost, hubDelete } from '../components/ui'
 import DescriptionCell from '@/components/DescriptionCell'
 // 行内按钮形状与技能中心/工具集同一口径（2026-11-08 统一；颜色表达语义）
 import { TABLE_BTN, TABLE_BTN_PRIMARY, TABLE_BTN_INFO, TABLE_BTN_DANGER } from '@/lib/tableActions'
@@ -240,20 +240,20 @@ export function MemoryWorkflowTable() {
                 key: 'actions', title: '操作',
                 render: (r) => (
                   <div className="flex flex-wrap items-center gap-1">
-                    <button onClick={() => setDetail(r)} className={TABLE_BTN} title="查看说明、触发词与步骤定义">
+                    <Button onClick={() => setDetail(r)} variant="default" size="xs" title="查看说明、触发词与步骤定义">
                       <Eye size={11} /> 查看
-                    </button>
-                    <button onClick={() => exec(r.id, String(r.source_user_input ?? r.name ?? r.id ?? ''))} className={TABLE_BTN_PRIMARY} title="立即执行该工作流">
+                    </Button>
+                    <Button onClick={() => exec(r.id, String(r.source_user_input ?? r.name ?? r.id ?? ''))} variant="primary" size="xs" title="立即执行该工作流">
                       <Play size={11} /> 执行
-                    </button>
-                    <button onClick={() => void remove(r)}
-                      className={TABLE_BTN_DANGER}
+                    </Button>
+                    <Button onClick={() => void remove(r)}
+                      variant="danger-outline" size="xs"
                       title="删除该工作流（不可恢复）；自动学习产生的同名重复项可用它清理">
                       <Trash2 size={11} /> 删除
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => convert(r)}
-                      className={TABLE_BTN_INFO}
+                      variant="accent" size="xs"
                       title={
                         r.converted_to_skill_id
                           ? `已导出 LLM 参考 ${r.converted_to_skill_id}（再次点击返回既有参考）`
@@ -261,7 +261,7 @@ export function MemoryWorkflowTable() {
                       }
                     >
                       导出为 LLM 参考
-                    </button>
+                    </Button>
                   </div>
                 ),
               },

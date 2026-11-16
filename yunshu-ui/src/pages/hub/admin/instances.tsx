@@ -15,7 +15,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { CheckCircle2, Cpu, Loader2, Plus, RefreshCw, Search, Star, Trash2, Wifi } from 'lucide-react'
-import { ErrorBox, hubDelete, hubGet, hubPost, hubPut } from '../components/ui'
+import { Input, Button, ErrorBox, hubDelete, hubGet, hubPost, hubPut } from '../components/ui'
 import {
   LLM_INSTANCES,
   SEARCH_INSTANCES,
@@ -27,9 +27,6 @@ import {
   searchInstanceTest,
 } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
-const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 
 interface Instance {
@@ -196,9 +193,9 @@ export default function InstancesPanel() {
         <h2 className="text-sm font-semibold text-slate-100">实例管理</h2>
         <span className="text-caption text-slate-500">LLM 实例与搜索实例：新建 / 设为默认 / 连通性测试 / 删除</span>
         <div className="ml-auto">
-          <button type="button" className={BTN} onClick={() => { void loadLlm(); void loadSearch() }} disabled={loading} aria-label="刷新实例列表">
+          <Button type="button" variant="default" size="xs" onClick={() => { void loadLlm(); void loadSearch() }} disabled={loading} aria-label="刷新实例列表">
             {loading ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -241,20 +238,20 @@ export default function InstancesPanel() {
                     {it.enabled === false ? '停用' : '启用'}
                   </span>
                   <span className="ml-auto flex flex-wrap items-center gap-1">
-                    <button type="button" className={BTN} onClick={() => void setDefault(tab, id)} disabled={loading || it.is_default === true} aria-label={'设为默认 ' + id}>
+                    <Button type="button" variant="default" size="xs" onClick={() => void setDefault(tab, id)} disabled={loading || it.is_default === true} aria-label={'设为默认 ' + id}>
                       <Star size={11} /> 设为默认
-                    </button>
-                    <button type="button" className={BTN} onClick={() => void testOne(tab, id)} disabled={loading} aria-label={'测试连通 ' + id}>
+                    </Button>
+                    <Button type="button" variant="default" size="xs" onClick={() => void testOne(tab, id)} disabled={loading} aria-label={'测试连通 ' + id}>
                       {busy === 'test:' + id ? <Loader2 size={11} className="animate-spin" /> : <Wifi size={11} />} 测试
-                    </button>
+                    </Button>
                     {tab === 'llm' && (
-                      <button type="button" className={BTN} onClick={() => void openDetail(id)} disabled={loading} aria-label={'实例详情 ' + id}>
+                      <Button type="button" variant="default" size="xs" onClick={() => void openDetail(id)} disabled={loading} aria-label={'实例详情 ' + id}>
                         详情
-                      </button>
+                      </Button>
                     )}
-                    <button type="button" className={BTN_RED} onClick={() => setConfirmDelete(isOpen ? '' : tab + ':' + id)} disabled={loading} aria-label={'删除实例 ' + id}>
+                    <Button type="button" variant="danger-outline" size="xs" onClick={() => setConfirmDelete(isOpen ? '' : tab + ':' + id)} disabled={loading} aria-label={'删除实例 ' + id}>
                       <Trash2 size={11} /> 删除
-                    </button>
+                    </Button>
                   </span>
                 </div>
                 {isOpen && (
@@ -262,10 +259,10 @@ export default function InstancesPanel() {
                     <span className="text-micro text-red-300">
                       删除后该实例立即不可用{it.is_default ? '，且它当前是默认实例' : ''}。确定？
                     </span>
-                    <button type="button" className={BTN_RED} onClick={() => void remove(tab, id)} disabled={loading} aria-label={'确认删除 ' + id}>
+                    <Button type="button" variant="danger-outline" size="xs" onClick={() => void remove(tab, id)} disabled={loading} aria-label={'确认删除 ' + id}>
                       {busy === 'del:' + id ? <Loader2 size={11} className="animate-spin" /> : null} 确认删除
-                    </button>
-                    <button type="button" className={BTN} onClick={() => setConfirmDelete('')}>取消</button>
+                    </Button>
+                    <Button type="button" variant="default" size="xs" onClick={() => setConfirmDelete('')}>取消</Button>
                   </div>
                 )}
               </div>
@@ -280,12 +277,12 @@ export default function InstancesPanel() {
         </div>
         <div className="grid gap-2 sm:grid-cols-2">
           <label className="text-caption text-slate-400">名称
-            <input className={INPUT + ' mt-1 w-full'} value={fName} onChange={(e) => setFName(e.target.value)} aria-label="实例名称" />
+            <Input size="sm" className="mt-1 w-full" value={fName} onChange={(e) => setFName(e.target.value)} aria-label="实例名称" />
           </label>
           <label className="text-caption text-slate-400">
             {tab === 'llm' ? 'provider' : 'engine_type'}
-            <input
-              className={INPUT + ' mt-1 w-full'}
+            <Input
+              size="sm" className="mt-1 w-full"
               value={fKind}
               onChange={(e) => setFKind(e.target.value)}
               placeholder={tab === 'llm' ? 'openai / deepseek / ollama' : 'duckduckgo / sogou / bing'}
@@ -295,30 +292,30 @@ export default function InstancesPanel() {
           {tab === 'llm' && (
             <>
               <label className="text-caption text-slate-400">model
-                <input className={INPUT + ' mt-1 w-full'} value={fModel} onChange={(e) => setFModel(e.target.value)} aria-label="模型名" />
+                <Input size="sm" className="mt-1 w-full" value={fModel} onChange={(e) => setFModel(e.target.value)} aria-label="模型名" />
               </label>
               <label className="text-caption text-slate-400">base_url
-                <input className={INPUT + ' mt-1 w-full'} value={fBaseUrl} onChange={(e) => setFBaseUrl(e.target.value)} aria-label="接口基址" />
+                <Input size="sm" className="mt-1 w-full" value={fBaseUrl} onChange={(e) => setFBaseUrl(e.target.value)} aria-label="接口基址" />
               </label>
             </>
           )}
           <label className="text-caption text-slate-400">api_key（可空）
-            <input className={INPUT + ' mt-1 w-full'} value={fApiKey} onChange={(e) => setFApiKey(e.target.value)} aria-label="实例密钥" />
+            <Input size="sm" className="mt-1 w-full" value={fApiKey} onChange={(e) => setFApiKey(e.target.value)} aria-label="实例密钥" />
           </label>
           <label className="text-caption text-slate-400">timeout(s)
-            <input className={INPUT + ' mt-1 w-full'} value={fTimeout} onChange={(e) => setFTimeout(e.target.value)} aria-label="实例超时秒" />
+            <Input size="sm" className="mt-1 w-full" value={fTimeout} onChange={(e) => setFTimeout(e.target.value)} aria-label="实例超时秒" />
           </label>
         </div>
         <div className="mt-2">
-          <button
+          <Button
             type="button"
-            className={BTN_EM}
+            variant="accent" size="xs"
             onClick={() => void (tab === 'llm' ? createLlm() : createSearch())}
             disabled={loading || fName.trim() === '' || fKind.trim() === ''}
             aria-label="新建实例"
           >
             {busy === 'create' ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} 新建
-          </button>
+          </Button>
           <span className="ml-2 text-micro text-slate-600">名称与类型必填，其余按引擎要求填写</span>
         </div>
       </div>
@@ -328,16 +325,16 @@ export default function InstancesPanel() {
           <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
             <CheckCircle2 size={11} className="text-cyan-400" /> 实例详情（可直接编辑后保存，PUT 会整体替换）
             <span className="ml-auto flex items-center gap-1">
-              <button
+              <Button
                 type="button"
-                className={BTN_EM}
+                variant="accent" size="xs"
                 onClick={() => { const id = (detail.id as string) ?? ''; if (id) void saveDetail(id) }}
                 disabled={loading}
                 aria-label="保存实例详情"
               >
                 {busy === 'save' ? <Loader2 size={11} className="animate-spin" /> : null} 保存
-              </button>
-              <button type="button" className={BTN} onClick={() => setDetail(null)}>关闭</button>
+              </Button>
+              <Button type="button" variant="default" size="xs" onClick={() => setDetail(null)}>关闭</Button>
             </span>
           </div>
           <textarea

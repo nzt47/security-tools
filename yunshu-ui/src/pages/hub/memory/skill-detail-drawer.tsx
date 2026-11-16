@@ -20,7 +20,7 @@ import {
   AlertTriangle, CheckCircle2, Copy, FileCode, Gauge, Loader2, MessageSquare,
   Play, RefreshCw, ScrollText, X,
 } from 'lucide-react'
-import { ErrorBox, hubGet, hubPost } from '../components/ui'
+import { Input, Button, ErrorBox, hubGet, hubPost } from '../components/ui'
 import {
   SKILL_CONTENT,
   SKILLS_MGMT_ASSESS_MERGE_SAFE,
@@ -30,7 +30,7 @@ import {
 } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
+
 const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 const PRE = 'max-h-72 overflow-auto whitespace-pre-wrap wrap-break-word rounded-md border border-slate-800 bg-slate-950 p-2.5 font-mono text-caption leading-relaxed text-slate-300'
 
@@ -349,9 +349,9 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
               <p className="mt-0.5 truncate font-mono text-micro text-slate-500">{id}</p>
               {desc && <p className="mt-1 line-clamp-2 text-caption text-slate-400">{desc}</p>}
             </div>
-            <button type="button" className={BTN} onClick={onClose} aria-label="关闭技能详情">
+            <Button type="button" variant="default" size="xs" onClick={onClose} aria-label="关闭技能详情">
               <X size={12} />
-            </button>
+            </Button>
           </div>
           <div className="mt-2.5 flex flex-wrap items-center gap-1">
             {TABS.map((t) => {
@@ -387,9 +387,9 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
             <Section
               title={instruction?.source === 'main_track' ? '使用说明（主轨正文 · 该技能没有 skill.md）' : '使用说明（skill.md 正文）'}
               extra={
-                <button type="button" className={BTN} onClick={() => void loadInstruction()} disabled={loading} aria-label="刷新使用说明">
+                <Button type="button" variant="default" size="xs" onClick={() => void loadInstruction()} disabled={loading} aria-label="刷新使用说明">
                   {busy === 'instruction' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-                </button>
+                </Button>
               }
             >
               {busy === 'instruction' && !instruction && <div className="text-caption text-slate-500">加载中…</div>}
@@ -415,9 +415,9 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
               <Section
                 title={'脚本清单（' + (scripts?.total ?? scripts?.scripts?.length ?? 0) + '）'}
                 extra={
-                  <button type="button" className={BTN} onClick={() => void loadScripts()} disabled={loading} aria-label="刷新脚本清单">
+                  <Button type="button" variant="default" size="xs" onClick={() => void loadScripts()} disabled={loading} aria-label="刷新脚本清单">
                     {busy === 'scripts' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-                  </button>
+                  </Button>
                 }
               >
                 {busy === 'scripts' && !scripts && <div className="text-caption text-slate-500">加载中…</div>}
@@ -455,7 +455,7 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
               <Section title="沙箱执行（Layer 3）">
                 <label className="mb-2 block">
                   <span className="mb-1 block text-caption text-slate-400">脚本名</span>
-                  <input className={INPUT} value={scriptName} onChange={(e) => setScriptName(e.target.value)} aria-label="脚本名" />
+                  <Input size="sm" value={scriptName} onChange={(e) => setScriptName(e.target.value)} aria-label="脚本名" />
                 </label>
                 <label className="mb-2 block">
                   <span className="mb-1 block text-caption text-slate-400">参数（JSON，可留空）</span>
@@ -469,11 +469,11 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
                 </label>
                 <label className="mb-2 block">
                   <span className="mb-1 block text-caption text-slate-400">超时（秒，可留空 = 后端默认）</span>
-                  <input className={INPUT} value={timeoutSec} onChange={(e) => setTimeoutSec(e.target.value)} aria-label="执行超时秒" />
+                  <Input size="sm" value={timeoutSec} onChange={(e) => setTimeoutSec(e.target.value)} aria-label="执行超时秒" />
                 </label>
-                <button type="button" className={BTN_EM} onClick={() => void runScript()} disabled={loading} aria-label="执行脚本">
+                <Button type="button" variant="accent" size="xs" onClick={() => void runScript()} disabled={loading} aria-label="执行脚本">
                   {busy === 'execute' ? <Loader2 size={11} className="animate-spin" /> : <Play size={11} />} 在沙箱里执行
-                </button>
+                </Button>
                 {execResult && (
                   <div className="mt-2 space-y-1.5">
                     <div className="flex flex-wrap items-center gap-2 text-caption">
@@ -503,9 +503,9 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
               <Section
                 title="参数级执行统计"
                 extra={
-                  <button type="button" className={BTN} onClick={() => void loadParams()} disabled={loading} aria-label="刷新参数统计">
+                  <Button type="button" variant="default" size="xs" onClick={() => void loadParams()} disabled={loading} aria-label="刷新参数统计">
                     {busy === 'params' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-                  </button>
+                  </Button>
                 }
               >
                 {busy === 'params' && !params && <div className="text-caption text-slate-500">加载中…</div>}
@@ -546,11 +546,11 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
                 <div className="flex flex-wrap items-center gap-2">
                   <label className="flex items-center gap-1 text-caption text-slate-400">
                     统计窗口（天）
-                    <input className={INPUT + ' w-16'} value={fbDays} onChange={(e) => setFbDays(e.target.value)} aria-label="调参统计窗口天数" />
+                    <Input size="sm" className="w-16" value={fbDays} onChange={(e) => setFbDays(e.target.value)} aria-label="调参统计窗口天数" />
                   </label>
-                  <button type="button" className={BTN_EM} onClick={() => void optimizeWithFeedback()} disabled={loading} aria-label="按反馈调参">
+                  <Button type="button" variant="accent" size="xs" onClick={() => void optimizeWithFeedback()} disabled={loading} aria-label="按反馈调参">
                     {busy === 'optimize' ? <Loader2 size={11} className="animate-spin" /> : <Gauge size={11} />} 拉反馈 + 调参
-                  </button>
+                  </Button>
                 </div>
                 {optimize && (
                   <div className="mt-2 space-y-1.5">
@@ -577,9 +577,9 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
               <Section
                 title="满意度聚合"
                 extra={
-                  <button type="button" className={BTN} onClick={() => void loadFeedback()} disabled={loading} aria-label="刷新反馈统计">
+                  <Button type="button" variant="default" size="xs" onClick={() => void loadFeedback()} disabled={loading} aria-label="刷新反馈统计">
                     {busy === 'feedback' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-                  </button>
+                  </Button>
                 }
               >
                 {busy === 'feedback' && !feedback && <div className="text-caption text-slate-500">加载中…</div>}
@@ -619,7 +619,7 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
                 </p>
                 <label className="mb-2 block">
                   <span className="mb-1 block text-caption text-slate-400">trace_id</span>
-                  <input className={INPUT} value={fbTrace} onChange={(e) => setFbTrace(e.target.value)} aria-label="反馈 trace_id" />
+                  <Input size="sm" value={fbTrace} onChange={(e) => setFbTrace(e.target.value)} aria-label="反馈 trace_id" />
                 </label>
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <label className="flex items-center gap-1 text-caption text-slate-400">
@@ -633,23 +633,23 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
                   </label>
                   <label className="flex items-center gap-1 text-caption text-slate-400">
                     评分(0-5)
-                    <input className={INPUT + ' w-16'} value={fbRating} onChange={(e) => setFbRating(e.target.value)} aria-label="反馈评分" />
+                    <Input size="sm" className="w-16" value={fbRating} onChange={(e) => setFbRating(e.target.value)} aria-label="反馈评分" />
                   </label>
                 </div>
                 <label className="mb-2 block">
                   <span className="mb-1 block text-caption text-slate-400">备注</span>
                   <textarea className={INPUT + ' h-16'} value={fbComment} onChange={(e) => setFbComment(e.target.value)} aria-label="反馈备注" />
                 </label>
-                <button
+                <Button
                   type="button"
-                  className={BTN_EM}
+                  variant="accent" size="xs"
                   onClick={() => void submitFeedback()}
                   disabled={loading || fbTrace.trim() === ''}
                   title={fbTrace.trim() === '' ? '先填 trace_id' : '提交'}
                   aria-label="提交反馈"
                 >
                   {busy === 'submit-feedback' ? <Loader2 size={11} className="animate-spin" /> : <MessageSquare size={11} />} 提交反馈
-                </button>
+                </Button>
               </Section>
             </>
           )}
@@ -661,11 +661,11 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
                 <div className="flex items-center gap-1.5">
                   <label className="flex items-center gap-1 text-micro text-slate-500">
                     Jaccard ≥
-                    <input className={INPUT + ' w-16'} value={minJaccard} onChange={(e) => setMinJaccard(e.target.value)} aria-label="重复阈值" />
+                    <Input size="sm" className="w-16" value={minJaccard} onChange={(e) => setMinJaccard(e.target.value)} aria-label="重复阈值" />
                   </label>
-                  <button type="button" className={BTN} onClick={() => void loadDups()} disabled={loading} aria-label="刷新重复技能">
+                  <Button type="button" variant="default" size="xs" onClick={() => void loadDups()} disabled={loading} aria-label="刷新重复技能">
                     {busy === 'duplicates' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 查重
-                  </button>
+                  </Button>
                 </div>
               }
             >
@@ -688,14 +688,14 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
                         {mergePending === key ? (
                           <span className="flex flex-wrap items-center gap-1">
                             <span className="text-micro text-amber-300">确认合并？会删除它并写备份</span>
-                            <button type="button" className={BTN} onClick={() => void mergeInto(key)} disabled={busy === 'merge'}>确认合并</button>
-                            <button type="button" className={BTN} onClick={() => setMergePending('')}>取消</button>
+                            <Button type="button" variant="default" size="xs" onClick={() => void mergeInto(key)} disabled={busy === 'merge'}>确认合并</Button>
+                            <Button type="button" variant="default" size="xs" onClick={() => setMergePending('')}>取消</Button>
                           </span>
                         ) : (
-                          <button type="button" className={BTN} onClick={() => setMergePending(key)}
+                          <Button type="button" variant="default" size="xs" onClick={() => setMergePending(key)}
                             disabled={busy !== ''} title="把该技能合并进本技能：先写两侧快照（可撤销），再删源技能">
                             合并到本技能
-                          </button>
+                          </Button>
                         )}
                       </div>
                     )

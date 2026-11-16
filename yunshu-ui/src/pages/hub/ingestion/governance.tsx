@@ -11,7 +11,7 @@ import {
   AlertTriangle, Archive, CheckCircle2, GitBranch, Loader2, Merge, RefreshCw, Scissors,
   ShieldCheck, Trash2, Wrench,
 } from 'lucide-react'
-import { Badge, Card, ErrorBox } from '../components/ui'
+import { Button, Badge, Card, ErrorBox } from '../components/ui'
 import {
   applyGovernance,
   planGovernance,
@@ -21,9 +21,6 @@ import {
   type GovernancePlan,
   type GovernanceScan,
 } from './governanceApi'
-
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50'
-const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 
 const ACTION_META: Record<string, { label: string; icon: typeof Merge; tone: 'green' | 'amber' | 'red' | 'cyan' | 'slate' }> = {
   merge: { label: '合并', icon: Merge, tone: 'green' },
@@ -88,10 +85,10 @@ export default function GovernancePanel() {
   return (
     <div className="flex flex-col gap-4">
       <Card title="存量资产治理" actions={(
-        <button type="button" className={BTN_EM} onClick={() => void load()} disabled={busy !== ''}>
+        <Button type="button" variant="accent" size="xs" onClick={() => void load()} disabled={busy !== ''}>
           {busy === 'scan' ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
           盘点并生成计划
-        </button>
+        </Button>
       )}>
         <p className="text-caption leading-relaxed text-slate-500">
           扫描现有技能，给出合并 / 归档 / 拆分 / 补描述 / 清理孤儿建议。默认 dry-run；
@@ -137,14 +134,14 @@ export default function GovernancePanel() {
                     onChange={(e) => setConfirmed(e.target.checked)} />
                   我已核对计划（动作/目标/证据）
                 </label>
-                <button type="button" className={BTN_EM}
+                <Button type="button" variant="accent" size="xs"
                   disabled={!picked || !confirmed || busy !== ''}
                   onClick={() => {
                     const a = plan.actions.find((x) => x.action + ':' + x.target === picked)
                     if (a) void run(a, false)
                   }}>
                   <CheckCircle2 size={12} /> 执行所选
-                </button>
+                </Button>
                 {picked && <span className="font-mono text-micro text-cyan-300">{picked}</span>}
               </div>
               <div className="flex flex-col divide-y divide-slate-800 overflow-hidden rounded-sm border border-slate-800">
@@ -162,11 +159,11 @@ export default function GovernancePanel() {
                       <span className="text-slate-300">{a.title}</span>
                       <span className="max-w-[45%] truncate text-slate-500" title={a.reason}>{a.reason}</span>
                       <span className="ml-auto flex items-center gap-1.5">
-                        <button type="button" className={BTN}
+                        <Button type="button" variant="default" size="xs"
                           aria-label={'dry-run ' + a.title}
                           onClick={() => void run(a, true)} disabled={busy !== ''}>
                           {busy === key ? <Loader2 size={11} className="animate-spin" /> : null} dry-run
-                        </button>
+                        </Button>
                         {a.destructive && <Badge color="red"><AlertTriangle size={10} /> 破坏性</Badge>}
                       </span>
                     </div>

@@ -21,8 +21,9 @@ vi.mock('../components/ui', async (importOriginal) => {
 })
 
 const { default: ToolsToolset } = await import('./toolset')
-// 三张表共用的按钮常量：用例断言「页面真的用了这一份」，而不是各写一套
-const actions = await import('@/lib/tableActions')
+// 【2026-11-17】原来这里 import '@/lib/tableActions' 断言"三张表共用同一份常量"；
+// 行内按钮迁到 ui/Button 后，同一口径由原语的语义变体表达（default / primary / accent / danger-outline），
+// 不再需要直接引用类字符串常量 —— 断言改成变体特征类（见下方用例）。
 
 const TOOLS = [
   { name: 'read_file', enabled: true },
@@ -216,7 +217,7 @@ describe('工具集 · 列宽可拖 + 按钮与技能中心同口径（2026-11-0
     expect((cols[0] as HTMLElement).style.width).toBe('240px')
   })
 
-  it('启停是开关（开关本身就是状态列），动作按钮仍用 @/lib/tableActions 的常量', async () => {
+  it('启停是开关（开关本身就是状态列），动作按钮走 ui/Button 的语义变体', async () => {
     mocks.getEnvelope.mockResolvedValue([
       { name: 'read_file', enabled: true },
       { name: 'byted_x', enabled: false, runtime: true, removable: true },
@@ -234,7 +235,7 @@ describe('工具集 · 列宽可拖 + 按钮与技能中心同口径（2026-11-0
 
     const disabledRow = screen.getByText('byted_x').closest('tr')!
     expect(within(disabledRow).getByRole('switch').getAttribute('aria-checked')).toBe('false')
-    // 移除 = 破坏性
-    expect(within(disabledRow).getByRole('button', { name: '移除' }).className).toBe(actions.TABLE_BTN_DANGER)
+    // 移除 = 破坏性（【2026-11-17】迁到 ui/Button：按语义变体断言，不再比较整串 className）
+    expect(within(disabledRow).getByRole('button', { name: '移除' }).className).toContain('text-danger')
   })
 })

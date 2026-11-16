@@ -16,7 +16,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Activity, BarChart3, ExternalLink, Gauge, Loader2, RefreshCw, Search, Server,
 } from 'lucide-react'
-import { ErrorBox, hubGet } from '../components/ui'
+import { Input, Button, ErrorBox, hubGet } from '../components/ui'
 import {
   BUSINESS_DASHBOARD,
   BUSINESS_DEFINITIONS,
@@ -141,9 +141,9 @@ export default function BusinessBoard() {
           <a href={BUSINESS_PROMETHEUS} target="_blank" rel="noreferrer" className={BTN} aria-label="导出 Prometheus 指标">
             <ExternalLink size={11} /> Prometheus
           </a>
-          <button type="button" className={BTN} onClick={() => { void loadBusiness(); void loadDashboard() }} disabled={loading} aria-label="刷新业务看板">
+          <Button type="button" variant="default" size="xs" onClick={() => { void loadBusiness(); void loadDashboard() }} disabled={loading} aria-label="刷新业务看板">
             {loading ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -232,10 +232,10 @@ export default function BusinessBoard() {
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
             <div className="mb-2 flex flex-wrap items-center gap-2 text-caption text-slate-400">
               <Search size={11} className="text-cyan-400" /> 单个指标详情
-              <input className={INPUT + ' w-72'} value={metricName} onChange={(e) => setMetricName(e.target.value)} placeholder="指标名，如 yunshu_interaction_total" aria-label="指标名" />
-              <button type="button" className={BTN} onClick={() => void loadMetric()} disabled={loading || metricName.trim() === ''} aria-label="查询指标详情">
+              <Input size="sm" className="w-72" value={metricName} onChange={(e) => setMetricName(e.target.value)} placeholder="指标名，如 yunshu_interaction_total" aria-label="指标名" />
+              <Button type="button" variant="default" size="xs" onClick={() => void loadMetric()} disabled={loading || metricName.trim() === ''} aria-label="查询指标详情">
                 {busy === 'metric' ? <Loader2 size={11} className="animate-spin" /> : null} 查询
-              </button>
+              </Button>
             </div>
             {metricDetail && <pre className={PRE}>{JSON.stringify(metricDetail, null, 2)}</pre>}
           </div>
@@ -291,10 +291,10 @@ export default function BusinessBoard() {
               <Search size={11} className="text-cyan-400" /> 追踪（{traces.length}）
             </div>
             <div className="mb-1 flex flex-wrap items-center gap-2">
-              <input className={INPUT + ' w-72'} value={traceId} onChange={(e) => setTraceId(e.target.value)} placeholder="trace_id" aria-label="仪表盘追踪 id" />
-              <button type="button" className={BTN} onClick={() => void loadTrace()} disabled={loading || traceId.trim() === ''} aria-label="查询仪表盘追踪详情">
+              <Input size="sm" className="w-72" value={traceId} onChange={(e) => setTraceId(e.target.value)} placeholder="trace_id" aria-label="仪表盘追踪 id" />
+              <Button type="button" variant="default" size="xs" onClick={() => void loadTrace()} disabled={loading || traceId.trim() === ''} aria-label="查询仪表盘追踪详情">
                 {busy === 'trace' ? <Loader2 size={11} className="animate-spin" /> : null} 详情
-              </button>
+              </Button>
             </div>
             {traces.length > 0 && (
               <div className="flex flex-col gap-1">

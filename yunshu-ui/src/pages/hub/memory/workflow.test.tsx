@@ -7,7 +7,6 @@ vi.mock('@/api/envelope', () => ({ getEnvelope: env.getEnvelope }))
 
 import { MemoryWorkflowTable, workflowChain, workflowSummary } from './workflow'
 // 三张表共用的按钮常量：用例断言页面真的用了这一份（不各写一套）
-import { TABLE_BTN, TABLE_BTN_PRIMARY, TABLE_BTN_INFO, TABLE_BTN_DANGER } from '@/lib/tableActions'
 
 const WF = {
   id: 'weekly-report',
@@ -114,15 +113,23 @@ describe('工作流表 · 列宽可拖 + 按钮与技能中心同口径（2026-1
     expect((cols[0] as HTMLElement).style.width).toBe('240px')
   })
 
-  it('行内按钮用 @/lib/tableActions 的常量：查看中性 / 执行主动作 / 删除破坏性 / 导出信息', async () => {
+  // 【2026-11-17】行内按钮迁到 ui/Button：类字符串由原语接管，断言改成"变体特征类"而不是整串相等
+  //   （查看=default / 执行=primary / 删除=danger-outline / 导出=accent，语义与旧常量一一对应）。
+  it('行内按钮走 ui/Button 的语义变体：查看中性 / 执行主动作 / 删除破坏性 / 导出信息', async () => {
     env.getEnvelope.mockResolvedValue({ ok: true, total: 1, items: [WF] })
     render(<MemoryWorkflowTable />)
     await screen.findByText('周报生成')
 
-    expect(screen.getByRole('button', { name: /查看/ }).className).toBe(TABLE_BTN)
-    expect(screen.getByRole('button', { name: /执行/ }).className).toBe(TABLE_BTN_PRIMARY)
-    expect(screen.getByRole('button', { name: /删除/ }).className).toBe(TABLE_BTN_DANGER)
-    expect(screen.getByRole('button', { name: /导出为 LLM 参考/ }).className).toBe(TABLE_BTN_INFO)
+    expect(screen.getByRole('button', { name: /查看/ }).className).toContain('border-border')
+    expect(screen.getByRole('button', { name: /执行/ }).className).toContain('bg-primary')
+    expect(screen.getByRole('button', { name: /删除/ }).className).toContain('text-danger')
+    expect(screen.getByRole('button', { name: /导出为 LLM 参考/ }).className).toContain('text-primary')
+    // 形状仍然统一（原语的一档尺寸：24px 高 + 10px 字），这才是那条用例原本要守的东西
+    for (const name of [/查看/, /执行/, /删除/, /导出为 LLM 参考/]) {
+      const cls = screen.getByRole('button', { name }).className
+      expect(cls).toContain('h-6')
+      expect(cls).toContain('text-micro')
+    }
     // 【2026-11-16 Owner 口径】启停不再是文字按钮：状态由 role=switch 表示（开关本身就是状态列）
     expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('true')
     expect(screen.queryByRole('button', { name: /^(启用|停用)$/ })).toBeNull()

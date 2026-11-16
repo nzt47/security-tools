@@ -15,7 +15,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { FileStack, Loader2, Play, RefreshCw, Settings2, Wand2 } from 'lucide-react'
-import { ErrorBox, hubGet, hubPost } from '../components/ui'
+import { Input, Button, ErrorBox, hubGet, hubPost } from '../components/ui'
 import {
   ORCHESTRATOR_SEMANTIC_CONFIG,
   PLANNING_TOGGLE,
@@ -23,8 +23,6 @@ import {
   PROCESS_DISTILL_HEALTH,
 } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
@@ -114,9 +112,9 @@ export default function EngineOrchestration() {
         <h2 className="text-sm font-semibold text-slate-100">编排与蒸馏</h2>
         <span className="text-caption text-slate-500">语义层热更 / 规划引擎开关 / 过程蒸馏（把素材固化成 workflow 或技能）</span>
         <div className="ml-auto">
-          <button type="button" className={BTN} onClick={() => void load()} disabled={loading} aria-label="刷新编排配置">
+          <Button type="button" variant="default" size="xs" onClick={() => void load()} disabled={loading} aria-label="刷新编排配置">
             {busy === 'load' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -137,9 +135,9 @@ export default function EngineOrchestration() {
             aria-label="语义层覆盖层 JSON"
           />
           <div className="mt-1.5 flex items-center gap-2">
-            <button type="button" className={BTN_EM} onClick={() => void saveSemantic()} disabled={loading} aria-label="提交语义层配置">
+            <Button type="button" variant="accent" size="xs" onClick={() => void saveSemantic()} disabled={loading} aria-label="提交语义层配置">
               {busy === 'sem' ? <Loader2 size={11} className="animate-spin" /> : null} 提交热更
-            </button>
+            </Button>
             <span className="text-micro text-slate-500">已知键：enabled / min_score / top_k / use_vector / use_bm25 / use_reranker / fusion_mode</span>
           </div>
           {override && Object.keys(override).length === 0 && (
@@ -160,12 +158,12 @@ export default function EngineOrchestration() {
                 <input type="checkbox" checked={confirmPlan} onChange={(e) => setConfirmPlan(e.target.checked)} aria-label="确认切换规划引擎" />
                 我确认切换
               </label>
-              <button type="button" className={BTN_EM} onClick={() => void togglePlanning(true)} disabled={loading || !confirmPlan} aria-label="启用规划引擎">
+              <Button type="button" variant="accent" size="xs" onClick={() => void togglePlanning(true)} disabled={loading || !confirmPlan} aria-label="启用规划引擎">
                 启用
-              </button>
-              <button type="button" className={BTN} onClick={() => void togglePlanning(false)} disabled={loading || !confirmPlan} aria-label="停用规划引擎">
+              </Button>
+              <Button type="button" variant="default" size="xs" onClick={() => void togglePlanning(false)} disabled={loading || !confirmPlan} aria-label="停用规划引擎">
                 停用
-              </button>
+              </Button>
               {planning !== null && <span className="text-micro text-slate-400">上次结果：{planning ? '已启用' : '已停用'}</span>}
             </div>
           </div>
@@ -184,15 +182,15 @@ export default function EngineOrchestration() {
           <Wand2 size={11} className="text-cyan-400" /> 从素材蒸馏（query 与 paths 至少一个）
         </div>
         <div className="grid gap-2 lg:grid-cols-2">
-          <input
-            className={INPUT}
+          <Input
+            size="sm"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="query：要蒸馏的主题/问题"
             aria-label="蒸馏 query"
           />
-          <input
-            className={INPUT}
+          <Input
+            size="sm"
             value={paths}
             onChange={(e) => setPaths(e.target.value)}
             placeholder="paths：素材路径（逗号或换行分隔，可空）"
@@ -200,9 +198,9 @@ export default function EngineOrchestration() {
           />
         </div>
         <div className="mt-2 flex items-center gap-2">
-          <button type="button" className={BTN_EM} onClick={() => void runDistill()} disabled={loading} aria-label="执行蒸馏">
+          <Button type="button" variant="accent" size="xs" onClick={() => void runDistill()} disabled={loading} aria-label="执行蒸馏">
             {busy === 'distill' ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />} 开始蒸馏
-          </button>
+          </Button>
           <span className="text-micro text-slate-500">产物会固化为 workflow / skill；这里是唯一入口（此前只有 API）。</span>
         </div>
         {distill && <pre className={PRE + ' mt-2 max-h-72'}>{JSON.stringify(distill, null, 2)}</pre>}

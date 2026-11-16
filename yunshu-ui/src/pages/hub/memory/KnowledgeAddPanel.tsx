@@ -8,10 +8,9 @@
  */
 import { useState } from 'react'
 import { CheckCircle2, Loader2, Plus } from 'lucide-react'
-import { hubPost } from '../components/ui'
+import { Input, Button, hubPost } from '../components/ui'
 import { KNOWLEDGE_ADD } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-cyan-700/70 px-2 py-1 text-caption text-cyan-300 transition-colors hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50'
 const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 
 export default function KnowledgeAddPanel() {
@@ -60,23 +59,23 @@ export default function KnowledgeAddPanel() {
         aria-label="知识文档内容"
       />
       <div className="mt-2 flex flex-wrap items-center gap-2">
-        <input
-          className={INPUT + ' w-40'}
+        <Input
+          size="sm" className="w-40"
           value={source}
           onChange={(e) => setSource(e.target.value)}
           placeholder="source（缺省 manual）"
           aria-label="知识来源"
         />
-        <input
-          className={INPUT + ' w-64'}
+        <Input
+          size="sm" className="w-64"
           value={tags}
           onChange={(e) => setTags(e.target.value)}
           placeholder="标签（逗号分隔，可空）"
           aria-label="知识标签"
         />
-        <button type="button" className={BTN} onClick={() => void submit()} disabled={busy} aria-label="提交知识文档">
+        <Button type="button" variant="default" size="xs" onClick={() => void submit()} disabled={busy} aria-label="提交知识文档">
           {busy ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} 写入知识库
-        </button>
+        </Button>
       </div>
     </div>
   )

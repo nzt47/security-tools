@@ -26,7 +26,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   CheckCircle2, Copy, Download, Loader2, PlugZap, Plus, Send, Settings2, SlidersHorizontal, Trash2,
 } from 'lucide-react'
-import { ErrorBox, Switch, hubGet, hubPost } from '../components/ui'
+import { Input, Button, ErrorBox, Switch, hubGet, hubPost } from '../components/ui'
 import {
   CP_SETTINGS,
   cpSetting,
@@ -40,11 +40,11 @@ import {
 } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
+
 /** 「下一步该点的那个」按钮（安装 / 启用）：整段独立写，不拼 BTN ——
  *  否则 border-slate-700 与 border-emerald-600 同时在 class 里，谁生效取决于样式表顺序，
  *  看起来就会"有时候高亮有时候不高亮"（2026-11-13 Owner：启用按钮应高亮）。 */
-const BTN_PRIMARY = 'inline-flex items-center gap-1 rounded-md border border-emerald-600/70 bg-emerald-500/10 px-2 py-1 text-caption font-medium text-emerald-300 transition-colors hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50'
+
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 
 interface BuiltinChannel {
@@ -483,7 +483,6 @@ export default function HubChannelsPanel() {
         </div>
       </div>
 
-
       {/* 【2026-11-13 合并】原来是「内置通道模板」+「已装通道」两张卡片，同一个通道会出现两次
           （模板行显示"已装（未启用）"、已装行再显示一遍配置/启停/卸载）—— 一列到底更好读：
           未装的给「安装」，装了的直接带「配置/启停/卸载」。 */}
@@ -547,53 +546,53 @@ export default function HubChannelsPanel() {
                   )}
                   <span className="ml-auto flex items-center gap-1.5">
                     {!row && (
-                      <button
+                      <Button
                         type="button"
-                        className={BTN_PRIMARY}
+                        variant="primary" size="xs"
                         onClick={() => void install(id)}
                         disabled={loading}
                         aria-label={'安装通道 ' + id}
                       >
                         {busy === 'install:' + id ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />} 安装
-                      </button>
+                      </Button>
                     )}
                     {row && (
                     <>
-                    <button
+                    <Button
                       type="button"
-                      className={BTN}
+                      variant="default" size="xs"
                       onClick={() => (editing ? setConfigTarget(null) : openConfig(row))}
                       disabled={loading}
                       aria-label={'配置通道 ' + id}
                     >
                       <Settings2 size={11} /> {editing ? '收起配置' : '配置'}
-                    </button>
-                    <button type="button" className={BTN} onClick={() => setConfirmUninstall(isConfirm ? '' : id)} disabled={loading} aria-label={'卸载通道 ' + id}>
+                    </Button>
+                    <Button type="button" variant="default" size="xs" onClick={() => setConfirmUninstall(isConfirm ? '' : id)} disabled={loading} aria-label={'卸载通道 ' + id}>
                       <Trash2 size={11} /> 卸载
-                    </button>
+                    </Button>
                     </>
                     )}
                   </span>
                 </div>
                 {row && (
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <input
-                      className={INPUT + ' w-64 text-caption'}
+                    <Input
+                      size="sm" className="w-64"
                       placeholder={row.enabled ? '发一条测试消息…' : '启用后可测试发送'}
                       value={drafts[id] ?? ''}
                       onChange={(e) => setDrafts((prev) => ({ ...prev, [id]: e.target.value }))}
                       disabled={loading || !row.enabled}
                       aria-label={'测试消息 ' + id}
                     />
-                    <button
+                    <Button
                       type="button"
-                      className={BTN_EM}
+                      variant="accent" size="xs"
                       onClick={() => void sendTo(id)}
                       disabled={loading || !row.enabled || !(drafts[id] ?? '').trim()}
                       aria-label={'发送测试消息 ' + id}
                     >
                       {sendBusyId === id ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />} 发送
-                    </button>
+                    </Button>
                     {!row.enabled && <span className="text-micro text-slate-500">先「启用」再测试发送</span>}
                   </div>
                 )}
@@ -611,7 +610,7 @@ export default function HubChannelsPanel() {
                     >
                       {busy === 'uninstall:' + id ? <Loader2 size={11} className="animate-spin" /> : null} 确认卸载
                     </button>
-                    <button type="button" className={BTN} onClick={() => setConfirmUninstall('')}>取消</button>
+                    <Button type="button" variant="default" size="xs" onClick={() => setConfirmUninstall('')}>取消</Button>
                   </div>
                 )}
                 {row && editing && (
@@ -626,14 +625,14 @@ export default function HubChannelsPanel() {
 {JSON.stringify(view.example ?? {}, null, 2)}
                         </pre>
                         <div className="mt-1 flex flex-wrap items-center gap-2">
-                          <button
+                          <Button
                             type="button"
-                            className={BTN}
+                            variant="default" size="xs"
                             onClick={() => void copyExample(id, view.example)}
                             aria-label={'复制范例 ' + id}
                           >
                             <Copy size={11} /> {copiedId === id ? '已复制' : '复制范例'}
-                          </button>
+                          </Button>
                           <span className="text-micro text-slate-500">保存后这些值同时写进 .env，重启后仍然生效</span>
                         </div>
                         <ul className="mt-1 list-disc pl-4 text-micro text-slate-400">
@@ -662,9 +661,9 @@ export default function HubChannelsPanel() {
                                   </span>
                                 )}
                               </span>
-                              <input
+                              <Input
                                 type={f.secret ? 'password' : 'text'}
-                                className={INPUT + ' text-caption'}
+                                size="sm"
                                 value={value}
                                 placeholder={placeholder}
                                 onChange={(ev) => setForm((prev) => ({ ...prev, [f.field]: ev.target.value }))}
@@ -696,10 +695,10 @@ export default function HubChannelsPanel() {
                       aria-label={'通道配置 ' + id}
                     />
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <button type="button" className={BTN_EM} onClick={() => void saveConfig()} disabled={loading} aria-label={'保存通道配置 ' + id}>
+                      <Button type="button" variant="accent" size="xs" onClick={() => void saveConfig()} disabled={loading} aria-label={'保存通道配置 ' + id}>
                         {busy === 'configure' ? <Loader2 size={11} className="animate-spin" /> : null} 保存配置
-                      </button>
-                      <button type="button" className={BTN} onClick={() => setConfigTarget(null)} disabled={loading}>取消</button>
+                      </Button>
+                      <Button type="button" variant="default" size="xs" onClick={() => setConfigTarget(null)} disabled={loading}>取消</Button>
                       <span className="text-micro text-slate-500">坏 JSON 不会提交</span>
                     </div>
                   </div>
@@ -730,29 +729,29 @@ export default function HubChannelsPanel() {
             <option value="smtp">邮件（SMTP）</option>
             <option value="webhook">Webhook</option>
           </select>
-          <input
-            className={INPUT + ' w-44 text-caption'}
+          <Input
+            size="sm" className="w-44"
             placeholder="通道 id，如 email_smtp_2"
             value={newId}
             onChange={(ev) => setNewId(ev.target.value)}
             aria-label="新通道 id"
           />
-          <input
-            className={INPUT + ' w-44 text-caption'}
+          <Input
+            size="sm" className="w-44"
             placeholder="显示名称（可空）"
             value={newName}
             onChange={(ev) => setNewName(ev.target.value)}
             aria-label="新通道名称"
           />
-          <button
+          <Button
             type="button"
-            className={BTN_PRIMARY}
+            variant="primary" size="xs"
             onClick={() => void addChannel()}
             disabled={loading || !newId.trim()}
             aria-label="新增通道"
           >
             {busy === 'add' ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} 新增
-          </button>
+          </Button>
         </div>
         <div className="mt-1 text-micro text-slate-500">
           范例：邮件通道填 <code className="font-mono">email_smtp_2</code> / 值班邮件；

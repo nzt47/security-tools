@@ -6,7 +6,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { CheckCircle2, Inbox, Loader2, RefreshCw, Trash2 } from 'lucide-react'
-import { Badge, ErrorBox, hubDelete, hubGet, hubPost } from '../components/ui'
+import { Button, Badge, ErrorBox, hubDelete, hubGet, hubPost } from '../components/ui'
 import { authHeader } from '../../../lib/apiToken'
 import {
   INGESTION_DRAFTS,
@@ -22,8 +22,7 @@ import {
 } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50'
-const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
-const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
+
 const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 /** 草稿形态 → 人读标签（此前把 skill 也画成「工具」，点「AI 实现」会 400 form-mismatch）。 */
 const FORM_LABEL: Record<string, string> = { skill: '技能', tool: '工具', workflow: '工作流' }
@@ -251,7 +250,6 @@ export default function ReviewPanel() {
     } finally { setBusy('') }
   }
 
-
   const review = async (id: string) => {
     setBusy('review:' + id); setErr(''); setMsg('')
     try {
@@ -310,14 +308,14 @@ export default function ReviewPanel() {
           外来来源先落 draft；人工审核通过后才能发布
         </span>
         <div className="ml-auto flex items-center gap-1.5">
-          <button type="button" className={BTN} disabled={loading || sel.length === 0}
+          <Button type="button" variant="default" size="xs" disabled={loading || sel.length === 0}
             aria-label="批量放行所选技能"
             onClick={() => { setBatchResult(null); setBatchForce(false); setBatchReason(''); setBatchOpen(true) }}>
             批量放行（{sel.length}）
-          </button>
-          <button type="button" className={BTN} onClick={() => void loadQueue()} disabled={loading} aria-label="刷新待放行队列">
+          </Button>
+          <Button type="button" variant="default" size="xs" onClick={() => void loadQueue()} disabled={loading} aria-label="刷新待放行队列">
             {busy === 'queue' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -349,11 +347,11 @@ export default function ReviewPanel() {
             </>
           )}
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            <button type="button" className={BTN_EM} onClick={() => void submitBatch()}
+            <Button type="button" variant="accent" size="xs" onClick={() => void submitBatch()}
               disabled={loading || !canBatch} aria-label="确认批量放行">
               {busy === 'batch' ? <Loader2 size={11} className="animate-spin" /> : null} 确认放行
-            </button>
-            <button type="button" className={BTN} onClick={() => setBatchOpen(false)} disabled={loading}>取消</button>
+            </Button>
+            <Button type="button" variant="default" size="xs" onClick={() => setBatchOpen(false)} disabled={loading}>取消</Button>
             {hasBlocked && !canBatch && <span className="text-micro text-amber-300">先勾选豁免并填写原因</span>}
           </div>
         </div>
@@ -385,17 +383,17 @@ export default function ReviewPanel() {
                   {isBlocked ? '评审阻断' : verdict ? '评审：' + verdict : '未审核'}
                 </span>
                 <span className="ml-auto flex items-center gap-1.5">
-                  <button type="button" className={BTN_EM} onClick={() => void review(id)} disabled={loading} aria-label={'审核外来技能 ' + id}>
+                  <Button type="button" variant="accent" size="xs" onClick={() => void review(id)} disabled={loading} aria-label={'审核外来技能 ' + id}>
                     {busy === 'review:' + id ? <Loader2 size={11} className="animate-spin" /> : null} 审核
-                  </button>
-                  <button type="button" className={BTN} onClick={() => void publish(id)} disabled={loading || isBlocked}
+                  </Button>
+                  <Button type="button" variant="default" size="xs" onClick={() => void publish(id)} disabled={loading || isBlocked}
                     aria-label={'放行外来技能 ' + id}
                     title={isBlocked ? '阻断项单条不放行；豁免走批量放行并填原因' : '走强制审核链发布'}>
                     {busy === 'publish:' + id ? <Loader2 size={11} className="animate-spin" /> : null} 放行
-                  </button>
-                  <button type="button" className={BTN_RED} onClick={() => void reject(id)} disabled={loading} aria-label={'驳回外来技能 ' + id}>
+                  </Button>
+                  <Button type="button" variant="danger-outline" size="xs" onClick={() => void reject(id)} disabled={loading} aria-label={'驳回外来技能 ' + id}>
                     {busy === 'reject:' + id ? <Loader2 size={11} className="animate-spin" /> : null} 驳回
-                  </button>
+                  </Button>
                 </span>
               </div>
             )
@@ -452,24 +450,24 @@ export default function ReviewPanel() {
                   <span className="ml-auto flex flex-wrap items-center gap-1.5">
                     <span className="max-w-[300px] truncate font-mono text-micro text-slate-500" title={d.draft_dir}>{d.draft_dir}</span>
                     {isWorkflow && (
-                      <button type="button" className={BTN_EM} disabled={loading} onClick={() => void bindDraft(d)}
+                      <Button type="button" variant="accent" size="xs" disabled={loading} onClick={() => void bindDraft(d)}
                         title="用 LLM 把步骤映射到真实工具与参数；判断/评审/写作类步骤会标成「LLM 步骤」（need_llm），执行时由模型完成。先预览，不写盘"
                         aria-label={'AI 绑定 ' + d.draft_id}>
                         {busy === 'bind:' + d.draft_id ? <Loader2 size={11} className="animate-spin" /> : null} AI 绑定
-                      </button>
+                      </Button>
                     )}
                     {d.form === 'tool' && (
-                      <button type="button" className={BTN_EM} disabled={loading}
+                      <Button type="button" variant="accent" size="xs" disabled={loading}
                         onClick={() => void implementDraft(d)}
                         title="用 LLM 读取来源 SKILL.md/脚本并生成实现（先校验，不写盘）"
                         aria-label={'AI 实现 ' + d.draft_id}>
                         {busy === 'impl:' + d.draft_id ? <Loader2 size={11} className="animate-spin" /> : null} AI 实现
-                      </button>
+                      </Button>
                     )}
                     {/* 2026-11-07：这里原是一句**死提示**「登记去「转化队列」Tab」—— 转化队列只认
                         /api/skills-mgmt/queue 里的技能草稿，tool/workflow 骨架根本不在那儿，
                         按提示走过去只会看到空队列。改为真实登记（三种形态同一个端点）。 */}
-                    <button type="button" className={BTN_EM} disabled={loading || regBlocked(d) !== ''}
+                    <Button type="button" variant="accent" size="xs" disabled={loading || regBlocked(d) !== ''}
                       onClick={() => void registerDraft(d, false)}
                       title={regBlocked(d) || (d.form === 'tool'
                         ? '把实现写进 agent/tools/custom + 治理 YAML + 单测，过验证门后进台账（不启用）'
@@ -477,18 +475,18 @@ export default function ReviewPanel() {
                       aria-label={'登记草稿 ' + d.draft_id}>
                       {busy === 'reg:' + d.draft_id ? <Loader2 size={11} className="animate-spin" /> : null}
                       {d.form === 'tool' ? '登记为工具' : d.form === 'workflow' ? '登记为工作流' : '登记为技能'}
-                    </button>
-                    <button type="button" className={BTN} disabled={loading || regBlocked(d) !== ''}
+                    </Button>
+                    <Button type="button" variant="default" size="xs" disabled={loading || regBlocked(d) !== ''}
                       onClick={() => void registerDraft(d, true)}
                       title={'登记并直接启用（会再过一次确认；工具仍受审批边界约束）' + regHint(d)}
                       aria-label={'登记并启用草稿 ' + d.draft_id}>
                       {busy === 'reg-on:' + d.draft_id ? <Loader2 size={11} className="animate-spin" /> : null} 登记并启用
-                    </button>
-                    <button type="button" className={BTN_RED} disabled={loading}
+                    </Button>
+                    <Button type="button" variant="danger-outline" size="xs" disabled={loading}
                       onClick={() => void removeDraft(d.draft_id)}
                       aria-label={'删除骨架草稿 ' + d.draft_id}>
                       {busy === 'draft-del:' + d.draft_id ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />} 删除
-                    </button>
+                    </Button>
                   </span>
                   {bind?.id === d.draft_id && (
                     <div className="mt-1 flex w-full flex-col gap-1 rounded-sm border border-cyan-900/60 bg-cyan-950/20 p-2 text-micro text-slate-300">
@@ -506,12 +504,12 @@ export default function ReviewPanel() {
                         </div>
                       )}
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <button type="button" className={BTN_EM} disabled={loading}
+                        <Button type="button" variant="accent" size="xs" disabled={loading}
                           onClick={() => void applyBind(d)} aria-label={'应用绑定 ' + d.draft_id}>
                           {busy === 'apply:' + d.draft_id ? <Loader2 size={11} className="animate-spin" /> : null}
                           {bind.report.total > 0 && bind.report.bound >= bind.report.total ? '应用并登记' : '仅写回'}
-                        </button>
-                        <button type="button" className={BTN} disabled={loading} onClick={() => setBind(null)}>取消</button>
+                        </Button>
+                        <Button type="button" variant="default" size="xs" disabled={loading} onClick={() => setBind(null)}>取消</Button>
                       </div>
                     </div>
                   )}
@@ -533,12 +531,12 @@ export default function ReviewPanel() {
                         <div className="text-amber-300">{(impl.validation.warnings ?? []).slice(0, 3).join('；')}</div>
                       )}
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <button type="button" className={BTN_EM} disabled={loading || !impl.validation.ok}
+                        <Button type="button" variant="accent" size="xs" disabled={loading || !impl.validation.ok}
                           onClick={() => void applyImpl(d)} aria-label={'应用实现 ' + d.draft_id}>
                           {busy === 'impl-apply:' + d.draft_id ? <Loader2 size={11} className="animate-spin" /> : null}
                           应用实现
-                        </button>
-                        <button type="button" className={BTN} disabled={loading} onClick={() => setImpl(null)}>取消</button>
+                        </Button>
+                        <Button type="button" variant="default" size="xs" disabled={loading} onClick={() => setImpl(null)}>取消</Button>
                       </div>
                     </div>
                   )}

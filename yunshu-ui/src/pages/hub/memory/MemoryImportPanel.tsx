@@ -11,7 +11,7 @@
  */
 import { useEffect, useState } from 'react'
 import { DownloadCloud, Loader2, RefreshCw, ShieldCheck, Undo2 } from 'lucide-react'
-import { Card } from '../components/ui'
+import { Button, Card } from '../components/ui'
 import MemorySessionsImportCard from '@/components/memory/MemorySessionsImportCard'
 import {
   MemoryImportApiError, commitMemoryImport, fetchImportedVectorDocs,
@@ -22,7 +22,6 @@ import {
   type MemoryImportRollbackResult,
 } from '@/lib/memoryImportApi'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-cyan-700/70 px-2 py-1 text-caption text-cyan-300 transition-colors hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_PRIMARY = 'inline-flex items-center gap-1 rounded-md bg-cyan-600 px-3 py-1.5 text-caption font-medium text-white transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-40'
 
 function errText(e: unknown): string {
@@ -261,9 +260,9 @@ export default function MemoryImportPanel() {
           用 LLM 摘要（会话批次）
           {!llmAvailable && <span className="text-micro text-slate-500">（未配置）</span>}
         </label>
-        <button type="button" className={BTN} onClick={() => void doPreview()} disabled={busy !== ''} aria-label="生成预览">
+        <Button type="button" variant="default" size="xs" onClick={() => void doPreview()} disabled={busy !== ''} aria-label="生成预览">
           {busy === 'preview' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 生成预览
-        </button>
+        </Button>
       </div>
       {useLlm && plan?.digest?.reason && (
         <div className="mb-2 text-caption text-amber-400/90">{digestReasonText(plan.digest.reason)}</div>
@@ -289,9 +288,9 @@ export default function MemoryImportPanel() {
           </div>
 
           <div className="mb-2 flex items-center gap-2 text-caption">
-            <button type="button" className={BTN} onClick={() => setPickedBatches(allPicked ? [] : allBatchIds)} aria-label="全选批次">
+            <Button type="button" variant="default" size="xs" onClick={() => setPickedBatches(allPicked ? [] : allBatchIds)} aria-label="全选批次">
               {allPicked ? '清空选择' : '全选批次'}
-            </button>
+            </Button>
             <span className="text-slate-500">已选 {pickedBatches.length} / {allBatchIds.length}</span>
           </div>
 
@@ -358,18 +357,18 @@ export default function MemoryImportPanel() {
               />
               我确认已核对预览内容
             </label>
-            <button type="button" className={BTN} onClick={() => void doCommit(true)} disabled={busy !== '' || !pickedBatches.length} aria-label="只回放">
+            <Button type="button" variant="default" size="xs" onClick={() => void doCommit(true)} disabled={busy !== '' || !pickedBatches.length} aria-label="只回放">
               {busy === 'dry' ? <Loader2 size={11} className="animate-spin" /> : <ShieldCheck size={11} />} 只回放（dry-run）
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              className={BTN_PRIMARY}
+              variant="primary" size="xs"
               onClick={() => void doCommit(false)}
               disabled={busy !== '' || !pickedBatches.length || !confirmed}
               aria-label="写入云枢"
             >
               {busy === 'commit' ? <Loader2 size={11} className="animate-spin" /> : <DownloadCloud size={11} />} 写入云枢
-            </button>
+            </Button>
           </div>
 
           {result?.dry_run && result.would && (
@@ -404,15 +403,15 @@ export default function MemoryImportPanel() {
             批次为主键（来源徽章 = 外部来源；向量 id/ref 可对账）。回滚 = 物理删除、不可恢复：
             知识卡片凭 ref，向量记忆凭 vector_ids 按 id 真删（老批次才用 msg_id；都没有则需人工）
           </span>
-          <button
+          <Button
             type="button"
-            className={BTN}
+            variant="default" size="xs"
             onClick={() => { loadBatches(); loadVectors() }}
             disabled={batchBusy !== '' || vecBusy}
             aria-label="刷新批次"
           >
             {vecBusy ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-          </button>
+          </Button>
         </div>
         {batchErr && <div className="mb-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-caption text-red-300">{batchErr}</div>}
         {vecErr && <div className="mb-2 rounded-sm border border-amber-900/60 bg-amber-500/10 px-2 py-1 text-caption text-amber-300">{vecErr}</div>}
@@ -488,9 +487,9 @@ export default function MemoryImportPanel() {
                         {b.rollback === 'manual' ? (
                           <span className="text-micro text-slate-500" title="该批次没有 vector_ids / msg_id 可删（老批次），无法按 id 自动删除">需人工</span>
                         ) : (
-                          <button type="button" className={BTN} onClick={() => void beginRollback(b.batch_id)} disabled={batchBusy !== '' || previewBusy !== ''} aria-label={'回滚 ' + b.batch_id} title="先看将删除的内容，再确认（物理删除、不可恢复）">
+                          <Button type="button" variant="default" size="xs" onClick={() => void beginRollback(b.batch_id)} disabled={batchBusy !== '' || previewBusy !== ''} aria-label={'回滚 ' + b.batch_id} title="先看将删除的内容，再确认（物理删除、不可恢复）">
                             <Undo2 size={11} /> 回滚（先看内容）
-                          </button>
+                          </Button>
                         )}
                       </td>
                     </tr>
@@ -556,7 +555,7 @@ export default function MemoryImportPanel() {
                     ? <Loader2 size={11} className="animate-spin" />
                     : <Undo2 size={11} />} 确认删除（不可恢复）
                 </button>
-                <button type="button" className={BTN} onClick={cancelRollback} aria-label={'取消回滚 ' + pendingRollback}>取消</button>
+                <Button type="button" variant="default" size="xs" onClick={cancelRollback} aria-label={'取消回滚 ' + pendingRollback}>取消</Button>
               </div>
             </>
           ) : null}

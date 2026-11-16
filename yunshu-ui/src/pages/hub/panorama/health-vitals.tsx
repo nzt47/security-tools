@@ -14,7 +14,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Activity, AlertTriangle, Download, Gauge, Loader2, RefreshCw, Save, ShieldCheck, Zap,
 } from 'lucide-react'
-import { ErrorBox, hubGet, hubPut } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPut } from '../components/ui'
 import {
   HEALTH_ALERTS,
   HEALTH_EXPORT,
@@ -27,7 +27,7 @@ import {
 } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
+
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 
 interface Dimension { score?: number; weight?: number; indicators?: Record<string, number>; issues?: unknown[] }
@@ -136,12 +136,12 @@ export default function HealthVitals() {
           <a href={HEALTH_EXPORT} download className={BTN} aria-label="导出健康度报告">
             <Download size={11} /> 导出报告
           </a>
-          <button type="button" className={BTN_EM} onClick={() => void runQuick()} disabled={loading} aria-label="快速体检">
+          <Button type="button" variant="accent" size="xs" onClick={() => void runQuick()} disabled={loading} aria-label="快速体检">
             {busy === 'quick' ? <Loader2 size={11} className="animate-spin" /> : <Zap size={11} />} 快速体检
-          </button>
-          <button type="button" className={BTN} onClick={() => void loadAll()} disabled={loading} aria-label="刷新健康体检">
+          </Button>
+          <Button type="button" variant="default" size="xs" onClick={() => void loadAll()} disabled={loading} aria-label="刷新健康体检">
             {busy === 'load' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -238,9 +238,9 @@ export default function HealthVitals() {
             <input type="checkbox" checked={confirmWeights} onChange={(e) => setConfirmWeights(e.target.checked)} aria-label="确认修改权重" />
             我确认修改权重
           </label>
-          <button type="button" className={BTN_EM} onClick={() => void saveWeights()} disabled={loading || !confirmWeights} aria-label="保存权重">
+          <Button type="button" variant="accent" size="xs" onClick={() => void saveWeights()} disabled={loading || !confirmWeights} aria-label="保存权重">
             {busy === 'weights' ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />} 保存权重
-          </button>
+          </Button>
           <span className="text-micro text-slate-600">
             可选维度：{(weights?.dimensions ?? []).join(' / ')}
           </span>

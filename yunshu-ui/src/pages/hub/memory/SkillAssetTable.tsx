@@ -15,7 +15,7 @@ import {
   ChevronDown, ChevronRight, Copy, Download, FilePlus, Filter, Folder, Lightbulb, Loader2, Layers, Plus,
   RefreshCw, Rocket, ScrollText, ShieldCheck, Trash2, X, Zap,
 } from 'lucide-react'
-import { CallabilityBadge, Switch, hubGet, hubPost } from '../components/ui'
+import { Textarea, Input, Button, CallabilityBadge, Switch, hubGet, hubPost } from '../components/ui'
 import { authHeader, getApiToken } from '../../../lib/apiToken'
 import ClassIcon from './class-icon'
 import ApiTokenPrompt from './api-token-prompt'
@@ -70,8 +70,7 @@ import {
 // 【2026-11-08】按钮形状与颜色改为三张表共用常量（工具集/工作流同步换成这一份）：
 // 形状只有一处定义，颜色表达语义（中性/主动作/信息/破坏性）。别名仅为减少本文件改动面。
 const BTN = TABLE_BTN
-const BTN_EM = TABLE_BTN_INFO
-const BTN_RED = TABLE_BTN_DANGER
+
 const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 
 // ── 列宽（可拖动）+ 说明全文弹窗 ──────────────────────────────────────
@@ -703,12 +702,12 @@ export default function SkillAssessManager() {
                     {classOptions.map((o) => <option key={o} value={o}>{o}</option>)}
                   </select>
                 )}
-                <button type="button" className={BTN} onClick={() => setDetailTarget(it)} disabled={busy !== ''} title="详情：使用说明 / 脚本与沙箱执行 / 参数统计 / 反馈 / 重复技能">
+                <Button type="button" variant="default" size="xs" onClick={() => setDetailTarget(it)} disabled={busy !== ''} title="详情：使用说明 / 脚本与沙箱执行 / 参数统计 / 反馈 / 重复技能">
                   <ScrollText size={11} /> 详情
-                </button>
-                <button type="button" className={BTN_EM} onClick={() => void assessOne(it.id)} disabled={busy !== ''} title="执行完整评审-评估（三审+扩展评估）">
+                </Button>
+                <Button type="button" variant="accent" size="xs" onClick={() => void assessOne(it.id)} disabled={busy !== ''} title="执行完整评审-评估（三审+扩展评估）">
                   <Zap size={11} /> 评审-评估
-                </button>
+                </Button>
                 {/* 低频动作收进「更多」：一排 10 个按钮会把行撑到 160px，且窄列换行后更难扫 */}
                 <details className="inline-block">
                   <summary className={`${BTN} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
@@ -716,41 +715,41 @@ export default function SkillAssessManager() {
                     <ChevronDown size={11} /> 更多
                   </summary>
                   <div className="mt-1 grid grid-cols-2 gap-1 rounded-md border border-slate-700 bg-slate-950/70 p-1">
-                    <button type="button" className={BTN} onClick={(e) => { closeRowMenu(e); setAdviceTarget(it) }} disabled={busy !== ''} title="学习/迭代建议：参数优化 + 评审改进意见">
+                    <Button type="button" variant="default" size="xs" onClick={(e) => { closeRowMenu(e); setAdviceTarget(it) }} disabled={busy !== ''} title="学习/迭代建议：参数优化 + 评审改进意见">
                       <Lightbulb size={11} /> 建议
-                    </button>
-                    <button type="button" className={BTN} onClick={(e) => { closeRowMenu(e); setVersionsTarget(it) }} disabled={busy !== ''} title="版本历史：升级小/中版本、一键回滚到任意版本">
+                    </Button>
+                    <Button type="button" variant="default" size="xs" onClick={(e) => { closeRowMenu(e); setVersionsTarget(it) }} disabled={busy !== ''} title="版本历史：升级小/中版本、一键回滚到任意版本">
                       版本
-                    </button>
-                    <button type="button" className={BTN} onClick={(e) => { closeRowMenu(e); setRedraftTarget(it) }} disabled={busy !== ''} title="再定义：LLM/规则起草中文说明与展示名，差异预览后应用并重新评审">
+                    </Button>
+                    <Button type="button" variant="default" size="xs" onClick={(e) => { closeRowMenu(e); setRedraftTarget(it) }} disabled={busy !== ''} title="再定义：LLM/规则起草中文说明与展示名，差异预览后应用并重新评审">
                       再定义
-                    </button>
-                    <button type="button" className={BTN} onClick={(e) => { closeRowMenu(e); setCmdTarget(it) }} disabled={busy !== ''} title="斜杠命令：info/versions/execute/params 快捷操作">
+                    </Button>
+                    <Button type="button" variant="default" size="xs" onClick={(e) => { closeRowMenu(e); setCmdTarget(it) }} disabled={busy !== ''} title="斜杠命令：info/versions/execute/params 快捷操作">
                       命令
-                    </button>
+                    </Button>
                     {/* 2026-11-06：行内不再挂「合并重复…」——合并应在「发现重复」的现场发起
                         （评审-评估报告里的 findings 出口），列表里随手点等于第二个入口。 */}
                     {/* 2026-11-06：已有文件轨的行不再显示这个按钮（47/47 都有文件轨 ⇒ 永远是个灰按钮）。
                         只有「只在主轨」的运行时行才可能出现，那才是它唯一能动手的场景。 */}
                     {it.has_file_track !== true && (
-                      <button type="button" className={BTN} onClick={(e) => { closeRowMenu(e); void materializeFileTrack(it) }}
+                      <Button type="button" variant="default" size="xs" onClick={(e) => { closeRowMenu(e); void materializeFileTrack(it) }}
                         disabled={busy !== ''}
                         title="只在主轨的技能（没有 skill.md）：新建文件轨后才能写中文说明/展示名；已有文件轨会拒绝覆盖（409）">
                         <FilePlus size={11} /> 生成文件轨
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </details>
-                <button type="button" className={BTN_EM} onClick={() => setPublishTarget(it)}
+                <Button type="button" variant="accent" size="xs" onClick={() => setPublishTarget(it)}
                   disabled={busy !== '' || ['published', 'archived', 'rejected'].includes(String(it.status ?? ''))}
                   title={['published', 'archived', 'rejected'].includes(String(it.status ?? ''))
                     ? `当前状态「${STATUS_ZH[String(it.status)] ?? it.status}」不可再发布（发布是终态动作）`
                     : '发布 = 过评审闸门并置为已发布终态（未通过评审需填原因强制发布并写审计）'}>  
                   <Rocket size={11} /> {it.status === 'published' ? '已发布' : '发布'}
-                </button>
-                <button type="button" className={BTN_RED} onClick={() => void remove(it)} disabled={busy !== ''} title="从资产库删除">
+                </Button>
+                <Button type="button" variant="danger-outline" size="xs" onClick={() => void remove(it)} disabled={busy !== ''} title="从资产库删除">
                   <Trash2 size={11} />
-                </button>
+                </Button>
               </>
             )}
           </div>
@@ -844,50 +843,51 @@ export default function SkillAssessManager() {
           {/* 【2026-11-05 IA】「新建技能（手写）」降级为次要入口：常规路径是
               「能力获取 → 直通」（文本 → 草稿 → 队列）或对话里让模型起草；
               手写只给「就要一条空白技能」的场景，所以样式从主色降到中性色。 */}
-          <button type="button" className={BTN} onClick={() => setCreateOpen(true)}
+          <Button type="button" variant="default" size="xs" onClick={() => setCreateOpen(true)}
             title="手写一条空白技能（少用）：批量/外来内容请走「能力获取 → 直通」，登记与启用走「能力获取 → 转化队列」">
             <Plus size={12} /> 新建（手写）
-          </button>
-          <button type="button" className={BTN_EM} onClick={() => void runAll()} disabled={busy !== ''}>
+          </Button>
+          <Button type="button" variant="accent" size="xs" onClick={() => void runAll()} disabled={busy !== ''}>
             {busy === '全量自动评审-评估' ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
             全量自动评审-评估
-          </button>
-          <button type="button" className={BTN} onClick={() => setConflictOpen(true)} disabled={busy !== ''}
+          </Button>
+          <Button type="button" variant="default" size="xs" onClick={() => setConflictOpen(true)} disabled={busy !== ''}
             title="把「交互抢占冲突 / 原生重叠无增量」两句提示变成可预览、可回滚的停用动作（只停用，不删除；有使用记录的一律保持）">
             <ShieldCheck size={12} /> 自动处置冲突
-          </button>
-          <button type="button" className={BTN} onClick={() => void batchReview()} disabled={busy !== ''}>
+          </Button>
+          <Button type="button" variant="default" size="xs" onClick={() => void batchReview()} disabled={busy !== ''}>
             批量审核
-          </button>
+          </Button>
           {runtimeOnlyCount > 0 && (
-            <button type="button" className={`${BTN} border-violet-700/60 text-violet-300 hover:bg-violet-500/10`}
+            // 【2026-11-17】原 violet 描边（第 6 种强调色）→ 收口到 accent（主色描边）
+            <Button type="button" variant="accent" size="xs"
               onClick={() => void openBackfill()} disabled={busy !== ''}
               title="把只存在于文件轨（data/skills_repo/<id>/skill.md）的技能补登记为资产行：只补主轨登记、不写文件、不发布；登记后自动做咨询性评估">
               <Layers size={12} /> 登记仅运行时技能({runtimeOnlyCount})
-            </button>
+            </Button>
           )}
-          <button type="button" className={grouped ? BTN_EM : BTN} onClick={toggleGrouped} disabled={busy !== ''}
+          <Button type="button" size="xs" variant={grouped ? 'accent' : 'default'} onClick={toggleGrouped} disabled={busy !== ''}
             title="按自动分类分组，同类可折叠；新技能自动归类（不匹配时自动新建类）">
             <Layers size={12} /> {grouped ? '按分类折叠中' : '按分类折叠'}
-          </button>
+          </Button>
           {grouped && (
-            <button type="button" className={BTN} onClick={() => foldAll(!allCollapsed)} disabled={busy !== ''}
+            <Button type="button" variant="default" size="xs" onClick={() => foldAll(!allCollapsed)} disabled={busy !== ''}
               title={allCollapsed ? '展开全部分类' : '折叠全部分类（只留组头）'}>
               {allCollapsed ? '全部展开' : '全部折叠'}
-            </button>
+            </Button>
           )}
-          <button type="button" className={uncCount > 0 ? `${BTN} border-violet-700/60 text-violet-300 hover:bg-violet-500/10` : BTN}
+          <Button type="button" size="xs" variant={uncCount > 0 ? 'accent' : 'default'}
             onClick={() => void rerunAutoClassify()} disabled={busy !== ''}
             title="为尚未归类的技能自动判定（含自动新建类；人工移动过的保留）。同时驱动运行时与资产两个命名空间">
             {busy === '自动分类' ? <Loader2 size={12} className="animate-spin" /> : <Folder size={12} />}
             {uncCount > 0 ? `一键归类未分类(${uncCount})` : '重新自动分类'}
-          </button>
-          <button type="button" className={BTN} onClick={() => setFeedOpen(true)} title="动态中心：评估事件 + 人工复核/发布审计（按数据源分 TAB，不再有第二个同名入口）">
+          </Button>
+          <Button type="button" variant="default" size="xs" onClick={() => setFeedOpen(true)} title="动态中心：评估事件 + 人工复核/发布审计（按数据源分 TAB，不再有第二个同名入口）">
             动态中心
-          </button>
-          <button type="button" className={BTN} onClick={() => void load()} disabled={busy !== ''}>
+          </Button>
+          <Button type="button" variant="default" size="xs" onClick={() => void load()} disabled={busy !== ''}>
             <RefreshCw size={12} /> 刷新
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -993,8 +993,8 @@ export default function SkillAssessManager() {
           <p className="mb-2 font-mono text-micro text-slate-500">技能 id：{descTarget.id} · {descTarget.text.length} 字</p>
           <div className="max-h-96 overflow-y-auto whitespace-pre-wrap wrap-break-word rounded-md border border-slate-800 bg-slate-950 p-2.5 text-body leading-relaxed text-slate-300">{descTarget.text}</div>
           <div className="mt-3 flex justify-end gap-2">
-            <button type="button" className={BTN} onClick={() => { void navigator.clipboard?.writeText(descTarget.text) }}>复制说明</button>
-            <button type="button" className={BTN} onClick={() => setDescTarget(null)}>关闭</button>
+            <Button type="button" variant="default" size="xs" onClick={() => { void navigator.clipboard?.writeText(descTarget.text) }}>复制说明</Button>
+            <Button type="button" variant="default" size="xs" onClick={() => setDescTarget(null)}>关闭</Button>
           </div>
         </ModalShell>
       )}
@@ -1007,7 +1007,6 @@ export default function SkillAssessManager() {
       {detailTarget && (
         <SkillDetailDrawer skill={detailTarget} onClose={() => setDetailTarget(null)} />
       )}
-
 
       {/* 评估通知（轻量推送源：未读角标 + 原生通知）。全量时间线在「动态中心」一处， */}
       {/* 本卡片只做「有新结果」的提示，不再重复展示同一事件流的长列表（2026-10-28）。 */}
@@ -1024,19 +1023,19 @@ export default function SkillAssessManager() {
           <span className="text-micro text-slate-600">只显示最新 3 条 · 未读角标与浏览器通知（需授权）</span>
           <div className="ml-auto flex flex-wrap items-center gap-1.5">
             {unread > 0 && (
-              <button type="button" className={BTN} onClick={markEventsSeen} title="把当前全部事件标记为已读">
+              <Button type="button" variant="default" size="xs" onClick={markEventsSeen} title="把当前全部事件标记为已读">
                 全部已读
-              </button>
+              </Button>
             )}
-            <button type="button" className={BTN} onClick={() => setFeedOpen(true)} title="打开完整时间线（评估 / 人工复核 TAB + 分页 + 按技能过滤）">
+            <Button type="button" variant="default" size="xs" onClick={() => setFeedOpen(true)} title="打开完整时间线（评估 / 人工复核 TAB + 分页 + 按技能过滤）">
               打开动态中心
-            </button>
-            <button type="button" className={BTN} onClick={() => void exportOverview()} title="导出审计(人工复核)+评估事件 合并 CSV">
+            </Button>
+            <Button type="button" variant="default" size="xs" onClick={() => void exportOverview()} title="导出审计(人工复核)+评估事件 合并 CSV">
               <Download size={11} /> 导出总览(审计+动态)
-            </button>
-            <button type="button" className={BTN} onClick={() => void loadEvents()} title="刷新 评估事件">
+            </Button>
+            <Button type="button" variant="default" size="xs" onClick={() => void loadEvents()} title="刷新 评估事件">
               <RefreshCw size={11} /> 刷新
-            </button>
+            </Button>
           </div>
         </div>
         {events.length > 0 && (
@@ -1117,17 +1116,17 @@ function PublishModal({ item, onClose, onConfirm }: {
         </Field>
       )}
       <div className="mt-3 flex flex-wrap justify-end gap-2">
-        <button type="button" className={BTN} onClick={onClose}>取消（不发布）</button>
+        <Button type="button" variant="default" size="xs" onClick={onClose}>取消（不发布）</Button>
         {!needsReason ? (
-          <button type="button" className={BTN_EM} onClick={() => onConfirm()}>
+          <Button type="button" variant="accent" size="xs" onClick={() => onConfirm()}>
             <Rocket size={12} /> 确认发布
-          </button>
+          </Button>
         ) : (
-          <button type="button" className={BTN_EM} onClick={() => onConfirm(reason.trim())}
+          <Button type="button" variant="accent" size="xs" onClick={() => onConfirm(reason.trim())}
             disabled={reason.trim().length < 4}
             title="强制发布需 ≥4 字复核说明（写入审计）">
             <Rocket size={12} /> 强制发布（人工复核通过，写审计）
-          </button>
+          </Button>
         )}
       </div>
     </ModalShell>
@@ -1170,10 +1169,10 @@ function BackfillModal({ data, busy, error, onCancel, onConfirm }: {
       )}
       {error && <p className="mt-2 text-caption text-red-400">{error}</p>}
       <div className="mt-3 flex flex-wrap justify-end gap-2">
-        <button type="button" className={BTN} onClick={onCancel} disabled={busy}>取消</button>
-        <button type="button" className={BTN_EM} onClick={onConfirm} disabled={busy || cands.length === 0}>
+        <Button type="button" variant="default" size="xs" onClick={onCancel} disabled={busy}>取消</Button>
+        <Button type="button" variant="accent" size="xs" onClick={onConfirm} disabled={busy || cands.length === 0}>
           {busy ? <Loader2 size={12} className="animate-spin" /> : <Layers size={12} />} 确认登记({cands.length})
-        </button>
+        </Button>
       </div>
     </ModalShell>
   )
@@ -1289,16 +1288,16 @@ function ConflictModal({ onClose, onDone }: { onClose: () => void; onDone: () =>
       {err && <p className="mt-2 text-caption text-red-400">{err}</p>}
       {msg && <p className="mt-2 text-caption text-cyan-300">{msg}</p>}
       <div className="mt-3 flex flex-wrap justify-end gap-2">
-        <button type="button" className={BTN} onClick={onClose} disabled={busy !== ''}>关闭</button>
-        <button type="button" className={BTN} onClick={() => void undoLast()} disabled={busy !== ''}
-          title="把最近一次自动停用的技能恢复为启用（写审计）">撤销最近一次</button>
-        <button type="button" className={BTN} onClick={() => void loadPlan()} disabled={busy !== ''}>重新生成计划</button>
-        <button type="button" className={BTN_EM} onClick={() => void apply()}
+        <Button type="button" variant="default" size="xs" onClick={onClose} disabled={busy !== ''}>关闭</Button>
+        <Button type="button" variant="default" size="xs" onClick={() => void undoLast()} disabled={busy !== ''}
+          title="把最近一次自动停用的技能恢复为启用（写审计）">撤销最近一次</Button>
+        <Button type="button" variant="default" size="xs" onClick={() => void loadPlan()} disabled={busy !== ''}>重新生成计划</Button>
+        <Button type="button" variant="accent" size="xs" onClick={() => void apply()}
           disabled={busy !== '' || chosen.length === 0}
           title="只停用勾选项（写审计 + 决策台账，可撤销）；不会删除任何技能">
           {busy === 'apply' ? <Loader2 size={12} className="animate-spin" /> : <ShieldCheck size={12} />}
           确认停用({chosen.length})
-        </button>
+        </Button>
       </div>
     </ModalShell>
   )
@@ -1344,10 +1343,10 @@ function ReportPanel({ item, onClose, onMerge }: { item: SkillItem; onClose: () 
           {rv?.summary && <span className="text-micro font-normal text-slate-500">{rv.summary}</span>}
         </div>
         {onMerge && hasDupFinding && (
-          <button type="button" className={BTN} onClick={onMerge} data-testid="report-merge-btn"
+          <Button type="button" variant="default" size="xs" onClick={onMerge} data-testid="report-merge-btn"
             title="重复/重叠类发现项：把相似的对方并进本技能（先写两侧快照，可凭 merge_id 撤销）">
             <Copy size={11} /> 合并重复…
-          </button>
+          </Button>
         )}
         <button type="button" onClick={onClose} className="text-slate-500 hover:text-slate-300"><X size={13} /></button>
       </div>
@@ -1396,10 +1395,10 @@ function CreateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
   return (
     <ModalShell title="新建技能（手写，创建即自动评审-评估）" onClose={onClose}>
       <Field label="技能名称 *">
-        <input className={INPUT} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="如 PDF 解析器" />
+        <Input size="sm" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="如 PDF 解析器" />
       </Field>
       <Field label="说明">
-        <input className={INPUT} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="用途与场景（影响兼容性/重叠评估）" />
+        <Input size="sm" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="用途与场景（影响兼容性/重叠评估）" />
       </Field>
       <Field label="类型">
         <select className={INPUT} value={form.content_type} onChange={(e) => setForm({ ...form, content_type: e.target.value })}>
@@ -1411,18 +1410,18 @@ function CreateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
         </select>
       </Field>
       <Field label="标签（逗号分隔）">
-        <input className={INPUT} value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} placeholder="pdf, extract" />
+        <Input size="sm" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} placeholder="pdf, extract" />
       </Field>
       <Field label="内容 *">
-        <textarea rows={7} className={`${INPUT} font-mono`} value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })}
+        <Textarea rows={7} size="sm" className="font-mono" value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })}
           placeholder="技能主体（Markdown 指令或代码）——保存后自动进入安全+兼容评估" />
       </Field>
       {err && <p className="mt-1 text-caption text-red-400">{err}</p>}
       <div className="mt-3 flex justify-end gap-2">
-        <button type="button" className={BTN} onClick={onClose}>取消</button>
-        <button type="button" className={BTN_EM} onClick={() => void submit()} disabled={busy || !form.name.trim() || !form.content.trim()}>
+        <Button type="button" variant="default" size="xs" onClick={onClose}>取消</Button>
+        <Button type="button" variant="accent" size="xs" onClick={() => void submit()} disabled={busy || !form.name.trim() || !form.content.trim()}>
           {busy ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />} 创建
-        </button>
+        </Button>
       </div>
     </ModalShell>
   )
@@ -1530,16 +1529,16 @@ function AdviceModal({ item, onClose, onDone }: { item: SkillItem; onClose: () =
             <span className="text-micro text-emerald-500/80">
               {autoCodes.map((c) => c === 'QUAL_NO_SCHEMA' ? '补 config_schema' : c === 'QUAL_NO_TAGS' ? '补检索标签' : '标记敏感隔离').join(' · ')}
             </span>
-            <button type="button" className={`${BTN_EM} ml-auto`} onClick={() => void runAutoFix()} disabled={fixBusy}
+            <Button type="button" variant="accent" size="xs" className="ml-auto" onClick={() => void runAutoFix()} disabled={fixBusy}
               title="一键让云枢自动补 config_schema / 标签 / is_sensitive，并重新评审">
               {fixBusy ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />} 一键自动修复并重新评审
-            </button>
+            </Button>
           </div>
           {fixMsg && <p className="mt-1.5 text-caption text-emerald-300">{fixMsg}</p>}
         </div>
       )}
       <div className="mt-3 flex justify-end">
-        <button type="button" className={BTN} onClick={onClose}>关闭</button>
+        <Button type="button" variant="default" size="xs" onClick={onClose}>关闭</Button>
       </div>
     </ModalShell>
   )
@@ -1594,8 +1593,8 @@ function VersionsModal({ item, onClose, onDone }: { item: SkillItem; onClose: ()
       {err && <p className="mb-2 text-caption text-red-400">{err}</p>}
       {msg && <p className="mb-2 rounded-md border border-emerald-800/60 bg-emerald-950/30 px-2 py-1 text-caption text-emerald-300">{msg}</p>}
       <div className="mb-2 flex flex-wrap gap-1.5">
-        <button type="button" className={BTN_EM} onClick={() => void bump('patch')} disabled={busy !== ''} title="语义化 PATCH（修复级）">升级 PATCH</button>
-        <button type="button" className={BTN_EM} onClick={() => void bump('minor')} disabled={busy !== ''} title="语义化 MINOR（特性级）">升级 MINOR</button>
+        <Button type="button" variant="accent" size="xs" onClick={() => void bump('patch')} disabled={busy !== ''} title="语义化 PATCH（修复级）">升级 PATCH</Button>
+        <Button type="button" variant="accent" size="xs" onClick={() => void bump('minor')} disabled={busy !== ''} title="语义化 MINOR（特性级）">升级 MINOR</Button>
       </div>
       {busy !== '' && <div className="flex items-center gap-2 py-2 text-caption text-slate-500"><Loader2 size={12} className="animate-spin" /> 处理中…</div>}
       {versions.length === 0 ? (
@@ -1610,14 +1609,14 @@ function VersionsModal({ item, onClose, onDone }: { item: SkillItem; onClose: ()
               <span className="font-mono text-micro text-slate-600">{v.created_at ?? ''}</span>
               {v.changelog && <span className="min-w-0 flex-1 truncate text-slate-400">{v.changelog}</span>}
               <span className="text-micro text-slate-600">{v.content ? `${v.content.length} 字符` : ''}</span>
-              <button type="button" className={BTN} disabled={busy !== '' || v.version === item.version}
-                onClick={() => void roll(v.version ?? '')} title={`回滚到 ${v.version}`}>回滚到此版</button>
+              <Button type="button" variant="default" size="xs" disabled={busy !== '' || v.version === item.version}
+                onClick={() => void roll(v.version ?? '')} title={`回滚到 ${v.version}`}>回滚到此版</Button>
             </li>
           ))}
         </ul>
       )}
       <div className="mt-3 flex justify-end">
-        <button type="button" className={BTN} onClick={onClose}>关闭</button>
+        <Button type="button" variant="default" size="xs" onClick={onClose}>关闭</Button>
       </div>
     </ModalShell>
   )
@@ -1682,8 +1681,8 @@ function RedraftModal({ item, onClose, onDone }: { item: SkillItem; onClose: () 
         起草新的中文说明/展示名（LLM 不可用自动回退规则草稿），右侧可编辑；应用后自动重新评审-评估。
       </p>
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
-        <button type="button" className={BTN} onClick={() => void gen(false)} disabled={busy} title="规则起草（快、确定）">规则起草</button>
-        <button type="button" className={BTN_EM} onClick={() => void gen(true)} disabled={busy} title="尝试用 LLM 起草（失败回退规则）">LLM 起草</button>
+        <Button type="button" variant="default" size="xs" onClick={() => void gen(false)} disabled={busy} title="规则起草（快、确定）">规则起草</Button>
+        <Button type="button" variant="accent" size="xs" onClick={() => void gen(true)} disabled={busy} title="尝试用 LLM 起草（失败回退规则）">LLM 起草</Button>
         {source && <span className="text-micro text-slate-600">来源：{source === 'llm' ? 'LLM' : '规则'}</span>}
         {genAt && <span className="text-micro text-slate-600">· 最近生成 {genAt}</span>}
         <span className="ml-auto text-micro text-slate-600">LLM 不可用会自动回退规则草稿</span>
@@ -1705,16 +1704,16 @@ function RedraftModal({ item, onClose, onDone }: { item: SkillItem; onClose: () 
         </div>
         <div>
           <div className="mb-1 text-micro uppercase tracking-wider text-slate-500">草稿（可编辑）</div>
-          <input className={INPUT} value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder="展示名" />
-          <textarea className={`${INPUT} mt-1 font-mono`} rows={6} value={draftDesc}
+          <Input size="sm" value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder="展示名" />
+          <Textarea size="sm" className="mt-1 font-mono" rows={6} value={draftDesc}
             onChange={(e) => setDraftDesc(e.target.value)} placeholder="中文说明（≤160 字）" />
         </div>
       </div>
       <div className="mt-3 flex flex-wrap justify-end gap-2">
-        <button type="button" className={BTN} onClick={onClose}>取消</button>
-        <button type="button" className={BTN_EM} onClick={() => void apply()} disabled={busy || !draftDesc.trim()}>
+        <Button type="button" variant="default" size="xs" onClick={onClose}>取消</Button>
+        <Button type="button" variant="accent" size="xs" onClick={() => void apply()} disabled={busy || !draftDesc.trim()}>
           {busy ? <Loader2 size={12} className="animate-spin" /> : <Lightbulb size={12} />} 应用草稿并评审
-        </button>
+        </Button>
       </div>
     </ModalShell>
   )
@@ -1764,31 +1763,31 @@ function FeedModal({ onClose, onPick }: { onClose: () => void; onPick?: (skillId
             ['assess', '评估', assessCount],
             ['audit', '人工复核', auditCount],
           ] as const).map(([key, label, n]) => (
-            <button key={key} type="button" role="tab" aria-selected={kindTab === key}
-              onClick={() => setKindTab(key)}
-              className={kindTab === key ? BTN_EM : BTN}>
+            <Button key={key} type="button" role="tab" aria-selected={kindTab === key} size="xs"
+              variant={kindTab === key ? 'accent' : 'default'}
+              onClick={() => setKindTab(key)}>
               {label}（{n}）
-            </button>
+            </Button>
           ))}
         </div>
-        <input
-          className={`${INPUT} mb-0! w-44`}
+        <Input
+          size="sm" className="mb-0! w-44"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') applyFilter() }}
           placeholder="按技能 id 过滤（含匹配）"
         />
-        <button type="button" className={BTN} onClick={applyFilter} title="按技能 id 过滤动态">
+        <Button type="button" variant="default" size="xs" onClick={applyFilter} title="按技能 id 过滤动态">
           <Filter size={11} /> 过滤
-        </button>
+        </Button>
         {filterId && (
-          <button type="button" className={BTN} onClick={() => { setDraft(''); setFilterId('') }} title="清除过滤">
+          <Button type="button" variant="default" size="xs" onClick={() => { setDraft(''); setFilterId('') }} title="清除过滤">
             <X size={11} /> 清除
-          </button>
+          </Button>
         )}
-        <button type="button" className={BTN} onClick={() => void load(0, false)}>
+        <Button type="button" variant="default" size="xs" onClick={() => void load(0, false)}>
           <RefreshCw size={11} /> 刷新
-        </button>
+        </Button>
       </div>
       {filterId && <p className="mb-1 text-micro text-cyan-400/80">当前过滤：skill_id 含 “{filterId}”</p>}
       {err && <p className="mb-2 text-caption text-red-400">{err}</p>}
@@ -1820,11 +1819,11 @@ function FeedModal({ onClose, onPick }: { onClose: () => void; onPick?: (skillId
       )}
       <div className="mt-3 flex flex-wrap justify-end gap-2">
         {hasMore && (
-          <button type="button" className={BTN} onClick={() => void load(baseRef.current.length, true)} disabled={busy}>
+          <Button type="button" variant="default" size="xs" onClick={() => void load(baseRef.current.length, true)} disabled={busy}>
             {busy ? <Loader2 size={11} className="animate-spin" /> : <ChevronDown size={11} />} 加载更多
-          </button>
+          </Button>
         )}
-        <button type="button" className={BTN} onClick={onClose}>关闭</button>
+        <Button type="button" variant="default" size="xs" onClick={onClose}>关闭</Button>
       </div>
     </ModalShell>
   )
@@ -1861,28 +1860,27 @@ function CommandModal({ item, onClose, onDone }: { item: SkillItem; onClose: () 
       <p className="mb-2 text-caption text-slate-500">技能库已接入统一 Slash 解析器（/api/skills-mgmt/slash/&lt;id&gt;）——直接执行 info / versions / execute / params。</p>
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
         {['info', 'versions', 'execute', 'params'].map((c) => (
-          <button key={c} type="button"
-            className={cmd === c ? `${BTN_EM} border-cyan-600/70` : BTN}
-            onClick={() => setCmd(c)}>{c}</button>
+          <Button key={c} type="button" size="xs" variant={cmd === c ? 'accent' : 'default'}
+            onClick={() => setCmd(c)}>{c}</Button>
         ))}
       </div>
       {cmd === 'execute' && (
         <div className="mb-2 grid gap-2 md:grid-cols-2">
-          <input className={INPUT} value={scriptName} onChange={(e) => setScriptName(e.target.value)} placeholder="script_name（默认 main.py）" />
-          <input className={INPUT} value={paramsText} onChange={(e) => setParamsText(e.target.value)} placeholder='params JSON，如 {"file":"a.pdf"}' />
+          <Input size="sm" value={scriptName} onChange={(e) => setScriptName(e.target.value)} placeholder="script_name（默认 main.py）" />
+          <Input size="sm" value={paramsText} onChange={(e) => setParamsText(e.target.value)} placeholder='params JSON，如 {"file":"a.pdf"}' />
         </div>
       )}
       {cmd === 'params' && (
-        <textarea className={`${INPUT} mb-2 font-mono`} rows={3} value={paramsText} onChange={(e) => setParamsText(e.target.value)}
+        <Textarea size="sm" className="mb-2 font-mono" rows={3} value={paramsText} onChange={(e) => setParamsText(e.target.value)}
           placeholder='patch JSON，如 {"description":"…","enabled":true}' />
       )}
       {err && <p className="mb-2 text-caption text-red-400">{err}</p>}
       {out && <pre className="mb-2 max-h-56 overflow-auto rounded-md border border-slate-800 bg-slate-950/60 p-2 font-mono text-micro text-cyan-200">{out}</pre>}
       <div className="mt-3 flex justify-end gap-2">
-        <button type="button" className={BTN} onClick={onClose}>关闭</button>
-        <button type="button" className={BTN_EM} onClick={() => void run()} disabled={busy}>
+        <Button type="button" variant="default" size="xs" onClick={onClose}>关闭</Button>
+        <Button type="button" variant="accent" size="xs" onClick={() => void run()} disabled={busy}>
           {busy ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />} 执行
-        </button>
+        </Button>
       </div>
     </ModalShell>
   )
@@ -1906,5 +1904,3 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </label>
   )
 }
-
-

@@ -6,11 +6,8 @@
  */
 import { useState } from 'react'
 import { Loader2, Sparkles } from 'lucide-react'
-import { hubPost } from '../components/ui'
+import { Input, Button, hubPost } from '../components/ui'
 import { SKILLS_MGMT_ABSTRACT_FROM_MEMORY } from '@/api/endpoints'
-
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-cyan-700/70 px-2.5 py-1.5 text-xs text-cyan-300 transition-colors hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50'
-const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 
 interface DraftRow {
   draft_name?: string
@@ -65,15 +62,15 @@ export default function MemoryDraftPanel() {
       <div className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-1 text-micro text-slate-500">
           回溯天数
-          <input className={INPUT + ' w-20'} value={days} onChange={(e) => setDays(e.target.value)} aria-label="抽象回溯天数" />
+          <Input size="sm" className="w-20" value={days} onChange={(e) => setDays(e.target.value)} aria-label="抽象回溯天数" />
         </label>
         <label className="flex flex-col gap-1 text-micro text-slate-500">
           最多草稿
-          <input className={INPUT + ' w-20'} value={maxSkills} onChange={(e) => setMaxSkills(e.target.value)} aria-label="最多草稿数" />
+          <Input size="sm" className="w-20" value={maxSkills} onChange={(e) => setMaxSkills(e.target.value)} aria-label="最多草稿数" />
         </label>
-        <button type="button" className={BTN} onClick={() => void run()} disabled={busy} aria-label="从记忆抽象技能">
+        <Button type="button" variant="default" size="xs" onClick={() => void run()} disabled={busy} aria-label="从记忆抽象技能">
           {busy ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} 生成草稿
-        </button>
+        </Button>
       </div>
       {err && <p className="mt-2 text-caption text-red-400">{err}</p>}
       {result && (

@@ -25,7 +25,7 @@ import {
   Check, Copy, Info, Layers, MessageSquare, Plus, Save, Search, ShieldAlert, Sparkles,
   Target, Trash2, Users,
 } from 'lucide-react'
-import { Badge, Button, CallabilityBadge, Card, ErrorBox, Loading, PageHeader } from '../components/ui'
+import { Textarea, Input, Badge, Button, CallabilityBadge, Card, ErrorBox, Loading, PageHeader } from '../components/ui'
 import { Slider } from '@/components/ui'
 import { callabilityCounts, callabilityLegend, hasCallabilityMark } from '@/lib/callability'
 import {
@@ -252,7 +252,6 @@ function planeSummary(p: LineProfile): string {
     .map((k) => `${PLANE_LABELS[k]} ${num(p.plane_weights?.[k])}`)
   return parts.length ? parts.join(' · ') : '无启用平面（装配结果为空）'
 }
-
 
 // ═══════════════════════════════════════════════════════════
 //  小组件
@@ -1298,30 +1297,30 @@ export default function ToolsAgentLines() {
                   {/* 基本信息 */}
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                     <Field label="主线 id" hint={isNew ? '小写字母开头，含小写字母/数字/_/-，2-41 字符' : '已保存的主线不可改名（改 id 请用新建 + 删除）'}>
-                      <input
+                      <Input
                         value={draft.id}
                         disabled={!isNew}
                         onChange={(e) => patch({ id: e.target.value })}
                         placeholder="例：engineering"
-                        className={`${INPUT_CLASS} font-mono disabled:opacity-60`}
+                        size="md" className="font-mono disabled:opacity-60"
                       />
                     </Field>
                     <Field label="名称">
-                      <input
+                      <Input
                         value={draft.name}
                         onChange={(e) => patch({ name: e.target.value })}
                         placeholder="例：自主编码与工程交付"
-                        className={INPUT_CLASS}
+                        size="md"
                       />
                     </Field>
                   </div>
 
                   <Field label="描述">
-                    <input
+                    <Input
                       value={draft.description}
                       onChange={(e) => patch({ description: e.target.value })}
                       placeholder="这条线是给谁用的、核心链路是什么"
-                      className={INPUT_CLASS}
+                      size="md"
                     />
                   </Field>
 
@@ -1487,19 +1486,19 @@ export default function ToolsAgentLines() {
                   {/* 标签 / 技能 / 提示词 */}
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                     <Field label="tags" hint="命中标签的工具 +12 分（逗号分隔）">
-                      <input
+                      <Input
                         value={listToText(draft.tags)}
                         onChange={(e) => patch({ tags: textToList(e.target.value) })}
                         placeholder="例：code, orchestrate"
-                        className={INPUT_CLASS}
+                        size="md"
                       />
                     </Field>
                     <Field label="skills" hint="本线允许注入的技能 id（逗号分隔）；留空 = 不限制">
-                      <input
+                      <Input
                         value={listToText(draft.skills)}
                         onChange={(e) => patch({ skills: textToList(e.target.value) })}
                         placeholder="例：engineering-test-delivery"
-                        className={INPUT_CLASS}
+                        size="md"
                       />
                     </Field>
                   </div>
@@ -1521,12 +1520,12 @@ export default function ToolsAgentLines() {
                   </Field>
 
                   <Field label="prompt_note" hint="随本线注入的系统提示词片段（可留空）">
-                    <textarea
+                    <Textarea
                       value={draft.prompt_note}
                       onChange={(e) => patch({ prompt_note: e.target.value })}
                       rows={4}
                       placeholder="例：本线的交付标准是「改完并验证」……"
-                      className={`${INPUT_CLASS} resize-y`}
+                      size="sm" className="resize-y"
                     />
                   </Field>
                 </div>

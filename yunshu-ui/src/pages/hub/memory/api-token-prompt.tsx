@@ -6,8 +6,7 @@
 import { useState } from 'react'
 import { KeyRound } from 'lucide-react'
 import { getApiToken, setApiToken } from '../../../lib/apiToken'
-
-const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
+import { Input } from '../components/ui'
 
 export default function ApiTokenPrompt({ onSaved }: { onSaved?: () => void }) {
   const [value, setValue] = useState(getApiToken())
@@ -28,7 +27,7 @@ export default function ApiTokenPrompt({ onSaved }: { onSaved?: () => void }) {
         </div>
       </div>
       <div className="mt-2 flex items-center gap-2">
-        <input className={INPUT} type="password" value={value} onChange={(e) => setValue(e.target.value)}
+        <Input size="sm" type="password" value={value} onChange={(e) => setValue(e.target.value)}
           placeholder="FLASK_API_TOKEN（留空保存=清除）" autoComplete="off" />
         <button type="button"
           className="shrink-0 rounded-md border border-cyan-700/70 px-3 py-1.5 text-caption text-cyan-300 transition-colors hover:bg-cyan-500/10"

@@ -18,7 +18,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   AlertTriangle, Ban, Lock, Loader2, Pause, Play, Power, RefreshCw, RotateCcw, Shield, ShieldAlert, Sliders,
 } from 'lucide-react'
-import { ErrorBox, hubGet, hubPost } from '../components/ui'
+import { Input, Button, ErrorBox, hubGet, hubPost } from '../components/ui'
 import {
   PERMISSION_ACCESS_LOG,
   PERMISSION_EMERGENCY,
@@ -179,9 +179,9 @@ export default function SecurityPanel() {
         <h2 className="text-sm font-semibold text-slate-100">安全与权限</h2>
         <span className="text-caption text-slate-500">权限开关 · 紧急控制 · 危险关键词 · 隐私清单</span>
         <div className="ml-auto">
-          <button type="button" className={BTN} onClick={() => { void loadPerm(); void loadSafety(); void loadPrivacy() }} disabled={loading} aria-label="刷新安全与权限">
+          <Button type="button" variant="default" size="xs" onClick={() => { void loadPerm(); void loadSafety(); void loadPrivacy() }} disabled={loading} aria-label="刷新安全与权限">
             {loading ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -199,36 +199,36 @@ export default function SecurityPanel() {
             {emer.network_blocked ? ' · 网络已封锁' : ''}
           </span>
           <div className="ml-auto flex flex-wrap items-center gap-1.5">
-            <button type="button" className={BTN_RED} onClick={() => void emergency('pause')} disabled={loading} aria-label={emer.paused ? '恢复智能体' : '暂停智能体'}>
+            <Button type="button" variant="danger-outline" size="xs" onClick={() => void emergency('pause')} disabled={loading} aria-label={emer.paused ? '恢复智能体' : '暂停智能体'}>
               {emer.paused ? <Play size={11} /> : <Pause size={11} />} {emer.paused ? '恢复' : '暂停'}
-            </button>
-            <button type="button" className={BTN_RED} onClick={() => void emergency('network_block')} disabled={loading} aria-label={emer.network_blocked ? '恢复网络' : '封锁网络'}>
+            </Button>
+            <Button type="button" variant="danger-outline" size="xs" onClick={() => void emergency('network_block')} disabled={loading} aria-label={emer.network_blocked ? '恢复网络' : '封锁网络'}>
               <Ban size={11} /> {emer.network_blocked ? '恢复网络' : '封锁网络'}
-            </button>
-            <button type="button" className={BTN_RED} onClick={() => void emergency('cancel')} disabled={loading} aria-label="取消当前操作">
+            </Button>
+            <Button type="button" variant="danger-outline" size="xs" onClick={() => void emergency('cancel')} disabled={loading} aria-label="取消当前操作">
               取消当前操作
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              className={BTN_RED}
+              variant="danger-outline" size="xs"
               onClick={() => setConfirmEmergency(confirmEmergency === 'stop' ? '' : 'stop')}
               disabled={loading}
               aria-label="紧急停止"
             >
               <Power size={11} /> 紧急停止
-            </button>
-            <button type="button" className={BTN} onClick={() => void emergency('reset')} disabled={loading} aria-label="重置追踪器">
+            </Button>
+            <Button type="button" variant="default" size="xs" onClick={() => void emergency('reset')} disabled={loading} aria-label="重置追踪器">
               <RotateCcw size={11} /> 重置
-            </button>
+            </Button>
           </div>
         </div>
         {confirmEmergency === 'stop' && (
           <div className="flex flex-wrap items-center gap-2 rounded-sm border border-red-800/60 bg-red-500/10 px-2 py-1.5">
             <span className="text-micro text-red-200">紧急停止会中止正在进行的操作并锁定危险动作。确定？</span>
-            <button type="button" className={BTN_RED} onClick={() => void emergency('stop')} disabled={loading} aria-label="确认紧急停止">
+            <Button type="button" variant="danger-outline" size="xs" onClick={() => void emergency('stop')} disabled={loading} aria-label="确认紧急停止">
               {busy === 'emergency:stop' ? <Loader2 size={11} className="animate-spin" /> : null} 确认停止
-            </button>
-            <button type="button" className={BTN} onClick={() => setConfirmEmergency('')}>取消</button>
+            </Button>
+            <Button type="button" variant="default" size="xs" onClick={() => setConfirmEmergency('')}>取消</Button>
           </div>
         )}
       </div>
@@ -321,9 +321,9 @@ export default function SecurityPanel() {
               aria-label="待校验文本"
             />
             <div className="mt-1">
-              <button type="button" className={BTN_EM} onClick={() => void runCheck()} disabled={loading || checkText.trim() === ''} aria-label="校验危险文本">
+              <Button type="button" variant="accent" size="xs" onClick={() => void runCheck()} disabled={loading || checkText.trim() === ''} aria-label="校验危险文本">
                 {busy === 'check' ? <Loader2 size={11} className="animate-spin" /> : null} 校验
-              </button>
+              </Button>
             </div>
             {checkResult && <pre className={PRE + ' mt-1'}>{JSON.stringify(checkResult, null, 2)}</pre>}
           </div>
@@ -340,15 +340,15 @@ export default function SecurityPanel() {
               <Lock size={11} className="text-cyan-400" /> 危险关键词库
             </div>
             <div className="mb-2 flex flex-wrap items-center gap-2">
-              <input className={INPUT + ' w-64'} value={kwPattern} onChange={(e) => setKwPattern(e.target.value)} placeholder="正则，如 rm\s+-rf" aria-label="关键词正则" />
-              <input className={INPUT + ' w-56'} value={kwDesc} onChange={(e) => setKwDesc(e.target.value)} placeholder="说明" aria-label="关键词说明" />
+              <Input size="sm" className="w-64" value={kwPattern} onChange={(e) => setKwPattern(e.target.value)} placeholder="正则，如 rm\s+-rf" aria-label="关键词正则" />
+              <Input size="sm" className="w-56" value={kwDesc} onChange={(e) => setKwDesc(e.target.value)} placeholder="说明" aria-label="关键词说明" />
               <select className={INPUT} value={kwLevel} onChange={(e) => setKwLevel(e.target.value)} aria-label="关键词级别">
                 <option value="warning">warning</option>
                 <option value="critical">critical</option>
               </select>
-              <button type="button" className={BTN_EM} onClick={() => void addKeyword()} disabled={loading || kwPattern.trim() === ''} aria-label="添加危险关键词">
+              <Button type="button" variant="accent" size="xs" onClick={() => void addKeyword()} disabled={loading || kwPattern.trim() === ''} aria-label="添加危险关键词">
                 {busy === 'kw-add' ? <Loader2 size={11} className="animate-spin" /> : null} 添加
-              </button>
+              </Button>
             </div>
             <pre className={PRE + ' max-h-72'}>{JSON.stringify(keywords ?? {}, null, 2)}</pre>
           </div>
@@ -371,9 +371,9 @@ export default function SecurityPanel() {
                 <input type="checkbox" checked={confirmConsent} onChange={(e) => setConfirmConsent(e.target.checked)} aria-label="确认窗口授权" />
                 我同意读取窗口活动
               </label>
-              <button type="button" className={BTN_EM} onClick={() => void consent()} disabled={loading || !confirmConsent} aria-label="授权窗口活动">
+              <Button type="button" variant="accent" size="xs" onClick={() => void consent()} disabled={loading || !confirmConsent} aria-label="授权窗口活动">
                 {busy === 'consent' ? <Loader2 size={11} className="animate-spin" /> : null} 授权
-              </button>
+              </Button>
             </div>
           </div>
         </div>

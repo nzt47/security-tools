@@ -20,7 +20,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   BookOpen, CheckCircle2, FileText, Loader2, MessageSquare, RefreshCw, Send, Star,
 } from 'lucide-react'
-import { ErrorBox, hubGet, hubPost } from '../components/ui'
+import { Input, Button, ErrorBox, hubGet, hubPost } from '../components/ui'
 import DevNotesPanel from './dev-notes'
 import {
   FEEDBACK_LIST,
@@ -32,8 +32,6 @@ import {
   feedbackResolve,
 } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
@@ -194,15 +192,15 @@ export default function FeedbackCenter() {
         <h2 className="text-sm font-semibold text-slate-100">反馈中心</h2>
         <span className="text-caption text-slate-500">汇总 · 报告 · 优质案例 · 逐条受理 · 提交</span>
         <div className="ml-auto">
-          <button
+          <Button
             type="button"
-            className={BTN}
+            variant="default" size="xs"
             aria-label="刷新反馈"
             disabled={loading}
             onClick={() => { void loadSummary(); void loadList(); if (tab === 'report') void loadReport(); if (tab === 'cases') void loadCases() }}
           >
             {loading ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -258,9 +256,9 @@ export default function FeedbackCenter() {
               <option value="report">report</option>
               <option value="suggestion">suggestion</option>
             </select>
-            <button type="button" className={BTN_EM} onClick={() => void loadList()} disabled={loading} aria-label="按条件查询反馈">
+            <Button type="button" variant="accent" size="xs" onClick={() => void loadList()} disabled={loading} aria-label="按条件查询反馈">
               {busy === 'list' ? <Loader2 size={11} className="animate-spin" /> : null} 查询
-            </button>
+            </Button>
             <span className="text-micro text-slate-600">共 {total} 条（最多显示 50）</span>
           </div>
 
@@ -275,10 +273,10 @@ export default function FeedbackCenter() {
                     <span className={'text-micro ' + (r.status === 'resolved' ? 'text-emerald-400' : 'text-amber-400')}>{r.status ?? ''}</span>
                     <span className="font-mono text-micro text-slate-600">{r.created_at_iso ?? ''}</span>
                     <span className="ml-auto flex items-center gap-1">
-                      <button type="button" className={BTN} onClick={() => void openDetail(id)} disabled={loading} aria-label={'查看反馈 ' + id}>详情</button>
-                      <button type="button" className={BTN_EM} onClick={() => void resolve(id)} disabled={loading || r.status === 'resolved'} aria-label={'解决反馈 ' + id}>
+                      <Button type="button" variant="default" size="xs" onClick={() => void openDetail(id)} disabled={loading} aria-label={'查看反馈 ' + id}>详情</Button>
+                      <Button type="button" variant="accent" size="xs" onClick={() => void resolve(id)} disabled={loading || r.status === 'resolved'} aria-label={'解决反馈 ' + id}>
                         {busy === 'resolve:' + id ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle2 size={11} />} 标记已解决
-                      </button>
+                      </Button>
                     </span>
                   </div>
                   <div className="mt-0.5 line-clamp-2 text-slate-400">{r.comment ?? ''}</div>
@@ -292,7 +290,7 @@ export default function FeedbackCenter() {
             <div className="mt-2">
               <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
                 <FileText size={11} className="text-cyan-400" /> 详情
-                <button type="button" className={BTN} onClick={() => setDetail(null)}>关闭</button>
+                <Button type="button" variant="default" size="xs" onClick={() => setDetail(null)}>关闭</Button>
               </div>
               <pre className={PRE}>{JSON.stringify(detail, null, 2)}</pre>
             </div>
@@ -337,7 +335,7 @@ export default function FeedbackCenter() {
           </div>
           <label className="mb-2 block text-caption text-slate-400">
             trace_id
-            <input className={INPUT + ' mt-1 w-full'} value={subTrace} onChange={(e) => setSubTrace(e.target.value)} aria-label="反馈 trace_id" />
+            <Input size="sm" className="mt-1 w-full" value={subTrace} onChange={(e) => setSubTrace(e.target.value)} aria-label="反馈 trace_id" />
           </label>
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <label className="flex items-center gap-1 text-caption text-slate-400">
@@ -351,23 +349,23 @@ export default function FeedbackCenter() {
             </label>
             <label className="flex items-center gap-1 text-caption text-slate-400">
               评分(0-5)
-              <input className={INPUT + ' w-16'} value={subRating} onChange={(e) => setSubRating(e.target.value)} aria-label="反馈评分" />
+              <Input size="sm" className="w-16" value={subRating} onChange={(e) => setSubRating(e.target.value)} aria-label="反馈评分" />
             </label>
           </div>
           <label className="mb-2 block text-caption text-slate-400">
             备注
             <textarea className={INPUT + ' mt-1 h-20 w-full'} value={subComment} onChange={(e) => setSubComment(e.target.value)} aria-label="反馈备注" />
           </label>
-          <button
+          <Button
             type="button"
-            className={BTN_EM}
+            variant="accent" size="xs"
             onClick={() => void submit()}
             disabled={loading || subTrace.trim() === ''}
             title={subTrace.trim() === '' ? '先填 trace_id' : '提交'}
             aria-label="提交新反馈"
           >
             {busy === 'submit' ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />} 提交
-          </button>
+          </Button>
           <p className="mt-2 flex items-center gap-1 text-micro text-slate-600">
             <BookOpen size={10} /> 后端要求 trace_id 非空；空值会被 400 拒绝，故此处先校验。
           </p>

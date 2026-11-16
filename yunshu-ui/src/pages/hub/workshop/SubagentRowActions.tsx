@@ -13,7 +13,7 @@
  */
 import { useState } from 'react'
 import { Download, Info, Loader2, RefreshCw } from 'lucide-react'
-import { hubGet, hubPost } from '../components/ui'
+import { Button, hubGet, hubPost } from '../components/ui'
 import { subagentByName, subagentOfflinePack, subagentReload } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-micro text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
@@ -51,18 +51,18 @@ export default function SubagentRowActions({ name }: { name: string }) {
   return (
     <div className="flex flex-col gap-1">
       <div className="flex flex-wrap items-center justify-end gap-1">
-        <button type="button" className={BTN} onClick={() => void openDetail()} disabled={loading} aria-label={'分身详情 ' + name}>
+        <Button type="button" variant="default" size="xs" onClick={() => void openDetail()} disabled={loading} aria-label={'分身详情 ' + name}>
           {busy === 'detail' ? <Loader2 size={10} className="animate-spin" /> : <Info size={10} />} 详情
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className={BTN}
+          variant="default" size="xs"
           onClick={() => setConfirmReload((v) => !v)}
           disabled={loading}
           aria-label={'热更新 ' + name}
         >
           <RefreshCw size={10} /> 热更新
-        </button>
+        </Button>
         {/* 离线包是文件下载：直连端点，不经 hubGet 的 JSON 解析 */}
         <a href={subagentOfflinePack(name)} download className={BTN} aria-label={'下载离线包 ' + name}>
           <Download size={10} /> 离线包
@@ -72,10 +72,10 @@ export default function SubagentRowActions({ name }: { name: string }) {
       {confirmReload && (
         <div className="flex flex-wrap items-center justify-end gap-1 rounded-sm border border-amber-900/50 bg-amber-500/5 px-1.5 py-1">
           <span className="text-micro text-amber-300">热更新会重载该分身的配置（进行中的任务不受影响）。确定？</span>
-          <button type="button" className={BTN} onClick={() => void reload()} disabled={loading} aria-label={'确认热更新 ' + name}>
+          <Button type="button" variant="default" size="xs" onClick={() => void reload()} disabled={loading} aria-label={'确认热更新 ' + name}>
             {busy === 'reload' ? <Loader2 size={10} className="animate-spin" /> : null} 确认
-          </button>
-          <button type="button" className={BTN} onClick={() => setConfirmReload(false)}>取消</button>
+          </Button>
+          <Button type="button" variant="default" size="xs" onClick={() => setConfirmReload(false)}>取消</Button>
         </div>
       )}
 
@@ -84,7 +84,7 @@ export default function SubagentRowActions({ name }: { name: string }) {
       {detail && (
         <div>
           <div className="mb-1 flex items-center justify-end">
-            <button type="button" className={BTN} onClick={() => setDetail(null)}>关闭详情</button>
+            <Button type="button" variant="default" size="xs" onClick={() => setDetail(null)}>关闭详情</Button>
           </div>
           <pre className={PRE}>{JSON.stringify(detail, null, 2)}</pre>
         </div>

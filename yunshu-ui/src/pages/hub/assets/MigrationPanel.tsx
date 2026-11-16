@@ -11,13 +11,11 @@
  */
 import { useState } from 'react'
 import { Download, Loader2, RotateCcw, Trash2 } from 'lucide-react'
-import { hubDelete, hubPost } from '../components/ui'
+import { Input, Button, hubDelete, hubPost } from '../components/ui'
 import { ASSETS_EXPORT, ASSETS_RESTORE, assetBackupById } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
-const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
-const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
+
 const PRE = 'max-h-40 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 export default function AssetsMigration() {
@@ -71,8 +69,8 @@ export default function AssetsMigration() {
       {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
 
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <input
-          className={INPUT + ' w-64'}
+        <Input
+          size="sm" className="w-64"
           value={backupId}
           onChange={(e) => setBackupId(e.target.value)}
           placeholder="backup_id（见上方备份列表）"
@@ -85,16 +83,16 @@ export default function AssetsMigration() {
           <input type="checkbox" checked={confirmRestore} onChange={(e) => setConfirmRestore(e.target.checked)} aria-label="确认恢复资产" />
           我确认用该备份覆盖当前资产
         </label>
-        <button type="button" className={BTN_EM} onClick={() => void restore()} disabled={loading || !confirmRestore || backupId.trim() === ''} aria-label="恢复资产">
+        <Button type="button" variant="accent" size="xs" onClick={() => void restore()} disabled={loading || !confirmRestore || backupId.trim() === ''} aria-label="恢复资产">
           {busy === 'restore' ? <Loader2 size={11} className="animate-spin" /> : <RotateCcw size={11} />} 恢复
-        </button>
+        </Button>
         <label className="ml-3 flex items-center gap-1 text-micro text-slate-400">
           <input type="checkbox" checked={confirmDelete} onChange={(e) => setConfirmDelete(e.target.checked)} aria-label="确认删除备份" />
           我确认删除该备份
         </label>
-        <button type="button" className={BTN_RED} onClick={() => void removeBackup()} disabled={loading || !confirmDelete || backupId.trim() === ''} aria-label="删除备份">
+        <Button type="button" variant="danger-outline" size="xs" onClick={() => void removeBackup()} disabled={loading || !confirmDelete || backupId.trim() === ''} aria-label="删除备份">
           {busy === 'delete' ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />} 删除备份
-        </button>
+        </Button>
       </div>
 
       {detail && <pre className={PRE + ' mt-2'}>{JSON.stringify(detail, null, 2)}</pre>}

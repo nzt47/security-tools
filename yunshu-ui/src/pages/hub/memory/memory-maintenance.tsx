@@ -19,7 +19,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Activity, AlertTriangle, Brain, Eraser, Gauge, Loader2, RefreshCw, Save, ScanLine, Trash2,
 } from 'lucide-react'
-import { ErrorBox, hubDelete, hubGet, hubPost, hubPut } from '../components/ui'
+import { Input, Button, ErrorBox, hubDelete, hubGet, hubPost, hubPut } from '../components/ui'
 import {
   MEMORY_CLEAR_SUMMARY,
   MEMORY_COMPRESS,
@@ -37,9 +37,6 @@ import {
   vectorItem,
 } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
-const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 const PRE = 'max-h-48 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
@@ -352,15 +349,15 @@ export default function MemoryMaintenance() {
           <h3 className="text-xs font-semibold text-slate-200">记忆审查</h3>
           <span className="text-micro text-slate-500">只读体检；压缩会改写来源数据</span>
           <div className="ml-auto flex items-center gap-1.5">
-            <button type="button" className={BTN} onClick={() => void loadReview()} disabled={loading} aria-label="刷新记忆审查">
+            <Button type="button" variant="default" size="xs" onClick={() => void loadReview()} disabled={loading} aria-label="刷新记忆审查">
               {busy === 'review' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-            </button>
-            <button type="button" className={BTN} onClick={() => void triggerReview()} disabled={loading} aria-label="执行记忆审查">
+            </Button>
+            <Button type="button" variant="default" size="xs" onClick={() => void triggerReview()} disabled={loading} aria-label="执行记忆审查">
               {busy === 'review-run' ? <Loader2 size={11} className="animate-spin" /> : <ScanLine size={11} />} 执行审查
-            </button>
-            <button type="button" className={BTN_EM} onClick={() => void compress()} disabled={loading} aria-label="触发记忆压缩">
+            </Button>
+            <Button type="button" variant="accent" size="xs" onClick={() => void compress()} disabled={loading} aria-label="触发记忆压缩">
               {busy === 'compress' ? <Loader2 size={11} className="animate-spin" /> : <Gauge size={11} />} 触发压缩
-            </button>
+            </Button>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
@@ -451,22 +448,22 @@ export default function MemoryMaintenance() {
             <input type="checkbox" checked={confirmSummary} onChange={(e) => setConfirmSummary(e.target.checked)} aria-label="确认覆盖摘要" />
             我确认覆盖现有摘要
           </label>
-          <button
+          <Button
             type="button"
-            className={BTN_EM}
+            variant="accent" size="xs"
             onClick={() => void saveSummary()}
             disabled={loading || !confirmSummary || summary.trim() === ''}
             aria-label="保存长期摘要"
           >
             {busy === 'summary' ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />} 保存摘要
-          </button>
+          </Button>
           <label className="ml-2 flex items-center gap-1 text-micro text-slate-400">
             <input type="checkbox" checked={confirmClearSummary} onChange={(e) => setConfirmClearSummary(e.target.checked)} aria-label="确认清空摘要" />
             我确认清空摘要
           </label>
-          <button type="button" className={BTN_RED} onClick={() => void clearSummary()} disabled={loading || !confirmClearSummary} aria-label="清空长期摘要">
+          <Button type="button" variant="danger-outline" size="xs" onClick={() => void clearSummary()} disabled={loading || !confirmClearSummary} aria-label="清空长期摘要">
             清空摘要
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -476,9 +473,9 @@ export default function MemoryMaintenance() {
           <Activity size={12} className="text-cyan-400" />
           <h3 className="text-xs font-semibold text-slate-200">窗口监控</h3>
           <div className="ml-auto">
-            <button type="button" className={BTN} onClick={() => void loadWindows()} disabled={loading} aria-label="刷新窗口监控">
+            <Button type="button" variant="default" size="xs" onClick={() => void loadWindows()} disabled={loading} aria-label="刷新窗口监控">
               {busy === 'windows' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -521,31 +518,31 @@ export default function MemoryMaintenance() {
           />
         </Row>
         <Row label="空闲阈值(s)">
-          <input className={INPUT + ' w-20'} value={String(config.idle_timeout_sec ?? '')} aria-label="空闲阈值秒"
+          <Input size="sm" className="w-20" value={String(config.idle_timeout_sec ?? '')} aria-label="空闲阈值秒"
             onChange={(e) => setConfig((c) => ({ ...c, idle_timeout_sec: Number(e.target.value) }))} />
         </Row>
         <Row label="最大事件数">
-          <input className={INPUT + ' w-24'} value={String(config.max_events ?? '')} aria-label="窗口最大事件数"
+          <Input size="sm" className="w-24" value={String(config.max_events ?? '')} aria-label="窗口最大事件数"
             onChange={(e) => setConfig((c) => ({ ...c, max_events: Number(e.target.value) }))} />
         </Row>
         <Row label="轮询间隔(s)">
-          <input className={INPUT + ' w-20'} value={String(config.poll_interval_sec ?? '')} aria-label="窗口轮询间隔"
+          <Input size="sm" className="w-20" value={String(config.poll_interval_sec ?? '')} aria-label="窗口轮询间隔"
             onChange={(e) => setConfig((c) => ({ ...c, poll_interval_sec: Number(e.target.value) }))} />
         </Row>
         <Row label="忽略进程">
-          <input className={INPUT + ' w-72'} value={ignoreText} onChange={(e) => setIgnoreText(e.target.value)} placeholder="逗号分隔" aria-label="忽略进程列表" />
+          <Input size="sm" className="w-72" value={ignoreText} onChange={(e) => setIgnoreText(e.target.value)} placeholder="逗号分隔" aria-label="忽略进程列表" />
         </Row>
         <div className="mt-1 flex flex-wrap items-center gap-2">
-          <button type="button" className={BTN_EM} onClick={() => void saveWindowConfig()} disabled={loading} aria-label="保存窗口配置">
+          <Button type="button" variant="accent" size="xs" onClick={() => void saveWindowConfig()} disabled={loading} aria-label="保存窗口配置">
             {busy === 'win-config' ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />} 保存配置
-          </button>
+          </Button>
           <label className="ml-2 flex items-center gap-1 text-micro text-slate-400">
             <input type="checkbox" checked={confirmClearWindows} onChange={(e) => setConfirmClearWindows(e.target.checked)} aria-label="确认清空窗口事件" />
             我确认清空事件
           </label>
-          <button type="button" className={BTN_RED} onClick={() => void clearWindows()} disabled={loading || !confirmClearWindows} aria-label="清空窗口事件">
+          <Button type="button" variant="danger-outline" size="xs" onClick={() => void clearWindows()} disabled={loading || !confirmClearWindows} aria-label="清空窗口事件">
             <Eraser size={11} /> 清空事件
-          </button>
+          </Button>
         </div>
 
         {events.length > 0 && (
@@ -559,9 +556,9 @@ export default function MemoryMaintenance() {
           <Brain size={12} className="text-cyan-400" />
           <h3 className="text-xs font-semibold text-slate-200">向量维护</h3>
           <div className="ml-auto">
-            <button type="button" className={BTN} onClick={() => void loadRecent()} disabled={loading} aria-label="刷新最近向量记忆">
+            <Button type="button" variant="default" size="xs" onClick={() => void loadRecent()} disabled={loading} aria-label="刷新最近向量记忆">
               {busy === 'recent' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -580,18 +577,18 @@ export default function MemoryMaintenance() {
         </div>
 
         <Row label="按 id 查看">
-          <input className={INPUT + ' w-64'} value={itemId} onChange={(e) => setItemId(e.target.value)} placeholder="mem_2026..." aria-label="向量记忆 id" />
-          <button type="button" className={BTN} onClick={() => void loadItem()} disabled={loading || itemId.trim() === ''} aria-label="按 id 读取向量记忆">
+          <Input size="sm" className="w-64" value={itemId} onChange={(e) => setItemId(e.target.value)} placeholder="mem_2026..." aria-label="向量记忆 id" />
+          <Button type="button" variant="default" size="xs" onClick={() => void loadItem()} disabled={loading || itemId.trim() === ''} aria-label="按 id 读取向量记忆">
             {busy === 'item' ? <Loader2 size={11} className="animate-spin" /> : null} 读取
-          </button>
+          </Button>
         </Row>
         {item && <pre className={PRE}>{JSON.stringify(item, null, 2)}</pre>}
 
         <Row label="新增一条">
-          <input className={INPUT + ' w-80'} value={addContent} onChange={(e) => setAddContent(e.target.value)} placeholder="要记住的内容" aria-label="新增向量记忆内容" />
-          <button type="button" className={BTN_EM} onClick={() => void addVector()} disabled={loading || addContent.trim() === ''} aria-label="新增向量记忆">
+          <Input size="sm" className="w-80" value={addContent} onChange={(e) => setAddContent(e.target.value)} placeholder="要记住的内容" aria-label="新增向量记忆内容" />
+          <Button type="button" variant="accent" size="xs" onClick={() => void addVector()} disabled={loading || addContent.trim() === ''} aria-label="新增向量记忆">
             {busy === 'vector-add' ? <Loader2 size={11} className="animate-spin" /> : null} 添加
-          </button>
+          </Button>
         </Row>
 
         <Row label="批量添加">
@@ -604,9 +601,9 @@ export default function MemoryMaintenance() {
           />
         </Row>
         <div className="mb-2">
-          <button type="button" className={BTN_EM} onClick={() => void batchAdd()} disabled={loading || batchText.trim() === ''} aria-label="批量添加向量记忆">
+          <Button type="button" variant="accent" size="xs" onClick={() => void batchAdd()} disabled={loading || batchText.trim() === ''} aria-label="批量添加向量记忆">
             {busy === 'vector-batch' ? <Loader2 size={11} className="animate-spin" /> : null} 批量添加
-          </button>
+          </Button>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 rounded-sm border border-red-900/40 bg-red-500/5 p-2">
@@ -615,9 +612,9 @@ export default function MemoryMaintenance() {
             <input type="checkbox" checked={confirmClearVector} onChange={(e) => setConfirmClearVector(e.target.checked)} aria-label="确认清空向量库" />
             我确认清空
           </label>
-          <button type="button" className={BTN_RED} onClick={() => void clearVector()} disabled={loading || !confirmClearVector} aria-label="清空向量库">
+          <Button type="button" variant="danger-outline" size="xs" onClick={() => void clearVector()} disabled={loading || !confirmClearVector} aria-label="清空向量库">
             <Trash2 size={11} /> 清空向量库
-          </button>
+          </Button>
         </div>
       </div>
     </div>

@@ -11,11 +11,11 @@
  */
 import { useCallback, useState } from 'react'
 import { Download, Loader2, Upload } from 'lucide-react'
-import { hubGet, hubPost } from '../components/ui'
+import { Button, hubGet, hubPost } from '../components/ui'
 import { NETWORK_CONFIG_EXPORT, NETWORK_CONFIG_IMPORT } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
+
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 const PRE = 'max-h-40 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
@@ -68,9 +68,9 @@ export default function NetworkTransfer() {
           <a href={NETWORK_CONFIG_EXPORT} download className={BTN} aria-label="下载网络配置">
             <Download size={11} /> 下载
           </a>
-          <button type="button" className={BTN} onClick={() => void pullExport()} disabled={loading} aria-label="载入当前配置">
+          <Button type="button" variant="default" size="xs" onClick={() => void pullExport()} disabled={loading} aria-label="载入当前配置">
             {busy === 'export' ? <Loader2 size={11} className="animate-spin" /> : null} 载入当前配置
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -89,9 +89,9 @@ export default function NetworkTransfer() {
           <input type="checkbox" checked={confirmImport} onChange={(e) => setConfirmImport(e.target.checked)} aria-label="确认导入配置" />
           我确认用该配置整体替换现有网络配置
         </label>
-        <button type="button" className={BTN_EM} onClick={() => void doImport()} disabled={loading || !confirmImport || text.trim() === ''} aria-label="导入网络配置">
+        <Button type="button" variant="accent" size="xs" onClick={() => void doImport()} disabled={loading || !confirmImport || text.trim() === ''} aria-label="导入网络配置">
           {busy === 'import' ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />} 导入
-        </button>
+        </Button>
       </div>
       {text && <pre className={PRE + ' mt-2'}>{text.slice(0, 2000)}</pre>}
     </div>

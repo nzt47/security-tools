@@ -75,10 +75,12 @@ describe('HubChannelsPanel', () => {
     expect(toggle.getAttribute('aria-checked')).toBe('false')
     expect((toggle.textContent ?? '').trim()).toBe('')
     expect(screen.queryByRole('button', { name: '切换通道 email_smtp' })).toBeNull()
+    // 【2026-11-17】安装=主操作（原 emerald 描边）→ ui/Button variant=primary；
+    //   卸载=次级（原中性描边）⇒ 只有安装是主色实底。原来的 bg-emerald 是第五种强调色，已收口到主色。
     expect(screen.getByRole('button', { name: '安装通道 webhook' }).className)
-      .toContain('bg-emerald-500/10')
+      .toContain('bg-primary')
     expect(screen.getByRole('button', { name: '卸载通道 email_smtp' }).className)
-      .not.toContain('bg-emerald-500/10')
+      .not.toContain('bg-primary')
     expect(screen.getByText('未安装')).toBeTruthy()
     expect(screen.queryByText(/self_reflection/)).toBeNull()
     // 已装的不给安装按钮；未装的给
@@ -145,7 +147,6 @@ describe('HubChannelsPanel', () => {
     await screen.findByText('Webhook 通道')
     expect(screen.queryByLabelText('测试消息 webhook')).toBeNull()
   })
-
 
   // ── 事件出站开关（#1221）：就地切换，写的是开关中心同一个 POST 端点 ──
 

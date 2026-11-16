@@ -16,7 +16,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Activity, Loader2, RefreshCw, RotateCcw, Tags, Wrench,
 } from 'lucide-react'
-import { ErrorBox, hubDeleteJson, hubGet, hubPost } from '../components/ui'
+import { Input, Button, ErrorBox, hubDeleteJson, hubGet, hubPost } from '../components/ui'
 import {
   TOOLS_CATEGORIES,
   TOOLS_HEALTH,
@@ -26,9 +26,6 @@ import {
   TOOLS_STATUS_BATCH,
 } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
-const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
@@ -132,9 +129,9 @@ export default function ToolsGovernance() {
         <h2 className="text-sm font-semibold text-slate-100">工具治理</h2>
         <span className="text-caption text-slate-500">分类 / 健康 / 关键词（决定路由选中哪类工具）/ 启用总览</span>
         <div className="ml-auto">
-          <button type="button" className={BTN} onClick={() => void load()} disabled={loading} aria-label="刷新工具治理">
+          <Button type="button" variant="default" size="xs" onClick={() => void load()} disabled={loading} aria-label="刷新工具治理">
             {loading ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -184,31 +181,31 @@ export default function ToolsGovernance() {
         </div>
 
         <div className="mb-2 flex flex-wrap items-center gap-2">
-          <input className={INPUT + ' w-40'} value={kw} onChange={(e) => setKw(e.target.value)} placeholder="新关键词" aria-label="新关键词" />
-          <button type="button" className={BTN} onClick={() => void addKeyword()} disabled={loading || kw.trim() === '' || cat === ''} aria-label="添加关键词">
+          <Input size="sm" className="w-40" value={kw} onChange={(e) => setKw(e.target.value)} placeholder="新关键词" aria-label="新关键词" />
+          <Button type="button" variant="default" size="xs" onClick={() => void addKeyword()} disabled={loading || kw.trim() === '' || cat === ''} aria-label="添加关键词">
             {busy === 'kw-add' ? <Loader2 size={11} className="animate-spin" /> : null} 添加
-          </button>
+          </Button>
         </div>
 
         <div className="mb-2 flex flex-wrap items-center gap-2">
-          <input className={INPUT + ' w-40'} value={oldKw} onChange={(e) => setOldKw(e.target.value)} placeholder="原关键词" aria-label="原关键词" />
-          <input className={INPUT + ' w-40'} value={newKw} onChange={(e) => setNewKw(e.target.value)} placeholder="新关键词" aria-label="改名后的关键词" />
-          <button
+          <Input size="sm" className="w-40" value={oldKw} onChange={(e) => setOldKw(e.target.value)} placeholder="原关键词" aria-label="原关键词" />
+          <Input size="sm" className="w-40" value={newKw} onChange={(e) => setNewKw(e.target.value)} placeholder="新关键词" aria-label="改名后的关键词" />
+          <Button
             type="button"
-            className={BTN_EM}
+            variant="accent" size="xs"
             onClick={() => void updateKeyword()}
             disabled={loading || oldKw.trim() === '' || newKw.trim() === '' || cat === ''}
             aria-label="修改关键词"
           >
             {busy === 'kw-upd' ? <Loader2 size={11} className="animate-spin" /> : null} 改名
-          </button>
+          </Button>
           <label className="ml-2 flex items-center gap-1 text-micro text-slate-400">
             <input type="checkbox" checked={confirmReset} onChange={(e) => setConfirmReset(e.target.checked)} aria-label="确认重置关键词" />
             我确认重置为默认
           </label>
-          <button type="button" className={BTN_RED} onClick={() => void resetKeywords()} disabled={loading || !confirmReset} aria-label="重置关键词">
+          <Button type="button" variant="danger-outline" size="xs" onClick={() => void resetKeywords()} disabled={loading || !confirmReset} aria-label="重置关键词">
             <RotateCcw size={11} /> 重置
-          </button>
+          </Button>
         </div>
 
         <div className="flex flex-col gap-1">

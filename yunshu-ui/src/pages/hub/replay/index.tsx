@@ -17,7 +17,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Film, Loader2, RefreshCw, Search, Trash2,
 } from 'lucide-react'
-import { ErrorBox, hubGet, hubPost } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost } from '../components/ui'
 import {
   REPLAY_CLEANUP,
   REPLAY_LIST,
@@ -27,7 +27,7 @@ import {
 } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
+
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 const PRE = 'max-h-64 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
@@ -120,9 +120,9 @@ export default function ReplayCenter() {
             <option value="50">50 条</option>
             <option value="100">100 条</option>
           </select>
-          <button type="button" className={BTN} onClick={() => void load()} disabled={loading} aria-label="刷新回放列表">
+          <Button type="button" variant="default" size="xs" onClick={() => void load()} disabled={loading} aria-label="刷新回放列表">
             {busy === 'load' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -157,8 +157,8 @@ export default function ReplayCenter() {
                 <span className="font-mono text-micro text-slate-600">{String(r.created_at ?? '')}</span>
                 {r.size_bytes != null && <span className="text-micro text-slate-500">{Math.round(Number(r.size_bytes) / 1024)} KB</span>}
                 <span className="ml-auto flex items-center gap-1">
-                  <button type="button" className={BTN} onClick={() => void openMeta(id)} disabled={loading} aria-label={'回放元数据 ' + id}>元数据</button>
-                  <button type="button" className={BTN} onClick={() => void openData(id)} disabled={loading} aria-label={'回放数据 ' + id}>数据</button>
+                  <Button type="button" variant="default" size="xs" onClick={() => void openMeta(id)} disabled={loading} aria-label={'回放元数据 ' + id}>元数据</Button>
+                  <Button type="button" variant="default" size="xs" onClick={() => void openData(id)} disabled={loading} aria-label={'回放数据 ' + id}>数据</Button>
                 </span>
               </div>
             )
@@ -177,16 +177,16 @@ export default function ReplayCenter() {
           <Trash2 size={11} /> 清理过期回放（按保留期物理删除）
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" className={BTN} onClick={() => void cleanup(true)} disabled={loading} aria-label="预览清理回放">
+          <Button type="button" variant="default" size="xs" onClick={() => void cleanup(true)} disabled={loading} aria-label="预览清理回放">
             {busy === 'cleanup' ? <Loader2 size={11} className="animate-spin" /> : null} 预览（dry_run）
-          </button>
+          </Button>
           <label className="flex items-center gap-1 text-micro text-slate-400">
             <input type="checkbox" checked={confirmCleanup} onChange={(e) => setConfirmCleanup(e.target.checked)} aria-label="确认清理回放" />
             我确认删除过期回放
           </label>
-          <button type="button" className={BTN_RED} onClick={() => void cleanup(false)} disabled={loading || !confirmCleanup} aria-label="清理回放">
+          <Button type="button" variant="danger-outline" size="xs" onClick={() => void cleanup(false)} disabled={loading || !confirmCleanup} aria-label="清理回放">
             执行清理
-          </button>
+          </Button>
         </div>
         {cleanupResult && <pre className={PRE + ' mt-2'}>{JSON.stringify(cleanupResult, null, 2)}</pre>}
       </div>

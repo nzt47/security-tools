@@ -16,7 +16,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   FileText, FolderOpen, HardDrive, Loader2, Play, RefreshCw, Search, Trash2, XOctagon,
 } from 'lucide-react'
-import { ErrorBox, hubGet, hubPost } from '../components/ui'
+import { Input, Button, ErrorBox, hubGet, hubPost } from '../components/ui'
 import {
   FILESYSTEM_INFO,
   FILESYSTEM_LIST,
@@ -34,9 +34,6 @@ import {
   WORKSPACE_WRITE,
 } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
-const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 const PRE = 'max-h-64 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
@@ -231,9 +228,9 @@ export default function LocalResources() {
         <h2 className="text-sm font-semibold text-slate-100">本地资源</h2>
         <span className="text-caption text-slate-500">文件浏览 / 工作区 / 进程管控 —— 写与删都需二次确认</span>
         <div className="ml-auto">
-          <button type="button" className={BTN} onClick={() => { void loadDir(); void loadWs(); void loadProcess() }} disabled={loading} aria-label="刷新本地资源">
+          <Button type="button" variant="default" size="xs" onClick={() => { void loadDir(); void loadWs(); void loadProcess() }} disabled={loading} aria-label="刷新本地资源">
             {loading ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -261,8 +258,8 @@ export default function LocalResources() {
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <FolderOpen size={12} className="text-cyan-400" />
-              <input className={INPUT + ' w-72'} value={path} onChange={(e) => setPath(e.target.value)} aria-label="目录路径" />
-              <button type="button" className={BTN} onClick={() => void loadDir()} disabled={loading} aria-label="打开目录">打开</button>
+              <Input size="sm" className="w-72" value={path} onChange={(e) => setPath(e.target.value)} aria-label="目录路径" />
+              <Button type="button" variant="default" size="xs" onClick={() => void loadDir()} disabled={loading} aria-label="打开目录">打开</Button>
               <span className="font-mono text-micro text-slate-500">{absPath}</span>
             </div>
             <div className="flex flex-col gap-1">
@@ -271,17 +268,17 @@ export default function LocalResources() {
                   <span className="text-slate-300">{it.name ?? ''}</span>
                   <span className="text-micro text-slate-600">{it.type ?? ''} · {it.size ?? 0}B</span>
                   <span className="ml-auto flex items-center gap-1">
-                    <button type="button" className={BTN} onClick={() => void info((path || '.') + '/' + (it.name ?? ''))} disabled={loading} aria-label={'查看 ' + (it.name ?? '')}>
+                    <Button type="button" variant="default" size="xs" onClick={() => void info((path || '.') + '/' + (it.name ?? ''))} disabled={loading} aria-label={'查看 ' + (it.name ?? '')}>
                       信息
-                    </button>
+                    </Button>
                     {it.type === 'dir' ? (
-                      <button type="button" className={BTN} onClick={() => { const next = (path || '.') + '/' + (it.name ?? ''); setPath(next); void loadDir(next) }} aria-label={'进入 ' + (it.name ?? '')}>
+                      <Button type="button" variant="default" size="xs" onClick={() => { const next = (path || '.') + '/' + (it.name ?? ''); setPath(next); void loadDir(next) }} aria-label={'进入 ' + (it.name ?? '')}>
                         进入
-                      </button>
+                      </Button>
                     ) : (
-                      <button type="button" className={BTN} onClick={() => setReadPath((path || '.') + '/' + (it.name ?? ''))} aria-label={'选择读取 ' + (it.name ?? '')}>
+                      <Button type="button" variant="default" size="xs" onClick={() => setReadPath((path || '.') + '/' + (it.name ?? ''))} aria-label={'选择读取 ' + (it.name ?? '')}>
                         选中
-                      </button>
+                      </Button>
                     )}
                   </span>
                 </div>
@@ -294,8 +291,8 @@ export default function LocalResources() {
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <Search size={12} className="text-cyan-400" />
-              <input className={INPUT + ' w-56'} value={searchPattern} onChange={(e) => setSearchPattern(e.target.value)} placeholder="文件名/通配" aria-label="搜索模式" />
-              <button type="button" className={BTN} onClick={() => void search()} disabled={loading || searchPattern.trim() === ''} aria-label="搜索文件">搜索</button>
+              <Input size="sm" className="w-56" value={searchPattern} onChange={(e) => setSearchPattern(e.target.value)} placeholder="文件名/通配" aria-label="搜索模式" />
+              <Button type="button" variant="default" size="xs" onClick={() => void search()} disabled={loading || searchPattern.trim() === ''} aria-label="搜索文件">搜索</Button>
             </div>
             {searchResults && <pre className={PRE}>{JSON.stringify(searchResults, null, 2)}</pre>}
           </div>
@@ -303,8 +300,8 @@ export default function LocalResources() {
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
             <div className="mb-2 flex flex-wrap items-center gap-2 text-caption text-slate-400">
               <FileText size={11} className="text-cyan-400" /> 读取
-              <input className={INPUT + ' w-80'} value={readPath} onChange={(e) => setReadPath(e.target.value)} placeholder="文件绝对/相对路径" aria-label="读取文件路径" />
-              <button type="button" className={BTN_EM} onClick={() => void readFile()} disabled={loading || readPath.trim() === ''} aria-label="读取文件">读取</button>
+              <Input size="sm" className="w-80" value={readPath} onChange={(e) => setReadPath(e.target.value)} placeholder="文件绝对/相对路径" aria-label="读取文件路径" />
+              <Button type="button" variant="accent" size="xs" onClick={() => void readFile()} disabled={loading || readPath.trim() === ''} aria-label="读取文件">读取</Button>
             </div>
             {readResult && <pre className={PRE}>{JSON.stringify(readResult, null, 2)}</pre>}
           </div>
@@ -313,16 +310,16 @@ export default function LocalResources() {
             <div className="mb-2 flex flex-wrap items-center gap-2 text-caption text-red-300">
               写入（会覆盖同名文件；后端还会过一次安全守卫）
             </div>
-            <input className={INPUT + ' mb-2 w-full'} value={writePath} onChange={(e) => setWritePath(e.target.value)} placeholder="目标文件路径" aria-label="写入文件路径" />
+            <Input size="sm" className="mb-2 w-full" value={writePath} onChange={(e) => setWritePath(e.target.value)} placeholder="目标文件路径" aria-label="写入文件路径" />
             <textarea className={INPUT + ' h-28 w-full font-mono'} value={writeText} onChange={(e) => setWriteText(e.target.value)} placeholder="文件内容" aria-label="写入文件内容" />
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <label className="flex items-center gap-1 text-micro text-slate-400">
                 <input type="checkbox" checked={confirmWrite} onChange={(e) => setConfirmWrite(e.target.checked)} aria-label="确认写入文件" />
                 我确认覆盖写入
               </label>
-              <button type="button" className={BTN_RED} onClick={() => void writeFile()} disabled={loading || !confirmWrite || writePath.trim() === ''} aria-label="写入文件">
+              <Button type="button" variant="danger-outline" size="xs" onClick={() => void writeFile()} disabled={loading || !confirmWrite || writePath.trim() === ''} aria-label="写入文件">
                 {busy === 'write' ? <Loader2 size={11} className="animate-spin" /> : null} 写入
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -347,23 +344,23 @@ export default function LocalResources() {
 
           <div className="rounded-lg border border-red-900/40 bg-red-500/5 p-3">
             <div className="mb-2 text-caption text-red-300">写入 / 删除工作区文件（相对路径，不能逃出工作区）</div>
-            <input className={INPUT + ' mb-2 w-full'} value={wsPath} onChange={(e) => setWsPath(e.target.value)} placeholder="相对路径，如 notes/todo.md" aria-label="工作区路径" />
+            <Input size="sm" className="mb-2 w-full" value={wsPath} onChange={(e) => setWsPath(e.target.value)} placeholder="相对路径，如 notes/todo.md" aria-label="工作区路径" />
             <textarea className={INPUT + ' h-24 w-full font-mono'} value={wsText} onChange={(e) => setWsText(e.target.value)} placeholder="内容" aria-label="工作区文件内容" />
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <label className="flex items-center gap-1 text-micro text-slate-400">
                 <input type="checkbox" checked={confirmWsWrite} onChange={(e) => setConfirmWsWrite(e.target.checked)} aria-label="确认写入工作区" />
                 我确认写入
               </label>
-              <button type="button" className={BTN_EM} onClick={() => void wsWrite()} disabled={loading || !confirmWsWrite || wsPath.trim() === ''} aria-label="写入工作区">
+              <Button type="button" variant="accent" size="xs" onClick={() => void wsWrite()} disabled={loading || !confirmWsWrite || wsPath.trim() === ''} aria-label="写入工作区">
                 {busy === 'ws-write' ? <Loader2 size={11} className="animate-spin" /> : null} 写入
-              </button>
+              </Button>
               <label className="ml-2 flex items-center gap-1 text-micro text-slate-400">
                 <input type="checkbox" checked={confirmWsDelete} onChange={(e) => setConfirmWsDelete(e.target.checked)} aria-label="确认删除工作区文件" />
                 我确认删除
               </label>
-              <button type="button" className={BTN_RED} onClick={() => void wsDelete()} disabled={loading || !confirmWsDelete || wsPath.trim() === ''} aria-label="删除工作区文件">
+              <Button type="button" variant="danger-outline" size="xs" onClick={() => void wsDelete()} disabled={loading || !confirmWsDelete || wsPath.trim() === ''} aria-label="删除工作区文件">
                 <Trash2 size={11} /> 删除
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -380,10 +377,10 @@ export default function LocalResources() {
                 <option value="">选择程序</option>
                 {all.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
-              <input className={INPUT + ' w-56'} value={startArgs} onChange={(e) => setStartArgs(e.target.value)} placeholder="参数（空格分隔，可空）" aria-label="启动参数" />
-              <button type="button" className={BTN_EM} onClick={() => void startProcess()} disabled={loading || startProgram.trim() === ''} aria-label="启动进程">
+              <Input size="sm" className="w-56" value={startArgs} onChange={(e) => setStartArgs(e.target.value)} placeholder="参数（空格分隔，可空）" aria-label="启动参数" />
+              <Button type="button" variant="accent" size="xs" onClick={() => void startProcess()} disabled={loading || startProgram.trim() === ''} aria-label="启动进程">
                 {busy === 'start' ? <Loader2 size={11} className="animate-spin" /> : <Play size={11} />} 启动
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -392,14 +389,14 @@ export default function LocalResources() {
               <XOctagon size={11} /> 终止进程（必须给 pid，只终止白名单内的）
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <input className={INPUT + ' w-40'} value={stopPid} onChange={(e) => setStopPid(e.target.value)} placeholder="pid" aria-label="进程 pid" />
+              <Input size="sm" className="w-40" value={stopPid} onChange={(e) => setStopPid(e.target.value)} placeholder="pid" aria-label="进程 pid" />
               <label className="flex items-center gap-1 text-micro text-slate-400">
                 <input type="checkbox" checked={confirmStop} onChange={(e) => setConfirmStop(e.target.checked)} aria-label="确认终止进程" />
                 我确认终止
               </label>
-              <button type="button" className={BTN_RED} onClick={() => void stopProcess()} disabled={loading || !confirmStop || stopPid.trim() === ''} aria-label="终止进程">
+              <Button type="button" variant="danger-outline" size="xs" onClick={() => void stopProcess()} disabled={loading || !confirmStop || stopPid.trim() === ''} aria-label="终止进程">
                 {busy === 'stop' ? <Loader2 size={11} className="animate-spin" /> : <XOctagon size={11} />} 终止
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -408,8 +405,8 @@ export default function LocalResources() {
               白名单（自定义 {custom.length} / 合计 {all.length}）
             </div>
             <div className="mb-2 flex flex-wrap items-center gap-2">
-              <input className={INPUT + ' w-56'} value={newProgram} onChange={(e) => setNewProgram(e.target.value)} placeholder="program（如 git.exe）" aria-label="新增白名单程序" />
-              <button type="button" className={BTN} onClick={() => void addWl()} disabled={loading || newProgram.trim() === ''} aria-label="添加白名单">加入</button>
+              <Input size="sm" className="w-56" value={newProgram} onChange={(e) => setNewProgram(e.target.value)} placeholder="program（如 git.exe）" aria-label="新增白名单程序" />
+              <Button type="button" variant="default" size="xs" onClick={() => void addWl()} disabled={loading || newProgram.trim() === ''} aria-label="添加白名单">加入</Button>
             </div>
             <div className="flex flex-wrap gap-1">
               {custom.map((p) => (

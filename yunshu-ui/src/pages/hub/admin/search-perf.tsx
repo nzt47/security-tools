@@ -15,7 +15,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { Activity, Loader2, Play, RefreshCw, Square, Zap } from 'lucide-react'
-import { ErrorBox, hubGet, hubPost } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost } from '../components/ui'
 import {
   SEARCH_PERF_CHECK,
   SEARCH_PERF_HISTORY,
@@ -25,9 +25,6 @@ import {
   SEARCH_PERF_SUMMARY,
 } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
-const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
 const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 interface PerfStatus {
@@ -97,20 +94,20 @@ export default function SearchPerformance() {
           {running ? '正在运行（' + (status?.interval ?? '?') + ' 秒间隔）' : '未运行'}
         </span>
         <div className="ml-auto flex items-center gap-1.5">
-          <button type="button" className={BTN} onClick={() => void load()} disabled={loading} aria-label="刷新搜索性能">
+          <Button type="button" variant="default" size="xs" onClick={() => void load()} disabled={loading} aria-label="刷新搜索性能">
             {busy === 'load' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-          </button>
-          <button type="button" className={BTN_EM} onClick={() => void act('check')} disabled={loading} aria-label="立刻检测一次">
+          </Button>
+          <Button type="button" variant="accent" size="xs" onClick={() => void act('check')} disabled={loading} aria-label="立刻检测一次">
             {busy === 'check' ? <Loader2 size={11} className="animate-spin" /> : <Zap size={11} />} 立刻检测
-          </button>
+          </Button>
           {running ? (
-            <button type="button" className={BTN_RED} onClick={() => void act('stop')} disabled={loading} aria-label="停止性能监控">
+            <Button type="button" variant="danger-outline" size="xs" onClick={() => void act('stop')} disabled={loading} aria-label="停止性能监控">
               {busy === 'stop' ? <Loader2 size={11} className="animate-spin" /> : <Square size={11} />} 停止
-            </button>
+            </Button>
           ) : (
-            <button type="button" className={BTN_EM} onClick={() => void act('start')} disabled={loading} aria-label="启动性能监控">
+            <Button type="button" variant="accent" size="xs" onClick={() => void act('start')} disabled={loading} aria-label="启动性能监控">
               {busy === 'start' ? <Loader2 size={11} className="animate-spin" /> : <Play size={11} />} 启动
-            </button>
+            </Button>
           )}
         </div>
       </div>

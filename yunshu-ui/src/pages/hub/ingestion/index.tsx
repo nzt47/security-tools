@@ -12,7 +12,7 @@ import {
   AlertTriangle, ArrowRight, BookOpen, CheckCircle2, FileText, FolderOpen, GitBranch,
   Layers, Loader2, PackagePlus, RefreshCw, Search, ShieldCheck,
 } from 'lucide-react'
-import { Badge, Card, ErrorBox, PageHeader } from '../components/ui'
+import { Input, Button, Badge, Card, ErrorBox, PageHeader } from '../components/ui'
 import GovernancePanel from './governance'
 import ReviewPanel from './ReviewPanel'
 import MemoryDraftPanel from './MemoryDraftPanel'
@@ -344,11 +344,11 @@ export default function IngestionPage() {
           <BookOpen size={12} />
           第一次用？先看 3 分钟手册：7 站链路、哪几步自动、你要点的步骤，以及怎么少点几下。
           <button type="button" className={BTN + ' ml-auto'} onClick={openHelp}>打开使用手册</button>
-          <button type="button" className={BTN}
+          <Button type="button" variant="default" size="xs"
             onClick={() => {
               setHelpSeen(true)
               try { window.localStorage.setItem(HELP_SEEN_KEY, '1') } catch { /* 隐私模式忽略 */ }
-            }}>不再提示</button>
+            }}>不再提示</Button>
         </div>
       )}
 
@@ -371,16 +371,16 @@ export default function IngestionPage() {
             {mode === 'path' ? (
               <>
                 <div className="flex flex-wrap items-center gap-2">
-                  <input className={INPUT + ' flex-1'} value={pathInput}
+                  <Input size="sm" className="flex-1" value={pathInput}
                     aria-label="本机路径"
                     placeholder="目录 / SKILL.md / zip / 文档路径"
                     onChange={(e) => { setPathInput(e.target.value); resetPlan() }} />
-                  <button type="button" className={BTN_EM}
+                  <Button type="button" variant="accent" size="xs"
                     onClick={() => void doPreview(false)}
                     disabled={previewing !== '' || !pathInput.trim()}>
                     {previewing === 'preview' ? <Loader2 size={12} className="animate-spin" /> : <Search size={12} />}
                     预览计划
-                  </button>
+                  </Button>
                 </div>
                 <p className="mt-1 text-micro text-slate-500">
                   只读取来源，不执行来源脚本；路径可指向 claude / openclaw / trae 技能目录或任意文档。
@@ -396,20 +396,20 @@ export default function IngestionPage() {
                   <span className="mr-auto text-micro text-slate-500">
                     直通 = 一次调用直接出草稿（含 1 次 LLM 重写与引用校验）；失败不落草稿。
                   </span>
-                  <button type="button" className={BTN_EM}
+                  <Button type="button" variant="accent" size="xs"
                     onClick={() => void doPreview(false)}
                     disabled={previewing !== '' || !textInput.trim()}>
                     {previewing === 'preview' ? <Loader2 size={12} className="animate-spin" /> : <Search size={12} />}
                     预览计划
-                  </button>
-                  <button type="button" className={BTN_EM}
+                  </Button>
+                  <Button type="button" variant="accent" size="xs"
                     onClick={() => void doDirect()}
                     disabled={directBusy || !textInput.trim()}
                     aria-label="直通生成草稿"
                     title="跳过分级/确认两道闸：直接调用一次 LLM 重写 + 校验并落草稿（仍不安装/不注册/不启用）">
                     {directBusy ? <Loader2 size={12} className="animate-spin" /> : <PackagePlus size={12} />}
                     直接生成草稿
-                  </button>
+                  </Button>
                 </div>
                 {directResult && (
                   <div className="mt-2 rounded-sm border border-emerald-900/50 bg-emerald-950/20 p-2 text-micro leading-relaxed text-emerald-200">
@@ -431,18 +431,18 @@ export default function IngestionPage() {
                 {sources ? sources.stats.candidates + ' 个候选 / ' + sources.stats.previewable + ' 个可预览' : '未探测'}
               </span>
               {/* 探测入口收在本卡片右侧：它只服务「本机可吞噬源」，放页头会让人以为是全局动作 */}
-              <button type="button" className={BTN} onClick={() => void discover()} disabled={discovering}
+              <Button type="button" variant="default" size="xs" onClick={() => void discover()} disabled={discovering}
                 aria-label="探测本机源">
                 {discovering ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
                 探测本机源
-              </button>
-              <button type="button" className={BTN} disabled={batchBusy !== '' || batchSel.length === 0}
+              </Button>
+              <Button type="button" variant="default" size="xs" disabled={batchBusy !== '' || batchSel.length === 0}
                 onClick={() => void runBatch()}
                 aria-label="批量生成草稿"
                 title="逐条预览后各生成一份草稿（不安装/不注册/不启用；L2 自动重写）">
                 {batchBusy !== '' ? <Loader2 size={12} className="animate-spin" /> : <PackagePlus size={12} />}
                 批量生成草稿{batchSel.length > 0 ? '（' + Math.min(batchSel.length, BATCH_MAX) + '）' : ''}{batchBusy ? ' ' + batchBusy : ''}
-              </button>
+              </Button>
             </div>
           )}>
             {!sources ? (
@@ -507,12 +507,12 @@ export default function IngestionPage() {
                     </span>
                     {sources.candidates.length > sourceShown ? (
                       <>
-                        <button type="button" className={BTN} onClick={() => setSourceShown((n) => n + SOURCE_PAGE)}>
+                        <Button type="button" variant="default" size="xs" onClick={() => setSourceShown((n) => n + SOURCE_PAGE)}>
                           加载更多（再 {Math.min(SOURCE_PAGE, sources.candidates.length - sourceShown)} 条）
-                        </button>
-                        <button type="button" className={BTN} onClick={() => setSourceShown(sources.candidates.length)}>
+                        </Button>
+                        <Button type="button" variant="default" size="xs" onClick={() => setSourceShown(sources.candidates.length)}>
                           全部展开
-                        </button>
+                        </Button>
                       </>
                     ) : (
                       <span>已全部显示</span>
@@ -576,11 +576,11 @@ export default function IngestionPage() {
                     <span className="text-micro text-slate-500">置信度 {plan.recommendation.confidence}</span>
                     {plan.recommendation.form !== 'skill' && (
                       <div className="ml-auto flex flex-wrap items-center gap-1.5">
-                        <button type="button" className={BTN}
+                        <Button type="button" variant="default" size="xs"
                           onClick={() => { setForm(plan.recommendation.form as IngestForm); setConfirmed(false) }}
                           title="采用后只生成骨架草稿：不注册、不启用，步骤需人工绑定工具">
                           采用（生成骨架草稿）
-                        </button>
+                        </Button>
                         <button type="button" className={BTN + ' border-emerald-800/70 text-emerald-300'}
                           onClick={() => { setForm('skill'); setConfirmed(false) }}
                           title="按技能形态生成草稿（仍不注册、不启用）">
@@ -705,12 +705,12 @@ export default function IngestionPage() {
                 </label>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <button type="button" className={BTN_EM} onClick={() => void doCommit()}
+                  <Button type="button" variant="accent" size="xs" onClick={() => void doCommit()}
                     disabled={!confirmed || committing || !!previewing || plan.requires_rewrite}
                     aria-label={commitLabel}>
                     {committing ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
                     {commitLabel}
-                  </button>
+                  </Button>
                   {plan.requires_rewrite && (
                     <span className="text-micro text-amber-400">
                       L2 来源被卡在这里：先在「2. 预览计划」点「LLM 重写并预览」，回来才能生成
@@ -765,12 +765,12 @@ export default function IngestionPage() {
                 {/* 下一步直达：草稿 → 评审 → 登记，省掉「自己回想在哪一页」 */}
                 <div className="mt-1 flex flex-wrap items-center gap-2">
                   <span className="text-micro text-slate-500">下一步：</span>
-                  <button type="button" className={BTN} onClick={() => setTab('review')}>
+                  <Button type="button" variant="default" size="xs" onClick={() => setTab('review')}>
                     去草稿评审
-                  </button>
-                  <button type="button" className={BTN} onClick={() => setTab('queue')}>
+                  </Button>
+                  <Button type="button" variant="default" size="xs" onClick={() => setTab('queue')}>
                     去转化队列登记
-                  </button>
+                  </Button>
                 </div>
               </div>
             </Card>

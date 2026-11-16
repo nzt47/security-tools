@@ -10,15 +10,12 @@
  */
 import { useEffect, useState } from 'react'
 import { DownloadCloud, Loader2, Play } from 'lucide-react'
-import { Card } from '@/pages/hub/components/ui'
+import { Button, Card } from '@/pages/hub/components/ui'
 import {
   MemoryImportApiError, fetchMemorySessionLatest, fetchMemorySessionSources,
   importMemorySessions,
   type MemorySessionReport, type MemorySessionSource,
 } from '@/lib/memoryImportApi'
-
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-cyan-700/70 px-2 py-1 text-caption text-cyan-300 transition-colors hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50'
-const BTN_PRIMARY = 'inline-flex items-center gap-1 rounded-md bg-cyan-600 px-3 py-1.5 text-caption font-medium text-white transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-40'
 
 const SOURCE_LABEL: Record<string, string> = {
   dsh: 'DeepSeek Harness',
@@ -149,13 +146,13 @@ export default function MemorySessionsImportCard() {
             包含子代理会话
           </label>
         )}
-        <button type="button" className={BTN} onClick={() => void run(true)} disabled={busy !== '' || !current?.available} aria-label="只跑 dry-run">
+        <Button type="button" variant="default" size="xs" onClick={() => void run(true)} disabled={busy !== '' || !current?.available} aria-label="只跑 dry-run">
           {busy === 'dry' ? <Loader2 size={11} className="animate-spin" /> : <DownloadCloud size={11} />} 只跑 dry-run
-        </button>
-        <button type="button" className={BTN_PRIMARY} onClick={() => void run(false)}
+        </Button>
+        <Button type="button" variant="primary" size="xs" onClick={() => void run(false)}
           disabled={busy !== '' || !confirmed || !current?.available} aria-label="执行导入">
           {busy === 'exec' ? <Loader2 size={11} className="animate-spin" /> : <Play size={11} />} 执行导入（写入）
-        </button>
+        </Button>
       </div>
 
       <label className="mb-2 inline-flex items-center gap-1 text-caption text-slate-400">

@@ -18,7 +18,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { Loader2, RefreshCw, Settings2, Trash2, TriangleAlert } from 'lucide-react'
-import { ErrorBox, hubGet, hubPost } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost } from '../components/ui'
 import {
   EXTENSIONS_CONFIGURE,
   EXTENSIONS_LIST,
@@ -27,7 +27,7 @@ import {
 } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
+
 const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 font-mono text-caption text-slate-200 outline-hidden focus:border-cyan-600'
 
 export interface ExtRow {
@@ -193,34 +193,34 @@ export default function InstalledExtensions({ types, title, hint, emptyText, exc
                   {row.enabled ? '启用' : '停用'}
                 </span>
                 <span className="ml-auto flex items-center gap-1">
-                  <button
+                  <Button
                     type="button"
-                    className={BTN}
+                    variant="default" size="xs"
                     onClick={() => void toggle(row)}
                     disabled={loading}
                     aria-label={'切换 ' + id}
                   >
                     {busy === 'toggle:' + id ? <Loader2 size={11} className="animate-spin" /> : null}
                     {row.enabled ? '停用' : '启用'}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
-                    className={BTN}
+                    variant="default" size="xs"
                     onClick={() => openConfig(row)}
                     disabled={loading}
                     aria-label={'配置 ' + id}
                   >
                     <Settings2 size={11} /> 配置
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
-                    className={BTN_RED}
+                    variant="danger-outline" size="xs"
                     onClick={() => setConfirm(confirming ? '' : key)}
                     disabled={loading}
                     aria-label={'卸载 ' + id}
                   >
                     <Trash2 size={11} /> 卸载
-                  </button>
+                  </Button>
                 </span>
               </div>
               {row.description && <div className="mt-0.5 text-micro text-slate-500">{row.description}</div>}
@@ -235,16 +235,16 @@ export default function InstalledExtensions({ types, title, hint, emptyText, exc
                     aria-label={'配置文本 ' + id}
                   />
                   <div className="mt-1 flex justify-end gap-1">
-                    <button type="button" className={BTN} onClick={() => setConfigKey('')}>取消</button>
-                    <button
+                    <Button type="button" variant="default" size="xs" onClick={() => setConfigKey('')}>取消</Button>
+                    <Button
                       type="button"
-                      className={BTN}
+                      variant="default" size="xs"
                       onClick={() => void saveConfig(row)}
                       disabled={busy === 'config:' + id}
                       aria-label={'保存配置 ' + id}
                     >
                       {busy === 'config:' + id ? <Loader2 size={11} className="animate-spin" /> : null} 保存
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
@@ -255,16 +255,16 @@ export default function InstalledExtensions({ types, title, hint, emptyText, exc
                   <span className="text-micro text-red-300">
                     卸载对「文件轨独占」的扩展是不可逆删除（force=true 才允许）。确定？
                   </span>
-                  <button
+                  <Button
                     type="button"
-                    className={BTN_RED}
+                    variant="danger-outline" size="xs"
                     onClick={() => void uninstall(row)}
                     disabled={loading}
                     aria-label={'确认卸载 ' + id}
                   >
                     {busy === 'uninstall:' + id ? <Loader2 size={11} className="animate-spin" /> : null} 确认卸载
-                  </button>
-                  <button type="button" className={BTN} onClick={() => setConfirm('')}>取消</button>
+                  </Button>
+                  <Button type="button" variant="default" size="xs" onClick={() => setConfirm('')}>取消</Button>
                 </div>
               )}
             </div>

@@ -29,7 +29,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { hubHref } from '../../../workbench/hubNav'
 import { ShieldAlert, Trash2 } from 'lucide-react'
-import { Card, Loading, ErrorBox, DataTable, Badge, CallabilityBadge, PageHeader, Switch, hubGet, hubPost } from '../components/ui'
+import { Button, Card, Loading, ErrorBox, DataTable, Badge, CallabilityBadge, PageHeader, Switch, hubGet, hubPost } from '../components/ui'
 import { callabilityCounts, callabilityLegend, hasCallabilityMark, type CallabilityInfo } from '@/lib/callability'
 import DescriptionCell from '@/components/DescriptionCell'
 // 行内按钮形状与技能中心/工作流同一口径（2026-11-08：三张表按钮大小不一，统一到 lib/tableActions）
@@ -432,13 +432,13 @@ export default function ToolsToolset() {
           {/* 【只给运行时登记的工具】内建工具是代码注册：删了下次启动又回来，真删必须改代码 +
               重派生五处（口径 §3.1）⇒ 页面不给按钮，避免"点了就删了"的错觉。 */}
           {r.removable && (
-            <button
+            <Button
               onClick={() => void openRemove(String(r.name))}
-              className={TABLE_BTN_DANGER}
+              variant="danger-outline" size="xs"
               title="移除这个**运行时登记**的工具：台账 + YAML + 实现 + 单测 + UI 开关（先预览再确认；内建工具需走 PR）"
             >
               <Trash2 size={11} /> 移除
-            </button>
+            </Button>
           )}
         </div>
       ),

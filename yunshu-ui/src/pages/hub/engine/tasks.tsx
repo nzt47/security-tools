@@ -18,7 +18,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Ban, CheckCircle2, Clock, FileText, Loader2, ListChecks, RefreshCw,
 } from 'lucide-react'
-import { ErrorBox, hubGet, hubPost } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost } from '../components/ui'
 import {
   ASYNC_TASKS,
   BACKGROUND_TASKS,
@@ -30,7 +30,7 @@ import {
 } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
+
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
@@ -132,23 +132,23 @@ export default function TaskQueue() {
               </span>
               <span className="font-mono text-micro text-slate-600">{String(r.created_at ?? '')}</span>
               <span className="ml-auto flex flex-wrap items-center gap-1">
-                <button type="button" className={BTN} onClick={() => void openDetail(kind, id)} disabled={loading} aria-label={'任务详情 ' + id}>
+                <Button type="button" variant="default" size="xs" onClick={() => void openDetail(kind, id)} disabled={loading} aria-label={'任务详情 ' + id}>
                   <FileText size={11} /> 详情
-                </button>
+                </Button>
                 {kind === 'bg' && (
-                  <button type="button" className={BTN} onClick={() => void openResult(id)} disabled={loading} aria-label={'任务结果 ' + id}>
+                  <Button type="button" variant="default" size="xs" onClick={() => void openResult(id)} disabled={loading} aria-label={'任务结果 ' + id}>
                     结果
-                  </button>
+                  </Button>
                 )}
-                <button
+                <Button
                   type="button"
-                  className={BTN_RED}
+                  variant="danger-outline" size="xs"
                   onClick={() => setConfirmCancel(isOpen ? '' : key)}
                   disabled={loading || !canCancel}
                   aria-label={'取消任务 ' + id}
                 >
                   <Ban size={11} /> 取消
-                </button>
+                </Button>
               </span>
             </div>
             {isOpen && (
@@ -156,10 +156,10 @@ export default function TaskQueue() {
                 <span className="text-micro text-red-300">
                   取消 {id}（当前 {status || '未知'}）可能留下半成品。确定？
                 </span>
-                <button type="button" className={BTN_RED} onClick={() => void cancel(kind, id)} disabled={loading} aria-label={'确认取消 ' + id}>
+                <Button type="button" variant="danger-outline" size="xs" onClick={() => void cancel(kind, id)} disabled={loading} aria-label={'确认取消 ' + id}>
                   {busy === 'cancel:' + id ? <Loader2 size={11} className="animate-spin" /> : null} 确认取消
-                </button>
-                <button type="button" className={BTN} onClick={() => setConfirmCancel('')}>返回</button>
+                </Button>
+                <Button type="button" variant="default" size="xs" onClick={() => setConfirmCancel('')}>返回</Button>
               </div>
             )}
           </div>
@@ -183,9 +183,9 @@ export default function TaskQueue() {
             <option value="completed">completed</option>
             <option value="failed">failed</option>
           </select>
-          <button type="button" className={BTN} onClick={() => void load()} disabled={loading} aria-label="刷新任务队列">
+          <Button type="button" variant="default" size="xs" onClick={() => void load()} disabled={loading} aria-label="刷新任务队列">
             {loading ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-          </button>
+          </Button>
         </div>
       </div>
 

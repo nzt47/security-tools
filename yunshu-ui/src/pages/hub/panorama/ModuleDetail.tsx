@@ -14,12 +14,12 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, Loader2, Play, RefreshCw, X } from 'lucide-react'
-import { hubGet, hubPost } from '../components/ui'
+import { Input, Button, hubGet, hubPost } from '../components/ui'
 import { MODULES_ACTIONS, modulesDetail } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_DANGER = BTN + ' border-amber-800/70 text-amber-300 hover:bg-amber-500/10'
-const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-caption text-slate-200 outline-hidden focus:border-cyan-600'
+
 const PRE = 'max-h-48 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 interface NodeAction {
@@ -91,12 +91,12 @@ export default function ModuleDetail({ moduleId, onClose }: { moduleId: string; 
         <span className="font-mono text-micro text-slate-500">{moduleId}</span>
         {data?.status && <span className="text-micro text-slate-400">状态 {data.status}</span>}
         <div className="ml-auto flex items-center gap-1">
-          <button type="button" className={BTN} onClick={() => void load()} disabled={loading} aria-label={'刷新模块详情 ' + moduleId}>
+          <Button type="button" variant="default" size="xs" onClick={() => void load()} disabled={loading} aria-label={'刷新模块详情 ' + moduleId}>
             {busy === 'load' ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />} 刷新
-          </button>
-          <button type="button" className={BTN} onClick={onClose} aria-label={'关闭模块详情 ' + moduleId}>
+          </Button>
+          <Button type="button" variant="default" size="xs" onClick={onClose} aria-label={'关闭模块详情 ' + moduleId}>
             <X size={10} /> 关闭
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -141,17 +141,17 @@ export default function ModuleDetail({ moduleId, onClose }: { moduleId: string; 
       {pending && (
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5 rounded-sm border border-amber-900/50 bg-amber-500/5 px-2 py-1.5">
           <span className="text-micro text-amber-300">执行 {pending} 会写入审计；请确认，并可选填原因。</span>
-          <input
-            className={INPUT + ' w-56'}
+          <Input
+            size="sm" className="w-56"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="原因（写入审计）"
             aria-label="动作原因"
           />
-          <button type="button" className={BTN_DANGER} onClick={() => void run(pending)} disabled={loading} aria-label={'确认执行动作 ' + pending}>
+          <Button type="button" variant="danger-outline" size="xs" onClick={() => void run(pending)} disabled={loading} aria-label={'确认执行动作 ' + pending}>
             {busy === 'action:' + pending ? <Loader2 size={10} className="animate-spin" /> : null} 确认执行
-          </button>
-          <button type="button" className={BTN} onClick={() => setPending('')}>取消</button>
+          </Button>
+          <Button type="button" variant="default" size="xs" onClick={() => setPending('')}>取消</Button>
         </div>
       )}
 

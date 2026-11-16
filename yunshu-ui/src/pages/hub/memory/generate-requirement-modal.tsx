@@ -7,13 +7,11 @@
  */
 import { useState } from 'react'
 import { Loader2, Lightbulb, ShieldCheck } from 'lucide-react'
-import { hubPost } from '../../hub/components/ui'
+import { Input, Textarea, hubPost } from '../../hub/components/ui'
 
 import {
   SKILLS_MGMT_CREATE_AI,
 } from '@/api/endpoints';
-
-const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 
 interface Props {
   initialIntent?: string
@@ -63,11 +61,11 @@ export default function GenerateRequirementModal({ initialIntent = '', onClose, 
         </p>
         <label className="mb-2.5 block">
           <span className="mb-1 block text-caption text-slate-400">技能名称（可选）</span>
-          <input className={INPUT} value={name} onChange={(e) => setName(e.target.value)} placeholder="留空自动命名" />
+          <Input size="sm" value={name} onChange={(e) => setName(e.target.value)} placeholder="留空自动命名" />
         </label>
         <label className="mb-2.5 block">
           <span className="mb-1 block text-caption text-slate-400">对话中的要求 / 能力描述 *</span>
-          <textarea className={`${INPUT} font-mono`} rows={5} value={intent}
+          <Textarea size="sm" className="font-mono" rows={5} value={intent}
             onChange={(e) => setIntent(e.target.value)}
             placeholder="例如：当用户提到『查天气』时先调用 weather_api，超时 5s 内重试一次并返回结构化结果" />
         </label>

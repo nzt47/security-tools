@@ -11,11 +11,9 @@
  */
 import { useState } from 'react'
 import { FileText, Loader2 } from 'lucide-react'
-import { hubPost } from '../../pages/hub/components/ui'
+import { Button, Input, hubPost } from '../../pages/hub/components/ui'
 import { HANDOFF, SESSIONS_FROM_HANDOFF } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 const PRE = 'max-h-64 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 export default function HandoffPanel({ sessionId }: { sessionId: string }) {
@@ -71,16 +69,16 @@ export default function HandoffPanel({ sessionId }: { sessionId: string }) {
       </div>
       {err && <div className="mb-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-caption text-red-300">{err}</div>}
       <div className="flex flex-wrap items-center gap-2">
-        <input
-          className={INPUT + ' w-72'}
+        <Input
+          size="sm" className="w-72"
           value={intent}
           onChange={(e) => setIntent(e.target.value)}
           placeholder="下一段会话要做什么（可选，用于技能推荐）"
           aria-label="交接意图"
         />
-        <button type="button" className={BTN} onClick={() => void run()} disabled={busy || !sessionId} aria-label="生成交接文档">
+        <Button type="button" variant="default" size="xs" onClick={() => void run()} disabled={busy || !sessionId} aria-label="生成交接文档">
           {busy ? <Loader2 size={11} className="animate-spin" /> : <FileText size={11} />} 生成交接文档
-        </button>
+        </Button>
         <span className="text-micro text-slate-600">会话：{sessionId || '未选中'}</span>
       </div>
       {path && (
@@ -90,11 +88,11 @@ export default function HandoffPanel({ sessionId }: { sessionId: string }) {
       )}
       {markdown && (
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <button type="button" className={BTN} onClick={() => void createSession()}
+          <Button type="button" variant="default" size="xs" onClick={() => void createSession()}
             disabled={creating} aria-label="用交接文档开新会话"
             title="新建一个会话，并把这份交接文档作为它的第一条消息，直接接着干">
             {creating ? <Loader2 size={11} className="animate-spin" /> : <FileText size={11} />} 用这份文档开新会话
-          </button>
+          </Button>
           {created && (
             <span className="text-micro text-emerald-300">
               已创建：{created.title || created.id}（左侧会话列表可切换）

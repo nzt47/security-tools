@@ -15,7 +15,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   AlertTriangle, Activity, FileText, Loader2, RefreshCw, Save, Trash2, Wrench,
 } from 'lucide-react'
-import { ErrorBox, hubDelete, hubGet, hubPut } from '../components/ui'
+import { Input, Button, ErrorBox, hubDelete, hubGet, hubPut } from '../components/ui'
 import {
   DIAGNOSTICS_CONFIG,
   DIAGNOSTICS_ERROR_CORRELATION,
@@ -30,9 +30,6 @@ import {
   observabilityTrace,
 } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
-const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 const PRE = 'max-h-40 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
@@ -159,15 +156,15 @@ export default function OpsDiagnostics() {
         <Wrench size={13} className="text-cyan-400" />
         <h3 className="text-xs font-semibold text-slate-200">诊断 / 可观测</h3>
         <div className="ml-auto flex items-center gap-1.5">
-          <button
+          <Button
             type="button"
-            className={BTN}
+            variant="default" size="xs"
             aria-label="刷新诊断与可观测"
             disabled={loading}
             onClick={() => { if (tab === 'diag') void loadDiag(); else void loadObserve() }}
           >
             {loading ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -302,10 +299,10 @@ export default function OpsDiagnostics() {
               <Activity size={11} className="text-cyan-400" /> 追踪（{traces.length}）
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <input className={INPUT + ' w-64'} value={traceId} onChange={(e) => setTraceId(e.target.value)} placeholder="trace_id" aria-label="追踪 id" />
-              <button type="button" className={BTN} onClick={() => void loadTrace()} disabled={loading || traceId.trim() === ''} aria-label="读取追踪详情">
+              <Input size="sm" className="w-64" value={traceId} onChange={(e) => setTraceId(e.target.value)} placeholder="trace_id" aria-label="追踪 id" />
+              <Button type="button" variant="default" size="xs" onClick={() => void loadTrace()} disabled={loading || traceId.trim() === ''} aria-label="读取追踪详情">
                 {busy === 'trace' ? <Loader2 size={11} className="animate-spin" /> : null} 查看详情
-              </button>
+              </Button>
             </div>
             {traces.length > 0 && (
               <div className="mt-1 flex flex-col gap-1">
@@ -331,7 +328,7 @@ export default function OpsDiagnostics() {
               <Save size={11} className="text-cyan-400" /> 告警规则（PUT 覆盖 / DELETE 删除）
             </div>
             <div className="mb-1 flex flex-wrap items-center gap-2">
-              <input className={INPUT + ' w-56'} value={alertName} onChange={(e) => setAlertName(e.target.value)} placeholder="规则名，如 YunshuHealthScoreCritical" aria-label="告警规则名" />
+              <Input size="sm" className="w-56" value={alertName} onChange={(e) => setAlertName(e.target.value)} placeholder="规则名，如 YunshuHealthScoreCritical" aria-label="告警规则名" />
             </div>
             <textarea
               className={INPUT + ' h-20 w-full font-mono'}
@@ -340,16 +337,16 @@ export default function OpsDiagnostics() {
               aria-label="告警规则 JSON"
             />
             <div className="mt-1 flex flex-wrap items-center gap-2">
-              <button type="button" className={BTN_EM} onClick={() => void saveAlert()} disabled={loading || alertName.trim() === ''} aria-label="保存告警规则">
+              <Button type="button" variant="accent" size="xs" onClick={() => void saveAlert()} disabled={loading || alertName.trim() === ''} aria-label="保存告警规则">
                 {busy === 'alert' ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />} 保存规则
-              </button>
+              </Button>
               <label className="ml-2 flex items-center gap-1 text-micro text-slate-400">
                 <input type="checkbox" checked={confirmDeleteAlert} onChange={(e) => setConfirmDeleteAlert(e.target.checked)} aria-label="确认删除告警规则" />
                 我确认删除该规则
               </label>
-              <button type="button" className={BTN_RED} onClick={() => void deleteAlert()} disabled={loading || !confirmDeleteAlert || alertName.trim() === ''} aria-label="删除告警规则">
+              <Button type="button" variant="danger-outline" size="xs" onClick={() => void deleteAlert()} disabled={loading || !confirmDeleteAlert || alertName.trim() === ''} aria-label="删除告警规则">
                 <Trash2 size={11} /> 删除规则
-              </button>
+              </Button>
             </div>
           </div>
 
