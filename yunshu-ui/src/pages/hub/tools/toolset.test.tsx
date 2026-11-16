@@ -216,7 +216,7 @@ describe('工具集 · 列宽可拖 + 按钮与技能中心同口径（2026-11-0
     expect((cols[0] as HTMLElement).style.width).toBe('240px')
   })
 
-  it('行内按钮用 @/lib/tableActions 的四个常量（形状一致、颜色表语义）', async () => {
+  it('启停是开关（开关本身就是状态列），动作按钮仍用 @/lib/tableActions 的常量', async () => {
     mocks.getEnvelope.mockResolvedValue([
       { name: 'read_file', enabled: true },
       { name: 'byted_x', enabled: false, runtime: true, removable: true },
@@ -224,12 +224,16 @@ describe('工具集 · 列宽可拖 + 按钮与技能中心同口径（2026-11-0
     render(<ToolsToolset />)
     await waitFor(() => expect(screen.getByText('read_file')).toBeInTheDocument())
 
+    // 【2026-11-16 Owner 口径】不再有「启用/停用」文字按钮，也不再有「状态」文字徽章：
+    //   状态由 role=switch 表示（开=aria-checked true、关=false），且开关内零文字。
     const enabledRow = screen.getByText('read_file').closest('tr')!
-    // 已启用 ⇒ 动作是「停用」⇒ 中性色
-    expect(within(enabledRow).getByRole('button', { name: '停用' }).className).toBe(actions.TABLE_BTN)
+    const onSwitch = within(enabledRow).getByRole('switch')
+    expect(onSwitch.getAttribute('aria-checked')).toBe('true')
+    expect((onSwitch.textContent ?? '').trim()).toBe('')
+    expect(within(enabledRow).queryByRole('button', { name: /^(启用|停用)$/ })).toBeNull()
+
     const disabledRow = screen.getByText('byted_x').closest('tr')!
-    // 未启用 ⇒ 动作是「启用」⇒ 主动作色
-    expect(within(disabledRow).getByRole('button', { name: '启用' }).className).toBe(actions.TABLE_BTN_PRIMARY)
+    expect(within(disabledRow).getByRole('switch').getAttribute('aria-checked')).toBe('false')
     // 移除 = 破坏性
     expect(within(disabledRow).getByRole('button', { name: '移除' }).className).toBe(actions.TABLE_BTN_DANGER)
   })

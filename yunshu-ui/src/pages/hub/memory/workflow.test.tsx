@@ -123,7 +123,8 @@ describe('工作流表 · 列宽可拖 + 按钮与技能中心同口径（2026-1
     expect(screen.getByRole('button', { name: /执行/ }).className).toBe(TABLE_BTN_PRIMARY)
     expect(screen.getByRole('button', { name: /删除/ }).className).toBe(TABLE_BTN_DANGER)
     expect(screen.getByRole('button', { name: /导出为 LLM 参考/ }).className).toBe(TABLE_BTN_INFO)
-    // 已启用 ⇒ 动作是「停用」⇒ 中性色（与工具集同一判断）
-    expect(screen.getByRole('button', { name: '停用' }).className).toBe(TABLE_BTN)
+    // 【2026-11-16 Owner 口径】启停不再是文字按钮：状态由 role=switch 表示（开关本身就是状态列）
+    expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('true')
+    expect(screen.queryByRole('button', { name: /^(启用|停用)$/ })).toBeNull()
   })
 })

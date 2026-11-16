@@ -15,7 +15,7 @@ import {
   ChevronDown, ChevronRight, Copy, Download, FilePlus, Filter, Folder, Lightbulb, Loader2, Layers, Plus,
   RefreshCw, Rocket, ScrollText, ShieldCheck, Trash2, X, Zap,
 } from 'lucide-react'
-import { CallabilityBadge, hubGet, hubPost } from '../components/ui'
+import { CallabilityBadge, Switch, hubGet, hubPost } from '../components/ui'
 import { authHeader, getApiToken } from '../../../lib/apiToken'
 import ClassIcon from './class-icon'
 import ApiTokenPrompt from './api-token-prompt'
@@ -625,7 +625,15 @@ export default function SkillAssessManager() {
         <td className="px-2 py-2 align-top">
           <div className="flex flex-wrap gap-1">
             {it.runtime_only ? chip('仅运行时', 'bg-violet-500/10 text-violet-300 border-violet-800/50', RUNTIME_ONLY_TIP) : statusChip(it.status)}
-            {it.enabled ? chip('启用', 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60') : chip('停用', 'bg-slate-500/10 text-slate-400 border-slate-700')}
+            {/* 【2026-11-16 Owner 口径】启用状态是**开关**，不再是一枚「启用/停用」文字徽章 +
+                动作列里再放一个同义按钮：开关本身就是状态列（审批状态是另一维，仍用 chip）。 */}
+            <Switch
+              size="sm"
+              checked={Boolean(it.enabled)}
+              disabled={busy !== ''}
+              onCheckedChange={() => (it.runtime_only ? void toggleRuntime(it) : void toggle(it))}
+              label={`${it.enabled ? '停用' : '启用'}技能 ${String(it.name ?? it.id)}`}
+            />
           </div>
         </td>
         <td className="px-2 py-2">
@@ -685,9 +693,7 @@ export default function SkillAssessManager() {
         <td className="w-[18rem] px-2 py-2">
           <div className="flex flex-wrap items-center gap-1">
             {it.runtime_only ? (
-              <button type="button" className={BTN} onClick={() => void toggleRuntime(it)} disabled={busy !== ''}>
-                {it.enabled ? '停用' : '启用'}
-              </button>
+              <></>
             ) : (
               <>
                 {grouped && classOptions.length > 0 && (
@@ -741,9 +747,6 @@ export default function SkillAssessManager() {
                     ? `当前状态「${STATUS_ZH[String(it.status)] ?? it.status}」不可再发布（发布是终态动作）`
                     : '发布 = 过评审闸门并置为已发布终态（未通过评审需填原因强制发布并写审计）'}>  
                   <Rocket size={11} /> {it.status === 'published' ? '已发布' : '发布'}
-                </button>
-                <button type="button" className={BTN} onClick={() => toggle(it)} disabled={busy !== ''}>
-                  {it.enabled ? '停用' : '启用'}
                 </button>
                 <button type="button" className={BTN_RED} onClick={() => void remove(it)} disabled={busy !== ''} title="从资产库删除">
                   <Trash2 size={11} />

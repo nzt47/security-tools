@@ -173,17 +173,7 @@
   overflow-y: auto;
   overflow-x: hidden;
 }
-.devconsole-body::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-.devconsole-body::-webkit-scrollbar-thumb {
-  background: #30363d;
-  border-radius: 4px;
-}
-.devconsole-body::-webkit-scrollbar-track {
-  background: transparent;
-}
+/* 【2026-11-16】滚动条统一到 theme.css（这里不再自带 8px/#30363d 的一套） */
 
 /* 表格 */
 .devconsole-table {

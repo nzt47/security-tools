@@ -26,7 +26,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   CheckCircle2, Copy, Download, Loader2, PlugZap, Plus, Send, Settings2, SlidersHorizontal, Trash2,
 } from 'lucide-react'
-import { ErrorBox, hubGet, hubPost } from '../components/ui'
+import { ErrorBox, Switch, hubGet, hubPost } from '../components/ui'
 import {
   CP_SETTINGS,
   cpSetting,
@@ -456,19 +456,16 @@ export default function HubChannelsPanel() {
             const masterOff = row.key !== 'CP_CHANNEL_EVENTS' && !!master && !master.value
             return (
               <div key={row.key} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-caption">
-                <label className="flex items-center gap-1.5 text-slate-300">
-                  <input
-                    type="checkbox"
-                    checked={on}
-                    disabled={loading || !it || it.editable === false}
-                    onChange={() => void toggleEvent(row.key, !on)}
-                    aria-label={'事件出站 ' + row.key}
-                  />
-                  {row.label}
-                </label>
-                <span className={'text-micro ' + (on ? 'text-emerald-400' : 'text-slate-500')}>
-                  {on ? '出站' : '不出站'}
-                </span>
+                {/* 【2026-11-16 Owner 口径】布尔状态 = 开关（开=亮/关=灰、零文字），
+                    后面那枚「出站/不出站」文字就是第二列状态，删掉。 */}
+                <Switch
+                  size="sm"
+                  checked={on}
+                  disabled={loading || !it || it.editable === false}
+                  onCheckedChange={() => void toggleEvent(row.key, !on)}
+                  label={'事件出站 ' + row.key}
+                />
+                <span className="text-slate-300">{row.label}</span>
                 <span className="truncate text-micro text-slate-500">{row.hint}</span>
                 <span className="ml-auto flex items-center gap-2">
                   {masterOff && <span className="text-micro text-amber-300">总开关已关</span>}
@@ -535,9 +532,19 @@ export default function HubChannelsPanel() {
                   {item.description ? (
                     <span className="truncate text-micro text-slate-500">{item.description}</span>
                   ) : null}
-                  <span className={'text-micro ' + (!row ? 'text-slate-500' : row.enabled ? 'text-emerald-400' : 'text-amber-300')}>
-                    {!row ? '未安装' : row.enabled ? '已启用' : '已装（未启用）'}
-                  </span>
+                  {/* 【2026-11-16 Owner 口径】"已启用/已装（未启用）"这行字是状态列的另一种写法 ⇒
+                      已安装的通道直接用开关表示状态（开=亮、关=灰、零文字）；未安装才留文字。 */}
+                  {!row ? (
+                    <span className="text-micro text-slate-500">未安装</span>
+                  ) : (
+                    <Switch
+                      size="sm"
+                      checked={Boolean(row.enabled)}
+                      disabled={loading}
+                      onCheckedChange={() => void toggleInstalled(row)}
+                      label={`${row.enabled ? '停用' : '启用'}通道 ${id}`}
+                    />
+                  )}
                   <span className="ml-auto flex items-center gap-1.5">
                     {!row && (
                       <button
@@ -560,16 +567,6 @@ export default function HubChannelsPanel() {
                       aria-label={'配置通道 ' + id}
                     >
                       <Settings2 size={11} /> {editing ? '收起配置' : '配置'}
-                    </button>
-                    {/* 停用态下「启用」是下一步该点的动作 ⇒ 高亮；已启用的「停用」保持中性（避免误点） */}
-                    <button
-                      type="button"
-                      className={row.enabled ? BTN : BTN_PRIMARY}
-                      onClick={() => void toggleInstalled(row)}
-                      disabled={loading}
-                      aria-label={'切换通道 ' + id}
-                    >
-                      {busy === 'toggle:' + id ? <Loader2 size={11} className="animate-spin" /> : null} {row.enabled ? '停用' : '启用'}
                     </button>
                     <button type="button" className={BTN} onClick={() => setConfirmUninstall(isConfirm ? '' : id)} disabled={loading} aria-label={'卸载通道 ' + id}>
                       <Trash2 size={11} /> 卸载

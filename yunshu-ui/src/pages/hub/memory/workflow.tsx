@@ -8,7 +8,7 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import { Eye, Play, Trash2 } from 'lucide-react'
-import { Card, Loading, ErrorBox, DataTable, Badge, hubPost, hubDelete } from '../components/ui'
+import { Card, Loading, ErrorBox, DataTable, Badge, Switch, hubPost, hubDelete } from '../components/ui'
 import DescriptionCell from '@/components/DescriptionCell'
 // 行内按钮形状与技能中心/工具集同一口径（2026-11-08 统一；颜色表达语义）
 import { TABLE_BTN, TABLE_BTN_PRIMARY, TABLE_BTN_INFO, TABLE_BTN_DANGER } from '@/lib/tableActions'
@@ -217,7 +217,12 @@ export function MemoryWorkflowTable() {
                 key: 'enabled', title: '状态',
                 render: (r) => (
                   <div className="flex flex-col items-start gap-1">
-                    <Badge color={r.enabled ? 'green' : 'slate'}>{r.enabled ? '启用' : '停用'}</Badge>
+                    <Switch
+                    size="sm"
+                    checked={Boolean(r.enabled)}
+                    onCheckedChange={() => void toggle(r.id)}
+                    label={`${r.enabled ? '停用' : '启用'}工作流 ${String(r.name ?? r.id)}`}
+                  />
                     {r.status && r.status !== 'active' ? <span className="font-mono text-micro text-slate-500">{r.status}</span> : null}
                   </div>
                 ),
@@ -240,10 +245,6 @@ export function MemoryWorkflowTable() {
                     </button>
                     <button onClick={() => exec(r.id, String(r.source_user_input ?? r.name ?? r.id ?? ''))} className={TABLE_BTN_PRIMARY} title="立即执行该工作流">
                       <Play size={11} /> 执行
-                    </button>
-                    {/* 启停：启用=主动作色、停用=中性色（与工具集/技能中心同一个判断） */}
-                    <button onClick={() => toggle(r.id)} className={r.enabled ? TABLE_BTN : TABLE_BTN_PRIMARY} title={r.enabled ? '停用该工作流' : '启用该工作流'}>
-                      {r.enabled ? '停用' : '启用'}
                     </button>
                     <button onClick={() => void remove(r)}
                       className={TABLE_BTN_DANGER}

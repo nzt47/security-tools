@@ -68,12 +68,13 @@ describe('HubChannelsPanel', () => {
     expect(screen.queryByText(/已装通道（/)).toBeNull()
     expect(screen.getByText(/通道（2 个 · 已装 1 · 启用 0）/)).toBeTruthy()
     expect(screen.getByRole('button', { name: '配置通道 email_smtp' })).toBeTruthy()
-    expect(screen.getByText('已装（未启用）')).toBeTruthy()
-    const toggle = screen.getByRole('button', { name: '切换通道 email_smtp' })
-    expect(toggle.textContent).toContain('启用')
-    // 停用态下「启用」= 下一步该点的动作 ⇒ 必须高亮（Owner 2026-11-13）
-    expect(toggle.className).toContain('bg-emerald-500/10')
-    expect(toggle.className).toContain('text-emerald-300')
+    // 【2026-11-16 Owner 口径】不再有「已装（未启用）」这行状态文字，也不再有「启用/停用」文字按钮：
+    //   已装通道的启用状态由 role=switch 表示（关=aria-checked false、零文字）。
+    expect(screen.queryByText('已装（未启用）')).toBeNull()
+    const toggle = screen.getByRole('switch', { name: '启用通道 email_smtp' })
+    expect(toggle.getAttribute('aria-checked')).toBe('false')
+    expect((toggle.textContent ?? '').trim()).toBe('')
+    expect(screen.queryByRole('button', { name: '切换通道 email_smtp' })).toBeNull()
     expect(screen.getByRole('button', { name: '安装通道 webhook' }).className)
       .toContain('bg-emerald-500/10')
     expect(screen.getByRole('button', { name: '卸载通道 email_smtp' }).className)
@@ -168,10 +169,11 @@ describe('HubChannelsPanel', () => {
     api.hubPost.mockResolvedValue({ ok: true })
     render(<HubChannelsPanel />)
 
-    const alerts = (await screen.findByLabelText('事件出站 CP_CHANNEL_EVENT_ALERTS')) as HTMLInputElement
-    // 勾选态必须来自后端值（不是前端默认 true）
-    expect(alerts.checked).toBe(false)
-    expect((screen.getByLabelText('事件出站 CP_CHANNEL_EVENTS') as HTMLInputElement).checked).toBe(true)
+    // 【2026-11-16】事件出站是布尔状态 ⇒ 复选框改 role=switch（状态即开关）
+    const alerts = await screen.findByRole('switch', { name: '事件出站 CP_CHANNEL_EVENT_ALERTS' })
+    // 开合态必须来自后端值（不是前端默认 true）
+    expect(alerts.getAttribute('aria-checked')).toBe('false')
+    expect(screen.getByRole('switch', { name: '事件出站 CP_CHANNEL_EVENTS' }).getAttribute('aria-checked')).toBe('true')
 
     fireEvent.click(alerts)
     await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith(
@@ -195,8 +197,8 @@ describe('HubChannelsPanel', () => {
     })
     render(<HubChannelsPanel />)
 
-    const master = (await screen.findByLabelText('事件出站 CP_CHANNEL_EVENTS')) as HTMLInputElement
-    expect(master.disabled).toBe(true)
+    const master = await screen.findByRole('switch', { name: '事件出站 CP_CHANNEL_EVENTS' })
+    expect((master as HTMLButtonElement).disabled).toBe(true)
     expect(screen.getByText(/被环境变量锁定/)).toBeTruthy()
   })
 
@@ -227,9 +229,10 @@ describe('HubChannelsPanel', () => {
     setup()
     api.hubPost.mockResolvedValue({ ok: true })
     render(<HubChannelsPanel />)
-    await screen.findByRole('button', { name: '切换通道 email_smtp' })
+    const sw = await screen.findByRole('switch', { name: '启用通道 email_smtp' })
 
-    fireEvent.click(screen.getByRole('button', { name: '切换通道 email_smtp' }))
+    // 开关本身就是状态：点它 = 切到下一态（这里 关 → 开）
+    fireEvent.click(sw)
     await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/extensions/toggle', {
       type: 'channel', id: 'email_smtp', enabled: true,
     }))

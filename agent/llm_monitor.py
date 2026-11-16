@@ -46,7 +46,7 @@ except ImportError:
     _SINGLETON_AVAILABLE = False
     register_singleton = get_singleton = reset_singleton = None
 
-MAX_RECORDS = 500  # 环形缓冲区大小（向后兼容别名，运行时从 Config 读取）
+MAX_RECORDS = 30  # 环形缓冲区大小（向后兼容别名，运行时从 Config 读取；2026-11-16 默认 500 → 30）
 
 # 会话最后一条通信的落盘位置：服务关闭后重开仍可在「LLM 通信监控」回看
 # （写盘时机：每记录一条即写 + 进程退出 atexit 兜底；见 LLMMonitor._persist_last）

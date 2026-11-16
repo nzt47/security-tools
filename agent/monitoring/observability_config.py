@@ -442,12 +442,13 @@ OBSERVABILITY_VALIDATION_RULES: List[ValidationRule] = [
     ),
 
     # ── 14. LLM 监控（llm_monitor） ──
-    # 环形缓冲区最大记录数
+    # 环形缓冲区最大记录数（【2026-11-16 Owner】默认 500 → **30**：面板是"看最近几条"的诊断面，
+    # 500 条把内存和渲染都撑起来却没人往回翻；下限同步从 100 放到 10，否则 30 落在区间外。）
     ValidationRule(
         path="llm_monitor.max_records",
-        validator=_range_validator(100, 5000),
-        default=500,
-        error_message="llm_monitor.max_records 必须在 100-5000 之间",
+        validator=_range_validator(10, 5000),
+        default=30,
+        error_message="llm_monitor.max_records 必须在 10-5000 之间",
         description="LLM 交互记录环形缓冲区大小，用于 llm_monitor.py 的 MAX_RECORDS",
     ),
 

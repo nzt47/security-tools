@@ -124,23 +124,36 @@ textarea:focus {
   border-color: var(--mascot-primary);
 }
 
-/* 滚动条 */
+/* 滚动条 —— 【2026-11-16 Owner】全站统一按「导航栏」那一套：
+   细滚动条（thin / 6px）+ 半透明滑块 + **透明**轨道（原来轨道是实心 --bg-secondary，
+   在叶子面板里会画出一条比内容还抢眼的灰带），悬浮时略微加深。
+   这是**唯一来源**：workbench.css 的 .wb-chat-scroll/.wb-think-scroll/.wb-input 与
+   DevConsole.css 的 .devconsole-body 里的同名覆盖已删除，改由这里兜住。 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.25) transparent;
+}
+
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: var(--radius-sm);
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--border-hover);
+  background: rgba(148, 163, 184, 0.45);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* 选中颜色（已并入 index.css 的统一 ::selection，此处删除重复定义） */

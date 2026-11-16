@@ -28,12 +28,12 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import { hubHref } from '../../../workbench/hubNav'
-import { Power, ShieldAlert, Trash2 } from 'lucide-react'
-import { Card, Loading, ErrorBox, DataTable, Badge, CallabilityBadge, PageHeader, hubGet, hubPost } from '../components/ui'
+import { ShieldAlert, Trash2 } from 'lucide-react'
+import { Card, Loading, ErrorBox, DataTable, Badge, CallabilityBadge, PageHeader, Switch, hubGet, hubPost } from '../components/ui'
 import { callabilityCounts, callabilityLegend, hasCallabilityMark, type CallabilityInfo } from '@/lib/callability'
 import DescriptionCell from '@/components/DescriptionCell'
 // 行内按钮形状与技能中心/工作流同一口径（2026-11-08：三张表按钮大小不一，统一到 lib/tableActions）
-import { TABLE_BTN_DANGER, toggleBtnClass } from '@/lib/tableActions'
+import { TABLE_BTN_DANGER } from '@/lib/tableActions'
 // 深链里的名字常是作业/卡片 id（连字符），注册表里是下划线 —— 归一与查行见叶子模块
 import { findToolByName } from '@/lib/toolName'
 // 【P1-front 第四批】后端 GET /api/tools/config 已带 X-Envelope: v2，改用显式信封解析。
@@ -415,20 +415,20 @@ export default function ToolsToolset() {
       },
     },
     {
-      key: 'enabled', title: '状态', render: (r: Merged) =>
-        <Badge color={r.enabled ? 'green' : 'slate'}>{r.enabled ? '启用' : '停用'}</Badge>,
+      // 【2026-11-16 Owner 口径】开关就是状态列：不再用「启用/停用」文字徽章 + 另一个启停按钮
+      // （那等于把同一件事写两遍，而且按钮上的"停用"会被读成动作栏里的一项）。
+      key: 'enabled', title: '启用', render: (r: Merged) => (
+        <Switch
+          size="sm"
+          checked={Boolean(r.enabled)}
+          onCheckedChange={() => void toggle(String(r.name), Boolean(r.enabled))}
+          label={`${r.enabled ? '停用' : '启用'}工具 ${String(r.name)}`}
+        />
+      ),
     },
     {
       key: 'actions', title: '操作', render: (r: Merged) => (
         <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => toggle(String(r.name), Boolean(r.enabled))}
-            // 形状/字号与技能中心、工作流同一常量（启用=主动作色，停用=中性色）
-            className={toggleBtnClass(r.enabled)}
-            title={r.enabled ? '停用该工具' : '启用该工具'}
-          >
-            <Power size={11} /> {r.enabled ? '停用' : '启用'}
-          </button>
           {/* 【只给运行时登记的工具】内建工具是代码注册：删了下次启动又回来，真删必须改代码 +
               重派生五处（口径 §3.1）⇒ 页面不给按钮，避免"点了就删了"的错觉。 */}
           {r.removable && (

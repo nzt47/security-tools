@@ -303,7 +303,7 @@ export default function LlmMonitorPanel() {
           </span>
         )}
         <span className="pl-id-hint" style={{ marginLeft: 'auto' }}>
-          仅保留最近 {stats?.max_records ?? 500} 条（{stats?.buffer_usage ?? '-'}）· 每 10s 自动刷新
+          仅保留最近 {stats?.max_records ?? 30} 条（{stats?.buffer_usage ?? '-'}）· 每 10s 自动刷新
         </span>
       </div>
 
