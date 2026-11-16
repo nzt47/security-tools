@@ -496,8 +496,19 @@ export function ContextManagerBar() {
 
               {/* 说明面板（Owner 2026-11-15）：原来常驻的机制正文收进「手动压缩」同一行的按钮。
                   两个入口各自只讲一件事：① 这套自动策略怎么运作 ② 窗口该开多大 + 我们这里的真实约束。 */}
+              {/* 【2026-11-17 Owner 第三次反馈「窗口取值参考」还是看不全】根因不是高度不够，而是**定位错了**：
+                  面板在 mosaic 面板内部，祖先有 overflow 裁切；而 max-h-[70vh] 是相对**视口**算的
+                  （630px @900 高），永远大于祖先给它的可用高度（实测 573px）⇒ 这个上限从未生效，
+                  盒子被祖先裁短、内容既看不全也不会出现滚动条（scrollH == clientH 的假绿就是这么来的）。
+                  ⇒ 两个说明面板改成 **fixed 浮层**（inset-4 起算、自己的滚动条），祖先裁不到它。
+                  判据见 .local/verify_window_ref.py：浮层矩形完全在视口内 + 滚到底能看见最后一行。 */}
               {infoTab === 'mechanism' && (
-              <div className="max-h-[70vh] space-y-2 overflow-y-auto overscroll-contain rounded-lg border border-slate-800 bg-slate-950/60 p-3 [scrollbar-gutter:stable]">
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-label="上下文管理说明"
+                className="fixed inset-x-3 top-4 bottom-4 z-50 mx-auto max-w-3xl space-y-2 overflow-y-auto overscroll-contain rounded-xl border border-slate-700 bg-slate-950/95 p-4 shadow-2xl backdrop-blur-sm [scrollbar-gutter:stable] sm:inset-x-6"
+              >
                 <div className="flex items-center justify-between gap-2 text-caption font-medium text-cyan-300">
                   <span className="flex items-center gap-1.5">
                     <Info size={11} /> 上下文管理机制（多层次自动策略，无需手动干预）
@@ -547,10 +558,15 @@ export function ContextManagerBar() {
               )}
 
               {infoTab === 'window' && (
-                <div className="max-h-[70vh] space-y-2 overflow-y-auto overscroll-contain rounded-lg border border-slate-800 bg-slate-950/60 p-3 [scrollbar-gutter:stable]">
-                  {/* 【2026-11-16 Owner】说明面板原来是"无界高度"：内容比面板可用空间高时，底部整段
-                      被外层 mosaic 面板的 overflow 裁掉（实测「窗口取值参考」只能看到一半）。
-                      这里给它自己的高度上限 + 内部滚动，文案一条都不丢。 */}
+                <div
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="窗口取值参考"
+                  className="fixed inset-x-3 top-4 bottom-4 z-50 mx-auto max-w-3xl space-y-2 overflow-y-auto overscroll-contain rounded-xl border border-slate-700 bg-slate-950/95 p-4 shadow-2xl backdrop-blur-sm [scrollbar-gutter:stable] sm:inset-x-6"
+                >
+                  {/* 【2026-11-16 Owner】说明面板原来"无界高度"，底部被外层 mosaic 面板 overflow 裁掉。
+                      2026-11-17：max-h-[70vh] 的尝试**没修好**（70vh 相对视口，比祖先可用高度还大 ⇒ 上限不生效，
+                      盒子被裁短且不产生滚动条）。改为 fixed 浮层：上下各留 16px 贴着视口，滚动由自己承担。 */}
                   <div className="flex items-center justify-between gap-2 text-caption font-medium text-cyan-300">
                     <span className="flex items-center gap-1.5">
                       <Info size={11} /> 窗口该开多大（建议值 + 我们这里的真实约束）
