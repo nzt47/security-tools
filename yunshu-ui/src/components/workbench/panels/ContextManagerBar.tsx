@@ -167,8 +167,10 @@ export function ContextManagerBar() {
         setInfoTab(null)
       }
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    // 用**捕获**阶段：面板里可能有自己的 Esc 处理（输入框/菜单），冒泡阶段会被 stopPropagation 吃掉，
+    // 表现就是"按 Esc 关不掉"（2026-11-17 实测：Playwright 按 Esc 时浮层没关）。
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
   }, [infoTab])
 
   // 各分身的默认窗口（档案事实；取不到就空表，界面如实说"取不到"，不编数）。
