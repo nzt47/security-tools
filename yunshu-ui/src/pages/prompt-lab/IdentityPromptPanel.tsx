@@ -201,15 +201,18 @@ export default function IdentityPromptPanel(props: IdentityPromptPanelProps) {
                     onChange={(e) => onEditContent(row.key, e.target.value)}
                   />
                 ) : (
-                  <div className="pl-syspart-status">
-                    {row.enabled ? (
-                      <span>已启用（运行时自动注入）</span>
-                    ) : (
-                      <span>已停用（不参与组装）</span>
+                  <>
+                    {/* 【2026-11-16】不再写「已启用（运行时自动注入）/ 已停用（不参与组装）」：
+                        开关本身就是状态（开=亮、关=灰），那行等于第二列状态。只留 token 上限与备注。 */}
+                    {(row.tokenLimit > 0 || row.note) && (
+                      <div className="pl-syspart-status">
+                        {row.tokenLimit > 0 && (
+                          <span className="pl-syspart-limit">token 上限 {row.tokenLimit.toLocaleString()}</span>
+                        )}
+                        {row.note && <span className="pl-syspart-note">{row.note}</span>}
+                      </div>
                     )}
-                    {row.tokenLimit > 0 && <span className="pl-syspart-limit">token 上限 {row.tokenLimit.toLocaleString()}</span>}
-                    {row.note && <span className="pl-syspart-note">{row.note}</span>}
-                  </div>
+                  </>
                 )}
 
                 {/* 【2026-11-16 Owner】卡片内不再预览「发出内容」：右侧实时预览里有同一份文本，

@@ -263,11 +263,13 @@ describe('需求②：提示词实验室（顶栏 / 身份提示词联动）', (
     await waitFor(() => {
       expect(promptArea()?.textContent ?? '').not.toContain('{skill_instructions}')
     })
-    // 卡片就地状态：已停用（不参与组装）；发出内容只在右侧提示词区域体现，卡片内不再有预览
-    // （2026-11-16 起 IdentityPromptPanel 不再渲染 pl-emit 块，只有开关/描述/编辑框/序号徽章）
+    // 卡片就地状态：**开关本身**（role=switch + aria-checked=false）就是状态列，
+    // 不再有「已停用（不参与组装）」这类文字；发出内容只在右侧提示词区域体现。
     const card = cardFor('技能指令') as HTMLElement
-    expect(within(card).getByText('已停用（不参与组装）')).toBeTruthy()
+    expect(within(card).getByRole('switch').getAttribute('aria-checked')).toBe('false')
     expect(card.textContent ?? '').not.toContain('{skill_instructions}')
+    // 只禁掉**状态句式**（描述文案里出现"已启用技能"是正常的说明，不是状态列）
+    expect(card.textContent ?? '').not.toMatch(/已启用（运行时自动注入）|已停用（不参与组装）/)
   })
 })
 
