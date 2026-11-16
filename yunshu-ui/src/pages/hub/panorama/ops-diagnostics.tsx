@@ -15,7 +15,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   AlertTriangle, Activity, FileText, Loader2, RefreshCw, Save, Trash2, Wrench,
 } from 'lucide-react'
-import { Input, Button, ErrorBox, hubDelete, hubGet, hubPut } from '../components/ui'
+import { Button, ErrorBox, hubDelete, hubGet, hubPut, Input } from '../components/ui'
 import {
   DIAGNOSTICS_CONFIG,
   DIAGNOSTICS_ERROR_CORRELATION,

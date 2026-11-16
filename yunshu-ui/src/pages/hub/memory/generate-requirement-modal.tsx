@@ -7,7 +7,7 @@
  */
 import { useState } from 'react'
 import { Loader2, Lightbulb, ShieldCheck } from 'lucide-react'
-import { Input, Textarea, hubPost } from '../../hub/components/ui'
+import { hubPost, Input, Textarea } from '../../hub/components/ui'
 
 import {
   SKILLS_MGMT_CREATE_AI,

@@ -20,7 +20,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   BookOpen, CheckCircle2, FileText, Loader2, MessageSquare, RefreshCw, Send, Star,
 } from 'lucide-react'
-import { Input, Button, ErrorBox, hubGet, hubPost } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost, Input } from '../components/ui'
 import DevNotesPanel from './dev-notes'
 import {
   FEEDBACK_LIST,

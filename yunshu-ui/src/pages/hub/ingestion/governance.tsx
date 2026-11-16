@@ -11,7 +11,7 @@ import {
   AlertTriangle, Archive, CheckCircle2, GitBranch, Loader2, Merge, RefreshCw, Scissors,
   ShieldCheck, Trash2, Wrench,
 } from 'lucide-react'
-import { Button, Badge, Card, ErrorBox } from '../components/ui'
+import { Badge, Button, Card, ErrorBox } from '../components/ui'
 import {
   applyGovernance,
   planGovernance,

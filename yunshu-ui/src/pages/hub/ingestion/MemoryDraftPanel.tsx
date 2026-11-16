@@ -6,7 +6,7 @@
  */
 import { useState } from 'react'
 import { Loader2, Sparkles } from 'lucide-react'
-import { Input, Button, hubPost } from '../components/ui'
+import { Button, hubPost, Input } from '../components/ui'
 import { SKILLS_MGMT_ABSTRACT_FROM_MEMORY } from '@/api/endpoints'
 
 interface DraftRow {

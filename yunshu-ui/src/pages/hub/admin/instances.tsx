@@ -15,7 +15,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { CheckCircle2, Cpu, Loader2, Plus, RefreshCw, Search, Star, Trash2, Wifi } from 'lucide-react'
-import { Input, Button, ErrorBox, hubDelete, hubGet, hubPost, hubPut } from '../components/ui'
+import { Button, ErrorBox, hubDelete, hubGet, hubPost, hubPut, Input } from '../components/ui'
 import {
   LLM_INSTANCES,
   SEARCH_INSTANCES,

@@ -29,7 +29,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { hubHref } from '../../../workbench/hubNav'
 import { ShieldAlert, Trash2 } from 'lucide-react'
-import { Button, Card, Loading, ErrorBox, DataTable, Badge, CallabilityBadge, PageHeader, Switch, hubGet, hubPost } from '../components/ui'
+import { Badge, Button, CallabilityBadge, Card, DataTable, ErrorBox, hubGet, hubPost, Loading, PageHeader, Switch } from '../components/ui'
 import { callabilityCounts, callabilityLegend, hasCallabilityMark, type CallabilityInfo } from '@/lib/callability'
 import DescriptionCell from '@/components/DescriptionCell'
 // 行内按钮形状与技能中心/工作流同一口径（2026-11-08：三张表按钮大小不一，统一到 lib/tableActions）

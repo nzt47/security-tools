@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, Loader2, Play, RefreshCw, X } from 'lucide-react'
-import { Input, Button, hubGet, hubPost } from '../components/ui'
+import { Button, hubGet, hubPost, Input } from '../components/ui'
 import { MODULES_ACTIONS, modulesDetail } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'

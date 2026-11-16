@@ -12,7 +12,7 @@ import {
   AlertTriangle, ArrowRight, BookOpen, CheckCircle2, FileText, FolderOpen, GitBranch,
   Layers, Loader2, PackagePlus, RefreshCw, Search, ShieldCheck,
 } from 'lucide-react'
-import { Input, Button, Badge, Card, ErrorBox, PageHeader } from '../components/ui'
+import { Badge, Button, Card, ErrorBox, Input, PageHeader } from '../components/ui'
 import GovernancePanel from './governance'
 import ReviewPanel from './ReviewPanel'
 import MemoryDraftPanel from './MemoryDraftPanel'

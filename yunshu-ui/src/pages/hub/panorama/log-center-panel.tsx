@@ -16,7 +16,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { Activity, AlertTriangle, BookOpen, Lightbulb, Loader2, RefreshCw, Search, Sparkles } from 'lucide-react'
-import { Input, Button, ErrorBox, hubGet, hubPost } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost, Input } from '../components/ui'
 import {
   LOGS_API_ACTIONS,
   LOGS_API_ERRORS,

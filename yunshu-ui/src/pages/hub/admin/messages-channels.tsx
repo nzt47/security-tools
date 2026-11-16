@@ -26,7 +26,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   CheckCircle2, Copy, Download, Loader2, PlugZap, Plus, Send, Settings2, SlidersHorizontal, Trash2,
 } from 'lucide-react'
-import { Input, Button, ErrorBox, Switch, hubGet, hubPost } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost, Input, Switch } from '../components/ui'
 import {
   CP_SETTINGS,
   cpSetting,

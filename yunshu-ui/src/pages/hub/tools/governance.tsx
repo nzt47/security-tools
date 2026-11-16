@@ -16,7 +16,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Activity, Loader2, RefreshCw, RotateCcw, Tags, Wrench,
 } from 'lucide-react'
-import { Input, Button, ErrorBox, hubDeleteJson, hubGet, hubPost } from '../components/ui'
+import { Button, ErrorBox, hubDeleteJson, hubGet, hubPost, Input } from '../components/ui'
 import {
   TOOLS_CATEGORIES,
   TOOLS_HEALTH,

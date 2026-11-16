@@ -6,7 +6,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { CheckCircle2, Inbox, Loader2, RefreshCw, Trash2 } from 'lucide-react'
-import { Button, Badge, ErrorBox, hubDelete, hubGet, hubPost } from '../components/ui'
+import { Badge, Button, ErrorBox, hubDelete, hubGet, hubPost } from '../components/ui'
 import { authHeader } from '../../../lib/apiToken'
 import {
   INGESTION_DRAFTS,

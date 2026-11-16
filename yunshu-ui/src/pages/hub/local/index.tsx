@@ -16,7 +16,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   FileText, FolderOpen, HardDrive, Loader2, Play, RefreshCw, Search, Trash2, XOctagon,
 } from 'lucide-react'
-import { Input, Button, ErrorBox, hubGet, hubPost } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost, Input, Textarea } from '../components/ui'
 import {
   FILESYSTEM_INFO,
   FILESYSTEM_LIST,
@@ -311,7 +311,7 @@ export default function LocalResources() {
               写入（会覆盖同名文件；后端还会过一次安全守卫）
             </div>
             <Input size="sm" className="mb-2 w-full" value={writePath} onChange={(e) => setWritePath(e.target.value)} placeholder="目标文件路径" aria-label="写入文件路径" />
-            <textarea className={INPUT + ' h-28 w-full font-mono'} value={writeText} onChange={(e) => setWriteText(e.target.value)} placeholder="文件内容" aria-label="写入文件内容" />
+            <Textarea size="sm" className="h-28 w-full font-mono" value={writeText} onChange={(e) => setWriteText(e.target.value)} placeholder="文件内容" aria-label="写入文件内容" />
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <label className="flex items-center gap-1 text-micro text-slate-400">
                 <input type="checkbox" checked={confirmWrite} onChange={(e) => setConfirmWrite(e.target.checked)} aria-label="确认写入文件" />
@@ -345,7 +345,7 @@ export default function LocalResources() {
           <div className="rounded-lg border border-red-900/40 bg-red-500/5 p-3">
             <div className="mb-2 text-caption text-red-300">写入 / 删除工作区文件（相对路径，不能逃出工作区）</div>
             <Input size="sm" className="mb-2 w-full" value={wsPath} onChange={(e) => setWsPath(e.target.value)} placeholder="相对路径，如 notes/todo.md" aria-label="工作区路径" />
-            <textarea className={INPUT + ' h-24 w-full font-mono'} value={wsText} onChange={(e) => setWsText(e.target.value)} placeholder="内容" aria-label="工作区文件内容" />
+            <Textarea size="sm" className="h-24 w-full font-mono" value={wsText} onChange={(e) => setWsText(e.target.value)} placeholder="内容" aria-label="工作区文件内容" />
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <label className="flex items-center gap-1 text-micro text-slate-400">
                 <input type="checkbox" checked={confirmWsWrite} onChange={(e) => setConfirmWsWrite(e.target.checked)} aria-label="确认写入工作区" />

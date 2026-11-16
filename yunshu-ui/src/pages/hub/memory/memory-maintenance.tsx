@@ -19,7 +19,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Activity, AlertTriangle, Brain, Eraser, Gauge, Loader2, RefreshCw, Save, ScanLine, Trash2,
 } from 'lucide-react'
-import { Input, Button, ErrorBox, hubDelete, hubGet, hubPost, hubPut } from '../components/ui'
+import { Button, ErrorBox, hubDelete, hubGet, hubPost, hubPut, Input, Textarea } from '../components/ui'
 import {
   MEMORY_CLEAR_SUMMARY,
   MEMORY_COMPRESS,
@@ -436,8 +436,9 @@ export default function MemoryMaintenance() {
             <AlertTriangle size={10} /> 后端没有读接口（只有 PUT）—— 这里是盲写，会覆盖现有摘要
           </span>
         </div>
-        <textarea
-          className={INPUT + ' h-24 w-full'}
+        <Textarea
+          size="sm"
+          className="h-24 w-full"
           value={summary}
           onChange={(e) => setSummary(e.target.value)}
           aria-label="长期摘要内容"
@@ -592,8 +593,9 @@ export default function MemoryMaintenance() {
         </Row>
 
         <Row label="批量添加">
-          <textarea
-            className={INPUT + ' h-20 w-full font-mono'}
+          <Textarea
+            size="sm"
+            className="h-20 w-full font-mono"
             value={batchText}
             onChange={(e) => setBatchText(e.target.value)}
             placeholder='[{"content": "..."}, {"content": "...", "metadata": {}}]'

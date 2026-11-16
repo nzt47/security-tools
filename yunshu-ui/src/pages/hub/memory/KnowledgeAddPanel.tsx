@@ -8,7 +8,7 @@
  */
 import { useState } from 'react'
 import { CheckCircle2, Loader2, Plus } from 'lucide-react'
-import { Input, Button, hubPost } from '../components/ui'
+import { Button, hubPost, Input } from '../components/ui'
 import { KNOWLEDGE_ADD } from '@/api/endpoints'
 
 const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'

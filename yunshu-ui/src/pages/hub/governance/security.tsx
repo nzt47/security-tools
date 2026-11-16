@@ -18,7 +18,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   AlertTriangle, Ban, Lock, Loader2, Pause, Play, Power, RefreshCw, RotateCcw, Shield, ShieldAlert, Sliders,
 } from 'lucide-react'
-import { Input, Button, ErrorBox, hubGet, hubPost } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost, Input } from '../components/ui'
 import {
   PERMISSION_ACCESS_LOG,
   PERMISSION_EMERGENCY,

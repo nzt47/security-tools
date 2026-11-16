@@ -16,7 +16,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Activity, BarChart3, ExternalLink, Gauge, Loader2, RefreshCw, Search, Server,
 } from 'lucide-react'
-import { Input, Button, ErrorBox, hubGet } from '../components/ui'
+import { Button, ErrorBox, hubGet, Input } from '../components/ui'
 import {
   BUSINESS_DASHBOARD,
   BUSINESS_DEFINITIONS,

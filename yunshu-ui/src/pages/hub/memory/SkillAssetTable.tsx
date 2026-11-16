@@ -15,7 +15,7 @@ import {
   ChevronDown, ChevronRight, Copy, Download, FilePlus, Filter, Folder, Lightbulb, Loader2, Layers, Plus,
   RefreshCw, Rocket, ScrollText, ShieldCheck, Trash2, X, Zap,
 } from 'lucide-react'
-import { Textarea, Input, Button, CallabilityBadge, Switch, hubGet, hubPost } from '../components/ui'
+import { Button, CallabilityBadge, hubGet, hubPost, Input, Switch, Textarea } from '../components/ui'
 import { authHeader, getApiToken } from '../../../lib/apiToken'
 import ClassIcon from './class-icon'
 import ApiTokenPrompt from './api-token-prompt'
