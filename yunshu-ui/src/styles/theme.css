@@ -1,4 +1,9 @@
-/* 云枢全局主题样式 */
+/* 云枢全局主题样式
+   ⚠️ 【2026-11-16 核实】**本文件当前没有任何入口 import**（main.tsx 只 import index.css；
+   WorkbenchApp / DetachedChatApp 只 import styles/workbench.css）⇒ 这里写的规则**不会进构建产物**，
+   下面定义的 --mascot-* / --bg-* 在运行期是未定义变量（各处靠 var(--x, #fallback) 兜底）。
+   要复活它，先在 main.tsx 里 import 'styles/theme.css'，再把规则写这儿；否则请写到 index.css。
+   （本轮就把「全站滚动条」写到这里的版本，产物里查不到，已改到 index.css。） */
 
 /* CSS 变量定义
    【2026-11-16 统一】本文件不再自持色值/圆角：全部指到 index.css @theme 的语义 token。
@@ -124,37 +129,7 @@ textarea:focus {
   border-color: var(--mascot-primary);
 }
 
-/* 滚动条 —— 【2026-11-16 Owner】全站统一按「导航栏」那一套：
-   细滚动条（thin / 6px）+ 半透明滑块 + **透明**轨道（原来轨道是实心 --bg-secondary，
-   在叶子面板里会画出一条比内容还抢眼的灰带），悬浮时略微加深。
-   这是**唯一来源**：workbench.css 的 .wb-chat-scroll/.wb-think-scroll/.wb-input 与
-   DevConsole.css 的 .devconsole-body 里的同名覆盖已删除，改由这里兜住。 */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.25) transparent;
-}
-
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.25);
-  border-radius: 999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.45);
-}
-
-::-webkit-scrollbar-corner {
-  background: transparent;
-}
+/* 滚动条：**已移到 index.css**（本文件不被 import，写这里不生效；见文件头的说明）。 */
 
 /* 选中颜色（已并入 index.css 的统一 ::selection，此处删除重复定义） */
 

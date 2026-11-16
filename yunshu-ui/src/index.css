@@ -67,6 +67,39 @@
   --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
 }
 
+/* ── 全站滚动条（唯一来源）────────────────────────────────────────────
+   【2026-11-16 Owner】所有叶子面板的滚动条**参照导航栏**：细（thin / 6px）+ 半透明滑块
+   + **透明**轨道（原来 theme.css 那套是 8px + 实心 --bg-secondary 轨道，会在叶子面板里
+   画出一条比内容还抢眼的灰带）。
+   ★ 为什么放在 index.css：styles/theme.css 当前**没有任何入口 import**（main.tsx 只 import
+   index.css），写在那里的规则不会进构建产物 —— 上一版就踩了这个坑（构建产物里查不到）。 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.25) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.45);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /*
   The default border color has changed to `currentcolor` in Tailwind CSS v4,
   so we've added these compatibility styles to make sure everything still
