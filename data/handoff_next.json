@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-16T12:38:26+08:00",
+ "updated_at": "2026-11-16T12:58:03+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -936,8 +936,8 @@
    "status": "open",
    "priority": "P2",
    "title": "UI 原语迁移第 2/3 批：提示词实验室之外的原生按钮/下拉/输入（735/54/233 处）",
-   "criteria": "2026-11-16 审计+第 1 批后：components/ui 只有 12 个文件在用（全在 pages/system + ConfirmDialog）。提示词实验室已全量迁移（开关/滑块/标题/下拉/输入），但其余页面仍是页面级 CSS 类 + 原生控件：CSS 里 38 个 *btn* 选择器 / 7 个家族（.pl- .wb- .skmgmt- .ve- .kb- .devconsole-），原生按钮 735、select 54、input 233。守卫 data/ui_primitive_baseline.json 只降不升。",
-   "next": "按页分批，每批一步可验证：① workbench（.wb- 184 条 CSS + wb-send/stop/reset-btn）② hub/**（.lm- 48 / .kb- 44 / memory / ingestion）③ SkillsMgmt（.skmgmt- 44 + 5 个按钮类）④ DevConsole / Knowledge / VisualEditor（.ve- 118）。每批：换 ui 原语 → 删掉对应 CSS 家族 → tsc/eslint/vitest → 三档截图 → python scripts/audit/ui_primitive_convergence.py --write-baseline。"
+   "criteria": "2026-11-16 审计+第 1 批+第 2 批分片一之后：components/ui 仍只有 12 个文件在用（全在 pages/system + ConfirmDialog）。提示词实验室已全量迁移；workbench 的**自造按钮家族已清零**（.wb-send-btn/.wb-stop-btn/.wb-reset-btn/.wb-panel-toggle 全删，改 ui/Button；CompressPrefixSwitch 改 ui/Switch）。剩余：DockPanel 17 个手写按钮、SessionRail 行内按钮 + 1 个 select + 7 个 input、以及 workbench 的成片 text-[Npx]。守卫基线：raw_button 720 / raw_select 54 / raw_input 233 / arbitrary_text 1505。",
+   "next": "继续按页：① workbench 分片二（DockPanel / SessionRail 的 select+input+行内按钮）② hub/**（.lm- 48 / .kb- 44 / memory / ingestion，注意 hub 里还有 15+ 处 bg-blue-600 的蓝色主按钮 = 第五种强调色，应与 primary 统一）③ SkillsMgmt（.skmgmt- 44 + 5 个按钮类）④ DevConsole / Knowledge / VisualEditor（.ve- 118）。每片：换原语 → 删对应 CSS 家族 → tsc/eslint/vitest → 三档截图 → --write-baseline。"
   },
   {
    "id": "ui-typography-codemod",
