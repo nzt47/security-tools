@@ -10,6 +10,7 @@
  * 注：config/compress 写操作需 FLASK_API_TOKEN（401 时提示）。
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { ChevronDown, Gauge, Info, RefreshCw, Minimize2, X } from 'lucide-react'
 import { Loading, hubGet } from '../../../pages/hub/components/ui'
 // 【P1-front 第七批】GET /api/context/status 已带 X-Envelope: v2，改用显式信封解析。
@@ -518,7 +519,11 @@ export function ContextManagerBar() {
                   盒子被祖先裁短、内容既看不全也不会出现滚动条（scrollH == clientH 的假绿就是这么来的）。
                   ⇒ 两个说明面板改成 **fixed 浮层**（inset-4 起算、自己的滚动条），祖先裁不到它。
                   判据见 .local/verify_window_ref.py：浮层矩形完全在视口内 + 滚到底能看见最后一行。 */}
-              {infoTab === 'mechanism' && (
+              {/* 【2026-11-17 实测】浮层必须 **portal 到 body**：留在 mosaic 子树里时，
+                  它虽然 z-50，但外层 .workbench-root（z-auto）下的 header.wb-topbar（z-10）
+                  是另一个层叠上下文、按顺序画在它上面 ⇒ 顶部那条点不到暗底（elementFromPoint
+                  命中 header，点暗底自然关不掉）。portal 出去后层叠次序与祖先无关。 */}
+              {infoTab === 'mechanism' && createPortal(
               /* 暗底：点一下 = 关（浮层必须可关闭）。浮层本身按内容高度居中，不再被拉成整屏高的空盒子。 */
               <div
                 role="presentation"
@@ -576,9 +581,9 @@ export function ContextManagerBar() {
                 </div>
               </div>
               </div>
-              )}
+              , document.body)}
 
-              {infoTab === 'window' && (
+              {infoTab === 'window' && createPortal(
                 <div
                   role="presentation"
                   onClick={() => setInfoTab(null)}
@@ -701,7 +706,7 @@ export function ContextManagerBar() {
                   </div>
                 </div>
                 </div>
-              )}
+              , document.body)}
 
             </>
           )}
