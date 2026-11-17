@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-17T12:22:00+08:00",
+ "updated_at": "2026-11-17T13:15:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1005,19 +1005,35 @@
   },
   {
    "id": "css-hardcoded-blue-in-kb",
-   "status": "open",
+   "status": "done",
    "priority": "P3",
    "title": "knowledge 的 .kb-* CSS 里 8 处硬编码 #4a9eff（第五支蓝），收敛守卫量不到（只量 tsx）",
    "criteria": "2026-11-17 构建产物核实：dist/assets/knowledge-*.css 里 #4a9eff 出现 8 次（.kb-status--current 的底色、.kb-form-input:focus 的描边、.kb-link-chip:hover 等）。它不是变量、也没有经过 --accent-primary，所以 theme.css 收口（915931935）管不到它；同时 ui_primitive_convergence.py 的 arbitrary_text 只扫 .tsx，量具覆盖不到 CSS 字面值。",
-   "next": "把这 8 处换成 var(--color-primary) 或 color-mix(in srgb, var(--color-primary) N%, transparent)；若想让只降不升的守卫也覆盖 CSS 侧硬编码色，需要给守卫加一个 css_hardcoded_color 指标（先量分布再定基线，一次写死，别放宽）。"
+   "next": "2026-11-17 收口（提交 ddf6a9c24）：CardDetail.css / CardForm.css / StatusBadge.css 里 9 处硬编码蓝（#4a9eff / #6cb2ff / #7db6ff 与 6 处 rgba(74,158,255,a)）改成 var(--color-primary) 与 color-mix(in srgb, var(--color-primary) N%, transparent)。判据：vite build 后 dist 的 5 个 CSS 里 4a9eff|6cb2ff|74,158,255 出现次数 0。★ 遗留（新开一项 kb-palette-not-tokenized）：这三个文件里还有一批中性灰与状态色（#e8eaed / #9aa1ac / #ff7a7a / #ffb35c / #6fd39b …）属于 .kb-* 自己的调色板，映射到语义 token 是**设计对齐**不是顺手替换，需要 Owner 或设计口径确认后再动。"
   },
   {
    "id": "guard-misses-ts-and-css",
-   "status": "open",
+   "status": "done",
    "priority": "P3",
    "title": "收敛守卫只扫 .tsx —— lib/tableActions.ts 里还有 text-[11px]，CSS 的 font-size 与硬编码色也量不到",
    "criteria": "2026-11-17 核实：ui_primitive_convergence.py 的 scan() 只取 *.tsx。而 lib/tableActions.ts 的 BASE 里仍有 text-[11px]（本轮排版收口声称 tsx 的 text-[Npx] 已清零是对的，但 .ts 里的同写法不在量具范围内）；CSS 侧的硬编码颜色同理（见 css-hardcoded-blue-in-kb）。",
-   "next": "把 scan() 的 glob 从 *.tsx 扩到 *.tsx 与 *.ts（会把 .ts 里的既有写法计入，属量具修正，按 §11.135 的先例一次性重写基线并在提交信息里写明增量是量具修正不是回归）；CSS 侧另立指标，别和 arbitrary_text 混用一个数。"
+   "next": "2026-11-17 收口（提交 b16a5dd8c）：scan() 的后缀从 (.tsx) 扩到 (.tsx, .ts)。量具试算（同一份代码只改 glob）：files 318 → 458、raw_button 334 → 335（多出的 1 是 hooks/usePermission.ts 的用法示例注释）、arbitrary_text 0 → 1（lib/tableActions.ts）。后续处理：tableActions 的任意值字号改成 text-caption（回到 0）；注释那条如实记进基线，并在文件里写明「量具按文本计数、不剥注释」。基线 334 → 335 一并重写（量具修正，仍只降不升）。CSS 侧的量计走另一项（见 css-gauge-for-hardcoded-colors）。"
+  },
+  {
+   "id": "css-gauge-for-hardcoded-colors",
+   "status": "open",
+   "priority": "P3",
+   "title": "CSS 侧硬编码颜色没有量具：10 个 CSS 里 376 处 hex + 176 处 rgb()（font-size 已是 0）",
+   "criteria": "2026-11-17 实测（yunshu-ui/src 下 10 个 *.css）：hex 376、rgb()/rgba() 176、font-size: Npx **0**。分布：VisualEditor.css 107+9、SkillManagement.css 95+16（死代码树）、workbench.css 23+69、PromptLab.css 34+55、DevConsole.css 84+2、CardDetail.css 21+10、StatusBadge.css 4+8、index.css 2+6（token 定义本身）、CardForm.css 6+1。ui_primitive_convergence.py 只量 .tsx/.ts，CSS 字面值完全不在量具内 —— 这一轮就是靠人工数构建产物才发现 knowledge 那支蓝的。",
+   "next": "给守卫加一个独立指标 css_hardcoded_color（hex + rgb() 计数），基线按实测写死，之后只降不升。注意两点：① 它和 arbitrary_text 是两个数，别混；② index.css 的 token 定义本身要豁免（或按「允许的文件白名单」处理），否则基线里混进本不该降的量。同一个提交里顺手把 SkillManagement.css 一起清掉或连同死代码树一起删（见 skillsmgmt-skill-tree-unreachable）。"
+  },
+  {
+   "id": "kb-palette-not-tokenized",
+   "status": "open",
+   "priority": "P3",
+   "title": "knowledge 的 .kb-* 还是自带调色板（中性灰 + 状态色共约 40 处 hex/rgba），没收进语义 token",
+   "criteria": "2026-11-17 实测：CardDetail.css / CardForm.css / StatusBadge.css 里仍有 #e8eaed / #9aa1ac / #6f7683 / #14171c / #2a2e38 / #ff7a7a / #ffb35c / #6fd39b / #c59bff 等字面值（连同 rgba 共约 40 处）。蓝色那支已在 ddf6a9c24 收口，剩下的中性灰与状态色不是\"第五种强调色\"，而是这套面板自己的配色。",
+   "next": "这是一次**设计对齐**：要么把所有中性灰映射到 --color-border / --color-muted / --color-foreground / --color-muted-foreground（需要确认对比度），要么承认 .kb-* 是一套局部主题并把它的变量集中声明在文件头。两条路都要 Owner 或设计口径点头，别在一次\"清理\"里顺手改掉整页观感。"
   }
  ]
 }
