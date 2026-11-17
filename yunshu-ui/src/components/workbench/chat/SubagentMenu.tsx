@@ -23,7 +23,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Bot, Check, ChevronDown, ChevronRight, Loader2, Play, RefreshCw, UserPlus, X } from 'lucide-react'
-import { Button, hubGet, Input, Textarea } from '../../../pages/hub/components/ui'
+import { Badge, Button, hubGet, Input, Textarea } from '../../../pages/hub/components/ui'
 import { getEnvelope } from '@/api/envelope'
 import { authHeader } from '../../../lib/apiToken'
 
@@ -329,14 +329,14 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
           {delegate || (list.length ? `${list.length} 个` : (recordsTotal ? `记录 ${recordsTotal}` : '未选择'))}
         </span>
         {list.length > 0 ? (
-          <span className="rounded-full bg-slate-800 px-1.5 text-micro text-slate-400" title="活跃分身数">
+          <Badge tone="neutral" size="sm" title="活跃分身数">
             {list.length}
-          </span>
+          </Badge>
         ) : recordsTotal ? (
           // 没有活跃分身时也给出可见线索：否则用户只会看到"未选择"，以为整个功能是死的
-          <span className="rounded-full bg-slate-800 px-1.5 text-micro text-slate-500" title="历史委派记录数">
+          <Badge tone="neutral" size="sm" title="历史委派记录数">
             {recordsTotal}
-          </span>
+          </Badge>
         ) : null}
       </button>
 

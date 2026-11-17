@@ -15,7 +15,7 @@ import {
   AlertTriangle, CheckCircle2, ChevronDown, FolderOpen, Loader2,
   PenTool, Plus, Save, Trash2, X,
 } from 'lucide-react'
-import { Button, Input } from '@/components/ui'
+import { Badge, Button, Input } from '@/components/ui'
 import { VisualEditor } from '@/components/VisualEditor'
 import { useFlowStore } from '@/components/VisualEditor/stores/useFlowStore'
 import { generateYaml } from '@/components/VisualEditor/generator/CodeGenerator'
@@ -187,9 +187,9 @@ export default function MemoryWorkflowVisual() {
               加载
               <ChevronDown size={11} className={`transition-transform ${listOpen ? 'rotate-180' : ''}`} />
               {drafts.length > 0 && (
-                <span className="rounded-full bg-cyan-500/15 px-1.5 text-micro text-cyan-300">
+                <Badge tone="primary" size="sm">
                   {drafts.length}
-                </span>
+                </Badge>
               )}
             </Button>
 

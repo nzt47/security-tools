@@ -16,7 +16,7 @@ import {
 } from '@/api/menu'
 import { toast } from '@/components/Toaster'
 import ConfirmDialog from '@/components/ConfirmDialog'
-import { Button, Card, Empty, Loading, PageContainer } from '@/components/ui'
+import { Badge, Button, Card, Empty, Loading, PageContainer } from '@/components/ui'
 import MenuFormDialog from './MenuFormDialog'
 
 export default function MenuList() {
@@ -202,7 +202,7 @@ function FragmentRow({
             )}
             <span className="font-medium text-foreground">{item.title}</span>
             {item.hideInMenu && (
-              <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">隐藏</span>
+              <Badge tone="neutral" size="md" className="ml-2">隐藏</Badge>
             )}
           </div>
         </td>

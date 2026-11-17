@@ -124,19 +124,17 @@ export default function UnitStatus() {
         <Activity size={14} className="text-cyan-400" />
         <span className="text-sm font-medium text-slate-200">功能单位工作状况</span>
         {data?.health_score != null && (
-          <span className="rounded-full bg-slate-800 px-2 py-0.5 text-caption text-slate-300"
-            title={data.health_score_note}>
+          <Badge tone="neutral" size="md" title={data.health_score_note}>
             健康分 {data.health_score}
             {(data.no_data_units ?? 0) > 0 && (
               <span className="ml-1 text-slate-500">（{data.no_data_units} 项无数据不计分）</span>
             )}
-          </span>
+          </Badge>
         )}
         {data != null && data.health_score == null && (
-          <span className="rounded-full bg-slate-800 px-2 py-0.5 text-caption text-slate-400"
-            title={data.health_score_note}>
+          <Badge tone="neutral" size="md" title={data.health_score_note}>
             健康分：无数据（不计分）
-          </span>
+          </Badge>
         )}
         {STATUS_ORDER.map((s) => (
           <span key={s} className="inline-flex items-center gap-1 text-caption text-slate-400">

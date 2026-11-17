@@ -28,7 +28,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { Button, Input, Select, Switch } from '@/components/ui';
+import { Badge, Button, Input, Select, Switch } from '@/components/ui';
 import type { Project, SessionGroup, SessionMeta } from '../../../lib/sessionApi';
 
 export interface SessionRailProps {
@@ -517,9 +517,9 @@ export function SessionRail({
                 <span className="min-w-0 flex-1 truncate text-body font-medium text-slate-300">
                   {g.name}
                 </span>
-                <span className="shrink-0 rounded-full bg-slate-800 px-1.5 font-mono text-micro text-slate-500">
+                <Badge tone="neutral" size="sm" className="shrink-0 font-mono">
                   {rows.length}
-                </span>
+                </Badge>
               </>
             )}
           </button>
@@ -570,9 +570,9 @@ export function SessionRail({
         <div className="flex items-center gap-2">
           <MessageSquare size={13} className="text-cyan-400" />
           <span className="text-body font-semibold text-slate-100">会话</span>
-          <span className="rounded-full bg-slate-800 px-1.5 py-0.5 font-mono text-micro text-slate-500">
+          <Badge tone="neutral" size="sm" className="font-mono">
             {scoped.length}
-          </span>
+          </Badge>
         </div>
         <Button
           type="button"
@@ -731,9 +731,9 @@ export function SessionRail({
                     <span className="min-w-0 flex-1 truncate text-body font-medium text-slate-400">
                       未分组
                     </span>
-                    <span className="shrink-0 rounded-full bg-slate-800 px-1.5 font-mono text-micro text-slate-500">
+                    <Badge tone="neutral" size="sm" className="shrink-0 font-mono">
                       {ungroupedList.length}
-                    </span>
+                    </Badge>
                   </button>
                 </div>
                 {!ungroupedCollapsed && (

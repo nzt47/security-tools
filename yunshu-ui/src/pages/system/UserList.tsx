@@ -9,7 +9,7 @@ import { Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react'
 import { createUser, deleteUser, getUserList, updateUser, type UserListItem } from '@/api/user'
 import { toast } from '@/components/Toaster'
 import ConfirmDialog from '@/components/ConfirmDialog'
-import { Button, Card, Input, PageContainer, Pagination, Table, type TableColumn } from '@/components/ui'
+import { Badge, Button, Card, Input, PageContainer, Pagination, Table, type TableColumn } from '@/components/ui'
 import { useTablePage } from '@/hooks/useTablePage'
 import { logger } from '@/utils/logger'
 import UserFormDialog from './UserFormDialog'
@@ -38,9 +38,9 @@ const columns: TableColumn<UserListItem>[] = [
     key: 'role',
     header: '角色',
     render: (r) => (
-      <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+      <Badge tone="primary" size="md">
         {r.role}
-      </span>
+      </Badge>
     ),
   },
   {

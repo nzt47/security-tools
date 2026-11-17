@@ -14,7 +14,7 @@ import {
   type NotificationItem,
   type NotificationType,
 } from '@/api/notification'
-import { Button, Card, Empty, Loading, PageContainer, Pagination, Select } from '@/components/ui'
+import { Badge, Button, Card, Empty, Loading, PageContainer, Pagination, Select } from '@/components/ui'
 import { useTablePage } from '@/hooks/useTablePage'
 
 const PAGE_SIZE = 10
@@ -204,23 +204,17 @@ export default function NotificationCenter() {
                       </span>
                     )}
                     {item.state === 'resolved' && (
-                      <span
-                        className="rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success"
-                        title="已自动恢复 = 最近一轮采集没再报出来，不代表根因消失或人已处理"
-                      >
+                      <Badge tone="success" size="md" title="已自动恢复 = 最近一轮采集没再报出来，不代表根因消失或人已处理">
                         已自动恢复
-                      </span>
+                      </Badge>
                     )}
                     {item.acked && (
-                      <span
-                        className="rounded-full bg-sky-500/10 px-2 py-0.5 text-xs font-medium text-sky-500"
-                        title={item.acked_at ? '确认时间：' + item.acked_at : '已确认'}
-                      >
+                      <Badge tone="primary" size="md" title={item.acked_at ? '确认时间：' + item.acked_at : '已确认'}>
                         已确认
-                      </span>
+                      </Badge>
                     )}
                     {item.silenced_until && item.state === 'firing' && (
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">静默中</span>
+                      <Badge tone="neutral" size="md">静默中</Badge>
                     )}
                     <h3 className="text-sm font-medium text-foreground">{item.title}</h3>
                     <span className="ml-auto whitespace-nowrap text-xs text-muted-foreground">{item.createdAt}</span>

@@ -8,6 +8,8 @@
 export { Button, Checkbox, Input, Select, Switch, Slider, Tabs, Textarea } from '@/components/ui'
 
 import type { ReactNode } from 'react'
+// 全局 Badge 只在本文件内部使用（对外仍暴露 hub 那层带 color 枚举的 Badge）
+import { Badge as ToneBadge } from '@/components/ui'
 import { Loader2, AlertTriangle, Inbox } from 'lucide-react'
 import { getApiToken } from '../../../lib/apiToken'
 import ColResizer from '../../../components/ColResizer'
@@ -164,20 +166,51 @@ export function ErrorBox({ message }: { message: string }) {
 }
 
 /** 徽章配色（Badge 与 CallabilityBadge 共用，避免两套色板漂移） */
-const BADGE_CLASS = {
-  green: 'bg-emerald-500/15 text-emerald-400 border-emerald-800',
-  red: 'bg-red-500/15 text-red-400 border-red-800',
-  amber: 'bg-amber-500/15 text-amber-400 border-amber-800',
-  cyan: 'bg-cyan-500/15 text-cyan-400 border-cyan-800',
-  slate: 'bg-slate-500/15 text-slate-400 border-slate-700',
+/**
+ * 状态徽章 —— 保持原来的 color API，但实现**委托**全局 ui/Badge。
+ * 【2026-11-18】hub 调色板（green/red/amber/cyan/slate）此前写死成 tailwind 色名，
+ * 与系统页的语义 token 徽章是两套；现在只保留这一层映射，颜色本身来自 index.css 的 token。
+ */
+/** 可调用性徽章的配色（与 Badge 的 tone 同源；保留一张小表是因为它要拼进 className 字符串） */
+const BADGE_TONE_CLASS: Record<'green' | 'red' | 'amber' | 'cyan' | 'slate', string> = {
+  green: 'border-success/40 bg-success/15 text-success',
+  red: 'border-danger/40 bg-danger/15 text-danger',
+  amber: 'border-warning/40 bg-warning/15 text-warning',
+  cyan: 'border-primary/40 bg-primary/15 text-primary',
+  slate: 'border-border bg-muted text-muted-foreground',
 }
 
-/** 状态徽章 */
-export function Badge({ color = 'slate', children }: { color?: 'green' | 'red' | 'amber' | 'cyan' | 'slate'; children: ReactNode }) {
+const BADGE_TONE: Record<'green' | 'red' | 'amber' | 'cyan' | 'slate', 'success' | 'danger' | 'warning' | 'primary' | 'neutral'> = {
+  green: 'success',
+  red: 'danger',
+  amber: 'warning',
+  cyan: 'primary',
+  slate: 'neutral',
+}
+
+/**
+ * hub 的 Badge：**两种入口都认**
+ * - `color`（green/red/amber/cyan/slate）是老 API，30+ 个调用点不用动；
+ * - `tone`（neutral/primary/success/warning/danger）与全局 ui/Badge 一致，新代码直接用。
+ */
+type HubBadgeColor = 'green' | 'red' | 'amber' | 'cyan' | 'slate'
+
+export function Badge({
+  color = 'slate',
+  tone,
+  size = 'md',
+  children,
+  ...rest
+}: {
+  color?: HubBadgeColor
+  tone?: 'neutral' | 'primary' | 'success' | 'warning' | 'danger'
+  size?: 'sm' | 'md'
+  children: ReactNode
+} & Omit<React.HTMLAttributes<HTMLSpanElement>, 'children'>) {
   return (
-    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs ${BADGE_CLASS[color]}`}>
+    <ToneBadge tone={tone ?? BADGE_TONE[color]} size={size} {...rest}>
       {children}
-    </span>
+    </ToneBadge>
   )
 }
 
@@ -203,7 +236,7 @@ export function CallabilityBadge({ info, name, className = '', compact = false }
   return (
     <span
       title={title}
-      className={`inline-flex shrink-0 cursor-help items-center whitespace-nowrap rounded-full border ${compact ? 'px-1 py-0 text-micro' : 'px-2 py-0.5 text-xs'} ${BADGE_CLASS[callabilityColor(mark)]} ${className}`}
+      className={`inline-flex shrink-0 cursor-help items-center whitespace-nowrap rounded-full border ${compact ? 'px-1 py-0 text-micro' : 'px-2 py-0.5 text-body'} ${BADGE_TONE_CLASS[callabilityColor(mark)]} ${className}`}
     >
       {glyph}
     </span>

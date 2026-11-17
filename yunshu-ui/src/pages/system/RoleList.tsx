@@ -17,7 +17,7 @@ import {
 import { updateRoleDataScope, type DataScope } from '@/api/menu'
 import { toast } from '@/components/Toaster'
 import ConfirmDialog from '@/components/ConfirmDialog'
-import { Button, Card, Input, PageContainer, Pagination, Table, type TableColumn } from '@/components/ui'
+import { Badge, Button, Card, Input, PageContainer, Pagination, Table, type TableColumn } from '@/components/ui'
 import { useTablePage } from '@/hooks/useTablePage'
 import RoleFormDialog from './RoleFormDialog'
 import PermissionAssignDialog from './PermissionAssignDialog'
@@ -38,9 +38,9 @@ const columns: TableColumn<RoleItem>[] = [
     key: 'label',
     header: '显示名',
     render: (r) => (
-      <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+      <Badge tone="primary" size="md">
         {r.label}
-      </span>
+      </Badge>
     ),
   },
   {

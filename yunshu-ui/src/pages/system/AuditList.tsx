@@ -7,7 +7,7 @@
 import { useState } from 'react'
 import { RefreshCw, Search } from 'lucide-react'
 import { getAuditLogs, type AuditAction, type AuditLogItem, type AuditLogParams } from '@/api/audit'
-import { Button, Card, Input, PageContainer, Pagination, Select, Table, type TableColumn } from '@/components/ui'
+import { Badge, Button, Card, Input, PageContainer, Pagination, Select, Table, type TableColumn } from '@/components/ui'
 import { useTablePage } from '@/hooks/useTablePage'
 
 const PAGE_SIZE = 10
@@ -45,9 +45,9 @@ const columns: TableColumn<AuditLogItem>[] = [
     key: 'action',
     header: '类型',
     render: (r) => (
-      <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+      <Badge tone="primary" size="md">
         {ACTION_LABEL[r.action] ?? r.action}
-      </span>
+      </Badge>
     ),
   },
   { key: 'target', header: '操作对象', render: (r) => <span className="text-foreground">{r.target}</span> },
@@ -56,15 +56,13 @@ const columns: TableColumn<AuditLogItem>[] = [
     header: '结果',
     render: (r) =>
       r.result === 'success' ? (
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-medium text-success">
-          <span className="h-1.5 w-1.5 rounded-full bg-success" />
+        <Badge tone="success" size="md" dot>
           成功
-        </span>
+        </Badge>
       ) : (
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-danger/10 px-2.5 py-0.5 text-xs font-medium text-danger">
-          <span className="h-1.5 w-1.5 rounded-full bg-danger" />
+        <Badge tone="danger" size="md" dot>
           失败
-        </span>
+        </Badge>
       ),
   },
   { key: 'ip', header: '来源 IP', render: (r) => <span className="whitespace-nowrap font-mono text-xs text-muted-foreground">{r.ip}</span> },

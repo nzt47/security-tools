@@ -15,7 +15,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Bell, BellOff, CheckCheck, Clock, ExternalLink } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Badge, Button } from '@/components/ui'
 
 import {
   ackAlarm,
@@ -147,12 +147,9 @@ export default function AlarmBell({ onOpenAll }: AlarmBellProps) {
         {error ? <BellOff size={13} className="text-slate-500" /> : <Bell size={13} />}
         <span className="hidden sm:inline">报警</span>
         {unread > 0 && (
-          <span
-            data-testid="alarm-badge"
-            className="ml-0.5 min-w-[16px] rounded-full bg-rose-500 px-1 text-center text-micro font-semibold leading-4 text-white"
-          >
+          <Badge tone="danger" size="sm" className="ml-0.5 min-w-[16px] text-center leading-4" data-testid="alarm-badge">
             {unread > 99 ? '99+' : unread}
-          </span>
+          </Badge>
         )}
       </Button>
 

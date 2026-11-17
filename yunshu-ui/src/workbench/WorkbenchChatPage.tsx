@@ -17,7 +17,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { FileText, FolderOpen, History, Lightbulb, MessageSquare, RotateCcw, X } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Badge, Button } from '@/components/ui'
 import { ChatPanel } from '../components/workbench/panels/ChatPanel'
 import { ContextManagerBar } from '../components/workbench/panels/ContextManagerBar'
 import { HistoryDrawer } from '../components/workbench/panels/HistoryDrawer'
@@ -528,9 +528,9 @@ export default function WorkbenchChatPage() {
             <span className="min-w-0 max-w-[260px] truncate text-body font-medium text-slate-200" title={activeTitle}>
               {activeTitle}
             </span>
-            <span className="shrink-0 rounded-full bg-slate-800 px-2 py-0.5 text-micro text-slate-500">
+            <Badge tone="neutral" size="sm" className="shrink-0">
               SSE 流式
-            </span>
+            </Badge>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {/* 本会话智能体：选母体或某个分身承接这段对话（写入 session.agent） */}

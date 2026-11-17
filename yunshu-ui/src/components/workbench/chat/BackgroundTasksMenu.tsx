@@ -20,7 +20,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Ban, ChevronRight, Loader2, RefreshCw, X, Zap } from 'lucide-react'
-import { Button, hubGet, hubPost } from '../../../pages/hub/components/ui'
+import { Badge, Button, hubGet, hubPost } from '../../../pages/hub/components/ui'
 
 const POLL_MS = 5000
 
@@ -159,9 +159,9 @@ export function BackgroundTasksMenu() {
         <Zap size={11} />
         后台任务
         {active > 0 && (
-          <span className="rounded-full bg-cyan-500/20 px-1.5 text-micro font-medium text-cyan-300" title="运行中任务数">
+          <Badge tone="primary" size="sm" title="运行中任务数">
             {active}
-          </span>
+          </Badge>
         )}
       </button>
 

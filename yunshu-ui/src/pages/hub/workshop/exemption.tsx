@@ -206,15 +206,17 @@ export function ExemptionToggle({ name, item, exempt, pending, disabled, onToggl
   if (!item.exemptable) {
     const why = item.blocked_reason || '该工具由描述符硬要求人工确认，豁免开关放不了它'
     return (
-      <span
+      <Badge
+        tone="neutral"
+        size="md"
         data-exempt-locked={name}
         aria-disabled="true"
         title={`${why}（锁定：此开关放不了它）`}
-        className="inline-flex shrink-0 cursor-not-allowed items-center gap-1 rounded-full border border-slate-700 bg-slate-500/15 px-2 py-0.5 text-xs text-slate-400"
+        className="shrink-0 cursor-not-allowed gap-1"
       >
         <Lock size={10} />
         需确认（锁定）
-      </span>
+      </Badge>
     )
   }
 

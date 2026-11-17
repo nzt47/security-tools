@@ -6,7 +6,7 @@
  * - 数据为本地 mock（最小落地版）：导出将表格导出为 CSV 文件，无需后端接口
  */
 import { Download, ScrollText } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Badge, Button } from '@/components/ui'
 import { usePermission } from '@/hooks/usePermission'
 // 配置变更日志（/api/config/logs）——《工作台 UI 信息架构评审》§7 分批接入的第一条
 import ConfigChangeLogPanel from './ConfigChangeLogPanel'
@@ -81,9 +81,9 @@ export default function SystemLog() {
                 <td className="px-4 py-2.5 font-medium text-foreground">{row.operator}</td>
                 <td className="px-4 py-2.5 text-muted-foreground">{row.action}</td>
                 <td className="px-4 py-2.5">
-                  <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-medium text-emerald-400">
+                  <Badge tone="success" size="md">
                     {row.result}
-                  </span>
+                  </Badge>
                 </td>
               </tr>
             ))}

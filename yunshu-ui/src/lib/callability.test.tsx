@@ -186,8 +186,9 @@ describe('CallabilityBadge（退化行为）', () => {
     const { container, getByText } = render(<CallabilityBadge info={CONDITIONAL} name="connect_mcp" />)
     const el = getByText(MARK_CONDITIONAL)
     expect(el.getAttribute('title')).toContain('执行器：agent.tools.ext_tools:_connect_mcp')
-    // 颜色沿用既有配色习惯（amber = 审批边界）
-    expect(container.querySelector('.text-amber-400')).not.toBeNull()
+    // 【2026-11-18】配色改为语义 token：审批边界 = warning（原来是 tailwind 的 text-amber-400）。
+    // 断言仍然守"颜色对应这个语义"，只是从色名改成 token 名（同一轮把徽章全局收口到 --color-*）。
+    expect(container.querySelector('.text-warning')).not.toBeNull()
   })
 
   it('compact ⇒ 只渲染字形，但悬浮说明仍是完整多行文案', () => {

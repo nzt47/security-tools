@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { Copy, Loader2, RefreshCw, X } from 'lucide-react'
-import { Button, hubGet, hubPost, Input } from '../components/ui'
+import { Badge, Button, hubGet, hubPost, Input } from '../components/ui'
 import {
   SKILLS_MGMT_ASSESS_MERGE_SAFE,
   SKILLS_MGMT_ASSESS_MERGE_UNDO,
@@ -136,9 +136,9 @@ export default function MergeDuplicatesModal({ skillId, skillName, onClose, onDo
                   {/* 合并前先认人：名字（主）+ id（副）+ 分类 + 相似度 */}
                   <span className="font-medium text-slate-200">{label || '（接口没给名字）'}</span>
                   <span className="font-mono text-micro text-cyan-300">{key}</span>
-                  {d.other_category && <span className="rounded-full border border-slate-700 bg-slate-800/60 px-1.5 py-0.5 text-micro text-slate-400">{d.other_category}</span>}
-                  {d.content_hash_match && <span className="rounded-full border border-emerald-800/60 bg-emerald-500/10 px-1.5 py-0.5 text-micro text-emerald-300">内容完全相同</span>}
-                  {d.recommend_action === 'merge' && !d.content_hash_match && <span className="rounded-full border border-cyan-800/60 bg-cyan-500/10 px-1.5 py-0.5 text-micro text-cyan-300">建议合并</span>}
+                  {d.other_category && <Badge tone="neutral" size="sm">{d.other_category}</Badge>}
+                  {d.content_hash_match && <Badge tone="success" size="sm">内容完全相同</Badge>}
+                  {d.recommend_action === 'merge' && !d.content_hash_match && <Badge tone="primary" size="sm">建议合并</Badge>}
                   <span className="ml-auto font-mono text-micro text-amber-300" title="Jaccard 相似度（1.0 = 完全相同）">
                     {d.jaccard !== undefined ? Number(d.jaccard).toFixed(3) : ''}
                   </span>

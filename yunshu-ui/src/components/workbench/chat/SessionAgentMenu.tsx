@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Bot, Check, ChevronDown, Loader2, RefreshCw, X } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Badge, Button } from '@/components/ui'
 import { getEnvelope } from '@/api/envelope'
 import { sessionApi } from '../../../lib/sessionApi'
 import { SUBAGENT_LIST } from '@/api/endpoints'
@@ -149,12 +149,9 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
           {label}
         </span>
         {error && !open && (
-          <span
-            title={error}
-            className="rounded-full bg-rose-500/20 px-1.5 text-micro text-rose-300"
-          >
+          <Badge tone="danger" size="sm" title={error}>
             !
-          </span>
+          </Badge>
         )}
         <ChevronDown size={11} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
