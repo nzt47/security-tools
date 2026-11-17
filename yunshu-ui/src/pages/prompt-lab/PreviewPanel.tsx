@@ -14,7 +14,7 @@
  * 组件不再接收 mode / onModeChange / sim。
  */
 import { Loader2, Settings2, Download, Wrench } from 'lucide-react';
-import { Button } from '@/components/ui'
+import { Button, Input } from '@/components/ui'
 import { usePromptLabStore } from '../../stores/usePromptLabStore';
 import RadarChart from './RadarChart';
 
@@ -211,15 +211,15 @@ export default function PreviewPanel({
           </p>
           <label className="pl-field">
             <span>Endpoint</span>
-            <input className="pl-text" value={llm.endpoint} disabled={llm.useBackend} onChange={(e) => setLlm({ endpoint: e.target.value })} placeholder="https://api.openai.com/v1/chat/completions" />
+            <Input value={llm.endpoint} disabled={llm.useBackend} onChange={(e) => setLlm({ endpoint: e.target.value })} placeholder="https://api.openai.com/v1/chat/completions" size="sm" />
           </label>
           <label className="pl-field">
             <span>API Key</span>
-            <input className="pl-text" type="password" value={llm.apiKey} disabled={llm.useBackend} onChange={(e) => setLlm({ apiKey: e.target.value })} placeholder="sk-…（仅本地存储）" />
+            <Input type="password" value={llm.apiKey} disabled={llm.useBackend} onChange={(e) => setLlm({ apiKey: e.target.value })} placeholder="sk-…（仅本地存储）" size="sm" />
           </label>
           <label className="pl-field">
             <span>模型</span>
-            <input className="pl-text" value={llm.model} onChange={(e) => setLlm({ model: e.target.value })} />
+            <Input value={llm.model} onChange={(e) => setLlm({ model: e.target.value })} size="sm" />
           </label>
         </details>
       </div>
@@ -265,14 +265,7 @@ export default function PreviewPanel({
           </span>
           <label className="pl-token-window-label">
             窗口
-            <input
-              type="number"
-              className="pl-text pl-token-window"
-              value={llm.contextWindow}
-              min={1024}
-              step={1024}
-              onChange={(e) => setLlm({ contextWindow: Math.max(1024, Number(e.target.value) || 32768) })}
-            />
+            <Input type="number" value={llm.contextWindow} min={1024} step={1024} onChange={(e) => setLlm({ contextWindow: Math.max(1024, Number(e.target.value) || 32768) })} size="sm" />
           </label>
         </div>
       </div>

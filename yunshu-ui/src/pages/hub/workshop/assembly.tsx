@@ -208,29 +208,31 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
           <Card title="① 身份与角色">
             <div id="step-identity" className="grid gap-3 md:grid-cols-2">
               <Input value={form.name} onChange={(e) => set('name', e.target.value)} data-testid="assembly-name" placeholder="分身名称 *（唯一）" size="md" />
-              <select
+              <Select
+                size="md"
                 value={form.roleTemplate}
-                onChange={(e) => set('roleTemplate', e.target.value)}
+                onChange={(v) => set('roleTemplate', v)}
                 data-testid="assembly-role-template"
-                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-hidden"
-              >
-                <option value="">角色：未装（旧行为）</option>
-                {extraTemplate && <option value={form.roleTemplate}>{form.roleTemplate}（目录外）</option>}
-                {(roleCatalog?.templates ?? []).map((t) => (
-                  <option key={String(t.id)} value={String(t.id)}>{String(t.title || t.id)}</option>
-                ))}
-              </select>
-              <select
+                aria-label="角色模板"
+                placeholder="角色：未装（旧行为）"
+                placeholderOptionDisabled={false}
+                options={[
+                  ...(extraTemplate ? [{ label: form.roleTemplate + '（目录外）', value: form.roleTemplate }] : []),
+                  ...(roleCatalog?.templates ?? []).map((t) => ({ label: String(t.title || t.id), value: String(t.id) })),
+                ]}
+              />
+              <Select
+                size="md"
                 value={form.roleMode}
-                onChange={(e) => set('roleMode', e.target.value)}
+                onChange={(v) => set('roleMode', v)}
                 data-testid="assembly-role-mode"
-                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-hidden"
-              >
-                {roleTiers.map((t) => (
-                  <option key={String(t.value)} value={String(t.value)}>{t.red ? '⚠ ' : ''}
-                    {String(t.label || t.value)}</option>
-                ))}
-              </select>
+                aria-label="角色档位"
+                hidePlaceholder
+                options={roleTiers.map((t) => ({
+                  label: (t.red ? '⚠ ' : '') + String(t.label || t.value),
+                  value: String(t.value),
+                }))}
+              />
               <Input value={form.roleText} onChange={(e) => set('roleText', e.target.value)} data-testid="assembly-role-text" placeholder="角色自由文本（仅显式选 template+text / full-system 档生效）" size="md" />
             </div>
             {/* 自由文本 + 默认档 = 会被后端 400；提前说清，不让使用者白提交（不静默吞掉） */}

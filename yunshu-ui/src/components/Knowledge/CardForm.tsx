@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import type { Card, CardInput, CardStatus, CardType } from '../../api/knowledge-types';
 import './CardForm.css';
-import { Button, Input } from '@/components/ui';
+import { Button, Input, Select } from '@/components/ui';
 
 interface CardFormProps {
   /** 编辑模式传入原卡（用于回填）；新建模式省略 */
@@ -65,27 +65,23 @@ const CardForm: React.FC<CardFormProps> = ({ initial, onSubmit, onCancel, submit
         </label>
         <label className="kb-form-field">
           <span className="kb-form-label">类型</span>
-          <select
-            className="kb-form-input"
+          <Select
+            size="sm"
+            hidePlaceholder
             value={type}
-            onChange={(e) => setType(e.target.value as CardType)}
-          >
-            {TYPE_OPTIONS.map((t) => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </select>
+            onChange={(v) => setType(v as CardType)}
+            options={TYPE_OPTIONS.map((t) => ({ label: t, value: t }))}
+          />
         </label>
         <label className="kb-form-field">
           <span className="kb-form-label">状态</span>
-          <select
-            className="kb-form-input"
+          <Select
+            size="sm"
+            hidePlaceholder
             value={status}
-            onChange={(e) => setStatus(e.target.value as CardStatus)}
-          >
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
+            onChange={(v) => setStatus(v as CardStatus)}
+            options={STATUS_OPTIONS.map((s) => ({ label: s, value: s }))}
+          />
         </label>
         <label className="kb-form-field">
           <span className="kb-form-label">来源</span>

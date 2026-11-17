@@ -291,12 +291,15 @@ function NeverAutomatedPanel({
         </span>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <select value={category} onChange={(e) => { setCategory(e.target.value); setToken(''); setExpiresAt(0) }}
-          className="rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200">
-          {categories.map((c) => (
-            <option key={c} value={c}>{labels[c] || c}（{c}）</option>
-          ))}
-        </select>
+        <Select
+          size="xs"
+          className="w-56"
+          value={category}
+          onChange={(v) => { setCategory(v); setToken(''); setExpiresAt(0) }}
+          aria-label="动作分类"
+          hidePlaceholder
+          options={categories.map((c) => ({ label: (labels[c] || c) + '（' + c + '）', value: c }))}
+        />
         <Input value={actionText} onChange={(e) => setActionText(e.target.value)} placeholder={`可判定文本（缺省示例：${NEVER_TEXT_TEMPLATE[category] || '—'}）`} size="xs" className="w-72" />
         <button type="button" onClick={doIssue} disabled={busy}
           className="rounded-sm border border-slate-600 px-2 py-1 text-caption text-slate-200 disabled:opacity-40">

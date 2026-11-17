@@ -20,14 +20,14 @@
 
 .kb-form-label {
   font-size: var(--text-body);
-  color: #9aa1ac;
+  color: var(--color-muted-foreground);
 }
 
 .kb-form-input {
-  background: #14171c;
-  border: 1px solid #2a2e38;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  color: #e8eaed;
+  color: var(--color-foreground);
   padding: 7px 10px;
   font-size: var(--text-body-lg);
   outline: none;
@@ -46,9 +46,9 @@
 }
 
 .kb-form-error {
-  color: #ff7a7a;
+  color: var(--color-danger);
   font-size: var(--text-body);
-  background: rgba(255, 80, 80, 0.1);
+  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
   border-radius: 4px;
   padding: 6px 10px;
 }

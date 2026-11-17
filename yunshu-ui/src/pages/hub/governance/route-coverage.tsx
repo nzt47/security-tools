@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Route as RouteIcon, RefreshCw, Search } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button, Select } from '@/components/ui'
 // 该端点走 v2 统一信封（后端 _ok(payload)）⇒ 必须显式解包；
 // 直接用 request()（返回原始体、不拆信封）会在 {code,data,message} 上读 entries 而**静默拿到空**。
 import { getEnvelope } from '@/api/envelope'
@@ -184,15 +184,17 @@ export default function RouteCoveragePanel() {
           className={'ml-2 rounded-lg border px-3 py-1.5 ' + (pendingOnly ? 'border-amber-700 bg-amber-950/40 text-amber-300' : 'border-slate-700 text-slate-300 hover:bg-slate-800')}>
           该进却未进 <span className="ml-1 text-slate-500">{(data?.pending_ui ?? []).length}</span>
         </button>
-        <select
+        <Select
+          size="sm"
+          className="ml-2 w-44"
           value={domain}
-          onChange={(e) => setDomain(e.target.value)}
+          onChange={(v) => setDomain(v)}
           data-testid="route-domain-filter"
-          className="ml-2 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-200 outline-hidden"
-        >
-          <option value="all">全部功能区</option>
-          {domains.map((d) => <option key={d} value={d}>{d}</option>)}
-        </select>
+          aria-label="功能区筛选"
+          placeholder="全部功能区"
+          placeholderOptionDisabled={false}
+          options={domains.map((d) => ({ label: d, value: d }))}
+        />
         <label className="ml-2 flex items-center gap-1 text-slate-300">
           <input type="checkbox" checked={liveOnly} onChange={(e) => setLiveOnly(e.target.checked)} /> 只看无死副本
         </label>

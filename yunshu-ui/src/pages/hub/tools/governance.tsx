@@ -16,7 +16,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Activity, Loader2, RefreshCw, RotateCcw, Tags, Wrench,
 } from 'lucide-react'
-import { Button, ErrorBox, hubDeleteJson, hubGet, hubPost, Input } from '../components/ui'
+import { Button, ErrorBox, hubDeleteJson, hubGet, hubPost, Input, Select } from '../components/ui'
 import {
   TOOLS_CATEGORIES,
   TOOLS_HEALTH,
@@ -174,10 +174,19 @@ export default function ToolsGovernance() {
       <div className="mb-2 rounded-lg border border-slate-800 bg-slate-900/50 p-3">
         <div className="mb-2 flex flex-wrap items-center gap-2 text-caption text-slate-400">
           <Tags size={11} className="text-cyan-400" /> 路由关键词
-          <select className={INPUT} value={cat} onChange={(e) => setCat(e.target.value)} aria-label="关键词分类">
-            {cats.map((c) => <option key={c.key} value={c.key}>{c.label ?? c.key}</option>)}
-            {cats.length === 0 && catKeys.map((k) => <option key={k} value={k}>{k}</option>)}
-          </select>
+          <Select
+            size="sm"
+            className="w-40"
+            value={cat}
+            onChange={(v) => setCat(v)}
+            aria-label="关键词分类"
+            hidePlaceholder
+            options={
+              cats.length > 0
+                ? cats.map((c) => ({ label: String(c.label ?? c.key), value: c.key }))
+                : catKeys.map((k) => ({ label: k, value: k }))
+            }
+          />
         </div>
 
         <div className="mb-2 flex flex-wrap items-center gap-2">

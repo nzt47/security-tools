@@ -412,16 +412,24 @@ export function CapabilityMapPanel() {
               placeholder="搜索能力/描述"
               className="ml-2 w-44 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-slate-200 placeholder:text-slate-600"
             />
-            <select value={stage} onChange={(e) => { setStage(e.target.value); setOffset(0) }}
-              className="rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-slate-200">
-              <option value="">全部 stage</option>
-              {Object.keys(data.distribution.by_stage).map((k) => <option key={k} value={k}>{k}</option>)}
-            </select>
-            <select value={risk} onChange={(e) => { setRisk(e.target.value); setOffset(0) }}
-              className="rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-slate-200">
-              <option value="">全部风险</option>
-              {Object.keys(data.distribution.by_risk).map((k) => <option key={k} value={k}>{k}</option>)}
-            </select>
+            <Select
+              size="sm"
+              value={stage}
+              onChange={(v) => { setStage(v); setOffset(0) }}
+              aria-label="按 stage 过滤"
+              placeholder="全部 stage"
+              placeholderOptionDisabled={false}
+              options={Object.keys(data.distribution.by_stage).map((k) => ({ label: k, value: k }))}
+            />
+            <Select
+              size="sm"
+              value={risk}
+              onChange={(v) => { setRisk(v); setOffset(0) }}
+              aria-label="按风险过滤"
+              placeholder="全部风险"
+              placeholderOptionDisabled={false}
+              options={Object.keys(data.distribution.by_risk).map((k) => ({ label: k, value: k }))}
+            />
           </div>
 
           <div className="mb-3 grid grid-cols-2 gap-2 text-caption md:grid-cols-4">
@@ -1241,10 +1249,15 @@ export function AuditExportPanel() {
 
           <div className="mb-2 flex items-center gap-2 text-xs text-slate-400">
             <Select value={scope} onChange={(v) => setScope(v as typeof scope)} size="sm" hidePlaceholder options={[{ label: '验签：导出区间', value: 'exported' }, { label: '验签：链尾窗口', value: 'head' }, { label: '验签：全链（慢）', value: 'full' }]} />
-            <select value={limit} onChange={(e) => setLimit(Number(e.target.value))}
-              className="rounded-sm border border-slate-700 bg-slate-950 px-2 py-1">
-              {[50, 200, 500, 1000, 2000].map((n) => <option key={n} value={n}>{n} 条</option>)}
-            </select>
+            <Select
+              size="sm"
+              className="w-28"
+              value={String(limit)}
+              onChange={(v) => setLimit(Number(v))}
+              aria-label="审计条数"
+              hidePlaceholder
+              options={[50, 200, 500, 1000, 2000].map((n) => ({ label: String(n) + ' 条', value: String(n) }))}
+            />
           </div>
 
           <VirtualList

@@ -12,7 +12,7 @@ import {
   AlertTriangle, ArrowRight, BookOpen, CheckCircle2, FileText, FolderOpen, GitBranch,
   Layers, Loader2, PackagePlus, RefreshCw, Search, ShieldCheck,
 } from 'lucide-react'
-import { Badge, Button, Card, ErrorBox, Input, PageHeader } from '../components/ui'
+import { Badge, Button, Card, ErrorBox, Input, PageHeader, Select } from '../components/ui'
 import GovernancePanel from './governance'
 import ReviewPanel from './ReviewPanel'
 import MemoryDraftPanel from './MemoryDraftPanel'
@@ -682,16 +682,18 @@ export default function IngestionPage() {
               <div className="flex flex-col gap-2">
                 <div className="flex flex-wrap items-center gap-2 text-caption text-slate-400">
                   <span>形态</span>
-                  <select className={INPUT + ' w-56'} value={form}
+                  <Select
+                    size="sm"
+                    className="w-56"
+                    value={form}
                     aria-label="落库形态"
-                    onChange={(e) => {
-                      const next = e.target.value as IngestForm
+                    hidePlaceholder
+                    onChange={(v) => {
+                      const next = v as IngestForm
                       setForm(next); setConfirmed(false)
-                    }}>
-                    {(Object.keys(FORM_LABEL) as IngestForm[]).map((k) => (
-                      <option key={k} value={k}>{FORM_LABEL[k]}</option>
-                    ))}
-                  </select>
+                    }}
+                    options={(Object.keys(FORM_LABEL) as IngestForm[]).map((k) => ({ label: FORM_LABEL[k], value: k }))}
+                  />
                   <span className="text-micro text-slate-500">
                     三种形态都<b>只产出草稿</b>（不注册、不启用）；确认后在「草稿评审」同一行登记/启用
                   </span>

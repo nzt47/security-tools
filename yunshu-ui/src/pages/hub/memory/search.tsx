@@ -14,7 +14,7 @@
  */
 import { useState } from 'react'
 import { Search } from 'lucide-react'
-import { Button, Card, Loading, ErrorBox, PageHeader } from '../components/ui'
+import { Button, Card, Input, Loading, ErrorBox, PageHeader, Select } from '../components/ui'
 // 【P1-front 第六批】两个 POST 端点都已带 X-Envelope: v2，改用 postEnvelope 显式解析。
 import { postEnvelope } from '@/api/envelope'
 // 经验库面复用既有 API 封装（GET + Authorization），不新建 HTTP 层。
@@ -98,21 +98,23 @@ export default function MemorySearch() {
       {error && <div className="mb-4"><ErrorBox message={error} /></div>}
       <Card>
         <div className="flex gap-2">
-          <select
+          <Select
+            size="md"
+            className="w-44"
             value={mode}
-            onChange={(e) => setMode(e.target.value as Surface)}
-            className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-300"
-          >
-            {SURFACES.map((s) => (
-              <option key={s.value} value={s.value}>{s.label}</option>
-            ))}
-          </select>
-          <input
+            onChange={(v) => setMode(v as Surface)}
+            aria-label="检索面"
+            hidePlaceholder
+            options={SURFACES.map((s) => ({ label: s.label, value: s.value }))}
+          />
+          <Input
+            size="md"
+            className="flex-1"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && search()}
             placeholder="输入检索关键词…"
-            className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden focus:border-cyan-600"
+            aria-label="检索关键词"
           />
           <Button variant="primary" size="md" onClick={search} disabled={loading}>
             <Search size={14} /> 搜索

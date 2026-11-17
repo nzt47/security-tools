@@ -4,7 +4,7 @@
  */
 import { useEffect, useState } from 'react'
 import { Plus, Trash2, Pause, Play, Zap, Loader2, History as HistoryIcon } from 'lucide-react'
-import { Badge, Button, Card, DataTable, ErrorBox, hubDelete, hubGet, hubPost, Input, Loading, PageHeader } from '../components/ui'
+import { Badge, Button, Card, DataTable, ErrorBox, hubDelete, hubGet, hubPost, Input, Loading, PageHeader, Select } from '../components/ui'
 
 import {
   SCHEDULES,
@@ -282,16 +282,19 @@ export default function EngineScheduler() {
           />
         )}
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-          <select
+          <Select
+            size="sm"
+            className="w-64"
             value={editName}
-            onChange={(e) => pickTask(e.target.value)}
-            className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 outline-hidden"
-          >
-            <option value="">选择要改时刻的任务…</option>
-            {sched.filter((t) => t.editable_time).map((t) => (
-              <option key={t.name} value={t.name}>{t.name}（{t.schedule_text}）</option>
-            ))}
-          </select>
+            onChange={(v) => pickTask(v)}
+            aria-label="选择要改时刻的任务"
+            placeholder="选择要改时刻的任务…"
+            placeholderOptionDisabled={false}
+            options={sched.filter((t) => t.editable_time).map((t) => ({
+              label: t.name + '（' + t.schedule_text + '）',
+              value: t.name,
+            }))}
+          />
           <Input value={editHour} onChange={(e) => setEditHour(e.target.value)} placeholder="时 0-23" size="xs" className="w-24" />
           <Input value={editMinute} onChange={(e) => setEditMinute(e.target.value)} placeholder="分 0-59" size="xs" className="w-24" />
           <Button onClick={saveSchedule} variant="primary" size="xs">保存时刻</Button>

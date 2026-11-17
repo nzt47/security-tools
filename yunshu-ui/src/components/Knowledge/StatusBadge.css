@@ -12,9 +12,9 @@
 
 /* 草稿 — 灰 */
 .kb-status--draft {
-  color: #b8bdc7;
-  background: rgba(148, 155, 168, 0.14);
-  border-color: rgba(148, 155, 168, 0.35);
+  color: var(--color-muted-foreground);
+  background: color-mix(in srgb, var(--color-muted-foreground) 14%, transparent);
+  border-color: color-mix(in srgb, var(--color-muted-foreground) 35%, transparent);
 }
 
 /* 有效 — 蓝 */
@@ -26,9 +26,9 @@
 
 /* 归档 — 橙 */
 .kb-status--archive {
-  color: #ffb35c;
-  background: rgba(255, 170, 76, 0.14);
-  border-color: rgba(255, 170, 76, 0.4);
+  color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 14%, transparent);
+  border-color: color-mix(in srgb, var(--color-warning) 40%, transparent);
 }
 
 /* 未知 — 紫 */

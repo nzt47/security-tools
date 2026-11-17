@@ -50,7 +50,19 @@ METRICS: Dict[str, str] = {
     #   读数从 1451 变成 1519（+68），这是**量具修正**不是放宽门槛：基线随之重写，之后仍然只降不升。
     "arbitrary_text": r"text-\[\d+(?:\.\d+)?px\]",
     "raw_heading": r"<h[123]\b",
+    # 【2026-11-17 新增】CSS 侧的硬编码颜色（hex 与 rgb()/rgba() 字面值）。
+    #   为什么单列一个指标：这一轮发现 knowledge 的 .kb-* 里还有一支蓝（#4a9eff）与一批中性灰，
+    #   而本脚本此前只量 .tsx/.ts —— CSS 字面值完全在量具之外，只能靠人工数构建产物才发现。
+    #   统计范围：yunshu-ui/src/**/*.css，**排除 index.css**（那里是 token 定义本身，字面值合法）。
+    #   与 arbitrary_text 是两个数，别混用。
+    "css_hardcoded_color": "",
 }
+
+#: CSS 里"硬编码颜色"的两种写法。
+_CSS_COLOR_PATTERNS = (r"#[0-9a-fA-F]{3,8}\b", r"\brgba?\(\s*\d")
+
+#: 参与 CSS 指标的文件（token 定义文件本身豁免）。
+_CSS_EXEMPT = {"index.css"}
 
 
 #: 扫描的文件后缀。
@@ -75,7 +87,16 @@ def scan(root: Path = UI_SRC) -> Dict[str, int]:
     for path in files:
         text = path.read_text(encoding="utf-8", errors="replace")
         for key, pattern in METRICS.items():
+            if not pattern:
+                continue
             counts[key] += len(re.findall(pattern, text))
+    # CSS 侧单独扫一遍（同一份代码里 .css 与 .tsx 是两套写法，指标也分开）
+    for path in root.rglob("*.css"):
+        if path.name in _CSS_EXEMPT:
+            continue
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for pattern in _CSS_COLOR_PATTERNS:
+            counts["css_hardcoded_color"] += len(re.findall(pattern, text))
     counts["_files"] = len(files)
     return counts
 

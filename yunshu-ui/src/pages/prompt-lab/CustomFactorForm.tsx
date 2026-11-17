@@ -3,7 +3,7 @@
  * 从 PromptLab.tsx 拆分（原 285-399 行，逻辑不变）。
  */
 import { useState } from 'react';
-import { Button, Select, Textarea } from '@/components/ui';
+import { Button, Input, Select, Textarea } from '@/components/ui';
 import { usePromptLabStore } from '../../stores/usePromptLabStore';
 import { CATEGORIES } from '../../lib/promptFactors';
 import type { FactorCategory, FactorControl, PromptFactorDef } from '../../lib/promptFactorTypes';
@@ -63,7 +63,7 @@ export default function CustomFactorForm({ onClose }: CustomFactorFormProps) {
         <h3 className="pl-modal-title">添加自定义因素</h3>
         <label className="pl-field">
           <span>名称 *</span>
-          <input className="pl-text" value={name} onChange={(e) => setName(e.target.value)} placeholder="例如：输出语言风格" />
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="例如：输出语言风格" size="sm" />
         </label>
         <div className="pl-modal-grid">
           <label className="pl-field">
@@ -81,10 +81,10 @@ export default function CustomFactorForm({ onClose }: CustomFactorFormProps) {
         </div>
         {control === 'slider' && (
           <div className="pl-modal-grid">
-            <label className="pl-field"><span>最小值</span><input className="pl-text" value={min} onChange={(e) => setMin(e.target.value)} /></label>
-            <label className="pl-field"><span>最大值</span><input className="pl-text" value={max} onChange={(e) => setMax(e.target.value)} /></label>
-            <label className="pl-field"><span>步进</span><input className="pl-text" value={step} onChange={(e) => setStep(e.target.value)} /></label>
-            <label className="pl-field"><span>单位</span><input className="pl-text" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="如 分/轮" /></label>
+            <label className="pl-field"><span>最小值</span><Input value={min} onChange={(e) => setMin(e.target.value)} size="sm" /></label>
+            <label className="pl-field"><span>最大值</span><Input value={max} onChange={(e) => setMax(e.target.value)} size="sm" /></label>
+            <label className="pl-field"><span>步进</span><Input value={step} onChange={(e) => setStep(e.target.value)} size="sm" /></label>
+            <label className="pl-field"><span>单位</span><Input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="如 分/轮" size="sm" /></label>
           </div>
         )}
         {control === 'select' && (
@@ -96,7 +96,7 @@ export default function CustomFactorForm({ onClose }: CustomFactorFormProps) {
         {control === 'text' && (
           <label className="pl-field">
             <span>占位符</span>
-            <input className="pl-text" value={placeholder} onChange={(e) => setPlaceholder(e.target.value)} />
+            <Input value={placeholder} onChange={(e) => setPlaceholder(e.target.value)} size="sm" />
           </label>
         )}
         <label className="pl-field">
@@ -104,7 +104,7 @@ export default function CustomFactorForm({ onClose }: CustomFactorFormProps) {
           {control === 'toggle' ? (
             <Select value={defaultVal} onChange={(v) => setDefaultVal(v)} size="sm" hidePlaceholder options={[{ label: '开启', value: 'true' }, { label: '关闭', value: 'false' }]} />
           ) : (
-            <input className="pl-text" value={defaultVal} onChange={(e) => setDefaultVal(e.target.value)} />
+            <Input value={defaultVal} onChange={(e) => setDefaultVal(e.target.value)} size="sm" />
           )}
         </label>
         <label className="pl-field">

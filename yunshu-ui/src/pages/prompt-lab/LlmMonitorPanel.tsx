@@ -17,7 +17,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, ChevronRight, Copy, Loader2, Radio, RefreshCw, Search, Trash2 } from 'lucide-react'
-import { Button, SectionTitle, Select, Switch } from '@/components/ui'
+import { Button, Input, SectionTitle, Select, Switch } from '@/components/ui'
 import { hubGet, hubPost } from '../hub/components/ui'
 
 import {
@@ -278,15 +278,15 @@ export default function LlmMonitorPanel() {
           {busy ? <Loader2 size={12} className="spin" /> : <Trash2 size={12} />} 清空
         </Button>
         <Select value={source} onChange={(v) => { setSource(v); setExpanded({}) }} title="按来源筛选" size="sm" placeholder="全部来源" placeholderOptionDisabled={false} options={[{ label: 'chat（对话）', value: 'chat' }, { label: 'summarize（摘要）', value: 'summarize' }, { label: 'tool_calling（工具调用）', value: 'tool_calling' }]} />
-        <label className="pl-monitor-search">
-          <Search size={12} />
-          <input
-            className="pl-text"
-            placeholder="搜索消息内容…"
-            value={search}
-            onChange={(e) => onSearch(e.target.value)}
-          />
-        </label>
+        <Input
+          size="xs"
+          className="w-[190px]"
+          placeholder="搜索消息内容…"
+          aria-label="搜索消息内容"
+          value={search}
+          onChange={(e) => onSearch(e.target.value)}
+          leading={<Search size={12} />}
+        />
         {restoredCount > 0 && (
           <span className="pl-id-hint" title="由上一会话关闭时的快照回填">
             含 {restoredCount} 条上次会话遗留记录

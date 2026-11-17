@@ -124,11 +124,15 @@ export default function PanoramaLogs() {
               placeholder="关键字过滤"
               className="w-40 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-300 placeholder-slate-600 outline-hidden"
             />
-            <select value={limit} onChange={(e) => setLimit(Number(e.target.value))} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-300">
-              <option value={50}>50 条</option>
-              <option value={100}>100 条</option>
-              <option value={200}>200 条</option>
-            </select>
+            <Select
+              size="sm"
+              className="w-24"
+              value={String(limit)}
+              onChange={(v) => setLimit(Number(v))}
+              aria-label="每页条数"
+              hidePlaceholder
+              options={[50, 100, 200].map((n) => ({ label: String(n) + ' 条', value: String(n) }))}
+            />
             <Button onClick={load} variant="default" size="sm">
               <RefreshCw size={12} /> 查询
             </Button>

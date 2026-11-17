@@ -696,11 +696,16 @@ export default function SkillAssessManager() {
             ) : (
               <>
                 {grouped && classOptions.length > 0 && (
-                  <select value={cur} onChange={(e) => void moveClass(it, e.target.value)}
+                  <Select
+                    size="xs"
+                    className="max-w-30"
+                    value={cur}
+                    onChange={(v) => void moveClass(it, v)}
                     title="人工移动到其它分类（之后自动重判不再覆盖人工选择）"
-                    className="max-w-30 rounded-sm border border-slate-700 bg-slate-950 px-1 py-0.5 text-micro text-slate-300 outline-hidden focus:border-cyan-600">
-                    {classOptions.map((o) => <option key={o} value={o}>{o}</option>)}
-                  </select>
+                    aria-label="移动到其它分类"
+                    hidePlaceholder
+                    options={classOptions.map((o) => ({ label: o, value: o }))}
+                  />
                 )}
                 <Button type="button" variant="default" size="xs" onClick={() => setDetailTarget(it)} disabled={busy !== ''} title="详情：使用说明 / 脚本与沙箱执行 / 参数统计 / 反馈 / 重复技能">
                   <ScrollText size={11} /> 详情
