@@ -17,7 +17,14 @@ import { cn } from '@/lib/cn'
  * 此前这两档只能靠各页手拼 `border-cyan-700/70 text-cyan-300` 这类第五、第六种强调色，
  * 现在收口到语义 token：accent = 主色描边，danger-outline = 危险色描边。
  */
-export type ButtonVariant = 'primary' | 'default' | 'accent' | 'danger' | 'danger-outline' | 'ghost'
+export type ButtonVariant =
+  | 'primary'
+  | 'default'
+  | 'accent'
+  | 'success-outline'
+  | 'danger'
+  | 'danger-outline'
+  | 'ghost'
 /**
  * icon：正方形只放图标（32×32），用于工具栏/卡片右上角
  * xs  ：行内/工具条上的紧凑控件（24px 高，text-micro）—— 用于右侧面板、会话行等密集区域；
@@ -38,6 +45,9 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
   default: 'border border-border bg-card text-foreground hover:bg-muted',
   accent: 'border border-primary/50 text-primary hover:bg-primary/10',
+  // 「正向但不必抢视线」的动作（登记 / 取消归档 / 通过）：描边绿。原先是手写 emerald 描边字，
+  // 与 accent（主色）/ danger-outline（危险）拼成一套"语义描边"，颜色只来自 --color-success。
+  'success-outline': 'border border-success/50 text-success hover:bg-success/10',
   danger: 'bg-danger text-danger-foreground hover:bg-danger/90',
   'danger-outline': 'border border-danger/50 text-danger hover:bg-danger/10',
   ghost: 'text-foreground hover:bg-muted',
