@@ -21,7 +21,7 @@
 import { useState } from 'react'
 import type { ChangeEvent, KeyboardEvent } from 'react'
 import { ClipboardCopy, Loader2, Package, RefreshCw, Upload } from 'lucide-react'
-import { Card, ErrorBox, PageHeader } from '../components/ui'
+import { Card, ErrorBox, PageHeader, Textarea } from '../components/ui'
 import { ApiError, request } from '@/lib/apiClient'
 import { SUBAGENT_BUNDLE_BY_NAME, SUBAGENT_IMPORT } from '@/api/endpoints'
 
@@ -298,12 +298,12 @@ export default function WorkshopReplicate() {
               {importing ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} 导入
             </button>
           </div>
-          <textarea
+          <Textarea
             value={importText}
             onChange={(e) => setImportText(e.target.value)}
             data-testid="replicate-import-text"
             placeholder="或直接粘贴 bundle JSON 文本"
-            className="mt-3 h-28 w-full rounded-lg border border-slate-700 bg-slate-900 p-2 font-mono text-caption leading-5 text-slate-200 placeholder-slate-600 outline-hidden"
+            className="mt-3 h-28 font-mono text-caption leading-5"
           />
           {importError && (
             <div className="mt-3" data-testid="replicate-import-error"><ErrorBox message={importError} /></div>

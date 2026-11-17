@@ -8,7 +8,7 @@
  */
 import { useState } from 'react'
 import { Camera, Clipboard, ClipboardPaste, Loader2, Monitor, Navigation, X } from 'lucide-react'
-import { Button, Card, PageHeader, hubGet, hubPost } from '../components/ui'
+import { Button, Card, PageHeader, hubGet, hubPost, Textarea } from '../components/ui'
 
 import {
   BROWSER_NAVIGATE,
@@ -167,12 +167,12 @@ export default function ToolsComputerUse() {
             )}
           </div>
           <div className="mt-3 flex flex-col gap-2">
-            <textarea
+            <Textarea
               value={clipDraft}
               onChange={(e) => setClipDraft(e.target.value)}
               placeholder="要写入剪贴板的文本"
               aria-label="剪贴板写入内容"
-              className="h-20 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden focus:border-cyan-600"
+              className="h-20 text-ui"
             />
             <Button variant="primary" size="md" onClick={writeClipboard} disabled={busyClip || !clipDraft}>
               <ClipboardPaste size={14} /> 写入剪贴板

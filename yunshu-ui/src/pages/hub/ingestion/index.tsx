@@ -12,7 +12,7 @@ import {
   AlertTriangle, ArrowRight, BookOpen, CheckCircle2, FileText, FolderOpen, GitBranch,
   Layers, Loader2, PackagePlus, RefreshCw, Search, ShieldCheck,
 } from 'lucide-react'
-import { Badge, Button, Card, ErrorBox, Input, PageHeader, Select } from '../components/ui'
+import { Badge, Button, Card, ErrorBox, Input, PageHeader, Select, Textarea } from '../components/ui'
 import GovernancePanel from './governance'
 import ReviewPanel from './ReviewPanel'
 import MemoryDraftPanel from './MemoryDraftPanel'
@@ -34,7 +34,6 @@ import {
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2.5 py-1.5 text-xs text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-100 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
-const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2.5 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 const FORM_LABEL: Record<IngestForm, string> = {
   skill: '技能（默认）',
   tool: '代码工具草稿',
@@ -388,7 +387,7 @@ export default function IngestionPage() {
               </>
             ) : (
               <>
-                <textarea className={INPUT + ' min-h-[150px] font-mono'} value={textInput}
+                <Textarea size="sm" className="min-h-[150px] font-mono" value={textInput}
                   aria-label="粘贴文档或提示词"
                   placeholder="粘贴 markdown / 普通文档 / 提示词…"
                   onChange={(e) => { setTextInput(e.target.value); resetPlan() }} />

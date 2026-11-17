@@ -15,7 +15,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { FileStack, Loader2, Play, RefreshCw, Settings2, Wand2 } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost, Input } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost, Input, Textarea } from '../components/ui'
 import {
   ORCHESTRATOR_SEMANTIC_CONFIG,
   PLANNING_TOGGLE,
@@ -23,7 +23,6 @@ import {
   PROCESS_DISTILL_HEALTH,
 } from '@/api/endpoints'
 
-const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 export default function EngineOrchestration() {
@@ -128,8 +127,9 @@ export default function EngineOrchestration() {
           </div>
           <pre className={PRE}>{JSON.stringify(sem ?? {}, null, 2)}</pre>
           <div className="mt-2 mb-1 text-caption text-slate-400">API 覆盖层（提交后即时生效；只接受已知键）</div>
-          <textarea
-            className={INPUT + ' h-32 w-full font-mono'}
+          <Textarea
+            size="sm"
+            className="h-32 w-full font-mono"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             aria-label="语义层覆盖层 JSON"

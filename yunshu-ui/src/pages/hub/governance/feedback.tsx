@@ -20,7 +20,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   BookOpen, CheckCircle2, FileText, Loader2, MessageSquare, RefreshCw, Send, Star,
 } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost, Input, Select } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost, Input, Select, Textarea } from '../components/ui'
 import DevNotesPanel from './dev-notes'
 import {
   FEEDBACK_LIST,
@@ -32,7 +32,6 @@ import {
   feedbackResolve,
 } from '@/api/endpoints'
 
-const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 interface FeedbackRow {
@@ -338,7 +337,7 @@ export default function FeedbackCenter() {
           </div>
           <label className="mb-2 block text-caption text-slate-400">
             备注
-            <textarea className={INPUT + ' mt-1 h-20 w-full'} value={subComment} onChange={(e) => setSubComment(e.target.value)} aria-label="反馈备注" />
+            <Textarea size="sm" className="mt-1 h-20 w-full" value={subComment} onChange={(e) => setSubComment(e.target.value)} aria-label="反馈备注" />
           </label>
           <Button
             type="button"

@@ -4,7 +4,7 @@
  * 提交异步由父组件控制（saving 防重复提交），错误提示由 request.ts 拦截器统一处理。
  */
 import { useEffect, useState } from 'react'
-import { Button, Input, ModalBase } from '@/components/ui'
+import { Button, Input, ModalBase, Textarea } from '@/components/ui'
 import type { RoleItem } from '@/api/role'
 
 interface RoleFormDialogProps {
@@ -89,13 +89,13 @@ export default function RoleFormDialog({ open, role, saving, onSubmit, onCancel 
           <label htmlFor="rf-desc" className="mb-1.5 block text-sm font-medium text-foreground">
             描述
           </label>
-          <textarea
+          <Textarea
             id="rf-desc"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="角色职责说明（可选）"
             rows={3}
-            className="w-full resize-none rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:outline-hidden focus:ring-2 focus:ring-primary/40"
+            className="resize-none"
           />
         </div>
       </form>

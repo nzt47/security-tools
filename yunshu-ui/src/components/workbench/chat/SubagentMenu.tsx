@@ -23,7 +23,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Bot, Check, ChevronDown, ChevronRight, Loader2, Play, RefreshCw, UserPlus, X } from 'lucide-react'
-import { Button, hubGet, Input } from '../../../pages/hub/components/ui'
+import { Button, hubGet, Input, Textarea } from '../../../pages/hub/components/ui'
 import { getEnvelope } from '@/api/envelope'
 import { authHeader } from '../../../lib/apiToken'
 
@@ -448,8 +448,9 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
               </p>
             )}
 
-            <textarea
-              className="mb-1.5 h-14 w-full resize-none rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-caption text-slate-200 outline-hidden focus:border-cyan-600"
+            <Textarea
+              size="sm"
+              className="mb-1.5 h-14 w-full resize-none text-caption"
               placeholder={defaultTask ? '留空则使用当前会话最近一条用户消息' : '输入要委托的任务（①目标，≥8 字符）…'}
               value={task}
               onChange={(e) => setTask(e.target.value)}

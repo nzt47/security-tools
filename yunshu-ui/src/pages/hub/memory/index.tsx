@@ -8,7 +8,7 @@
  */
 import { useEffect, useState } from 'react'
 import { Brain, Search, Plus } from 'lucide-react'
-import { Button, Card, StatCard, Loading, ErrorBox, PageHeader } from '../components/ui'
+import { Button, Card, StatCard, Loading, ErrorBox, PageHeader, Textarea } from '../components/ui'
 // 【P1-front 第六批】三个端点都已带 X-Envelope: v2（overview 是 GET，另两个是 POST），
 // 改用显式信封解析：GET 走 getEnvelope、POST 走 postEnvelope（后者的请求头语义与 hubPost 逐条对齐）。
 import { getEnvelope, postEnvelope } from '@/api/envelope'
@@ -178,12 +178,12 @@ export default function MemoryPage({ mode = 'manual' }: MemoryPageProps) {
           </Card>
         ) : (
           <Card title="手动记忆">
-            <textarea
+            <Textarea
               value={manualText}
               onChange={(e) => setManualText(e.target.value)}
               rows={5}
               placeholder="输入要记住的内容…"
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden focus:border-cyan-600"
+              className="text-ui"
             />
             <Button
               variant="primary"

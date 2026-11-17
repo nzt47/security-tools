@@ -14,7 +14,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Activity, AlertTriangle, Download, Gauge, Loader2, RefreshCw, Save, ShieldCheck, Zap,
 } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPut } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPut, Textarea } from '../components/ui'
 import {
   HEALTH_ALERTS,
   HEALTH_EXPORT,
@@ -27,8 +27,6 @@ import {
 } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-
-const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 
 interface Dimension { score?: number; weight?: number; indicators?: Record<string, number>; issues?: unknown[] }
 interface ScoreResp {
@@ -227,8 +225,9 @@ export default function HealthVitals() {
         <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
           <Gauge size={11} className="text-cyan-400" /> 维度权重（改它会改变所有人看到的健康度）
         </div>
-        <textarea
-          className={INPUT + ' h-20 w-full font-mono'}
+        <Textarea
+          size="sm"
+          className="h-20 w-full font-mono"
           value={weightText}
           onChange={(e) => setWeightText(e.target.value)}
           aria-label="健康维度权重 JSON"

@@ -18,7 +18,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   AlertTriangle, Ban, Lock, Loader2, Pause, Play, Power, RefreshCw, RotateCcw, Shield, ShieldAlert, Sliders,
 } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost, Input, Select } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost, Input, Select, Textarea } from '../components/ui'
 import {
   PERMISSION_ACCESS_LOG,
   PERMISSION_EMERGENCY,
@@ -36,7 +36,6 @@ import {
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
-const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 const PRE = 'max-h-52 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 const TOGGLE_LABEL: Record<string, string> = {
@@ -313,8 +312,9 @@ export default function SecurityPanel() {
             <div className="mb-2 flex items-center gap-2 text-caption text-slate-400">
               <Lock size={11} className="text-cyan-400" /> 文本危险校验
             </div>
-            <textarea
-              className={INPUT + ' h-20 w-full'}
+            <Textarea
+              size="sm"
+              className="h-20 w-full"
               value={checkText}
               onChange={(e) => setCheckText(e.target.value)}
               placeholder="粘贴一段命令或文本，看是否会被安全守卫判定为危险"

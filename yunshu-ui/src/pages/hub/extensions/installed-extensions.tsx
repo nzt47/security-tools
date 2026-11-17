@@ -18,7 +18,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { Loader2, RefreshCw, Settings2, Trash2, TriangleAlert } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost, Textarea } from '../components/ui'
 import {
   EXTENSIONS_CONFIGURE,
   EXTENSIONS_LIST,
@@ -27,8 +27,6 @@ import {
 } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-
-const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 font-mono text-caption text-slate-200 outline-hidden focus:border-cyan-600'
 
 export interface ExtRow {
   ext_id?: string
@@ -228,8 +226,9 @@ export default function InstalledExtensions({ types, title, hint, emptyText, exc
               {editingConfig && (
                 <div className="mt-1.5 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1.5">
                   <div className="mb-1 text-micro text-slate-500">配置（JSON）</div>
-                  <textarea
-                    className={INPUT + ' h-24 resize-y'}
+                  <Textarea
+                    size="sm"
+                    className="h-24 resize-y"
                     value={configText}
                     onChange={(e) => setConfigText(e.target.value)}
                     aria-label={'配置文本 ' + id}

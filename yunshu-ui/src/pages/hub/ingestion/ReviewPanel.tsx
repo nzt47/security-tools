@@ -6,7 +6,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { CheckCircle2, Inbox, Loader2, RefreshCw, Trash2 } from 'lucide-react'
-import { Badge, Button, ErrorBox, hubDelete, hubGet, hubPost } from '../components/ui'
+import { Badge, Button, ErrorBox, hubDelete, hubGet, hubPost, Textarea } from '../components/ui'
 import { authHeader } from '../../../lib/apiToken'
 import {
   INGESTION_DRAFTS,
@@ -23,7 +23,6 @@ import {
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50'
 
-const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 /** 草稿形态 → 人读标签（此前把 skill 也画成「工具」，点「AI 实现」会 400 form-mismatch）。 */
 const FORM_LABEL: Record<string, string> = { skill: '技能', tool: '工具', workflow: '工作流' }
 /** 生成时间：ISO → 本地「YYYY-MM-DD HH:mm」（解析失败就原样显示，不显示 Invalid Date）。 */
@@ -341,7 +340,7 @@ export default function ReviewPanel() {
               </label>
               <label className="mt-1 flex flex-col gap-1 text-micro text-slate-400">
                 force 豁免原因（至少 4 字）
-                <textarea className={INPUT} rows={2} value={batchReason}
+                <Textarea size="sm" rows={2} value={batchReason}
                   onChange={(e) => setBatchReason(e.target.value)} aria-label="force 豁免原因" />
               </label>
             </>

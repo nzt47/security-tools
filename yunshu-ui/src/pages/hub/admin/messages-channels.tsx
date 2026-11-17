@@ -26,7 +26,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   CheckCircle2, Copy, Download, Loader2, PlugZap, Plus, Send, Settings2, SlidersHorizontal, Trash2,
 } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost, Input, Select, Switch } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost, Input, Select, Switch, Textarea } from '../components/ui'
 import {
   CP_SETTINGS,
   cpSetting,
@@ -44,8 +44,6 @@ const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 p
 /** 「下一步该点的那个」按钮（安装 / 启用）：整段独立写，不拼 BTN ——
  *  否则 border-slate-700 与 border-emerald-600 同时在 class 里，谁生效取决于样式表顺序，
  *  看起来就会"有时候高亮有时候不高亮"（2026-11-13 Owner：启用按钮应高亮）。 */
-
-const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 
 interface BuiltinChannel {
   id?: string
@@ -688,8 +686,9 @@ export default function HubChannelsPanel() {
                       其余字段（method / headers / use_tls …）用下面的高级 JSON；口令不会在这里回显。
                       留空字段保存后 = <strong>从 .env 删除该键</strong>（读取回落到 .env 旧键 / 默认值，不写空串占位）。
                     </div>
-                    <textarea
-                      className={INPUT + ' h-32 font-mono text-caption'}
+                    <Textarea
+                      size="sm"
+                      className="h-32 font-mono text-caption"
                       value={configText}
                       onChange={(ev) => setConfigText(ev.target.value)}
                       aria-label={'通道配置 ' + id}

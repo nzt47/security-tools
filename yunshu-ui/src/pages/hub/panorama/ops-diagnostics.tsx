@@ -15,7 +15,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   AlertTriangle, Activity, FileText, Loader2, RefreshCw, Save, Trash2, Wrench,
 } from 'lucide-react'
-import { Button, ErrorBox, hubDelete, hubGet, hubPut, Input } from '../components/ui'
+import { Button, ErrorBox, hubDelete, hubGet, hubPut, Input, Textarea } from '../components/ui'
 import {
   DIAGNOSTICS_CONFIG,
   DIAGNOSTICS_ERROR_CORRELATION,
@@ -30,7 +30,6 @@ import {
   observabilityTrace,
 } from '@/api/endpoints'
 
-const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 const PRE = 'max-h-40 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 interface ToolRow { name?: string; category?: string; enabled?: boolean; description?: string }
@@ -330,8 +329,9 @@ export default function OpsDiagnostics() {
             <div className="mb-1 flex flex-wrap items-center gap-2">
               <Input size="sm" className="w-56" value={alertName} onChange={(e) => setAlertName(e.target.value)} placeholder="规则名，如 YunshuHealthScoreCritical" aria-label="告警规则名" />
             </div>
-            <textarea
-              className={INPUT + ' h-20 w-full font-mono'}
+            <Textarea
+              size="sm"
+              className="h-20 w-full font-mono"
               value={alertBody}
               onChange={(e) => setAlertBody(e.target.value)}
               aria-label="告警规则 JSON"

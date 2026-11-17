@@ -15,7 +15,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { CheckCircle2, Cpu, Loader2, Plus, RefreshCw, Search, Star, Trash2, Wifi } from 'lucide-react'
-import { Button, ErrorBox, hubDelete, hubGet, hubPost, hubPut, Input } from '../components/ui'
+import { Button, ErrorBox, hubDelete, hubGet, hubPost, hubPut, Input, Textarea } from '../components/ui'
 import {
   LLM_INSTANCES,
   SEARCH_INSTANCES,
@@ -26,8 +26,6 @@ import {
   searchInstanceDefault,
   searchInstanceTest,
 } from '@/api/endpoints'
-
-const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 
 interface Instance {
   id?: string
@@ -337,8 +335,9 @@ export default function InstancesPanel() {
               <Button type="button" variant="default" size="xs" onClick={() => setDetail(null)}>关闭</Button>
             </span>
           </div>
-          <textarea
-            className={INPUT + ' h-48 w-full font-mono'}
+          <Textarea
+            size="sm"
+            className="h-48 w-full font-mono"
             value={detailEdit}
             onChange={(e) => setDetailEdit(e.target.value)}
             aria-label="实例详情 JSON"

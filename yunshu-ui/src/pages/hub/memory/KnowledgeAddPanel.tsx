@@ -8,10 +8,8 @@
  */
 import { useState } from 'react'
 import { CheckCircle2, Loader2, Plus } from 'lucide-react'
-import { Button, hubPost, Input } from '../components/ui'
+import { Button, hubPost, Input, Textarea } from '../components/ui'
 import { KNOWLEDGE_ADD } from '@/api/endpoints'
-
-const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 
 export default function KnowledgeAddPanel() {
   const [content, setContent] = useState('')
@@ -51,8 +49,9 @@ export default function KnowledgeAddPanel() {
           <CheckCircle2 size={11} /> {ok}
         </div>
       )}
-      <textarea
-        className={INPUT + ' h-24'}
+      <Textarea
+        size="sm"
+        className="h-24"
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder="要写入知识库的正文"

@@ -20,7 +20,7 @@ import {
   AlertTriangle, CheckCircle2, Copy, FileCode, Gauge, Loader2, MessageSquare,
   Play, RefreshCw, ScrollText, X,
 } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost, Input, Select } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost, Input, Select, Textarea } from '../components/ui'
 import {
   SKILL_CONTENT,
   SKILLS_MGMT_ASSESS_MERGE_SAFE,
@@ -31,7 +31,6 @@ import {
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 
-const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 const PRE = 'max-h-72 overflow-auto whitespace-pre-wrap wrap-break-word rounded-md border border-slate-800 bg-slate-950 p-2.5 font-mono text-caption leading-relaxed text-slate-300'
 
 type Tab = 'instruction' | 'scripts' | 'params' | 'feedback' | 'duplicates'
@@ -459,8 +458,9 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
                 </label>
                 <label className="mb-2 block">
                   <span className="mb-1 block text-caption text-slate-400">参数（JSON，可留空）</span>
-                  <textarea
-                    className={INPUT + ' h-20 font-mono'}
+                  <Textarea
+                    size="sm"
+                    className="h-20 font-mono"
                     value={paramsText}
                     onChange={(e) => setParamsText(e.target.value)}
                     placeholder='{"query": "..."}'
@@ -633,7 +633,7 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
                 </div>
                 <label className="mb-2 block">
                   <span className="mb-1 block text-caption text-slate-400">备注</span>
-                  <textarea className={INPUT + ' h-16'} value={fbComment} onChange={(e) => setFbComment(e.target.value)} aria-label="反馈备注" />
+                  <Textarea size="sm" className="h-16" value={fbComment} onChange={(e) => setFbComment(e.target.value)} aria-label="反馈备注" />
                 </label>
                 <Button
                   type="button"

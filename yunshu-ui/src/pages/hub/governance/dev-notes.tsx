@@ -15,12 +15,11 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, CheckCircle2, Lightbulb, Loader2, RefreshCw, Save } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost, Textarea } from '../components/ui'
 import { FEEDBACK_LIST, FEEDBACK_SUBMIT, feedbackResolve } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
-const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 
 /** 约定的分类键：只认这一个，避免和用户反馈混在一起 */
 export const DEV_NOTE_CATEGORY = 'dev-note'
@@ -121,8 +120,9 @@ export default function DevNotesPanel() {
       {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
 
       <div className="mb-2 flex items-start gap-2">
-        <textarea
-          className={INPUT + ' min-h-[64px]'}
+        <Textarea
+          size="sm"
+          className="min-h-[64px]"
           aria-label="记录问题或想法"
           placeholder="用着用着发现的问题、突然想到的做法……记在这里，留待解决（会在本页列表里出现）"
           value={text}

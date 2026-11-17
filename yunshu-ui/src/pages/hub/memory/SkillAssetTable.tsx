@@ -71,8 +71,6 @@ import {
 // 形状只有一处定义，颜色表达语义（中性/主动作/信息/破坏性）。别名仅为减少本文件改动面。
 const BTN = TABLE_BTN
 
-const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
-
 // ── 列宽（可拖动）+ 说明全文弹窗 ──────────────────────────────────────
 // 中文说明长短差异极大（有的 20 字、有的 400 字），固定列宽要么截断要么把表撑爆；
 // 这里给「技能 / 说明 / 徽章 / 操作」四个内容列加拖动手柄，宽度存 localStorage。
@@ -1115,7 +1113,7 @@ function PublishModal({ item, onClose, onConfirm }: {
       )}
       {needsReason && (
         <Field label="复核说明 *（人工强制发布时必填）">
-          <textarea className={INPUT} rows={3} value={reason}
+          <Textarea size="sm" rows={3} value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="例如：已人工审查代码，阻断项为误报 / 使用场景受控……" />
         </Field>
