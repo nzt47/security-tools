@@ -28,6 +28,7 @@ import {
   type ReactNode,
 } from 'react'
 import { createPortal } from 'react-dom'
+import { Badge } from '@/components/ui'
 import {
   AlertTriangle, ChevronDown, ChevronRight, CircleSlash, Info, Loader2,
   RefreshCw, ShieldAlert, Siren,
@@ -116,20 +117,13 @@ export const VIRTUAL_SCROLL_THRESHOLD = 500
 /** 五态（§7 逐字：灰/蓝/黄/绿/红；**不得增删态**） */
 export type StatusTone = 'gray' | 'blue' | 'yellow' | 'green' | 'red'
 
-const STATUS_TONE_CLASS: Record<StatusTone, string> = {
-  gray: 'bg-slate-500/15 text-slate-300 border-slate-600',
-  blue: 'bg-sky-500/15 text-sky-300 border-sky-700',
-  yellow: 'bg-amber-500/15 text-amber-300 border-amber-700',
-  green: 'bg-emerald-500/15 text-emerald-300 border-emerald-700',
-  red: 'bg-red-500/15 text-red-300 border-red-700',
-}
-
-const STATUS_DOT_CLASS: Record<StatusTone, string> = {
-  gray: 'bg-slate-400',
-  blue: 'bg-sky-400',
-  yellow: 'bg-amber-400',
-  green: 'bg-emerald-400',
-  red: 'bg-red-400',
+/** 五态 → 全局徽章的语义 tone（2026-11-18：颜色不再写 tailwind 色名，统一走 token） */
+const STATUS_TONE_MAP: Record<StatusTone, 'neutral' | 'primary' | 'warning' | 'success' | 'danger'> = {
+  gray: 'neutral',
+  blue: 'primary',
+  yellow: 'warning',
+  green: 'success',
+  red: 'danger',
 }
 
 /**
@@ -151,18 +145,9 @@ export function StatusBadge({
   title?: string
 }) {
   return (
-    <span
-      data-cp-status-tone={tone}
-      title={title}
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs ${STATUS_TONE_CLASS[tone]}`}
-    >
-      <span
-        className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT_CLASS[tone]} ${
-          pulse ? 'animate-pulse' : ''
-        }`}
-      />
+    <Badge tone={STATUS_TONE_MAP[tone]} size="md" dot pulse={pulse} title={title} data-cp-status-tone={tone}>
       {children}
-    </span>
+    </Badge>
   )
 }
 

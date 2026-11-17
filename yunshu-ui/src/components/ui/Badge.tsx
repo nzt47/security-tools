@@ -27,6 +27,8 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   size?: BadgeSize
   /** 左侧小圆点（状态灯用法） */
   dot?: boolean
+  /** 圆点呼吸（进行中/告警未确认这类"还在动"的状态） */
+  pulse?: boolean
   children?: ReactNode
 }
 
@@ -55,6 +57,7 @@ export default function Badge({
   tone = 'neutral',
   size = 'sm',
   dot = false,
+  pulse = false,
   children,
   className,
   ...rest
@@ -69,7 +72,9 @@ export default function Badge({
         className,
       )}
     >
-      {dot && <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', DOT[tone])} aria-hidden />}
+      {dot && (
+        <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', DOT[tone], pulse && 'animate-pulse')} aria-hidden />
+      )}
       {children}
     </span>
   )
