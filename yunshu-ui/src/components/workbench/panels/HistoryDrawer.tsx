@@ -30,7 +30,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { Button } from '@/components/ui';
+import { Button, Input } from '@/components/ui';
 import { historyApi, type HistoryEntry } from '../../../lib/historyApi';
 import { useLayoutStore } from '../../../stores/useLayoutStore';
 
@@ -276,24 +276,24 @@ export function HistoryDrawer({ sessionId, onClose }: HistoryDrawerProps) {
 
         {/* 搜索 */}
         <div className="shrink-0 px-3 pb-2 pt-2.5">
-          <div className="relative">
-            <Search
-              size={12}
-              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500"
-            />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="搜索问话…"
-              className="w-full rounded-md border border-slate-700/80 bg-slate-900/80 py-1.5 pl-8 pr-7 text-body text-slate-200 outline-hidden transition-colors placeholder:text-slate-600 focus:border-cyan-600/70"
-            />
-            {search && (
-              <Button type="button" onClick={() => setSearch('')} title="清空搜索" className="absolute right-1.5 top-1/2 -translate-y-1/2 h-5 w-5" variant="ghost" size="icon">
-                <X size={11} />
-              </Button>
-            )}
-          </div>
+          {/* 2026-11-17：图标从 absolute 定位搬进 ui/Input 的 leading 槽、清空按钮搬进 trailing 槽 ——
+              正文让位（左 8 / 右 8 的内边距）由原语按尺寸档给，不再手写 padding-left / padding-right。 */}
+          <Input
+            type="text"
+            size="sm"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="搜索问话…"
+            aria-label="搜索问话"
+            leading={<Search size={12} className="text-slate-500" />}
+            trailing={
+              search ? (
+                <Button type="button" onClick={() => setSearch('')} title="清空搜索" aria-label="清空搜索" className="h-5 w-5" variant="ghost" size="icon">
+                  <X size={11} />
+                </Button>
+              ) : undefined
+            }
+          />
         </div>
 
         {/* 列表 */}

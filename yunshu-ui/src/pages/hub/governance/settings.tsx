@@ -992,34 +992,39 @@ export function SettingsPanel({ searchDebounceMs = 250 }: SettingsPanelProps) {
 
           {/* ── 搜索 + 风险筛选 ── */}
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <div className="relative">
-              <Search size={12} className="absolute left-2 top-1.5 text-slate-500" />
-              <input
-                type="text"
-                aria-label="搜索开关"
-                data-cp-settings-search="true"
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value)
-                  commitSearch(e.target.value)
-                }}
-                placeholder="搜索 key / 描述 / 分类 / 归属模块"
-                className="w-72 rounded-sm border border-slate-700 bg-slate-950 py-1 pl-6 pr-6 text-xs text-slate-200 placeholder:text-slate-600"
-              />
-              {query !== '' && (
-                <button
-                  type="button"
-                  aria-label="清空搜索"
-                  onClick={() => {
-                    setQuery('')
-                    commitSearch('')
-                  }}
-                  className="absolute right-1.5 top-1 text-slate-500 hover:text-slate-300"
-                >
-                  <X size={12} />
-                </button>
-              )}
-            </div>
+            {/* 2026-11-17：图标与清空按钮搬进 ui/Input 的 leading / trailing 槽（不再手写 pl-6 pr-6），
+                data-cp-settings-search 测试钩子原样透传。 */}
+            <Input
+              type="text"
+              size="sm"
+              className="w-72"
+              aria-label="搜索开关"
+              data-cp-settings-search="true"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value)
+                commitSearch(e.target.value)
+              }}
+              placeholder="搜索 key / 描述 / 分类 / 归属模块"
+              leading={<Search size={12} className="text-slate-500" />}
+              trailing={
+                query !== '' ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="清空搜索"
+                    className="h-5 w-5"
+                    onClick={() => {
+                      setQuery('')
+                      commitSearch('')
+                    }}
+                  >
+                    <X size={12} />
+                  </Button>
+                ) : undefined
+              }
+            />
 
             {RISK_FILTERS.map((f) => {
               const active = risk === f.id

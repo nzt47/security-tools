@@ -12,7 +12,7 @@
  */
 import { useMemo, useState } from 'react'
 import { ChevronDown, Search, X } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button, Input } from '@/components/ui'
 import { HUB_NAV, filterNav, type HubNavItem } from '../../../workbench/hubNav'
 import { useWorkbenchNav } from '../../../workbench/navStore'
 
@@ -96,29 +96,28 @@ export function NavPanel() {
       {/* 搜索框（Esc 清空；命中分组时整组保留，命中子项时只留该子项） */}
       {/* 细条高度由 .wb-strip（--wb-strip-h 44px）统一给，别再写 py-* */}
       <div className="wb-strip border-b border-slate-800 px-2">
-        <div className="relative">
-          <Search
-            size={12}
-            className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500"
-          />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') setQuery('')
-            }}
-            placeholder="搜索功能（如：审批）"
-            aria-label="搜索功能"
-            data-cp-nav-search
-            className="w-full rounded-md border border-slate-800 bg-slate-950/60 py-1 pl-6 pr-6 text-body text-slate-200 placeholder:text-slate-600 focus:border-cyan-600/60 focus:outline-hidden"
-          />
-          {searching && (
-            <Button type="button" aria-label="清空搜索" data-cp-nav-search-clear onClick={() => setQuery('')} className="absolute right-1 top-1/2 -translate-y-1/2 h-5 w-5" variant="ghost" size="icon">
-              <X size={12} />
-            </Button>
-          )}
-        </div>
+        {/* 2026-11-17：图标与清空按钮搬进 ui/Input 的 leading / trailing 槽（正文让位由原语给），
+            data-cp-nav-search / -clear 两个测试钩子原样透传。 */}
+        <Input
+          type="text"
+          size="sm"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setQuery('')
+          }}
+          placeholder="搜索功能（如：审批）"
+          aria-label="搜索功能"
+          data-cp-nav-search
+          leading={<Search size={12} className="text-slate-500" />}
+          trailing={
+            searching ? (
+              <Button type="button" aria-label="清空搜索" data-cp-nav-search-clear onClick={() => setQuery('')} className="h-5 w-5" variant="ghost" size="icon">
+                <X size={12} />
+              </Button>
+            ) : undefined
+          }
+        />
       </div>
 
       {/* 导航树 */}
