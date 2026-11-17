@@ -71,7 +71,7 @@ import {
   usePanel,
   useSecurityState,
 } from './usePanel'
-import { Select } from '@/components/ui'
+import { Button, Select } from '@/components/ui'
 import { AbsoluteActionBar } from './actions'
 import { ImplicitEntryLog, recordImplicitEntry } from './implicitEntry'
 import { SettingsPanel } from './settings'
@@ -458,13 +458,11 @@ export function CapabilityMapPanel() {
             )}
           />
           <div className="mt-2 flex items-center gap-2 text-caption text-slate-500">
-            <button type="button" disabled={offset === 0}
-              onClick={() => setOffset(Math.max(0, offset - 500))}
-              className="rounded-sm border border-slate-700 px-2 py-0.5 disabled:opacity-40">上一页</button>
+            <Button type="button" variant="default" size="xs" disabled={offset === 0}
+              onClick={() => setOffset(Math.max(0, offset - 500))}>上一页</Button>
             <span>{offset + 1}–{Math.min(offset + 500, data.pagination.total)} / {data.pagination.total}</span>
-            <button type="button" disabled={!data.pagination.has_more}
-              onClick={() => setOffset(offset + 500)}
-              className="rounded-sm border border-slate-700 px-2 py-0.5 disabled:opacity-40">下一页</button>
+            <Button type="button" variant="default" size="xs" disabled={!data.pagination.has_more}
+              onClick={() => setOffset(offset + 500)}>下一页</Button>
           </div>
         </>
       )}
@@ -665,16 +663,14 @@ export function ApprovalInboxPanel() {
                 placeholder="批准备注 / 驳回理由（驳回必填）"
                 className="w-64 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 placeholder:text-slate-600"
               />
-              <button type="button" disabled={!selectedIds.length || busy !== ''}
-                onClick={approveBatch}
-                className="rounded-sm bg-cyan-700 px-3 py-1 text-xs text-white disabled:opacity-40">
+              <Button type="button" variant="primary" size="sm" disabled={!selectedIds.length || busy !== ''}
+                onClick={approveBatch}>
                 {busy === 'approve' ? '提交中…' : `批准所选（${selectedIds.length}）`}
-              </button>
-              <button type="button" disabled={!selectedIds.length || busy !== ''}
-                onClick={rejectBatch}
-                className="rounded-sm border border-red-800 px-3 py-1 text-xs text-red-300 disabled:opacity-40">
+              </Button>
+              <Button type="button" variant="danger-outline" size="sm" disabled={!selectedIds.length || busy !== ''}
+                onClick={rejectBatch}>
                 {busy === 'reject' ? '提交中…' : `驳回所选（${selectedIds.length}）`}
-              </button>
+              </Button>
               {selectedIds.length === 0 && (
                 <span className="text-caption text-slate-500">先点上方分组（或逐条勾选）</span>
               )}
@@ -1025,10 +1021,9 @@ export function IncidentsPanel() {
             priority={data.panel?.priority}
             datasources={data.panel?.datasources}
             actions={
-              <button type="button" onClick={() => setExpanded(!autoOpen)}
-                className="rounded-sm border border-slate-700 px-2 py-1 text-caption text-slate-400">
+              <Button type="button" variant="default" size="xs" onClick={() => setExpanded(!autoOpen)}>
                 {autoOpen ? '折叠' : '展开'}
-              </button>
+              </Button>
             }
           />
           {data.auto_expand && <div className="mb-3"><IncidentBanner count={data.open_count.value ?? 0} note={data.auto_expand_rule} /></div>}
@@ -1202,10 +1197,9 @@ export function AuditExportPanel() {
             priority="P0"
             datasources={data.panel?.datasources}
             actions={
-              <button type="button" onClick={onExport}
-                className="flex items-center gap-1 rounded-sm bg-cyan-700 px-2 py-1 text-caption text-white">
+              <Button type="button" variant="primary" size="xs" onClick={onExport}>
                 <FileDown size={12} /> 导出 CSV
-              </button>
+              </Button>
             }
           />
           {dl && <div className="mb-2 text-caption text-cyan-300">{dl}</div>}
