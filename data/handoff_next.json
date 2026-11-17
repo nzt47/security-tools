@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-17T23:55:00+08:00",
+ "updated_at": "2026-11-18T01:02:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -937,7 +937,7 @@
    "priority": "P2",
    "title": "UI 原语迁移第 2/3 批：提示词实验室之外的原生按钮/下拉/输入（735/54/233 处）",
    "criteria": "2026-11-16 审计+第 1 批+第 2 批分片一之后：components/ui 只有 12 个文件在用。现读数（2026-11-17 第 95 轮）：raw_button 247 / raw_select 6 / raw_input 93 / **raw_textarea 7** / raw_heading 85 / arbitrary_text 0 / css_hardcoded_color 387。",
-   "next": "2026-11-17 第 95 轮：raw_textarea **28 → 7**（21 处换 ui/Textarea）。做法照 .pl-text 那批：先 grep CSS 看类有没有真规则 —— 有规则的不硬套（.kb-form-textarea / .wb-input / .wb-editor-input / .pl-prompt-out / .ve-field-input / schema 的 controlClass 两处，共 7 处，要迁得连 CSS 一起重写，属另一件事）。迁的 21 处 = INPUT 常量家族 16（instances / messages-channels / dev-notes / security / installed-extensions / feedback / health-vitals / TransferPanel / orchestration / ops-diagnostics / ingestion / ReviewPanel / KnowledgeAddPanel / skill-detail-drawer×2 / SkillAssetTable，同批删掉 15 个已无引用的 const INPUT） + 内联 Tailwind 直写 5（RoleFormDialog / replicate / computer-use / memory index / SubagentMenu）。真机 1280/1440/1920 三档量了 9 处：字号 11/12/14 都在阶梯内、圆角 6px、底色 rgb(12,17,29)（--color-card）、描边 rgb(34,47,68)（--color-border）、高度 64/72/80/112/123/128/150 与 h-*/min-h-* 一致、problem 0。★ 下一片建议：raw_input 93 里非 checkbox 的那批（52 处 type=checkbox 是按口径**刻意不换** Switch），或 raw_button 247 里非 role=tab 的 icon-only（先跑 .local/_scan_icon_buttons.py 拿清单）。"
+   "next": "2026-11-18 收口状态（§11.147）：raw_button **604 → 160**、raw_input **227 → 69**、raw_select **53 → 6**、raw_textarea **43 → 7**、raw_heading **102 → 85**、arbitrary_text **0**、css_hardcoded_color 基线 **387**。原语侧这一轮补齐了两处真缺口：Button 的 **icon-sm(24px) / icon-xs(20px)**（此前 18 处调用方用 size=icon + className=h-5/h-6 覆盖，现在清零）与 **ui/Checkbox**（46 个原生 checkbox 的原因；Switch 与 Checkbox 是两种语义，不能互替）。另修掉 codemod 的全局 replace 坑（unread > 0 被压成 unread> 0）。剩余构成：raw_button 160 = expr className 91 / 字面量 40 / role=tab 12 / 无 className 11 / 字面量 icon 5；raw_input 69 里约 42 个是 checkbox（其余按 memory-maintenance 的写法可成批换）；raw_select 6 与 raw_textarea 7 各有自造 CSS 或二次确认流程。**没有原语的三处属设计决策**（不是漏做）：Tabs（12 处 role=tab，但视觉分细条/页级/胶囊三种，要先定一套）、浅色表面变体（VisualEditor 白底，原语是深色 token 系）、plugins/schema 的 controlClass 体系（字段类型驱动，另一套口径）。"
   },
   {
    "id": "ui-typography-codemod",
