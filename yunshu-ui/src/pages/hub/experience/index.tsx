@@ -14,7 +14,7 @@
 import LearningMetrics from './LearningMetrics'
 import { useCallback, useEffect, useState } from 'react'
 import { Search, RefreshCw, Undo2, CheckCircle2, XCircle, Archive } from 'lucide-react'
-import { Badge, Button, Card, ErrorBox, Loading, PageHeader, StatCard } from '../components/ui'
+import { Badge, Button, Card, ErrorBox, Loading, PageHeader, Select, StatCard } from '../components/ui'
 import {
   fetchDetail, fetchList, fetchStats, reviewItem, rollbackBatch, searchPreview,
   type ExperienceHit, type ExperienceItem, type ExperienceStats,
@@ -190,22 +190,8 @@ export default function ExperiencePanel() {
         <Card>
           <div className="mb-3 flex items-center gap-2">
             <span className="text-sm font-medium text-slate-300">样本（{total}）</span>
-            <select value={lang} onChange={(e) => setLang(e.target.value)} aria-label="语言筛选"
-              className="rounded-sm border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-300">
-              <option value="">全部语言</option>
-              <option value="python">python</option>
-              <option value="typescript">typescript</option>
-              <option value="markdown">markdown</option>
-              <option value="yaml">yaml</option>
-            </select>
-            <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="状态筛选"
-              className="rounded-sm border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-300">
-              <option value="">全部状态</option>
-              <option value="pending">待审</option>
-              <option value="accept">已入库</option>
-              <option value="reject">已拒收</option>
-              <option value="deprecate">已废弃</option>
-            </select>
+            <Select value={lang} onChange={(v) => setLang(v)} aria-label="语言筛选" size="sm" placeholder="全部语言" placeholderOptionDisabled={false} options={[{ label: 'python', value: 'python' }, { label: 'typescript', value: 'typescript' }, { label: 'markdown', value: 'markdown' }, { label: 'yaml', value: 'yaml' }]} />
+            <Select value={status} onChange={(v) => setStatus(v)} aria-label="状态筛选" size="sm" placeholder="全部状态" placeholderOptionDisabled={false} options={[{ label: '待审', value: 'pending' }, { label: '已入库', value: 'accept' }, { label: '已拒收', value: 'reject' }, { label: '已废弃', value: 'deprecate' }]} />
           </div>
           {loading && <Loading />}
           <div className="max-h-[460px] space-y-1.5 overflow-y-auto">

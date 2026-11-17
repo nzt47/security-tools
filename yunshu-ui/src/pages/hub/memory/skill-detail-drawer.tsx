@@ -20,7 +20,7 @@ import {
   AlertTriangle, CheckCircle2, Copy, FileCode, Gauge, Loader2, MessageSquare,
   Play, RefreshCw, ScrollText, X,
 } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost, Input } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost, Input, Select } from '../components/ui'
 import {
   SKILL_CONTENT,
   SKILLS_MGMT_ASSESS_MERGE_SAFE,
@@ -624,12 +624,7 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <label className="flex items-center gap-1 text-caption text-slate-400">
                     类型
-                    <select className={INPUT + ' w-24'} value={fbType} onChange={(e) => setFbType(e.target.value)} aria-label="反馈类型">
-                      <option value="like">like</option>
-                      <option value="dislike">dislike</option>
-                      <option value="report">report</option>
-                      <option value="suggestion">suggestion</option>
-                    </select>
+                    <Select className="w-24" value={fbType} onChange={(v) => setFbType(v)} aria-label="反馈类型" size="sm" hidePlaceholder options={[{ label: 'like', value: 'like' }, { label: 'dislike', value: 'dislike' }, { label: 'report', value: 'report' }, { label: 'suggestion', value: 'suggestion' }]} />
                   </label>
                   <label className="flex items-center gap-1 text-caption text-slate-400">
                     评分(0-5)

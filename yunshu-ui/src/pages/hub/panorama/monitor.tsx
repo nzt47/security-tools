@@ -14,7 +14,7 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import { Activity, RefreshCw, Search, Server } from 'lucide-react'
-import { Card, StatCard, DataTable, Loading, ErrorBox, Badge, PageHeader, Button} from '../components/ui'
+import { Badge, Button, Card, DataTable, ErrorBox, Loading, PageHeader, Select, StatCard } from '../components/ui'
 // 2026-10-18：节点下钻 + 干预（/api/modules/<id>/detail 与 /actions）此前零入口
 import ModuleDetail from './ModuleDetail'
 import { getEnvelope } from '@/api/envelope'
@@ -215,16 +215,7 @@ export default function PanoramaMonitor() {
                 className="w-32 bg-transparent text-xs text-slate-300 placeholder-slate-600 outline-hidden"
               />
             </div>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-300"
-            >
-              <option value="">全部状态</option>
-              <option value="healthy">健康</option>
-              <option value="offline">离线</option>
-              <option value="disabled">未启用</option>
-            </select>
+            <Select value={statusFilter} onChange={(v) => setStatusFilter(v)} size="sm" placeholder="全部状态" placeholderOptionDisabled={false} options={[{ label: '健康', value: 'healthy' }, { label: '离线', value: 'offline' }, { label: '未启用', value: 'disabled' }]} />
             <Button
               onClick={load}
               variant="default" size="sm"

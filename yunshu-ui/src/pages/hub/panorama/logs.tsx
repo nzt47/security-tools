@@ -12,7 +12,7 @@
  */
 import { useEffect, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
-import { Card, Loading, ErrorBox, PageHeader, hubGet, unwrap, Button} from '../components/ui'
+import { Button, Card, ErrorBox, hubGet, Loading, PageHeader, Select, unwrap } from '../components/ui'
 import LogCenterPanel from './log-center-panel'
 
 interface LogEntry {
@@ -117,13 +117,7 @@ export default function PanoramaLogs() {
         description="结构化运行日志（来源：/api/observability/logs；过滤与时间窗由后端 agent/monitoring/loki.py 判定）"
         actions={
           <div className="flex items-center gap-2">
-            <select value={level} onChange={(e) => setLevel(e.target.value)} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-300">
-              <option value="">全部级别</option>
-              <option value="DEBUG">DEBUG</option>
-              <option value="INFO">INFO</option>
-              <option value="WARNING">WARNING</option>
-              <option value="ERROR">ERROR</option>
-            </select>
+            <Select value={level} onChange={(v) => setLevel(v)} size="sm" placeholder="全部级别" placeholderOptionDisabled={false} options={[{ label: 'DEBUG', value: 'DEBUG' }, { label: 'INFO', value: 'INFO' }, { label: 'WARNING', value: 'WARNING' }, { label: 'ERROR', value: 'ERROR' }]} />
             <input
               value={query} onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && load()}

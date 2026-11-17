@@ -15,7 +15,7 @@ import {
   ChevronDown, ChevronRight, Copy, Download, FilePlus, Filter, Folder, Lightbulb, Loader2, Layers, Plus,
   RefreshCw, Rocket, ScrollText, ShieldCheck, Trash2, X, Zap,
 } from 'lucide-react'
-import { Button, CallabilityBadge, hubGet, hubPost, Input, Switch, Textarea } from '../components/ui'
+import { Button, CallabilityBadge, hubGet, hubPost, Input, Select, Switch, Textarea } from '../components/ui'
 import { authHeader, getApiToken } from '../../../lib/apiToken'
 import ClassIcon from './class-icon'
 import ApiTokenPrompt from './api-token-prompt'
@@ -1401,13 +1401,7 @@ function CreateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
         <Input size="sm" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="用途与场景（影响兼容性/重叠评估）" />
       </Field>
       <Field label="类型">
-        <select className={INPUT} value={form.content_type} onChange={(e) => setForm({ ...form, content_type: e.target.value })}>
-          <option value="markdown">markdown（指令/说明）</option>
-          <option value="python">python（脚本）</option>
-          <option value="javascript">javascript</option>
-          <option value="shell">shell</option>
-          <option value="yaml">yaml</option>
-        </select>
+        <Select value={form.content_type} onChange={(v) => setForm({ ...form, content_type: v})} size="sm" hidePlaceholder options={[{ label: 'markdown（指令/说明）', value: 'markdown' }, { label: 'python（脚本）', value: 'python' }, { label: 'javascript', value: 'javascript' }, { label: 'shell', value: 'shell' }, { label: 'yaml', value: 'yaml' }]} />
       </Field>
       <Field label="标签（逗号分隔）">
         <Input size="sm" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} placeholder="pdf, extract" />

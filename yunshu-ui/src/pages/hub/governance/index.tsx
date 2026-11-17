@@ -71,6 +71,7 @@ import {
   usePanel,
   useSecurityState,
 } from './usePanel'
+import { Select } from '@/components/ui'
 import { AbsoluteActionBar } from './actions'
 import { ImplicitEntryLog, recordImplicitEntry } from './implicitEntry'
 import { SettingsPanel } from './settings'
@@ -1245,12 +1246,7 @@ export function AuditExportPanel() {
           </div>
 
           <div className="mb-2 flex items-center gap-2 text-xs text-slate-400">
-            <select value={scope} onChange={(e) => setScope(e.target.value as typeof scope)}
-              className="rounded-sm border border-slate-700 bg-slate-950 px-2 py-1">
-              <option value="exported">验签：导出区间</option>
-              <option value="head">验签：链尾窗口</option>
-              <option value="full">验签：全链（慢）</option>
-            </select>
+            <Select value={scope} onChange={(v) => setScope(v as typeof scope)} size="sm" hidePlaceholder options={[{ label: '验签：导出区间', value: 'exported' }, { label: '验签：链尾窗口', value: 'head' }, { label: '验签：全链（慢）', value: 'full' }]} />
             <select value={limit} onChange={(e) => setLimit(Number(e.target.value))}
               className="rounded-sm border border-slate-700 bg-slate-950 px-2 py-1">
               {[50, 200, 500, 1000, 2000].map((n) => <option key={n} value={n}>{n} 条</option>)}

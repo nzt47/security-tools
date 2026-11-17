@@ -17,7 +17,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, ChevronRight, Copy, Loader2, Radio, RefreshCw, Search, Trash2 } from 'lucide-react'
-import { SectionTitle, Switch, Button} from '@/components/ui'
+import { Button, SectionTitle, Select, Switch } from '@/components/ui'
 import { hubGet, hubPost } from '../hub/components/ui'
 
 import {
@@ -277,17 +277,7 @@ export default function LlmMonitorPanel() {
         <Button type="button" variant="default" size="sm" onClick={() => void clear()} disabled={busy} title="清空全部记录（含已落盘的会话快照）">
           {busy ? <Loader2 size={12} className="spin" /> : <Trash2 size={12} />} 清空
         </Button>
-        <select
-          className="pl-text pl-monitor-filter"
-          value={source}
-          onChange={(e) => { setSource(e.target.value); setExpanded({}) }}
-          title="按来源筛选"
-        >
-          <option value="">全部来源</option>
-          <option value="chat">chat（对话）</option>
-          <option value="summarize">summarize（摘要）</option>
-          <option value="tool_calling">tool_calling（工具调用）</option>
-        </select>
+        <Select value={source} onChange={(v) => { setSource(v); setExpanded({}) }} title="按来源筛选" size="sm" placeholder="全部来源" placeholderOptionDisabled={false} options={[{ label: 'chat（对话）', value: 'chat' }, { label: 'summarize（摘要）', value: 'summarize' }, { label: 'tool_calling（工具调用）', value: 'tool_calling' }]} />
         <label className="pl-monitor-search">
           <Search size={12} />
           <input

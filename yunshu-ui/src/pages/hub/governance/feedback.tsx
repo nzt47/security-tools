@@ -20,7 +20,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   BookOpen, CheckCircle2, FileText, Loader2, MessageSquare, RefreshCw, Send, Star,
 } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost, Input } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost, Input, Select } from '../components/ui'
 import DevNotesPanel from './dev-notes'
 import {
   FEEDBACK_LIST,
@@ -243,19 +243,8 @@ export default function FeedbackCenter() {
       {tab === 'list' && (
         <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <select className={INPUT} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="反馈状态">
-              <option value="">全部状态</option>
-              <option value="open">open</option>
-              <option value="resolved">resolved</option>
-              <option value="ignored">ignored</option>
-            </select>
-            <select className={INPUT} value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} aria-label="反馈类型">
-              <option value="">全部类型</option>
-              <option value="like">like</option>
-              <option value="dislike">dislike</option>
-              <option value="report">report</option>
-              <option value="suggestion">suggestion</option>
-            </select>
+            <Select value={statusFilter} onChange={(v) => setStatusFilter(v)} aria-label="反馈状态" size="sm" placeholder="全部状态" placeholderOptionDisabled={false} options={[{ label: 'open', value: 'open' }, { label: 'resolved', value: 'resolved' }, { label: 'ignored', value: 'ignored' }]} />
+            <Select value={typeFilter} onChange={(v) => setTypeFilter(v)} aria-label="反馈类型" size="sm" placeholder="全部类型" placeholderOptionDisabled={false} options={[{ label: 'like', value: 'like' }, { label: 'dislike', value: 'dislike' }, { label: 'report', value: 'report' }, { label: 'suggestion', value: 'suggestion' }]} />
             <Button type="button" variant="accent" size="xs" onClick={() => void loadList()} disabled={loading} aria-label="按条件查询反馈">
               {busy === 'list' ? <Loader2 size={11} className="animate-spin" /> : null} 查询
             </Button>
@@ -340,12 +329,7 @@ export default function FeedbackCenter() {
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <label className="flex items-center gap-1 text-caption text-slate-400">
               类型
-              <select className={INPUT} value={subType} onChange={(e) => setSubType(e.target.value)} aria-label="反馈类型选择">
-                <option value="like">like</option>
-                <option value="dislike">dislike</option>
-                <option value="report">report</option>
-                <option value="suggestion">suggestion</option>
-              </select>
+              <Select value={subType} onChange={(v) => setSubType(v)} aria-label="反馈类型选择" size="sm" hidePlaceholder options={[{ label: 'like', value: 'like' }, { label: 'dislike', value: 'dislike' }, { label: 'report', value: 'report' }, { label: 'suggestion', value: 'suggestion' }]} />
             </label>
             <label className="flex items-center gap-1 text-caption text-slate-400">
               评分(0-5)

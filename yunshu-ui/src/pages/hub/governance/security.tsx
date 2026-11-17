@@ -18,7 +18,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   AlertTriangle, Ban, Lock, Loader2, Pause, Play, Power, RefreshCw, RotateCcw, Shield, ShieldAlert, Sliders,
 } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost, Input } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost, Input, Select } from '../components/ui'
 import {
   PERMISSION_ACCESS_LOG,
   PERMISSION_EMERGENCY,
@@ -342,10 +342,7 @@ export default function SecurityPanel() {
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <Input size="sm" className="w-64" value={kwPattern} onChange={(e) => setKwPattern(e.target.value)} placeholder="正则，如 rm\s+-rf" aria-label="关键词正则" />
               <Input size="sm" className="w-56" value={kwDesc} onChange={(e) => setKwDesc(e.target.value)} placeholder="说明" aria-label="关键词说明" />
-              <select className={INPUT} value={kwLevel} onChange={(e) => setKwLevel(e.target.value)} aria-label="关键词级别">
-                <option value="warning">warning</option>
-                <option value="critical">critical</option>
-              </select>
+              <Select value={kwLevel} onChange={(v) => setKwLevel(v)} aria-label="关键词级别" size="sm" hidePlaceholder options={[{ label: 'warning', value: 'warning' }, { label: 'critical', value: 'critical' }]} />
               <Button type="button" variant="accent" size="xs" onClick={() => void addKeyword()} disabled={loading || kwPattern.trim() === ''} aria-label="添加危险关键词">
                 {busy === 'kw-add' ? <Loader2 size={11} className="animate-spin" /> : null} 添加
               </Button>

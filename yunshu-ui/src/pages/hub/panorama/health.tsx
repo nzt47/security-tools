@@ -63,7 +63,7 @@ import {
   type AlarmRulesPayload,
 } from '@/api/alarms'
 import { formatAge } from '@/utils/format'
-import { Badge, Card, ErrorBox, Loading, PageHeader, hubGet, Button} from '../components/ui'
+import { Badge, Button, Card, ErrorBox, hubGet, Loading, PageHeader, Select } from '../components/ui'
 import { getEnvelope } from '@/api/envelope'
 import { downloadFile } from '../../../utils/system'
 import HealthVitals from './health-vitals'
@@ -1139,17 +1139,20 @@ export default function PanoramaHealth() {
               <div className="mt-4 grid gap-4 lg:grid-cols-2">
                 <Card title="综合健康度趋势（按所选区间）"
                   actions={
-                    <select
+                    <Select
                       data-testid="health-range"
-                      value={hours}
-                      onChange={(e) => setHours(Number(e.target.value))}
-                      className="rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-300"
-                    >
-                      <option value={1}>最近1小时</option>
-                      <option value={6}>最近6小时</option>
-                      <option value={24}>最近24小时</option>
-                      <option value={168}>最近7天</option>
-                    </select>
+                      size="xs"
+                      className="w-32"
+                      value={String(hours)}
+                      onChange={(v) => setHours(Number(v))}
+                      hidePlaceholder
+                      options={[
+                        { label: '最近1小时', value: '1' },
+                        { label: '最近6小时', value: '6' },
+                        { label: '最近24小时', value: '24' },
+                        { label: '最近7天', value: '168' },
+                      ]}
+                    />
                   }
                 >
                   {errors.probeTrend ? <InlineError text={errors.probeTrend} /> : probeChart.length === 0 ? (
@@ -1314,17 +1317,7 @@ export default function PanoramaHealth() {
                   placeholder="搜索指标名称..."
                   className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-200 placeholder:text-slate-600"
                 />
-                <select
-                  data-testid="metric-type-filter"
-                  value={metricType}
-                  onChange={(e) => setMetricType(e.target.value)}
-                  className="rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-300"
-                >
-                  <option value="">所有类型</option>
-                  <option value="counter">计数器</option>
-                  <option value="gauge">仪表</option>
-                  <option value="histogram">直方图</option>
-                </select>
+                <Select data-testid="metric-type-filter" value={metricType} onChange={(v) => setMetricType(v)} size="sm" placeholder="所有类型" placeholderOptionDisabled={false} options={[{ label: '计数器', value: 'counter' }, { label: '仪表', value: 'gauge' }, { label: '直方图', value: 'histogram' }]} />
                 <span className="text-xs text-slate-500">共 {allMetrics.length} 条，筛选后 {filteredMetrics.length} 条</span>
               </div>
               {errors.metrics ? <InlineError text={errors.metrics} /> : allMetrics.length === 0 ? (
@@ -1545,19 +1538,7 @@ export default function PanoramaHealth() {
           {tab === 'history' && (
             <div data-testid="panel-history">
               <div className="mb-3 flex flex-wrap items-center gap-2">
-                <select
-                  data-testid="history-level-filter"
-                  value={historyLevel}
-                  onChange={(e) => setHistoryLevel(e.target.value)}
-                  className="rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-300"
-                >
-                  <option value="">所有等级</option>
-                  <option value="excellent">优秀</option>
-                  <option value="good">良好</option>
-                  <option value="fair">一般</option>
-                  <option value="warning">警告</option>
-                  <option value="critical">危险</option>
-                </select>
+                <Select data-testid="history-level-filter" value={historyLevel} onChange={(v) => setHistoryLevel(v)} size="sm" placeholder="所有等级" placeholderOptionDisabled={false} options={[{ label: '优秀', value: 'excellent' }, { label: '良好', value: 'good' }, { label: '一般', value: 'fair' }, { label: '警告', value: 'warning' }, { label: '危险', value: 'critical' }]} />
                 <Button
                   data-testid="history-export"
                   onClick={exportCsv}

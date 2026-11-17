@@ -26,7 +26,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   CheckCircle2, Copy, Download, Loader2, PlugZap, Plus, Send, Settings2, SlidersHorizontal, Trash2,
 } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost, Input, Switch } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost, Input, Select, Switch } from '../components/ui'
 import {
   CP_SETTINGS,
   cpSetting,
@@ -720,15 +720,7 @@ export default function HubChannelsPanel() {
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          <select
-            className={INPUT + ' text-caption'}
-            value={newType}
-            onChange={(ev) => setNewType(ev.target.value)}
-            aria-label="新通道类型"
-          >
-            <option value="smtp">邮件（SMTP）</option>
-            <option value="webhook">Webhook</option>
-          </select>
+          <Select value={newType} onChange={(v) => setNewType(v)} aria-label="新通道类型" size="sm" hidePlaceholder options={[{ label: '邮件（SMTP）', value: 'smtp' }, { label: 'Webhook', value: 'webhook' }]} />
           <Input
             size="sm" className="w-44"
             placeholder="通道 id，如 email_smtp_2"

@@ -16,7 +16,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Activity, BarChart3, ExternalLink, Gauge, Loader2, RefreshCw, Search, Server,
 } from 'lucide-react'
-import { Button, ErrorBox, hubGet, Input } from '../components/ui'
+import { Button, ErrorBox, hubGet, Input, Select } from '../components/ui'
 import {
   BUSINESS_DASHBOARD,
   BUSINESS_DEFINITIONS,
@@ -191,10 +191,15 @@ export default function BusinessBoard() {
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
             <div className="mb-2 flex flex-wrap items-center gap-2 text-caption text-slate-400">
               <Gauge size={11} className="text-cyan-400" /> 指标定义（{defs.length}）
-              <select className={INPUT} value={catFilter} onChange={(e) => setCatFilter(e.target.value)} aria-label="指标分类筛选">
-                <option value="">全部分类</option>
-                {Object.keys(cats).map((c) => <option key={c} value={c}>{c}（{cats[c]}）</option>)}
-              </select>
+              <Select
+                size="sm"
+                value={catFilter}
+                onChange={(v) => setCatFilter(v)}
+                aria-label="指标分类筛选"
+                placeholder="全部分类"
+                placeholderOptionDisabled={false}
+                options={Object.keys(cats).map((c) => ({ label: c + '（' + cats[c] + '）', value: c }))}
+              />
               {Object.keys(bizCats).length > 0 && (
                 <span className="text-micro text-slate-600">在线分组：{bizCats.join(' / ')}</span>
               )}

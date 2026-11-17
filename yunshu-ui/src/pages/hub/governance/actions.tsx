@@ -19,6 +19,7 @@ import {
   Ban, CircleAlert, FileDiff, Loader2, RotateCcw, ShieldCheck, Snowflake,
   Trash2, Zap,
 } from 'lucide-react'
+import { Select } from '@/components/ui'
 import { issueConfirmation, runAction } from '@/lib/cpPanelsApi'
 import type { ActionName, ActionResponse } from '@/lib/cpPanelsTypes'
 import { ApprovalZone, StatusBadge } from './components'
@@ -114,14 +115,7 @@ export function AbsoluteActionBar({ target, targetLabel, onDone }: ActionsBarPro
         <input value={reason} onChange={(e) => setReason(e.target.value)}
           placeholder="reason（强制推进/摘除来源必填）"
           className="w-56 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 placeholder:text-slate-600" />
-        <select value={risk} onChange={(e) => setRisk(e.target.value)}
-          className="rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200">
-          <option value="">风险未标注</option>
-          <option value="low">low</option>
-          <option value="medium">medium</option>
-          <option value="high">high</option>
-          <option value="destructive">destructive（需二次认证）</option>
-        </select>
+        <Select value={risk} onChange={(v) => setRisk(v)} size="sm" placeholder="风险未标注" placeholderOptionDisabled={false} options={[{ label: 'low', value: 'low' }, { label: 'medium', value: 'medium' }, { label: 'high', value: 'high' }, { label: 'destructive（需二次认证）', value: 'destructive' }]} />
         <input value={secondFactor} onChange={(e) => setSecondFactor(e.target.value)}
           placeholder="二次认证码（destructive 必填）"
           className="w-44 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 placeholder:text-slate-600" />

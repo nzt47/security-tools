@@ -3,7 +3,7 @@
  * 从 PromptLab.tsx 拆分（原 285-399 行，逻辑不变）。
  */
 import { useState } from 'react';
-import { Textarea, Button} from '@/components/ui';
+import { Button, Select, Textarea } from '@/components/ui';
 import { usePromptLabStore } from '../../stores/usePromptLabStore';
 import { CATEGORIES } from '../../lib/promptFactors';
 import type { FactorCategory, FactorControl, PromptFactorDef } from '../../lib/promptFactorTypes';
@@ -76,12 +76,7 @@ export default function CustomFactorForm({ onClose }: CustomFactorFormProps) {
           </label>
           <label className="pl-field">
             <span>控件类型</span>
-            <select className="pl-select" value={control} onChange={(e) => setControl(e.target.value as FactorControl)}>
-              <option value="slider">滑块</option>
-              <option value="select">下拉</option>
-              <option value="text">文本输入</option>
-              <option value="toggle">开关</option>
-            </select>
+            <Select value={control} onChange={(v) => setControl(v as FactorControl)} size="sm" hidePlaceholder options={[{ label: '滑块', value: 'slider' }, { label: '下拉', value: 'select' }, { label: '文本输入', value: 'text' }, { label: '开关', value: 'toggle' }]} />
           </label>
         </div>
         {control === 'slider' && (
@@ -107,10 +102,7 @@ export default function CustomFactorForm({ onClose }: CustomFactorFormProps) {
         <label className="pl-field">
           <span>默认值{control === 'toggle' ? '（true/false）' : ''}</span>
           {control === 'toggle' ? (
-            <select className="pl-select" value={defaultVal} onChange={(e) => setDefaultVal(e.target.value)}>
-              <option value="true">开启</option>
-              <option value="false">关闭</option>
-            </select>
+            <Select value={defaultVal} onChange={(v) => setDefaultVal(v)} size="sm" hidePlaceholder options={[{ label: '开启', value: 'true' }, { label: '关闭', value: 'false' }]} />
           ) : (
             <input className="pl-text" value={defaultVal} onChange={(e) => setDefaultVal(e.target.value)} />
           )}

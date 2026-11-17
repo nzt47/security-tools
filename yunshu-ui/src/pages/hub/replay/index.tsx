@@ -17,7 +17,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Film, Loader2, RefreshCw, Search, Trash2,
 } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost, Select } from '../components/ui'
 import {
   REPLAY_CLEANUP,
   REPLAY_LIST,
@@ -115,11 +115,7 @@ export default function ReplayCenter() {
         <h2 className="text-sm font-semibold text-slate-100">回放中心</h2>
         <span className="text-caption text-slate-500">会话回放：排障时唯一的现场 —— 清理前必须先看会删多少</span>
         <div className="ml-auto flex flex-wrap items-center gap-1.5">
-          <select className={INPUT} value={limit} onChange={(e) => { setLimit(e.target.value); void load(e.target.value) }} aria-label="回放条数">
-            <option value="20">20 条</option>
-            <option value="50">50 条</option>
-            <option value="100">100 条</option>
-          </select>
+          <Select value={limit} onChange={(v) => { setLimit(v); void load(v)}} aria-label="回放条数" size="sm" hidePlaceholder options={[{ label: '20 条', value: '20' }, { label: '50 条', value: '50' }, { label: '100 条', value: '100' }]} />
           <Button type="button" variant="default" size="xs" onClick={() => void load()} disabled={loading} aria-label="刷新回放列表">
             {busy === 'load' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
           </Button>

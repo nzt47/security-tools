@@ -16,7 +16,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   FileText, FolderOpen, HardDrive, Loader2, Play, RefreshCw, Search, Trash2, XOctagon,
 } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost, Input, Textarea } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost, Input, Select, Textarea } from '../components/ui'
 import {
   FILESYSTEM_INFO,
   FILESYSTEM_LIST,
@@ -373,10 +373,16 @@ export default function LocalResources() {
               <Play size={11} className="text-cyan-400" /> 启动白名单程序
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <select className={INPUT} value={startProgram} onChange={(e) => setStartProgram(e.target.value)} aria-label="选择程序">
-                <option value="">选择程序</option>
-                {all.map((p) => <option key={p} value={p}>{p}</option>)}
-              </select>
+              <Select
+                size="sm"
+                className="w-40"
+                value={startProgram}
+                onChange={(v) => setStartProgram(v)}
+                aria-label="选择程序"
+                placeholder="选择程序"
+                placeholderOptionDisabled={false}
+                options={all.map((p) => ({ label: p, value: p }))}
+              />
               <Input size="sm" className="w-56" value={startArgs} onChange={(e) => setStartArgs(e.target.value)} placeholder="参数（空格分隔，可空）" aria-label="启动参数" />
               <Button type="button" variant="accent" size="xs" onClick={() => void startProcess()} disabled={loading || startProgram.trim() === ''} aria-label="启动进程">
                 {busy === 'start' ? <Loader2 size={11} className="animate-spin" /> : <Play size={11} />} 启动

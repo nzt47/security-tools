@@ -17,7 +17,7 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import { ClipboardCopy, Hammer, Loader2, Rocket, ShieldCheck, Users } from 'lucide-react'
-import { Badge, Card, ErrorBox, Loading, PageHeader, hubPost } from '../components/ui'
+import { Badge, Card, ErrorBox, hubPost, Loading, PageHeader, Select } from '../components/ui'
 import { SUBAGENT_CREATE, SUBAGENT_LIST } from '@/api/endpoints'
 import { getEnvelope } from '@/api/envelope'
 import {
@@ -293,15 +293,7 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
                 placeholder="记忆提供商（声明字段）"
                 className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden"
               />
-              <select
-                value={form.memoryMode}
-                onChange={(e) => set('memoryMode', e.target.value)}
-                data-testid="assembly-memory-mode"
-                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-hidden"
-              >
-                <option value="">记忆档：不表态（后端默认 none）</option>
-                <option value="brokered">brokered（母体代管；本页只提供这一档）</option>
-              </select>
+              <Select value={form.memoryMode} onChange={(v) => set('memoryMode', v)} data-testid="assembly-memory-mode" size="sm" placeholder="记忆档：不表态（后端默认 none）" placeholderOptionDisabled={false} options={[{ label: 'brokered（母体代管；本页只提供这一档）', value: 'brokered' }]} />
             </div>
 
             <div className="mt-3">

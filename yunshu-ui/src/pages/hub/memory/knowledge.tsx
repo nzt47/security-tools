@@ -29,16 +29,7 @@ import {
   getGraph,
 } from '../../../api/knowledge'
 import { ApiError } from '../../../lib/apiClient'
-import {
-  Button,
-  Card as HubCard,
-  StatCard,
-  Loading,
-  ErrorBox,
-  DataTable,
-  Badge,
-  PageHeader,
-} from '../components/ui'
+import { Badge, Button, Card as HubCard, DataTable, ErrorBox, Loading, PageHeader, Select, StatCard } from '../components/ui'
 import StatusBadge from '../../../components/Knowledge/StatusBadge'
 import CardDetailView from '../../../components/Knowledge/CardDetail'
 import CardForm from '../../../components/Knowledge/CardForm'
@@ -325,29 +316,8 @@ export default function MemoryKnowledge() {
       {tab === 'list' && (
         <>
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            <select
-              className={selectCls}
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              aria-label="状态筛选"
-            >
-              <option value="">全部状态</option>
-              <option value="draft">草稿</option>
-              <option value="current">有效</option>
-              <option value="archive">归档</option>
-              <option value="unknown">未知</option>
-            </select>
-            <select
-              className={selectCls}
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              aria-label="类型筛选"
-            >
-              <option value="">全部类型</option>
-              <option value="concepts">概念</option>
-              <option value="entities">实体</option>
-              <option value="insights">洞见</option>
-            </select>
+            <Select value={statusFilter} onChange={(v) => setStatusFilter(v)} aria-label="状态筛选" size="sm" placeholder="全部状态" placeholderOptionDisabled={false} options={[{ label: '草稿', value: 'draft' }, { label: '有效', value: 'current' }, { label: '归档', value: 'archive' }, { label: '未知', value: 'unknown' }]} />
+            <Select value={typeFilter} onChange={(v) => setTypeFilter(v)} aria-label="类型筛选" size="sm" placeholder="全部类型" placeholderOptionDisabled={false} options={[{ label: '概念', value: 'concepts' }, { label: '实体', value: 'entities' }, { label: '洞见', value: 'insights' }]} />
             <span className="text-xs text-slate-500">
               全库 {cards.length} 张
               {(['concepts', 'entities', 'insights'] as const).map((t) => (

@@ -16,7 +16,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { Activity, AlertTriangle, BookOpen, Lightbulb, Loader2, RefreshCw, Search, Sparkles } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost, Input } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost, Input, Select } from '../components/ui'
 import {
   LOGS_API_ACTIONS,
   LOGS_API_ERRORS,
@@ -379,18 +379,8 @@ export default function LogCenterPanel() {
           <div className="flex flex-wrap items-center gap-2">
             <Input size="sm" className="w-52" placeholder="关键字" value={q} onChange={(e) => setQ(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') void runQuery() }} aria-label="操作日志关键字" />
-            <select className={INPUT} value={level} onChange={(e) => setLevel(e.target.value)} aria-label="操作日志级别">
-              <option value="">全部级别</option>
-              <option value="debug">debug</option>
-              <option value="info">info</option>
-              <option value="warning">warning</option>
-              <option value="error">error</option>
-            </select>
-            <select className={INPUT} value={limit} onChange={(e) => setLimit(e.target.value)} aria-label="操作日志条数">
-              <option value="20">20 条</option>
-              <option value="50">50 条</option>
-              <option value="100">100 条</option>
-            </select>
+            <Select value={level} onChange={(v) => setLevel(v)} aria-label="操作日志级别" size="sm" placeholder="全部级别" placeholderOptionDisabled={false} options={[{ label: 'debug', value: 'debug' }, { label: 'info', value: 'info' }, { label: 'warning', value: 'warning' }, { label: 'error', value: 'error' }]} />
+            <Select value={limit} onChange={(v) => setLimit(v)} aria-label="操作日志条数" size="sm" hidePlaceholder options={[{ label: '20 条', value: '20' }, { label: '50 条', value: '50' }, { label: '100 条', value: '100' }]} />
             <Button type="button" variant="accent" size="xs" onClick={() => void runQuery()} disabled={loading} aria-label="查询操作日志">
               {busy === 'query' ? <Loader2 size={11} className="animate-spin" /> : <Search size={11} />} 查询
             </Button>

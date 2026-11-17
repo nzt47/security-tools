@@ -34,6 +34,13 @@ export interface SelectProps
   placeholderOptionDisabled?: boolean
   /** 错误提示文案，存在时红色描边并显示提示 */
   error?: string
+  /**
+   * 不渲染「请选择」占位项（默认 false）。
+   * 【为什么需要】有些下拉是**必选项**（例如「新通道类型：SMTP / Webhook」、级别 warning/critical）：
+   * 它没有"空值"这个合法状态，多渲染一个 disabled 的占位项会让人以为还有个空选项可回退。
+   * 这类位置原来只能手写原生 <select>（2026-11-17 收口时撞到 8 处）。
+   */
+  hidePlaceholder?: boolean
 }
 
 const SIZE_CLASSES: Record<SelectSize, string> = {
@@ -44,7 +51,7 @@ const SIZE_CLASSES: Record<SelectSize, string> = {
 
 const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
   { className, options, value, onChange, label, placeholder = '请选择',
-    placeholderOptionDisabled = true, error, id, size = 'md', ...props },
+    placeholderOptionDisabled = true, hidePlaceholder = false, error, id, size = 'md', ...props },
   ref,
 ) {
   const autoId = useId()
@@ -71,9 +78,11 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
         )}
         {...props}
       >
-        <option value="" disabled={placeholderOptionDisabled}>
-          {placeholder}
-        </option>
+        {!hidePlaceholder && (
+          <option value="" disabled={placeholderOptionDisabled}>
+            {placeholder}
+          </option>
+        )}
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.label}
