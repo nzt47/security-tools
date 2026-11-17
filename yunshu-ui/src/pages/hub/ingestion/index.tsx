@@ -99,10 +99,10 @@ function IngestionTabs({ tab, onChange, onHelp }: {
         <Layers size={12} /> 存量治理
       </button>
       {/* 联机帮助：四个 Tab 共用一份手册（流程是跨 Tab 的，只在获取页给会缺一站） */}
-      <button type="button" className={BTN + ' ml-auto'} onClick={onHelp}
+      <Button type="button" variant="default" size="sm" className="ml-auto" onClick={onHelp}
         aria-label="使用手册">
         <BookOpen size={12} /> 使用手册
-      </button>
+      </Button>
     </div>
   )
 }
@@ -343,7 +343,7 @@ export default function IngestionPage() {
           data-cp-help-banner="true">
           <BookOpen size={12} />
           第一次用？先看 3 分钟手册：7 站链路、哪几步自动、你要点的步骤，以及怎么少点几下。
-          <button type="button" className={BTN + ' ml-auto'} onClick={openHelp}>打开使用手册</button>
+          <Button type="button" variant="default" size="sm" className="ml-auto" onClick={openHelp}>打开使用手册</Button>
           <Button type="button" variant="default" size="xs"
             onClick={() => {
               setHelpSeen(true)
@@ -581,11 +581,11 @@ export default function IngestionPage() {
                           title="采用后只生成骨架草稿：不注册、不启用，步骤需人工绑定工具">
                           采用（生成骨架草稿）
                         </Button>
-                        <button type="button" className={BTN + ' border-emerald-800/70 text-emerald-300'}
+                        <Button type="button" variant="success-outline" size="sm"
                           onClick={() => { setForm('skill'); setConfirmed(false) }}
                           title="按技能形态生成草稿（仍不注册、不启用）">
                           改为按技能草稿
-                        </button>
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -602,12 +602,12 @@ export default function IngestionPage() {
                   <div className="rounded-sm border border-amber-900/60 bg-amber-950/20 p-2">
                     <div className="flex flex-wrap items-center gap-2 text-caption text-amber-200">
                       <AlertTriangle size={12} /> L2 来源不能直接生成草稿，需要 LLM 重写并人工预览。
-                      <button type="button" className={BTN_EM + ' ml-auto'}
+                      <Button type="button" variant="accent" size="sm" className="ml-auto"
                         onClick={() => void doPreview(true)}
                         disabled={previewing !== ''}>
                         {previewing === 'rewrite' ? <Loader2 size={12} className="animate-spin" /> : <GitBranch size={12} />}
                         LLM 重写并预览
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
