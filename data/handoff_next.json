@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-18T01:15:00+08:00",
+ "updated_at": "2026-11-18T01:30:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -937,7 +937,7 @@
    "priority": "P2",
    "title": "UI 原语迁移第 2/3 批：提示词实验室之外的原生按钮/下拉/输入（735/54/233 处）",
    "criteria": "2026-11-16 审计+第 1 批+第 2 批分片一之后：components/ui 只有 12 个文件在用。现读数（2026-11-17 第 95 轮）：raw_button 247 / raw_select 6 / raw_input 93 / **raw_textarea 7** / raw_heading 85 / arbitrary_text 0 / css_hardcoded_color 387。",
-   "next": "2026-11-18 收口状态（§11.147）：raw_button **604 → 160**、raw_input **227 → 69**、raw_select **53 → 6**、raw_textarea **43 → 7**、raw_heading **102 → 85**、arbitrary_text **0**、css_hardcoded_color 基线 **387**。原语侧这一轮补齐了两处真缺口：Button 的 **icon-sm(24px) / icon-xs(20px)**（此前 18 处调用方用 size=icon + className=h-5/h-6 覆盖，现在清零）与 **ui/Checkbox**（46 个原生 checkbox 的原因；Switch 与 Checkbox 是两种语义，不能互替）。另修掉 codemod 的全局 replace 坑（unread > 0 被压成 unread> 0）。剩余构成：raw_button 160 = expr className 91 / 字面量 40 / role=tab 12 / 无 className 11 / 字面量 icon 5；raw_input 69 里约 42 个是 checkbox（其余按 memory-maintenance 的写法可成批换）；raw_select 6 与 raw_textarea 7 各有自造 CSS 或二次确认流程。**没有原语的三处属设计决策**（不是漏做）：Tabs（12 处 role=tab，但视觉分细条/页级/胶囊三种，要先定一套）、浅色表面变体（VisualEditor 白底，原语是深色 token 系）、plugins/schema 的 controlClass 体系（字段类型驱动，另一套口径）。 【2026-11-18 §11.148（与 §11.147 并行的另一条线，提交 01585b0e8 是它的父提交）】raw_input 这一片单独做了一次：**93 → 73**（20 处换 ui/Input：INPUT 家族式的整行 flex 输入 + 3 处 codemod 安全阀跳过的手工改）。三条可复用的判据写在这里，下一片照抄：① **原标签没有宽度类的必须显式给宽度** —— 原语 wrapper 自带 w-full，health 的「指标搜索」就是这么被撑开整行的（补 w-44）；② codemod 的安全阀（标签里有行注释，或字符串里有双斜杠如 https://）会跳过真需要改的输入框，别把这当成「不用改」；③ 保留原生的 73 处当时构成：checkbox/radio 51（等 ui/Checkbox 成批换）、浅色主题 4（Login/Profile，换暗色 token 会把页面做坏）、无边框行内搜索 5、schema controlClass 3、自造 CSS 2、密集内联控件 6（DockPanel 3 / SessionRail 2 / MemorySessionsImportCard 1，原语最小档 h-6 会把行撑高）、file 1。真机三档 30/30 problems 全空（.local/shots_inputs.py；量具坑：先把所有元素滚完再量会把前面的又滚出视口，必须逐个先滚再量）。"
+   "next": "2026-11-18（§11.148）后的状态：控制类原语已齐 —— Button(variant 7 x size 6 x surface dark/light) / Input(leading 与 trailing 槽) / Select(hidePlaceholder) / Textarea / Checkbox / Tabs(pill/segmented/folder) / Switch / Slider / SectionTitle / Card / ModalBase / Table / Pagination / Empty / Loading / FormField / PageContainer。守卫：raw_button 142、raw_select 4、raw_input 67、raw_textarea 5、arbitrary_text 0、raw_heading 85、css_hardcoded_color 358（起点分别是 604/53/227/43/0/102/无量具）。全仓 role=tab 原生按钮只剩 1（Tabs 原语内部）。剩余 raw_button 142 = 表达式 className（条件样式，要逐个看语义）与 icon-only 的零散；raw_select 4 = 开关中心多选 / CodeEditorPanel 的 .wb-editor-lang / logs.test 夹具 / CustomFactorForm 的 .pl-select。"
   },
   {
    "id": "ui-typography-codemod",
@@ -1034,6 +1034,14 @@
    "title": "knowledge 的 .kb-* 还是自带调色板（中性灰 + 状态色共约 40 处 hex/rgba），没收进语义 token",
    "criteria": "2026-11-17 实测：CardDetail.css / CardForm.css / StatusBadge.css 里仍有 #e8eaed / #9aa1ac / #6f7683 / #14171c / #2a2e38 / #ff7a7a / #ffb35c / #6fd39b / #c59bff 等字面值（连同 rgba 共约 40 处）。蓝色那支已在 ddf6a9c24 收口，剩下的中性灰与状态色不是\"第五种强调色\"，而是这套面板自己的配色。",
    "next": "2026-11-17 收口（提交 39d861db6）：CardDetail / CardForm / StatusBadge 三个 .kb-* CSS 里的中性色与状态色全部映射到语义 token（foreground / muted-foreground / background / card / border / danger / success / primary），并新增 --color-warning（index.css @theme + :root HSL 33 100% 65%）承接\"待处理\"的 #ffb35c。★ 有意保留：紫色 #c59bff / rgba(170,110,255,·) —— 它是与 danger/warning/success 并列的第四种状态色（排队/待定），token 里没有对应 name，映射到 primary 会把\"待定\"与\"进行中\"混成同色；文件里已注明。真机（1440）：知识库页 blue_left = 0，--color-warning 解析为 rgb(255,175,77)。"
+  },
+  {
+   "id": "hub-presentation-components-not-global",
+   "status": "open",
+   "priority": "P3",
+   "title": "hub 的展示型组件（Badge / StatCard / PageHeader / DataTable / CallabilityBadge）仍在 pages 层，没有并进 components/ui",
+   "criteria": "2026-11-18 判定：这些是 hub 这一层的视觉语言（Badge 的 color 枚举是 green/red/amber/cyan/slate，即 hub 调色板；StatCard/PageHeader/DataTable 的形状也只服务 hub 页面），与控制类原语不是一回事。全仓另有约 27 处手写 rounded-full + text-micro 徽章（workbench 面板里的计数/状态），没走 hub Badge 也没走全局原语。",
+   "next": "要并的话分两步：① 先把 tone 统一成 success/warning/danger/primary/neutral 五档（现在是 tailwind 色名），② 再把 Badge 提到 components/ui 并让 hub 改为 re-export；同时把 27 处手写徽章按 tone 迁移。不做也说得过去 —— 它们不影响控件一致性，只是徽章配色这一层的收敛。"
   }
  ]
 }
