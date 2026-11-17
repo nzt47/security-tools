@@ -35,7 +35,7 @@
 }
 
 .kb-form-input:focus {
-  border-color: #4a9eff;
+  border-color: var(--color-primary);
 }
 
 .kb-form-textarea {
@@ -58,4 +58,3 @@
   justify-content: flex-end;
   gap: 8px;
 }
-

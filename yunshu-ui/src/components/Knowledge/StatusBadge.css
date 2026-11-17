@@ -19,9 +19,9 @@
 
 /* 有效 — 蓝 */
 .kb-status--current {
-  color: #6cb2ff;
-  background: rgba(74, 158, 255, 0.14);
-  border-color: rgba(74, 158, 255, 0.4);
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+  border-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
 }
 
 /* 归档 — 橙 */

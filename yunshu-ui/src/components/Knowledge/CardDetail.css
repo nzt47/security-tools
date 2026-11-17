@@ -61,8 +61,8 @@
 }
 
 .kb-detail-insight {
-  background: rgba(74, 158, 255, 0.1);
-  border-left: 3px solid #4a9eff;
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  border-left: 3px solid var(--color-primary);
   padding: 8px 10px;
   border-radius: 4px;
   font-size: var(--text-body-lg);
@@ -124,9 +124,9 @@
 }
 
 .kb-link-chip {
-  background: rgba(74, 158, 255, 0.12);
-  color: #7db6ff;
-  border: 1px solid rgba(74, 158, 255, 0.35);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  color: var(--color-primary);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
   border-radius: 12px;
   padding: 2px 10px;
   font-size: var(--text-body);
@@ -135,7 +135,7 @@
 }
 
 .kb-link-chip:hover {
-  background: rgba(74, 158, 255, 0.25);
+  background: color-mix(in srgb, var(--color-primary) 25%, transparent);
 }
 
 .kb-detail-empty {
