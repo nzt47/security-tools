@@ -428,7 +428,15 @@ class TestRunDeadline:
         with run_deadline_scope(100.0):
             got = call_timeout(1800.0)
         # remaining≈100，自留 30% ⇒ 上界 ≈70；1800 被收敛
-        assert 60.0 < got <= 100.0 * (1.0 - RESERVE_RATIO)
+        #
+        # 【2026-11-17 修】原写法是 `got <= 100.0 * (1.0 - RESERVE_RATIO)`，在 windows CI 上
+        # 时好时坏地红：实测 got = 70.00000000000003 —— 超了 3e-14。
+        # 原因不是逻辑：deadline 存的是 `time.monotonic() + seconds` 这个**大数相加**的结果，
+        # 它的舍入误差（ULP 量级）会让紧接着的 `deadline - now` 比 100 多出几个 1e-14，
+        # 于是 budget 也超出上界同样的量级。本用例要守的是**量级契约**（≈70 而不是 1800），
+        # 不是 1e-14；所以给一个 1e-9 的浮点容差（远小于任何有意义的差异），
+        # 下界与「被收敛」两条不变。**这不是放宽门槛**：真正的行为门槛是 60 < got 且 got < 1800。
+        assert 60.0 < got <= 100.0 * (1.0 - RESERVE_RATIO) + 1e-9
         assert got < 1800.0
 
     def test_反证_工具声明不限时_deadline_仍是上界(self):
