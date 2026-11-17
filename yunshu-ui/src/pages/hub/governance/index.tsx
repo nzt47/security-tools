@@ -238,10 +238,7 @@ export const recordImplicitEntryForPanels = recordImplicitEntry
 /** 隐式入口示例接线：右键"沉淀为 Skill"（一级 + 快捷键） */
 export function DistillAsSkillEntry({ capabilityId }: { capabilityId: string }) {
   return (
-    <button
-      type="button"
-      className="rounded-sm border border-slate-700 px-2 py-1 text-caption text-slate-300 hover:border-cyan-700"
-      onClick={() => {
+    <Button type="button" onClick={() => {
         recordImplicitEntry({
           entry: 'context-menu:distill-as-skill',
           entryLabel: '右键 → 沉淀为 Skill',
@@ -249,10 +246,9 @@ export function DistillAsSkillEntry({ capabilityId }: { capabilityId: string }) 
           outcome: 'ok',
           detail: '已登记（隐式入口可点击记录，§7 五坑③）',
         })
-      }}
-    >
+      }} variant="accent" size="xs">
       沉淀为 Skill（隐式入口）
-    </button>
+    </Button>
   )
 }
 
@@ -1276,25 +1272,21 @@ export function AuditExportPanel() {
           {/* S2-03 #12：ACR/UTC + 降级拓扑 + 逃逸清单（四类面板非 mock） */}
           <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
             <Collapsible title="模型降级拓扑 / 逃逸清单（事件流消费）" defaultOpen={false}>
-              <button type="button"
-                onClick={async () => {
+              <Button type="button" onClick={async () => {
                   const { fetchObservabilityStream: f } = await import('@/lib/cpPanelsApi')
                   setObs(await f({ days: 30 }))
-                }}
-                className="mb-2 rounded-sm border border-slate-700 px-2 py-1 text-caption text-slate-300">
+                }} variant="default" size="xs">
                 加载事件流聚合
-              </button>
+              </Button>
               {obs && <EventStreamView view={obs} />}
             </Collapsible>
             <Collapsible title="越权告警聚合（U3：actor_ip_hash + 窗口阈值）" defaultOpen={false}>
-              <button type="button"
-                onClick={async () => {
+              <Button type="button" onClick={async () => {
                   const { fetchAuthzAlerts: f } = await import('@/lib/cpPanelsApi')
                   setAlerts(await f({ days: 30, limit: 50 }))
-                }}
-                className="mb-2 rounded-sm border border-slate-700 px-2 py-1 text-caption text-slate-300">
+                }} variant="default" size="xs">
                 加载越权告警
-              </button>
+              </Button>
               {alerts && <AuthzAlertsViewBox view={alerts} />}
             </Collapsible>
           </div>

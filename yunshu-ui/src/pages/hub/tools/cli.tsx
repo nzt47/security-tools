@@ -4,7 +4,7 @@
  */
 import { useState } from 'react'
 import { Terminal } from 'lucide-react'
-import { Card, PageHeader, hubGet, unwrap } from '../components/ui'
+import { Button, Card, hubGet, PageHeader, unwrap } from '../components/ui'
 
 import {
   PROCESS_LIST,
@@ -35,9 +35,9 @@ export default function ToolsCli() {
         <Card title="系统进程">
           <div className="mb-3 flex items-center justify-between">
             <span className="text-xs text-slate-500">当前运行进程</span>
-            <button onClick={loadProcs} className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800">
+            <Button onClick={loadProcs} variant="default" size="xs">
               {loaded ? '重新加载' : '加载进程'}
-            </button>
+            </Button>
           </div>
           {procs.length > 0 ? (
             <div className="max-h-96 space-y-1 overflow-y-auto font-mono text-xs">

@@ -198,7 +198,7 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
             <h2 className="text-sm font-semibold text-slate-100">能力卡</h2>
             <span className="text-caption text-slate-500">我到底有哪些能力</span>
           </div>
-          <Button type="button" onClick={onClose} className="h-6 w-6" variant="ghost" size="icon">
+          <Button type="button" onClick={onClose} variant="ghost" size="icon-sm">
             <X size={14} />
           </Button>
         </div>
@@ -325,13 +325,9 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
                             <div className="mt-2 text-micro text-slate-500">目录：{c.sections.join(' · ')}</div>
                           ) : null}
                           {/* 分层加载：L1 是卡，L2 全文按需拉 —— 不在列表里一次性拉 46 份全文 */}
-                          <button
-                            type="button"
-                            onClick={() => void loadFullText(c.skill_id)}
-                            className="mt-2 rounded-md border border-slate-700 px-2 py-0.5 text-micro text-slate-300 hover:bg-slate-800"
-                          >
+                          <Button type="button" onClick={() => void loadFullText(c.skill_id)} variant="default" size="xs">
                             {fullText?.id === c.skill_id ? '收起全文（L2）' : '按需展开全文（L2）'}
-                          </button>
+                          </Button>
                           {fullText?.id === c.skill_id ? (
                             <div className="mt-1">
                               <div className="text-micro text-slate-500">

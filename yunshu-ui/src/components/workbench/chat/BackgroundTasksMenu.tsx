@@ -185,7 +185,7 @@ export function BackgroundTasksMenu() {
               >
                 {loading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
               </button>
-              <Button type="button" onClick={() => setOpen(false)} aria-label="关闭后台任务菜单" className="h-5 w-5" variant="ghost" size="icon">
+              <Button type="button" onClick={() => setOpen(false)} aria-label="关闭后台任务菜单" variant="ghost" size="icon-xs">
                 <X size={12} />
               </Button>
             </div>
@@ -257,14 +257,9 @@ export function BackgroundTasksMenu() {
                         </span>
                       </button>
                       {isActive(t) && (
-                        <button
-                          type="button"
-                          onClick={() => void cancel(t.id)}
-                          title="取消该后台任务（仅排队/运行中可取消）"
-                          className="flex shrink-0 items-center gap-1 rounded-md border border-amber-700/60 px-1.5 py-0.5 text-micro text-amber-300 hover:bg-amber-500/10"
-                        >
+                        <Button type="button" onClick={() => void cancel(t.id)} title="取消该后台任务（仅排队/运行中可取消）" className="shrink-0" variant="default" size="xs">
                           <Ban size={10} /> 取消
-                        </button>
+                        </Button>
                       )}
                     </div>
                     {shown && (

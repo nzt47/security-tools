@@ -668,14 +668,9 @@ export default function HubChannelsPanel() {
                                 aria-label={'通道字段 ' + id + ' ' + f.field}
                               />
                               {f.secret && f.configured && (
-                                <button
-                                  type="button"
-                                  className="self-start text-micro text-amber-300 hover:underline"
-                                  onClick={() => setClearedSecrets((prev) => ({ ...prev, [id]: !prev[id] }))}
-                                  aria-label={'清除口令 ' + id}
-                                >
+                                <Button type="button" className="self-start" onClick={() => setClearedSecrets((prev) => ({ ...prev, [id]: !prev[id] }))} aria-label={'清除口令 ' + id} variant="default" size="xs">
                                   {clearedSecrets[id] ? '撤销清除' : '清除口令（保存后生效）'}
-                                </button>
+                                </Button>
                               )}
                             </div>
                           )

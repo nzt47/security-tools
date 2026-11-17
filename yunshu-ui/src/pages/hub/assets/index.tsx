@@ -219,9 +219,9 @@ export default function AssetsPage({ initialCategory = 'memory' }: AssetsPagePro
                         r.source === 'system' ? (
                           <span className="text-micro text-slate-500" title="来自子系统，只读；请到对应页面处理">系统</span>
                         ) : (
-                          <button onClick={() => delItem(String(r.id))} className="flex items-center gap-1 rounded-md border border-red-900/60 px-2 py-1 text-xs text-red-400 hover:bg-red-950">
+                          <Button onClick={() => delItem(String(r.id))} variant="danger-outline" size="xs">
                             <Trash2 size={11} /> 删除
-                          </button>
+                          </Button>
                         )
                       ),
                     },

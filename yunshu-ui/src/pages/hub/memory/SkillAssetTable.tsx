@@ -1798,12 +1798,9 @@ function FeedModal({ onClose, onPick }: { onClose: () => void; onPick?: (skillId
             <li key={`${r.ts}-${i}`} className="flex items-start gap-2 rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1.5 text-caption">
               {chip(r.kind === 'audit' ? '审计' : '评估', r.kind === 'audit' ? 'bg-amber-500/10 text-amber-400 border-amber-800/60' : 'bg-cyan-500/10 text-cyan-400 border-cyan-800/60')}
               {onPick && r.skill_id ? (
-                <button type="button"
-                  onClick={() => onPick(r.skill_id ?? '')}
-                  className="shrink-0 rounded-sm border border-slate-700 px-1.5 py-0.5 font-mono text-micro text-cyan-300 transition-colors hover:border-cyan-600 hover:bg-cyan-500/10"
-                  title="在下方资产表中定位该技能（存在则展开报告并滚动定位）">
+                <Button type="button" onClick={() => onPick(r.skill_id ?? '')} className="shrink-0" title="在下方资产表中定位该技能（存在则展开报告并滚动定位）" variant="accent" size="xs">
                   {r.skill_id}
-                </button>
+                </Button>
               ) : (
                 <span className="shrink-0 text-slate-300">{r.skill_id ?? '-'}</span>
               )}

@@ -103,7 +103,7 @@ export default function IngestionHelp({ open, onClose, onGo }: Props) {
             <h2 className="text-sm font-semibold text-slate-100">能力获取 · 使用手册</h2>
             <span className="text-caption text-slate-500">从入口材料到最终能力</span>
           </div>
-          <Button type="button" onClick={onClose} aria-label="关闭使用手册" className="h-6 w-6" variant="ghost" size="icon">
+          <Button type="button" onClick={onClose} aria-label="关闭使用手册" variant="ghost" size="icon-sm">
             <X size={14} />
           </Button>
         </div>
@@ -174,18 +174,15 @@ export default function IngestionHelp({ open, onClose, onGo }: Props) {
         </div>
 
         <div className="flex items-center justify-end gap-2 border-t border-slate-800 px-4 py-2">
-          <button type="button" onClick={() => { onGo('review'); onClose() }}
-            className="rounded-md border border-slate-700 px-2.5 py-1 text-caption text-slate-300 hover:bg-slate-800">
+          <Button type="button" onClick={() => { onGo('review'); onClose() }} variant="default" size="xs">
             去草稿评审
-          </button>
-          <button type="button" onClick={() => { onGo('queue'); onClose() }}
-            className="rounded-md border border-slate-700 px-2.5 py-1 text-caption text-slate-300 hover:bg-slate-800">
+          </Button>
+          <Button type="button" onClick={() => { onGo('queue'); onClose() }} variant="default" size="xs">
             去转化队列
-          </button>
-          <button type="button" onClick={onClose}
-            className="rounded-md bg-cyan-800 px-2.5 py-1 text-caption text-cyan-50 hover:bg-cyan-700">
+          </Button>
+          <Button type="button" onClick={onClose} variant="accent" size="xs">
             知道了
-          </button>
+          </Button>
         </div>
       </div>
     </div>

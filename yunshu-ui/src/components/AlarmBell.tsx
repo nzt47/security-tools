@@ -15,6 +15,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Bell, BellOff, CheckCheck, Clock, ExternalLink } from 'lucide-react'
+import { Button } from '@/components/ui'
 
 import {
   ackAlarm,
@@ -142,14 +143,7 @@ export default function AlarmBell({ onOpenAll }: AlarmBellProps) {
 
   return (
     <div className="relative">
-      <button
-        type="button"
-        onClick={toggle}
-        data-testid="alarm-bell"
-        aria-label={unread > 0 ? '报警器（' + unread + ' 条未读）' : '报警器'}
-        title={error ? '报警器不可用：' + error : unread > 0 ? unread + ' 条未读报警' : '报警器：暂无未读'}
-        className="relative flex items-center gap-1.5 rounded-md border border-slate-800 bg-slate-900/70 px-2.5 py-1 text-caption text-slate-300 hover:bg-slate-800"
-      >
+      <Button type="button" onClick={toggle} data-testid="alarm-bell" aria-label={unread > 0 ? '报警器（' + unread + ' 条未读）' : '报警器'} title={error ? '报警器不可用：' + error : unread > 0 ? unread + ' 条未读报警' : '报警器：暂无未读'} variant="default" size="xs">
         {error ? <BellOff size={13} className="text-slate-500" /> : <Bell size={13} />}
         <span className="hidden sm:inline">报警</span>
         {unread > 0 && (
@@ -160,7 +154,7 @@ export default function AlarmBell({ onOpenAll }: AlarmBellProps) {
             {unread > 99 ? '99+' : unread}
           </span>
         )}
-      </button>
+      </Button>
 
       {open && (
         <div
@@ -169,15 +163,9 @@ export default function AlarmBell({ onOpenAll }: AlarmBellProps) {
         >
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-medium text-slate-200">报警器</span>
-            <button
-              type="button"
-              data-testid="alarm-mark-all"
-              onClick={() => void handleMarkAll()}
-              disabled={unread === 0}
-              className="flex items-center gap-1 rounded-sm border border-slate-700 px-1.5 py-0.5 text-micro text-slate-300 disabled:opacity-40 hover:bg-slate-800"
-            >
+            <Button type="button" data-testid="alarm-mark-all" onClick={() => void handleMarkAll()} disabled={unread === 0} variant="default" size="xs">
               <CheckCheck size={11} /> 全部已读
-            </button>
+            </Button>
           </div>
 
           {error && (
@@ -225,30 +213,16 @@ export default function AlarmBell({ onOpenAll }: AlarmBellProps) {
                       )}
                       {item.acked && <span className="text-sky-400" title={item.acked_by ? '确认人：' + item.acked_by : '已确认'}>· 已确认</span>}
                       {(item.count ?? 1) > 1 && <span>×{item.count}</span>}
-                      <button
-                        type="button"
-                        onClick={() => void handleSilence(item)}
-                        className="ml-auto flex items-center gap-0.5 rounded-sm border border-slate-700 px-1 text-micro text-slate-400 hover:bg-slate-800"
-                        title={'静默 1 小时（不删除、到期自动恢复提醒）'}
-                      >
+                      <Button type="button" onClick={() => void handleSilence(item)} className="ml-auto" title={'静默 1 小时（不删除、到期自动恢复提醒）'} variant="default" size="xs">
                         <Clock size={9} /> 静默
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleAck(item)}
-                        className="rounded-sm border border-slate-700 px-1 text-micro text-slate-400 hover:bg-slate-800"
-                        title="确认已知悉（记谁在何时确认）"
-                      >
+                      </Button>
+                      <Button type="button" onClick={() => void handleAck(item)} title="确认已知悉（记谁在何时确认）" variant="default" size="xs">
                         确认
-                      </button>
+                      </Button>
                       {!item.read && (
-                        <button
-                          type="button"
-                          onClick={() => void markAlarmRead(item.id).then(load).catch(() => undefined)}
-                          className="rounded-sm border border-slate-700 px-1 text-micro text-slate-400 hover:bg-slate-800"
-                        >
+                        <Button type="button" onClick={() => void markAlarmRead(item.id).then(load).catch(() => undefined)} variant="default" size="xs">
                           已读
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -261,14 +235,9 @@ export default function AlarmBell({ onOpenAll }: AlarmBellProps) {
             <span className="text-micro text-slate-500">
               审批单据不在报警器里（去「审批收件箱」裁决）
             </span>
-            <button
-              type="button"
-              data-testid="alarm-open-all"
-              onClick={() => { setOpen(false); onOpenAll?.() }}
-              className="flex items-center gap-0.5 text-micro text-cyan-300 hover:underline"
-            >
+            <Button type="button" data-testid="alarm-open-all" onClick={() => { setOpen(false); onOpenAll?.() }} variant="accent" size="xs">
               查看全部 <ExternalLink size={10} />
-            </button>
+            </Button>
           </div>
         </div>
       )}

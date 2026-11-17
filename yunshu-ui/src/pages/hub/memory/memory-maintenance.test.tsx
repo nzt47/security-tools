@@ -87,7 +87,7 @@ describe('MemoryMaintenance', () => {
     const save = screen.getByRole('button', { name: '保存长期摘要' }) as HTMLButtonElement
     expect(save.disabled, '没有确认就允许覆盖现有摘要，是不可恢复的误操作').toBe(true)
 
-    fireEvent.click(screen.getByLabelText('确认覆盖摘要'))
+    fireEvent.click(screen.getByLabelText('我确认覆盖现有摘要'))
     expect(save.disabled).toBe(false)
     fireEvent.click(save)
     await waitFor(() => expect(api.hubPut).toHaveBeenCalledWith('/api/memory/summary', { summary: '新的摘要' }))
@@ -101,7 +101,7 @@ describe('MemoryMaintenance', () => {
 
     const clear = screen.getByRole('button', { name: '清空长期摘要' }) as HTMLButtonElement
     expect(clear.disabled).toBe(true)
-    fireEvent.click(screen.getByLabelText('确认清空摘要'))
+    fireEvent.click(screen.getByLabelText('我确认清空摘要'))
     fireEvent.click(clear)
     await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/memory/clear-summary', {}))
   })
@@ -142,7 +142,7 @@ describe('MemoryMaintenance', () => {
 
     const clear = screen.getByRole('button', { name: '清空向量库' }) as HTMLButtonElement
     expect(clear.disabled).toBe(true)
-    fireEvent.click(screen.getByLabelText('确认清空向量库'))
+    fireEvent.click(screen.getByLabelText('我确认清空'))
     fireEvent.click(clear)
     await waitFor(() => expect(api.hubDelete).toHaveBeenCalledWith('/api/vector/clear'))
   })

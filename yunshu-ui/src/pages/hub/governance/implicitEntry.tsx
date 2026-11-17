@@ -15,6 +15,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { Link2, MousePointerClick } from 'lucide-react'
+import { Button } from '@/components/ui'
 import { formatTime } from './usePanel'
 
 /** 一条隐式入口记录 */
@@ -109,13 +110,9 @@ export function ImplicitEntryLog({
         <span className="text-slate-500">
           （§7 UI 五坑③：隐式入口必留**可点击**记录）
         </span>
-        <button
-          type="button"
-          onClick={clear}
-          className="ml-auto rounded-sm border border-slate-700 px-2 py-0.5 text-micro text-slate-400 hover:text-cyan-300"
-        >
+        <Button type="button" onClick={clear} className="ml-auto" variant="accent" size="xs">
           清空
-        </button>
+        </Button>
       </div>
       {rows.length === 0 ? (
         <div className="flex items-center gap-2 py-3 text-caption text-slate-500">
@@ -125,13 +122,7 @@ export function ImplicitEntryLog({
         <ul className="space-y-1">
           {rows.map((r) => (
             <li key={r.id}>
-              <button
-                type="button"
-                onClick={() => onReplay?.(r)}
-                disabled={!onReplay}
-                data-cp-implicit-entry={r.entry}
-                className="flex w-full items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/50 px-2 py-1 text-left text-caption disabled:cursor-default hover:border-cyan-800"
-              >
+              <Button type="button" onClick={() => onReplay?.(r)} disabled={!onReplay} data-cp-implicit-entry={r.entry} className="w-full" variant="accent" size="xs">
                 <span
                   className={
                     r.outcome === 'ok'
@@ -152,7 +143,7 @@ export function ImplicitEntryLog({
                 )}
                 <span className="shrink-0 text-micro text-slate-600">{formatTime(r.at)}</span>
                 {onReplay && <span className="shrink-0 text-micro text-slate-500">点回入口 ›</span>}
-              </button>
+              </Button>
             </li>
           ))}
         </ul>

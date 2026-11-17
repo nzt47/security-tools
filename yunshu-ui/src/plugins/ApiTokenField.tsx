@@ -12,6 +12,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { clearApiToken, getApiToken, setApiToken, subscribeApiToken } from '../lib/apiToken';
+import { Button } from '@/components/ui'
 
 export function ApiTokenField() {
   const [open, setOpen] = useState(false);
@@ -42,16 +43,10 @@ export function ApiTokenField() {
 
   return (
     <div className="api-token-field" data-testid="api-token-field">
-      <button
-        type="button"
-        data-testid="api-token-toggle"
-        className="flex w-full items-center justify-between rounded-md border border-slate-700 bg-slate-900/40 px-2 py-1.5 text-xs text-slate-400 transition-colors hover:bg-slate-800"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-      >
+      <Button type="button" data-testid="api-token-toggle" className="w-full" onClick={() => setOpen((v) => !v)} aria-expanded={open} variant="default" size="xs">
         <span>API 令牌{savedToken ? ' ✓' : ''}</span>
         <span>{open ? '▾' : '▸'}</span>
-      </button>
+      </Button>
 
       {open && (
         <div className="mt-1.5 rounded-md border border-slate-700 bg-slate-950/60 p-2" data-testid="api-token-body">
@@ -64,23 +59,12 @@ export function ApiTokenField() {
             className="w-full rounded-md border border-slate-700 bg-slate-950/60 px-2 py-1 text-xs text-slate-200 placeholder:text-slate-600 outline-hidden focus:border-cyan-500"
           />
           <div className="mt-1.5 flex items-center gap-2">
-            <button
-              type="button"
-              data-testid="api-token-save"
-              onClick={handleSave}
-              className="rounded-md bg-cyan-600 px-2 py-1 text-xs text-white transition-opacity hover:bg-cyan-500"
-            >
+            <Button type="button" data-testid="api-token-save" onClick={handleSave} variant="primary" size="xs">
               {saved ? '已保存 ✓' : '保存'}
-            </button>
-            <button
-              type="button"
-              data-testid="api-token-clear"
-              onClick={handleClear}
-              disabled={!getApiToken()}
-              className="rounded-md border border-slate-700 px-2 py-1 text-xs text-slate-400 transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-            >
+            </Button>
+            <Button type="button" data-testid="api-token-clear" onClick={handleClear} disabled={!getApiToken()} variant="default" size="xs">
               清除
-            </button>
+            </Button>
           </div>
           <p className="mt-1.5 text-caption leading-relaxed text-slate-500">
             启用 FLASK_API_TOKEN 时，刷新插件清单 / 提交配置需携带令牌；令牌仅保存在本机浏览器。

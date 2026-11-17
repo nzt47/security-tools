@@ -10,6 +10,7 @@ import { login } from '@/api/user'
 import { setToken as saveToken } from '@/utils/request'
 import { useUserStore } from '@/store/userStore'
 import { toast } from '@/components/Toaster'
+import { Button } from '@/components/ui'
 
 /** 记住密码的 localStorage key */
 const REMEMBER_KEY = 'yunshu-remember-login'
@@ -240,16 +241,12 @@ export default function LoginPage() {
           记住密码
         </label>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-        >
+        <Button type="submit" disabled={loading} className="w-full" variant="default" size="sm">
           {loading && (
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
           )}
           {loading ? '登录中...' : '登录'}
-        </button>
+        </Button>
       </form>
     </div>
   )

@@ -6,6 +6,7 @@
  * - 数据为本地 mock（最小落地版）：导出将表格导出为 CSV 文件，无需后端接口
  */
 import { Download, ScrollText } from 'lucide-react'
+import { Button } from '@/components/ui'
 import { usePermission } from '@/hooks/usePermission'
 // 配置变更日志（/api/config/logs）——《工作台 UI 信息架构评审》§7 分批接入的第一条
 import ConfigChangeLogPanel from './ConfigChangeLogPanel'
@@ -52,14 +53,10 @@ export default function SystemLog() {
         <h1 className="text-2xl font-semibold text-foreground">系统日志</h1>
         {/* 操作级权限控制：无 system:log:export 权限码不渲染导出按钮 */}
         {canExport && (
-          <button
-            type="button"
-            onClick={handleExport}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
-          >
+          <Button type="button" onClick={handleExport} variant="primary" size="sm">
             <Download size={14} />
             导出日志
-          </button>
+          </Button>
         )}
       </div>
       <p className="mb-6 text-sm text-muted-foreground">

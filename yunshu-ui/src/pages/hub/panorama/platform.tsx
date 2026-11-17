@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Activity, Cpu, ListChecks, RefreshCw, Search } from 'lucide-react'
-import { Badge, Card, ErrorBox, Loading, PageHeader, hubGet, unwrap } from '../components/ui'
+import { Badge, Button, Card, ErrorBox, hubGet, Loading, PageHeader, unwrap } from '../components/ui'
 import { SCHEDULER_OVERVIEW, SYSTEM_UNITS, TOOLS_CONFIG } from '@/api/endpoints'
 
 type Unit = { id: string; status: string; headline?: string; detail?: string }
@@ -104,13 +104,9 @@ export default function PlatformCapability() {
         title="平台能力"
         description="云枢自己提供的功能（运维对象）：功能单位 / 工具 / 调度。与「能力卡」分开——那边是 LLM 技能与元生功能。"
         actions={
-          <button
-            type="button"
-            onClick={() => void load()}
-            className="flex items-center gap-1 rounded-md border border-slate-700 px-2.5 py-1.5 text-caption text-slate-300 hover:bg-slate-800"
-          >
+          <Button type="button" onClick={() => void load()} variant="default" size="xs">
             <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> 刷新
-          </button>
+          </Button>
         }
       />
 

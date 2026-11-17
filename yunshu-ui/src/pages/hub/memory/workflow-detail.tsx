@@ -70,7 +70,7 @@ export function WorkflowDetailModal({ wf, onClose }: { wf: WorkflowDetail; onClo
             <h2 className="truncate text-sm font-semibold text-slate-100">{wf.name || wf.id}</h2>
             <p className="mt-0.5 font-mono text-caption text-slate-500">{wf.id}</p>
           </div>
-          <Button type="button" onClick={onClose} aria-label="关闭" className="h-6 w-6" variant="ghost" size="icon">
+          <Button type="button" onClick={onClose} aria-label="关闭" variant="ghost" size="icon-sm">
             <X size={16} />
           </Button>
         </div>

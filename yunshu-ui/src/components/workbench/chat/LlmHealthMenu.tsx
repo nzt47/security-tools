@@ -126,16 +126,10 @@ export function LlmHealthMenu() {
           <div className="mb-2 flex items-center justify-between">
             <span className="font-medium text-slate-200">🩺 LLM 连通性自检</span>
             <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => void run()}
-                disabled={loading}
-                title="重新自检（会向 LLM 端点发一次极小的真实请求）"
-                className="rounded-sm px-1.5 py-0.5 text-micro text-slate-400 hover:bg-slate-800 hover:text-slate-200"
-              >
+              <Button type="button" onClick={() => void run()} disabled={loading} title="重新自检（会向 LLM 端点发一次极小的真实请求）" variant="default" size="xs">
                 {loading ? <Loader2 size={11} className="animate-spin" /> : '重新自检'}
-              </button>
-              <Button type="button" onClick={() => setOpen(false)} aria-label="关闭 LLM 自检" className="h-5 w-5" variant="ghost" size="icon">
+              </Button>
+              <Button type="button" onClick={() => setOpen(false)} aria-label="关闭 LLM 自检" variant="ghost" size="icon-xs">
                 <X size={12} />
               </Button>
             </div>

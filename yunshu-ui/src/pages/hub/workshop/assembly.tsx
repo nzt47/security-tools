@@ -17,7 +17,7 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import { ClipboardCopy, Hammer, Loader2, Rocket, ShieldCheck, Users } from 'lucide-react'
-import { Badge, Card, ErrorBox, hubPost, Input, Loading, PageHeader, Select } from '../components/ui'
+import { Badge, Button, Card, ErrorBox, hubPost, Input, Loading, PageHeader, Select } from '../components/ui'
 import { SUBAGENT_CREATE, SUBAGENT_LIST } from '@/api/endpoints'
 import { getEnvelope } from '@/api/envelope'
 import {
@@ -168,21 +168,9 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
         <Hammer size={14} className="text-cyan-400" />
         <span className="text-xs text-slate-500">起点模板：</span>
         {TEMPLATES.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => applyTemplate(t)}
-            title={t.hint}
-            data-testid={'assembly-template-' + t.key}
-            className="rounded-md border border-slate-700 px-2.5 py-1 text-xs text-slate-300 hover:bg-slate-800"
-          >{t.label}</button>
+          <Button key={t.key} type="button" onClick={() => applyTemplate(t)} title={t.hint} data-testid={'assembly-template-' + t.key} variant="default" size="xs">{t.label}</Button>
         ))}
-        <button
-          type="button"
-          onClick={onShowAgents}
-          data-testid="assembly-go-agents"
-          className="ml-auto flex items-center gap-1 rounded-md border border-slate-700 px-2.5 py-1 text-xs text-slate-300 hover:bg-slate-800"
-        ><Users size={11} /> 去分身列表</button>
+        <Button type="button" onClick={onShowAgents} data-testid="assembly-go-agents" className="ml-auto" variant="default" size="xs"><Users size={11} /> 去分身列表</Button>
       </div>
 
       {error && <div className="mb-3"><ErrorBox message={error} /></div>}
@@ -194,12 +182,7 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
         {/* 左：步骤导航 */}
         <nav className="flex flex-col gap-1" aria-label="组装步骤">
           {STEPS.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => jump(s.id)}
-              className="rounded-md px-2 py-1.5 text-left text-body text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
-            >{s.label}</button>
+            <Button key={s.id} type="button" onClick={() => jump(s.id)} variant="default" size="xs">{s.label}</Button>
           ))}
         </nav>
 
@@ -347,19 +330,8 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
                 >{previewText}</pre>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={copyPreview}
-                  data-testid="assembly-copy"
-                  className="flex items-center gap-1 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
-                ><ClipboardCopy size={12} /> 复制预览</button>
-                <button
-                  type="button"
-                  onClick={create}
-                  disabled={busy || !form.name.trim()}
-                  data-testid="assembly-create"
-                  className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-500 disabled:opacity-40"
-                >{busy ? <Loader2 size={14} className="animate-spin" /> : <Rocket size={14} />} 生成分身</button>
+                <Button type="button" onClick={copyPreview} data-testid="assembly-copy" variant="default" size="xs"><ClipboardCopy size={12} /> 复制预览</Button>
+                <Button type="button" onClick={create} disabled={busy || !form.name.trim()} data-testid="assembly-create" variant="primary" size="sm">{busy ? <Loader2 size={14} className="animate-spin" /> : <Rocket size={14} />} 生成分身</Button>
                 <span className="text-caption text-slate-600">预览即真实请求体（同一序列化函数）</span>
               </div>
               <div className="rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2 text-caption text-slate-500">
@@ -409,15 +381,10 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
 function FaceRow({ face, expanded, onToggle }: { face: SovereigntyFace; expanded: boolean; onToggle: () => void }) {
   return (
     <div data-testid={'sovereignty-face-' + face.key}>
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={expanded}
-        className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1 text-left text-body text-slate-300 hover:bg-slate-800/60"
-      >
+      <Button type="button" onClick={onToggle} aria-expanded={expanded} className="w-full" variant="default" size="xs">
         <span>{face.label}</span>
         <Badge color={STATE_COLOR[face.state] ?? 'slate'}>{face.state_label}</Badge>
-      </button>
+      </Button>
       {expanded && (
         <div className="mb-1 rounded-md border border-slate-800 bg-slate-950/60 px-2 py-1.5 text-caption leading-5 text-slate-400">
           <div>{face.evidence}</div>

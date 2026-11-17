@@ -13,7 +13,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Activity, RefreshCw } from 'lucide-react'
-import { Badge, ErrorBox, hubGet } from '../components/ui'
+import { Badge, Button, ErrorBox, hubGet } from '../components/ui'
 import { SYSTEM_UNITS } from '@/api/endpoints'
 
 type UnitStatus = 'ok' | 'warn' | 'off' | 'never' | 'error'
@@ -145,9 +145,8 @@ export default function UnitStatus() {
           </span>
         ))}
         <span className="ml-auto">
-          <button type="button" onClick={() => void load(true)} disabled={busy}
-            className="flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 hover:bg-slate-800 disabled:opacity-50">
-            <RefreshCw size={11} className={busy ? 'animate-spin' : ''} /> 重新探测</button>
+          <Button type="button" onClick={() => void load(true)} disabled={busy} variant="default" size="xs">
+            <RefreshCw size={11} className={busy ? 'animate-spin' : ''} /> 重新探测</Button>
         </span>
       </div>
 

@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react'
 import { getUserInfo, login } from '@/api/user'
 import type { LoginParams, UserInfo } from '@/api/user'
 import { clearToken, setToken } from '@/utils/request'
+import { Button } from '@/components/ui'
 
 export default function Profile() {
   // 演示页表单不预填默认密码（避免硬编码测试凭证；由用户手动输入）
@@ -92,13 +93,9 @@ export default function Profile() {
           <div className="rounded-sm border border-green-200 bg-green-50 p-4">
             <p>欢迎，{userInfo.nickname}（{userInfo.username}）</p>
             <p className="mt-1 text-sm text-gray-500">{userInfo.email}</p>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="mt-3 rounded-sm border border-gray-300 px-3 py-1 text-sm"
-            >
+            <Button type="button" onClick={handleLogout} variant="default" size="sm">
               退出登录
-            </button>
+            </Button>
           </div>
         ) : (
           <p className="text-gray-400">未登录，请先登录</p>

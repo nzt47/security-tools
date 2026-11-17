@@ -19,6 +19,7 @@ import { SwitchField } from './fields/SwitchField';
 import { TagsField } from './fields/TagsField';
 import { ObjectGroup } from './fields/ObjectGroup';
 import { JsonFallbackField } from './fields/JsonFallbackField';
+import { Button } from '@/components/ui'
 
 export interface SchemaRendererProps {
   /** JSON Schema 子集 */
@@ -315,13 +316,9 @@ export function SchemaRenderer({ schema, value, onChange, onSubmit }: SchemaRend
       )}
       {onSubmit && (
         <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={handleSubmit}
-            className="rounded-md bg-(--mascot-primary) px-4 py-1.5 text-sm font-medium text-(--bg-deep) transition-colors hover:bg-(--mascot-secondary)"
-          >
+          <Button type="button" onClick={handleSubmit} variant="default" size="sm">
             提交
-          </button>
+          </Button>
         </div>
       )}
     </div>

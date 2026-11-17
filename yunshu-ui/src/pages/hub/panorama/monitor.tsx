@@ -348,14 +348,9 @@ export default function PanoramaMonitor() {
                       <div className="flex shrink-0 flex-col items-end gap-1">
                         <Badge color={STATUS_COLOR[m.status ?? ''] ?? 'slate'}>{m.status ?? '?'}</Badge>
                         {m.status_detail && <span className="text-micro text-slate-600">{m.status_detail}</span>}
-                        <button
-                          type="button"
-                          onClick={() => setOpenModule(openModule === m.module_id ? '' : m.module_id)}
-                          className="rounded-sm border border-slate-700 px-1.5 py-0.5 text-micro text-slate-300 hover:bg-slate-800"
-                          aria-label={'模块详情 ' + m.module_id}
-                        >
+                        <Button type="button" onClick={() => setOpenModule(openModule === m.module_id ? '' : m.module_id)} aria-label={'模块详情 ' + m.module_id} variant="default" size="xs">
                           {openModule === m.module_id ? '收起' : '详情 / 干预'}
-                        </button>
+                        </Button>
                       </div>
                     </div>
                     {openModule === m.module_id && (

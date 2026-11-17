@@ -7,7 +7,7 @@
  */
 import { useState } from 'react'
 import { Loader2, Lightbulb, ShieldCheck } from 'lucide-react'
-import { hubPost, Input, Textarea } from '../../hub/components/ui'
+import { Button, hubPost, Input, Textarea } from '../../hub/components/ui'
 
 import {
   SKILLS_MGMT_CREATE_AI,
@@ -73,22 +73,15 @@ export default function GenerateRequirementModal({ initialIntent = '', onClose, 
         {okMsg && <p className="mt-1 rounded-md border border-emerald-800/60 bg-emerald-950/30 px-2 py-1.5 text-caption text-emerald-300">{okMsg}</p>}
         <div className="mt-3 flex flex-wrap justify-end gap-2">
           {okMsg ? (
-            <button type="button"
-              className="inline-flex items-center gap-1 rounded-md border border-cyan-700/70 px-3 py-1.5 text-caption text-cyan-300 transition-colors hover:bg-cyan-500/10"
-              onClick={() => { onDone?.(createdId); onClose() }}>
+            <Button type="button" onClick={() => { onDone?.(createdId); onClose() }} variant="accent" size="xs">
               <ShieldCheck size={12} /> 完成
-            </button>
+            </Button>
           ) : (
             <>
-              <button type="button"
-                className="inline-flex items-center gap-1 rounded-md border border-slate-700 px-3 py-1.5 text-caption text-slate-300 hover:bg-slate-800"
-                onClick={onClose}>取消</button>
-              <button type="button"
-                className="inline-flex items-center gap-1 rounded-md border border-cyan-700/70 px-3 py-1.5 text-caption text-cyan-300 transition-colors hover:bg-cyan-500/10"
-                disabled={busy || !intent.trim()}
-                onClick={() => void submit()}>
+              <Button type="button" onClick={onClose} variant="default" size="xs">取消</Button>
+              <Button type="button" disabled={busy || !intent.trim()} onClick={() => void submit()} variant="accent" size="xs">
                 {busy ? <Loader2 size={12} className="animate-spin" /> : <Lightbulb size={12} />} 生成并评审
-              </button>
+              </Button>
             </>
           )}
         </div>

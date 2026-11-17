@@ -233,10 +233,9 @@ export default function ToolsToolset() {
       ) : (
         <span className="text-slate-400">正在定位 <span className="font-mono">{focusTool}</span> …</span>
       )}
-      <button type="button" onClick={() => { setFocusTool(''); setFocusRow(''); setFocusState('') }}
-        className="ml-auto rounded border border-slate-700 px-2 py-0.5 text-micro text-slate-400 hover:bg-slate-800">
+      <Button type="button" onClick={() => { setFocusTool(''); setFocusRow(''); setFocusState('') }} className="ml-auto" variant="default" size="xs">
         清除定位
-      </button>
+      </Button>
     </div>
   ) : null
 

@@ -9,7 +9,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { Activity, Loader2, RefreshCw } from 'lucide-react'
-import { hubGet } from '../components/ui'
+import { Button, hubGet } from '../components/ui'
 import { MODE } from '@/api/endpoints'
 
 interface ModePayload {
@@ -51,9 +51,9 @@ export default function ModeCard() {
         {data?.can_accept_tasks === true && (
           <span className="rounded-sm bg-emerald-500/15 px-1.5 py-0.5 text-micro text-emerald-300">可接新任务</span>
         )}
-        <button type="button" className="ml-auto inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 hover:bg-slate-800" onClick={() => void load()} disabled={busy} aria-label="刷新运行模式">
+        <Button type="button" className="ml-auto" onClick={() => void load()} disabled={busy} aria-label="刷新运行模式" variant="default" size="xs">
           {busy ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-        </button>
+        </Button>
       </div>
       {err && <div className="mt-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-caption text-red-300">{err}</div>}
       {data?.description && <div className="mt-1.5 text-caption text-slate-400">{data.description}</div>}

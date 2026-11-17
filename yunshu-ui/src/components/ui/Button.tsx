@@ -30,7 +30,13 @@ export type ButtonVariant =
  * xs  ：行内/工具条上的紧凑控件（24px 高，text-micro）—— 用于右侧面板、会话行等密集区域；
  *       这些位置原来手写 `rounded-sm border border-slate-700 px-1.5 py-0.5 text-[10px]`。
  */
-export type ButtonSize = 'xs' | 'sm' | 'md' | 'icon'
+/**
+ * icon / icon-sm / icon-xs 是**三档正方形**：32 / 24 / 20。
+ * 【为什么要有三档】只有 32 一档时，面板标题行里的 ×/刷新图标只能用
+ * `size="icon" className="h-5 w-5"` 这种"外面套原语、里面再覆盖尺寸"的写法 —— 那等于原语没封装住：
+ * 2026-11-18 全仓数到 18 处这种覆盖。现在三档都在原语里，调用方只挑档、不再写 h-/w-。
+ */
+export type ButtonSize = 'xs' | 'sm' | 'md' | 'icon' | 'icon-sm' | 'icon-xs'
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   /** 视觉类型，默认 default */
@@ -58,6 +64,8 @@ const SIZE_CLASSES: Record<ButtonSize, string> = {
   sm: 'h-8 rounded-control px-3 text-body',
   md: 'h-9 rounded-control px-4 text-ui',
   icon: 'h-8 w-8 rounded-control p-0',
+  'icon-sm': 'h-6 w-6 rounded-control p-0',
+  'icon-xs': 'h-5 w-5 rounded-control p-0',
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(

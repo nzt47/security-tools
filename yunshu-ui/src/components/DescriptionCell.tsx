@@ -12,6 +12,8 @@
  * 动态拼接（JIT 扫不到），而列宽在这三张表里又是可拖动/可变的，故用数值常量 + style。
  */
 
+import { Button } from '@/components/ui'
+
 /** 说明列的默认宽度上限（px）：与 #1495 定下的工作流口径一致 */
 export const DESCRIPTION_MAX_WIDTH = 420
 
@@ -41,14 +43,9 @@ export default function DescriptionCell({
         {body}
       </div>
       {onExpand && (
-        <button
-          type="button"
-          className="mt-1 text-micro text-cyan-400 hover:text-cyan-300"
-          onClick={onExpand}
-          title="在弹窗里看完整说明（列宽不会被撑开）"
-        >
+        <Button type="button" onClick={onExpand} title="在弹窗里看完整说明（列宽不会被撑开）" variant="accent" size="xs">
           查看全文
-        </button>
+        </Button>
       )}
     </div>
   )

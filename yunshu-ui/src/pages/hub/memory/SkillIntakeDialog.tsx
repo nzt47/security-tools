@@ -132,7 +132,7 @@ export default function SkillIntakeDialog({ open, onClose }: Props) {
             <h2 className="text-sm font-semibold text-slate-100">入轨助手</h2>
             <span className="text-caption text-slate-500">把技能从「只在本机」变成「在仓库里」</span>
           </div>
-          <Button type="button" onClick={onClose} className="h-6 w-6" variant="ghost" size="icon">
+          <Button type="button" onClick={onClose} variant="ghost" size="icon-sm">
             <X size={14} />
           </Button>
         </div>
@@ -212,13 +212,9 @@ export default function SkillIntakeDialog({ open, onClose }: Props) {
                   LLM 补两节（带引用校验）
                 </label>
               ) : null}
-              <button
-                type="button"
-                onClick={() => void load()}
-                className="rounded-md border border-slate-700 px-2 py-1 text-micro text-slate-300 hover:bg-slate-800"
-              >
+              <Button type="button" onClick={() => void load()} variant="default" size="xs">
                 刷新
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -255,23 +251,12 @@ export default function SkillIntakeDialog({ open, onClose }: Props) {
                     ) : null}
                   </div>
                   <div className="flex shrink-0 flex-col gap-1">
-                    <button
-                      type="button"
-                      disabled={busy !== null || it.errors.length > 0}
-                      onClick={() => void runIntake(it.skill_id, 'workspace')}
-                      className="rounded-md border border-cyan-700/70 px-2.5 py-1 text-micro text-cyan-300 transition-colors hover:bg-cyan-500/10 disabled:opacity-40"
-                    >
+                    <Button type="button" disabled={busy !== null || it.errors.length > 0} onClick={() => void runIntake(it.skill_id, 'workspace')} variant="accent" size="xs">
                       {busy === it.skill_id ? '入轨中…' : '一键入轨'}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy !== null || it.errors.length > 0}
-                      onClick={() => void runIntake(it.skill_id, 'pr')}
-                      className="rounded-md border border-emerald-700/70 px-2.5 py-1 text-micro text-emerald-300 transition-colors hover:bg-emerald-500/10 disabled:opacity-40"
-                      title="commit → push 分支 → 开 PR（要求当前在 master，且改动全在白名单内）"
-                    >
+                    </Button>
+                    <Button type="button" disabled={busy !== null || it.errors.length > 0} onClick={() => void runIntake(it.skill_id, 'pr')} title="commit → push 分支 → 开 PR（要求当前在 master，且改动全在白名单内）" variant="success-outline" size="xs">
                       {busy === it.skill_id ? '处理中…' : '入轨并建 PR'}
-                    </button>
+                    </Button>
                   </div>
                 </li>
               ))}

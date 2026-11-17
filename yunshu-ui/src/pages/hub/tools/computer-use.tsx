@@ -133,14 +133,12 @@ export default function ToolsComputerUse() {
             </Button>
           </div>
           <div className="mt-2 flex gap-2">
-            <button onClick={screenshot} disabled={busyShot} title="GET /api/browser/screenshot"
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800 disabled:opacity-40">
+            <Button onClick={screenshot} disabled={busyShot} title="GET /api/browser/screenshot" className="flex-1" variant="default" size="xs">
               {busyShot ? <Loader2 size={12} className="animate-spin" /> : <Camera size={12} />} 截取页面
-            </button>
-            <button onClick={closeBrowser} title="POST /api/browser/close"
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800">
+            </Button>
+            <Button onClick={closeBrowser} title="POST /api/browser/close" className="flex-1" variant="default" size="xs">
               <X size={12} /> 关闭浏览器
-            </button>
+            </Button>
           </div>
           {shot && (
             <div className="mt-3" data-testid="browser-screenshot">
@@ -155,10 +153,9 @@ export default function ToolsComputerUse() {
 
         <Card title="剪贴板">
           <div className="flex gap-2">
-            <button onClick={readClipboard} disabled={busyClip}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 disabled:opacity-40">
+            <Button onClick={readClipboard} disabled={busyClip} className="flex-1" variant="default" size="sm">
               {busyClip ? <Loader2 size={14} className="animate-spin" /> : <Clipboard size={14} />} 读取剪贴板
-            </button>
+            </Button>
           </div>
           <div className="mt-3" data-testid="clipboard-content">
             {clip ? (

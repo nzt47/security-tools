@@ -7,6 +7,7 @@
  */
 import { useEffect, useState } from 'react'
 import { BookOpen, GitBranch, Hammer, Sparkles } from 'lucide-react'
+import { Button } from '@/components/ui'
 import SkillAssetTable from './SkillAssetTable'
 import SkillIntakeDialog from './SkillIntakeDialog'
 import SkillCardsDialog from '../../../components/SkillCardsDialog'
@@ -49,24 +50,14 @@ export default function SkillCenter() {
               <span className="ml-2 text-slate-600">· 本地确定性执行的工作流在「工作流」叶子</span>
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setCardsOpen(true)}
-            title="按能力卡（L1）列出现在到底有哪些能力：触发 / 步骤 / 参数 / 示例 / 约束"
-            className="ml-auto flex shrink-0 items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1.5 text-caption text-slate-300 transition-colors hover:border-cyan-700 hover:bg-cyan-500/10 hover:text-cyan-300"
-          >
+          <Button type="button" onClick={() => setCardsOpen(true)} title="按能力卡（L1）列出现在到底有哪些能力：触发 / 步骤 / 参数 / 示例 / 约束" className="ml-auto shrink-0" variant="accent" size="xs">
             <BookOpen size={12} /> 能力卡
-          </button>
+          </Button>
           {/* 入轨入口只在真有「未入轨」技能时出现（46/46 已入轨时它是个空转弹窗）。 */}
           {pendingIntake !== null && pendingIntake > 0 && (
-            <button
-              type="button"
-              onClick={() => setIntakeOpen(true)}
-              title="把未入轨的技能提交进 git（只处理未入轨项）"
-              className="flex shrink-0 items-center gap-1.5 rounded-md border border-amber-800/70 px-2.5 py-1.5 text-caption text-amber-300 transition-colors hover:bg-amber-500/10"
-            >
+            <Button type="button" onClick={() => setIntakeOpen(true)} title="把未入轨的技能提交进 git（只处理未入轨项）" className="shrink-0" variant="default" size="xs">
               <GitBranch size={12} /> 入轨助手 · {pendingIntake}
-            </button>
+            </Button>
           )}
           {/* 2026-11-06：原「转化队列已移至能力获取」去处说明已删 —— 能力获取在主导航里，
               这里再挂一条只是重复指路（禁止双入口）。 */}

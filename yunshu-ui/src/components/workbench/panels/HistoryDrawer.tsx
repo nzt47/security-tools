@@ -288,7 +288,7 @@ export function HistoryDrawer({ sessionId, onClose }: HistoryDrawerProps) {
             leading={<Search size={12} className="text-slate-500" />}
             trailing={
               search ? (
-                <Button type="button" onClick={() => setSearch('')} title="清空搜索" aria-label="清空搜索" className="h-5 w-5" variant="ghost" size="icon">
+                <Button type="button" onClick={() => setSearch('')} title="清空搜索" aria-label="清空搜索" variant="ghost" size="icon-xs">
                   <X size={11} />
                 </Button>
               ) : undefined
@@ -306,13 +306,9 @@ export function HistoryDrawer({ sessionId, onClose }: HistoryDrawerProps) {
           ) : error ? (
             <div className="flex flex-col items-center gap-2 pt-14 text-slate-500">
               <p className="text-body text-rose-400/80">加载失败，请重试</p>
-              <button
-                type="button"
-                onClick={() => void loadItems()}
-                className="flex items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1 text-caption text-slate-400 hover:bg-slate-800"
-              >
+              <Button type="button" onClick={() => void loadItems()} variant="default" size="xs">
                 <RefreshCw size={11} /> 重试
-              </button>
+              </Button>
             </div>
           ) : rows.length === 0 ? (
             <div className="pt-14 text-center text-body text-slate-500">

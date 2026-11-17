@@ -19,7 +19,7 @@ import {
   Ban, CircleAlert, FileDiff, Loader2, RotateCcw, ShieldCheck, Snowflake,
   Trash2, Zap,
 } from 'lucide-react'
-import { Input, Select } from '@/components/ui'
+import { Button, Input, Select } from '@/components/ui'
 import { issueConfirmation, runAction } from '@/lib/cpPanelsApi'
 import type { ActionName, ActionResponse } from '@/lib/cpPanelsTypes'
 import { ApprovalZone, StatusBadge } from './components'
@@ -301,14 +301,12 @@ function NeverAutomatedPanel({
           options={categories.map((c) => ({ label: (labels[c] || c) + '（' + c + '）', value: c }))}
         />
         <Input value={actionText} onChange={(e) => setActionText(e.target.value)} placeholder={`可判定文本（缺省示例：${NEVER_TEXT_TEMPLATE[category] || '—'}）`} size="xs" className="w-72" />
-        <button type="button" onClick={doIssue} disabled={busy}
-          className="rounded-sm border border-slate-600 px-2 py-1 text-caption text-slate-200 disabled:opacity-40">
+        <Button type="button" onClick={doIssue} disabled={busy} variant="default" size="xs">
           {busy ? '处理中…' : '1) 显式确认（签发单次凭据）'}
-        </button>
-        <button type="button" onClick={doExecute} disabled={busy || !token || expired}
-          className="rounded-sm bg-red-800 px-2 py-1 text-caption text-white disabled:opacity-40">
+        </Button>
+        <Button type="button" onClick={doExecute} disabled={busy || !token || expired} variant="default" size="xs">
           2) 提交（转审批提案）
-        </button>
+        </Button>
         {expiresAt > 0 && (
           <StatusBadge tone={expired ? 'red' : 'yellow'}>
             {expired ? '凭据已失效（需重新确认）' : `剩余 ${remaining.toFixed(1)}s`}

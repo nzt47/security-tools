@@ -219,9 +219,9 @@ export default function BusinessBoard() {
                   {defs.filter((d) => !catFilter || d.category === catFilter).map((d, i) => (
                     <tr key={(d.name ?? '') + i} className="border-t border-slate-800/60 hover:bg-slate-800/30">
                       <td className="px-1 py-1">
-                        <button type="button" className="font-mono text-micro text-cyan-300 underline-offset-2 hover:underline" onClick={() => setMetricName(d.name ?? '')}>
+                        <Button type="button" onClick={() => setMetricName(d.name ?? '')} variant="accent" size="xs">
                           {d.name ?? ''}
-                        </button>
+                        </Button>
                       </td>
                       <td className="px-1 py-1 text-slate-400">{d.category ?? ''}</td>
                       <td className="px-1 py-1 text-slate-500">{d.metric_type ?? ''}</td>
@@ -304,16 +304,11 @@ export default function BusinessBoard() {
             {traces.length > 0 && (
               <div className="flex flex-col gap-1">
                 {traces.slice(0, 8).map((t, i) => (
-                  <button
-                    key={(t.trace_id ?? '') + i}
-                    type="button"
-                    onClick={() => setTraceId(t.trace_id ?? '')}
-                    className="flex items-center gap-2 rounded-sm border border-slate-800 bg-slate-900/40 px-2 py-1 text-left text-caption hover:bg-slate-800/50"
-                  >
+                  <Button key={(t.trace_id ?? '') + i} type="button" onClick={() => setTraceId(t.trace_id ?? '')} variant="default" size="xs">
                     <span className="font-mono text-micro text-cyan-300">{t.trace_id ?? ''}</span>
                     <span className="text-slate-400">{t.name ?? ''}</span>
                     <span className="ml-auto font-mono text-micro text-slate-500">{Math.round(t.duration_ms ?? 0)}ms</span>
-                  </button>
+                  </Button>
                 ))}
               </div>
             )}

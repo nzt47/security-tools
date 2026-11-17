@@ -11,6 +11,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FileDown, FileJson, FileSpreadsheet, Loader2, RefreshCw, X } from 'lucide-react'
+import { Button } from '@/components/ui'
 import { getExportMockUsers, getUserList } from '@/api/user'
 import type { UserListItem } from '@/api/user'
 import { downloadFile } from '@/utils/system'
@@ -180,35 +181,21 @@ export default function DataExport() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => void loadData()}
-            disabled={loading}
-            className="flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50"
-          >
+          <Button type="button" onClick={() => void loadData()} disabled={loading} variant="default" size="sm">
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             刷新
-          </button>
-          <button
-            type="button"
-            onClick={handleExport}
-            disabled={exporting || users.length === 0}
-            className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
-          >
+          </Button>
+          <Button type="button" onClick={handleExport} disabled={exporting || users.length === 0} variant="primary" size="sm">
             {exporting ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />}
             {exporting
               ? `导出中 ${progress}/${users.length}`
               : `导出 ${format === 'csv' ? 'CSV' : 'JSON'}`}
-          </button>
+          </Button>
           {exporting && (
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="flex items-center gap-1.5 rounded-md border border-red-800/60 bg-card px-3 py-2 text-sm text-red-400 transition-colors hover:bg-red-950/40"
-            >
+            <Button type="button" onClick={handleCancel} variant="danger-outline" size="sm">
               <X size={14} />
               取消
-            </button>
+            </Button>
           )}
         </div>
       </div>

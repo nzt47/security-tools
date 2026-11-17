@@ -21,7 +21,7 @@
 import { useState } from 'react'
 import type { ChangeEvent, KeyboardEvent } from 'react'
 import { ClipboardCopy, Loader2, Package, RefreshCw, Upload } from 'lucide-react'
-import { Card, ErrorBox, Input, PageHeader, Textarea } from '../components/ui'
+import { Button, Card, ErrorBox, Input, PageHeader, Textarea } from '../components/ui'
 import { ApiError, request } from '@/lib/apiClient'
 import { SUBAGENT_BUNDLE_BY_NAME, SUBAGENT_IMPORT } from '@/api/endpoints'
 
@@ -207,22 +207,11 @@ export default function WorkshopReplicate() {
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <Input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={onEnter} data-testid="replicate-name" placeholder="分身名称（如 sa-1）" size="md" className="w-64" />
-          <button
-            type="button"
-            onClick={exportBundle}
-            disabled={busy}
-            data-testid="replicate-export"
-            className="flex items-center gap-1.5 rounded-lg bg-cyan-600 px-4 py-2 text-sm text-white hover:bg-cyan-500 disabled:opacity-40"
-          >
+          <Button type="button" onClick={exportBundle} disabled={busy} data-testid="replicate-export" variant="primary" size="sm">
             {busy ? <Loader2 size={14} className="animate-spin" /> : <Package size={14} />} 导出 bundle
-          </button>
+          </Button>
           {text && (
-            <button
-              type="button"
-              onClick={copy}
-              data-testid="replicate-copy"
-              className="flex items-center gap-1 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
-            ><ClipboardCopy size={12} /> 复制 JSON</button>
+            <Button type="button" onClick={copy} data-testid="replicate-copy" variant="default" size="xs"><ClipboardCopy size={12} /> 复制 JSON</Button>
           )}
         </div>
         {error && (
@@ -281,15 +270,9 @@ export default function WorkshopReplicate() {
               data-testid="replicate-import-file"
               className="text-xs text-slate-400 file:mr-2 file:rounded-lg file:border-0 file:bg-slate-700 file:px-3 file:py-1.5 file:text-xs file:text-slate-100"
             />
-            <button
-              type="button"
-              onClick={importBundle}
-              disabled={importing}
-              data-testid="replicate-import"
-              className="flex items-center gap-1.5 rounded-lg bg-cyan-600 px-4 py-2 text-sm text-white hover:bg-cyan-500 disabled:opacity-40"
-            >
+            <Button type="button" onClick={importBundle} disabled={importing} data-testid="replicate-import" variant="primary" size="sm">
               {importing ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} 导入
-            </button>
+            </Button>
           </div>
           <Textarea
             value={importText}

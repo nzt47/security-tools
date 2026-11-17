@@ -19,7 +19,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Activity, AlertTriangle, Brain, Eraser, Gauge, Loader2, RefreshCw, Save, ScanLine, Trash2,
 } from 'lucide-react'
-import { Button, ErrorBox, hubDelete, hubGet, hubPost, hubPut, Input, Textarea } from '../components/ui'
+import { Button, Checkbox, ErrorBox, hubDelete, hubGet, hubPost, hubPut, Input, Textarea } from '../components/ui'
 import {
   MEMORY_CLEAR_SUMMARY,
   MEMORY_COMPRESS,
@@ -445,10 +445,7 @@ export default function MemoryMaintenance() {
           placeholder="写入新的长期摘要（会整体覆盖）"
         />
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-1 text-micro text-slate-400">
-            <input type="checkbox" checked={confirmSummary} onChange={(e) => setConfirmSummary(e.target.checked)} aria-label="确认覆盖摘要" />
-            我确认覆盖现有摘要
-          </label>
+          <Checkbox checked={confirmSummary} onChange={(e) => setConfirmSummary(e.target.checked)} label="我确认覆盖现有摘要" />
           <Button
             type="button"
             variant="accent" size="xs"
@@ -458,10 +455,7 @@ export default function MemoryMaintenance() {
           >
             {busy === 'summary' ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />} 保存摘要
           </Button>
-          <label className="ml-2 flex items-center gap-1 text-micro text-slate-400">
-            <input type="checkbox" checked={confirmClearSummary} onChange={(e) => setConfirmClearSummary(e.target.checked)} aria-label="确认清空摘要" />
-            我确认清空摘要
-          </label>
+          <Checkbox checked={confirmClearSummary} onChange={(e) => setConfirmClearSummary(e.target.checked)} label="我确认清空摘要" />
           <Button type="button" variant="danger-outline" size="xs" onClick={() => void clearSummary()} disabled={loading || !confirmClearSummary} aria-label="清空长期摘要">
             清空摘要
           </Button>
@@ -537,10 +531,7 @@ export default function MemoryMaintenance() {
           <Button type="button" variant="accent" size="xs" onClick={() => void saveWindowConfig()} disabled={loading} aria-label="保存窗口配置">
             {busy === 'win-config' ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />} 保存配置
           </Button>
-          <label className="ml-2 flex items-center gap-1 text-micro text-slate-400">
-            <input type="checkbox" checked={confirmClearWindows} onChange={(e) => setConfirmClearWindows(e.target.checked)} aria-label="确认清空窗口事件" />
-            我确认清空事件
-          </label>
+          <Checkbox checked={confirmClearWindows} onChange={(e) => setConfirmClearWindows(e.target.checked)} label="我确认清空事件" />
           <Button type="button" variant="danger-outline" size="xs" onClick={() => void clearWindows()} disabled={loading || !confirmClearWindows} aria-label="清空窗口事件">
             <Eraser size={11} /> 清空事件
           </Button>
@@ -610,10 +601,7 @@ export default function MemoryMaintenance() {
 
         <div className="flex flex-wrap items-center gap-2 rounded-sm border border-red-900/40 bg-red-500/5 p-2">
           <span className="text-micro text-red-300">清空向量库不可撤销（整库删除）。</span>
-          <label className="flex items-center gap-1 text-micro text-slate-400">
-            <input type="checkbox" checked={confirmClearVector} onChange={(e) => setConfirmClearVector(e.target.checked)} aria-label="确认清空向量库" />
-            我确认清空
-          </label>
+          <Checkbox checked={confirmClearVector} onChange={(e) => setConfirmClearVector(e.target.checked)} label="我确认清空" />
           <Button type="button" variant="danger-outline" size="xs" onClick={() => void clearVector()} disabled={loading || !confirmClearVector} aria-label="清空向量库">
             <Trash2 size={11} /> 清空向量库
           </Button>

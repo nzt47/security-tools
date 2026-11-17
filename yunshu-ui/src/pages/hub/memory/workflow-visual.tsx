@@ -232,7 +232,7 @@ export default function MemoryWorkflowVisual() {
                             {d.node_count ?? 0} 节点 / {d.edge_count ?? 0} 连线 · {d.updated_at ?? d.id}
                           </span>
                         </button>
-                        <Button type="button" className="shrink-0 h-6 w-6" onClick={() => void handleDelete(d.id)} title="从后端删除" data-testid={`ve-delete-${d.id}`} variant="ghost" size="icon">
+                        <Button type="button" className="shrink-0" onClick={() => void handleDelete(d.id)} title="从后端删除" data-testid={`ve-delete-${d.id}`} variant="ghost" size="icon-sm">
                           <Trash2 size={12} />
                         </Button>
                       </li>
@@ -261,7 +261,7 @@ export default function MemoryWorkflowVisual() {
         >
           {status.kind === 'ok' ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
           <span className="min-w-0 flex-1">{status.text}</span>
-          <Button type="button" onClick={() => setStatus(null)} className="shrink-0 h-6 w-6" variant="ghost" size="icon">
+          <Button type="button" onClick={() => setStatus(null)} className="shrink-0" variant="ghost" size="icon-sm">
             <X size={12} />
           </Button>
         </div>

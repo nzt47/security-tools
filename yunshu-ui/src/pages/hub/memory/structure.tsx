@@ -13,7 +13,7 @@
  */
 import { useEffect, useState } from 'react'
 import { BookOpen, Brain, Database, Lightbulb, RefreshCw } from 'lucide-react'
-import { Card, PageHeader, StatCard, hubGet } from '../components/ui'
+import { Button, Card, hubGet, PageHeader, StatCard } from '../components/ui'
 import { MemoryGovernancePanel } from './memory-governance'
 import { getEnvelope } from '@/api/envelope'
 import { EXPERIENCE_STATS, KNOWLEDGE_CARDS, MEMORY_OVERVIEW, VECTOR_STATS } from '@/api/endpoints'
@@ -131,13 +131,9 @@ export default function MemoryStructure() {
       />
 
       <div className="mb-5 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={load}
-          className="flex items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1.5 text-caption text-slate-400 hover:bg-slate-800"
-        >
+        <Button type="button" onClick={load} variant="default" size="xs">
           <RefreshCw size={12} /> 刷新
-        </button>
+        </Button>
         {loading && <span className="text-caption text-slate-500">加载中…</span>}
         {error && <span className="text-caption text-amber-400">部分读数不可用：{error.slice(0, 120)}</span>}
       </div>

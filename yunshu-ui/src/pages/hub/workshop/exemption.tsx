@@ -307,12 +307,9 @@ export function ExemptionStatusBar({ state, onReload }: {
               该开关由环境变量锁定：这里的改动会被后端拒绝（locked_by_env），请改环境变量
             </span>
           )}
-          <button
-            onClick={onReload}
-            className="ml-auto flex items-center gap-1.5 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 hover:bg-slate-800"
-          >
+          <Button onClick={onReload} className="ml-auto" variant="default" size="xs">
             <RefreshCw size={11} /> 刷新
-          </button>
+          </Button>
         </div>
       )}
 

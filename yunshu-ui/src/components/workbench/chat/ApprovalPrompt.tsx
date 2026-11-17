@@ -8,7 +8,7 @@
  */
 import { useState } from 'react'
 import { ShieldCheck, ShieldX } from 'lucide-react'
-import { Input } from '@/components/ui'
+import { Button, Input } from '@/components/ui'
 import { useLayoutStore } from '../../../stores/useLayoutStore'
 import { approveRecord, rejectRecord } from '../../../lib/approvalActions'
 
@@ -78,24 +78,12 @@ export function ApprovalPrompt() {
         {err && <div className="mt-2 text-caption text-red-400">{err}</div>}
 
         <div className="mt-3 flex items-center justify-end gap-2">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void decide(false)}
-            data-testid="approval-reject"
-            className="flex items-center gap-1 rounded-lg border border-red-800/70 px-3 py-1.5 text-xs text-red-300 hover:bg-red-950/40 disabled:opacity-40"
-          >
+          <Button type="button" disabled={busy} onClick={() => void decide(false)} data-testid="approval-reject" variant="danger-outline" size="xs">
             <ShieldX size={12} /> 拒绝
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void decide(true)}
-            data-testid="approval-approve"
-            className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs text-white hover:bg-emerald-500 disabled:opacity-40"
-          >
+          </Button>
+          <Button type="button" disabled={busy} onClick={() => void decide(true)} data-testid="approval-approve" variant="primary" size="xs">
             <ShieldCheck size={12} /> {busy ? '提交中…' : '批准并继续'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

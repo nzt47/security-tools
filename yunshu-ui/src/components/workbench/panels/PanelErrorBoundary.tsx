@@ -9,6 +9,7 @@
  */
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { AlertTriangle, RotateCcw } from 'lucide-react'
+import { Button } from '@/components/ui'
 
 interface Props {
   children: ReactNode
@@ -49,13 +50,9 @@ export default class PanelErrorBoundary extends Component<Props, State> {
         <pre className="mt-3 max-h-40 overflow-auto rounded-sm bg-slate-950/60 p-3 text-caption text-red-200">
           {String(error.message || error)}
         </pre>
-        <button
-          type="button"
-          onClick={() => this.setState({ error: null })}
-          className="mt-3 flex items-center gap-1.5 rounded-md border border-red-800 px-3 py-1.5 text-caption text-red-200 hover:bg-red-900/40"
-        >
+        <Button type="button" onClick={() => this.setState({ error: null })} variant="danger-outline" size="xs">
           <RotateCcw size={12} /> 重试
-        </button>
+        </Button>
       </div>
     )
   }

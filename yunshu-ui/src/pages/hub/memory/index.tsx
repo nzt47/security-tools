@@ -200,9 +200,9 @@ export default function MemoryPage({ mode = 'manual' }: MemoryPageProps) {
         <Card title="知识检索">
           <div className="flex gap-2">
             <Input value={searchQ} onChange={(e) => setSearchQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && doSearch()} placeholder="搜索记忆 / 知识…" size="md" className="flex-1" />
-            <button onClick={doSearch} className="flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800">
+            <Button onClick={doSearch} variant="default" size="sm">
               <Search size={14} /> 搜索
-            </button>
+            </Button>
           </div>
           <div className="mt-3 space-y-2">
             {results.length === 0 && <div className="py-6 text-center text-sm text-slate-600">输入关键词搜索记忆</div>}
@@ -224,13 +224,9 @@ export default function MemoryPage({ mode = 'manual' }: MemoryPageProps) {
           </p>
           <div className="flex gap-2">
             <Input value={delId} onChange={(e) => { setDelId(e.target.value); setDelCheck(null); setDelMsg('') }} onKeyDown={(e) => e.key === 'Enter' && void checkDel()} placeholder="msg_id，例如 2026-10-25T00:12:33.123456+00:00" aria-label="msg_id" size="xs" className="flex-1" inputClassName="font-mono" />
-            <button
-              onClick={() => void checkDel()}
-              disabled={delBusy !== '' || !delId.trim()}
-              className="flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 disabled:opacity-40"
-            >
+            <Button onClick={() => void checkDel()} disabled={delBusy !== '' || !delId.trim()} variant="default" size="sm">
               查一下
-            </button>
+            </Button>
           </div>
 
           {delCheck && (
@@ -238,13 +234,9 @@ export default function MemoryPage({ mode = 'manual' }: MemoryPageProps) {
               <div className="font-mono text-caption text-amber-300">{delCheck.msg_id}</div>
               <div className="mt-1 text-slate-300">{delCheck.preview}</div>
               <div className="mt-1 text-caption leading-5 text-slate-500">{delCheck.note}</div>
-              <button
-                onClick={() => void doDelete()}
-                disabled={delBusy !== ''}
-                className="mt-2 rounded-lg bg-red-600 px-3 py-1.5 text-caption font-medium text-white hover:bg-red-500 disabled:opacity-40"
-              >
+              <Button onClick={() => void doDelete()} disabled={delBusy !== ''} variant="danger" size="xs">
                 {delBusy === 'delete' ? '删除中…' : '确认删除（不可恢复）'}
-              </button>
+              </Button>
             </div>
           )}
           {delErr && <div className="mt-2 text-caption text-red-300">{delErr}</div>}

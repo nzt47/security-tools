@@ -1009,13 +1009,7 @@ export function SettingsPanel({ searchDebounceMs = 250 }: SettingsPanelProps) {
               leading={<Search size={12} className="text-slate-500" />}
               trailing={
                 query !== '' ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    aria-label="清空搜索"
-                    className="h-5 w-5"
-                    onClick={() => {
+                  <Button type="button" variant="ghost" size="icon-xs" aria-label="清空搜索" onClick={() => {
                       setQuery('')
                       commitSearch('')
                     }}

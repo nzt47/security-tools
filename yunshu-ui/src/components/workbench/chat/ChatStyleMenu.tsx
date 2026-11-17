@@ -76,7 +76,7 @@ export function ChatStyleMenu() {
         <div className="absolute right-0 top-[calc(100%+6px)] z-70 w-[286px] rounded-xl border border-slate-700 bg-slate-900/98 p-3 shadow-2xl backdrop-blur-sm">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-body font-medium text-slate-200">🎨 对话风格</span>
-            <Button type="button" onClick={() => setOpen(false)} className="h-5 w-5" aria-label="关闭风格设置" variant="ghost" size="icon">
+            <Button type="button" onClick={() => setOpen(false)} aria-label="关闭风格设置" variant="ghost" size="icon-xs">
               <X size={12} />
             </Button>
           </div>
@@ -163,14 +163,9 @@ export function ChatStyleMenu() {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={resetStyle}
-            disabled={isDefault}
-            className="flex w-full items-center justify-center gap-1.5 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-400 hover:bg-slate-800 disabled:opacity-40"
-          >
+          <Button type="button" onClick={resetStyle} disabled={isDefault} className="w-full" variant="default" size="xs">
             <RotateCcw size={11} /> 恢复默认风格
-          </button>
+          </Button>
         </div>
       )}
     </div>

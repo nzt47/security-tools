@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronDown, Gauge, Info, RefreshCw, Minimize2, X } from 'lucide-react'
-import { Loading, hubGet } from '../../../pages/hub/components/ui'
+import { hubGet, Loading } from '../../../pages/hub/components/ui'
 // 【P1-front 第七批】GET /api/context/status 已带 X-Envelope: v2，改用显式信封解析。
 // 【P1-front 第九批】同页两个 POST（config/compress）也已迁移，一并改用 postEnvelope。
 import { getEnvelope, postEnvelope } from '@/api/envelope'
@@ -278,11 +278,7 @@ export function ContextManagerBar() {
   return (
     <div className="border-t border-slate-800 bg-slate-900/40">
       {/* 折叠条（纯状态展示，无滑块） */}
-      <button
-        onClick={() => persistExpanded(!expanded)}
-        className="flex w-full items-center gap-2 px-4 py-1.5 text-left text-caption text-slate-400 transition-colors hover:bg-slate-800/40"
-        title="点击展开/折叠上下文监视器"
-      >
+      <Button onClick={() => persistExpanded(!expanded)} className="w-full" title="点击展开/折叠上下文监视器" variant="default" size="xs">
         <Gauge size={12} className="shrink-0 text-cyan-400" />
         <span className="shrink-0 font-medium">上下文</span>
         {/* 水位进度条 */}
@@ -313,7 +309,7 @@ export function ContextManagerBar() {
           </span>
         )}
         <ChevronDown size={11} className={`shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} />
-      </button>
+      </Button>
 
       {/* 展开面板 */}
       {expanded && (
@@ -504,9 +500,9 @@ export function ContextManagerBar() {
                   >
                     <Info size={11} /> 窗口取值参考
                   </button>
-                  <button onClick={load} className="flex items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1.5 text-caption text-slate-400 hover:bg-slate-800">
+                  <Button onClick={load} variant="default" size="xs">
                     <RefreshCw size={11} /> 刷新
-                  </button>
+                  </Button>
                 </div>
                 <span className="text-micro text-slate-600">压缩为写操作，需 FLASK_API_TOKEN</span>
               </div>

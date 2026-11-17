@@ -10,6 +10,7 @@
  */
 import { useEffect, useState } from 'react'
 import { PenTool, Workflow } from 'lucide-react'
+import { Button } from '@/components/ui'
 import { MemoryWorkflowTable } from './workflow'
 import MemoryWorkflowVisual from './workflow-visual'
 import ConvertibleWorkflows from './ConvertibleWorkflows'
@@ -121,13 +122,9 @@ export default function WorkflowHub() {
                   列表已给出「说明 / 步骤链 / 类型 / 执行统计」，点<strong className="text-slate-200">「查看」</strong>可看完整说明、触发词与每步的工具与参数。
                 </span>
               </div>
-              <button
-                type="button"
-                onClick={() => selectTab('visual')}
-                className="flex items-center gap-1.5 rounded-md bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-cyan-500"
-              >
+              <Button type="button" onClick={() => selectTab('visual')} variant="primary" size="xs">
                 <PenTool size={12} /> 可视化编辑 / 新建
-              </button>
+              </Button>
             </div>
             <MemoryWorkflowTable />
             {/* 可转换工作流（GET /api/workflow-learning/convertible）：属于工作流域，跟表格同页 */}

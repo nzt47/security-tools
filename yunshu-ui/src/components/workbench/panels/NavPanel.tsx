@@ -112,7 +112,7 @@ export function NavPanel() {
           leading={<Search size={12} className="text-slate-500" />}
           trailing={
             searching ? (
-              <Button type="button" aria-label="清空搜索" data-cp-nav-search-clear onClick={() => setQuery('')} className="h-5 w-5" variant="ghost" size="icon">
+              <Button type="button" aria-label="清空搜索" data-cp-nav-search-clear onClick={() => setQuery('')} variant="ghost" size="icon-xs">
                 <X size={12} />
               </Button>
             ) : undefined

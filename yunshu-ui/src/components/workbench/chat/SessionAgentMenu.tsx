@@ -173,7 +173,7 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
               >
                 {loading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
               </button>
-              <Button type="button" onClick={() => setOpen(false)} aria-label="关闭智能体菜单" className="h-5 w-5" variant="ghost" size="icon">
+              <Button type="button" onClick={() => setOpen(false)} aria-label="关闭智能体菜单" variant="ghost" size="icon-xs">
                 <X size={12} />
               </Button>
             </div>

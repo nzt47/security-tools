@@ -546,49 +546,26 @@ export default function WorkbenchChatPage() {
             {/* LLM 自检：key/模型名/地址一次性判明（无需命令行执行 curl） */}
             <LlmHealthMenu />
             {sessionId && (
-              <button
-                type="button"
-                onClick={() => handleOpenWorkspace(sessionId)}
-                aria-label="打开任务工作空间"
-                title="任务工作空间：查看/打开当前会话的工作目录"
-                className="flex items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1 text-caption text-slate-400 transition-colors hover:border-amber-500/50 hover:bg-amber-500/10 hover:text-amber-300"
-              >
+              <Button type="button" onClick={() => handleOpenWorkspace(sessionId)} aria-label="打开任务工作空间" title="任务工作空间：查看/打开当前会话的工作目录" variant="default" size="xs">
                 <FolderOpen size={11} />
                 工作空间
-              </button>
+              </Button>
             )}
-            <button
-              type="button"
-              onClick={() => {
+            <Button type="button" onClick={() => {
                 setGenIntent('')
                 setSkillGenOpen(true)
-              }}
-              title="把对话中出现的可用能力要求直接生成技能草稿（自动评审-评估；预填最近一条用户消息）"
-              className="flex items-center gap-1.5 rounded-md border border-cyan-700/60 px-2.5 py-1 text-caption text-cyan-300 transition-colors hover:bg-cyan-500/10"
-            >
+              }} title="把对话中出现的可用能力要求直接生成技能草稿（自动评审-评估；预填最近一条用户消息）" variant="accent" size="xs">
               <Lightbulb size={11} />
               技能要求
-            </button>
-            <button
-              type="button"
-              onClick={() => setHistoryOpen(true)}
-              title="打开历史问话面板（当前会话）"
-              aria-expanded={historyOpen}
-              className="flex items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1 text-caption text-slate-400 transition-colors hover:border-cyan-600/60 hover:bg-slate-800 hover:text-cyan-300"
-            >
+            </Button>
+            <Button type="button" onClick={() => setHistoryOpen(true)} title="打开历史问话面板（当前会话）" aria-expanded={historyOpen} variant="accent" size="xs">
               <History size={11} />
               历史问话
-            </button>
-            <button
-              type="button"
-              onClick={() => setHandoffOpen((v) => !v)}
-              title="把当前会话压缩成交接文档（Markdown，含脱敏，落盘到临时目录）"
-              aria-expanded={handoffOpen}
-              className="flex items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1 text-caption text-slate-400 transition-colors hover:border-cyan-600/60 hover:bg-slate-800 hover:text-cyan-300"
-            >
+            </Button>
+            <Button type="button" onClick={() => setHandoffOpen((v) => !v)} title="把当前会话压缩成交接文档（Markdown，含脱敏，落盘到临时目录）" aria-expanded={handoffOpen} variant="accent" size="xs">
               <FileText size={11} />
               交接文档
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -608,7 +585,7 @@ export default function WorkbenchChatPage() {
           <div className="border-t border-slate-800 bg-slate-950/60 px-4 py-3">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-caption text-slate-500">交接文档（Markdown，含脱敏；生成后落盘到临时目录）</span>
-              <Button type="button" onClick={() => setHandoffOpen(false)} aria-label="关闭交接文档" title="关闭交接文档" className="h-6 w-6" variant="ghost" size="icon">
+              <Button type="button" onClick={() => setHandoffOpen(false)} aria-label="关闭交接文档" title="关闭交接文档" variant="ghost" size="icon-sm">
                 <X size={12} />
               </Button>
             </div>
@@ -640,13 +617,9 @@ export default function WorkbenchChatPage() {
           onContextMenu={(e) => e.preventDefault()}
         >
           <div className="px-2 py-1 text-micro text-slate-500">对话内容 → 技能要求（选中 {ctx.text.length} 字）</div>
-          <button
-            type="button"
-            onClick={openFromSelection}
-            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-body text-cyan-300 hover:bg-cyan-500/10"
-          >
+          <Button type="button" onClick={openFromSelection} className="w-full" variant="accent" size="xs">
             <Lightbulb size={12} /> 生成技能（自动评审-评估）
-          </button>
+          </Button>
         </div>
       )}
 

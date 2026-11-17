@@ -314,9 +314,9 @@ function SubagentView({ onShowAssembly }: { onShowAssembly?: () => void }) {
                 render: (r) => (
                   <div className="flex flex-col items-end gap-1">
                     <SubagentRowActions name={String(r.name)} />
-                    <button onClick={() => destroy(String(r.name))} className="flex items-center gap-1 rounded-md border border-red-900/60 px-2.5 py-1.5 text-xs text-red-400 hover:bg-red-950">
+                    <Button onClick={() => destroy(String(r.name))} variant="danger-outline" size="xs">
                       <Trash2 size={11} /> 销毁
-                    </button>
+                    </Button>
                   </div>
                 ),
               },

@@ -11,6 +11,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { History, RefreshCw } from 'lucide-react'
+import { Button } from '@/components/ui'
 import { request } from '@/lib/apiClient'
 import { CONFIG_CHANGE_LOGS } from '@/api/endpoints'
 
@@ -57,13 +58,9 @@ export default function ConfigChangeLogPanel() {
         <h2 className="flex items-center gap-2 text-title font-semibold text-foreground">
           <History size={16} /> 配置变更日志
         </h2>
-        <button
-          type="button"
-          onClick={load}
-          className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted/40"
-        >
+        <Button type="button" onClick={load} variant="default" size="xs">
           <RefreshCw size={12} /> 刷新
-        </button>
+        </Button>
       </div>
       <p className="mb-3 text-xs text-muted-foreground">
         数据源 GET /api/config/logs（NetworkConfig.change_log，最多保留最近 100 条）。
