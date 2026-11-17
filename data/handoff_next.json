@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-18T01:30:00+08:00",
+ "updated_at": "2026-11-18T07:20:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1037,11 +1037,12 @@
   },
   {
    "id": "hub-presentation-components-not-global",
-   "status": "open",
+   "status": "done",
    "priority": "P3",
    "title": "hub 的展示型组件（Badge / StatCard / PageHeader / DataTable / CallabilityBadge）仍在 pages 层，没有并进 components/ui",
    "criteria": "2026-11-18 判定：这些是 hub 这一层的视觉语言（Badge 的 color 枚举是 green/red/amber/cyan/slate，即 hub 调色板；StatCard/PageHeader/DataTable 的形状也只服务 hub 页面），与控制类原语不是一回事。全仓另有约 27 处手写 rounded-full + text-micro 徽章（workbench 面板里的计数/状态），没走 hub Badge 也没走全局原语。",
-   "next": "要并的话分两步：① 先把 tone 统一成 success/warning/danger/primary/neutral 五档（现在是 tailwind 色名），② 再把 Badge 提到 components/ui 并让 hub 改为 re-export；同时把 27 处手写徽章按 tone 迁移。不做也说得过去 —— 它们不影响控件一致性，只是徽章配色这一层的收敛。"
+   "next": "已收口（§11.149）：新增 components/ui/Badge（tone 五档 / size 两档 / dot / pulse / 透传 rest），hub 的 Badge 改为委托（保留 color 老 API 并接受 tone），StatusBadge 与 CallabilityBadge 一并委托；全仓 35 处手写徽章 → codemod 23 + 手动 5。判定 StatCard / PageHeader / DataTable 留在 hub 层（只服务 hub 形状与配色，不是控件）。剩 8 处等宽 chip（SkillAssetTable / agents / TagsField）形状不是徽章，归 batch2 下一片。",
+   "done_at": "2026-11-18T07:20:00+08:00"
   }
  ]
 }
