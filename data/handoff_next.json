@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-17T19:18:00+08:00",
+ "updated_at": "2026-11-17T19:45:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -937,7 +937,7 @@
    "priority": "P2",
    "title": "UI 原语迁移第 2/3 批：提示词实验室之外的原生按钮/下拉/输入（735/54/233 处）",
    "criteria": "2026-11-16 审计+第 1 批+第 2 批分片一之后：components/ui 仍只有 12 个文件在用（全在 pages/system + ConfirmDialog）。提示词实验室已全量迁移；workbench 的**自造按钮家族已清零**（.wb-send-btn/.wb-stop-btn/.wb-reset-btn/.wb-panel-toggle 全删，改 ui/Button；CompressPrefixSwitch 改 ui/Switch）。剩余：DockPanel 17 个手写按钮、SessionRail 行内按钮 + 1 个 select + 7 个 input、以及 workbench 的成片 text-[Npx]。守卫基线：raw_button 720 / raw_select 54 / raw_input 233 / arbitrary_text 1505。",
-   "next": "2026-11-17 全天（提交 728ee5114 / 0c0f144d9 / 1352dc642 / 7cfe73bb5 / 03656b9f2 / 3d0137825 / cd9effeaa）：① hub 的 BTN / BTN_EM / BTN_RED / BTN_PRIMARY 整批换 ui/Button；② INPUT / INPUT_CLASS → ui/Input，模板写法的 textarea → ui/Textarea；③ ui/Input 补 leading/trailing；④ 原生 select 53 → 25；⑤ 转化队列 22 个手写描边按钮；⑥ 治理页 6 个；⑦ 通用 codemod 一次扫掉 10 个文件的 55 个按钮；⑧ icon-only 按钮 17 个换 Button(ghost, icon)（保留定位类、按 padding 折算 h-5/h-6）。守卫：raw_button **604 → 257**（−330）、raw_select **53 → 25**（−28）、raw_input **227 → 119**（−66）、raw_textarea 43 → 34；arbitrary_text 0 / raw_heading 102 不变（且量具已扩到 .ts）。原语侧新增：Button 的 accent / success-outline / danger-outline、Select 的 hidePlaceholder、Input 的 leading/trailing/inputClassName；单测 Button 10 + Input 7 + Select 6。仍剩：raw_button 257（role=tab 页签按口径保留原生；两个自造 CSS 类的图标按钮 wb-panel-menu-trigger / pl-icon-btn；以及 className 为表达式/模板的按钮）；raw_select 25（选项来自数据或 onChange 有花括号）；raw_input 119（52 处 type=checkbox/radio 刻意不换 Switch；带图标让位的搜索框已改用 Input 的 leading/trailing 槽；其余是 prompt-lab 的 .pl-text 自造输入框与 className 为表达式的）。工具：.local/codemod_btn2.py（通用按钮）/ codemod_icon_btn.py（icon-only）/ codemod_input3.py（文本输入）可直接续跑下一批。"
+   "next": "2026-11-17 收口状态：raw_button **604 → 247**、raw_select **53 → 6**、raw_input **227 → 93**、raw_textarea **43 → 28**、raw_heading **102 → 85**、arbitrary_text **0**、css_hardcoded_color 基线 **387**。剩余都是有理由的：① raw_select 6 —— 开关中心多选（data-* + 二次确认流程）、CodeEditorPanel 的 .wb-editor-lang、plugins/schema 的 SelectField/TagsField（schema 渲染器 controlClass 体系）、CustomFactorForm 的 .pl-select、logs.test 夹具；② raw_button 247 —— 绝大多数是 role=tab 页签（按口径保留原生）、icon-only 与 className 为表达式/模板的；③ raw_input 93 —— 52 处 type=checkbox/radio（确认类刻意不换 Switch），其余是带特殊定位/受控的输入框；④ raw_textarea 28 —— 多数是 .pl-textarea/自绘面板的文本域（下一步可像 .pl-text 那样成批换）。工具：codemod_btn2 / codemod_icon_btn / codemod_input3 / _pl_inputs 都在 .local/，可直接续跑。"
   },
   {
    "id": "ui-typography-codemod",
@@ -997,11 +997,11 @@
   },
   {
    "id": "skillsmgmt-skill-tree-unreachable",
-   "status": "open",
+   "status": "done",
    "priority": "P3",
    "title": "components/SkillsMgmt 的 SkillManagement 树没人 import —— 那 7 个文件是死代码（§11.135 为它做的迁移是白做）",
    "criteria": "2026-11-17 核实：src 下没有任何文件 import SkillManagement.tsx（只有它自己 import 6 个子组件：SkillList / SkillDetail / SkillCreator / SkillReviewer / WorkflowRepo / WorkflowMatcher），也没有动态 import。客观旁证：SkillManagement.css 被这 7 个文件 import，但构建产物里查不到 —— dist/assets 只有 5 个 css，全都没有 .skmgmt- 类名。所以 §11.135 的「skmgmt-btn 28 处换原语」与 handoff 里「SkillsMgmt 的输入框」这条待办，改的都是进不了产物的代码。",
-   "next": "两条路（需要 Owner 拍板）：① 删掉这 7 个文件与 SkillManagement.css（raw_button/raw_input 会再降一截，但那是删代码不是迁移）；② 它们其实是某条被砍掉的路由/入口，要复活就先接线再看迁移。在此之前不要再往这棵树里做迁移。SkillAssetTable / SkillIntakeDialog（hub 技能中心那条线）是活的，不受影响。"
+   "next": "2026-11-17 收口（提交 39d861db6）：按\"删掉\"处理（另一条路\"复活接线\"没有 Owner 需求）。删 SkillManagement.tsx / SkillList / SkillDetail / SkillCreator / SkillReviewer / WorkflowRepo / WorkflowMatcher + SkillManagement.css，守卫随之 raw_button −9 / raw_select −4 / raw_input −13 / raw_textarea −6 / raw_heading −17。tsc 0 / eslint 0 / vitest 177 files · 1391 tests 全绿（没有任何测试 import 这棵树）。"
   },
   {
    "id": "css-hardcoded-blue-in-kb",
@@ -1021,19 +1021,19 @@
   },
   {
    "id": "css-gauge-for-hardcoded-colors",
-   "status": "open",
+   "status": "done",
    "priority": "P3",
    "title": "CSS 侧硬编码颜色没有量具：10 个 CSS 里 376 处 hex + 176 处 rgb()（font-size 已是 0）",
    "criteria": "2026-11-17 实测（yunshu-ui/src 下 10 个 *.css）：hex 376、rgb()/rgba() 176、font-size: Npx **0**。分布：VisualEditor.css 107+9、SkillManagement.css 95+16（死代码树）、workbench.css 23+69、PromptLab.css 34+55、DevConsole.css 84+2、CardDetail.css 21+10、StatusBadge.css 4+8、index.css 2+6（token 定义本身）、CardForm.css 6+1。ui_primitive_convergence.py 只量 .tsx/.ts，CSS 字面值完全不在量具内 —— 这一轮就是靠人工数构建产物才发现 knowledge 那支蓝的。",
-   "next": "给守卫加一个独立指标 css_hardcoded_color（hex + rgb() 计数），基线按实测写死，之后只降不升。注意两点：① 它和 arbitrary_text 是两个数，别混；② index.css 的 token 定义本身要豁免（或按「允许的文件白名单」处理），否则基线里混进本不该降的量。同一个提交里顺手把 SkillManagement.css 一起清掉或连同死代码树一起删（见 skillsmgmt-skill-tree-unreachable）。"
+   "next": "2026-11-17 收口（提交 39d861db6）：ui_primitive_convergence.py 新增指标 css_hardcoded_color（hex + rgb()/rgba() 字面值，扫 src/**/*.css，豁免 index.css 这个 token 定义文件）。基线 **387**（改前 552，含 index.css 的 2+6）；与 arbitrary_text 是两个数，别混。同一提交把 .kb-* 的调色板收进 token，所以基线是\"修完再立\"。"
   },
   {
    "id": "kb-palette-not-tokenized",
-   "status": "open",
+   "status": "done",
    "priority": "P3",
    "title": "knowledge 的 .kb-* 还是自带调色板（中性灰 + 状态色共约 40 处 hex/rgba），没收进语义 token",
    "criteria": "2026-11-17 实测：CardDetail.css / CardForm.css / StatusBadge.css 里仍有 #e8eaed / #9aa1ac / #6f7683 / #14171c / #2a2e38 / #ff7a7a / #ffb35c / #6fd39b / #c59bff 等字面值（连同 rgba 共约 40 处）。蓝色那支已在 ddf6a9c24 收口，剩下的中性灰与状态色不是\"第五种强调色\"，而是这套面板自己的配色。",
-   "next": "这是一次**设计对齐**：要么把所有中性灰映射到 --color-border / --color-muted / --color-foreground / --color-muted-foreground（需要确认对比度），要么承认 .kb-* 是一套局部主题并把它的变量集中声明在文件头。两条路都要 Owner 或设计口径点头，别在一次\"清理\"里顺手改掉整页观感。"
+   "next": "2026-11-17 收口（提交 39d861db6）：CardDetail / CardForm / StatusBadge 三个 .kb-* CSS 里的中性色与状态色全部映射到语义 token（foreground / muted-foreground / background / card / border / danger / success / primary），并新增 --color-warning（index.css @theme + :root HSL 33 100% 65%）承接\"待处理\"的 #ffb35c。★ 有意保留：紫色 #c59bff / rgba(170,110,255,·) —— 它是与 danger/warning/success 并列的第四种状态色（排队/待定），token 里没有对应 name，映射到 primary 会把\"待定\"与\"进行中\"混成同色；文件里已注明。真机（1440）：知识库页 blue_left = 0，--color-warning 解析为 rgb(255,175,77)。"
   }
  ]
 }
