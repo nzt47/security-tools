@@ -369,9 +369,9 @@ function ToolPicker({ title, hint, tone, tools, selected, exemptions, onToggle, 
           className="w-full bg-transparent text-xs text-slate-200 placeholder-slate-600 outline-hidden"
         />
         {q && (
-          <button onClick={() => setQ('')} className="shrink-0 text-caption text-slate-500 hover:text-slate-300">
+          <Button onClick={() => setQ('')} className="shrink-0" variant="default" size="xs">
             清空
-          </button>
+          </Button>
         )}
       </div>
       <div className="max-h-56 overflow-y-auto p-1.5">
@@ -1114,18 +1114,15 @@ export default function ToolsAgentLines() {
               variant="default" size="sm">
               <Copy size={12} /> 复制
             </Button>
-            <button onClick={() => void doActivate(draft?.id ?? null)} disabled={!draft || isNew || busy}
-              className="flex items-center gap-1.5 rounded-lg border border-emerald-800 px-3 py-1.5 text-xs text-emerald-300 hover:bg-emerald-950/50 disabled:opacity-40">
+            <Button onClick={() => void doActivate(draft?.id ?? null)} disabled={!draft || isNew || busy} variant="success-outline" size="xs">
               <Target size={12} /> 设为当前
-            </button>
-            <button onClick={() => void doActivate(null)} disabled={busy}
-              className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-800 disabled:opacity-40">
+            </Button>
+            <Button onClick={() => void doActivate(null)} disabled={busy} variant="default" size="xs">
               不装线
-            </button>
-            <button onClick={() => void doDelete()} disabled={!draft || isNew || busy}
-              className="flex items-center gap-1.5 rounded-lg border border-red-900/60 px-3 py-1.5 text-xs text-red-400 hover:bg-red-950 disabled:opacity-40">
+            </Button>
+            <Button onClick={() => void doDelete()} disabled={!draft || isNew || busy} variant="danger-outline" size="xs">
               <Trash2 size={12} /> 删除
-            </button>
+            </Button>
           </div>
         }
       />
@@ -1282,14 +1279,12 @@ export default function ToolsAgentLines() {
                   <div className="flex items-center gap-2">
                     {dirty && <Badge color="amber">未保存</Badge>}
                     {!isNew && <Badge color="cyan">上限 {num(draft.max_tools)}</Badge>}
-                    <button onClick={() => void doValidate()} disabled={busy}
-                      className="rounded-md border border-slate-700 px-2.5 py-1.5 text-xs text-slate-300 hover:bg-slate-800 disabled:opacity-40">
+                    <Button onClick={() => void doValidate()} disabled={busy} variant="default" size="xs">
                       校验
-                    </button>
-                    <button onClick={() => void doSave()} disabled={busy}
-                      className="flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-xs text-white hover:bg-emerald-500 disabled:opacity-40">
+                    </Button>
+                    <Button onClick={() => void doSave()} disabled={busy} variant="primary" size="xs">
                       <Save size={12} /> 保存
-                    </button>
+                    </Button>
                   </div>
                 }
               >

@@ -112,9 +112,9 @@ export default function ExperiencePanel() {
         title="经验库"
         description="DSH 历史会话提炼的经验样本：审阅 / 检索预览 / 统计 / 批次回滚"
         actions={
-          <button onClick={() => void load()} className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:border-cyan-700">
+          <Button onClick={() => void load()} variant="accent" size="xs">
             <RefreshCw size={13} /> 刷新
-          </button>
+          </Button>
         }
       />
 
@@ -178,9 +178,9 @@ export default function ExperiencePanel() {
             aria-label="批次 ID"
             className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 font-mono text-sm text-slate-200 placeholder-slate-600 outline-hidden focus:border-cyan-600"
           />
-          <button onClick={() => void onRollback()} disabled={!batchId.trim()} className="flex items-center gap-2 rounded-lg border border-red-900 px-4 py-2 text-sm text-red-400 hover:bg-red-950/40 disabled:opacity-40">
+          <Button onClick={() => void onRollback()} disabled={!batchId.trim()} variant="danger-outline" size="sm">
             <Undo2 size={14} /> 回滚
-          </button>
+          </Button>
         </div>
         <div className="mt-1.5 text-micro text-slate-600">回滚会写审计链留痕，batch_id 即回滚凭据。</div>
       </Card>
@@ -229,15 +229,15 @@ export default function ExperiencePanel() {
               </div>
 
               <div className="flex gap-2">
-                <button onClick={() => void onReview('accept')} className="flex items-center gap-1.5 rounded-lg border border-emerald-900 px-3 py-1.5 text-xs text-emerald-400 hover:bg-emerald-950/30">
+                <Button onClick={() => void onReview('accept')} variant="success-outline" size="xs">
                   <CheckCircle2 size={13} /> 入库
-                </button>
-                <button onClick={() => void onReview('reject')} className="flex items-center gap-1.5 rounded-lg border border-red-900 px-3 py-1.5 text-xs text-red-400 hover:bg-red-950/30">
+                </Button>
+                <Button onClick={() => void onReview('reject')} variant="danger-outline" size="xs">
                   <XCircle size={13} /> 拒收
-                </button>
-                <button onClick={() => void onReview('deprecate')} className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-800/40">
+                </Button>
+                <Button onClick={() => void onReview('deprecate')} variant="default" size="xs">
                   <Archive size={13} /> 废弃
-                </button>
+                </Button>
               </div>
 
               <div className="max-h-[420px] space-y-2 overflow-y-auto">

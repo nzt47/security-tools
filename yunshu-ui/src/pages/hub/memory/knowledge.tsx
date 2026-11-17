@@ -407,22 +407,12 @@ export default function MemoryKnowledge() {
                         title: '操作',
                         render: (r) => (
                           <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              title="编辑"
-                              className="rounded-sm px-1.5 py-0.5 text-xs text-slate-400 hover:bg-slate-800 hover:text-slate-200"
-                              onClick={() => { setEditing(r); setFormError(''); setFormOpen(true) }}
-                            >
+                            <Button type="button" title="编辑" onClick={() => { setEditing(r); setFormError(''); setFormOpen(true) }} variant="default" size="xs">
                               ✏️
-                            </button>
-                            <button
-                              type="button"
-                              title="删除"
-                              className="rounded-sm px-1.5 py-0.5 text-xs text-red-400/80 hover:bg-red-950/50 hover:text-red-300"
-                              onClick={() => handleDelete(r.slug)}
-                            >
+                            </Button>
+                            <Button type="button" title="删除" onClick={() => handleDelete(r.slug)} variant="danger-outline" size="xs">
                               🗑
-                            </button>
+                            </Button>
                           </div>
                         ),
                       },
@@ -465,14 +455,9 @@ export default function MemoryKnowledge() {
                 )}
                 {hits.map((h) => (
                   <div key={h.slug} className="rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2.5">
-                    <button
-                      type="button"
-                      className="text-sm font-medium text-cyan-300 hover:underline"
-                      onClick={() => openDetail(h.slug)}
-                      title={`打开卡片: ${h.slug}`}
-                    >
+                    <Button type="button" onClick={() => openDetail(h.slug)} title={`打开卡片: ${h.slug}`} variant="accent" size="sm">
                       {h.title}
-                    </button>
+                    </Button>
                     <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-slate-500">
                       <StatusBadge status={h.status} />
                       <span className="font-mono text-slate-400">{h.source_ref}</span>
@@ -493,13 +478,9 @@ export default function MemoryKnowledge() {
             <HubCard
               title="健康巡检"
               actions={
-                <button
-                  type="button"
-                  className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-2.5 py-1 text-xs text-slate-300 hover:bg-slate-800"
-                  onClick={loadLint}
-                >
+                <Button type="button" onClick={loadLint} variant="default" size="xs">
                   <RefreshCw size={11} /> 重新巡检
-                </button>
+                </Button>
               }
             >
               {lintLoading ? (

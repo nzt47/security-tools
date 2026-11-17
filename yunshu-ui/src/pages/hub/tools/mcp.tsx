@@ -152,7 +152,7 @@ export default function ToolsMcp() {
           <div className="flex gap-2">
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="服务名称" className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden" />
             <input value={cmd} onChange={(e) => setCmd(e.target.value)} placeholder="启动命令 (command)" className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden" />
-            <button onClick={add} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-500">保存</button>
+            <Button onClick={add} variant="primary" size="sm">保存</Button>
           </div>
         </Card>
       )}
@@ -172,31 +172,19 @@ export default function ToolsMcp() {
                   const armed = confirmUninstall === id
                   return (
                     <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        onClick={() => void toggle(r)}
-                        aria-label={'启停 ' + id}
-                        className="flex items-center gap-1 rounded-md border border-slate-700 px-2.5 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
-                      >
+                      <Button onClick={() => void toggle(r)} aria-label={'启停 ' + id} variant="default" size="xs">
                         <Power size={11} /> {r.enabled ? '停用' : '启用'}
-                      </button>
-                      <button
-                        onClick={() => setConfirmUninstall(armed ? '' : id)}
-                        aria-label={'卸载 ' + id}
-                        className="flex items-center gap-1 rounded-md border border-red-900/60 px-2.5 py-1.5 text-xs text-red-400 hover:bg-red-950"
-                      >
+                      </Button>
+                      <Button onClick={() => setConfirmUninstall(armed ? '' : id)} aria-label={'卸载 ' + id} variant="danger-outline" size="xs">
                         <Trash2 size={11} /> {armed ? '确认卸载' : '卸载'}
-                      </button>
+                      </Button>
                       {armed && (
                         <span className="flex items-center gap-1 text-micro text-red-300">
                           不可逆（服务配置 + 扩展登记一并删除）
-                          <button
-                            onClick={() => void uninstall(id)}
-                            aria-label={'确认卸载 MCP ' + id}
-                            className="rounded-sm border border-red-800/70 px-2 py-1 text-micro text-red-200 hover:bg-red-500/10"
-                          >
+                          <Button onClick={() => void uninstall(id)} aria-label={'确认卸载 MCP ' + id} variant="danger-outline" size="xs">
                             确定
-                          </button>
-                          <button onClick={() => setConfirmUninstall('')} className="rounded-sm border border-slate-700 px-2 py-1 text-micro text-slate-300 hover:bg-slate-800">取消</button>
+                          </Button>
+                          <Button onClick={() => setConfirmUninstall('')} variant="default" size="xs">取消</Button>
                         </span>
                       )}
                     </div>
@@ -228,15 +216,9 @@ export default function ToolsMcp() {
                     : b.installed
                       ? <span className="text-micro text-slate-400">已装（未启用）</span>
                       : (
-                        <button
-                          type="button"
-                          onClick={() => void installBuiltin(id)}
-                          disabled={installing !== ''}
-                          aria-label={'安装内置 MCP ' + id}
-                          className="flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
+                        <Button type="button" onClick={() => void installBuiltin(id)} disabled={installing !== ''} aria-label={'安装内置 MCP ' + id} variant="default" size="xs">
                           {installing === id ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />} 安装
-                        </button>
+                        </Button>
                       )}
                 </span>
               </div>

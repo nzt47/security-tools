@@ -15,6 +15,7 @@ import {
   AlertTriangle, CheckCircle2, ChevronDown, FolderOpen, Loader2,
   PenTool, Plus, Save, Trash2, X,
 } from 'lucide-react'
+import { Button } from '@/components/ui'
 import { VisualEditor } from '@/components/VisualEditor'
 import { useFlowStore } from '@/components/VisualEditor/stores/useFlowStore'
 import { generateYaml } from '@/components/VisualEditor/generator/CodeGenerator'
@@ -181,25 +182,14 @@ export default function MemoryWorkflowVisual() {
             title="工作流名称（保存时使用）"
             data-testid="ve-save-name"
           />
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={busy !== null || nodes.length === 0}
-            className="flex items-center gap-1.5 rounded-md bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-50"
-            data-testid="ve-save-btn"
-          >
+          <Button type="button" onClick={handleSave} disabled={busy !== null || nodes.length === 0} data-testid="ve-save-btn" variant="primary" size="xs">
             {busy === 'save' ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
             {currentId ? '更新' : '保存'}
-          </button>
+          </Button>
 
           {/* 已保存草稿列表（加载入口） */}
           <div className="relative" ref={dropRef}>
-            <button
-              type="button"
-              onClick={toggleList}
-              className="flex items-center gap-1.5 rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-300 transition-colors hover:bg-slate-800"
-              data-testid="ve-open-list-btn"
-            >
+            <Button type="button" onClick={toggleList} data-testid="ve-open-list-btn" variant="default" size="xs">
               {loadingList ? <Loader2 size={12} className="animate-spin" /> : <FolderOpen size={12} />}
               加载
               <ChevronDown size={11} className={`transition-transform ${listOpen ? 'rotate-180' : ''}`} />
@@ -208,7 +198,7 @@ export default function MemoryWorkflowVisual() {
                   {drafts.length}
                 </span>
               )}
-            </button>
+            </Button>
 
             {listOpen && (
               <div
@@ -217,14 +207,9 @@ export default function MemoryWorkflowVisual() {
               >
                 <div className="flex items-center justify-between px-2 pb-1.5 pt-1">
                   <span className="text-caption uppercase tracking-wider text-slate-500">后端已保存草稿</span>
-                  <button
-                    type="button"
-                    onClick={() => void refresh()}
-                    className="text-caption text-cyan-400 hover:text-cyan-300"
-                    title="刷新列表"
-                  >
+                  <Button type="button" onClick={() => void refresh()} title="刷新列表" variant="accent" size="xs">
                     刷新
-                  </button>
+                  </Button>
                 </div>
                 {drafts.length === 0 ? (
                   <div className="px-2 py-6 text-center text-xs text-slate-500">
@@ -271,15 +256,9 @@ export default function MemoryWorkflowVisual() {
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={handleNew}
-            className="flex items-center gap-1.5 rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-300 transition-colors hover:bg-slate-800"
-            title="清空画布并新建"
-            data-testid="ve-new-btn"
-          >
+          <Button type="button" onClick={handleNew} title="清空画布并新建" data-testid="ve-new-btn" variant="default" size="xs">
             <Plus size={12} /> 新建
-          </button>
+          </Button>
         </div>
       </div>
 

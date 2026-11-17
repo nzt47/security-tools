@@ -418,13 +418,9 @@ export default function PluginManagePage() {
             >
               <RefreshCw size={12} /> 刷新列表
             </Button>
-            <button
-              onClick={openMarket}
-              data-testid="plugin-market-open"
-              className="flex items-center gap-1.5 rounded-lg border border-cyan-800 px-3 py-1.5 text-xs text-cyan-300 hover:bg-cyan-950/40"
-            >
+            <Button onClick={openMarket} data-testid="plugin-market-open" variant="accent" size="xs">
               <PackagePlus size={12} /> 从市场安装插件包
-            </button>
+            </Button>
             <Button variant="primary" size="sm" onClick={reload} disabled={refreshing}>
               <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
               {refreshing ? '刷新中…' : '刷新清单'}
@@ -474,14 +470,10 @@ export default function PluginManagePage() {
                     <Settings2 size={11} className={config?.name === p.name ? 'text-cyan-400' : ''} />
                     {config?.name === p.name ? '收起配置' : '配置'}
                   </button>
-                  <button
-                    data-testid={`plugin-routes-toggle-${p.name}`}
-                    onClick={() => setRouteName(routeName === p.name ? null : p.name)}
-                    className="flex flex-1 items-center justify-center gap-1 rounded-md border border-slate-800 py-1.5 text-caption text-slate-400 hover:bg-slate-800/60"
-                  >
+                  <Button data-testid={`plugin-routes-toggle-${p.name}`} onClick={() => setRouteName(routeName === p.name ? null : p.name)} className="flex-1" variant="default" size="xs">
                     <ChevronDown size={11} className={`transition-transform ${routeName === p.name ? 'rotate-180' : ''}`} />
                     {routeName === p.name ? '收起明细' : '路由明细'}
-                  </button>
+                  </Button>
                 </div>
 
                 {config?.name === p.name && config && (
@@ -585,15 +577,9 @@ export default function PluginManagePage() {
                 onKeyDown={(e) => { if (e.key === 'Enter') void searchMarketPlugins(marketQ) }}
                 aria-label="插件市场搜索关键词"
               />
-              <button
-                type="button"
-                onClick={() => void searchMarketPlugins(marketQ)}
-                disabled={marketBusy !== ''}
-                className="flex items-center gap-1 rounded-md border border-cyan-800 px-2 py-1.5 text-xs text-cyan-300 hover:bg-cyan-950/40 disabled:opacity-40"
-                aria-label="搜索插件包"
-              >
+              <Button type="button" onClick={() => void searchMarketPlugins(marketQ)} disabled={marketBusy !== ''} aria-label="搜索插件包" variant="accent" size="xs">
                 {marketBusy === 'search' ? <Loader2 size={11} className="animate-spin" /> : <Search size={11} />} 搜索
-              </button>
+              </Button>
             </div>
             {marketNotice && (
               <div
@@ -618,15 +604,9 @@ export default function PluginManagePage() {
                       <span className="rounded-sm bg-slate-800 px-1.5 py-0.5 text-micro text-slate-400">
                         {m.market_type ?? m.source ?? 'plugin'}
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => void installMarketPlugin(id)}
-                        disabled={marketBusy !== ''}
-                        aria-label={'安装插件包 ' + id}
-                        className="flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 hover:bg-slate-800 disabled:opacity-40"
-                      >
+                      <Button type="button" onClick={() => void installMarketPlugin(id)} disabled={marketBusy !== ''} aria-label={'安装插件包 ' + id} variant="default" size="xs">
                         {marketBusy === 'install:' + id ? <Loader2 size={11} className="animate-spin" /> : <PackagePlus size={11} />} 安装
-                      </button>
+                      </Button>
                     </span>
                   </div>
                 )

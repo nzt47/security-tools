@@ -4,7 +4,7 @@
  */
 import { useEffect, useState } from 'react'
 import { Plus, Trash2, Pause, Play, Zap, Loader2, History as HistoryIcon } from 'lucide-react'
-import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, Button, hubDelete, hubGet, hubPost } from '../components/ui'
+import { Badge, Button, Card, DataTable, ErrorBox, Loading, PageHeader, hubDelete, hubGet, hubPost } from '../components/ui'
 
 import {
   SCHEDULES,
@@ -182,7 +182,7 @@ export default function EngineScheduler() {
             <input value={action} onChange={(e) => setAction(e.target.value)} placeholder="动作 (action)" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden" />
             <input value={interval} onChange={(e) => setInterval(e.target.value)} placeholder="间隔(分钟)" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden" />
             <input value={cron} onChange={(e) => setCron(e.target.value)} placeholder="cron 表达式(可选)" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden" />
-            <button onClick={create} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-500">创建</button>
+            <Button onClick={create} variant="primary" size="sm">创建</Button>
           </div>
         </Card>
       )}
@@ -207,12 +207,12 @@ export default function EngineScheduler() {
                 key: 'actions', title: '操作',
                 render: (r) => (
                   <div className="flex gap-2">
-                    <button onClick={() => (r.enabled ? pause(String(r.id)) : resume(String(r.id)))} className="flex items-center gap-1 rounded-md border border-slate-700 px-2.5 py-1.5 text-xs text-slate-300 hover:bg-slate-800">
+                    <Button onClick={() => (r.enabled ? pause(String(r.id)) : resume(String(r.id)))} variant="default" size="xs">
                       {r.enabled ? <Pause size={11} /> : <Play size={11} />} {r.enabled ? '暂停' : '恢复'}
-                    </button>
-                    <button onClick={() => remove(String(r.id))} className="flex items-center gap-1 rounded-md border border-red-900/60 px-2.5 py-1.5 text-xs text-red-400 hover:bg-red-950">
+                    </Button>
+                    <Button onClick={() => remove(String(r.id))} variant="danger-outline" size="xs">
                       <Trash2 size={11} /> 删除
-                    </button>
+                    </Button>
                   </div>
                 ),
               },
@@ -266,18 +266,13 @@ export default function EngineScheduler() {
                 key: 'actions', title: '操作',
                 render: (r) => (
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <button onClick={() => toggleSched(r)} className="flex items-center gap-1 rounded-md border border-slate-700 px-2.5 py-1.5 text-xs text-slate-300 hover:bg-slate-800">
+                    <Button onClick={() => toggleSched(r)} variant="default" size="xs">
                       {r.enabled ? <Pause size={11} /> : <Play size={11} />} {r.enabled ? '暂停' : '恢复'}
-                    </button>
+                    </Button>
                     {/* id 基的两条（agent.task_scheduler 同族）：立即执行 / 启停 */}
-                    <button
-                      onClick={() => void runNow(r)}
-                      disabled={!r.task_id || busyRun !== ''}
-                      aria-label={'立即执行 ' + r.name}
-                      className="flex items-center gap-1 rounded-md border border-cyan-800/70 px-2.5 py-1.5 text-xs text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-50"
-                    >
+                    <Button onClick={() => void runNow(r)} disabled={!r.task_id || busyRun !== ''} aria-label={'立即执行 ' + r.name} variant="accent" size="xs">
                       {busyRun === r.task_id ? <Loader2 size={11} className="animate-spin" /> : <Zap size={11} />} 立即执行
-                    </button>
+                    </Button>
                     {/* 不做「按 id 启停」：SCHEDULER_CONFIGURE 已能按名翻转 enabled，
                         同一调度器再给一条 id 基的同效通道，只会让人以为两者行为不同。 */}
                   </div>
@@ -299,7 +294,7 @@ export default function EngineScheduler() {
           </select>
           <input value={editHour} onChange={(e) => setEditHour(e.target.value)} placeholder="时 0-23" className="w-24 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 placeholder-slate-600 outline-hidden" />
           <input value={editMinute} onChange={(e) => setEditMinute(e.target.value)} placeholder="分 0-59" className="w-24 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 placeholder-slate-600 outline-hidden" />
-          <button onClick={saveSchedule} className="rounded-lg bg-cyan-600 px-3 py-2 text-xs text-white hover:bg-cyan-500">保存时刻</button>
+          <Button onClick={saveSchedule} variant="primary" size="xs">保存时刻</Button>
         </div>
       </Card>
 
@@ -311,14 +306,9 @@ export default function EngineScheduler() {
         <div className="mb-2 flex flex-wrap items-center gap-2 text-caption text-slate-500">
           <HistoryIcon size={11} className="text-cyan-400" />
           <span>与上方任务表**不是同一个调度器** —— 这里只列通过 /api/schedules 登记的调度器跑出的记录。</span>
-          <button
-            type="button"
-            onClick={() => { setHistOpen((v) => !v); if (!histOpen) void loadHist() }}
-            className="ml-auto flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 hover:bg-slate-800"
-            aria-label="展开执行记录"
-          >
+          <Button type="button" onClick={() => { setHistOpen((v) => !v); if (!histOpen) void loadHist() }} className="ml-auto" aria-label="展开执行记录" variant="default" size="xs">
             {histBusy ? <Loader2 size={10} className="animate-spin" /> : <HistoryIcon size={10} />} {histOpen ? '收起' : '查看最近 20 条'}
-          </button>
+          </Button>
         </div>
         {histOpen && (
           <div className="flex flex-col gap-1">

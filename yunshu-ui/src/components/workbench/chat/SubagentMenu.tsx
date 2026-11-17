@@ -23,7 +23,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Bot, Check, ChevronDown, ChevronRight, Loader2, Play, RefreshCw, UserPlus, X } from 'lucide-react'
-import { hubGet } from '../../../pages/hub/components/ui'
+import { Button, hubGet } from '../../../pages/hub/components/ui'
 import { getEnvelope } from '@/api/envelope'
 import { authHeader } from '../../../lib/apiToken'
 
@@ -439,13 +439,9 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
                 <span className="min-w-0 flex-1">
                   已保存的选择「{delegate}」已不在活跃列表（分身跑完即回收或被销毁）。
                 </span>
-                <button
-                  type="button"
-                  onClick={clearDelegate}
-                  className="shrink-0 rounded-sm border border-amber-700/60 px-1.5 text-micro hover:bg-amber-500/10"
-                >
+                <Button type="button" onClick={clearDelegate} className="shrink-0" variant="default" size="xs">
                   清除选择
-                </button>
+                </Button>
               </p>
             )}
 
@@ -465,14 +461,10 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
             />
 
             {/* 八要素中的可选项：留空由后端按文档缺省补齐 */}
-            <button
-              type="button"
-              onClick={() => setAdvanced((v) => !v)}
-              className="mb-1.5 flex w-full items-center gap-1 text-micro text-slate-500 hover:text-slate-300"
-            >
+            <Button type="button" onClick={() => setAdvanced((v) => !v)} className="w-full" variant="default" size="xs">
               {advanced ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
               高级：约束 / 禁止事项 / 产物格式 / 预算 / 超时（八要素，留空用缺省）
-            </button>
+            </Button>
             {advanced && (
               <div className="mb-1.5 space-y-1.5 rounded-md border border-slate-800 bg-slate-950/70 p-2">
                 <label className="block text-micro text-slate-500">
@@ -649,14 +641,9 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
                       {r.tier && <span>tier={r.tier}</span>}
                       {!!r.artifact_count && <span>产物 {r.artifact_count} 件</span>}
                       {r.goal && (
-                        <button
-                          type="button"
-                          onClick={() => setTask(r.goal || '')}
-                          title="把这条记录的目标回填到输入框"
-                          className="ml-auto shrink-0 rounded-sm border border-slate-700 px-1 text-micro text-slate-400 hover:bg-slate-800 hover:text-slate-200"
-                        >
+                        <Button type="button" onClick={() => setTask(r.goal || '')} title="把这条记录的目标回填到输入框" className="ml-auto shrink-0" variant="default" size="xs">
                           复用目标
-                        </button>
+                        </Button>
                       )}
                     </div>
                     {r.error && (

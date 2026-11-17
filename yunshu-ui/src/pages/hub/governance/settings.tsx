@@ -66,6 +66,7 @@ import {
   toneForRisk,
   type StatusTone,
 } from './components'
+import { Button } from '@/components/ui'
 import { usePanel } from './usePanel'
 
 // ═══════════════════════════════════════════════════════════
@@ -603,30 +604,18 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
               <span className="text-micro text-amber-400/80">
                 {confirmReasons(item).join(' + ')}：不能直接提交，请展开确认块
               </span>
-              <button
-                type="button"
-                onClick={() => (editing ? ctx.onCloseConfirm() : ctx.onOpenConfirm(item))}
-                disabled={busy}
-                className="rounded-sm border border-amber-800 px-1.5 py-0.5 text-micro text-amber-200 hover:bg-amber-500/10 disabled:opacity-50"
-                data-cp-open-confirm={item.key}
-              >
+              <Button type="button" onClick={() => (editing ? ctx.onCloseConfirm() : ctx.onOpenConfirm(item))} disabled={busy} data-cp-open-confirm={item.key} variant="default" size="xs">
                 {editing ? '收起确认' : '修改（需确认）'}
-              </button>
+              </Button>
             </div>
           )}
 
           {/* ④ 重置（仅有 ui_override 可撤时出现；就地调用 reset 端点） */}
           {!item.secret && hasOverride(item) && (
-            <button
-              type="button"
-              onClick={() => ctx.onReset(item)}
-              disabled={busy || !item.editable}
-              className="mt-1 inline-flex items-center gap-1 rounded-sm border border-slate-700 px-1.5 py-0.5 text-micro text-slate-300 hover:text-cyan-300 disabled:opacity-40"
-              data-cp-reset={item.key}
-            >
+            <Button type="button" onClick={() => ctx.onReset(item)} disabled={busy || !item.editable} data-cp-reset={item.key} variant="accent" size="xs">
               <RotateCcw size={9} />
               {ctx.resetBusyKey === item.key ? '重置中…' : '重置为默认'}
-            </button>
+            </Button>
           )}
 
           {error && (
@@ -670,15 +659,9 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
                   placeholder="确认理由"
                   className="w-40 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-caption text-slate-200"
                 />
-                <button
-                  type="button"
-                  onClick={() => ctx.onConfirmPending(item, feedback.pending_id || '')}
-                  disabled={busy || !feedback.pending_id}
-                  className="inline-flex items-center gap-1 rounded-sm border border-amber-700 px-2 py-0.5 text-micro text-amber-100 hover:bg-amber-500/10 disabled:opacity-50"
-                  data-cp-confirm-submit={item.key}
-                >
+                <Button type="button" onClick={() => ctx.onConfirmPending(item, feedback.pending_id || '')} disabled={busy || !feedback.pending_id} data-cp-confirm-submit={item.key} variant="default" size="xs">
                   <Unlock size={10} /> 由另一位人工确认并生效
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -779,24 +762,12 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
                   placeholder="变更理由（审计留痕）"
                   className="w-44 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-caption text-slate-200"
                 />
-                <button
-                  type="button"
-                  onClick={() => ctx.onSubmitConfirm(item)}
-                  disabled={busy}
-                  className="rounded-sm bg-cyan-800 px-2 py-1 text-caption text-cyan-50 hover:bg-cyan-700 disabled:opacity-50"
-                  data-cp-submit={item.key}
-                >
+                <Button type="button" onClick={() => ctx.onSubmitConfirm(item)} disabled={busy} data-cp-submit={item.key} variant="accent" size="xs">
                   提交变更
-                </button>
-                <button
-                  type="button"
-                  onClick={ctx.onCloseConfirm}
-                  disabled={busy}
-                  className="rounded-sm border border-slate-700 px-2 py-1 text-caption text-slate-300 disabled:opacity-50"
-                  data-cp-cancel={item.key}
-                >
+                </Button>
+                <Button type="button" onClick={ctx.onCloseConfirm} disabled={busy} data-cp-cancel={item.key} variant="default" size="xs">
                   取消
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -1152,19 +1123,14 @@ export function SettingsPanel({ searchDebounceMs = 250 }: SettingsPanelProps) {
                 当前筛选下没有开关（登记表共 {items.length} 项；本页不做"补 0"占位）
               </span>
               {filtering && (
-                <button
-                  type="button"
-                  onClick={() => {
+                <Button type="button" onClick={() => {
                     setQuery('')
                     commitSearch('')
                     setRisk('all')
                     setOnlyOverride(false)
-                  }}
-                  className="rounded-sm border border-slate-700 px-1.5 py-0.5 text-micro text-slate-300 hover:text-cyan-300"
-                  data-cp-clear-filters="true"
-                >
+                  }} data-cp-clear-filters="true" variant="accent" size="xs">
                   清除筛选
-                </button>
+                </Button>
               )}
             </div>
           ) : (
