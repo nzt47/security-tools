@@ -271,51 +271,6 @@ textarea.ve-field-input {
 }
 
 /* ─── 按钮 ─── */
-.ve-btn {
-  padding: 6px 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 4px;
-  background: #fff;
-  color: #334155;
-  font-size: var(--text-body-lg);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.ve-btn:hover:not(:disabled) {
-  background: #f1f5f9;
-  border-color: #94a3b8;
-}
-
-.ve-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.ve-btn-primary {
-  background: #3b82f6;
-  border-color: #3b82f6;
-  color: #fff;
-}
-
-.ve-btn-primary:hover:not(:disabled) {
-  background: #2563eb;
-}
-
-.ve-btn-danger {
-  color: #dc2626;
-  border-color: #fecaca;
-}
-
-.ve-btn-danger:hover:not(:disabled) {
-  background: #fef2f2;
-  border-color: #dc2626;
-}
-
-.ve-btn-secondary {
-  color: #475569;
-}
-
 /* ─── YAML 预览 ─── */
 .ve-yaml-preview {
   height: 180px;
@@ -460,46 +415,7 @@ textarea.ve-field-input {
 }
 
 /* 按钮 */
-.ve-dark .ve-btn {
-  background: #0f172a;
-  border-color: #334155;
-  color: #cbd5e1;
-}
-
-.ve-dark .ve-btn:hover:not(:disabled) {
-  background: #1e293b;
-  border-color: #475569;
-}
-
-.ve-dark .ve-btn:disabled {
-  opacity: 0.45;
-}
-
-.ve-dark .ve-btn-primary {
-  background: #0891b2;
-  border-color: #0891b2;
-  color: #fff;
-}
-
-.ve-dark .ve-btn-primary:hover:not(:disabled) {
-  background: #06b6d4;
-}
-
-.ve-dark .ve-btn-danger {
-  color: #f87171;
-  border-color: #7f1d1d;
-}
-
-.ve-dark .ve-btn-danger:hover:not(:disabled) {
-  background: rgba(127, 29, 29, 0.25);
-  border-color: #dc2626;
-}
-
-.ve-dark .ve-btn-secondary {
-  color: #94a3b8;
-}
-
-/* YAML 预览（原本即深色，微调分隔线） */
+.ve-dark .ve-dark .ve-dark .ve-dark .ve-dark .ve-dark .ve-dark .ve-dark /* YAML 预览（原本即深色，微调分隔线） */
 .ve-dark .ve-yaml-preview {
   border-top-color: #1e293b;
 }

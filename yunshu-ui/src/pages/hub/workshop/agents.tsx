@@ -26,7 +26,7 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { Hammer, Layers, Loader2, Package, Route, Trash2, Users } from 'lucide-react'
-import { Button, Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubPost } from '../components/ui'
+import { Button, Card, Loading, ErrorBox, DataTable, Badge, PageHeader, Tabs, hubPost } from '../components/ui'
 
 import SubagentRowActions from './SubagentRowActions'
 import {
@@ -356,30 +356,17 @@ export default function WorkshopAgents({ initialView }: WorkshopAgentsProps) {
           <span className="text-caption text-muted-foreground">{active.hint}</span>
         </div>
 
-        <nav className="-mb-px flex flex-wrap gap-1" role="tablist" aria-label="分身装配视图">
-          {WORKSHOP_VIEWS.map((t) => {
+        <Tabs
+          variant="folder"
+          className="-mb-px"
+          aria-label="分身装配视图"
+          value={view}
+          onChange={(v) => setView(v as typeof view)}
+          items={WORKSHOP_VIEWS.map((t) => {
             const Icon = t.icon
-            const selected = view === t.id
-            return (
-              <button
-                key={t.id}
-                type="button"
-                role="tab"
-                aria-selected={selected}
-                className={`flex items-center gap-1.5 rounded-t-lg border border-b-0 px-3 py-1.5 text-body transition-colors ${
-                  selected
-                    ? 'border-border bg-background font-medium text-primary'
-                    : 'border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground'
-                }`}
-                onClick={() => setView(t.id)}
-                title={t.hint}
-              >
-                <Icon size={13} className={selected ? 'text-primary' : 'text-muted-foreground'} />
-                {t.label}
-              </button>
-            )
+            return { value: t.id, label: <><Icon size={13} />{t.label}</>, title: t.hint }
           })}
-        </nav>
+        />
       </header>
 
       {/* 视图内容：key={view} 强制重挂载，避免切换后残留上一个视图的局部状态 */}

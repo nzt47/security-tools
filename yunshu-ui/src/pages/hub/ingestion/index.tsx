@@ -12,7 +12,7 @@ import {
   AlertTriangle, ArrowRight, BookOpen, CheckCircle2, FileText, FolderOpen, GitBranch,
   Layers, Loader2, PackagePlus, RefreshCw, Search, ShieldCheck,
 } from 'lucide-react'
-import { Badge, Button, Card, ErrorBox, Input, PageHeader, Select, Textarea } from '../components/ui'
+import { Badge, Button, Card, ErrorBox, Input, PageHeader, Select, Tabs, Textarea } from '../components/ui'
 import GovernancePanel from './governance'
 import ReviewPanel from './ReviewPanel'
 import MemoryDraftPanel from './MemoryDraftPanel'
@@ -78,25 +78,22 @@ function IngestionTabs({ tab, onChange, onHelp }: {
   onHelp: () => void
 }) {
   return (
-    <div className="mb-3 flex items-center gap-1.5" role="tablist" aria-label="能力获取子模块">
-      <button type="button" role="tab" aria-selected={tab === 'acquire'}
-        className={tab === 'acquire' ? BTN_EM : BTN} onClick={() => onChange('acquire')}>
-        <PackagePlus size={12} /> 获取外来能力
-      </button>
-      <button type="button" role="tab" aria-selected={tab === 'review'}
-        className={tab === 'review' ? BTN_EM : BTN} onClick={() => onChange('review')}>
-        <ShieldCheck size={12} /> 草稿评审
-      </button>
+    <div className="mb-3 flex items-center gap-1.5">
       {/* 2026-11-05 IA：转化队列从「技能中心」弹窗搬到这里 —— 摄取 → 生成草稿 → 评审 →
           登记 → 启用是同一条流水线，队列必须和入口同页（原先在技能中心，等于把第 2 段拆走）。 */}
-      <button type="button" role="tab" aria-selected={tab === 'queue'}
-        className={tab === 'queue' ? BTN_EM : BTN} onClick={() => onChange('queue')}>
-        <GitBranch size={12} /> 转化队列
-      </button>
-      <button type="button" role="tab" aria-selected={tab === 'governance'}
-        className={tab === 'governance' ? BTN_EM : BTN} onClick={() => onChange('governance')}>
-        <Layers size={12} /> 存量治理
-      </button>
+      <Tabs
+        variant="pill"
+        size="sm"
+        aria-label="能力获取子模块"
+        value={tab}
+        onChange={(v) => onChange(v as IngestionTab)}
+        items={[
+          { value: 'acquire', label: <><PackagePlus size={12} /> 获取外来能力</> },
+          { value: 'review', label: <><ShieldCheck size={12} /> 草稿评审</> },
+          { value: 'queue', label: <><GitBranch size={12} /> 转化队列</> },
+          { value: 'governance', label: <><Layers size={12} /> 存量治理</> },
+        ]}
+      />
       {/* 联机帮助：四个 Tab 共用一份手册（流程是跨 Tab 的，只在获取页给会缺一站） */}
       <Button type="button" variant="default" size="sm" className="ml-auto" onClick={onHelp}
         aria-label="使用手册">
@@ -356,15 +353,18 @@ export default function IngestionPage() {
       <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         <div className="flex min-w-0 flex-col gap-4">
           <Card title="1. 选择来源">
-            <div className="mb-2 flex items-center gap-1.5" role="tablist" aria-label="来源方式">
-              <button type="button" role="tab" aria-selected={mode === 'path'}
-                className={mode === 'path' ? BTN_EM : BTN} onClick={() => { setMode('path'); resetPlan() }}>
-                <FolderOpen size={12} /> 本机路径
-              </button>
-              <button type="button" role="tab" aria-selected={mode === 'text'}
-                className={mode === 'text' ? BTN_EM : BTN} onClick={() => { setMode('text'); resetPlan() }}>
-                <FileText size={12} /> 粘贴文本
-              </button>
+            <div className="mb-2">
+              <Tabs
+                variant="pill"
+                size="sm"
+                aria-label="来源方式"
+                value={mode}
+                onChange={(v) => { setMode(v as 'path' | 'text'); resetPlan() }}
+                items={[
+                  { value: 'path', label: <><FolderOpen size={12} /> 本机路径</> },
+                  { value: 'text', label: <><FileText size={12} /> 粘贴文本</> },
+                ]}
+              />
             </div>
 
             {mode === 'path' ? (

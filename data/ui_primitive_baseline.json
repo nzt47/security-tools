@@ -1,10 +1,10 @@
 {
- "raw_button": 160,
- "raw_select": 6,
- "raw_input": 69,
- "raw_textarea": 7,
+ "raw_button": 142,
+ "raw_select": 4,
+ "raw_input": 67,
+ "raw_textarea": 5,
  "raw_range": 0,
  "arbitrary_text": 0,
  "raw_heading": 85,
- "css_hardcoded_color": 387
+ "css_hardcoded_color": 358
 }

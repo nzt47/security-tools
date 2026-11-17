@@ -17,7 +17,7 @@ import { BookOpen, Bot, Code2, Globe, Loader2, Play, RefreshCw, Terminal } from 
 import { CodeEditorPanel } from './CodeEditorPanel'
 import { getEnvelope } from '@/api/envelope'
 import { hubGet, hubPost } from '../../../pages/hub/components/ui'
-import { Button } from '@/components/ui'
+import { Button, Tabs } from '@/components/ui'
 import { getApiToken } from '@/lib/apiToken'
 import {
   FILESYSTEM_LIST,
@@ -87,33 +87,19 @@ export function DockPanel() {
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-slate-950/40">
-      <div
-        role="tablist"
+      <Tabs
+        variant="pill"
+        size="xs"
         aria-label="右侧面板"
-        className="wb-strip shrink-0 gap-1 border-b border-slate-800/60 px-1.5"
-      >
-        {TABS.map(({ id, label, icon: Icon }) => {
-          const active = id === tab
-          return (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => setTab(id)}
-              title={`切换到${label}`}
-              className={`flex items-center gap-1 rounded-control border px-1.5 py-1 text-caption transition-colors ${
-                active
-                  ? 'border-primary/60 bg-primary/10 text-primary'
-                  : 'border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground'
-              }`}
-            >
-              <Icon size={11} />
-              {label}
-            </button>
-          )
-        })}
-      </div>
+        className="wb-strip shrink-0 border-b border-slate-800/60 px-1.5"
+        value={tab}
+        onChange={(v) => setTab(v as typeof tab)}
+        items={TABS.map(({ id, label, icon: Icon }) => ({
+          value: id,
+          label: <><Icon size={11} />{label}</>,
+          title: `切换到${label}`,
+        }))}
+      />
 
       {tab === 'editor' && <CodeEditorPanel />}
       {tab === 'docs' && <DocsPane />}

@@ -6,7 +6,8 @@
  * - 外部 value 变化时与草稿比对，避免格式化打断正在进行的输入。
  */
 import React, { useEffect, useRef, useState } from 'react';
-import { FieldLabel, controlClass } from './FieldLabel';
+import { Textarea } from '@/components/ui';
+import { FieldLabel } from './FieldLabel';
 
 export interface JsonFallbackFieldProps {
   /** 当前值（受控） */
@@ -77,8 +78,9 @@ export function JsonFallbackField({
   return (
     <div className="flex flex-col gap-1.5">
       <FieldLabel title={label} required={false} description={description} />
-      <textarea
-        className={`${controlClass} min-h-32 resize-y font-mono text-xs leading-relaxed`}
+      <Textarea
+        size="md"
+        className="min-h-32 resize-y font-mono text-xs leading-relaxed"
         value={draft}
         onChange={(e) => handleChange(e.target.value)}
         placeholder={placeholder}

@@ -10,6 +10,7 @@
 import { lazy, Suspense, useCallback } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { Button } from '@/components/ui';
 import { useFlowStore } from './stores/useFlowStore';
 import { ComponentPalette, type PaletteItem } from './components/ComponentPalette';
 import type { NodeType } from './types';
@@ -60,37 +61,19 @@ export function VisualEditor() {
     <ReactFlowProvider>
       <div className="ve-root" data-testid="ve-root">
         <div className="ve-toolbar">
-          <button
-            className="ve-btn"
-            onClick={undo}
-            disabled={!canUndo}
-            title="撤销 (Ctrl+Z)"
-          >
+          <Button surface="light" variant="default" size="sm" onClick={undo} disabled={!canUndo} title="撤销 (Ctrl+Z)">
             ↶ 撤销
-          </button>
-          <button
-            className="ve-btn"
-            onClick={redo}
-            disabled={!canRedo}
-            title="重做 (Ctrl+Y)"
-          >
+          </Button>
+          <Button surface="light" variant="default" size="sm" onClick={redo} disabled={!canRedo} title="重做 (Ctrl+Y)">
             ↷ 重做
-          </button>
+          </Button>
           <span className="ve-toolbar-divider" />
-          <button
-            className="ve-btn ve-btn-danger"
-            onClick={clearCanvas}
-            title="清空画布"
-          >
+          <Button surface="light" variant="danger-outline" size="sm" onClick={clearCanvas} title="清空画布">
             清空
-          </button>
-          <button
-            className="ve-btn ve-btn-primary"
-            onClick={handleExport}
-            title="导出 YAML"
-          >
+          </Button>
+          <Button surface="light" variant="primary" size="sm" onClick={handleExport} title="导出 YAML">
             导出
-          </button>
+          </Button>
         </div>
         <div className="ve-main">
           <ComponentPalette onPick={handlePick} />

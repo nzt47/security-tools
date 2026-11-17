@@ -5,7 +5,8 @@
  * - items.enum 存在时额外提供「从可选值添加」下拉（过滤已选）。
  */
 import React, { useState } from 'react';
-import { FieldLabel, controlClass } from './FieldLabel';
+import { Select } from '@/components/ui';
+import { FieldLabel } from './FieldLabel';
 
 export interface TagsFieldProps {
   /** 当前标签数组（受控） */
@@ -89,24 +90,18 @@ export function TagsField({
         />
       </div>
       {options && options.length > 0 && (
-        <select
-          className={`${controlClass} mt-0.5`}
+        <Select
+          size="md"
+          className="mt-0.5"
           value=""
           disabled={disabled}
           aria-label={label ? `${label}（从可选值添加）` : '从可选值添加'}
-          onChange={(e) => {
-            if (e.target.value) addTag(e.target.value);
+          placeholder="＋ 从可选值添加…"
+          onChange={(v) => {
+            if (v) addTag(v);
           }}
-        >
-          <option value="">＋ 从可选值添加…</option>
-          {options
-            .filter((o) => !tags.includes(o))
-            .map((o) => (
-              <option key={o} value={o}>
-                {o}
-              </option>
-            ))}
-        </select>
+          options={options.filter((o) => !tags.includes(o)).map((o) => ({ label: o, value: o }))}
+        />
       )}
     </div>
   );

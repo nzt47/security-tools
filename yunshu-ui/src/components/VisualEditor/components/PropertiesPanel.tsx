@@ -5,6 +5,7 @@
  * 未选中时显示提示。
  */
 import { useMemo } from 'react';
+import { Button } from '@/components/ui';
 import { useFlowStore } from '../stores/useFlowStore';
 import type { FlowNodeData, NodeType } from '../types';
 
@@ -99,20 +100,24 @@ export function PropertiesPanel() {
         ))}
       </div>
       <div className="ve-properties-actions">
-        <button
-          className="ve-btn ve-btn-secondary"
+        <Button
+          surface="light"
+          variant="default"
+          size="sm"
           onClick={() => duplicateNode(selected.id)}
           data-testid="ve-duplicate-btn"
         >
           复制
-        </button>
-        <button
-          className="ve-btn ve-btn-danger"
+        </Button>
+        <Button
+          surface="light"
+          variant="danger-outline"
+          size="sm"
           onClick={() => removeNode(selected.id)}
           data-testid="ve-delete-btn"
         >
           删除
-        </button>
+        </Button>
       </div>
     </aside>
   );

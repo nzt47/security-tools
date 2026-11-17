@@ -4,7 +4,8 @@
  * 独立可复用：第三方插件可直接 import 本组件。
  */
 import React, { useId } from 'react';
-import { FieldLabel, controlClass } from './FieldLabel';
+import { Textarea } from '@/components/ui';
+import { FieldLabel } from './FieldLabel';
 
 export interface TextareaFieldProps {
   /** 当前值（受控） */
@@ -39,9 +40,10 @@ export function TextareaField({
   return (
     <div className="flex flex-col gap-1.5">
       <FieldLabel id={id} title={label} required={required} description={description} />
-      <textarea
+      <Textarea
         id={id}
-        className={`${controlClass} min-h-16 resize-y leading-relaxed`}
+        size="md"
+        className="min-h-16 resize-y leading-relaxed"
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}

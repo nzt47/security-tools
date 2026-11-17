@@ -35,7 +35,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { FileText, FlaskConical, Plus, Radio, RotateCcw, TriangleAlert } from 'lucide-react';
-import { SectionTitle, Button} from '@/components/ui';
+import { SectionTitle, Button, Tabs } from '@/components/ui';
 import { usePromptLabStore } from '../../stores/usePromptLabStore';
 import { downloadFile } from '../../utils/system';
 import {
@@ -272,26 +272,17 @@ export default function PromptLab() {
       </header>
 
       {/* 主内容区 Tab 条：影响因素实验室 / LLM 通信监控 并列展示 */}
-      <nav className="pl-tabs" role="tablist" aria-label="提示词实验室模块">
-        {LAB_TABS.map((t) => {
+      <Tabs
+        variant="folder"
+        className="pl-tabs"
+        aria-label="提示词实验室模块"
+        value={tab}
+        onChange={(v) => setTab(v as typeof tab)}
+        items={LAB_TABS.map((t) => {
           const Icon = t.icon;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={tab === t.id}
-              className={`pl-tab ${tab === t.id ? 'active' : ''}`}
-              onClick={() => setTab(t.id)}
-              title={t.hint}
-            >
-              <Icon size={13} />
-              {t.label}
-            </button>
-          );
+          return { value: t.id, label: <><Icon size={13} />{t.label}</>, title: t.hint };
         })}
-      </nav>
-
+      />
       {tab === 'factors' ? (
         <>
           {/* 分类筛选 */}

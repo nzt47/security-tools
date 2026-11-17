@@ -5,7 +5,8 @@
  * 不阻断输入——校验在 SchemaRenderer 提交层提示（见 T3.2 风险注意）。
  */
 import React, { useId } from 'react';
-import { FieldLabel, controlClass } from './FieldLabel';
+import { Input } from '@/components/ui';
+import { FieldLabel } from './FieldLabel';
 
 export interface NumberFieldProps {
   /** 当前值（受控）；空输入 / 非法输入时为 undefined */
@@ -46,9 +47,9 @@ export function NumberField({
   return (
     <div className="flex flex-col gap-1.5">
       <FieldLabel id={id} title={label} required={required} description={description} />
-      <input
+      <Input
         id={id}
-        className={controlClass}
+        size="md"
         type="number"
         value={value === undefined || Number.isNaN(value) ? '' : value}
         min={min}

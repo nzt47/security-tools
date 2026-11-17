@@ -5,7 +5,7 @@
  * （variant=primary 取语义主色 --color-primary，不再出现 bg-blue-600 这类第五种强调色）。
  * 仍从本文件导入，避免页面里同时出现两个 ui 命名空间。
  */
-export { Button, Checkbox, Input, Select, Switch, Slider, Textarea } from '@/components/ui'
+export { Button, Checkbox, Input, Select, Switch, Slider, Tabs, Textarea } from '@/components/ui'
 
 import type { ReactNode } from 'react'
 import { Loader2, AlertTriangle, Inbox } from 'lucide-react'

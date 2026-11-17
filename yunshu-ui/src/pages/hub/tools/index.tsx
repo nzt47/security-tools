@@ -21,6 +21,7 @@ import { Suspense, lazy, useEffect, useState } from 'react'
 import type { ComponentType } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { Boxes, Loader2, Monitor, Plug, Puzzle, Tags, Terminal, Wrench } from 'lucide-react'
+import { Tabs } from '@/components/ui'
 
 const ToolsToolset = lazy(() => import('./toolset'))
 const ToolsCli = lazy(() => import('./cli'))
@@ -157,30 +158,17 @@ export default function ToolsPage({ initialTab }: ToolsPageProps) {
           <span className="text-caption text-muted-foreground">{active.hint}</span>
         </div>
 
-        <nav className="-mb-px flex flex-wrap gap-1" role="tablist" aria-label="工具与接入子模块">
-          {TOOLS_TABS.map((t) => {
+        <Tabs
+          variant="folder"
+          className="-mb-px"
+          aria-label="工具与接入子模块"
+          value={tab}
+          onChange={(v) => setTab(v as typeof tab)}
+          items={TOOLS_TABS.map((t) => {
             const Icon = t.icon
-            const selected = tab === t.id
-            return (
-              <button
-                key={t.id}
-                type="button"
-                role="tab"
-                aria-selected={selected}
-                className={`flex items-center gap-1.5 rounded-t-lg border border-b-0 px-3 py-1.5 text-body transition-colors ${
-                  selected
-                    ? 'border-border bg-background font-medium text-primary'
-                    : 'border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground'
-                }`}
-                onClick={() => setTab(t.id)}
-                title={t.hint}
-              >
-                <Icon size={13} className={selected ? 'text-primary' : 'text-muted-foreground'} />
-                {t.label}
-              </button>
-            )
+            return { value: t.id, label: <><Icon size={13} />{t.label}</>, title: t.hint }
           })}
-        </nav>
+        />
       </header>
 
       {/* Tab 内容：key={tab} 强制重挂载，避免切换后残留上一个子模块的局部状态 */}

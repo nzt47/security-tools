@@ -6,11 +6,8 @@
  */
 import React from 'react';
 
-/** 通用控件（input/select/textarea）样式 */
-export const controlClass =
-  'w-full rounded-md border border-(--border-color) bg-(--bg-elevated) px-2.5 py-1.5 ' +
-  'text-sm text-(--text-primary) placeholder:text-(--text-muted) outline-hidden ' +
-  'transition-colors focus:border-(--mascot-primary) disabled:cursor-not-allowed disabled:opacity-60';
+/* 【2026-11-18 删除 controlClass】schema 字段的 input/select/textarea 曾共用这一条样式字符串；
+   现在统一走 components/ui 的 Input / Select / Textarea（尺寸档 md），不再由页面自己维护控件样式。 */
 
 /** 标签样式 */
 export const labelClass = 'text-sm font-medium text-(--text-primary)';

@@ -43,8 +43,26 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   variant?: ButtonVariant
   /** 尺寸，默认 md */
   size?: ButtonSize
+  /**
+   * 表面：dark（默认，工作台深色底）/ light（白底编辑器，如 VisualEditor）。
+   * 【为什么需要】VisualEditor 是**白底**编辑器，深色 token 的原语放上去对比度全错；
+   * 它此前自建了 .ve-btn / .ve-btn-primary / .ve-btn-danger 三个 CSS 类（第三个还带一支 #3b82f6 蓝）。
+   * 有了 surface="light" 后那三档由原语表达，颜色仍走 token（primary/danger）。
+   */
+  surface?: 'dark' | 'light'
   /** 加载态：禁用按钮并显示 spinner */
   loading?: boolean
+}
+
+/** 浅色表面（白底）下的变体：边框/文字用 slate 明色，主色仍是 --color-primary */
+const LIGHT_VARIANT_CLASSES: Record<ButtonVariant, string> = {
+  primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
+  default: 'border border-border bg-background text-foreground hover:bg-muted',
+  accent: 'border border-primary/60 text-primary hover:bg-primary/10',
+  'success-outline': 'border border-success/60 text-success hover:bg-success/10',
+  danger: 'bg-danger text-danger-foreground hover:bg-danger/90',
+  'danger-outline': 'border border-danger/50 text-danger hover:bg-danger/10',
+  ghost: 'text-foreground hover:bg-muted',
 }
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
@@ -69,7 +87,7 @@ const SIZE_CLASSES: Record<ButtonSize, string> = {
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { className, variant = 'default', size = 'md', loading = false, disabled, children, ...props },
+  { className, variant = 'default', size = 'md', surface = 'dark', loading = false, disabled, children, ...props },
   ref,
 ) {
   return (
@@ -84,7 +102,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
         'inline-flex items-center justify-center gap-1.5 whitespace-nowrap font-medium transition-colors',
         'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary/40',
         'disabled:cursor-not-allowed disabled:opacity-60',
-        VARIANT_CLASSES[variant],
+        surface === 'light' ? LIGHT_VARIANT_CLASSES[variant] : VARIANT_CLASSES[variant],
         SIZE_CLASSES[size],
         className,
       )}

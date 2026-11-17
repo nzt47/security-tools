@@ -4,7 +4,8 @@
  * 独立可复用：第三方插件可直接 import 本组件。
  */
 import React, { useId } from 'react';
-import { FieldLabel, controlClass } from './FieldLabel';
+import { Select } from '@/components/ui';
+import { FieldLabel } from './FieldLabel';
 
 export interface SelectFieldProps {
   /** 当前值（受控） */
@@ -39,21 +40,17 @@ export function SelectField({
   return (
     <div className="flex flex-col gap-1.5">
       <FieldLabel id={id} title={label} required={required} description={description} />
-      <select
+      <Select
         id={id}
-        className={controlClass}
+        size="md"
         value={value ?? ''}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(v) => onChange(v)}
         disabled={disabled}
         aria-required={required || undefined}
-      >
-        {placeholder && <option value="">{placeholder}</option>}
-        {options.map((opt) => (
-          <option key={String(opt)} value={String(opt)}>
-            {String(opt)}
-          </option>
-        ))}
-      </select>
+        placeholder={placeholder ?? '请选择'}
+        hidePlaceholder={!placeholder}
+        options={options.map((opt) => ({ label: String(opt), value: String(opt) }))}
+      />
     </div>
   );
 }

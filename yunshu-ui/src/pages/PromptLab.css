@@ -71,31 +71,6 @@
   background: rgba(6, 10, 20, 0.92);
   backdrop-filter: blur(10px);
 }
-.pl-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  border-radius: 9px 9px 0 0;
-  border: 1px solid transparent;
-  border-bottom: none;
-  background: transparent;
-  color: var(--wb-text-dim);
-  font-family: inherit;
-  font-size: var(--text-body);
-  cursor: pointer;
-  transition: color 0.15s, background 0.15s;
-}
-.pl-tab:hover {
-  color: var(--wb-text);
-  background: rgba(34, 211, 238, 0.07);
-}
-.pl-tab.active {
-  color: var(--color-primary-foreground);
-  background: var(--wb-accent);
-  border-color: var(--wb-accent);
-  font-weight: 600;
-}
 /* Tab 内容容器（LLM 通信监控整屏） */
 .pl-tab-body {
   padding: 20px;

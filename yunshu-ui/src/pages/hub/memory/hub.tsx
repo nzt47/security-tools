@@ -18,6 +18,7 @@
  */
 import { Suspense, lazy, useEffect, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
+import { Tabs } from '../components/ui'
 import { BookOpen, Brain, Layers, Loader2, Search, Wrench } from 'lucide-react'
 
 // MemoryPage 同时承载「手动记忆 / 自动记忆」（由 mode 参数区分）
@@ -76,13 +77,6 @@ export interface MemoryHubProps {
   initialTab?: MemoryTab
 }
 
-function tabClass(selected: boolean): string {
-  const base = 'flex items-center gap-1.5 rounded-t-lg border border-b-0 px-3 py-1.5 text-body transition-colors '
-  return base + (selected
-    ? 'border-border bg-background font-medium text-primary'
-    : 'border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground')
-}
-
 export default function MemoryHub({ initialTab }: MemoryHubProps) {
   const [tab, setTab] = useState<MemoryTab>(() => (isMemoryTab(initialTab) ? initialTab : readSavedTab()))
   // 合并后的「向量记忆」内部再分「手动录入 / 自动沉淀」两种视图（功能不减，入口合一）
@@ -107,26 +101,17 @@ export default function MemoryHub({ initialTab }: MemoryHubProps) {
           <span className="text-caption text-muted-foreground">{active.hint}</span>
         </div>
 
-        <nav className="-mb-px flex flex-wrap gap-1" role="tablist" aria-label="记忆管理子模块">
-          {MEMORY_TABS.map((t) => {
+        <Tabs
+          variant="folder"
+          className="-mb-px"
+          aria-label="记忆管理子模块"
+          value={tab}
+          onChange={(v) => setTab(v as MemoryTab)}
+          items={MEMORY_TABS.map((t) => {
             const Icon = t.icon
-            const selected = tab === t.id
-            return (
-              <button
-                key={t.id}
-                type="button"
-                role="tab"
-                aria-selected={selected}
-                className={tabClass(selected)}
-                onClick={() => setTab(t.id)}
-                title={t.hint}
-              >
-                <Icon size={13} className={selected ? 'text-primary' : 'text-muted-foreground'} />
-                {t.label}
-              </button>
-            )
+            return { value: t.id, label: <><Icon size={13} />{t.label}</>, title: t.hint }
           })}
-        </nav>
+        />
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto bg-slate-950">
@@ -141,22 +126,16 @@ export default function MemoryHub({ initialTab }: MemoryHubProps) {
             <div className="flex min-h-full flex-col">
               {/* 合并前的两个入口（手动记忆 / 自动记忆）→ 页内分段控件，避免功能丢失 */}
               <div className="flex items-center gap-2 border-b border-slate-800/60 bg-slate-900/30 px-5 py-2">
-                <div className="flex overflow-hidden rounded-md border border-slate-700" role="tablist" aria-label="向量记忆视图">
-                  {([['manual', '手动录入'], ['auto', '自动沉淀']] as const).map(([id, label]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      role="tab"
-                      aria-selected={vectorMode === id}
-                      onClick={() => setVectorMode(id)}
-                      className={vectorMode === id
-                        ? 'bg-primary/15 px-3 py-1 text-body font-medium text-primary'
-                        : 'px-3 py-1 text-body text-muted-foreground hover:bg-muted'}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
+                <Tabs
+                  variant="segmented"
+                  aria-label="向量记忆视图"
+                  value={vectorMode}
+                  onChange={(v) => setVectorMode(v as 'manual' | 'auto')}
+                  items={[
+                    { value: 'manual', label: '手动录入' },
+                    { value: 'auto', label: '自动沉淀' },
+                  ]}
+                />
                 <span className="text-caption text-muted-foreground">
                   {vectorMode === 'manual' ? '手动录入关键信息' : '对话过程中自动沉淀的记忆'}
                 </span>
