@@ -12,8 +12,11 @@
  * 不用实心填充：表里一行最多 5 个按钮，实心块会把「说明/步骤」的视觉权重抢走。
  */
 
-/** 统一形状：11px + 紧凑内边距 + 图标与文字 4px 间距 */
-const BASE = 'inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] transition-colors disabled:cursor-not-allowed disabled:opacity-50'
+/** 统一形状：11px（= --text-caption）+ 紧凑内边距 + 图标与文字 4px 间距
+ *  【2026-11-17】这里原是一个**任意值字号**写法（方括号里直接写 11px）：阶梯里 11px 就是
+ *  text-caption，已改用档位名。它同时是"量具盲区"的证据 —— 收敛守卫当时只扫 *.tsx，
+ *  这个 .ts 里的任意值写法量不到。（注释里刻意不复述原写法：守卫按文本计数，贴原样会被自己数进去。） */
+const BASE = 'inline-flex items-center gap-1 rounded-md border px-2 py-1 text-caption transition-colors disabled:cursor-not-allowed disabled:opacity-50'
 
 /** 中性动作 */
 export const TABLE_BTN = `${BASE} border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-slate-200`

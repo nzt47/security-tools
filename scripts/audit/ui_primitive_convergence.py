@@ -53,10 +53,24 @@ METRICS: Dict[str, str] = {
 }
 
 
+#: 扫描的文件后缀。
+#:
+#: 【2026-11-17 量具修正】原来只有 ".tsx"。而 `lib/tableActions.ts` 里有一个**任意值字号**写法
+#: （三张表的行内按钮样式常量），这类 .ts 里的同写法一直不在量具范围内 —— 于是"任意值字号已清零"
+#: 这句话只对 .tsx 成立。补上 ".ts" 后同一份代码 raw_button 334 → 335、arbitrary_text 0 → 1
+#: （前者是 hooks/usePermission.ts 的**用法示例注释**里那个 <button>，量具不剥注释：
+#: 剥 `//` 会误伤字符串里的 `http://`；后者已在同批改成 text-caption，故回到 0）。
+#: 这是**量具修正**不是放宽门槛：基线随之一并重写，之后仍然只降不升。
+#:
+#: ★ 已知限制：量具按**文本**计数、不剥注释 —— 注释/文档里贴出原样写法也会被数进去。
+#:   写注释时别复述原样类名（本文件与 lib/tableActions.ts 的注释都按这条改写）。
+SCAN_SUFFIXES = (".tsx", ".ts")
+
+
 def scan(root: Path = UI_SRC) -> Dict[str, int]:
     """统计当前写法数量（排除 components/ui 原语内部）。"""
     ui_dir = root / "components" / "ui"
-    files = [p for p in root.rglob("*.tsx") if ui_dir not in p.parents]
+    files = [p for p in root.rglob("*") if p.suffix in SCAN_SUFFIXES and ui_dir not in p.parents]
     counts = {k: 0 for k in METRICS}
     for path in files:
         text = path.read_text(encoding="utf-8", errors="replace")
