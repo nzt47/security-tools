@@ -4,7 +4,7 @@
  */
 import { useEffect, useState } from 'react'
 import { Plus, Trash2, Pause, Play, Zap, Loader2, History as HistoryIcon } from 'lucide-react'
-import { Badge, Button, Card, DataTable, ErrorBox, Loading, PageHeader, hubDelete, hubGet, hubPost } from '../components/ui'
+import { Badge, Button, Card, DataTable, ErrorBox, hubDelete, hubGet, hubPost, Input, Loading, PageHeader } from '../components/ui'
 
 import {
   SCHEDULES,
@@ -178,10 +178,10 @@ export default function EngineScheduler() {
       {showForm && (
         <Card className="mb-4">
           <div className="grid gap-2 md:grid-cols-5">
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="任务名称 *" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden" />
-            <input value={action} onChange={(e) => setAction(e.target.value)} placeholder="动作 (action)" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden" />
-            <input value={interval} onChange={(e) => setInterval(e.target.value)} placeholder="间隔(分钟)" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden" />
-            <input value={cron} onChange={(e) => setCron(e.target.value)} placeholder="cron 表达式(可选)" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden" />
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="任务名称 *" size="md" />
+            <Input value={action} onChange={(e) => setAction(e.target.value)} placeholder="动作 (action)" size="md" />
+            <Input value={interval} onChange={(e) => setInterval(e.target.value)} placeholder="间隔(分钟)" size="md" />
+            <Input value={cron} onChange={(e) => setCron(e.target.value)} placeholder="cron 表达式(可选)" size="md" />
             <Button onClick={create} variant="primary" size="sm">创建</Button>
           </div>
         </Card>
@@ -292,8 +292,8 @@ export default function EngineScheduler() {
               <option key={t.name} value={t.name}>{t.name}（{t.schedule_text}）</option>
             ))}
           </select>
-          <input value={editHour} onChange={(e) => setEditHour(e.target.value)} placeholder="时 0-23" className="w-24 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 placeholder-slate-600 outline-hidden" />
-          <input value={editMinute} onChange={(e) => setEditMinute(e.target.value)} placeholder="分 0-59" className="w-24 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 placeholder-slate-600 outline-hidden" />
+          <Input value={editHour} onChange={(e) => setEditHour(e.target.value)} placeholder="时 0-23" size="xs" className="w-24" />
+          <Input value={editMinute} onChange={(e) => setEditMinute(e.target.value)} placeholder="分 0-59" size="xs" className="w-24" />
           <Button onClick={saveSchedule} variant="primary" size="xs">保存时刻</Button>
         </div>
       </Card>

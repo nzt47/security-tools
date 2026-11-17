@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import type { Card, CardInput, CardStatus, CardType } from '../../api/knowledge-types';
 import './CardForm.css';
-import { Button } from '@/components/ui';
+import { Button, Input } from '@/components/ui';
 
 interface CardFormProps {
   /** 编辑模式传入原卡（用于回填）；新建模式省略 */
@@ -57,21 +57,11 @@ const CardForm: React.FC<CardFormProps> = ({ initial, onSubmit, onCancel, submit
       <div className="kb-form-grid">
         <label className="kb-form-field">
           <span className="kb-form-label">标题 *</span>
-          <input
-            className="kb-form-input"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="卡片标题（slug 默认由此生成）"
-          />
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="卡片标题（slug 默认由此生成）" size="sm" />
         </label>
         <label className="kb-form-field">
           <span className="kb-form-label">slug *</span>
-          <input
-            className="kb-form-input"
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            placeholder="唯一标识（创建后不可修改）"
-          />
+          <Input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="唯一标识（创建后不可修改）" size="sm" />
         </label>
         <label className="kb-form-field">
           <span className="kb-form-label">类型</span>
@@ -99,31 +89,16 @@ const CardForm: React.FC<CardFormProps> = ({ initial, onSubmit, onCancel, submit
         </label>
         <label className="kb-form-field">
           <span className="kb-form-label">来源</span>
-          <input
-            className="kb-form-input"
-            value={source}
-            onChange={(e) => setSource(e.target.value)}
-            placeholder="文章 / 播客 / 手动..."
-          />
+          <Input value={source} onChange={(e) => setSource(e.target.value)} placeholder="文章 / 播客 / 手动..." size="sm" />
         </label>
         <label className="kb-form-field">
           <span className="kb-form-label">日期</span>
-          <input
-            className="kb-form-input"
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
+          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} size="sm" />
         </label>
       </div>
       <label className="kb-form-field">
         <span className="kb-form-label">核心洞见 *</span>
-        <input
-          className="kb-form-input"
-          value={insight}
-          onChange={(e) => setInsight(e.target.value)}
-          placeholder="一句话核心洞见（必填）"
-        />
+        <Input value={insight} onChange={(e) => setInsight(e.target.value)} placeholder="一句话核心洞见（必填）" size="sm" />
       </label>
       <label className="kb-form-field">
         <span className="kb-form-label">正文（支持 [[双链]] 语法）</span>

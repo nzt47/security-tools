@@ -5,7 +5,7 @@
 import NetworkTransfer from './TransferPanel'
 import { useEffect, useState } from 'react'
 import { Globe, Save, RotateCcw } from 'lucide-react'
-import { Button, Card, Loading, ErrorBox, PageHeader, hubGet, hubPost, unwrap } from '../components/ui'
+import { Button, Card, ErrorBox, hubGet, hubPost, Input, Loading, PageHeader, unwrap } from '../components/ui'
 
 import {
   APPLY_NETWORK_CONFIG,
@@ -80,22 +80,12 @@ export default function NetworkPage() {
               {(['provider', 'model', 'api_endpoint', 'timeout'] as const).map((key) => (
                 <div key={key}>
                   <label className="mb-1 block text-xs text-slate-500">{key}</label>
-                  <input
-                    value={String(config?.[key] ?? '')}
-                    onChange={(e) => setVal(key, e.target.value)}
-                    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-hidden focus:border-cyan-600"
-                  />
+                  <Input value={String(config?.[key] ?? '')} onChange={(e) => setVal(key, e.target.value)} size="md" />
                 </div>
               ))}
               <div>
                 <label className="mb-1 block text-xs text-slate-500">api_key（已配置则显示脱敏）</label>
-                <input
-                  value={String(config?.api_key ?? '')}
-                  onChange={(e) => setVal('api_key', e.target.value)}
-                  type="password"
-                  placeholder="sk-…"
-                  className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-hidden focus:border-cyan-600"
-                />
+                <Input value={String(config?.api_key ?? '')} onChange={(e) => setVal('api_key', e.target.value)} type="password" placeholder="sk-…" size="md" />
               </div>
             </div>
           </Card>
@@ -105,11 +95,7 @@ export default function NetworkPage() {
               {(['default_engine', 'user_agent', 'timeout', 'max_retries'] as const).map((key) => (
                 <div key={key}>
                   <label className="mb-1 block text-xs text-slate-500">{key}</label>
-                  <input
-                    value={String(config?.[key] ?? '')}
-                    onChange={(e) => setVal(key, e.target.value)}
-                    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-hidden focus:border-cyan-600"
-                  />
+                  <Input value={String(config?.[key] ?? '')} onChange={(e) => setVal(key, e.target.value)} size="md" />
                 </div>
               ))}
               <div className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2 text-xs text-slate-500">

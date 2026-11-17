@@ -17,7 +17,7 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import { ClipboardCopy, Hammer, Loader2, Rocket, ShieldCheck, Users } from 'lucide-react'
-import { Badge, Card, ErrorBox, hubPost, Loading, PageHeader, Select } from '../components/ui'
+import { Badge, Card, ErrorBox, hubPost, Input, Loading, PageHeader, Select } from '../components/ui'
 import { SUBAGENT_CREATE, SUBAGENT_LIST } from '@/api/endpoints'
 import { getEnvelope } from '@/api/envelope'
 import {
@@ -207,13 +207,7 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
         <div className="flex flex-col gap-4">
           <Card title="① 身份与角色">
             <div id="step-identity" className="grid gap-3 md:grid-cols-2">
-              <input
-                value={form.name}
-                onChange={(e) => set('name', e.target.value)}
-                data-testid="assembly-name"
-                placeholder="分身名称 *（唯一）"
-                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden"
-              />
+              <Input value={form.name} onChange={(e) => set('name', e.target.value)} data-testid="assembly-name" placeholder="分身名称 *（唯一）" size="md" />
               <select
                 value={form.roleTemplate}
                 onChange={(e) => set('roleTemplate', e.target.value)}
@@ -237,13 +231,7 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
                     {String(t.label || t.value)}</option>
                 ))}
               </select>
-              <input
-                value={form.roleText}
-                onChange={(e) => set('roleText', e.target.value)}
-                data-testid="assembly-role-text"
-                placeholder="角色自由文本（仅显式选 template+text / full-system 档生效）"
-                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden"
-              />
+              <Input value={form.roleText} onChange={(e) => set('roleText', e.target.value)} data-testid="assembly-role-text" placeholder="角色自由文本（仅显式选 template+text / full-system 档生效）" size="md" />
             </div>
             {/* 自由文本 + 默认档 = 会被后端 400；提前说清，不让使用者白提交（不静默吞掉） */}
             {form.roleText.trim() && form.roleMode === 'template' && (
@@ -255,28 +243,14 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
 
           <Card title="② 大脑">
             <div id="step-brain" className="grid gap-3 md:grid-cols-2">
-              <input
-                value={form.modelId}
-                onChange={(e) => set('modelId', e.target.value)}
-                list="assembly-model-options"
-                data-testid="assembly-model"
-                placeholder={llmCatalog?.model ? '留空 = 跟随母体（' + llmCatalog.model + '）' : '留空 = 跟随母体'}
-                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden"
-              />
+              <Input value={form.modelId} onChange={(e) => set('modelId', e.target.value)} list="assembly-model-options" data-testid="assembly-model" placeholder={llmCatalog?.model ? '留空 = 跟随母体（' + llmCatalog.model + '）' : '留空 = 跟随母体'} size="md" />
               <datalist id="assembly-model-options">
                 {(llmCatalog?.options ?? []).map((o) => (
                   <option key={String(o.model)} value={String(o.model ?? '')}>
                     {o.source === 'deployment' ? '部署默认' : '已声明'}</option>
                 ))}
               </datalist>
-              <input
-                value={form.temperature}
-                onChange={(e) => set('temperature', e.target.value)}
-                inputMode="decimal"
-                data-testid="assembly-temperature"
-                placeholder="生成温度 0.0–2.0（留空 = 默认，不是 0）"
-                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden"
-              />
+              <Input value={form.temperature} onChange={(e) => set('temperature', e.target.value)} inputMode="decimal" data-testid="assembly-temperature" placeholder="生成温度 0.0–2.0（留空 = 默认，不是 0）" size="md" />
             </div>
             <p className="mt-2 text-caption text-slate-500">
               执行后端（inproc / subprocess / container）由部署配置决定，不在本页选；
@@ -286,13 +260,7 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
 
           <Card title="③ 记忆">
             <div id="step-memory" className="grid gap-3 md:grid-cols-2">
-              <input
-                value={form.memoryProvider}
-                onChange={(e) => set('memoryProvider', e.target.value)}
-                data-testid="assembly-memory"
-                placeholder="记忆提供商（声明字段）"
-                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden"
-              />
+              <Input value={form.memoryProvider} onChange={(e) => set('memoryProvider', e.target.value)} data-testid="assembly-memory" placeholder="记忆提供商（声明字段）" size="md" />
               <Select value={form.memoryMode} onChange={(v) => set('memoryMode', v)} data-testid="assembly-memory-mode" size="sm" placeholder="记忆档：不表态（后端默认 none）" placeholderOptionDisabled={false} options={[{ label: 'brokered（母体代管；本页只提供这一档）', value: 'brokered' }]} />
             </div>
 
@@ -338,13 +306,7 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
               SubagentConfig 里没有 line 字段，本页不提供"选主线"——那会暗示它能决定工具集。
               如需调整，请到「主线档案」视图。
             </p>
-            <input
-              value={form.toolSources}
-              onChange={(e) => set('toolSources', e.target.value)}
-              data-testid="assembly-tools"
-              placeholder="工具源（逗号分隔；声明字段，尚未接线）"
-              className="mt-3 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden"
-            />
+            <Input value={form.toolSources} onChange={(e) => set('toolSources', e.target.value)} data-testid="assembly-tools" placeholder="工具源（逗号分隔；声明字段，尚未接线）" size="md" className="mt-3" />
           </Card>
 
           <Card title="⑤ 权限与边界">
@@ -366,14 +328,7 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
                   )
                 })}
               </div>
-              <input
-                value={form.ttlSeconds}
-                onChange={(e) => set('ttlSeconds', e.target.value)}
-                inputMode="numeric"
-                data-testid="assembly-ttl"
-                placeholder="TTL 秒（留空 = 永久；委派时后端按契约⑦收敛）"
-                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden"
-              />
+              <Input value={form.ttlSeconds} onChange={(e) => set('ttlSeconds', e.target.value)} inputMode="numeric" data-testid="assembly-ttl" placeholder="TTL 秒（留空 = 永久；委派时后端按契约⑦收敛）" size="md" />
               <p className="text-caption text-slate-500">
                 权限交给容器沙箱（Sandbox.allowed_permissions）；自主权 L1–L5 与审批在派发侧生效，
                 尚未进 SubagentConfig（见右侧「自主权分级」面）。

@@ -19,7 +19,7 @@ import {
   Ban, CircleAlert, FileDiff, Loader2, RotateCcw, ShieldCheck, Snowflake,
   Trash2, Zap,
 } from 'lucide-react'
-import { Select } from '@/components/ui'
+import { Input, Select } from '@/components/ui'
 import { issueConfirmation, runAction } from '@/lib/cpPanelsApi'
 import type { ActionName, ActionResponse } from '@/lib/cpPanelsTypes'
 import { ApprovalZone, StatusBadge } from './components'
@@ -112,13 +112,9 @@ export function AbsoluteActionBar({ target, targetLabel, onDone }: ActionsBarPro
       </div>
 
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <input value={reason} onChange={(e) => setReason(e.target.value)}
-          placeholder="reason（强制推进/摘除来源必填）"
-          className="w-56 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 placeholder:text-slate-600" />
+        <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="reason（强制推进/摘除来源必填）" size="xs" className="w-56" />
         <Select value={risk} onChange={(v) => setRisk(v)} size="sm" placeholder="风险未标注" placeholderOptionDisabled={false} options={[{ label: 'low', value: 'low' }, { label: 'medium', value: 'medium' }, { label: 'high', value: 'high' }, { label: 'destructive（需二次认证）', value: 'destructive' }]} />
-        <input value={secondFactor} onChange={(e) => setSecondFactor(e.target.value)}
-          placeholder="二次认证码（destructive 必填）"
-          className="w-44 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 placeholder:text-slate-600" />
+        <Input value={secondFactor} onChange={(e) => setSecondFactor(e.target.value)} placeholder="二次认证码（destructive 必填）" size="xs" className="w-44" />
       </div>
 
       {/* ★ U2：七动作按钮区同样在 Shadow DOM 自治单元内（固定 z-index） */}
@@ -301,9 +297,7 @@ function NeverAutomatedPanel({
             <option key={c} value={c}>{labels[c] || c}（{c}）</option>
           ))}
         </select>
-        <input value={actionText} onChange={(e) => setActionText(e.target.value)}
-          placeholder={`可判定文本（缺省示例：${NEVER_TEXT_TEMPLATE[category] || '—'}）`}
-          className="w-72 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 placeholder:text-slate-600" />
+        <Input value={actionText} onChange={(e) => setActionText(e.target.value)} placeholder={`可判定文本（缺省示例：${NEVER_TEXT_TEMPLATE[category] || '—'}）`} size="xs" className="w-72" />
         <button type="button" onClick={doIssue} disabled={busy}
           className="rounded-sm border border-slate-600 px-2 py-1 text-caption text-slate-200 disabled:opacity-40">
           {busy ? '处理中…' : '1) 显式确认（签发单次凭据）'}

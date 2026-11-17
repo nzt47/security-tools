@@ -23,7 +23,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Bot, Check, ChevronDown, ChevronRight, Loader2, Play, RefreshCw, UserPlus, X } from 'lucide-react'
-import { Button, hubGet } from '../../../pages/hub/components/ui'
+import { Button, hubGet, Input } from '../../../pages/hub/components/ui'
 import { getEnvelope } from '@/api/envelope'
 import { authHeader } from '../../../lib/apiToken'
 
@@ -464,49 +464,24 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
               <div className="mb-1.5 space-y-1.5 rounded-md border border-slate-800 bg-slate-950/70 p-2">
                 <label className="block text-micro text-slate-500">
                   ②约束（逗号或换行分隔；缺省「只读为主，不得修改仓库文件」）
-                  <input
-                    className="mt-0.5 w-full rounded-sm border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-caption text-slate-200 outline-hidden focus:border-cyan-600"
-                    value={constraints}
-                    onChange={(e) => setConstraints(e.target.value)}
-                    placeholder="例如：只读仓库，不得修改任何文件"
-                  />
+                  <Input value={constraints} onChange={(e) => setConstraints(e.target.value)} placeholder="例如：只读仓库，不得修改任何文件" size="xs" className="mt-0.5" />
                 </label>
                 <label className="block text-micro text-slate-500">
                   ④禁止事项（缺省「不得对外发送数据」；可留空列表）
-                  <input
-                    className="mt-0.5 w-full rounded-sm border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-caption text-slate-200 outline-hidden focus:border-cyan-600"
-                    value={prohibitions}
-                    onChange={(e) => setProhibitions(e.target.value)}
-                    placeholder="例如：不得删除任何文件, 不得访问网络"
-                  />
+                  <Input value={prohibitions} onChange={(e) => setProhibitions(e.target.value)} placeholder="例如：不得删除任何文件, 不得访问网络" size="xs" className="mt-0.5" />
                 </label>
                 <div className="flex gap-1.5">
                   <label className="flex-1 text-micro text-slate-500">
                     ⑤产物格式
-                    <input
-                      className="mt-0.5 w-full rounded-sm border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-caption text-slate-200 outline-hidden focus:border-cyan-600"
-                      value={artifactFormat}
-                      onChange={(e) => setArtifactFormat(e.target.value)}
-                      placeholder="文本要点"
-                    />
+                    <Input value={artifactFormat} onChange={(e) => setArtifactFormat(e.target.value)} placeholder="文本要点" size="xs" className="mt-0.5" />
                   </label>
                   <label className="w-20 text-micro text-slate-500">
                     ⑥预算 tok
-                    <input
-                      className="mt-0.5 w-full rounded-sm border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-caption text-slate-200 outline-hidden focus:border-cyan-600"
-                      value={budgetTokens}
-                      onChange={(e) => setBudgetTokens(e.target.value)}
-                      placeholder="4000"
-                    />
+                    <Input value={budgetTokens} onChange={(e) => setBudgetTokens(e.target.value)} placeholder="4000" size="xs" className="mt-0.5" />
                   </label>
                   <label className="w-16 text-micro text-slate-500">
                     ⑦超时 s
-                    <input
-                      className="mt-0.5 w-full rounded-sm border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-caption text-slate-200 outline-hidden focus:border-cyan-600"
-                      value={timeoutSeconds}
-                      onChange={(e) => setTimeoutSeconds(e.target.value)}
-                      placeholder="120"
-                    />
+                    <Input value={timeoutSeconds} onChange={(e) => setTimeoutSeconds(e.target.value)} placeholder="120" size="xs" className="mt-0.5" />
                   </label>
                 </div>
               </div>

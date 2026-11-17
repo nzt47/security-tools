@@ -362,12 +362,7 @@ function ToolPicker({ title, hint, tone, tools, selected, exemptions, onToggle, 
       </div>
       <div className="flex items-center gap-2 border-b border-slate-800/60 px-3 py-2">
         <Search size={12} className="shrink-0 text-slate-500" />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="搜索工具名 / 分类 / 平面 / 标签"
-          className="w-full bg-transparent text-xs text-slate-200 placeholder-slate-600 outline-hidden"
-        />
+        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索工具名 / 分类 / 平面 / 标签" size="xs" />
         {q && (
           <Button onClick={() => setQ('')} className="shrink-0" variant="default" size="xs">
             清空
@@ -1343,15 +1338,10 @@ export default function ToolsAgentLines() {
                       label="context_window_tokens"
                       hint={`本分身的默认上下文窗口（0/空 = 未声明，用全局默认）；${fmtWindowTokens(num(draft.context_window_tokens, 0))}`}
                     >
-                      <input
-                        type="number" min={0} max={1048576} step={1024}
-                        value={num(draft.context_window_tokens, 0)}
-                        onChange={(e) => {
+                      <Input type="number" min={0} max={1048576} step={1024} value={num(draft.context_window_tokens, 0)} onChange={(e) => {
                           const v = Math.min(1048576, Math.max(0, num(e.target.value, 0)))
                           patch({ context_window_tokens: v })
-                        }}
-                        className="w-32 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-200 outline-hidden"
-                      />
+                        }} size="md" className="w-32" />
                     </Field>
                   </div>
 
@@ -1381,19 +1371,9 @@ export default function ToolsAgentLines() {
                               className="flex-1"
                               aria-label="平面权重"
                             />
-                            <input
-                              type="number" min={0} max={3} step={0.1} value={w}
-                              disabled={disabled}
-                              onChange={(e) => setWeight(plane, num(e.target.value))}
-                              className="w-20 rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200 outline-hidden disabled:opacity-40"
-                            />
+                            <Input type="number" min={0} max={3} step={0.1} value={w} disabled={disabled} onChange={(e) => setWeight(plane, num(e.target.value))} size="xs" className="w-20" />
                             <span className="shrink-0 text-caption text-slate-500">保底</span>
-                            <input
-                              type="number" min={0} max={50} value={floor}
-                              disabled={disabled}
-                              onChange={(e) => setFloor(plane, num(e.target.value))}
-                              className="w-20 rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200 outline-hidden disabled:opacity-40"
-                            />
+                            <Input type="number" min={0} max={50} value={floor} disabled={disabled} onChange={(e) => setFloor(plane, num(e.target.value))} size="xs" className="w-20" />
                           </div>
                         )
                       })}

@@ -66,7 +66,7 @@ import {
   toneForRisk,
   type StatusTone,
 } from './components'
-import { Button } from '@/components/ui'
+import { Button, Input } from '@/components/ui'
 import { usePanel } from './usePanel'
 
 // ═══════════════════════════════════════════════════════════
@@ -499,15 +499,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
   } else {
     control = (
       <div className="flex items-center gap-1.5">
-        <input
-          type="text"
-          aria-label={`${item.key} 的值`}
-          data-cp-setting-input={item.key}
-          value={ctx.drafts[item.key] ?? String(item.display_value ?? '')}
-          onChange={(e) => ctx.onDraft(item.key, e.target.value)}
-          disabled={busy || confirmFirst}
-          className="w-40 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 font-mono text-caption text-slate-200 disabled:opacity-50"
-        />
+        <Input type="text" aria-label={`${item.key} 的值`} data-cp-setting-input={item.key} value={ctx.drafts[item.key] ?? String(item.display_value ?? '')} onChange={(e) => ctx.onDraft(item.key, e.target.value)} disabled={busy || confirmFirst} size="xs" className="w-40" inputClassName="font-mono" />
       </div>
     )
   }
@@ -641,24 +633,8 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
                 pending_id：{feedback.pending_id || '—'}
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                <input
-                  type="text"
-                  aria-label={`${item.key} 确认二次认证码`}
-                  data-cp-confirm-second-factor={item.key}
-                  value={ctx.secondFactor}
-                  onChange={(e) => ctx.onSecondFactor(e.target.value)}
-                  placeholder="另一位人工的二次认证码"
-                  className="w-40 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-caption text-slate-200"
-                />
-                <input
-                  type="text"
-                  aria-label={`${item.key} 确认理由`}
-                  data-cp-confirm-reason={item.key}
-                  value={ctx.reason}
-                  onChange={(e) => ctx.onReason(e.target.value)}
-                  placeholder="确认理由"
-                  className="w-40 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-caption text-slate-200"
-                />
+                <Input type="text" aria-label={`${item.key} 确认二次认证码`} data-cp-confirm-second-factor={item.key} value={ctx.secondFactor} onChange={(e) => ctx.onSecondFactor(e.target.value)} placeholder="另一位人工的二次认证码" size="xs" className="w-40" />
+                <Input type="text" aria-label={`${item.key} 确认理由`} data-cp-confirm-reason={item.key} value={ctx.reason} onChange={(e) => ctx.onReason(e.target.value)} placeholder="确认理由" size="xs" className="w-40" />
                 <Button type="button" onClick={() => ctx.onConfirmPending(item, feedback.pending_id || '')} disabled={busy || !feedback.pending_id} data-cp-confirm-submit={item.key} variant="default" size="xs">
                   <Unlock size={10} /> 由另一位人工确认并生效
                 </Button>
@@ -735,33 +711,10 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
                     />
                   </div>
                 ) : (
-                  <input
-                    type="text"
-                    aria-label={`${item.key} 提交值`}
-                    data-cp-confirm-value={item.key}
-                    value={ctx.drafts[item.key] ?? String(item.display_value ?? '')}
-                    onChange={(e) => ctx.onDraft(item.key, e.target.value)}
-                    className="w-40 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 font-mono text-caption text-slate-200"
-                  />
+                  <Input type="text" aria-label={`${item.key} 提交值`} data-cp-confirm-value={item.key} value={ctx.drafts[item.key] ?? String(item.display_value ?? '')} onChange={(e) => ctx.onDraft(item.key, e.target.value)} size="xs" className="w-40" inputClassName="font-mono" />
                 )}
-                <input
-                  type="text"
-                  aria-label={`${item.key} 二次认证码`}
-                  data-cp-second-factor={item.key}
-                  value={ctx.secondFactor}
-                  onChange={(e) => ctx.onSecondFactor(e.target.value)}
-                  placeholder="二次认证码"
-                  className="w-36 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-caption text-slate-200"
-                />
-                <input
-                  type="text"
-                  aria-label={`${item.key} 变更理由`}
-                  data-cp-reason={item.key}
-                  value={ctx.reason}
-                  onChange={(e) => ctx.onReason(e.target.value)}
-                  placeholder="变更理由（审计留痕）"
-                  className="w-44 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-caption text-slate-200"
-                />
+                <Input type="text" aria-label={`${item.key} 二次认证码`} data-cp-second-factor={item.key} value={ctx.secondFactor} onChange={(e) => ctx.onSecondFactor(e.target.value)} placeholder="二次认证码" size="xs" className="w-36" />
+                <Input type="text" aria-label={`${item.key} 变更理由`} data-cp-reason={item.key} value={ctx.reason} onChange={(e) => ctx.onReason(e.target.value)} placeholder="变更理由（审计留痕）" size="xs" className="w-44" />
                 <Button type="button" onClick={() => ctx.onSubmitConfirm(item)} disabled={busy} data-cp-submit={item.key} variant="accent" size="xs">
                   提交变更
                 </Button>
