@@ -15,7 +15,7 @@ import {
   AlertTriangle, CheckCircle2, ChevronDown, FolderOpen, Loader2,
   PenTool, Plus, Save, Trash2, X,
 } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button, Input } from '@/components/ui'
 import { VisualEditor } from '@/components/VisualEditor'
 import { useFlowStore } from '@/components/VisualEditor/stores/useFlowStore'
 import { generateYaml } from '@/components/VisualEditor/generator/CodeGenerator'
@@ -174,14 +174,7 @@ export default function MemoryWorkflowVisual() {
         </span>
 
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          <input
-            className="w-44 rounded-md border border-slate-700 bg-slate-950 px-2.5 py-1.5 text-xs text-slate-200 outline-hidden transition-colors placeholder:text-slate-600 focus:border-cyan-600"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="工作流名称（保存时使用）"
-            title="工作流名称（保存时使用）"
-            data-testid="ve-save-name"
-          />
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="工作流名称（保存时使用）" title="工作流名称（保存时使用）" data-testid="ve-save-name" size="xs" className="w-44" />
           <Button type="button" onClick={handleSave} disabled={busy !== null || nodes.length === 0} data-testid="ve-save-btn" variant="primary" size="xs">
             {busy === 'save' ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
             {currentId ? '更新' : '保存'}

@@ -14,7 +14,7 @@
 import LearningMetrics from './LearningMetrics'
 import { useCallback, useEffect, useState } from 'react'
 import { Search, RefreshCw, Undo2, CheckCircle2, XCircle, Archive } from 'lucide-react'
-import { Badge, Button, Card, ErrorBox, Loading, PageHeader, Select, StatCard } from '../components/ui'
+import { Badge, Button, Card, ErrorBox, Input, Loading, PageHeader, Select, StatCard } from '../components/ui'
 import {
   fetchDetail, fetchList, fetchStats, reviewItem, rollbackBatch, searchPreview,
   type ExperienceHit, type ExperienceItem, type ExperienceStats,
@@ -140,14 +140,7 @@ export default function ExperiencePanel() {
       <Card className="mb-5">
         <div className="mb-2 text-sm font-medium text-slate-300">检索预览</div>
         <div className="flex gap-2">
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && void onSearch()}
-            placeholder="输入一个真实问题，看能否命中…"
-            aria-label="检索预览输入"
-            className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden focus:border-cyan-600"
-          />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && void onSearch()} placeholder="输入一个真实问题，看能否命中…" aria-label="检索预览输入" size="md" className="flex-1" />
           <Button variant="primary" size="md" onClick={() => void onSearch()}>
             <Search size={14} /> 预览
           </Button>
@@ -171,13 +164,7 @@ export default function ExperiencePanel() {
       <Card className="mb-5">
         <div className="mb-2 text-sm font-medium text-slate-300">按 batch_id 回滚</div>
         <div className="flex gap-2">
-          <input
-            value={batchId}
-            onChange={(e) => setBatchId(e.target.value)}
-            placeholder="batch_id"
-            aria-label="批次 ID"
-            className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 font-mono text-sm text-slate-200 placeholder-slate-600 outline-hidden focus:border-cyan-600"
-          />
+          <Input value={batchId} onChange={(e) => setBatchId(e.target.value)} placeholder="batch_id" aria-label="批次 ID" size="md" className="flex-1" inputClassName="font-mono" />
           <Button onClick={() => void onRollback()} disabled={!batchId.trim()} variant="danger-outline" size="sm">
             <Undo2 size={14} /> 回滚
           </Button>

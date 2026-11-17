@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { Copy, Loader2, RefreshCw, X } from 'lucide-react'
-import { Button, hubGet, hubPost } from '../components/ui'
+import { Button, hubGet, hubPost, Input } from '../components/ui'
 import {
   SKILLS_MGMT_ASSESS_MERGE_SAFE,
   SKILLS_MGMT_ASSESS_MERGE_UNDO,
@@ -109,8 +109,7 @@ export default function MergeDuplicatesModal({ skillId, skillName, onClose, onDo
         <div className="mb-2 flex flex-wrap items-center gap-1.5">
           <label className="flex items-center gap-1 text-micro text-slate-500">
             Jaccard ≥
-            <input value={minJaccard} onChange={(e) => setMinJaccard(e.target.value)} aria-label="重复阈值"
-              className="w-16 rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-caption text-slate-200 outline-hidden focus:border-cyan-600" />
+            <Input value={minJaccard} onChange={(e) => setMinJaccard(e.target.value)} aria-label="重复阈值" size="xs" className="w-16" />
           </label>
           <Button type="button" variant="default" size="xs" onClick={() => void load()} disabled={busy !== ''} aria-label="重新查重">
             {busy === 'load' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 重新查重

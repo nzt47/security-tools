@@ -71,7 +71,7 @@ import {
   usePanel,
   useSecurityState,
 } from './usePanel'
-import { Button, Select } from '@/components/ui'
+import { Button, Input, Select } from '@/components/ui'
 import { AbsoluteActionBar } from './actions'
 import { ImplicitEntryLog, recordImplicitEntry } from './implicitEntry'
 import { SettingsPanel } from './settings'
@@ -407,11 +407,7 @@ export function CapabilityMapPanel() {
           <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
             <span className="text-slate-500">能力总数 <MetricValue metric={data.total} /></span>
             <span className="text-slate-500">命中 <MetricValue metric={data.matched} /></span>
-            <input
-              value={q} onChange={(e) => { setQ(e.target.value); setOffset(0) }}
-              placeholder="搜索能力/描述"
-              className="ml-2 w-44 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-slate-200 placeholder:text-slate-600"
-            />
+            <Input value={q} onChange={(e) => { setQ(e.target.value); setOffset(0) }} placeholder="搜索能力/描述" size="sm" className="ml-2 w-44" />
             <Select
               size="sm"
               value={stage}
@@ -666,11 +662,7 @@ export function ApprovalInboxPanel() {
               {groups.length === 0 && <span className="text-xs text-slate-500">无待审记录</span>}
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <input
-                value={reason} onChange={(e) => setReason(e.target.value)}
-                placeholder="批准备注 / 驳回理由（驳回必填）"
-                className="w-64 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 placeholder:text-slate-600"
-              />
+              <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="批准备注 / 驳回理由（驳回必填）" size="xs" className="w-64" />
               <Button type="button" variant="primary" size="sm" disabled={!selectedIds.length || busy !== ''}
                 onClick={approveBatch}>
                 {busy === 'approve' ? '提交中…' : `批准所选（${selectedIds.length}）`}

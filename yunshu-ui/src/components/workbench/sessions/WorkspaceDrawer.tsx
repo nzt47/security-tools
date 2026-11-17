@@ -37,7 +37,7 @@ import {
   type SessionMeta,
   type SessionWorkspace,
 } from '../../../lib/sessionApi';
-import { Button } from '@/components/ui';
+import { Button, Input } from '@/components/ui';
 import { copyText } from '../../../utils/clipboard';
 import { isElectron } from '../../../electron/types';
 
@@ -341,19 +341,12 @@ export function WorkspaceDrawer({ session, onClose }: WorkspaceDrawerProps) {
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <input
-                      type="text"
-                      value={bindPath}
-                      onChange={(e) => setBindPath(e.target.value)}
-                      onKeyDown={(e) => {
+                    <Input type="text" value={bindPath} onChange={(e) => setBindPath(e.target.value)} onKeyDown={(e) => {
                         if (e.key === 'Enter' && !binding) {
                           e.preventDefault();
                           void doBind(bindPath, bindCreate);
                         }
-                      }}
-                      placeholder="输入工作区绝对路径，如 C:\Users\you\myproject"
-                      className="w-full rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 font-mono text-caption text-slate-200 outline-hidden placeholder:text-slate-600 focus:border-cyan-600/70"
-                    />
+                      }} placeholder="输入工作区绝对路径，如 C:\Users\you\myproject" size="xs" inputClassName="font-mono" />
                     {isElectron() && window.electronAPI && (
                       <Button type="button" onClick={() => void browseDirectory()} disabled={binding} title="打开系统文件夹选择器（Electron 桌面版）" className="shrink-0" variant="accent" size="xs">
                         <FolderOpen size={11} />

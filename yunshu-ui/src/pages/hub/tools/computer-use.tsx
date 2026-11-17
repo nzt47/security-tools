@@ -8,7 +8,7 @@
  */
 import { useState } from 'react'
 import { Camera, Clipboard, ClipboardPaste, Loader2, Monitor, Navigation, X } from 'lucide-react'
-import { Button, Card, PageHeader, hubGet, hubPost, Textarea } from '../components/ui'
+import { Button, Card, PageHeader, hubGet, hubPost, Input, Textarea } from '../components/ui'
 
 import {
   BROWSER_NAVIGATE,
@@ -120,12 +120,13 @@ export default function ToolsComputerUse() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card title="浏览器导航 / 截图">
           <div className="flex gap-2">
-            <input
+            <Input
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && navigate()}
               placeholder="输入 URL（如 https://example.com）"
-              className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden focus:border-cyan-600"
+              size="md"
+              className="flex-1"
             />
             <Button variant="primary" size="md" onClick={navigate} disabled={busy}>
               {busy ? <Loader2 size={14} className="animate-spin" /> : <Navigation size={14} />} {busy ? '执行中…' : '导航'}

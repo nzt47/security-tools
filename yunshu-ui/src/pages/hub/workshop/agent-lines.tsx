@@ -1323,13 +1323,14 @@ export default function ToolsAgentLines() {
                       onChange={(v) => patch({ allow_govern: v })}
                     />
                     <Field label="max_tools" hint="单轮最多暴露给模型的工具数">
-                      <input
+                      {/* 后端 `int(raw.get("max_tools") or 20)` 会把 0 当成"未填"回落 20，
+                          故此处就地夹到 ≥1，避免输入框显示 0 而预览显示 20 的自相矛盾 */}
+                      <Input
                         type="number" min={1} max={200}
                         value={num(draft.max_tools, 20)}
-                        // 后端 `int(raw.get("max_tools") or 20)` 会把 0 当成"未填"回落 20，
-                        // 故此处就地夹到 ≥1，避免输入框显示 0 而预览显示 20 的自相矛盾
                         onChange={(e) => patch({ max_tools: Math.max(1, num(e.target.value, 20)) })}
-                        className="w-24 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-200 outline-hidden"
+                        size="md"
+                        className="w-24"
                       />
                     </Field>
                     {/* 【2026-11-15】本分身默认上下文窗口：0 = 未声明（用全局默认 131072）。

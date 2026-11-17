@@ -29,7 +29,7 @@ import {
   getGraph,
 } from '../../../api/knowledge'
 import { ApiError } from '../../../lib/apiClient'
-import { Badge, Button, Card as HubCard, DataTable, ErrorBox, Loading, PageHeader, Select, StatCard } from '../components/ui'
+import { Badge, Button, Card as HubCard, DataTable, ErrorBox, Input, Loading, PageHeader, Select, StatCard } from '../components/ui'
 import StatusBadge from '../../../components/Knowledge/StatusBadge'
 import CardDetailView from '../../../components/Knowledge/CardDetail'
 import CardForm from '../../../components/Knowledge/CardForm'
@@ -54,8 +54,6 @@ function errText(e: unknown): string {
   return e instanceof Error ? e.message : String(e)
 }
 
-const inputCls =
-  'rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden focus:border-cyan-600'
 const selectCls =
   'rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-300 outline-hidden focus:border-cyan-600'
 
@@ -427,12 +425,13 @@ export default function MemoryKnowledge() {
           {tab === 'search' && (
             <HubCard title="融合检索" actions={<span className="text-caption text-slate-500">RRF 融合 + 双链扩展 + 精排</span>}>
               <div className="flex gap-2">
-                <input
-                  className={inputCls}
+                <Input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleSearch() }}
                   placeholder="输入问题，检索知识库（RRF 融合）"
+                  size="md"
+                  className="flex-1"
                 />
                 <Button
                   variant="primary"

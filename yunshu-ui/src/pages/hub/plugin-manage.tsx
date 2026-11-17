@@ -28,7 +28,7 @@
  */
 import { createElement, useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronDown, Loader2, PackagePlus, RefreshCw, Search, Server, Settings2, X } from 'lucide-react'
-import { Button, Card, Badge, PageHeader, Loading, ErrorBox } from './components/ui'
+import { Badge, Button, Card, ErrorBox, Input, Loading, PageHeader } from './components/ui'
 import InstalledExtensions from './extensions/installed-extensions'
 import { SchemaRenderer } from '@/plugins/schema'
 import { ApiTokenField } from '@/plugins/ApiTokenField'
@@ -564,14 +564,7 @@ export default function PluginManagePage() {
               </Button>
             </div>
             <div className="mb-2 flex flex-wrap items-center gap-2">
-              <input
-                className="w-64 rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600"
-                placeholder="关键词（留空 = 全部插件包）"
-                value={marketQ}
-                onChange={(e) => setMarketQ(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') void searchMarketPlugins(marketQ) }}
-                aria-label="插件市场搜索关键词"
-              />
+              <Input placeholder="关键词（留空 = 全部插件包）" value={marketQ} onChange={(e) => setMarketQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') void searchMarketPlugins(marketQ) }} aria-label="插件市场搜索关键词" size="xs" className="w-64" />
               <Button type="button" onClick={() => void searchMarketPlugins(marketQ)} disabled={marketBusy !== ''} aria-label="搜索插件包" variant="accent" size="xs">
                 {marketBusy === 'search' ? <Loader2 size={11} className="animate-spin" /> : <Search size={11} />} 搜索
               </Button>

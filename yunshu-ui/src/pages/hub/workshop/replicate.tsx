@@ -21,7 +21,7 @@
 import { useState } from 'react'
 import type { ChangeEvent, KeyboardEvent } from 'react'
 import { ClipboardCopy, Loader2, Package, RefreshCw, Upload } from 'lucide-react'
-import { Card, ErrorBox, PageHeader, Textarea } from '../components/ui'
+import { Card, ErrorBox, Input, PageHeader, Textarea } from '../components/ui'
 import { ApiError, request } from '@/lib/apiClient'
 import { SUBAGENT_BUNDLE_BY_NAME, SUBAGENT_IMPORT } from '@/api/endpoints'
 
@@ -206,14 +206,7 @@ export default function WorkshopReplicate() {
           导出前整包过一次密钥闸：任何长期密钥形态都会被**拒绝导出**（只存引用，不存值）。
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={onEnter}
-            data-testid="replicate-name"
-            placeholder="分身名称（如 sa-1）"
-            className="w-64 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden"
-          />
+          <Input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={onEnter} data-testid="replicate-name" placeholder="分身名称（如 sa-1）" size="md" className="w-64" />
           <button
             type="button"
             onClick={exportBundle}

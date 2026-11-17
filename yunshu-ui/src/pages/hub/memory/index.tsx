@@ -8,7 +8,7 @@
  */
 import { useEffect, useState } from 'react'
 import { Brain, Search, Plus } from 'lucide-react'
-import { Button, Card, StatCard, Loading, ErrorBox, PageHeader, Textarea } from '../components/ui'
+import { Button, Card, ErrorBox, Input, Loading, PageHeader, StatCard, Textarea } from '../components/ui'
 // 【P1-front 第六批】三个端点都已带 X-Envelope: v2（overview 是 GET，另两个是 POST），
 // 改用显式信封解析：GET 走 getEnvelope、POST 走 postEnvelope（后者的请求头语义与 hubPost 逐条对齐）。
 import { getEnvelope, postEnvelope } from '@/api/envelope'
@@ -199,13 +199,7 @@ export default function MemoryPage({ mode = 'manual' }: MemoryPageProps) {
 
         <Card title="知识检索">
           <div className="flex gap-2">
-            <input
-              value={searchQ}
-              onChange={(e) => setSearchQ(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && doSearch()}
-              placeholder="搜索记忆 / 知识…"
-              className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden focus:border-cyan-600"
-            />
+            <Input value={searchQ} onChange={(e) => setSearchQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && doSearch()} placeholder="搜索记忆 / 知识…" size="md" className="flex-1" />
             <button onClick={doSearch} className="flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800">
               <Search size={14} /> 搜索
             </button>
@@ -229,14 +223,7 @@ export default function MemoryPage({ mode = 'manual' }: MemoryPageProps) {
             先「查一下」看清内容，再「确认删除」。
           </p>
           <div className="flex gap-2">
-            <input
-              value={delId}
-              onChange={(e) => { setDelId(e.target.value); setDelCheck(null); setDelMsg('') }}
-              onKeyDown={(e) => e.key === 'Enter' && void checkDel()}
-              placeholder="msg_id，例如 2026-10-25T00:12:33.123456+00:00"
-              aria-label="msg_id"
-              className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 font-mono text-xs text-slate-200 placeholder-slate-600 outline-hidden focus:border-cyan-600"
-            />
+            <Input value={delId} onChange={(e) => { setDelId(e.target.value); setDelCheck(null); setDelMsg('') }} onKeyDown={(e) => e.key === 'Enter' && void checkDel()} placeholder="msg_id，例如 2026-10-25T00:12:33.123456+00:00" aria-label="msg_id" size="xs" className="flex-1" inputClassName="font-mono" />
             <button
               onClick={() => void checkDel()}
               disabled={delBusy !== '' || !delId.trim()}

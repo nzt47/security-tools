@@ -63,7 +63,7 @@ import {
   type AlarmRulesPayload,
 } from '@/api/alarms'
 import { formatAge } from '@/utils/format'
-import { Badge, Button, Card, ErrorBox, hubGet, Loading, PageHeader, Select } from '../components/ui'
+import { Badge, Button, Card, ErrorBox, hubGet, Input, Loading, PageHeader, Select } from '../components/ui'
 import { getEnvelope } from '@/api/envelope'
 import { downloadFile } from '../../../utils/system'
 import HealthVitals from './health-vitals'
@@ -1310,13 +1310,7 @@ export default function PanoramaHealth() {
           {tab === 'metrics' && (
             <div data-testid="panel-metrics">
               <div className="mb-3 flex flex-wrap items-center gap-2">
-                <input
-                  data-testid="metric-search"
-                  value={metricSearch}
-                  onChange={(e) => setMetricSearch(e.target.value)}
-                  placeholder="搜索指标名称..."
-                  className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-200 placeholder:text-slate-600"
-                />
+                <Input data-testid="metric-search" value={metricSearch} onChange={(e) => setMetricSearch(e.target.value)} placeholder="搜索指标名称..." size="xs" className="w-44" />
                 <Select data-testid="metric-type-filter" value={metricType} onChange={(v) => setMetricType(v)} size="sm" placeholder="所有类型" placeholderOptionDisabled={false} options={[{ label: '计数器', value: 'counter' }, { label: '仪表', value: 'gauge' }, { label: '直方图', value: 'histogram' }]} />
                 <span className="text-xs text-slate-500">共 {allMetrics.length} 条，筛选后 {filteredMetrics.length} 条</span>
               </div>

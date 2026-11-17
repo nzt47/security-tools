@@ -10,7 +10,7 @@
 import AssetsMigration from './MigrationPanel'
 import { useEffect, useState } from 'react'
 import { Archive, Plus, Trash2 } from 'lucide-react'
-import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, Button, hubGet, hubPost, hubDelete } from '../components/ui'
+import { Badge, Button, Card, DataTable, ErrorBox, hubDelete, hubGet, hubPost, Input, Loading, PageHeader } from '../components/ui'
 import {
   ASSETS_OVERVIEW,
   ASSETS_BACKUP,
@@ -228,13 +228,7 @@ export default function AssetsPage({ initialCategory = 'memory' }: AssetsPagePro
                   ]}
                 />
                 <div className="mt-3 flex gap-2">
-                  <input
-                    value={newTitle}
-                    onChange={(e) => setNewTitle(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && addItem()}
-                    placeholder={`添加${activeCat?.label ?? active}条目…`}
-                    className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden focus:border-cyan-600"
-                  />
+                  <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addItem()} placeholder={`添加${activeCat?.label ?? active}条目…`} size="md" className="flex-1" />
                   <Button variant="primary" size="md" onClick={addItem}>
                     <Plus size={14} /> 添加
                   </Button>

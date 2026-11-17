@@ -8,6 +8,7 @@
  */
 import { useState } from 'react'
 import { ShieldCheck, ShieldX } from 'lucide-react'
+import { Input } from '@/components/ui'
 import { useLayoutStore } from '../../../stores/useLayoutStore'
 import { approveRecord, rejectRecord } from '../../../lib/approvalActions'
 
@@ -73,13 +74,7 @@ export function ApprovalPrompt() {
           )}
         </div>
 
-        <input
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="备注（批准可留空；驳回必填原因）"
-          data-testid="approval-note"
-          className="mt-3 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-200 placeholder-slate-600 outline-hidden focus:border-amber-600"
-        />
+        <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="备注（批准可留空；驳回必填原因）" data-testid="approval-note" size="xs" className="mt-3" />
         {err && <div className="mt-2 text-caption text-red-400">{err}</div>}
 
         <div className="mt-3 flex items-center justify-end gap-2">

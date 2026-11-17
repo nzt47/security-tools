@@ -12,10 +12,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { Download, Loader2, Plus, Trash2, Power } from 'lucide-react'
-import {
-  Button, Card, Loading, ErrorBox, DataTable, Badge, PageHeader,
-  hubGet, hubPost,
-} from '../components/ui'
+import { Badge, Button, Card, DataTable, ErrorBox, hubGet, hubPost, Input, Loading, PageHeader } from '../components/ui'
 
 import {
   EXTENSIONS_DISCOVER,
@@ -150,8 +147,8 @@ export default function ToolsMcp() {
       {showForm && (
         <Card className="mb-4">
           <div className="flex gap-2">
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="服务名称" className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden" />
-            <input value={cmd} onChange={(e) => setCmd(e.target.value)} placeholder="启动命令 (command)" className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden" />
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="服务名称" size="md" className="flex-1" />
+            <Input value={cmd} onChange={(e) => setCmd(e.target.value)} placeholder="启动命令 (command)" size="md" className="flex-1" />
             <Button onClick={add} variant="primary" size="sm">保存</Button>
           </div>
         </Card>

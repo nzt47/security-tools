@@ -12,7 +12,7 @@
  */
 import { useEffect, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
-import { Button, Card, ErrorBox, hubGet, Loading, PageHeader, Select, unwrap } from '../components/ui'
+import { Button, Card, ErrorBox, hubGet, Input, Loading, PageHeader, Select, unwrap } from '../components/ui'
 import LogCenterPanel from './log-center-panel'
 
 interface LogEntry {
@@ -118,12 +118,7 @@ export default function PanoramaLogs() {
         actions={
           <div className="flex items-center gap-2">
             <Select value={level} onChange={(v) => setLevel(v)} size="sm" placeholder="全部级别" placeholderOptionDisabled={false} options={[{ label: 'DEBUG', value: 'DEBUG' }, { label: 'INFO', value: 'INFO' }, { label: 'WARNING', value: 'WARNING' }, { label: 'ERROR', value: 'ERROR' }]} />
-            <input
-              value={query} onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && load()}
-              placeholder="关键字过滤"
-              className="w-40 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-300 placeholder-slate-600 outline-hidden"
-            />
+            <Input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load()} placeholder="关键字过滤" size="xs" className="w-40" />
             <Select
               size="sm"
               className="w-24"
