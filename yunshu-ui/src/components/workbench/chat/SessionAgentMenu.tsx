@@ -14,6 +14,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Bot, Check, ChevronDown, Loader2, RefreshCw, X } from 'lucide-react'
+import { Button } from '@/components/ui'
 import { getEnvelope } from '@/api/envelope'
 import { sessionApi } from '../../../lib/sessionApi'
 import { SUBAGENT_LIST } from '@/api/endpoints'
@@ -172,14 +173,9 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
               >
                 {loading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
               </button>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                aria-label="关闭智能体菜单"
-                className="rounded-sm p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
-              >
+              <Button type="button" onClick={() => setOpen(false)} aria-label="关闭智能体菜单" className="h-5 w-5" variant="ghost" size="icon">
                 <X size={12} />
-              </button>
+              </Button>
             </div>
           </div>
 

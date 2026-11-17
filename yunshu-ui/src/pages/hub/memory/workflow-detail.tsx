@@ -6,6 +6,7 @@
  * 完整 model_dump（description / trigger_patterns / steps / 统计）如实呈现，不新增后端接口。
  */
 import { X } from 'lucide-react'
+import { Button } from '@/components/ui'
 
 export interface WorkflowStep {
   step_id?: string
@@ -69,9 +70,9 @@ export function WorkflowDetailModal({ wf, onClose }: { wf: WorkflowDetail; onClo
             <h2 className="truncate text-sm font-semibold text-slate-100">{wf.name || wf.id}</h2>
             <p className="mt-0.5 font-mono text-caption text-slate-500">{wf.id}</p>
           </div>
-          <button type="button" onClick={onClose} aria-label="关闭" className="rounded-md p-1 text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+          <Button type="button" onClick={onClose} aria-label="关闭" className="h-6 w-6" variant="ghost" size="icon">
             <X size={16} />
-          </button>
+          </Button>
         </div>
 
         <p className="mt-3 whitespace-pre-wrap rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs text-slate-300">

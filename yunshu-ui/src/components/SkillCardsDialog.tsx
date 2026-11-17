@@ -12,6 +12,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, BookOpen, Cpu, Loader2, Search, X } from 'lucide-react'
+import { Button } from '@/components/ui'
 import { authHeader } from '../lib/apiToken'
 import { SKILLS_MGMT_CARDS, SKILLS_MGMT_NATIVE, skillCardLayer } from '../api/endpoints'
 
@@ -197,9 +198,9 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
             <h2 className="text-sm font-semibold text-slate-100">能力卡</h2>
             <span className="text-caption text-slate-500">我到底有哪些能力</span>
           </div>
-          <button type="button" onClick={onClose} className="rounded-md p-1 text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+          <Button type="button" onClick={onClose} className="h-6 w-6" variant="ghost" size="icon">
             <X size={14} />
-          </button>
+          </Button>
         </div>
 
         <div className="flex items-center gap-1 border-b border-slate-800 px-4 py-2">

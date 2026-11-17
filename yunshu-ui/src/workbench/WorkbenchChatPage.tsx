@@ -17,6 +17,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { FileText, FolderOpen, History, Lightbulb, MessageSquare, RotateCcw, X } from 'lucide-react'
+import { Button } from '@/components/ui'
 import { ChatPanel } from '../components/workbench/panels/ChatPanel'
 import { ContextManagerBar } from '../components/workbench/panels/ContextManagerBar'
 import { HistoryDrawer } from '../components/workbench/panels/HistoryDrawer'
@@ -607,15 +608,9 @@ export default function WorkbenchChatPage() {
           <div className="border-t border-slate-800 bg-slate-950/60 px-4 py-3">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-caption text-slate-500">交接文档（Markdown，含脱敏；生成后落盘到临时目录）</span>
-              <button
-                type="button"
-                onClick={() => setHandoffOpen(false)}
-                aria-label="关闭交接文档"
-                title="关闭交接文档"
-                className="rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200"
-              >
+              <Button type="button" onClick={() => setHandoffOpen(false)} aria-label="关闭交接文档" title="关闭交接文档" className="h-6 w-6" variant="ghost" size="icon">
                 <X size={12} />
-              </button>
+              </Button>
             </div>
             <HandoffPanel sessionId={sessionId ?? ''} />
           </div>

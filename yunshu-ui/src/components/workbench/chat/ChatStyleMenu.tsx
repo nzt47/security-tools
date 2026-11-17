@@ -10,6 +10,7 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { Palette, RotateCcw, X } from 'lucide-react'
+import { Button } from '@/components/ui'
 import {
   CHAT_BUBBLE_STYLES,
   CHAT_FONT_SIZES,
@@ -75,14 +76,9 @@ export function ChatStyleMenu() {
         <div className="absolute right-0 top-[calc(100%+6px)] z-70 w-[286px] rounded-xl border border-slate-700 bg-slate-900/98 p-3 shadow-2xl backdrop-blur-sm">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-body font-medium text-slate-200">🎨 对话风格</span>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="rounded-sm p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
-              aria-label="关闭风格设置"
-            >
+            <Button type="button" onClick={() => setOpen(false)} className="h-5 w-5" aria-label="关闭风格设置" variant="ghost" size="icon">
               <X size={12} />
-            </button>
+            </Button>
           </div>
 
           {/* 颜色主题 */}

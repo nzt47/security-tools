@@ -14,6 +14,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Activity, AlertTriangle, CheckCircle2, ChevronRight, Loader2, Stethoscope, X } from 'lucide-react'
+import { Button } from '@/components/ui'
 import { authHeader } from '../../../lib/apiToken'
 
 import {
@@ -134,14 +135,9 @@ export function LlmHealthMenu() {
               >
                 {loading ? <Loader2 size={11} className="animate-spin" /> : '重新自检'}
               </button>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                aria-label="关闭 LLM 自检"
-                className="rounded-sm p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
-              >
+              <Button type="button" onClick={() => setOpen(false)} aria-label="关闭 LLM 自检" className="h-5 w-5" variant="ghost" size="icon">
                 <X size={12} />
-              </button>
+              </Button>
             </div>
           </div>
 

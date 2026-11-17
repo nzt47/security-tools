@@ -12,6 +12,7 @@
  */
 import { useMemo, useState } from 'react'
 import { ChevronDown, Search, X } from 'lucide-react'
+import { Button } from '@/components/ui'
 import { HUB_NAV, filterNav, type HubNavItem } from '../../../workbench/hubNav'
 import { useWorkbenchNav } from '../../../workbench/navStore'
 
@@ -113,15 +114,9 @@ export function NavPanel() {
             className="w-full rounded-md border border-slate-800 bg-slate-950/60 py-1 pl-6 pr-6 text-body text-slate-200 placeholder:text-slate-600 focus:border-cyan-600/60 focus:outline-hidden"
           />
           {searching && (
-            <button
-              type="button"
-              aria-label="清空搜索"
-              data-cp-nav-search-clear
-              onClick={() => setQuery('')}
-              className="absolute right-1 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-slate-500 hover:text-slate-200"
-            >
+            <Button type="button" aria-label="清空搜索" data-cp-nav-search-clear onClick={() => setQuery('')} className="absolute right-1 top-1/2 -translate-y-1/2 h-5 w-5" variant="ghost" size="icon">
               <X size={12} />
-            </button>
+            </Button>
           )}
         </div>
       </div>

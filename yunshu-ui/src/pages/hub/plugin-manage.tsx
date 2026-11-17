@@ -559,14 +559,9 @@ export default function PluginManagePage() {
               <PackagePlus size={14} className="text-cyan-400" />
               <h3 className="text-sm font-semibold text-slate-100">从市场安装插件包</h3>
               <span className="text-micro text-slate-500">只列 `type=plugin`；装完自动刷新清单</span>
-              <button
-                type="button"
-                onClick={() => setMarketOpen(false)}
-                className="ml-auto rounded-md border border-slate-700 p-1 text-slate-400 hover:bg-slate-800"
-                aria-label="关闭插件市场抽屉"
-              >
+              <Button type="button" onClick={() => setMarketOpen(false)} className="ml-auto h-6 w-6" aria-label="关闭插件市场抽屉" variant="ghost" size="icon">
                 <X size={12} />
-              </button>
+              </Button>
             </div>
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <input

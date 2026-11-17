@@ -289,14 +289,9 @@ export function HistoryDrawer({ sessionId, onClose }: HistoryDrawerProps) {
               className="w-full rounded-md border border-slate-700/80 bg-slate-900/80 py-1.5 pl-8 pr-7 text-body text-slate-200 outline-hidden transition-colors placeholder:text-slate-600 focus:border-cyan-600/70"
             />
             {search && (
-              <button
-                type="button"
-                onClick={() => setSearch('')}
-                title="清空搜索"
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-slate-500 hover:text-slate-200"
-              >
+              <Button type="button" onClick={() => setSearch('')} title="清空搜索" className="absolute right-1.5 top-1/2 -translate-y-1/2 h-5 w-5" variant="ghost" size="icon">
                 <X size={11} />
-              </button>
+              </Button>
             )}
           </div>
         </div>

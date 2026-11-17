@@ -354,14 +354,9 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
               >
                 {loading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
               </button>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                aria-label="关闭子代理菜单"
-                className="rounded-sm p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
-              >
+              <Button type="button" onClick={() => setOpen(false)} aria-label="关闭子代理菜单" className="h-5 w-5" variant="ghost" size="icon">
                 <X size={12} />
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -589,14 +584,9 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
                   ? `（显示最近 ${records.length} 条）`
                   : ''}
               </span>
-              <button
-                type="button"
-                onClick={() => void loadHistory()}
-                title="刷新委派记录"
-                className="rounded-sm p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
-              >
+              <Button type="button" onClick={() => void loadHistory()} title="刷新委派记录" className="h-5 w-5" variant="ghost" size="icon">
                 <RefreshCw size={10} />
-              </button>
+              </Button>
             </div>
 
             {recordsError && (

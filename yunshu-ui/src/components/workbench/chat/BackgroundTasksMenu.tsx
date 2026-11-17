@@ -20,7 +20,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Ban, ChevronRight, Loader2, RefreshCw, X, Zap } from 'lucide-react'
-import { hubGet, hubPost } from '../../../pages/hub/components/ui'
+import { Button, hubGet, hubPost } from '../../../pages/hub/components/ui'
 
 const POLL_MS = 5000
 
@@ -185,14 +185,9 @@ export function BackgroundTasksMenu() {
               >
                 {loading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
               </button>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                aria-label="关闭后台任务菜单"
-                className="rounded-sm p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
-              >
+              <Button type="button" onClick={() => setOpen(false)} aria-label="关闭后台任务菜单" className="h-5 w-5" variant="ghost" size="icon">
                 <X size={12} />
-              </button>
+              </Button>
             </div>
           </div>
 

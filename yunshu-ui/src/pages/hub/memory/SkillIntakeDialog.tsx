@@ -17,6 +17,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, CheckCircle2, GitBranch, Loader2, X } from 'lucide-react'
+import { Button } from '@/components/ui'
 import { authHeader } from '../../../lib/apiToken'
 import { SKILLS_MGMT } from '../../../api/endpoints'
 
@@ -131,9 +132,9 @@ export default function SkillIntakeDialog({ open, onClose }: Props) {
             <h2 className="text-sm font-semibold text-slate-100">入轨助手</h2>
             <span className="text-caption text-slate-500">把技能从「只在本机」变成「在仓库里」</span>
           </div>
-          <button type="button" onClick={onClose} className="rounded-md p-1 text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+          <Button type="button" onClick={onClose} className="h-6 w-6" variant="ghost" size="icon">
             <X size={14} />
-          </button>
+          </Button>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 text-caption leading-relaxed text-slate-400">

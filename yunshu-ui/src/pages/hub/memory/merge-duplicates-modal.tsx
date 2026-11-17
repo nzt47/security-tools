@@ -99,7 +99,7 @@ export default function MergeDuplicatesModal({ skillId, skillName, onClose, onDo
           <h3 className="flex items-center gap-1.5 text-sm font-semibold text-slate-100">
             <Copy size={13} className="text-cyan-400" /> 合并重复技能 · {skillName || skillId}
           </h3>
-          <button type="button" onClick={onClose} aria-label="关闭合并重复弹窗" className="text-slate-500 hover:text-slate-300"><X size={14} /></button>
+          <Button type="button" onClick={onClose} aria-label="关闭合并重复弹窗" className="h-6 w-6" variant="ghost" size="icon"><X size={14} /></Button>
         </div>
         <p className="mb-3 text-caption leading-relaxed text-slate-400">
           「合并到本技能」= 把对方的内容/标签并进来并删除对方；后端**先写两侧快照**，
