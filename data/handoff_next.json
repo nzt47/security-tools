@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-17T20:40:00+08:00",
+ "updated_at": "2026-11-17T23:55:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -770,8 +770,8 @@
    "status": "open",
    "priority": "P2",
    "title": "Electron 手工验收：6px 抓取条的拖拽拆分 / 拖到边缘分离独立窗口",
-   "criteria": "B 步（ui-chrome-slimming-b）把面板标题栏换成 6px 抓取条后，拖拽入口从\"24px 标题栏\"变成\"6px 细条\"。已经用 CDP 在 headless Edge 里证明：真实鼠标按在抓取条上能起拖（Input.dragIntercepted 收到 react-dnd 的 application/json payload），拖到另一面板上时 mosaic 的 12 个 .drop-target 全部显形 ⇒ 抓取条确实是 HTML5 drag source。但**合成 drop 事件没能走完 mosaic 的 updateTree**（布局停在\"拖拽 hide\"，nav 0%）——这是回放限制，不能当作功能可用或不可用的证据；且\"拖到窗口边缘分离为独立窗口\"本身就只在 Electron 里成立（isElectron() false 时 detachPanel 直接 return），headless Web 根本测不到。（补充：Owner 回调后顶部细条高度为 0，拖拽入口只剩面板顶边居中的 44×9 抓手 + 28×2 可见线；验收时注意抓手是唯一的拖拽入口。）",
-   "next": "【2026-11-17 20:3x 复核，交接前最后一次】本机仍没有 electron 二进制：npm i 成功（exit 0）但它不下载二进制；显式跑 node node_modules/electron/install.js 后，%LOCALAPPDATA%/electron/Cache 里三个条目都是 1 字节（下载被挡），node_modules/electron/dist/electron.exe 仍不存在。dist-electron/main.js 已存在。.local/verify_electron.py 已写好三条断言（isElectron / detachPanel 建窗 / ⋮ 三项菜单），二进制一落地就能跑。要做的三步：① 抓取条拖到另一面板拆两半；② 拖到窗口边缘 48px 出现青色高亮、松手建独立 BrowserWindow；③ 面板 ⋮ 在 Electron 下三项（独立窗口/放大/关闭）。半自动路子：electron . --remote-debugging-port=9333 + Playwright connect_over_cdp。在此之前任何「已验证」的说法都是假的。"
+   "criteria": "B 步把面板标题栏换成 6px 抓取条后，拖拽入口只剩面板顶边居中的 44×9 抓手 + 28×2 可见线。【2026-11-17 第 95 轮真机进展】electron 二进制已落地：%LOCALAPPDATA%/electron/Cache 里的 electron-v43.8.3-win32-x64.zip（151,457,540 B）SHA-256 = 98efbd2d…c6de，与 node_modules/electron/checksums.json 里该条目**逐字一致**（install.js 走网络仍 fetch failed，故手动解压到 dist 并写 path.txt）。★ 起进程必须带 --no-sandbox：不带会直接 EXCEPTION_BREAKPOINT（electron!electron::fuses::…，exit -2147483645），本机（受限会话）建不了 Chromium 沙箱；另需清掉环境里的 ELECTRON_RUN_AS_NODE=1，否则 electron.exe 当 node 跑（--version 会打印 node 版本）。",
+   "next": "【已验证，可复跑】.local/verify_electron_cdp.py（新版：自己连 9333 的 CDP，不再用 p.electron.launch）三档读数 PASS：① isElectron=true、getWindowMeta={isElectron:true,kind:'main'}；② ⋮ 菜单三项齐全 [独立窗口/放大/关闭]（注意：独立窗口是 DetachButton 的普通 button + aria-label，**不带** role=menuitem，按 menuitem 取会只看到两项）；③ 点「独立窗口」真的多出一个 BrowserWindow（CDP target http://127.0.0.1:5678/chat#/detached/nav，meta kind='detached'/panelId='nav'），主窗口面板数 2 → 1。截图 .ui_shots/ELECTRON_menu.png / ELECTRON_detached.png。【仍未验证的两步，别当已验】① 抓取条拖到另一面板拆两半；② 拖到窗口边缘 48px 出现青色高亮、松手建窗。原因：mosaic/react-dnd 的 HTML5 拖放靠原生 drag 循环，CDP 合成 dragstart/drop 实测让 8 个 .drop-target 显形但布局树不变（windows 仍 1）—— 与上一轮的结论一致。下一步（唯一可行）：用 user32 SendInput / AutoHotkey 级别**真实鼠标事件**在可见窗口里拖（本机需交互桌面），或由 Owner 手点一次并录屏。另：Electron 起窗时会打印 net\\disk_cache 'Unable to move the cache: 拒绝访问' —— 用户数据目录 %APPDATA%/云枢 的 Cache 目录权限问题，只影响磁盘缓存（不影响功能），要清零得单独处理 profile 目录 ACL。"
   },
   {
    "id": "prompt-lab-factors-column-narrow",
@@ -936,8 +936,8 @@
    "status": "open",
    "priority": "P2",
    "title": "UI 原语迁移第 2/3 批：提示词实验室之外的原生按钮/下拉/输入（735/54/233 处）",
-   "criteria": "2026-11-16 审计+第 1 批+第 2 批分片一之后：components/ui 仍只有 12 个文件在用（全在 pages/system + ConfirmDialog）。提示词实验室已全量迁移；workbench 的**自造按钮家族已清零**（.wb-send-btn/.wb-stop-btn/.wb-reset-btn/.wb-panel-toggle 全删，改 ui/Button；CompressPrefixSwitch 改 ui/Switch）。剩余：DockPanel 17 个手写按钮、SessionRail 行内按钮 + 1 个 select + 7 个 input、以及 workbench 的成片 text-[Npx]。守卫基线：raw_button 720 / raw_select 54 / raw_input 233 / arbitrary_text 1505。",
-   "next": "2026-11-17 收口状态：raw_button **604 → 247**、raw_select **53 → 6**、raw_input **227 → 93**、raw_textarea **43 → 28**、raw_heading **102 → 85**、arbitrary_text **0**、css_hardcoded_color 基线 **387**。剩余都是有理由的：① raw_select 6 —— 开关中心多选（data-* + 二次确认流程）、CodeEditorPanel 的 .wb-editor-lang、plugins/schema 的 SelectField/TagsField（schema 渲染器 controlClass 体系）、CustomFactorForm 的 .pl-select、logs.test 夹具；② raw_button 247 —— 绝大多数是 role=tab 页签（按口径保留原生）、icon-only 与 className 为表达式/模板的；③ raw_input 93 —— 52 处 type=checkbox/radio（确认类刻意不换 Switch），其余是带特殊定位/受控的输入框；④ raw_textarea 28 —— 多数是 .pl-textarea/自绘面板的文本域（下一步可像 .pl-text 那样成批换）。工具：codemod_btn2 / codemod_icon_btn / codemod_input3 / _pl_inputs 都在 .local/，可直接续跑。 ★ 2026-11-17 20:3x 交接时的下一片建议：raw_textarea 28（照 .pl-text 那批的做法，先看 CSS 有没有真样式规则）。"
+   "criteria": "2026-11-16 审计+第 1 批+第 2 批分片一之后：components/ui 只有 12 个文件在用。现读数（2026-11-17 第 95 轮）：raw_button 247 / raw_select 6 / raw_input 93 / **raw_textarea 7** / raw_heading 85 / arbitrary_text 0 / css_hardcoded_color 387。",
+   "next": "2026-11-17 第 95 轮：raw_textarea **28 → 7**（21 处换 ui/Textarea）。做法照 .pl-text 那批：先 grep CSS 看类有没有真规则 —— 有规则的不硬套（.kb-form-textarea / .wb-input / .wb-editor-input / .pl-prompt-out / .ve-field-input / schema 的 controlClass 两处，共 7 处，要迁得连 CSS 一起重写，属另一件事）。迁的 21 处 = INPUT 常量家族 16（instances / messages-channels / dev-notes / security / installed-extensions / feedback / health-vitals / TransferPanel / orchestration / ops-diagnostics / ingestion / ReviewPanel / KnowledgeAddPanel / skill-detail-drawer×2 / SkillAssetTable，同批删掉 15 个已无引用的 const INPUT） + 内联 Tailwind 直写 5（RoleFormDialog / replicate / computer-use / memory index / SubagentMenu）。真机 1280/1440/1920 三档量了 9 处：字号 11/12/14 都在阶梯内、圆角 6px、底色 rgb(12,17,29)（--color-card）、描边 rgb(34,47,68)（--color-border）、高度 64/72/80/112/123/128/150 与 h-*/min-h-* 一致、problem 0。★ 下一片建议：raw_input 93 里非 checkbox 的那批（52 处 type=checkbox 是按口径**刻意不换** Switch），或 raw_button 247 里非 role=tab 的 icon-only（先跑 .local/_scan_icon_buttons.py 拿清单）。"
   },
   {
    "id": "ui-typography-codemod",
