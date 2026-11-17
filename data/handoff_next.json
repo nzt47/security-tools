@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-18T01:02:00+08:00",
+ "updated_at": "2026-11-18T01:15:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -937,7 +937,7 @@
    "priority": "P2",
    "title": "UI 原语迁移第 2/3 批：提示词实验室之外的原生按钮/下拉/输入（735/54/233 处）",
    "criteria": "2026-11-16 审计+第 1 批+第 2 批分片一之后：components/ui 只有 12 个文件在用。现读数（2026-11-17 第 95 轮）：raw_button 247 / raw_select 6 / raw_input 93 / **raw_textarea 7** / raw_heading 85 / arbitrary_text 0 / css_hardcoded_color 387。",
-   "next": "2026-11-18 收口状态（§11.147）：raw_button **604 → 160**、raw_input **227 → 69**、raw_select **53 → 6**、raw_textarea **43 → 7**、raw_heading **102 → 85**、arbitrary_text **0**、css_hardcoded_color 基线 **387**。原语侧这一轮补齐了两处真缺口：Button 的 **icon-sm(24px) / icon-xs(20px)**（此前 18 处调用方用 size=icon + className=h-5/h-6 覆盖，现在清零）与 **ui/Checkbox**（46 个原生 checkbox 的原因；Switch 与 Checkbox 是两种语义，不能互替）。另修掉 codemod 的全局 replace 坑（unread > 0 被压成 unread> 0）。剩余构成：raw_button 160 = expr className 91 / 字面量 40 / role=tab 12 / 无 className 11 / 字面量 icon 5；raw_input 69 里约 42 个是 checkbox（其余按 memory-maintenance 的写法可成批换）；raw_select 6 与 raw_textarea 7 各有自造 CSS 或二次确认流程。**没有原语的三处属设计决策**（不是漏做）：Tabs（12 处 role=tab，但视觉分细条/页级/胶囊三种，要先定一套）、浅色表面变体（VisualEditor 白底，原语是深色 token 系）、plugins/schema 的 controlClass 体系（字段类型驱动，另一套口径）。"
+   "next": "2026-11-18 收口状态（§11.147）：raw_button **604 → 160**、raw_input **227 → 69**、raw_select **53 → 6**、raw_textarea **43 → 7**、raw_heading **102 → 85**、arbitrary_text **0**、css_hardcoded_color 基线 **387**。原语侧这一轮补齐了两处真缺口：Button 的 **icon-sm(24px) / icon-xs(20px)**（此前 18 处调用方用 size=icon + className=h-5/h-6 覆盖，现在清零）与 **ui/Checkbox**（46 个原生 checkbox 的原因；Switch 与 Checkbox 是两种语义，不能互替）。另修掉 codemod 的全局 replace 坑（unread > 0 被压成 unread> 0）。剩余构成：raw_button 160 = expr className 91 / 字面量 40 / role=tab 12 / 无 className 11 / 字面量 icon 5；raw_input 69 里约 42 个是 checkbox（其余按 memory-maintenance 的写法可成批换）；raw_select 6 与 raw_textarea 7 各有自造 CSS 或二次确认流程。**没有原语的三处属设计决策**（不是漏做）：Tabs（12 处 role=tab，但视觉分细条/页级/胶囊三种，要先定一套）、浅色表面变体（VisualEditor 白底，原语是深色 token 系）、plugins/schema 的 controlClass 体系（字段类型驱动，另一套口径）。 【2026-11-18 §11.148（与 §11.147 并行的另一条线，提交 01585b0e8 是它的父提交）】raw_input 这一片单独做了一次：**93 → 73**（20 处换 ui/Input：INPUT 家族式的整行 flex 输入 + 3 处 codemod 安全阀跳过的手工改）。三条可复用的判据写在这里，下一片照抄：① **原标签没有宽度类的必须显式给宽度** —— 原语 wrapper 自带 w-full，health 的「指标搜索」就是这么被撑开整行的（补 w-44）；② codemod 的安全阀（标签里有行注释，或字符串里有双斜杠如 https://）会跳过真需要改的输入框，别把这当成「不用改」；③ 保留原生的 73 处当时构成：checkbox/radio 51（等 ui/Checkbox 成批换）、浅色主题 4（Login/Profile，换暗色 token 会把页面做坏）、无边框行内搜索 5、schema controlClass 3、自造 CSS 2、密集内联控件 6（DockPanel 3 / SessionRail 2 / MemorySessionsImportCard 1，原语最小档 h-6 会把行撑高）、file 1。真机三档 30/30 problems 全空（.local/shots_inputs.py；量具坑：先把所有元素滚完再量会把前面的又滚出视口，必须逐个先滚再量）。"
   },
   {
    "id": "ui-typography-codemod",
