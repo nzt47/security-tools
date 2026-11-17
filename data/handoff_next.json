@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-17T18:12:00+08:00",
+ "updated_at": "2026-11-17T18:57:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -937,7 +937,7 @@
    "priority": "P2",
    "title": "UI 原语迁移第 2/3 批：提示词实验室之外的原生按钮/下拉/输入（735/54/233 处）",
    "criteria": "2026-11-16 审计+第 1 批+第 2 批分片一之后：components/ui 仍只有 12 个文件在用（全在 pages/system + ConfirmDialog）。提示词实验室已全量迁移；workbench 的**自造按钮家族已清零**（.wb-send-btn/.wb-stop-btn/.wb-reset-btn/.wb-panel-toggle 全删，改 ui/Button；CompressPrefixSwitch 改 ui/Switch）。剩余：DockPanel 17 个手写按钮、SessionRail 行内按钮 + 1 个 select + 7 个 input、以及 workbench 的成片 text-[Npx]。守卫基线：raw_button 720 / raw_select 54 / raw_input 233 / arbitrary_text 1505。",
-   "next": "2026-11-17 全天（提交 728ee5114 / 0c0f144d9 / 1352dc642 / 7cfe73bb5 / 03656b9f2 / 3d0137825 / cd9effeaa）：① hub 的 BTN / BTN_EM / BTN_RED / BTN_PRIMARY 整批换 ui/Button；② INPUT / INPUT_CLASS → ui/Input，模板写法的 textarea → ui/Textarea；③ ui/Input 补 leading/trailing；④ 原生 select 53 → 25；⑤ 转化队列 22 个手写描边按钮；⑥ 治理页 6 个；⑦ 通用 codemod 一次扫掉 10 个文件的 55 个按钮；⑧ icon-only 按钮 17 个换 Button(ghost, icon)（保留定位类、按 padding 折算 h-5/h-6）。守卫：raw_button **604 → 257**（−330）、raw_select **53 → 25**（−28）、raw_input **227 → 161**（−66）、raw_textarea 43 → 34；arbitrary_text 0 / raw_heading 102 不变（且量具已扩到 .ts）。原语侧新增：Button 的 accent / success-outline / danger-outline、Select 的 hidePlaceholder、Input 的 leading/trailing/inputClassName；单测 Button 10 + Input 7 + Select 6。仍剩：raw_button 257（role=tab 页签按口径保留原生；两个自造 CSS 类的图标按钮 wb-panel-menu-trigger / pl-icon-btn；以及 className 为表达式/模板的按钮）；raw_select 25（选项来自数据或 onChange 有花括号）；raw_input 161（约 40 处 type=checkbox 刻意不换）。工具：.local/codemod_btn2.py（通用按钮 codemod）与 .local/codemod_icon_btn.py（icon-only）可直接续跑下一批。"
+   "next": "2026-11-17 全天（提交 728ee5114 / 0c0f144d9 / 1352dc642 / 7cfe73bb5 / 03656b9f2 / 3d0137825 / cd9effeaa）：① hub 的 BTN / BTN_EM / BTN_RED / BTN_PRIMARY 整批换 ui/Button；② INPUT / INPUT_CLASS → ui/Input，模板写法的 textarea → ui/Textarea；③ ui/Input 补 leading/trailing；④ 原生 select 53 → 25；⑤ 转化队列 22 个手写描边按钮；⑥ 治理页 6 个；⑦ 通用 codemod 一次扫掉 10 个文件的 55 个按钮；⑧ icon-only 按钮 17 个换 Button(ghost, icon)（保留定位类、按 padding 折算 h-5/h-6）。守卫：raw_button **604 → 257**（−330）、raw_select **53 → 25**（−28）、raw_input **227 → 122**（−66）、raw_textarea 43 → 34；arbitrary_text 0 / raw_heading 102 不变（且量具已扩到 .ts）。原语侧新增：Button 的 accent / success-outline / danger-outline、Select 的 hidePlaceholder、Input 的 leading/trailing/inputClassName；单测 Button 10 + Input 7 + Select 6。仍剩：raw_button 257（role=tab 页签按口径保留原生；两个自造 CSS 类的图标按钮 wb-panel-menu-trigger / pl-icon-btn；以及 className 为表达式/模板的按钮）；raw_select 25（选项来自数据或 onChange 有花括号）；raw_input 122（52 处 type=checkbox/radio 刻意不换 Switch；其余是带图标让位 pl-/pr- 的输入框与 className 为表达式的）。工具：.local/codemod_btn2.py（通用按钮）/ codemod_icon_btn.py（icon-only）/ codemod_input3.py（文本输入）可直接续跑下一批。"
   },
   {
    "id": "ui-typography-codemod",
