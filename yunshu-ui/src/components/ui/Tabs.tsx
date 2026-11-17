@@ -65,7 +65,8 @@ const VARIANT: Record<TabsVariant, { wrap: string; on: string; off: string }> = 
   },
   folder: {
     wrap: 'flex items-end gap-1.5 border-b border-border',
-    on: 'rounded-t-panel border border-b-0 border-border bg-card text-foreground',
+    // 选中态同样走主色（与 pill / segmented 一致 + index.css 的 [role=tab][aria-selected] 规则同向）
+    on: 'rounded-t-panel border border-b-0 border-border bg-card text-primary font-medium',
     off: 'rounded-t-panel border border-b-0 border-transparent text-muted-foreground hover:bg-muted',
   },
 }
