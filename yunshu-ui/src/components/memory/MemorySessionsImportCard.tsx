@@ -10,7 +10,7 @@
  */
 import { useEffect, useState } from 'react'
 import { DownloadCloud, Loader2, Play } from 'lucide-react'
-import { Button, Card } from '@/pages/hub/components/ui'
+import { Button, Card, Checkbox } from '@/pages/hub/components/ui'
 import {
   MemoryImportApiError, fetchMemorySessionLatest, fetchMemorySessionSources,
   importMemorySessions,
@@ -135,16 +135,7 @@ export default function MemorySessionsImportCard() {
           个待导入会话（0=全部）
         </label>
         {source === 'dsh' && (
-          <label className="inline-flex items-center gap-1" title="子代理会话也是真实对话；只导主会话时取消勾选">
-            <input
-              type="checkbox"
-              checked={includeSubagents}
-              disabled={busy !== ''}
-              onChange={(e) => setIncludeSubagents(e.target.checked)}
-              aria-label="包含子代理会话"
-            />
-            包含子代理会话
-          </label>
+          <Checkbox checked={includeSubagents} disabled={busy !== ''} onChange={(e) => setIncludeSubagents(e.target.checked)} label="包含子代理会话" />
         )}
         <Button type="button" variant="default" size="xs" onClick={() => void run(true)} disabled={busy !== '' || !current?.available} aria-label="只跑 dry-run">
           {busy === 'dry' ? <Loader2 size={11} className="animate-spin" /> : <DownloadCloud size={11} />} 只跑 dry-run
@@ -155,16 +146,7 @@ export default function MemorySessionsImportCard() {
         </Button>
       </div>
 
-      <label className="mb-2 inline-flex items-center gap-1 text-caption text-slate-400">
-        <input
-          type="checkbox"
-          checked={confirmed}
-          disabled={busy !== ''}
-          onChange={(e) => setConfirmed(e.target.checked)}
-          aria-label="确认只追加不删除"
-        />
-        我已确认：只追加新行、不删既有消息（重跑幂等）
-      </label>
+      <Checkbox checked={confirmed} disabled={busy !== ''} onChange={(e) => setConfirmed(e.target.checked)} label="我已确认：只追加新行、不删既有消息（重跑幂等）" aria-label="确认只追加不删除" />
 
       {err && <div className="mb-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-caption text-red-300">{err}</div>}
       {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}

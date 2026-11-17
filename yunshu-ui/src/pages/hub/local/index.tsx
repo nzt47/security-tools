@@ -16,7 +16,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   FileText, FolderOpen, HardDrive, Loader2, Play, RefreshCw, Search, Trash2, XOctagon,
 } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost, Input, Select, Textarea } from '../components/ui'
+import { Button, Checkbox, ErrorBox, hubGet, hubPost, Input, Select, Textarea } from '../components/ui'
 import {
   FILESYSTEM_INFO,
   FILESYSTEM_LIST,
@@ -313,10 +313,7 @@ export default function LocalResources() {
             <Input size="sm" className="mb-2 w-full" value={writePath} onChange={(e) => setWritePath(e.target.value)} placeholder="目标文件路径" aria-label="写入文件路径" />
             <Textarea size="sm" className="h-28 w-full font-mono" value={writeText} onChange={(e) => setWriteText(e.target.value)} placeholder="文件内容" aria-label="写入文件内容" />
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <label className="flex items-center gap-1 text-micro text-slate-400">
-                <input type="checkbox" checked={confirmWrite} onChange={(e) => setConfirmWrite(e.target.checked)} aria-label="确认写入文件" />
-                我确认覆盖写入
-              </label>
+              <Checkbox checked={confirmWrite} onChange={(e) => setConfirmWrite(e.target.checked)} label="我确认覆盖写入" aria-label="确认写入文件" />
               <Button type="button" variant="danger-outline" size="xs" onClick={() => void writeFile()} disabled={loading || !confirmWrite || writePath.trim() === ''} aria-label="写入文件">
                 {busy === 'write' ? <Loader2 size={11} className="animate-spin" /> : null} 写入
               </Button>
@@ -347,17 +344,11 @@ export default function LocalResources() {
             <Input size="sm" className="mb-2 w-full" value={wsPath} onChange={(e) => setWsPath(e.target.value)} placeholder="相对路径，如 notes/todo.md" aria-label="工作区路径" />
             <Textarea size="sm" className="h-24 w-full font-mono" value={wsText} onChange={(e) => setWsText(e.target.value)} placeholder="内容" aria-label="工作区文件内容" />
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <label className="flex items-center gap-1 text-micro text-slate-400">
-                <input type="checkbox" checked={confirmWsWrite} onChange={(e) => setConfirmWsWrite(e.target.checked)} aria-label="确认写入工作区" />
-                我确认写入
-              </label>
+              <Checkbox checked={confirmWsWrite} onChange={(e) => setConfirmWsWrite(e.target.checked)} label="我确认写入" aria-label="确认写入工作区" />
               <Button type="button" variant="accent" size="xs" onClick={() => void wsWrite()} disabled={loading || !confirmWsWrite || wsPath.trim() === ''} aria-label="写入工作区">
                 {busy === 'ws-write' ? <Loader2 size={11} className="animate-spin" /> : null} 写入
               </Button>
-              <label className="ml-2 flex items-center gap-1 text-micro text-slate-400">
-                <input type="checkbox" checked={confirmWsDelete} onChange={(e) => setConfirmWsDelete(e.target.checked)} aria-label="确认删除工作区文件" />
-                我确认删除
-              </label>
+              <Checkbox checked={confirmWsDelete} onChange={(e) => setConfirmWsDelete(e.target.checked)} label="我确认删除" aria-label="确认删除工作区文件" />
               <Button type="button" variant="danger-outline" size="xs" onClick={() => void wsDelete()} disabled={loading || !confirmWsDelete || wsPath.trim() === ''} aria-label="删除工作区文件">
                 <Trash2 size={11} /> 删除
               </Button>
@@ -396,10 +387,7 @@ export default function LocalResources() {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Input size="sm" className="w-40" value={stopPid} onChange={(e) => setStopPid(e.target.value)} placeholder="pid" aria-label="进程 pid" />
-              <label className="flex items-center gap-1 text-micro text-slate-400">
-                <input type="checkbox" checked={confirmStop} onChange={(e) => setConfirmStop(e.target.checked)} aria-label="确认终止进程" />
-                我确认终止
-              </label>
+              <Checkbox checked={confirmStop} onChange={(e) => setConfirmStop(e.target.checked)} label="我确认终止" aria-label="确认终止进程" />
               <Button type="button" variant="danger-outline" size="xs" onClick={() => void stopProcess()} disabled={loading || !confirmStop || stopPid.trim() === ''} aria-label="终止进程">
                 {busy === 'stop' ? <Loader2 size={11} className="animate-spin" /> : <XOctagon size={11} />} 终止
               </Button>

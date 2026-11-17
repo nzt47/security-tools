@@ -11,7 +11,7 @@
  */
 import { useEffect, useState } from 'react'
 import { DownloadCloud, Loader2, RefreshCw, ShieldCheck, Undo2 } from 'lucide-react'
-import { Button, Card } from '../components/ui'
+import { Button, Card, Checkbox } from '../components/ui'
 import MemorySessionsImportCard from '@/components/memory/MemorySessionsImportCard'
 import {
   MemoryImportApiError, commitMemoryImport, fetchImportedVectorDocs,
@@ -236,16 +236,7 @@ export default function MemoryImportPanel() {
             {!s.available && <span className="text-micro text-slate-500">（未找到）</span>}
           </label>
         ))}
-        <label className="inline-flex items-center gap-1">
-          <input
-            type="checkbox"
-            checked={includeTranscripts}
-            disabled={busy !== '' || !pickedSources.includes('claude')}
-            onChange={(e) => setIncludeTranscripts(e.target.checked)}
-            aria-label="解析会话转录"
-          />
-          解析 Claude 会话转录（约 53 MB，约 10 秒）
-        </label>
+        <Checkbox checked={includeTranscripts} disabled={busy !== '' || !pickedSources.includes('claude')} onChange={(e) => setIncludeTranscripts(e.target.checked)} label="解析 Claude 会话转录（约 53 MB，约 10 秒）" aria-label="解析会话转录" />
         <label
           className={'inline-flex items-center gap-1 ' + (llmAvailable ? '' : 'opacity-40')}
           title={llmAvailable ? '只作用于会话批次；规则/提问轨迹不会被改写' : '未配置 LLM_API_KEY / DEEPSEEK_API_KEY'}
@@ -348,15 +339,7 @@ export default function MemoryImportPanel() {
           </div>
 
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <label className="inline-flex items-center gap-1 text-caption text-slate-300">
-              <input
-                type="checkbox"
-                checked={confirmed}
-                onChange={(e) => setConfirmed(e.target.checked)}
-                aria-label="我确认已核对预览内容"
-              />
-              我确认已核对预览内容
-            </label>
+            <Checkbox checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} label="我确认已核对预览内容" />
             <Button type="button" variant="default" size="xs" onClick={() => void doCommit(true)} disabled={busy !== '' || !pickedBatches.length} aria-label="只回放">
               {busy === 'dry' ? <Loader2 size={11} className="animate-spin" /> : <ShieldCheck size={11} />} 只回放（dry-run）
             </Button>

@@ -11,7 +11,7 @@
  */
 import { useState } from 'react'
 import { Download, Loader2, RotateCcw, Trash2 } from 'lucide-react'
-import { Button, hubDelete, hubPost, Input } from '../components/ui'
+import { Button, Checkbox, hubDelete, hubPost, Input } from '../components/ui'
 import { ASSETS_EXPORT, ASSETS_RESTORE, assetBackupById } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
@@ -79,17 +79,11 @@ export default function AssetsMigration() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <label className="flex items-center gap-1 text-micro text-slate-400">
-          <input type="checkbox" checked={confirmRestore} onChange={(e) => setConfirmRestore(e.target.checked)} aria-label="确认恢复资产" />
-          我确认用该备份覆盖当前资产
-        </label>
+        <Checkbox checked={confirmRestore} onChange={(e) => setConfirmRestore(e.target.checked)} label="我确认用该备份覆盖当前资产" aria-label="确认恢复资产" />
         <Button type="button" variant="accent" size="xs" onClick={() => void restore()} disabled={loading || !confirmRestore || backupId.trim() === ''} aria-label="恢复资产">
           {busy === 'restore' ? <Loader2 size={11} className="animate-spin" /> : <RotateCcw size={11} />} 恢复
         </Button>
-        <label className="ml-3 flex items-center gap-1 text-micro text-slate-400">
-          <input type="checkbox" checked={confirmDelete} onChange={(e) => setConfirmDelete(e.target.checked)} aria-label="确认删除备份" />
-          我确认删除该备份
-        </label>
+        <Checkbox checked={confirmDelete} onChange={(e) => setConfirmDelete(e.target.checked)} label="我确认删除该备份" aria-label="确认删除备份" />
         <Button type="button" variant="danger-outline" size="xs" onClick={() => void removeBackup()} disabled={loading || !confirmDelete || backupId.trim() === ''} aria-label="删除备份">
           {busy === 'delete' ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />} 删除备份
         </Button>

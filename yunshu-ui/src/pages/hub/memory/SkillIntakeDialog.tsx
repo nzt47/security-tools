@@ -17,7 +17,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, CheckCircle2, GitBranch, Loader2, X } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button, Checkbox } from '@/components/ui'
 import { authHeader } from '../../../lib/apiToken'
 import { SKILLS_MGMT } from '../../../api/endpoints'
 
@@ -192,25 +192,10 @@ export default function SkillIntakeDialog({ open, onClose }: Props) {
               未入轨 <strong className="text-amber-300">{pending.length}</strong> 条 · 已入轨 {tracked} 条
             </span>
             <div className="flex items-center gap-2">
-              <label className="flex items-center gap-1 text-micro text-slate-400">
-                <input type="checkbox" checked={autoFix} onChange={(e) => setAutoFix(e.target.checked)} />
-                自动补全元数据
-              </label>
-              <label
-                className="flex items-center gap-1 text-micro text-slate-400"
-                title="刷新 tests/unit 里那几处能力面基线（== 142 / by_kind / envelope…）。它们等于「干净 worktree 重派生」的结果，是发现清单被手改的哨兵 —— 所以默认不勾，等你在 diff 里确认过派生结果再勾。"
-              >
-                <input type="checkbox" checked={refreshBaselines} onChange={(e) => setRefreshBaselines(e.target.checked)} />
-                同时刷新基线
-              </label>
+              <Checkbox checked={autoFix} onChange={(e) => setAutoFix(e.target.checked)} label="自动补全元数据" />
+              <Checkbox checked={refreshBaselines} onChange={(e) => setRefreshBaselines(e.target.checked)} label="同时刷新基线" />
               {items.some((i) => i.llm_available) ? (
-                <label
-                  className="flex items-center gap-1 text-micro text-slate-400"
-                  title="让 LLM 从正文摘录能力卡分节；每条必须能逐字指回原文，验不过的整条丢弃。只写 CARD.md，不改 skill.md 正文。"
-                >
-                  <input type="checkbox" checked={useLlm} onChange={(e) => setUseLlm(e.target.checked)} />
-                  LLM 补两节（带引用校验）
-                </label>
+                <Checkbox checked={useLlm} onChange={(e) => setUseLlm(e.target.checked)} label="LLM 补两节（带引用校验）" />
               ) : null}
               <Button type="button" onClick={() => void load()} variant="default" size="xs">
                 刷新
