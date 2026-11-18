@@ -488,24 +488,28 @@ export default function ToolsToolset() {
 
       {/* 平面筛选 */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <button
+        <Button
+          size="sm"
+          variant={filter === 'all' ? 'default' : 'ghost'}
+          className={filter === 'all' ? 'bg-muted' : undefined}
           onClick={() => setFilter('all')}
-          className={`rounded-md px-3 py-1.5 text-xs ${filter === 'all' ? 'bg-slate-700 text-slate-100' : 'bg-slate-800/60 text-slate-400 hover:bg-slate-700/60'}`}
         >
           全部 {merged.length}
-        </button>
+        </Button>
         {groups.map((g) => {
           const def = planes.find((p) => p.key === g.plane)
           const style = PLANE_STYLE[g.plane]
           return (
-            <button
+            <Button
               key={g.plane}
+              size="sm"
+              variant={filter === g.plane ? 'default' : 'ghost'}
+              className={filter === g.plane ? 'bg-muted' : undefined}
               onClick={() => setFilter(g.plane)}
               title={def?.hint ?? style?.desc ?? ''}
-              className={`rounded-md px-3 py-1.5 text-xs ${filter === g.plane ? 'bg-slate-700 text-slate-100' : 'bg-slate-800/60 text-slate-400 hover:bg-slate-700/60'}`}
             >
               {def?.label ?? (g.plane === 'undeclared' ? '未声明' : g.plane)} {g.rows.length}
-            </button>
+            </Button>
           )
         })}
       </div>

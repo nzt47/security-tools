@@ -14,7 +14,7 @@
 import LearningMetrics from './LearningMetrics'
 import { useCallback, useEffect, useState } from 'react'
 import { Search, RefreshCw, Undo2, CheckCircle2, XCircle, Archive } from 'lucide-react'
-import { Badge, Button, Card, ErrorBox, Input, Loading, PageHeader, Select, StatCard } from '../components/ui'
+import { Badge, Button, Card, ErrorBox, Input, Loading, PageHeader, RowButton, Select, StatCard } from '../components/ui'
 import {
   fetchDetail, fetchList, fetchStats, reviewItem, rollbackBatch, searchPreview,
   type ExperienceHit, type ExperienceItem, type ExperienceStats,
@@ -183,8 +183,8 @@ export default function ExperiencePanel() {
           {loading && <Loading />}
           <div className="max-h-[460px] space-y-1.5 overflow-y-auto">
             {items.map((it) => (
-              <button key={it.id} onClick={() => void onOpen(it.id)}
-                className={`block w-full rounded-lg border px-3 py-2 text-left transition ${selected?.id === it.id ? 'border-cyan-700 bg-cyan-950/20' : 'border-slate-800 bg-slate-900/60 hover:border-slate-700'}`}>
+              <RowButton key={it.id} selected={selected?.id === it.id} onClick={() => void onOpen(it.id)}
+                className="rounded-lg border border-border px-3 py-2">
                 <div className="flex items-center gap-2">
                   <span className="flex-1 truncate text-xs text-slate-300">{it.task || it.id}</span>
                   <Badge color={VERIFIED_COLOR[it.verified || ''] || 'slate'}>{it.verified || '?'}</Badge>
@@ -196,7 +196,7 @@ export default function ExperiencePanel() {
                   <span>pitfall×{it.pitfalls?.length ?? 0}</span>
                   <span>{it.review_status || 'pending'}</span>
                 </div>
-              </button>
+              </RowButton>
             ))}
             {!loading && items.length === 0 && <div className="py-8 text-center text-xs text-slate-600">库为空。请先运行 extract.py 产出语料。</div>}
           </div>

@@ -4,6 +4,7 @@
  */
 import { useState } from 'react';
 import { History, MessageSquare, LayoutDashboard, Wrench, BookOpen } from 'lucide-react';
+import { RowButton } from '@/components/ui'
 
 const NAV_ITEMS = [
   { key: 'chat', label: '对话', icon: MessageSquare },
@@ -41,15 +42,15 @@ export function SidebarPanel() {
       {/* 导航 */}
       <nav className="flex flex-col gap-1 px-3">
         {NAV_ITEMS.map(({ key, label, icon: Icon }) => (
-          <button
+          <RowButton
             key={key}
-            type="button"
+            size="sm"
+            selected={active === key}
             onClick={() => setActive(key)}
-            className={`wb-nav-item ${active === key ? 'active' : ''}`}
+            leading={<Icon size={14} />}
           >
-            <Icon size={14} />
             {label}
-          </button>
+          </RowButton>
         ))}
       </nav>
 
@@ -62,15 +63,16 @@ export function SidebarPanel() {
       </div>
       <div className="wb-think-scroll min-h-0 flex-1 overflow-y-auto px-3 pb-3">
         {MOCK_HISTORY.map((s) => (
-          <button
+          <RowButton
             key={s.id}
-            type="button"
+            size="sm"
+            selected={currentSession === s.id}
             onClick={() => setCurrentSession(s.id)}
-            className={`wb-history-item ${currentSession === s.id ? 'active' : ''}`}
+            className="px-2 py-1"
           >
             <span className="min-w-0 flex-1 truncate text-left">{s.title}</span>
             <span className="shrink-0 font-mono text-micro text-slate-600">{s.time}</span>
-          </button>
+          </RowButton>
         ))}
       </div>
     </div>

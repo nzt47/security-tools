@@ -52,17 +52,15 @@ function NavGroup({
 
   return (
     <div>
-      <button
-        type="button"
+      <RowButton
+        selected={hasActiveChild}
         onClick={() => setOpen(!open)}
-        className={`flex w-full items-center gap-2 rounded-control px-2.5 py-1.5 text-left text-body font-medium transition-colors ${
-          hasActiveChild ? 'text-primary' : 'text-foreground/80 hover:bg-muted/60'
-        }`}
+        className="px-2.5 py-1.5 font-medium"
       >
-        {Icon && <Icon size={13} className={hasActiveChild ? 'text-primary' : 'text-muted-foreground'} />}
+        {Icon && <Icon size={13} />}
         <span className="flex-1 truncate">{item.label}</span>
         <ChevronDown size={12} className={`shrink-0 transition-transform ${expanded ? '' : '-rotate-90'}`} />
-      </button>
+      </RowButton>
       {expanded && (
         <div className="ml-2 mt-0.5 space-y-0.5 border-l border-border pl-1.5">
           {item.children?.map((child) =>

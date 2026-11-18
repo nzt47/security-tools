@@ -25,6 +25,9 @@ export type ButtonVariant =
   | 'danger'
   | 'danger-outline'
   | 'ghost'
+  // plain：不带任何外观（无边框/底色/排版），只保留可点 + focus ring。
+  // 用于「外观由父级或调用方 className 决定」的位置（如工作台菜单项、面板弹出的独立窗口项）。
+  | 'plain'
 /**
  * icon：正方形只放图标（32×32），用于工具栏/卡片右上角
  * xs  ：行内/工具条上的紧凑控件（24px 高，text-micro）—— 用于右侧面板、会话行等密集区域；
@@ -36,7 +39,7 @@ export type ButtonVariant =
  * `size="icon" className="h-5 w-5"` 这种"外面套原语、里面再覆盖尺寸"的写法 —— 那等于原语没封装住：
  * 2026-11-18 全仓数到 18 处这种覆盖。现在三档都在原语里，调用方只挑档、不再写 h-/w-。
  */
-export type ButtonSize = 'xs' | 'sm' | 'md' | 'icon' | 'icon-sm' | 'icon-xs'
+export type ButtonSize = 'xs' | 'sm' | 'md' | 'icon' | 'icon-sm' | 'icon-xs' | 'bare'
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   /** 视觉类型，默认 default */
@@ -69,6 +72,7 @@ const LIGHT_VARIANT_CLASSES: Record<ButtonVariant, string> = {
   danger: 'bg-danger text-danger-foreground hover:bg-danger/90',
   'danger-outline': 'border border-danger/50 text-danger hover:bg-danger/10',
   ghost: 'text-foreground hover:bg-muted',
+  plain: 'bg-transparent text-inherit',
 }
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
@@ -81,6 +85,7 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   danger: 'bg-danger text-danger-foreground hover:bg-danger/90',
   'danger-outline': 'border border-danger/50 text-danger hover:bg-danger/10',
   ghost: 'text-foreground hover:bg-muted',
+  plain: 'bg-transparent text-inherit',
 }
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
@@ -90,6 +95,8 @@ const SIZE_CLASSES: Record<ButtonSize, string> = {
   icon: 'h-8 w-8 rounded-control p-0',
   'icon-sm': 'h-6 w-6 rounded-control p-0',
   'icon-xs': 'h-5 w-5 rounded-control p-0',
+  // bare：不设高度与内边距（外观全交给 className），用于"可点区域"类按钮
+  bare: 'p-0',
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(

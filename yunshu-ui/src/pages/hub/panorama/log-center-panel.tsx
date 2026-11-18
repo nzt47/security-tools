@@ -16,7 +16,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { Activity, AlertTriangle, BookOpen, Lightbulb, Loader2, RefreshCw, Search, Sparkles } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost, Input, Select } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost, Input, Select, Tabs } from '../components/ui'
 import {
   LOGS_API_ACTIONS,
   LOGS_API_ERRORS,
@@ -238,24 +238,16 @@ export default function LogCenterPanel() {
       </div>
 
       <div className="mb-2 flex flex-wrap items-center gap-1">
-        {TABS.map((t) => {
-          const Icon = t.icon
-          return (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setTab(t.key)}
-              aria-selected={tab === t.key}
-              className={'flex items-center gap-1 rounded-lg px-2.5 py-1 text-caption transition-colors ' + (
-                tab === t.key
-                  ? 'bg-cyan-500/15 font-medium text-cyan-300'
-                  : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
-              )}
-            >
-              <Icon size={11} />{t.label}
-            </button>
-          )
-        })}
+        <Tabs
+          variant="segmented"
+          size="sm"
+          value={tab}
+          onChange={(v) => setTab(v as typeof tab)}
+          items={TABS.map((t) => {
+            const Icon = t.icon
+            return { value: t.key, label: <><Icon size={11} />{t.label}</> }
+          })}
+        />
       </div>
 
       {err && <ErrorBox message={err} />}

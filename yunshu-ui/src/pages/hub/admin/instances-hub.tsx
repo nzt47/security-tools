@@ -12,6 +12,7 @@
  */
 import { useState } from 'react'
 import { Activity, Cpu, Globe } from 'lucide-react'
+import { Tabs } from '@/components/ui'
 import InstancesPanel from './instances'
 import SearchPerformance from './search-perf'
 import NetworkPage from '@/pages/hub/network'
@@ -39,21 +40,13 @@ export default function InstancesHub() {
   return (
     <div className="flex h-full min-h-0 flex-col bg-slate-950">
       <div className="flex items-center gap-1.5 border-b border-slate-800 px-4 py-2">
-        {TABS.map(([id, label, Icon]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setTab(id)}
-            aria-selected={tab === id}
-            className={'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs transition-colors ' + (
-              tab === id
-                ? 'bg-cyan-500/15 font-medium text-cyan-300'
-                : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
-            )}
-          >
-            <Icon size={13} />{label}
-          </button>
-        ))}
+        <Tabs
+          variant="segmented"
+          size="sm"
+          value={tab}
+          onChange={(v) => setTab(v as typeof tab)}
+          items={TABS.map(([id, label, Icon]) => ({ value: id, label: <><Icon size={13} />{label}</> }))}
+        />
         <span className="ml-auto font-mono text-micro text-slate-600">{active[3]}</span>
       </div>
       <div className="min-h-0 flex-1">

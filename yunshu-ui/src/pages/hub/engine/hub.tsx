@@ -11,7 +11,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { HeartPulse, CalendarClock, History as HistoryIcon, ListChecks, Settings2 } from 'lucide-react'
 
-import { Card, Loading, ErrorBox, DataTable, Badge } from '../components/ui'
+import { Badge, Card, DataTable, ErrorBox, Loading, Tabs } from '../components/ui'
 import { SCHEDULER_HISTORY } from '@/api/endpoints'
 import { authHeader } from '@/lib/apiToken'
 import { BOOT_PANEL } from '@/workbench/hubNav'
@@ -91,24 +91,16 @@ export default function EngineHub() {
   return (
     <div>
       <div className="flex flex-wrap items-center gap-2 px-6 pt-4">
-        {TABS.map((t) => {
-          const Icon = t.icon
-          const active = tab === t.key
-          return (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={
-                'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs transition-colors ' +
-                (active
-                  ? 'bg-cyan-600 text-white'
-                  : 'border border-slate-700 text-slate-300 hover:bg-slate-800')
-              }
-            >
-              <Icon size={12} /> {t.label}
-            </button>
-          )
-        })}
+        <Tabs
+          variant="segmented"
+          size="sm"
+          value={tab}
+          onChange={(v) => setTab(v as typeof tab)}
+          items={TABS.map((t) => {
+            const Icon = t.icon
+            return { value: t.key, label: <><Icon size={12} /> {t.label}</> }
+          })}
+        />
         <span className="ml-2 text-xs text-slate-500">
           只读视图默认打开；启停与改时刻只在「定时任务」内
         </span>

@@ -310,16 +310,13 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
 
   return (
     <div className="relative" ref={boxRef}>
-      <button
-        type="button"
+      <Button
+        size="xs"
+        variant="default"
+        active={open}
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         title="子代理：展示并选择当前任务委托的子代理"
-        className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-caption transition-colors ${
-          open
-            ? 'border-emerald-600/60 bg-emerald-500/10 text-emerald-300'
-            : 'border-slate-700 text-slate-400 hover:border-emerald-600/60 hover:bg-slate-800 hover:text-emerald-300'
-        }`}
       >
         <Bot size={11} />
         子代理
@@ -338,7 +335,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
             {recordsTotal}
           </Badge>
         ) : null}
-      </button>
+      </Button>
 
       {open && (
         <div className="absolute right-0 top-[calc(100%+6px)] z-70 w-[380px] rounded-xl border border-slate-700 bg-slate-900/98 p-3 text-body shadow-2xl backdrop-blur-sm">
@@ -492,11 +489,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
                     ? '当前没有活跃分身：将用**临时分身**执行（现建现用、跑完即回收），与模型侧 delegate 工具同一条链路'
                     : '把任务交给所选分身执行（真委派：八要素 + 隔离 + Trace + 成本）'
               }
-              className={`flex w-full items-center justify-center gap-1.5 rounded-md border px-2 py-1 text-caption disabled:opacity-40 ${
-                readyToDelegate
-                  ? 'border-emerald-700/60 text-emerald-300 hover:bg-emerald-500/10'
-                  : 'border-slate-700 text-slate-400'
-              }`}
+              className="w-full"
             >
               {running ? <Loader2 size={11} className="animate-spin" /> : <Play size={11} />}
               {running

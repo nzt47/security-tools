@@ -11,6 +11,7 @@
  * 菜单里传 wb-panel-menu-item + "独立窗口"，**不改动作语义**。
  */
 import { ExternalLink } from 'lucide-react';
+import { Button } from '@/components/ui';
 import { isElectron } from '../../electron/types';
 import type { PanelId } from '../../lib/mosaic';
 
@@ -37,8 +38,10 @@ export function DetachButton({
   };
 
   return (
-    <button
+    <Button
       type="button"
+      variant="plain"
+      size="bare"
       className={className}
       title="弹出到独立窗口"
       aria-label={ariaLabel}
@@ -46,6 +49,6 @@ export function DetachButton({
     >
       <ExternalLink size={11} />
       独立窗口
-    </button>
+    </Button>
   );
 }

@@ -40,6 +40,13 @@ describe('ui/RowButton', () => {
     expect(screen.getByRole('button')).toBeDisabled()
   })
 
+  it('bare：不设 min-height（行内可点区域用）', () => {
+    render(<RowButton bare>标题</RowButton>)
+    const cls = screen.getByRole('button').className
+    expect(cls).not.toContain('min-h')
+    expect(cls).toContain('py-0.5')
+  })
+
   it('两档行高', () => {
     const { rerender } = render(<RowButton>行</RowButton>)
     expect(screen.getByRole('button').className).toContain('min-h-10')

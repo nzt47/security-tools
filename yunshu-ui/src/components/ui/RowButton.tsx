@@ -24,6 +24,12 @@ export interface RowButtonProps extends React.ButtonHTMLAttributes<HTMLButtonEle
   size?: RowButtonSize
   /** 当前选中（列表里"就是这一项"） */
   selected?: boolean
+  /**
+   * 不设行高（仍保留 hover/选中/圆角）。
+   * 【为什么需要】有些"行内可点区域"（会话标题、消息里的可点内容）本身没有固定行高，
+   * 它们的高度由父级排版决定 —— 加 min-height 会改变整行的节奏。bare 只给内边距与状态色。
+   */
+  bare?: boolean
   /** 左侧（图标/序号） */
   leading?: React.ReactNode
   /** 右侧（徽章/快捷键/箭头） */
@@ -36,7 +42,7 @@ const SIZE: Record<RowButtonSize, string> = {
 }
 
 const RowButton = forwardRef<HTMLButtonElement, RowButtonProps>(function RowButton(
-  { size = 'md', selected = false, leading, trailing, children, className, disabled, ...props },
+  { size = 'md', selected = false, bare = false, leading, trailing, children, className, disabled, ...props },
   ref,
 ) {
   return (
@@ -47,7 +53,7 @@ const RowButton = forwardRef<HTMLButtonElement, RowButtonProps>(function RowButt
       aria-current={selected ? 'true' : undefined}
       className={cn(
         'flex w-full items-center gap-2 rounded-control text-left transition-colors',
-        SIZE[size],
+        bare ? 'px-1 py-0.5' : SIZE[size],
         selected ? 'bg-primary/15 text-primary' : 'text-foreground hover:bg-muted',
         disabled && 'cursor-not-allowed opacity-60 hover:bg-transparent',
         className,

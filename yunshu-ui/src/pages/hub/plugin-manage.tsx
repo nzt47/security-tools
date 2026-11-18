@@ -458,18 +458,16 @@ export default function PluginManagePage() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
+                  <Button
                     data-testid={`plugin-config-toggle-${p.name}`}
+                    size="xs"
+                    variant={config?.name === p.name ? 'accent' : 'default'}
+                    className="flex-1"
                     onClick={() => openConfig(p)}
-                    className={`flex flex-1 items-center justify-center gap-1 rounded-md border px-3 py-1.5 text-caption transition-colors ${
-                      config?.name === p.name
-                        ? 'border-cyan-800 bg-cyan-950/40 text-cyan-300'
-                        : 'border-slate-800 text-slate-400 hover:bg-slate-800/60'
-                    }`}
                   >
-                    <Settings2 size={11} className={config?.name === p.name ? 'text-cyan-400' : ''} />
+                    <Settings2 size={11} />
                     {config?.name === p.name ? '收起配置' : '配置'}
-                  </button>
+                  </Button>
                   <Button data-testid={`plugin-routes-toggle-${p.name}`} onClick={() => setRouteName(routeName === p.name ? null : p.name)} className="flex-1" variant="default" size="xs">
                     <ChevronDown size={11} className={`transition-transform ${routeName === p.name ? 'rotate-180' : ''}`} />
                     {routeName === p.name ? '收起明细' : '路由明细'}

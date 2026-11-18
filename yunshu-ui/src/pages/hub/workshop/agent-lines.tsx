@@ -25,7 +25,7 @@ import {
   Check, Copy, Info, Layers, MessageSquare, Plus, Save, Search, ShieldAlert, Sparkles,
   Target, Trash2, Users,
 } from 'lucide-react'
-import { Badge, Button, CallabilityBadge, Card, ErrorBox, Input, Loading, PageHeader, Textarea } from '../components/ui'
+import { Badge, Button, CallabilityBadge, Card, ErrorBox, Input, Loading, PageHeader, RowButton, Textarea } from '../components/ui'
 import { Slider } from '@/components/ui'
 import { callabilityCounts, callabilityLegend, hasCallabilityMark } from '@/lib/callability'
 import {
@@ -1154,12 +1154,11 @@ export default function ToolsAgentLines() {
                 {lines.map((l) => {
                   const on = l.id === selectedId
                   return (
-                    <button
+                    <RowButton
                       key={l.id}
+                      selected={on}
                       onClick={() => selectLine(l)}
-                      className={`w-full rounded-lg border px-3 py-2 text-left transition-colors ${
-                        on ? 'border-cyan-700 bg-cyan-950/30' : 'border-slate-800 bg-slate-900/40 hover:bg-slate-800/50'
-                      }`}
+                      className="rounded-lg border border-border px-3 py-2"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="truncate text-sm font-medium text-slate-200">
@@ -1189,7 +1188,7 @@ export default function ToolsAgentLines() {
                         )}
                       </div>
                       <div className="mt-1.5 text-caption text-slate-500">{planeSummary(l)}</div>
-                    </button>
+                    </RowButton>
                   )
                 })}
               </div>

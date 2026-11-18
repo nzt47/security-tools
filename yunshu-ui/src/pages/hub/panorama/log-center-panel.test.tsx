@@ -50,7 +50,7 @@ describe('LogCenterPanel', () => {
   it('错误 Tab 拉 errors', async () => {
     baseGets()
     render(<LogCenterPanel />)
-    fireEvent.click(screen.getByRole('button', { name: /错误/ }))
+    fireEvent.click(screen.getByRole('tab', { name: /错误/ }))
     await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/logs/api/errors'))
     expect(await screen.findByText('boom')).toBeTruthy()
   })
@@ -58,7 +58,7 @@ describe('LogCenterPanel', () => {
   it('洞察 Tab 同时拉 insights / knowledge / actions', async () => {
     baseGets()
     render(<LogCenterPanel />)
-    fireEvent.click(screen.getByRole('button', { name: /洞察/ }))
+    fireEvent.click(screen.getByRole('tab', { name: /洞察/ }))
     await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/logs/api/insights'))
     await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/logs/api/knowledge'))
     await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/logs/api/actions'))
@@ -69,7 +69,7 @@ describe('LogCenterPanel', () => {
   it('查询 Tab 带 limit/level/q 参数', async () => {
     baseGets()
     render(<LogCenterPanel />)
-    fireEvent.click(screen.getByRole('button', { name: /操作查询/ }))
+    fireEvent.click(screen.getByRole('tab', { name: /操作查询/ }))
     await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/logs/api/query?limit=20'))
 
     fireEvent.change(screen.getByLabelText('操作日志关键字'), { target: { value: 'startup' } })
@@ -82,7 +82,7 @@ describe('LogCenterPanel', () => {
     baseGets()
     api.hubPost.mockResolvedValue({ ok: true, message: '已排入队列' })
     render(<LogCenterPanel />)
-    fireEvent.click(screen.getByRole('button', { name: /内省引擎/ }))
+    fireEvent.click(screen.getByRole('tab', { name: /内省引擎/ }))
     await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/logs/api/introspection/status'))
     expect(await screen.findByText('2026-10-18 00:30')).toBeTruthy()
 

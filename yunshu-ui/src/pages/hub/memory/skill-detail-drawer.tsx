@@ -20,7 +20,7 @@ import {
   AlertTriangle, CheckCircle2, Copy, FileCode, Gauge, Loader2, MessageSquare,
   Play, RefreshCw, ScrollText, X,
 } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost, Input, Select, Tabs, Textarea } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost, Input, RowButton, Select, Tabs, Textarea } from '../components/ui'
 import {
   SKILL_CONTENT,
   SKILLS_MGMT_ASSESS_MERGE_SAFE,
@@ -419,23 +419,20 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
                     {(scripts?.scripts ?? []).map((s, i) => {
                       const name = s.name || s.path || ('script-' + i)
                       return (
-                        <button
+                        <RowButton
                           key={name + i}
-                          type="button"
+                          size="sm"
+                          selected={scriptName === name}
                           onClick={() => setScriptName(name)}
                           title="选它作为「要执行的脚本」"
-                          className={'flex items-center gap-2 rounded-sm border px-2 py-1 text-left text-caption transition-colors ' + (
-                            scriptName === name
-                              ? 'border-cyan-700/70 bg-cyan-500/10 text-cyan-200'
-                              : 'border-slate-800 bg-slate-950/60 text-slate-300 hover:bg-slate-800/60'
-                          )}
+                          className="border border-slate-800"
                         >
                           <FileCode size={11} />
                           <span className="font-mono">{name}</span>
                           <span className="ml-auto font-mono text-micro text-slate-500">
                             {s.size_bytes ?? s.size ?? ''} {s.modified ? '· ' + s.modified : ''}
                           </span>
-                        </button>
+                        </RowButton>
                       )
                     })}
                   </div>

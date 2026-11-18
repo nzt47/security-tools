@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Route as RouteIcon, RefreshCw, Search } from 'lucide-react'
-import { Button, Checkbox, Select } from '@/components/ui'
+import { Button, Checkbox, Select, Tabs } from '@/components/ui'
 // 该端点走 v2 统一信封（后端 _ok(payload)）⇒ 必须显式解包；
 // 直接用 request()（返回原始体、不拆信封）会在 {code,data,message} 上读 entries 而**静默拿到空**。
 import { getEnvelope } from '@/api/envelope'
@@ -173,17 +173,29 @@ export default function RouteCoveragePanel() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2 text-xs">
-        {(['all', 'ui', 'cli_script', 'runtime_only', 'unreferenced'] as const).map((c) => (
-          <button key={c} onClick={() => setCat(c)} title={c === 'all' ? undefined : CAT_TIP[c]}
-            className={'rounded-lg border px-3 py-1.5 ' + (cat === c ? 'border-cyan-700 bg-cyan-950/40 text-cyan-300' : 'border-slate-700 text-slate-300 hover:bg-slate-800')}>
-            {c === 'all' ? '全部' : CAT_LABEL[c]}
-            {c !== 'all' && <span className="ml-1 text-slate-500">活体 {liveByCat[c] ?? 0} / 总 {t[c] ?? 0}</span>}
-          </button>
-        ))}
-        <button onClick={() => setPendingOnly((v) => !v)} data-testid="route-pending-filter"
-          className={'ml-2 rounded-lg border px-3 py-1.5 ' + (pendingOnly ? 'border-amber-700 bg-amber-950/40 text-amber-300' : 'border-slate-700 text-slate-300 hover:bg-slate-800')}>
-          该进却未进 <span className="ml-1 text-slate-500">{(data?.pending_ui ?? []).length}</span>
-        </button>
+        <Tabs
+          variant="pill"
+          size="sm"
+          value={cat}
+          onChange={(v) => setCat(v as typeof cat)}
+          items={(['all', 'ui', 'cli_script', 'runtime_only', 'unreferenced'] as const).map((c) => ({
+            value: c,
+            title: c === 'all' ? undefined : CAT_TIP[c],
+            label: c === 'all' ? '全部' : (
+              <>{CAT_LABEL[c]}<span className="ml-1 opacity-70">活体 {liveByCat[c] ?? 0} / 总 {t[c] ?? 0}</span></>
+            ),
+          }))}
+        />
+        <Button
+          size="sm"
+          variant="default"
+          active={pendingOnly}
+          className="ml-2"
+          onClick={() => setPendingOnly((v) => !v)}
+          data-testid="route-pending-filter"
+        >
+          该进却未进 <span className="ml-1 opacity-70">{(data?.pending_ui ?? []).length}</span>
+        </Button>
         <Select
           size="sm"
           className="ml-2 w-44"

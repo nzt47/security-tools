@@ -12,7 +12,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, BookOpen, Cpu, Loader2, Search, X } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button, Tabs } from '@/components/ui'
 import { authHeader } from '../lib/apiToken'
 import { SKILLS_MGMT_CARDS, SKILLS_MGMT_NATIVE, skillCardLayer } from '../api/endpoints'
 
@@ -204,25 +204,16 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
         </div>
 
         <div className="flex items-center gap-1 border-b border-slate-800 px-4 py-2">
-          <button
-            type="button"
-            onClick={() => { setTab('skill'); setQ(''); setExpanded(null) }}
-            className={tab === 'skill'
-              ? 'rounded-md border border-cyan-700/70 bg-cyan-500/10 px-2.5 py-1 text-caption text-cyan-300'
-              : 'rounded-md border border-slate-800 px-2.5 py-1 text-caption text-slate-400 hover:bg-slate-800'}
-          >
-            LLM 技能 {cards.length ? `(${cards.length})` : ''}
-          </button>
-          <button
-            type="button"
-            onClick={() => { setTab('native'); setQ(''); setExpanded(null) }}
-            className={tab === 'native'
-              ? 'rounded-md border border-violet-700/70 bg-violet-500/10 px-2.5 py-1 text-caption text-violet-300'
-              : 'rounded-md border border-slate-800 px-2.5 py-1 text-caption text-slate-400 hover:bg-slate-800'}
-          >
-            <Cpu size={10} className="mr-1 inline" />
-            元生功能 {nativeTotal ? `(${nativeTotal})` : ''}
-          </button>
+          <Tabs
+            variant="pill"
+            size="sm"
+            value={tab}
+            onChange={(v) => { setTab(v as typeof tab); setQ(''); setExpanded(null) }}
+            items={[
+              { value: 'skill', label: 'LLM 技能', count: cards.length || undefined },
+              { value: 'native', label: <><Cpu size={10} /> 元生功能</>, count: nativeTotal || undefined },
+            ]}
+          />
         </div>
 
         <div className="border-b border-slate-800 bg-slate-950/40 px-4 py-2 text-micro leading-relaxed text-slate-500">

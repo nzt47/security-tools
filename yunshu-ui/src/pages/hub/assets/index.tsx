@@ -10,7 +10,7 @@
 import AssetsMigration from './MigrationPanel'
 import { useEffect, useState } from 'react'
 import { Archive, Plus, Trash2 } from 'lucide-react'
-import { Badge, Button, Card, DataTable, ErrorBox, hubDelete, hubGet, hubPost, Input, Loading, PageHeader } from '../components/ui'
+import { Badge, Button, Card, DataTable, ErrorBox, hubDelete, hubGet, hubPost, Input, Loading, PageHeader, RowButton } from '../components/ui'
 import {
   ASSETS_OVERVIEW,
   ASSETS_BACKUP,
@@ -180,19 +180,18 @@ export default function AssetsPage({ initialCategory = 'memory' }: AssetsPagePro
       {/* 类别概览 */}
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
         {CATEGORIES.map((c) => (
-          <button
+          <RowButton
             key={c.key}
+            selected={active === c.key}
             onClick={() => switchCat(c.key)}
-            className={`flex items-center justify-between rounded-xl border p-3 text-left transition-colors ${
-              active === c.key ? 'border-cyan-700 bg-cyan-950/40' : 'border-slate-800 bg-slate-900/60 hover:bg-slate-800/50'
-            }`}
+            className="rounded-xl border border-border p-3"
           >
             <div>
               <div className="text-h2">{c.icon}</div>
               <div className="mt-1 text-xs text-slate-400">{c.label}</div>
             </div>
             <span className="text-xl font-semibold text-white">{overview[c.key] ?? 0}</span>
-          </button>
+          </RowButton>
         ))}
       </div>
 
