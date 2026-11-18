@@ -63,7 +63,7 @@ import {
   type AlarmRulesPayload,
 } from '@/api/alarms'
 import { formatAge } from '@/utils/format'
-import { Badge, Button, Card, ErrorBox, hubGet, Input, Loading, PageHeader, Select, Tabs } from '../components/ui'
+import { Badge, Button, Card, ErrorBox, hubGet, Input, Loading, Notice, PageHeader, Select, Tabs } from '../components/ui'
 import { getEnvelope } from '@/api/envelope'
 import { downloadFile } from '../../../utils/system'
 import HealthVitals from './health-vitals'
@@ -567,9 +567,9 @@ function MetricTile({ card }: { card: OverviewCard }) {
 
 function InlineError({ text }: { text: string }) {
   return (
-    <div className="rounded-lg border border-red-900/60 bg-red-950/30 px-3 py-2 text-xs text-red-400">
+    <Notice tone="danger" size="md">
       加载失败：{text}
-    </div>
+    </Notice>
   )
 }
 

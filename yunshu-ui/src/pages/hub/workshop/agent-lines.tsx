@@ -25,7 +25,7 @@ import {
   Check, Copy, Info, Layers, MessageSquare, Plus, Save, Search, ShieldAlert, Sparkles,
   Target, Trash2, Users,
 } from 'lucide-react'
-import { Badge, Button, CallabilityBadge, Card, ErrorBox, Input, Loading, PageHeader, RowButton, Textarea } from '../components/ui'
+import { Badge, Button, CallabilityBadge, Card, ErrorBox, Input, Loading, Notice, PageHeader, RowButton, Textarea } from '../components/ui'
 import { Slider } from '@/components/ui'
 import { callabilityCounts, callabilityLegend, hasCallabilityMark } from '@/lib/callability'
 import {
@@ -723,10 +723,10 @@ function PreviewPanel({ preview, skills, promptFragments, promptFragmentsNote,
           </div>
 
           {preview.over_budget && (
-            <div className="rounded-lg border border-amber-900/60 bg-amber-950/30 px-3 py-2 text-caption text-amber-300">
+            <Notice tone="warning" size="sm">
               已启用平面的保底名额整体优先于打分名额：宁可略微超出上限，也不让某个平面清零。
               想让总数回到上限内，请下调各平面 plane_floors 或提高 max_tools。
-            </div>
+            </Notice>
           )}
 
           {preview.needs_approval.length > 0 && (
@@ -1124,16 +1124,16 @@ export default function ToolsAgentLines() {
 
       {error && <div className="mb-4"><ErrorBox message={error} /></div>}
       {notice && (
-        <div className="mb-4 rounded-lg border border-emerald-900/60 bg-emerald-950/30 px-4 py-2.5 text-sm text-emerald-300">
+        <Notice tone="success" size="md" className="mb-4">
           {notice}
-        </div>
+        </Notice>
       )}
       {/* 豁免接口是独立端点：它失败只影响开关，本页其余部分照常（故不并进上面的 error） */}
       <ExemptionStatusBar state={exemptions} onReload={() => void exemptions.reload()} />
       {broken.length > 0 && (
-        <div className="mb-4 rounded-lg border border-amber-900/60 bg-amber-950/30 px-4 py-2.5 text-xs text-amber-300">
+        <Notice tone="warning" size="md" className="mb-4">
           以下档案文件读取失败（已在列表中略过）：{broken.join('、')}
-        </div>
+        </Notice>
       )}
       {active === null && (
         <div className="mb-4 rounded-lg border border-slate-800 bg-slate-900/40 px-4 py-2.5 text-xs text-slate-400">

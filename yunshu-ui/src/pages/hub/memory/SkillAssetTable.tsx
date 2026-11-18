@@ -15,7 +15,7 @@ import {
   ChevronDown, ChevronRight, Copy, Download, FilePlus, Filter, Folder, Lightbulb, Loader2, Layers, Plus,
   RefreshCw, Rocket, ScrollText, ShieldCheck, Trash2, X, Zap,
 } from 'lucide-react'
-import { Button, CallabilityBadge, Checkbox, hubGet, hubPost, Input, RowButton, Select, Switch, Textarea } from '../components/ui'
+import { Button, CallabilityBadge, Checkbox, hubGet, hubPost, Input, Notice, RowButton, Select, Switch, Textarea } from '../components/ui'
 import { authHeader, getApiToken } from '../../../lib/apiToken'
 import ClassIcon from './class-icon'
 import ApiTokenPrompt from './api-token-prompt'
@@ -1092,10 +1092,10 @@ function PublishModal({ item, onClose, onConfirm }: {
         </span>
       </div>
       {needsReason && (
-        <div className="mb-2 rounded-md border border-amber-800/70 bg-amber-950/30 px-2.5 py-2 text-caption text-amber-300">
+        <Notice tone="warning" size="sm" className="mb-2">
           该技能尚未通过正式评审（或无 PASSED 审核记录）。如仍要发布，属于<strong>人工强制发布</strong>，
           必须填写复核说明（将写入审计 data/skills_mgmt_review_audit.jsonl）。
-        </div>
+        </Notice>
       )}
       {blockers.length > 0 && (
         <div className="mb-2 rounded-md border border-red-900/70 bg-red-950/30 px-2.5 py-2">

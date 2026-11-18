@@ -36,6 +36,12 @@ export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElem
   /** 内层 <input> 的 class —— className 仍然作用在外层容器（标签 + 输入框 + 错误文案） */
   inputClassName?: string
   /**
+   * 形态：default（原语自带边框/底色/内边距）/ bare（**外观完全交给调用方的 CSS 类**）。
+   * 【为什么需要】审计里 7 个"有真样式规则"的控件（.devconsole-input / .ve-field-input / .kb-form-* …）
+   * 一直是原生 input —— 它们的边框/底色/内边距都写在 CSS 里，套默认原语会变成两套外观打架。
+   */
+  variant?: 'default' | 'bare'
+  /**
    * 表面：dark（默认，工作台深色底）/ light（白底页面，如登录、个人资料、白底编辑器）。
    * 【为什么需要】与 Button 的 surface 同口径：深色 token 的输入框放到白底页上对比度全错，
    * 这些页面此前只能留原生 <input> 手写 border-slate-300 bg-white（登录 2 处、资料 2 处、VE 1 处）。
@@ -76,6 +82,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
     size = 'md',
     leading,
     trailing,
+    variant = 'default',
     surface = 'dark',
     ...props
   },
@@ -112,13 +119,15 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           disabled={disabled || loading}
           className={cn(
             'w-full rounded-control border text-body transition-colors',
-            SIZE_CLASSES[size],
+            variant === 'default' && SIZE_CLASSES[size],
             'placeholder:text-muted-foreground',
             'focus:outline-hidden focus:ring-2 focus:ring-primary/40',
-            surface === 'light'
-              ? 'bg-background text-foreground'
-              : 'bg-card text-foreground',
-            error ? 'border-danger' : 'border-border hover:border-foreground/20',
+            variant === 'bare'
+              ? 'border-0 bg-transparent px-0 py-0 text-inherit focus:ring-0'
+              : surface === 'light'
+                ? 'bg-background text-foreground'
+                : 'bg-card text-foreground',
+            variant === 'default' && (error ? 'border-danger' : 'border-border hover:border-foreground/20'),
             'disabled:cursor-not-allowed disabled:opacity-60',
             leading != null && slot.leadingPad,
             hasTrailing && slot.trailingPad,

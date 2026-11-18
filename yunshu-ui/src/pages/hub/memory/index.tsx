@@ -8,7 +8,7 @@
  */
 import { useEffect, useState } from 'react'
 import { Brain, Search, Plus } from 'lucide-react'
-import { Button, Card, ErrorBox, Input, Loading, PageHeader, StatCard, Textarea } from '../components/ui'
+import { Button, Card, ErrorBox, Input, Loading, Notice, PageHeader, StatCard, Textarea } from '../components/ui'
 // 【P1-front 第六批】三个端点都已带 X-Envelope: v2（overview 是 GET，另两个是 POST），
 // 改用显式信封解析：GET 走 getEnvelope、POST 走 postEnvelope（后者的请求头语义与 hubPost 逐条对齐）。
 import { getEnvelope, postEnvelope } from '@/api/envelope'
@@ -171,9 +171,9 @@ export default function MemoryPage({ mode = 'manual' }: MemoryPageProps) {
                 <span className="font-mono text-cyan-300">{overview?.vector_docs ?? '-'}</span>{' '}
                 条向量文档。
               </p>
-              <div className="rounded-lg border border-cyan-900/50 bg-cyan-950/20 px-4 py-3 text-xs leading-6 text-cyan-200/80">
+              <Notice tone="info" size="md" className="leading-6">
                 提示：如需手动录入关键信息，请切到本页「向量记忆」左上角的「手动录入」视图。
-              </div>
+              </Notice>
             </div>
           </Card>
         ) : (

@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import type { Card, CardInput, CardStatus, CardType } from '../../api/knowledge-types';
 import './CardForm.css';
-import { Button, Input, Select } from '@/components/ui';
+import { Button, Input, Select, Textarea } from '@/components/ui';
 
 interface CardFormProps {
   /** 编辑模式传入原卡（用于回填）；新建模式省略 */
@@ -98,7 +98,8 @@ const CardForm: React.FC<CardFormProps> = ({ initial, onSubmit, onCancel, submit
       </label>
       <label className="kb-form-field">
         <span className="kb-form-label">正文（支持 [[双链]] 语法）</span>
-        <textarea
+        <Textarea
+          variant="bare"
           className="kb-form-input kb-form-textarea"
           value={content}
           onChange={(e) => setContent(e.target.value)}

@@ -71,7 +71,7 @@ import {
   usePanel,
   useSecurityState,
 } from './usePanel'
-import { Button, Checkbox, Input, Select } from '@/components/ui'
+import { Button, Checkbox, Input, Notice, Select } from '@/components/ui'
 import { AbsoluteActionBar } from './actions'
 import { ImplicitEntryLog, recordImplicitEntry } from './implicitEntry'
 import { SettingsPanel } from './settings'
@@ -396,9 +396,9 @@ export function CapabilityMapPanel() {
             datasources={data.panel?.datasources}
           />
           {data.load_error && (
-            <div className="mb-2 rounded-sm border border-red-900/60 bg-red-950/30 px-3 py-2 text-xs text-red-300">
+            <Notice tone="danger" size="md" className="mb-2">
               台账读取失败：{data.load_error}
-            </div>
+            </Notice>
           )}
           <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
             <span className="text-slate-500">能力总数 <MetricValue metric={data.total} /></span>
@@ -1021,10 +1021,10 @@ export function IncidentsPanel() {
           />
           {data.auto_expand && <div className="mb-3"><IncidentBanner count={data.open_count.value ?? 0} note={data.auto_expand_rule} /></div>}
           {(data.open_blocked_count?.value ?? 0) > 0 && (
-            <div className="mb-2 rounded-sm border border-amber-900/60 bg-amber-950/20 px-2 py-1 text-caption text-amber-300">
+            <Notice tone="warning" size="sm" className="mb-2">
               其中 {data.open_blocked_count?.value} 张缺要素，按 §3 契约**不可 resolve**（不是待办事故）：
               补齐用 complete_incident()，或处置（归档）用 scripts/heal_incidents.py（默认 dry-run）。
-            </div>
+            </Notice>
           )}
           <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-4">
             <KpiTile label="未闭合事故" metric={data.open_count} icon={<Siren size={13} />} />
@@ -1341,9 +1341,9 @@ function AuthzAlertsViewBox({ view }: { view: AuthzAlertsView }) {
   const du = view.durable
   return (
     <div className="space-y-2 text-xs">
-      <div className="rounded-sm border border-amber-900/50 bg-amber-950/20 px-2 py-1 text-micro text-amber-300">
+      <Notice tone="warning" size="sm" className="text-micro">
         {view.realtime.note}（volatile={String(view.realtime.volatile)}）
-      </div>
+      </Notice>
       <div className="flex flex-wrap items-center gap-3 text-slate-400">
         <span>阈值 {String(rt.threshold ?? '—')}</span>
         <span>窗口 {String(rt.window_seconds ?? '—')}s</span>

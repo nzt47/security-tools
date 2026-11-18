@@ -37,7 +37,7 @@ import {
   type SessionMeta,
   type SessionWorkspace,
 } from '../../../lib/sessionApi';
-import { Button, Checkbox, Input } from '@/components/ui';
+import { Button, Checkbox, Input, Notice } from '@/components/ui';
 import { copyText } from '../../../utils/clipboard';
 import { isElectron } from '../../../electron/types';
 
@@ -381,9 +381,9 @@ export function WorkspaceDrawer({ session, onClose }: WorkspaceDrawerProps) {
                 </div>
               )}
               {notice && (
-                <div className="rounded-md border border-cyan-700/40 bg-cyan-500/10 px-2 py-1 text-caption text-cyan-200/90">
+                <Notice tone="info" size="sm">
                   {notice}
-                </div>
+                </Notice>
               )}
             </>
           ) : (

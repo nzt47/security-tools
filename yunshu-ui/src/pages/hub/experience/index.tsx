@@ -14,7 +14,7 @@
 import LearningMetrics from './LearningMetrics'
 import { useCallback, useEffect, useState } from 'react'
 import { Search, RefreshCw, Undo2, CheckCircle2, XCircle, Archive } from 'lucide-react'
-import { Badge, Button, Card, ErrorBox, Input, Loading, PageHeader, RowButton, Select, StatCard } from '../components/ui'
+import { Badge, Button, Card, ErrorBox, Input, Loading, Notice, PageHeader, RowButton, Select, StatCard } from '../components/ui'
 import {
   fetchDetail, fetchList, fetchStats, reviewItem, rollbackBatch, searchPreview,
   type ExperienceHit, type ExperienceItem, type ExperienceStats,
@@ -124,7 +124,7 @@ export default function ExperiencePanel() {
       </div>
 
       {error && <div className="mb-4"><ErrorBox message={error} /></div>}
-      {msg && <div className="mb-4 rounded-lg border border-emerald-900 bg-emerald-950/30 px-3 py-2 text-xs text-emerald-400">{msg}</div>}
+      {msg && <Notice tone="success" size="md" className="mb-4">{msg}</Notice>}
 
       {/* 统计 */}
       {stats && (

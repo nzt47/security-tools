@@ -11,7 +11,7 @@ import {
   AlertTriangle, Archive, CheckCircle2, GitBranch, Loader2, Merge, RefreshCw, Scissors,
   ShieldCheck, Trash2, Wrench,
 } from 'lucide-react'
-import { Badge, Button, Card, Checkbox, ErrorBox, Radio } from '../components/ui'
+import { Badge, Button, Card, Checkbox, ErrorBox, Notice, Radio } from '../components/ui'
 import {
   applyGovernance,
   planGovernance,
@@ -97,7 +97,7 @@ export default function GovernancePanel() {
           停用零使用走 archive；「从记忆抽象」在「获取外来能力」页。
         </p>
         {error && <div className="mt-2"><ErrorBox message={error} /></div>}
-        {msg && <div className="mt-2 rounded-sm border border-cyan-900/60 bg-cyan-950/20 px-2 py-1 text-caption text-cyan-300">{msg}</div>}
+        {msg && <Notice tone="info" size="sm" className="mt-2">{msg}</Notice>}
         {scan && (
           <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
             {[

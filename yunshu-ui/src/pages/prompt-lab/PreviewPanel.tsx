@@ -14,7 +14,7 @@
  * 组件不再接收 mode / onModeChange / sim。
  */
 import { Loader2, Settings2, Download, Wrench } from 'lucide-react';
-import { Button, Checkbox, Input } from '@/components/ui'
+import { Button, Checkbox, Input, Textarea } from '@/components/ui'
 import { usePromptLabStore } from '../../stores/usePromptLabStore';
 import RadarChart from './RadarChart';
 
@@ -170,7 +170,7 @@ export default function PreviewPanel({
           这一份是<b>试跑时</b>作为 user 消息发出去的文本；线上真实对话发的是你自己输入的那句话，
           <b>不会</b>用这一份。真发的 system message 在「身份提示词」Tab 里。
         </p>
-        <textarea className="pl-prompt-out" readOnly value={prompt} rows={9} spellCheck={false} />
+        <Textarea variant="bare" className="pl-prompt-out" readOnly value={prompt} rows={9} spellCheck={false} />
       </div>
 
       {/* 唯一的"输出"入口：真跑一次。默认走云枢已配置的模型，不需要填任何 Key。 */}

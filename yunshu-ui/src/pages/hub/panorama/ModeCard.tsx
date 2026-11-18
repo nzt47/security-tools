@@ -9,7 +9,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { Activity, Loader2, RefreshCw } from 'lucide-react'
-import { Button, hubGet } from '../components/ui'
+import { Button, hubGet, Notice } from '../components/ui'
 import { MODE } from '@/api/endpoints'
 
 interface ModePayload {
@@ -55,7 +55,7 @@ export default function ModeCard() {
           {busy ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
         </Button>
       </div>
-      {err && <div className="mt-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-caption text-red-300">{err}</div>}
+      {err && <Notice tone="danger" size="sm" className="mt-2">{err}</Notice>}
       {data?.description && <div className="mt-1.5 text-caption text-slate-400">{data.description}</div>}
       <div className="mt-1.5 flex flex-wrap gap-2 text-micro text-slate-500">
         {data?.mode && <span className="rounded-sm bg-slate-800 px-1.5 py-0.5 font-mono">{data.mode}</span>}

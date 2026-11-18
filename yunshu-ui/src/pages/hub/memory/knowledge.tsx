@@ -262,9 +262,9 @@ export default function MemoryKnowledge() {
       />
 
       {notice && (
-        <div className="mb-4 rounded-lg border border-cyan-900/60 bg-cyan-950/40 px-4 py-2 text-sm text-cyan-300">
+        <Notice tone="info" size="md" className="mb-4">
           {notice}
-        </div>
+        </Notice>
       )}
 
       {/* ── 只读统计行（卡片总数 / 健康分 / 图谱节点 / 图谱连线）── */}

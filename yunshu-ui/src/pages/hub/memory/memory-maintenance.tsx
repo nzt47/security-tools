@@ -19,7 +19,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Activity, AlertTriangle, Brain, Eraser, Gauge, Loader2, RefreshCw, Save, ScanLine, Trash2,
 } from 'lucide-react'
-import { Button, Checkbox, CodeBlock, ErrorBox, hubDelete, hubGet, hubPost, hubPut, Input, Textarea } from '../components/ui'
+import { Button, Checkbox, CodeBlock, ErrorBox, hubDelete, hubGet, hubPost, hubPut, Input, Notice, Textarea } from '../components/ui'
 import {
   MEMORY_CLEAR_SUMMARY,
   MEMORY_COMPRESS,
@@ -339,7 +339,7 @@ export default function MemoryMaintenance() {
   return (
     <div className="space-y-3">
       {err && <ErrorBox message={err} />}
-      {msg && <div className="rounded-md border border-emerald-800/60 bg-emerald-500/10 px-2.5 py-1.5 text-caption text-emerald-300">{msg}</div>}
+      {msg && <Notice tone="success" size="sm">{msg}</Notice>}
 
       {/* 审查 / 压缩 */}
       <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">

@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Route as RouteIcon, RefreshCw, Search } from 'lucide-react'
-import { Button, Checkbox, Input, Select, Tabs } from '@/components/ui'
+import { Button, Checkbox, Input, Notice, Select, Tabs } from '@/components/ui'
 // 该端点走 v2 统一信封（后端 _ok(payload)）⇒ 必须显式解包；
 // 直接用 request()（返回原始体、不拆信封）会在 {code,data,message} 上读 entries 而**静默拿到空**。
 import { getEnvelope } from '@/api/envelope'
@@ -157,7 +157,7 @@ export default function RouteCoveragePanel() {
         </Button>
       </div>
 
-      {error && <div className="rounded-lg border border-red-900 bg-red-950/40 px-4 py-2 text-sm text-red-300">读取失败：{error}</div>}
+      {error && <Notice tone="danger" size="md">读取失败：{error}</Notice>}
       {loading && <div className="text-sm text-slate-500">加载中…</div>}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">

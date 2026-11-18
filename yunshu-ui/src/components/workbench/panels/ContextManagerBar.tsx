@@ -25,7 +25,7 @@ import {
 } from '@/api/endpoints';
 
 import { CompressPrefixSwitch } from './CompressPrefixSwitch';
-import { Button, ModalBase, Slider } from '@/components/ui';
+import { Button, ModalBase, Notice, Slider } from '@/components/ui';
 
 interface CtxStatus {
   /** 分子 = 本会话最近 percentage_window_messages 条正文（与压缩触发同源） */
@@ -418,16 +418,16 @@ export function ContextManagerBar() {
               {/* 【2026-11-05】65% 换会话提示：到 80% 才会自动压缩，压完早期细节只剩摘要，
                   所以在 65% 就提醒一次（不阻断、不自动新建会话）。 */}
               {pct >= 65 && pct < 80 && (
-                <div className="rounded-md border border-amber-800/60 bg-amber-500/10 px-2.5 py-1.5 text-caption leading-relaxed text-amber-200">
+                <Notice tone="warning" size="sm" className="leading-relaxed">
                   上下文已到 <b>{Math.round(pct)}%</b>：建议<b>生成交接文档并转入新会话</b>继续 ——
                   到 {Math.round(status.compress_threshold * 100)}% 会自动压缩，压缩后早期细节只剩摘要。
                   入口：会话头「交接文档」。
-                </div>
+                </Notice>
               )}
               {pct >= 80 && (
-                <div className="rounded-md border border-rose-800/60 bg-rose-500/10 px-2.5 py-1.5 text-caption leading-relaxed text-rose-200">
+                <Notice tone="danger" size="sm" className="leading-relaxed">
                   上下文已到 <b>{Math.round(pct)}%</b>（超过压缩阈值）：现在生成交接文档再换会话，比等到压缩后更划算。
-                </div>
+                </Notice>
               )}
 
               {/* 控制面板：滑块（松手 300ms 后自动保存） */}

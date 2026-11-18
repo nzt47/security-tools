@@ -380,7 +380,7 @@ export default function MemoryImportPanel() {
           </Button>
         </div>
         {batchErr && <Notice tone="danger" size="sm" className="mb-2">{batchErr}</Notice>}
-        {vecErr && <div className="mb-2 rounded-sm border border-amber-900/60 bg-amber-500/10 px-2 py-1 text-caption text-amber-300">{vecErr}</div>}
+        {vecErr && <Notice tone="warning" size="sm" className="mb-2">{vecErr}</Notice>}
         {batchMsg && <Notice tone="success" size="sm" className="mb-2">{batchMsg}</Notice>}
         {batches.length === 0 ? (
           <div className="py-3 text-center text-caption text-slate-600">还没有导入批次</div>
@@ -466,11 +466,11 @@ export default function MemoryImportPanel() {
           </div>
         )}
         {orphanVectors.length > 0 && (
-          <div className="mt-2 rounded-sm border border-amber-900/50 bg-amber-500/5 px-2 py-1 text-micro text-amber-300/90">
+          <Notice tone="warning" size="sm" className="mt-2 text-micro">
             另有 {orphanVectors.length} 条导入向量在向量库里、但**没有批次清单**（多半是清单被摘除），
             无法按批回滚：{orphanVectors.slice(0, 4).map((v) => v.id).join('、')}
             {orphanVectors.length > 4 ? ' …' : ''}
-          </div>
+          </Notice>
         )}
       </div>
 

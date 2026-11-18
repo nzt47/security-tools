@@ -19,7 +19,7 @@ import {
   Ban, CircleAlert, FileDiff, Loader2, RotateCcw, ShieldCheck, Snowflake,
   Trash2, Zap,
 } from 'lucide-react'
-import { Button, Input, Select } from '@/components/ui'
+import { Button, Input, Notice, Select } from '@/components/ui'
 import { issueConfirmation, runAction } from '@/lib/cpPanelsApi'
 import type { ActionName, ActionResponse } from '@/lib/cpPanelsTypes'
 import { ApprovalZone, StatusBadge } from './components'
@@ -173,9 +173,9 @@ export function AbsoluteActionBar({ target, targetLabel, onDone }: ActionsBarPro
       )}
 
       {error && (
-        <div className="mt-2 rounded-sm border border-red-900/60 bg-red-950/30 px-2 py-1 text-caption text-red-300">
+        <Notice tone="danger" size="sm" className="mt-2">
           {error}
-        </div>
+        </Notice>
       )}
       {result && <ActionResultBox result={result} />}
     </div>

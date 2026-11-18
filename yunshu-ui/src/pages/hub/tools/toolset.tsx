@@ -29,7 +29,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { hubHref } from '../../../workbench/hubNav'
 import { ShieldAlert, Trash2 } from 'lucide-react'
-import { Badge, Button, CallabilityBadge, Card, DataTable, ErrorBox, hubGet, hubPost, Loading, PageHeader, Switch } from '../components/ui'
+import { Badge, Button, CallabilityBadge, Card, DataTable, ErrorBox, hubGet, hubPost, Loading, Notice, PageHeader, Switch } from '../components/ui'
 import { callabilityCounts, callabilityLegend, hasCallabilityMark, type CallabilityInfo } from '@/lib/callability'
 import DescriptionCell from '@/components/DescriptionCell'
 // 行内按钮形状与技能中心/工作流同一口径（2026-11-08：三张表按钮大小不一，统一到 lib/tableActions）
@@ -452,9 +452,9 @@ export default function ToolsToolset() {
       />
       {error && <div className="mb-4"><ErrorBox message={error} /></div>}
       {notice && (
-        <div className="mb-4 rounded-md border border-emerald-800/60 bg-emerald-950/30 p-3 text-xs text-emerald-300">
+        <Notice tone="success" size="md" className="mb-4">
           {notice}
-        </div>
+        </Notice>
       )}
       <ConfirmDialog
         open={!!removePreview}
@@ -474,16 +474,16 @@ export default function ToolsToolset() {
       />
 
       {!metaOk && (
-        <div className="mb-4 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-300">
+        <Notice tone="warning" size="md" className="mb-4">
           未取到治理元数据（/api/agent-lines/planes 不可用），当前仅显示旧口径的分类与启停状态。
-        </div>
+        </Notice>
       )}
 
       {undeclared.length > 0 && (
-        <div className="mb-4 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-300">
+        <Notice tone="danger" size="md" className="mb-4">
           以下工具缺少 plane/effect/risk 声明，主线装配会 fail-closed 拒绝它们：
           {undeclared.join('、')}
-        </div>
+        </Notice>
       )}
 
       {/* 平面筛选 */}

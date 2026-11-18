@@ -23,7 +23,7 @@
  */
 import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Layers, RefreshCw, Search } from 'lucide-react'
-import { Button, Input } from '@/components/ui'
+import { Button, Input, Notice } from '@/components/ui'
 import {
   fetchLine,
   fetchLines,
@@ -153,9 +153,9 @@ export default function LineAssemblyOverview() {
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-900 bg-red-950/40 px-4 py-2 text-sm text-red-300">
+        <Notice tone="danger" size="md">
           读取主线列表失败：{error}
-        </div>
+        </Notice>
       )}
       {loading && <div className="text-sm text-slate-500">加载中…</div>}
 

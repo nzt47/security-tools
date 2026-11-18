@@ -12,7 +12,7 @@
  *   · 归档目录本身保留（只写 manifest.rolled_back_at），审核证据链不销毁；
  *   · **默认只预览**：先看清"将删除哪些文件"，再点确认（§8 陷阱 31）。
  */
-import { Button, Checkbox } from '@/components/ui'
+import { Button, Checkbox, ModalBase, Notice } from '@/components/ui'
 import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, Archive, CheckCircle2, ChevronDown, ChevronRight, Loader2, RotateCcw, Sparkles, X } from 'lucide-react'
 import { authHeader } from '../lib/apiToken'
@@ -454,13 +454,10 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
 
   if (!open && !embedded) return null
 
-  return (
-    <div className={embedded
-      ? 'flex min-h-0 flex-col'
-      : 'fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4'}>
-      <div className={embedded
-        ? 'flex min-h-0 flex-col rounded-xl border border-slate-800 bg-slate-900/60'
-        : 'flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-slate-700 bg-slate-900 shadow-2xl'}>
+  // 【2026-11-18 封装收口】把内容提成变量：embedded 与浮层**共用同一份**，
+  // 浮层的外壳交给 ui/ModalBase（portal + 遮罩 + Esc 捕获 + 滚动锁定），embedded 仍是内嵌卡片。
+  const content = (
+    <>
         <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
           <div className="flex items-center gap-2">
             <Archive size={14} className="text-cyan-400" />
@@ -488,7 +485,7 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
           </div>
         )}
         {notice && (
-          <div className="border-b border-emerald-900/60 bg-emerald-950/30 px-4 py-2 text-caption text-emerald-300">{notice}</div>
+          <Notice tone="success" size="sm">{notice}</Notice>
         )}
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
@@ -658,9 +655,9 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                       会双写：先改文件轨 skill.md 的 enabled: true，再走主轨 set_enabled（带审计）；主轨失败会回滚文件。
                     </div>
                     {enableJob.target_missing && (
-                      <div className="mt-1 rounded border border-amber-800/60 bg-amber-500/10 px-2 py-1 text-micro text-amber-200">
+                      <Notice tone="warning" size="sm" className="mt-1 text-micro">
                         目标技能在两轨都不存在（演示数据或已被删除）—— 启用不适用，请重新登记或把作业归档。
-                      </div>
+                      </Notice>
                     )}
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       <Button type="button" disabled={!!busy || !!enableJob.target_missing} onClick={() => void doEnable()}
@@ -903,7 +900,6 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
             })}
           </ul>
         </div>
-      </div>
       {/* 彻底删除的二次确认：先看清「将删哪些目录/文件」，再落盘（§8 陷阱 31） */}
       <ConfirmDialog
         open={!!deletePreview}
@@ -921,6 +917,28 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
         onCancel={() => setDeletePreview(null)}
         onConfirm={() => void doDelete()}
       />
-    </div>
+    </>
+  )
+
+  if (embedded) {
+    return (
+      <div className="flex min-h-0 flex-col rounded-xl border border-slate-800 bg-slate-900/60">
+        {content}
+      </div>
+    )
+  }
+  // 浮层：标题栏仍用组件自己的（与 embedded 共用），ModalBase 只提供外壳与关闭语义
+  // （遮罩点击 / Esc 捕获；标题栏右侧的 × 仍在）。
+  return (
+    <ModalBase
+      open
+      onClose={() => onClose?.()}
+      ariaLabel="转化队列"
+      width="max-w-3xl"
+      scrollable
+      bodyClassName="p-0 flex min-h-0 flex-col"
+    >
+      {content}
+    </ModalBase>
   )
 }

@@ -5,7 +5,7 @@
  * 未选中时显示提示。
  */
 import { useMemo } from 'react';
-import { Button } from '@/components/ui';
+import { Button, Input, Textarea } from '@/components/ui';
 import { useFlowStore } from '../stores/useFlowStore';
 import type { FlowNodeData, NodeType } from '../types';
 
@@ -77,15 +77,17 @@ export function PropertiesPanel() {
           <div key={f.key} className="ve-field">
             <label className="ve-field-label">{f.label}</label>
             {f.type === 'textarea' ? (
-              <textarea
+              <Textarea
+                variant="bare"
                 className="ve-field-input"
                 value={(data[f.key] as string) || ''}
                 placeholder={f.placeholder}
                 onChange={(e) => updateNodeData(selected.id, { [f.key]: e.target.value })}
               />
             ) : (
-              <input
-                className="ve-field-input"
+              <Input
+                variant="bare"
+                inputClassName="ve-field-input"
                 type={f.type}
                 value={(data[f.key] as string | number) ?? ''}
                 placeholder={f.placeholder}

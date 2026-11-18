@@ -680,9 +680,9 @@ export function SessionRail({
       {/* 会话列表（按分组分区） */}
       <div className="wb-think-scroll min-h-0 flex-1 overflow-y-auto px-2.5 pb-2.5">
         {error && (
-          <div className="mt-1 rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-1.5 text-caption leading-relaxed text-rose-200/90">
+          <Notice tone="danger" size="sm" className="mt-1 leading-relaxed">
             {error}
-          </div>
+          </Notice>
         )}
         {busy && scoped.length === 0 ? (
           <div className="flex flex-col items-center gap-2 pt-10 text-slate-500">

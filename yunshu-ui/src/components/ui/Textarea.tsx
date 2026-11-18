@@ -15,6 +15,11 @@ export type TextareaSize = 'sm' | 'md'
 export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   /** 尺寸档，默认 md */
   size?: TextareaSize
+  /**
+   * 形态：default / bare（外观完全交给调用方的 CSS 类，见 Input.variant 的同一条理由）。
+   * 常用于 .kb-form-textarea / .pl-prompt-out / .wb-input / .wb-editor-input 这类"CSS 已定义外观"的位置。
+   */
+  variant?: 'default' | 'bare'
   /** 错误态：红色描边（文案由调用方渲染） */
   error?: boolean
 }
@@ -25,7 +30,7 @@ const SIZE_CLASSES: Record<TextareaSize, string> = {
 }
 
 const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea(
-  { className, error = false, size = 'md', ...props },
+  { className, error = false, size = 'md', variant = 'default', ...props },
   ref,
 ) {
   return (
@@ -33,12 +38,17 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textare
       ref={ref}
       aria-invalid={error ? true : undefined}
       className={cn(
-        'w-full resize-y rounded-control border bg-card text-body text-foreground',
-        'placeholder:text-muted-foreground transition-colors',
-        'focus:outline-hidden focus:ring-2 focus:ring-primary/40',
-        error ? 'border-danger' : 'border-border hover:border-foreground/20',
-        'disabled:cursor-not-allowed disabled:opacity-60',
-        SIZE_CLASSES[size],
+        'w-full',
+        variant === 'default'
+          ? [
+              'resize-y rounded-control border bg-card text-body text-foreground',
+              'placeholder:text-muted-foreground transition-colors',
+              'focus:outline-hidden focus:ring-2 focus:ring-primary/40',
+              error ? 'border-danger' : 'border-border hover:border-foreground/20',
+              'disabled:cursor-not-allowed disabled:opacity-60',
+              SIZE_CLASSES[size],
+            ]
+          : 'border-0 bg-transparent p-0 text-inherit focus:outline-hidden',
         className,
       )}
       {...props}

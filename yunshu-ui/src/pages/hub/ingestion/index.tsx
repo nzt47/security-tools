@@ -12,7 +12,7 @@ import {
   AlertTriangle, ArrowRight, BookOpen, CheckCircle2, FileText, FolderOpen, GitBranch,
   Layers, Loader2, PackagePlus, RefreshCw, Search, ShieldCheck,
 } from 'lucide-react'
-import { Badge, Button, Card, Checkbox, ErrorBox, Input, PageHeader, Select, Tabs, Textarea } from '../components/ui'
+import { Badge, Button, Card, Checkbox, ErrorBox, Input, Notice, PageHeader, Select, Tabs, Textarea } from '../components/ui'
 import GovernancePanel from './governance'
 import ReviewPanel from './ReviewPanel'
 import MemoryDraftPanel from './MemoryDraftPanel'
@@ -411,14 +411,14 @@ export default function IngestionPage() {
                   </Button>
                 </div>
                 {directResult && (
-                  <div className="mt-2 rounded-sm border border-emerald-900/50 bg-emerald-950/20 p-2 text-micro leading-relaxed text-emerald-200">
+                  <Notice tone="success" size="sm" className="mt-2 leading-relaxed text-micro">
                     <div>
                       已直通生成草稿：<span className="font-mono">{directResult.result.skill_id}</span>
                       {' · ' + directResult.plan.level + ' · 去重提示 ' + directResult.plan.dedupe.length + ' 条'}
                     </div>
                     <div className="break-all text-emerald-300/80">{directResult.result.draft_dir}</div>
                     <div className="text-emerald-300/60">这里只落草稿；登记与启用在「草稿评审」的草稿行上。</div>
-                  </div>
+                  </Notice>
                 )}
               </>
             )}
@@ -612,15 +612,15 @@ export default function IngestionPage() {
                   </div>
                 )}
                 {plan.rewrite_errors.length > 0 && (
-                  <div className="rounded-sm border border-red-900/60 bg-red-950/20 p-2 text-micro text-red-300">
+                  <Notice tone="danger" size="sm" className="text-micro">
                     重写未通过：{plan.rewrite_errors.join('；')}
-                  </div>
+                  </Notice>
                 )}
 
                 {plan.warnings.length > 0 && (
-                  <div className="rounded-sm border border-amber-900/50 bg-amber-950/10 p-2 text-micro text-amber-300">
+                  <Notice tone="warning" size="sm" className="text-micro">
                     {plan.warnings.map((w, i) => <div key={i}>· {w}</div>)}
-                  </div>
+                  </Notice>
                 )}
 
                 <div>

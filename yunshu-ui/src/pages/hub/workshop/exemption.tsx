@@ -21,7 +21,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Loader2, Lock, RefreshCw, ShieldAlert, ShieldCheck } from 'lucide-react'
-import { Badge, ErrorBox, Button} from '../components/ui'
+import { Badge, Button, ErrorBox, Notice } from '../components/ui'
 import {
   EXEMPTION_SOURCE_LABELS,
   exemptionErrorText,
@@ -324,15 +324,15 @@ export function ExemptionStatusBar({ state, onReload }: {
       {state.actionError && <ErrorBox message={state.actionError} />}
 
       {state.warning && (
-        <div className="rounded-lg border border-amber-900/60 bg-amber-950/30 px-4 py-2 text-xs text-amber-300">
+        <Notice tone="warning" size="md">
           {state.warning}
-        </div>
+        </Notice>
       )}
 
       {state.notice && (
-        <div className="rounded-lg border border-emerald-900/60 bg-emerald-950/30 px-4 py-2 text-xs text-emerald-300">
+        <Notice tone="success" size="md">
           {state.notice}
-        </div>
+        </Notice>
       )}
     </div>
   )
