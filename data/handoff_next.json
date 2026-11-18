@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-18T20:12:00+08:00",
+ "updated_at": "2026-11-18T23:25:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -7,8 +7,8 @@
    "status": "open",
    "priority": "P2",
    "title": "封装审计（2026-11-18 §11.161）：补齐 ui/Notice 后仍敞开的 5 类结构性缺口",
-   "criteria": "按「谁还在自造」审计（可复跑 .local/_audit_encapsulation.py / _audit_loose3.py）：手写提示条 87 处/53 文件（已补 ui/Notice 并迁 27 处）、PRE 常量 19 文件、自造 modal 7 个（ModalBase 只有 6 文件在用）、自造 role=menu 3 个、内联 style 88 处（DevConsole+StateInspector 占 54）、完全没 import components/ui 的 tsx 31 个（多为路由/节点/devtools）、hub 层仍自带 Card/StatCard/DataTable/Empty/Loading 一套。",
-   "next": "按「机械 → 风险」排序做：① ui/CodeBlock 收 19 个 PRE 常量（最机械：<pre className={PRE}> → <CodeBlock>，注意 PRE + ' mt-1' 这类拼接要保留成 className）；② 7 个自造 modal 收进 ModalBase（先做 generate-requirement-modal / merge-duplicates-modal / SkillIntakeDialog 三个纯弹窗；SessionRail/ContextManagerBar 那种其实是浮层菜单，应走 Menu 而不是 ModalBase）；③ 3 个自造菜单 → 新增 ui/Menu（role=menu + Esc/外点关闭，口径：浮层一律 portal 到 body、Esc 挂捕获阶段）；④ hub 的 Card/StatCard/DataTable/Empty/Loading 逐个改为委托全局原语（Badge/ErrorBox 已是这个模式的样板）；⑤ 7 个 CSS 家族控件（.devconsole-input/.wb-input/.wb-editor-input/.pl-prompt-out/.ve-field-input/.kb-form-textarea/schema controlClass）要收得先给 Input/Textarea 加 variant=bare —— 不要先加空 API，等真要收这批时一起加。★ 本轮已修：ui/Notice 落地 + ErrorBox 委托（104 处调用点零改动）+ 5 处行内搜索收口 + 健康巡检页重复 6 份「新增知识文档」的缺陷。"
+   "criteria": "审计（§11.161）后按顺序收口。2026-11-18 §11.162 进展：① ui/CodeBlock 已补 —— 19 个文件各自复制的 PRE 常量清零（56 处 <pre> 换成 <CodeBlock>）；② ModalBase 已补齐 scrollable / closeButton / className / bodyClassName / header，并把 Esc 改到捕获阶段（内层 stopPropagation 也能关）；已收 2 个自造弹窗（workflow-detail / generate-requirement-modal），自造 modal 7 → 6。仍敞开：6 个自造 modal（IngestionHelp / TransformQueueDialog / ApprovalPrompt / ContextManagerBar / SessionRail / skill-detail-drawer）、3 个自造 role=menu、hub 层 Card/StatCard/DataTable/Empty/Loading 委托、7 个 CSS 家族控件（需 variant=bare）。",
+   "next": "下一批顺序：① 先**分拣**剩下 6 个：ContextManagerBar / SessionRail 其实是浮层菜单，应走 Menu；真正的弹窗是 TransformQueueDialog（大表格，注意它的 tab 与分页）/ ApprovalPrompt（对话内审批，注意 role=alert 与 Esc）/ skill-detail-drawer（右侧抽屉，ModalBase 需要再加 drawer 形态）/ IngestionHelp。② 3 个自造 role=menu → 新增 ui/Menu（portal 到 body、Esc 捕获、外点关闭、箭头键）；③ hub Card/StatCard/DataTable/Empty/Loading 逐个改委托（Badge/ErrorBox 已有样板；DataTable 的可拖列宽要作为 Table 的能力补进原语，不要在 hub 层留第二套）；④ 7 个 CSS 家族控件等真要收时再加 Input/Textarea variant=bare（不要先造空 API）。⑤ raw_heading 83 是**排版阶梯**问题（SectionTitle 只有 4 处在用，h1-h3 各自 4 种字号），要先定 h1/h2/h3 ↔ text-* 的映射再扫，别直接替换。"
   },
   {
    "id": "module-topology-no-autodiscovery",
