@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-18T07:50:00+08:00",
+ "updated_at": "2026-11-18T08:06:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -937,7 +937,7 @@
    "priority": "P2",
    "title": "UI 原语迁移第 2/3 批：提示词实验室之外的原生按钮/下拉/输入（735/54/233 处）",
    "criteria": "2026-11-16 审计+第 1 批+第 2 批分片一之后：components/ui 只有 12 个文件在用。现读数（2026-11-17 第 95 轮）：raw_button 247 / raw_select 6 / raw_input 93 / **raw_textarea 7** / raw_heading 85 / arbitrary_text 0 / css_hardcoded_color 387。",
-   "next": "2026-11-18（§11.148）后的状态：控制类原语已齐 —— Button(variant 7 x size 6 x surface dark/light) / Input(leading 与 trailing 槽) / Select(hidePlaceholder) / Textarea / Checkbox / Tabs(pill/segmented/folder) / Switch / Slider / SectionTitle / Card / ModalBase / Table / Pagination / Empty / Loading / FormField / PageContainer。守卫：raw_button 142、raw_select 4、raw_input 67、raw_textarea 5、arbitrary_text 0、raw_heading 85、css_hardcoded_color 358（起点分别是 604/53/227/43/0/102/无量具）。全仓 role=tab 原生按钮只剩 1（Tabs 原语内部）。剩余 raw_button 142 = 表达式 className（条件样式，要逐个看语义）与 icon-only 的零散；raw_select 4 = 开关中心多选 / CodeEditorPanel 的 .wb-editor-lang / logs.test 夹具 / CustomFactorForm 的 .pl-select。 【2026-11-18 07:4x 再降一档】raw_input 67 → **54**（13 个确认类复选框换 ui/Checkbox）。raw_textarea 5 已确认**全部有自造样式类**（.kb-form-textarea / .wb-input / .wb-editor-input），保留原生属合理。剩：raw_button 142（表达式 className 为主）、raw_select 4、raw_input 54（约 29 个 checkbox，其中 3 处的 label 含 JSX 需手工）。"
+   "next": "2026-11-18 08:0x（§11.151）：新增 ui/Radio（5 处单选框全迁）+ Input.surface=light（登录/资料 4 个白底输入全迁），再迁 16 个复选框。raw_input 227 → 29、raw_button 604 → 141、raw_select 53 → 4、raw_textarea 43 → 5、arbitrary_text 0、raw_heading 102 → 85、css_hardcoded_color 358。剩下 29 个原生 input 的分类已量明：19 个 text 多带自造类（.devconsole-input / .ve-field-input / 搜索框的 bg-transparent 骨架 / w-14 窄数字框）——原语不覆盖「外壳已画好只要裸 input」的形态；3 个 checkbox 的 label 含 JSX 表达式需手工；1 个 file；1 个 sr-only（SwitchField，本来就是对的）。raw_select 4 = 开关中心多选（带 data-* + 二次确认）/ CodeEditorPanel 的 .wb-editor-lang / logs.test 夹具 / CustomFactorForm 的 .pl-select。raw_button 141 以表达式 className（条件样式）为主，需按文件逐个看语义。"
   },
   {
    "id": "ui-typography-codemod",
