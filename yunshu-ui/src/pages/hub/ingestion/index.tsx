@@ -467,7 +467,7 @@ export default function IngestionPage() {
                       <div key={c.path}
                         className="flex w-full items-center gap-2 border-b border-slate-800/60 px-2 py-1.5 text-left text-caption text-slate-300 last:border-b-0 hover:bg-slate-800/50">
                         <Checkbox className="shrink-0" aria-label={'批量选择 ' + c.name} disabled={!c.previewable} checked={batchSel.includes(c.path)} onChange={(e) => setBatchSel((prev) => e.target.checked ? (prev.includes(c.path) ? prev : [...prev, c.path].slice(0, BATCH_MAX)) : prev.filter((x) => x !== c.path))} />
-                        <button type="button"
+                        <Button variant="plain" size="bare" type="button"
                           className="flex min-w-0 flex-1 items-center gap-2 text-left"
                           onClick={() => {
                             setMode('path'); setPathInput(c.path); resetPlan()
@@ -487,7 +487,7 @@ export default function IngestionPage() {
                             <span className="shrink-0 rounded-sm border border-amber-800/70 bg-amber-500/10 px-1 text-micro text-amber-300"
                               title={'生成过草稿' + (c.usage_draft_id ? '：' + c.usage_draft_id : '') + (c.usage_at ? '（' + c.usage_at + '）' : '')}>已生成草稿</span>
                           )}
-                        </button>
+                        </Button>
                         <span className="ml-auto shrink-0 text-micro text-slate-600">{c.previewable ? '可预览' : '仅展示'}</span>
                       </div>
                     ))}

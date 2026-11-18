@@ -478,8 +478,10 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
               </div>
             )}
 
-            <button
+            <Button
               type="button"
+              variant="plain"
+              size="bare"
               onClick={() => void runDelegate()}
               disabled={running || !hasTaskText}
               title={
@@ -497,7 +499,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
                 : useEphemeral
                   ? '委托执行（临时分身）'
                   : '委托执行（用所选分身）'}
-            </button>
+            </Button>
           </div>
 
           {result && (

@@ -288,14 +288,14 @@ export default function PromptLab() {
           {/* 分类筛选 */}
           <nav className="pl-filter" aria-label="因素分类筛选">
             {(['all', ...CATEGORIES.map((c) => c.id)] as Filter[]).map((f) => (
-              <button
+              <Button variant="plain" size="bare"
                 key={f}
                 type="button"
                 className={`pl-filter-chip ${filter === f ? 'active' : ''}`}
                 onClick={() => setFilter(f)}
               >
                 {f === 'all' ? '全部' : CATEGORIES.find((c) => c.id === f)?.short}
-              </button>
+              </Button>
             ))}
           </nav>
 

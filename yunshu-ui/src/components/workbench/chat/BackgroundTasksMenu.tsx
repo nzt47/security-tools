@@ -234,7 +234,7 @@ export function BackgroundTasksMenu() {
                 return (
                   <div key={t.id} className="mb-1 rounded-lg border border-slate-800 bg-slate-950/50">
                     <div className="flex items-center gap-2 px-2 py-1.5">
-                      <button
+                      <Button variant="plain" size="bare"
                         type="button"
                         onClick={() => setExpanded(shown ? null : t.id)}
                         className="flex min-w-0 flex-1 items-center gap-2 text-left"
@@ -251,7 +251,7 @@ export function BackgroundTasksMenu() {
                             {t.progress ? ` · ${t.progress}` : ''}
                           </span>
                         </span>
-                      </button>
+                      </Button>
                       {isActive(t) && (
                         <Button type="button" onClick={() => void cancel(t.id)} title="取消该后台任务（仅排队/运行中可取消）" className="shrink-0" variant="default" size="xs">
                           <Ban size={10} /> 取消

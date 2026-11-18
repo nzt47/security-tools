@@ -171,7 +171,7 @@ const DevConsole: React.FC<DevConsoleProps> = ({
             {/* 头部 Tab 栏 */}
             <div className="devconsole-header">
               <div className="devconsole-tabs">
-                <button
+                <Button variant="plain" size="bare"
                   type="button"
                   className={`devconsole-tab ${
                     activeTab === 'network' ? 'active' : ''
@@ -180,8 +180,8 @@ const DevConsole: React.FC<DevConsoleProps> = ({
                 >
                   网络
                   <span className="devconsole-tab-count">{networkCount}</span>
-                </button>
-                <button
+                </Button>
+                <Button variant="plain" size="bare"
                   type="button"
                   className={`devconsole-tab ${
                     activeTab === 'error' ? 'active' : ''
@@ -196,8 +196,8 @@ const DevConsole: React.FC<DevConsoleProps> = ({
                   >
                     {errorCount}
                   </span>
-                </button>
-                <button
+                </Button>
+                <Button variant="plain" size="bare"
                   type="button"
                   className={`devconsole-tab ${
                     activeTab === 'performance' ? 'active' : ''
@@ -206,9 +206,9 @@ const DevConsole: React.FC<DevConsoleProps> = ({
                 >
                   性能
                   <span className="devconsole-tab-count">{perfCount}</span>
-                </button>
+                </Button>
                 {extraTabs.map((tab) => (
-                  <button
+                  <Button variant="plain" size="bare"
                     key={tab.key}
                     type="button"
                     className={`devconsole-tab ${
@@ -226,18 +226,18 @@ const DevConsole: React.FC<DevConsoleProps> = ({
                         {tab.count}
                       </span>
                     )}
-                  </button>
+                  </Button>
                 ))}
               </div>
               <div className="devconsole-actions">
-                <button
+                <Button variant="plain" size="bare"
                   type="button"
                   className={`devconsole-btn warning ${paused ? 'active' : ''}`}
                   onClick={togglePause}
                   title={paused ? '恢复采集' : '暂停采集'}
                 >
                   {paused ? '▶ 恢复' : '⏸ 暂停'}
-                </button>
+                </Button>
                 <Button
                   type="button"
                   variant="default" size="xs"

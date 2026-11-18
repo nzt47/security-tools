@@ -85,7 +85,7 @@ export function ChatStyleMenu() {
               {(Object.keys(CHAT_THEMES) as ChatThemeKey[]).map((k) => {
                 const t = CHAT_THEMES[k]
                 return (
-                  <button
+                  <Button variant="plain" size="bare"
                     key={k}
                     type="button"
                     title={t.label}
@@ -99,7 +99,7 @@ export function ChatStyleMenu() {
                     }`}
                   >
                     {t.icon}
-                  </button>
+                  </Button>
                 )
               })}
             </div>

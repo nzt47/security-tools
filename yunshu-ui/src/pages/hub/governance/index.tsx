@@ -632,7 +632,7 @@ export function ApprovalInboxPanel() {
             </div>
             <div className="flex flex-wrap gap-2">
               {groups.map((g) => (
-                <button
+                <Button variant="plain" size="bare"
                   key={g.batch_key}
                   type="button"
                   onClick={() => {
@@ -648,7 +648,7 @@ export function ApprovalInboxPanel() {
                 >
                   {g.object_type} · {g.level} · 风险 {g.risk}（{g.count}）
                   {g.bubble_visible_count === 0 && <span className="ml-1 text-slate-500">无气泡</span>}
-                </button>
+                </Button>
               ))}
               {groups.length === 0 && <span className="text-xs text-slate-500">无待审记录</span>}
             </div>

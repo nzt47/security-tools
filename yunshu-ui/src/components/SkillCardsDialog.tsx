@@ -278,7 +278,7 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
                   const isOpen = expanded === c.skill_id
                   return (
                     <li key={c.skill_id} className="rounded-lg border border-slate-800 bg-slate-950/40">
-                      <button
+                      <Button variant="plain" size="bare"
                         type="button"
                         onClick={() => setExpanded(isOpen ? null : c.skill_id)}
                         className="flex w-full items-start gap-2 px-3 py-2 text-left"
@@ -297,7 +297,7 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
                           <div className="mt-0.5 line-clamp-2 text-slate-400">{c.summary || '（无描述）'}</div>
                         </div>
                         <span className="shrink-0 text-micro text-slate-500">{isOpen ? '收起' : '展开'}</span>
-                      </button>
+                      </Button>
                       {isOpen ? (
                         <div className="border-t border-slate-800 px-3 py-2">
                           <Section title="何时使用 / 触发" items={c.trigger} />

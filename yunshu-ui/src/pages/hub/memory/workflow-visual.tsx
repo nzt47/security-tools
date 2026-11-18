@@ -217,7 +217,7 @@ export default function MemoryWorkflowVisual() {
                           currentId === d.id ? 'bg-cyan-500/10' : 'hover:bg-slate-800/70'
                         }`}
                       >
-                        <button
+                        <Button variant="plain" size="bare"
                           type="button"
                           className="min-w-0 flex-1 text-left"
                           onClick={() => void handleLoad(d.id)}
@@ -231,7 +231,7 @@ export default function MemoryWorkflowVisual() {
                           <span className="block text-micro text-slate-500">
                             {d.node_count ?? 0} 节点 / {d.edge_count ?? 0} 连线 · {d.updated_at ?? d.id}
                           </span>
-                        </button>
+                        </Button>
                         <Button type="button" className="shrink-0" onClick={() => void handleDelete(d.id)} title="从后端删除" data-testid={`ve-delete-${d.id}`} variant="ghost" size="icon-sm">
                           <Trash2 size={12} />
                         </Button>

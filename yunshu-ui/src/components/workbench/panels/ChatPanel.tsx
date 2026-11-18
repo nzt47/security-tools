@@ -281,7 +281,7 @@ export function ChatPanel() {
         <span className="text-micro uppercase tracking-wider text-slate-500">输出格式</span>
         <div className="flex overflow-hidden rounded-md border border-slate-700">
           {(Object.keys(CHAT_FORMATS) as ChatFormat[]).map((f) => (
-            <button
+            <Button variant="plain" size="bare"
               key={f}
               type="button"
               onClick={() => setStyle({ format: f })}
@@ -292,7 +292,7 @@ export function ChatPanel() {
               }`}
             >
               {CHAT_FORMATS[f].label}
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -379,7 +379,7 @@ export function ChatPanel() {
               {slashHits.length > 1 && <span className="font-mono text-micro text-cyan-400/70">{hiSafe + 1}/{slashHits.length}</span>}
             </div>
             {slashHits.map((c, idx) => (
-              <button
+              <Button variant="plain" size="bare"
                 key={c.token}
                 type="button"
                 onMouseDown={(e) => { e.preventDefault(); pickSlash(c, false); }}
@@ -392,7 +392,7 @@ export function ChatPanel() {
                 <span className="shrink-0 text-micro text-slate-600">{c.version ? `v${c.version}` : ''}</span>
                 <span className="shrink-0 text-micro text-slate-600">{c.category ? `[${c.category}]` : ''}</span>
                 <span className="hidden max-w-40 min-w-0 truncate text-micro text-slate-500 sm:inline">{c.description}</span>
-              </button>
+              </Button>
             ))}
           </div>
         )}

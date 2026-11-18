@@ -48,7 +48,7 @@ const StateInspector: React.FC = () => {
   return (
     <>
       <div className="devconsole-toolbar">
-        <button
+        <Button variant="plain" size="bare"
           type="button"
           className={`devconsole-btn ${activeView === 'snapshots' ? '' : 'warning'}`}
           onClick={() => {
@@ -62,8 +62,8 @@ const StateInspector: React.FC = () => {
           }}
         >
           快照（{snapList.length}）
-        </button>
-        <button
+        </Button>
+        <Button variant="plain" size="bare"
           type="button"
           className={`devconsole-btn ${activeView === 'timeline' ? '' : 'warning'}`}
           onClick={() => {
@@ -77,7 +77,7 @@ const StateInspector: React.FC = () => {
           }}
         >
           时间线（{timeline.length}）
-        </button>
+        </Button>
         <Button
           type="button"
           variant="danger" size="xs"

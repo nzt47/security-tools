@@ -312,7 +312,7 @@ export default function LlmMonitorPanel() {
             const hasReasoning = Boolean(r.reasoning)
             return (
               <div key={r.id} className={`lm-record ${isError ? 'error' : ''}`}>
-                <button
+                <Button variant="plain" size="bare"
                   type="button"
                   className="lm-record-head"
                   aria-expanded={open}
@@ -339,7 +339,7 @@ export default function LlmMonitorPanel() {
                   {isError && <span className="lm-flag err" title={String(r.error)}>❌</span>}
                   {r.restored && <span className="lm-flag restored" title="由上一会话关闭时的快照回填">上次会话</span>}
                   <span className="lm-duration">{r.duration_ms != null ? `${Number(r.duration_ms).toFixed(0)}ms` : ''}</span>
-                </button>
+                </Button>
 
                 {open && (
                   <div className="lm-record-detail">

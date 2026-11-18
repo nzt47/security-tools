@@ -222,7 +222,7 @@ export function ExemptionToggle({ name, item, exempt, pending, disabled, onToggl
 
   const next = !exempt
   return (
-    <button
+    <Button variant="plain" size="bare"
       type="button"
       data-exempt-toggle={name}
       data-exempt={exempt ? 'exempt' : 'required'}
@@ -248,7 +248,7 @@ export function ExemptionToggle({ name, item, exempt, pending, disabled, onToggl
         ? <Loader2 size={10} className="animate-spin" />
         : exempt ? <ShieldCheck size={10} /> : <ShieldAlert size={10} />}
       {exempt ? '已豁免' : '需确认'}
-    </button>
+    </Button>
   )
 }
 

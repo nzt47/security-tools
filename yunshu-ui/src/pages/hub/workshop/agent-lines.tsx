@@ -390,7 +390,7 @@ function ToolPicker({ title, hint, tone, tools, selected, exemptions, onToggle, 
                   : 'text-slate-300 hover:bg-slate-800/60'
               }`}
             >
-              <button
+              <Button variant="plain" size="bare"
                 onClick={() => onToggle(t.name)}
                 title={t.description || t.name}
                 className="flex min-w-0 flex-1 items-center gap-2 text-left"
@@ -409,7 +409,7 @@ function ToolPicker({ title, hint, tone, tools, selected, exemptions, onToggle, 
                 {/* 可调用性标识：mark 缺失时不渲染（退化为现状） */}
                 <CallabilityBadge info={t.callability} name={t.name} />
                 <span className="truncate text-caption text-slate-500">{t.category}</span>
-              </button>
+              </Button>
               {/* 「需确认」徽章 = 豁免开关（豁免清单没读到时它自己退回静态徽章） */}
               {t.needs_approval && (
                 <ExemptionToggle

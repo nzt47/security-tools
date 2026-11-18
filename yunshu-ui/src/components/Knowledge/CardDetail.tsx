@@ -4,6 +4,7 @@
  */
 import React from 'react';
 import type { CardDetail, CardStatus } from '../../api/knowledge-types';
+import { Button } from '@/components/ui';
 import StatusBadge from './StatusBadge';
 import './CardDetail.css';
 
@@ -34,15 +35,17 @@ const CardDetail: React.FC<CardDetailProps> = ({ card, onOpenLink, onClose }) =>
   const contradictions = card.contradictions ?? [];
 
   const renderLink = (slug: string) => (
-    <button
+    <Button
       key={slug}
       type="button"
+      variant="plain"
+      size="bare"
       className="kb-link-chip"
       onClick={() => onOpenLink?.(slug)}
       title={`打开卡片: ${slug}`}
     >
       {slug}
-    </button>
+    </Button>
   );
 
   return (
@@ -50,9 +53,9 @@ const CardDetail: React.FC<CardDetailProps> = ({ card, onOpenLink, onClose }) =>
       <div className="kb-detail-drawer" onClick={(e) => e.stopPropagation()}>
         <div className="kb-detail-header">
           <h2 className="kb-detail-title">{card.title}</h2>
-          <button type="button" className="kb-detail-close" onClick={onClose} title="关闭">
+          <Button type="button" variant="plain" size="bare" className="kb-detail-close" onClick={onClose} title="关闭">
             ✕
-          </button>
+          </Button>
         </div>
 
         <div className="kb-detail-meta">

@@ -295,7 +295,7 @@ export function SessionRail({
         }`}
       >
         {/* 主按钮：选择会话 */}
-        <button
+        <Button variant="plain" size="bare"
           type="button"
           onClick={() => onSelect(s.id)}
           title={s.title}
@@ -334,7 +334,7 @@ export function SessionRail({
               </div>
             </>
           )}
-        </button>
+        </Button>
 
         {/* 悬停操作（内联编辑时隐藏） */}
         {!editing && (
@@ -469,7 +469,7 @@ export function SessionRail({
     return (
       <div key={g.id} data-group-id={g.id} className="space-y-0.5 pt-1">
         <div className="group/g flex items-center gap-1 rounded-lg pr-1 hover:bg-slate-800/50">
-          <button
+          <Button variant="plain" size="bare"
             type="button"
             onClick={() => toggleCollapse(g.id)}
             title={isCollapsed ? '展开分组' : '收起分组'}
@@ -510,7 +510,7 @@ export function SessionRail({
                 </Badge>
               </>
             )}
-          </button>
+          </Button>
           {!renaming && (
             <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover/g:opacity-100 focus-within:opacity-100">
               <Button
@@ -703,7 +703,7 @@ export function SessionRail({
             {ungroupedList.length > 0 && (
               <div data-group-id={UNGROUPED_KEY} className="space-y-0.5 pt-1">
                 <div className="flex items-center gap-1.5 rounded-lg px-1.5 py-1 hover:bg-slate-800/50">
-                  <button
+                  <Button variant="plain" size="bare"
                     type="button"
                     onClick={() => toggleCollapse(UNGROUPED_KEY)}
                     title={ungroupedCollapsed ? '展开未分组' : '收起未分组'}
@@ -722,7 +722,7 @@ export function SessionRail({
                     <Badge tone="neutral" size="sm" className="shrink-0 font-mono">
                       {ungroupedList.length}
                     </Badge>
-                  </button>
+                  </Button>
                 </div>
                 {!ungroupedCollapsed && (
                   <div className="ml-3 space-y-0.5 border-l border-slate-800/70 pl-1.5">

@@ -341,14 +341,14 @@ export default function MemoryKnowledge() {
                         key: 'title',
                         title: '标题',
                         render: (r) => (
-                          <button
+                          <Button variant="plain" size="bare"
                             type="button"
                             className="max-w-[320px] truncate text-left text-cyan-300 hover:text-cyan-200 hover:underline"
                             title={`打开卡片: ${r.slug}`}
                             onClick={() => openDetail(r.slug)}
                           >
                             {r.title || r.slug}
-                          </button>
+                          </Button>
                         ),
                       },
                       {
