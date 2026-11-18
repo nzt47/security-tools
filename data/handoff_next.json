@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-18T12:12:00+08:00",
+ "updated_at": "2026-11-18T12:24:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -938,7 +938,7 @@
    "priority": "P2",
    "title": "UI 原语迁移第 2/3 批：提示词实验室之外的原生按钮/下拉/输入（735/54/233 处）",
    "criteria": "2026-11-16 审计+第 1 批+第 2 批分片一之后：components/ui 只有 12 个文件在用。现读数（2026-11-17 第 95 轮）：raw_button 247 / raw_select 6 / raw_input 93 / **raw_textarea 7** / raw_heading 85 / arbitrary_text 0 / css_hardcoded_color 387。",
-   "next": "2026-11-18 12:1x（§11.153）：本轮新补 **ui/RowButton**（整行可点：列表行/折叠头/菜单项，selected 走主色淡底），迁了 3 个图标按钮 + 3 个行按钮。守卫：raw_button 604 → **135**、raw_select 53 → 1、raw_input 227 → 17、raw_textarea 43 → 5、arbitrary_text 0、raw_heading 85、css_hardcoded_color 358。**剩余 135 的迁移手册已写进 §11.153 B 节**（菜单触发器 pill ~30 → Button size=xs + aria-expanded 主色；多选 pill ~20 → variant={on?accent:default}；DevConsole .devconsole-* ~9 → Tabs/Button 并删 CSS；条件选中行 ~15 → RowButton selected；其它 ~15 逐个人工）。两类不硬套：卡片式行（SkillCardsDialog 头 / SessionAgentMenu 已失效项）、CSS 家族（.wb-chip/.pl-icon-btn/.kb-link-chip/.lm-record-head）。"
+   "next": "2026-11-18 12:2x（§11.154）：Button 补 **active** 态（主色，2 条单测），工作台 6 个菜单触发器（BackgroundTasksMenu / LlmHealthMenu / ChatStyleMenu / SessionAgentMenu / PermissionModeMenu / ChatModeMenu）换成 Button size=xs variant=default active={open} —— 原先每个菜单各用一种强调色（紫/琥珀/青/档位彩），同屏四五套色的根源之一。ChatModeMenu 的「完整」档保留紫色（模式语义，非展开态）。守卫：raw_button 604 → **129**、raw_select 53 → 1、raw_input 227 → 17、raw_textarea 43 → 5、arbitrary_text 0、raw_heading 85、css_hardcoded_color 358。下一片按 §11.153 手册：多选项 pill（~20，aria-pressed → variant={on?accent:default}）→ DevConsole .devconsole-*（~9）→ 条件选中行（~15，RowButton selected）。"
   },
   {
    "id": "ui-typography-codemod",
