@@ -28,7 +28,7 @@ import {
   type ReactNode,
 } from 'react'
 import { createPortal } from 'react-dom'
-import { Badge } from '@/components/ui'
+import { Badge, RowButton } from '@/components/ui'
 import {
   AlertTriangle, ChevronDown, ChevronRight, CircleSlash, Info, Loader2,
   RefreshCw, ShieldAlert, Siren,
@@ -58,17 +58,15 @@ export function Collapsible({
   const expanded = forceOpen || open
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900/40">
-      <button
-        type="button"
+      <RowButton
         onClick={() => setOpen((v) => !v)}
         aria-expanded={expanded}
-        className="flex w-full items-center gap-2 px-4 py-3 text-left"
+        className="gap-2 rounded-none px-4 py-3"
+        leading={<>{expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}{icon}</>}
       >
-        {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        {icon}
         <span className="text-sm font-medium text-slate-200">{title}</span>
-        {subtitle && <span className="text-xs text-slate-500">{subtitle}</span>}
-      </button>
+        {subtitle && <span className="ml-2 text-xs text-slate-500">{subtitle}</span>}
+      </RowButton>
       {expanded && <div className="border-t border-slate-800 p-4">{children}</div>}
     </div>
   )
@@ -277,14 +275,9 @@ export function MetricValue({
           仅披露
         </span>
       )}
-      <button
-        type="button"
-        aria-label="来源与口径"
-        onClick={() => setOpen((v) => !v)}
-        className="text-slate-600 transition-colors hover:text-cyan-400"
-      >
+      <Button type="button" aria-label="来源与口径" onClick={() => setOpen((v) => !v)} variant="ghost" size="icon-sm">
         <Info size={11} />
-      </button>
+      </Button>
       {open && (
         <span className="ml-1 block w-full rounded-sm border border-slate-800 bg-slate-950/80 px-2 py-1 font-mono text-micro leading-relaxed text-slate-400">
           <span className="block">来源：{metric.source || '（未标注，禁止上屏）'}</span>

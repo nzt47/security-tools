@@ -16,7 +16,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { HelpCircle, Loader2 } from 'lucide-react'
 
-import { Switch } from '@/components/ui'
+import { Button, Switch } from '@/components/ui'
 import { CP_SETTINGS, cpSetting } from '@/api/endpoints'
 import { request } from '@/lib/apiClient'
 
@@ -102,15 +102,9 @@ export function CompressPrefixSwitch() {
         />
         <span className="text-caption text-slate-300">压缩复用对话前缀</span>
         {busy && <Loader2 size={11} className="animate-spin text-slate-500" />}
-        <button
-          type="button"
-          aria-label="压缩复用说明"
-          aria-expanded={open}
-          onClick={() => setOpen((v) => !v)}
-          className="text-slate-500 hover:text-slate-300"
-        >
+        <Button type="button" aria-label="压缩复用说明" aria-expanded={open} onClick={() => setOpen((v) => !v)} variant="ghost" size="icon-sm">
           <HelpCircle size={11} />
-        </button>
+        </Button>
       </div>
 
       {open && (

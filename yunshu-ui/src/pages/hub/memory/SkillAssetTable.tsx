@@ -15,7 +15,7 @@ import {
   ChevronDown, ChevronRight, Copy, Download, FilePlus, Filter, Folder, Lightbulb, Loader2, Layers, Plus,
   RefreshCw, Rocket, ScrollText, ShieldCheck, Trash2, X, Zap,
 } from 'lucide-react'
-import { Button, CallabilityBadge, Checkbox, hubGet, hubPost, Input, Select, Switch, Textarea } from '../components/ui'
+import { Button, CallabilityBadge, Checkbox, hubGet, hubPost, Input, RowButton, Select, Switch, Textarea } from '../components/ui'
 import { authHeader, getApiToken } from '../../../lib/apiToken'
 import ClassIcon from './class-icon'
 import ApiTokenPrompt from './api-token-prompt'
@@ -788,13 +788,14 @@ export default function SkillAssessManager() {
       out.push(
         <tr key={`g-${name}`} className="bg-slate-900/85">
           <td colSpan={9} className="px-1.5 py-1">
-            <button type="button" onClick={() => toggleCls(name)} className="flex w-full items-center gap-2 rounded-sm px-1.5 py-1 text-left hover:bg-slate-800/60" title={isOpen ? '折叠该类' : '展开该类'}>
+            <RowButton size="sm" onClick={() => toggleCls(name)} className="rounded-sm px-1.5 py-1 hover:bg-slate-800/60" title={isOpen ? '折叠该类' : '展开该类'} leading={<>
               {isOpen ? <ChevronDown size={13} className="shrink-0 text-slate-400" /> : <ChevronRight size={13} className="shrink-0 text-slate-400" />}
               <ClassIcon name={name} size={13} className="shrink-0 text-cyan-400" />
+            </>}>
               <span className="text-caption font-medium text-slate-100">{name}</span>
-              <span className="rounded-full bg-slate-800 px-1.5 text-micro text-slate-400">{members.length}</span>
+              <span className="ml-2 rounded-full bg-slate-800 px-1.5 text-micro text-slate-400">{members.length}</span>
               {g?.auto && chip('自动建类', 'bg-violet-500/10 text-violet-300 border-violet-800/60')}
-            </button>
+            </RowButton>
           </td>
         </tr>
       )
@@ -1350,7 +1351,7 @@ function ReportPanel({ item, onClose, onMerge }: { item: SkillItem; onClose: () 
             <Copy size={11} /> 合并重复…
           </Button>
         )}
-        <button type="button" onClick={onClose} className="text-slate-500 hover:text-slate-300"><X size={13} /></button>
+        <Button type="button" onClick={onClose} variant="ghost" size="icon-sm"><X size={13} /></Button>
       </div>
       <div className="mb-2 grid max-w-md grid-cols-4 gap-1.5">
         {stat('综合', rv?.score)}{stat('安全', rv?.security_score)}

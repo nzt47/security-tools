@@ -5,6 +5,7 @@
  * （SchemaRenderer 约定：第一层嵌套默认展开，更深层默认收起）。
  */
 import React, { useState } from 'react';
+import { RowButton } from '@/components/ui';
 import { labelClass, descClass } from './FieldLabel';
 
 export interface ObjectGroupProps {
@@ -26,11 +27,11 @@ export function ObjectGroup({ title, description, defaultOpen = false, children 
       className="overflow-hidden rounded-lg border border-(--border-color) bg-(--bg-secondary)"
       data-testid="object-group"
     >
-      <button
-        type="button"
+      <RowButton
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left transition-colors hover:bg-(--bg-elevated)"
+        size="sm"
+        className="rounded-none px-3 py-2 hover:bg-(--bg-elevated)"
       >
         <span className="flex items-center gap-2">
           <span
@@ -42,7 +43,7 @@ export function ObjectGroup({ title, description, defaultOpen = false, children 
           <span className={labelClass}>{title ?? '分组'}</span>
         </span>
         <span className="text-xs text-(--text-muted)">{open ? '收起' : '展开'}</span>
-      </button>
+      </RowButton>
       {open && description && <p className={`${descClass} px-3 pb-1`}>{description}</p>}
       {open && <div className="px-3 pb-3">{children}</div>}
     </div>
