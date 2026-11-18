@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Activity, Cpu, ListChecks, RefreshCw, Search } from 'lucide-react'
-import { Badge, Button, Card, ErrorBox, hubGet, Loading, PageHeader, unwrap } from '../components/ui'
+import { Badge, Button, Card, ErrorBox, hubGet, Loading, PageHeader, Tabs, unwrap } from '../components/ui'
 import { SCHEDULER_OVERVIEW, SYSTEM_UNITS, TOOLS_CONFIG } from '@/api/endpoints'
 
 type Unit = { id: string; status: string; headline?: string; detail?: string }
@@ -111,33 +111,17 @@ export default function PlatformCapability() {
       />
 
       <div className="flex items-center gap-1 border-b border-slate-800 px-4 py-2">
-        <button
-          type="button"
-          onClick={() => { setTab('units'); setQ('') }}
-          className={tab === 'units'
-            ? 'flex items-center gap-1 rounded-md border border-cyan-700/70 bg-cyan-500/10 px-2.5 py-1 text-caption text-cyan-300'
-            : 'flex items-center gap-1 rounded-md border border-slate-800 px-2.5 py-1 text-caption text-slate-400 hover:bg-slate-800'}
-        >
-          <Activity size={11} /> 功能单位 {unitList.length ? `(${unitList.length})` : ''}
-        </button>
-        <button
-          type="button"
-          onClick={() => { setTab('tools'); setQ('') }}
-          className={tab === 'tools'
-            ? 'flex items-center gap-1 rounded-md border border-violet-700/70 bg-violet-500/10 px-2.5 py-1 text-caption text-violet-300'
-            : 'flex items-center gap-1 rounded-md border border-slate-800 px-2.5 py-1 text-caption text-slate-400 hover:bg-slate-800'}
-        >
-          <Cpu size={11} /> 工具 {tools.length ? `(${tools.length})` : ''}
-        </button>
-        <button
-          type="button"
-          onClick={() => { setTab('tasks'); setQ('') }}
-          className={tab === 'tasks'
-            ? 'flex items-center gap-1 rounded-md border border-amber-700/70 bg-amber-500/10 px-2.5 py-1 text-caption text-amber-300'
-            : 'flex items-center gap-1 rounded-md border border-slate-800 px-2.5 py-1 text-caption text-slate-400 hover:bg-slate-800'}
-        >
-          <ListChecks size={11} /> 调度 {tasks.length ? `(${tasks.length})` : ''}
-        </button>
+        <Tabs
+          variant="pill"
+          size="sm"
+          value={tab}
+          onChange={(v) => { setTab(v as typeof tab); setQ('') }}
+          items={[
+            { value: 'units', label: <><Activity size={11} /> 功能单位</>, count: unitList.length || undefined },
+            { value: 'tools', label: <><Cpu size={11} /> 工具</>, count: tools.length || undefined },
+            { value: 'tasks', label: <><ListChecks size={11} /> 调度</>, count: tasks.length || undefined },
+          ]}
+        />
         {tab !== 'units' ? (
           <div className="ml-auto flex items-center gap-1 rounded-md border border-slate-800 px-2 py-1">
             <Search size={11} className="text-slate-500" />

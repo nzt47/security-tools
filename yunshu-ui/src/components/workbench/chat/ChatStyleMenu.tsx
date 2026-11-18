@@ -110,18 +110,15 @@ export function ChatStyleMenu() {
             <div className="mb-1.5 text-micro uppercase tracking-wider text-slate-500">气泡样式</div>
             <div className="flex gap-1.5">
               {(Object.keys(CHAT_BUBBLE_STYLES) as ChatBubbleKey[]).map((k) => (
-                <button
+                <Button
                   key={k}
-                  type="button"
+                  size="xs"
+                  variant={bubbleStyle === k ? 'accent' : 'default'}
+                  className="flex-1"
                   onClick={() => setStyle({ bubbleStyle: k })}
-                  className={`flex-1 rounded-md border px-2 py-1 text-caption transition-colors ${
-                    bubbleStyle === k
-                      ? 'border-cyan-500/70 bg-cyan-500/15 text-cyan-300'
-                      : 'border-slate-700 text-slate-400 hover:bg-slate-800'
-                  }`}
                 >
                   {CHAT_BUBBLE_STYLES[k].label}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -131,18 +128,15 @@ export function ChatStyleMenu() {
             <div className="mb-1.5 text-micro uppercase tracking-wider text-slate-500">字体大小</div>
             <div className="flex gap-1.5">
               {(Object.keys(CHAT_FONT_SIZES) as ChatFontKey[]).map((k) => (
-                <button
+                <Button
                   key={k}
-                  type="button"
+                  size="xs"
+                  variant={fontSize === k ? 'accent' : 'default'}
+                  className="flex-1"
                   onClick={() => setStyle({ fontSize: k })}
-                  className={`flex-1 rounded-md border px-2 py-1 text-caption transition-colors ${
-                    fontSize === k
-                      ? 'border-cyan-500/70 bg-cyan-500/15 text-cyan-300'
-                      : 'border-slate-700 text-slate-400 hover:bg-slate-800'
-                  }`}
                 >
                   {CHAT_FONT_SIZES[k].label}
-                </button>
+                </Button>
               ))}
             </div>
           </div>

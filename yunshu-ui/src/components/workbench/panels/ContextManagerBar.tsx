@@ -481,25 +481,27 @@ export function ContextManagerBar() {
                       与「手动压缩」同一行（和 §11.123 的开关同一处：按下去压什么、规则在哪，一屏可见）。
                       第二个按钮是「窗口取值参考」：按任务类型的建议值 + 我们这里的真实约束（全局一个窗口、
                       分身影子目前没有窗口字段）。 */}
-                  <button
-                    type="button"
+                  <Button
+                    size="xs"
+                    variant="default"
+                    active={infoTab === 'mechanism'}
                     onClick={() => setInfoTab((v) => (v === 'mechanism' ? null : 'mechanism'))}
                     aria-expanded={infoTab === 'mechanism'}
-                    className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-caption transition-colors ${infoTab === 'mechanism' ? 'border-cyan-700/70 bg-cyan-500/10 text-cyan-300' : 'border-slate-700 text-slate-400 hover:bg-slate-800'}`}
                     title="自动压缩 / 三级水位 / 摘要退化 / System Prompt 预算 / 主动丢弃 —— 这套机制怎么运作"
                   >
                     <Info size={11} /> 上下文管理说明
-                  </button>
-                  <button
-                    type="button"
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant="default"
+                    active={infoTab === 'window'}
                     onClick={() => setInfoTab((v) => (v === 'window' ? null : 'window'))}
                     aria-expanded={infoTab === 'window'}
                     aria-label="窗口取值参考"
-                    className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-caption transition-colors ${infoTab === 'window' ? 'border-cyan-700/70 bg-cyan-500/10 text-cyan-300' : 'border-slate-700 text-slate-400 hover:bg-slate-800'}`}
                     title="窗口该开多大：按任务类型的建议值 + 本机的真实约束（全局一个窗口；分身不各带窗口）"
                   >
                     <Info size={11} /> 窗口取值参考
-                  </button>
+                  </Button>
                   <Button onClick={load} variant="default" size="xs">
                     <RefreshCw size={11} /> 刷新
                   </Button>
