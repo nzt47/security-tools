@@ -29,7 +29,7 @@ import {
   getGraph,
 } from '../../../api/knowledge'
 import { ApiError } from '../../../lib/apiClient'
-import { Badge, Button, Card as HubCard, DataTable, ErrorBox, Input, Loading, PageHeader, Select, StatCard, Tabs } from '../components/ui'
+import { Badge, Button, Card as HubCard, DataTable, ErrorBox, Input, Loading, Notice, PageHeader, Select, StatCard, Tabs } from '../components/ui'
 import StatusBadge from '../../../components/Knowledge/StatusBadge'
 import CardDetailView from '../../../components/Knowledge/CardDetail'
 import CardForm from '../../../components/Knowledge/CardForm'
@@ -571,6 +571,11 @@ export default function MemoryKnowledge() {
                       </ul>
                     </LintSection>
                   )}
+
+                  {/* 新增知识文档：**只在这里挂一次**。2026-11-18 审计发现它此前挂在 LintSection 里，
+                      于是健康巡检页每个小节后面都重复一份（6 份"新增知识文档"）——同一张表单 6 个实例，
+                      各自的 useState 互不同步，用户填错地方还以为没保存。 */}
+                  <KnowledgeAddPanel />
                 </div>
               )}
             </HubCard>
@@ -612,9 +617,9 @@ export default function MemoryKnowledge() {
               submitting={submitting}
             />
             {formError && (
-              <div className="mt-3 rounded-md border border-red-900/60 bg-red-950/40 px-3 py-2 text-xs text-red-400">
+              <Notice tone="danger" className="mt-3">
                 {formError}
-              </div>
+              </Notice>
             )}
           </div>
         </div>
@@ -629,7 +634,6 @@ function LintSection({ title, children }: { title: string; children: ReactNode }
     <div className="mt-4">
       <div className="mb-1.5 text-xs font-semibold text-slate-400">{title}</div>
       <div className="space-y-1 rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2">{children}</div>
-      <KnowledgeAddPanel />
     </div>
   )
 }
