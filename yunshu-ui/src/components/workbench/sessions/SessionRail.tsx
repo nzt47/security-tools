@@ -28,7 +28,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { Badge, Button, Input, Select, Switch } from '@/components/ui';
+import { Badge, Button, Input, RowButton, Select, Switch } from '@/components/ui';
 import type { Project, SessionGroup, SessionMeta } from '../../../lib/sessionApi';
 
 export interface SessionRailProps {
@@ -395,32 +395,26 @@ export function SessionRail({
             <div className="px-2 py-1 text-micro uppercase tracking-[0.14em] text-slate-500">
               移动到分组
             </div>
-            <button
-              type="button"
+            <RowButton
+              size="sm"
+              selected={currentGroup === null}
               onClick={() => assign(s.id, null)}
-              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-body transition-colors hover:bg-slate-800 ${
-                currentGroup === null ? 'text-cyan-300' : 'text-slate-300'
-              }`}
+              className="px-2 py-1.5"
+              leading={<span className="flex h-4 w-4 items-center justify-center">{currentGroup === null && <Check size={12} />}</span>}
             >
-              <span className="flex h-4 w-4 items-center justify-center">
-                {currentGroup === null && <Check size={12} />}
-              </span>
               未分组
-            </button>
+            </RowButton>
             {groups.map((g) => (
-              <button
+              <RowButton
                 key={g.id}
-                type="button"
+                size="sm"
+                selected={currentGroup === g.id}
                 onClick={() => assign(s.id, g.id)}
-                className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-body transition-colors hover:bg-slate-800 ${
-                  currentGroup === g.id ? 'text-cyan-300' : 'text-slate-300'
-                }`}
+                className="px-2 py-1.5"
+                leading={<span className="flex h-4 w-4 items-center justify-center">{currentGroup === g.id && <Check size={12} />}</span>}
               >
-                <span className="flex h-4 w-4 items-center justify-center">
-                  {currentGroup === g.id && <Check size={12} />}
-                </span>
-                <span className="min-w-0 flex-1 truncate">{g.name}</span>
-              </button>
+                <span className="min-w-0 truncate">{g.name}</span>
+              </RowButton>
             ))}
             {groups.length === 0 && (
               <div className="px-2 pb-1 pt-0.5 text-micro text-slate-600">
@@ -433,33 +427,27 @@ export function SessionRail({
             <div className="px-2 py-1 text-micro uppercase tracking-[0.14em] text-slate-500">
               移动到项目
             </div>
-            <button
-              type="button"
+            <RowButton
+              size="sm"
+              selected={currentProject === null}
               onClick={() => moveProject(s.id, null)}
-              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-body transition-colors hover:bg-slate-800 ${
-                currentProject === null ? 'text-cyan-300' : 'text-slate-300'
-              }`}
+              className="px-2 py-1.5"
+              leading={<span className="flex h-4 w-4 items-center justify-center">{currentProject === null && <Check size={12} />}</span>}
             >
-              <span className="flex h-4 w-4 items-center justify-center">
-                {currentProject === null && <Check size={12} />}
-              </span>
               未归属项目
-            </button>
+            </RowButton>
             {projects.map((p) => (
-              <button
+              <RowButton
                 key={p.id}
-                type="button"
+                size="sm"
+                selected={currentProject === p.id}
                 onClick={() => moveProject(s.id, p.id)}
                 title={p.workspace_root}
-                className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-body transition-colors hover:bg-slate-800 ${
-                  currentProject === p.id ? 'text-cyan-300' : 'text-slate-300'
-                }`}
+                className="px-2 py-1.5"
+                leading={<span className="flex h-4 w-4 items-center justify-center">{currentProject === p.id && <Check size={12} />}</span>}
               >
-                <span className="flex h-4 w-4 items-center justify-center">
-                  {currentProject === p.id && <Check size={12} />}
-                </span>
-                <span className="min-w-0 flex-1 truncate">{p.name}</span>
-              </button>
+                <span className="min-w-0 truncate">{p.name}</span>
+              </RowButton>
             ))}
             {projects.length === 0 && (
               <div className="px-2 pb-1 pt-0.5 text-micro text-slate-600">

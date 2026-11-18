@@ -14,7 +14,7 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button, RowButton } from '@/components/ui'
 import { CHAT_MODES, useChatPrefsStore, type ChatMode } from '../../../stores/useChatPrefsStore'
 
 export function ChatModeMenu() {
@@ -76,20 +76,16 @@ export function ChatModeMenu() {
             const item = CHAT_MODES[m]
             const active = m === mode
             return (
-              <button
+              <RowButton
                 key={m}
-                type="button"
                 role="menuitemradio"
                 aria-checked={active}
+                selected={active}
                 onClick={() => {
                   setMode(m)
                   setOpen(false)
                 }}
-                className={`mb-1 w-full rounded-lg border px-2 py-1.5 text-left transition-colors ${
-                  active
-                    ? 'border-cyan-600/60 bg-cyan-500/10'
-                    : 'border-slate-800 hover:bg-slate-800/60'
-                }`}
+                className="mb-1 rounded-lg border border-slate-800 px-2 py-1.5"
               >
                 <span className="flex items-center gap-1.5">
                   <span>{item.icon}</span>
@@ -97,7 +93,7 @@ export function ChatModeMenu() {
                   {active && <span className="ml-auto text-micro text-cyan-300">✓ 当前</span>}
                 </span>
                 <span className="mt-0.5 block text-caption leading-relaxed text-slate-500">{item.hint}</span>
-              </button>
+              </RowButton>
             )
           })}
           <div className="mt-1 px-1 text-micro leading-relaxed text-slate-600">

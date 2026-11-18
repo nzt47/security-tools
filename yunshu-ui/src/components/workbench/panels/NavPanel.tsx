@@ -12,7 +12,7 @@
  */
 import { useMemo, useState } from 'react'
 import { ChevronDown, Search, X } from 'lucide-react'
-import { Button, Input } from '@/components/ui'
+import { Button, Input, RowButton } from '@/components/ui'
 import { HUB_NAV, filterNav, type HubNavItem } from '../../../workbench/hubNav'
 import { useWorkbenchNav } from '../../../workbench/navStore'
 
@@ -23,19 +23,15 @@ function NavLeaf({ item, depth }: { item: HubNavItem; depth: number }) {
   const active = activeKey === item.key
 
   return (
-    <button
-      type="button"
+    <RowButton
+      selected={active}
       onClick={() => setActiveKey(item.key)}
-      className={`flex w-full items-center gap-2 rounded-control px-2.5 py-1.5 text-left text-body transition-colors ${
-        active
-          ? 'bg-primary/15 font-medium text-primary'
-          : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
-      }`}
+      className="px-2.5 py-1.5"
       style={{ paddingLeft: `${depth * 12 + 10}px` }}
+      leading={Icon ? <Icon size={13} /> : undefined}
     >
-      {Icon && <Icon size={13} className={active ? 'text-primary' : 'text-muted-foreground'} />}
       <span className="truncate">{item.label}</span>
-    </button>
+    </RowButton>
   )
 }
 
