@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-18T18:26:00+08:00",
+ "updated_at": "2026-11-18T19:20:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -934,11 +934,12 @@
   },
   {
    "id": "ui-primitive-migration-batch2",
-   "status": "open",
+   "status": "done",
    "priority": "P2",
    "title": "UI 原语迁移第 2/3 批：提示词实验室之外的原生按钮/下拉/输入（735/54/233 处）",
    "criteria": "2026-11-16 审计+第 1 批+第 2 批分片一之后：components/ui 只有 12 个文件在用。现读数（2026-11-17 第 95 轮）：raw_button 247 / raw_select 6 / raw_input 93 / **raw_textarea 7** / raw_heading 85 / arbitrary_text 0 / css_hardcoded_color 387。",
-   "next": "2026-11-18 18:2x（§11.159）：raw_button 604 → **70**。本轮收口了：页面级 BTN 常量（12）、三元语义变体（3）、筛选/开关 pill（6）、子页 tab 条（11，含 Tabs 新增 testId）、菜单/开关（7）。守卫：raw_select 1 · raw_input 17 · raw_textarea 5 · arbitrary_text 0 · raw_heading 85 · css_hardcoded_color 358。剩余 63 处（清单已重生成 docs/handoff/batch2_remaining.md）：expr 34 / css-family 14 / inline-area 9 / none 5 / literal 1。expr 34 都很零散（每文件 1–2 处：卡片式 tab、带图标的三段切换、状态色按钮），按清单逐条处理；inline-area 9 处要先决定是否给 RowButton 加 bare 变体（不设 min-height），再迁。"
+   "next": "已完成（§11.160）：生产代码里的原生 <button> **清零**（604 → 0；守卫报 8 是因为它把 .test.tsx 夹具、usePermission.ts 的文档注释示例、exemption.tsx 注释里的字样也数进去，量具不剥注释）。最终守卫：raw_button 8（全在测试/注释）· raw_select 1（logs.test.tsx 注释）· raw_input 17（15 个带自造类的 text + 1 file + 1 sr-only）· raw_textarea 5（全部有自造 CSS）· arbitrary_text 0 · raw_heading 85 · css_hardcoded_color 358。本轮新增的原语能力：Button.plain/bare、RowButton.bare、Tabs.TabItem.testId。",
+   "done_at": "2026-11-18T19:20:00+08:00"
   },
   {
    "id": "ui-typography-codemod",
