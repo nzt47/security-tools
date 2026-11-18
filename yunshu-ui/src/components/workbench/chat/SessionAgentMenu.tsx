@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Bot, Check, ChevronDown, Loader2, RefreshCw, X } from 'lucide-react'
-import { Badge, Button } from '@/components/ui'
+import { Badge, Button, RowButton } from '@/components/ui'
 import { getEnvelope } from '@/api/envelope'
 import { sessionApi } from '../../../lib/sessionApi'
 import { SUBAGENT_LIST } from '@/api/endpoints'
@@ -184,17 +184,13 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
           )}
 
           <div className="max-h-56 overflow-y-auto">
-            <button
-              type="button"
+            <RowButton
+              selected={!current}
               onClick={() => void pick('')}
               disabled={saving}
-              className={`mb-1 flex w-full items-start gap-2 rounded-lg border px-2 py-1.5 text-left transition-colors disabled:opacity-50 ${
-                !current ? 'border-cyan-600/60 bg-cyan-500/10' : 'border-slate-800 hover:bg-slate-800/60'
-              }`}
+              className="mb-1 items-start rounded-lg border border-slate-800 px-2 py-1.5"
+              leading={<span className="mt-px w-3 shrink-0">{!current ? <Check size={12} /> : null}</span>}
             >
-              <span className="mt-px w-3 shrink-0 text-cyan-400">
-                {!current ? <Check size={12} /> : null}
-              </span>
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-1.5">
                   <b className="truncate font-medium text-slate-200">母体（默认）</b>
@@ -203,26 +199,24 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
                   不指定分身，由母体承接本会话
                 </span>
               </span>
-            </button>
+            </RowButton>
 
             {/* 当前选择已不在活跃列表：仍然可见可选（避免"选了却看不见"） */}
             {currentMissing && (
-              <button
-                type="button"
+              <RowButton
+                selected
                 onClick={() => void pick(current)}
                 disabled={saving}
-                className="mb-1 flex w-full items-start gap-2 rounded-lg border border-cyan-600/60 bg-cyan-500/10 px-2 py-1.5 text-left"
+                className="mb-1 items-start rounded-lg border border-primary/60 px-2 py-1.5"
+                leading={<span className="mt-px w-3 shrink-0"><Check size={12} /></span>}
               >
-                <span className="mt-px w-3 shrink-0 text-cyan-400">
-                  <Check size={12} />
-                </span>
                 <span className="min-w-0 flex-1">
                   <b className="truncate font-medium text-slate-200">{current}</b>
                   <span className="mt-0.5 block text-micro text-amber-300">
                     已不在活跃列表（分身跑完即回收或被销毁）
                   </span>
                 </span>
-              </button>
+              </RowButton>
             )}
 
             {loading && list.length === 0 ? (
@@ -240,20 +234,14 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
               list.map((sa) => {
                 const active = sa.name === current
                 return (
-                  <button
+                  <RowButton
                     key={sa.name}
-                    type="button"
+                    selected={active}
                     onClick={() => void pick(sa.name)}
                     disabled={saving}
-                    className={`mb-1 flex w-full items-start gap-2 rounded-lg border px-2 py-1.5 text-left transition-colors disabled:opacity-50 ${
-                      active
-                        ? 'border-cyan-600/60 bg-cyan-500/10'
-                        : 'border-slate-800 hover:bg-slate-800/60'
-                    }`}
+                    className="mb-1 items-start rounded-lg border border-slate-800 px-2 py-1.5"
+                    leading={<span className="mt-px w-3 shrink-0">{active ? <Check size={12} /> : null}</span>}
                   >
-                    <span className="mt-px w-3 shrink-0 text-cyan-400">
-                      {active ? <Check size={12} /> : null}
-                    </span>
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center gap-1.5">
                         <b className="truncate font-medium text-slate-200">{sa.name}</b>
@@ -264,7 +252,7 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
                         {sa.memory_provider ? ` · ${sa.memory_provider}` : ''}
                       </span>
                     </span>
-                  </button>
+                  </RowButton>
                 )
               })
             )}

@@ -23,7 +23,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Bot, Check, ChevronDown, ChevronRight, Loader2, Play, RefreshCw, UserPlus, X } from 'lucide-react'
-import { Badge, Button, hubGet, Input, Textarea } from '../../../pages/hub/components/ui'
+import { Badge, Button, hubGet, Input, RowButton, Textarea } from '../../../pages/hub/components/ui'
 import { getEnvelope } from '@/api/envelope'
 import { authHeader } from '../../../lib/apiToken'
 
@@ -387,19 +387,13 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
                 const st = STATUS_TEXT(sa)
                 const active = sa.name === delegate
                 return (
-                  <button
+                  <RowButton
                     key={sa.name}
-                    type="button"
+                    selected={active}
                     onClick={() => pick(sa.name)}
-                    className={`mb-1 flex w-full items-start gap-2 rounded-lg border px-2 py-1.5 text-left transition-colors ${
-                      active
-                        ? 'border-emerald-600/60 bg-emerald-500/10'
-                        : 'border-slate-800 hover:bg-slate-800/60'
-                    }`}
+                    className="mb-1 items-start rounded-lg border border-slate-800 px-2 py-1.5"
+                    leading={<span className="mt-px w-3 shrink-0">{active ? <Check size={12} /> : null}</span>}
                   >
-                    <span className="mt-px w-3 shrink-0 text-emerald-400">
-                      {active ? <Check size={12} /> : null}
-                    </span>
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center gap-1.5">
                         <b className="truncate font-medium text-slate-200">{sa.name}</b>
@@ -415,7 +409,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
                         </span>
                       )}
                     </span>
-                  </button>
+                  </RowButton>
                 )
               })
             )}
