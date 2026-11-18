@@ -52,4 +52,16 @@ describe('ui/Button', () => {
     render(<Button size="xs">紧凑</Button>)
     expect(screen.getByRole('button', { name: '紧凑' }).className).toContain('h-6')
   })
+
+  it('active 态走主色（菜单触发器展开 / 多选项选中）', () => {
+    render(<Button active>模式</Button>)
+    const el = screen.getByRole('button', { name: '模式' })
+    expect(el.className).toContain('border-primary/60')
+    expect(el.className).toContain('bg-primary/10')
+  })
+
+  it('active 不改写 primary 的重视觉', () => {
+    render(<Button variant="primary" active>提交</Button>)
+    expect(screen.getByRole('button', { name: '提交' }).className).toContain('bg-primary ')
+  })
 })

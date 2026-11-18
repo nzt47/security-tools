@@ -145,16 +145,13 @@ export function BackgroundTasksMenu() {
 
   return (
     <div className="relative" ref={boxRef}>
-      <button
-        type="button"
+      <Button
+        size="xs"
+        variant="default"
+        active={open}
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         title="后台任务：查看/管理系统中后台运行的任务"
-        className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-caption transition-colors ${
-          open
-            ? 'border-violet-600/60 bg-violet-500/10 text-violet-300'
-            : 'border-slate-700 text-slate-400 hover:border-violet-600/60 hover:bg-slate-800 hover:text-violet-300'
-        }`}
       >
         <Zap size={11} />
         后台任务
@@ -163,7 +160,7 @@ export function BackgroundTasksMenu() {
             {active}
           </Badge>
         )}
-      </button>
+      </Button>
 
       {open && (
         <div className="absolute right-0 top-[calc(100%+6px)] z-70 w-[420px] rounded-xl border border-slate-700 bg-slate-900/98 p-3 text-body shadow-2xl backdrop-blur-sm">

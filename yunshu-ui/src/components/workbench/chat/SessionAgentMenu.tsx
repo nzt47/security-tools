@@ -126,8 +126,10 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
 
   return (
     <div className="relative" ref={boxRef}>
-      <button
-        type="button"
+      <Button
+        size="xs"
+        variant="default"
+        active={open}
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label={`智能体：${label}`}
@@ -137,11 +139,6 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
             ? '本会话智能体：选母体或某个分身来承接这段对话'
             : '未选择会话，无法切换智能体'
         }
-        className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-caption transition-colors disabled:opacity-40 ${
-          open
-            ? 'border-cyan-600/60 bg-cyan-500/10 text-cyan-300'
-            : 'border-slate-700 text-slate-400 hover:border-cyan-600/60 hover:bg-slate-800 hover:text-cyan-300'
-        }`}
       >
         <Bot size={11} />
         智能体
@@ -154,7 +151,7 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
           </Badge>
         )}
         <ChevronDown size={11} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
+      </Button>
 
       {open && (
         <div className="absolute right-0 top-[calc(100%+6px)] z-70 w-[300px] rounded-xl border border-slate-700 bg-slate-900/98 p-3 text-body shadow-2xl backdrop-blur-sm">

@@ -14,6 +14,7 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
+import { Button } from '@/components/ui'
 import { CHAT_MODES, useChatPrefsStore, type ChatMode } from '../../../stores/useChatPrefsStore'
 
 export function ChatModeMenu() {
@@ -42,24 +43,28 @@ export function ChatModeMenu() {
 
   return (
     <div className="relative" ref={boxRef}>
-      <button
-        type="button"
+      <Button
+        size="xs"
+        variant="default"
+        active={open}
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="menu"
         title={`对话模式：${current.label} —— ${current.hint}`}
-        className={`flex items-center gap-1 rounded-md border px-2 py-0.5 text-caption transition-colors ${
+        // 「完整」是重档，用醒目色提醒（这是模式语义，不是展开态）：与 active 的展开态并存，
+        // className 在后面 ⇒ 冲突时以模式色为准。
+        className={
           mode === 'full'
             ? 'border-violet-600/60 text-violet-300'
             : mode === 'retrieval'
               ? 'border-cyan-600/60 text-cyan-300'
-              : 'border-slate-700 text-slate-400 hover:bg-slate-800'
-        }`}
+              : undefined
+        }
       >
         <span>{current.icon}</span>
         <span>模式：{current.label}</span>
         <ChevronDown size={10} className={open ? 'rotate-180 transition-transform' : 'transition-transform'} />
-      </button>
+      </Button>
 
       {open && (
         <div

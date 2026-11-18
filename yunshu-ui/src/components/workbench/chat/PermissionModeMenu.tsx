@@ -14,6 +14,7 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
+import { Button } from '@/components/ui'
 import {
   PERMISSION_MODES,
   useChatPrefsStore,
@@ -53,19 +54,20 @@ export function PermissionModeMenu() {
 
   return (
     <div className="relative" ref={boxRef}>
-      <button
-        type="button"
+      <Button
+        size="xs"
+        variant="default"
+        active={open}
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="menu"
         data-testid="permission-mode-menu"
         title={`权限档位：${current.label} —— ${current.hint}`}
-        className={`flex items-center gap-1 rounded-md border px-2 py-0.5 text-caption transition-colors ${TONE[permissionMode]}`}
       >
         <span>{current.icon}</span>
         <span>权限：{current.label}</span>
         <ChevronDown size={10} className={open ? 'rotate-180 transition-transform' : 'transition-transform'} />
-      </button>
+      </Button>
 
       {open && (
         <div

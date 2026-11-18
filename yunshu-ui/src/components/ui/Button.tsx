@@ -50,6 +50,12 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
    * 有了 surface="light" 后那三档由原语表达，颜色仍走 token（primary/danger）。
    */
   surface?: 'dark' | 'light'
+  /**
+   * "当前生效"态（菜单触发器展开、多选项被选中）。
+   * 【为什么放原语里】工作台顶栏的 6 个菜单触发器各自手写展开态颜色（紫/青/橙），
+   * 于是同一屏出现多套强调色；这里统一成主色（描边 + 淡底），由调用方只传 active。
+   */
+  active?: boolean
   /** 加载态：禁用按钮并显示 spinner */
   loading?: boolean
 }
@@ -87,7 +93,7 @@ const SIZE_CLASSES: Record<ButtonSize, string> = {
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { className, variant = 'default', size = 'md', surface = 'dark', loading = false, disabled, children, ...props },
+  { className, variant = 'default', size = 'md', surface = 'dark', active = false, loading = false, disabled, children, ...props },
   ref,
 ) {
   return (
@@ -103,6 +109,9 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
         'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary/40',
         'disabled:cursor-not-allowed disabled:opacity-60',
         surface === 'light' ? LIGHT_VARIANT_CLASSES[variant] : VARIANT_CLASSES[variant],
+        // active 只对"描边/幽灵"两种弱视觉生效（primary/danger 本身已经够重）
+        active && variant !== 'primary' && variant !== 'danger' &&
+          'border-primary/60 bg-primary/10 text-primary hover:bg-primary/15',
         SIZE_CLASSES[size],
         className,
       )}

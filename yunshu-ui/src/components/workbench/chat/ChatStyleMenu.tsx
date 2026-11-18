@@ -57,20 +57,17 @@ export function ChatStyleMenu() {
 
   return (
     <div className="relative" ref={boxRef}>
-      <button
-        type="button"
+      <Button
+        size="xs"
+        variant="default"
+        active={open}
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         title="对话风格设置（主题 / 气泡样式 / 字号）"
-        className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-caption transition-colors ${
-          open
-            ? 'border-cyan-600/60 bg-cyan-500/10 text-cyan-300'
-            : 'border-slate-700 text-slate-400 hover:border-cyan-600/60 hover:bg-slate-800 hover:text-cyan-300'
-        }`}
       >
         <Palette size={11} />
         风格
-      </button>
+      </Button>
 
       {open && (
         <div className="absolute right-0 top-[calc(100%+6px)] z-70 w-[286px] rounded-xl border border-slate-700 bg-slate-900/98 p-3 shadow-2xl backdrop-blur-sm">
