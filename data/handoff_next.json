@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-18T23:55:00+08:00",
+ "updated_at": "2026-11-19T00:05:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -7,8 +7,8 @@
    "status": "open",
    "priority": "P2",
    "title": "封装审计（2026-11-18 §11.161）：补齐 ui/Notice 后仍敞开的 5 类结构性缺口",
-   "criteria": "审计（§11.161）后按顺序收口，2026-11-18 已完成：① ui/CodeBlock（19 个 PRE 常量 → 0，56 处）；② ui/Notice（87 处手写提示条 → 已迁 28 处）；③ ui/Menu（3 处菜单收口，行为统一为 portal + 捕获 Esc）；④ ModalBase 补 scrollable/closeButton/className/bodyClassName/header + Esc 捕获，自造 modal 7 → 4；⑤ hub 层委托 4 件：Badge / ErrorBox / Card / Loading（StatCard 颜色 token 化）。仍敞开：4 个模态（ApprovalPrompt / TransformQueueDialog / skill-detail-drawer / ContextManagerBar）、DataTable 的可拖列宽、7 个 CSS 家族控件（需 variant=bare）、raw_heading 82 的排版阶梯。",
-   "next": "下一批（按风险从低到高）：① ContextManagerBar 只换壳（行为已合规，验证点是与 ModalBase 的body 锁/焦点还原不打架）；② ApprovalPrompt 需先给 ModalBase 加 closeOnEsc（阻塞式确认）+ data-testid 透传；③ TransformQueueDialog 要先拆 embedded/浮层两态，再让浮层走 ModalBase；④ skill-detail-drawer 需给 ModalBase 加 variant=drawer（右侧抽屉 + 自定义 header 槽），滑入动画用 CSS transition，不要引第三方；⑤ DataTable：把『可拖列宽 + colStore』作为 Table 的能力补进原语，再让 hub DataTable 委托；⑥ raw_heading 82：先定 h1/h2/h3 ↔ text-h1/title/body-lg 的映射（SectionTitle 只有 4 处在用），分批扫；⑦ variant=bare 与 7 个 CSS 家族控件一起做，不要先造空 API。"
+   "criteria": "审计（§11.161）后按顺序收口，截至 §11.164 已完成：① ui/CodeBlock（19 个 PRE 常量 → 0）；② ui/Notice（87 处手写提示条，已迁 28 处）；③ ui/Menu（3 处菜单收口）；④ ModalBase 补 8 项能力（滚动/关闭按钮/className/bodyClassName/header/closeOnEsc/drawer/ariaLabel+testId），Esc 改捕获；**自造 modal 7 → 1**（只剩 TransformQueueDialog）；⑤ hub 层委托 4 件（Badge/ErrorBox/Card/Loading），StatCard 颜色 token 化。仍敞开：TransformQueueDialog（双形态）、DataTable 的可拖列宽、7 个 CSS 家族控件（需 variant=bare）、raw_heading 82 的排版阶梯、Notice 剩余约 59 处手写提示条。",
+   "next": "① TransformQueueDialog：先把内层 JSX（顶栏/说明/错误条/列表/作业子面板）提成 `content` 变量，再 `embedded ? <div>…</div> : <ModalBase scrollable closeButton>…</ModalBase>`；子面板本身另走 ModalBase；② Notice 剩余 59 处：按文件批量（先做 text-micro 角标那类，映射到 Notice size=sm + className=text-micro）；③ DataTable：把可拖列宽 + colStore 作为 Table 原语的能力补进去，再让 hub 委托；④ raw_heading 82：先定 h1/h2/h3 ↔ text-h1/title/body-lg 映射（SectionTitle 只有 4 处在用），分批扫；⑤ variant=bare 与 7 个 CSS 家族控件一起做（.devconsole-input/.wb-input/.wb-editor-input/.pl-prompt-out/.ve-field-input/.kb-form-textarea/schema controlClass），不要先造空 API。"
   },
   {
    "id": "module-topology-no-autodiscovery",
