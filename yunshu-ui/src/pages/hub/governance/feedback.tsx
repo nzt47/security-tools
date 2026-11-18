@@ -20,7 +20,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   BookOpen, CheckCircle2, FileText, Loader2, MessageSquare, RefreshCw, Send, Star,
 } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost, Input, Notice, Select, Tabs, Textarea } from '../components/ui'
+import { Button, CodeBlock, ErrorBox, hubGet, hubPost, Input, Notice, Select, Tabs, Textarea } from '../components/ui'
 import DevNotesPanel from './dev-notes'
 import {
   FEEDBACK_LIST,
@@ -32,7 +32,6 @@ import {
   feedbackResolve,
 } from '@/api/endpoints'
 
-const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 interface FeedbackRow {
   feedback_id?: string
@@ -274,7 +273,7 @@ export default function FeedbackCenter() {
                 <FileText size={11} className="text-cyan-400" /> 详情
                 <Button type="button" variant="default" size="xs" onClick={() => setDetail(null)}>关闭</Button>
               </div>
-              <pre className={PRE}>{JSON.stringify(detail, null, 2)}</pre>
+              <CodeBlock maxH={224}>{JSON.stringify(detail, null, 2)}</CodeBlock>
             </div>
           )}
         </div>
@@ -285,7 +284,7 @@ export default function FeedbackCenter() {
           <div className="mb-2 flex items-center gap-2 text-caption text-slate-400">
             <FileText size={11} className="text-cyan-400" /> 近 7 天分析报告
           </div>
-          {report ? <pre className={PRE + ' max-h-112'}>{JSON.stringify(report, null, 2)}</pre>
+          {report ? <CodeBlock maxH={448}>{JSON.stringify(report, null, 2)}</CodeBlock>
             : <div className="text-caption text-slate-500">加载中…</div>}
         </div>
       )}

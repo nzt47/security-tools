@@ -16,7 +16,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Activity, Loader2, RefreshCw, RotateCcw, Tags, Wrench,
 } from 'lucide-react'
-import { Button, Checkbox, ErrorBox, hubDeleteJson, hubGet, hubPost, Input, Notice, Select } from '../components/ui'
+import { Button, Checkbox, CodeBlock, ErrorBox, hubDeleteJson, hubGet, hubPost, Input, Notice, Select } from '../components/ui'
 import {
   TOOLS_CATEGORIES,
   TOOLS_HEALTH,
@@ -27,7 +27,6 @@ import {
 } from '@/api/endpoints'
 
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
-const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 interface CatRow { key?: string; label?: string; icon?: string; description?: string; always?: boolean; tools?: string[] }
 interface StatusRow { name?: string; enabled?: boolean; description?: string }
@@ -244,7 +243,7 @@ export default function ToolsGovernance() {
 
       <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
         <div className="mb-1 text-caption text-slate-400">工具与技能启用总览（{statusRows.length}）</div>
-        <pre className={PRE}>{JSON.stringify(statusRows.slice(0, 20), null, 2)}</pre>
+        <CodeBlock maxH={224}>{JSON.stringify(statusRows.slice(0, 20), null, 2)}</CodeBlock>
       </div>
     </div>
   )

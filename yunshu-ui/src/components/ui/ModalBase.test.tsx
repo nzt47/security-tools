@@ -42,6 +42,20 @@ describe('ModalBase', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
+  it('内层 stopPropagation 时 Esc 仍关闭（监听挂捕获阶段）', () => {
+    const onClose = vi.fn()
+    render(
+      <ModalBase open onClose={onClose}>
+        {/* 模拟工作台面板：自己在冒泡阶段吃掉 Esc */}
+        <div onKeyDown={(e) => { if (e.key === 'Escape') e.stopPropagation() }} tabIndex={-1}>
+          <input aria-label="面板内输入" />
+        </div>
+      </ModalBase>,
+    )
+    fireEvent.keyDown(screen.getByLabelText('面板内输入'), { key: 'Escape' })
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
   it('遮罩点击触发 onClose', () => {
     const onClose = vi.fn()
     render(

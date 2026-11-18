@@ -11,10 +11,8 @@
  */
 import { useState } from 'react'
 import { FileText, Loader2 } from 'lucide-react'
-import { Button, hubPost, Input } from '../../pages/hub/components/ui'
+import { Button, CodeBlock, hubPost, Input } from '../../pages/hub/components/ui'
 import { HANDOFF, SESSIONS_FROM_HANDOFF } from '@/api/endpoints'
-
-const PRE = 'max-h-64 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 export default function HandoffPanel({ sessionId }: { sessionId: string }) {
   const [intent, setIntent] = useState('')
@@ -100,8 +98,8 @@ export default function HandoffPanel({ sessionId }: { sessionId: string }) {
           )}
         </div>
       )}
-      {markdown && <pre className={PRE + ' mt-2'}>{markdown.slice(0, 4000)}</pre>}
-      {!markdown && result && <pre className={PRE + ' mt-2'}>{JSON.stringify(result, null, 2).slice(0, 4000)}</pre>}
+      {markdown && <CodeBlock maxH={256} className="mt-2">{markdown.slice(0, 4000)}</CodeBlock>}
+      {!markdown && result && <CodeBlock maxH={256} className="mt-2">{JSON.stringify(result, null, 2).slice(0, 4000)}</CodeBlock>}
     </div>
   )
 }

@@ -7,6 +7,7 @@
  */
 import { useEffect, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { X } from 'lucide-react'
 import { cn } from '@/lib/cn'
 
 export interface ModalBaseProps {
@@ -14,14 +15,36 @@ export interface ModalBaseProps {
   open: boolean
   /** 关闭回调（Esc / 遮罩点击触发） */
   onClose: () => void
-  /** 标题（显示于弹窗顶部，可选） */
+  /** 标题（同时也作为 aria-label；纯文本） */
   title?: string
+  /**
+   * 【2026-11-18 补齐】自定义标题内容（可带图标/徽标）。给了它就渲染这一段，
+   * 不再渲染 title 文本（title 仍作为 aria-label）。
+   */
+  header?: ReactNode
   /** 底部操作区（如确认/取消按钮组，可选） */
   footer?: ReactNode
   /** 内容区宽度约束，默认 max-w-md */
   width?: string
   /** 点击遮罩是否关闭，默认 true */
   closeOnMask?: boolean
+  /**
+   * 【2026-11-18 补齐】容器附加类：长内容需要 `max-h-[85vh] overflow-y-auto`、
+   * 详情弹窗需要更宽的 `max-w-3xl` 之外的排版 —— 此前无法表达，于是页面宁可自己写外壳。
+   */
+  className?: string
+  /** 内容区附加类（如 gap / padding 调整） */
+  bodyClassName?: string
+  /**
+   * 长内容可滚动：容器限高 85vh、正文区自己滚（标题/footer 不滚）。
+   * 与 `className` 的区别是它只做这一件事，不用调用方记 max-h 的数值。
+   */
+  scrollable?: boolean
+  /**
+   * 右上角 × 关闭按钮：默认 **关闭**（既有 6 处调用点无按钮，改默认会动它们的观感）。
+   * 新迁移的弹窗基本都要它。
+   */
+  closeButton?: boolean
   children: ReactNode
 }
 
@@ -29,9 +52,14 @@ export default function ModalBase({
   open,
   onClose,
   title,
+  header,
   footer,
   width = 'max-w-md',
   closeOnMask = true,
+  className,
+  bodyClassName,
+  scrollable = false,
+  closeButton = false,
   children,
 }: ModalBaseProps) {
   // 焦点管理：打开时记录触发元素，关闭后还原，避免焦点丢失在 body
@@ -43,12 +71,14 @@ export default function ModalBase({
     const onKeydown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
-    window.addEventListener('keydown', onKeydown)
+    // 【2026-11-18】挂**捕获**阶段：工作台面板内部的 Esc 处理会 stopPropagation，
+    // 冒泡监听拿不到事件（§11.137 坑 5 的同一条）。弹窗打开时它必须先关。
+    window.addEventListener('keydown', onKeydown, true)
     // body 滚动锁定：弹窗打开期间阻止背景滚动
     const prevOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => {
-      window.removeEventListener('keydown', onKeydown)
+      window.removeEventListener('keydown', onKeydown, true)
       document.body.style.overflow = prevOverflow
       restoreFocusRef.current?.focus()
     }
@@ -66,19 +96,37 @@ export default function ModalBase({
       />
       <div
         className={cn(
-          'relative w-full rounded-lg border border-border bg-card text-card-foreground shadow-card',
+          'relative flex w-full flex-col rounded-lg border border-border bg-card text-card-foreground shadow-card',
+          scrollable && 'max-h-[85vh]',
           width,
+          className,
         )}
         role="dialog"
         aria-modal="true"
         aria-label={title}
       >
-        {title && (
-          <div className="border-b border-border px-5 py-4">
-            <h3 className="text-base font-semibold text-foreground">{title}</h3>
+        {(title || header || closeButton) && (
+          <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
+            {header != null ? (
+              <div className="min-w-0 truncate text-base font-semibold text-foreground">{header}</div>
+            ) : title ? (
+              <h3 className="min-w-0 truncate text-base font-semibold text-foreground">{title}</h3>
+            ) : (
+              <span />
+            )}
+            {closeButton && (
+              <button
+                type="button"
+                aria-label="关闭"
+                onClick={onClose}
+                className="shrink-0 rounded-control p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <X className="h-4 w-4" aria-hidden />
+              </button>
+            )}
           </div>
         )}
-        <div className="px-5 py-4">{children}</div>
+        <div className={cn('px-5 py-4', scrollable && 'min-h-0 overflow-y-auto', bodyClassName)}>{children}</div>
         {footer && (
           <div className="flex justify-end gap-3 border-t border-border px-5 py-4">{footer}</div>
         )}

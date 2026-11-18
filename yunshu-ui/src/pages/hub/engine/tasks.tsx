@@ -18,7 +18,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Ban, CheckCircle2, Clock, FileText, Loader2, ListChecks, RefreshCw,
 } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost, Select } from '../components/ui'
+import { Button, CodeBlock, ErrorBox, hubGet, hubPost, Select } from '../components/ui'
 import {
   ASYNC_TASKS,
   BACKGROUND_TASKS,
@@ -32,7 +32,6 @@ import {
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
-const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 interface TaskRow {
   task_id?: string
@@ -224,7 +223,7 @@ export default function TaskQueue() {
             <FileText size={11} className="text-cyan-400" /> {detailLabel}
             <Button type="button" onClick={() => setDetail(null)} variant="default" size="xs" className="ml-auto">关闭</Button>
           </div>
-          <pre className={PRE + ' max-h-72'}>{JSON.stringify(detail, null, 2)}</pre>
+          <CodeBlock maxH={288}>{JSON.stringify(detail, null, 2)}</CodeBlock>
         </div>
       )}
     </div>

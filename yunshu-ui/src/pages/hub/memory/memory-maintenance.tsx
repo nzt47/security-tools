@@ -19,7 +19,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Activity, AlertTriangle, Brain, Eraser, Gauge, Loader2, RefreshCw, Save, ScanLine, Trash2,
 } from 'lucide-react'
-import { Button, Checkbox, ErrorBox, hubDelete, hubGet, hubPost, hubPut, Input, Textarea } from '../components/ui'
+import { Button, Checkbox, CodeBlock, ErrorBox, hubDelete, hubGet, hubPost, hubPut, Input, Textarea } from '../components/ui'
 import {
   MEMORY_CLEAR_SUMMARY,
   MEMORY_COMPRESS,
@@ -38,7 +38,6 @@ import {
 } from '@/api/endpoints'
 
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
-const PRE = 'max-h-48 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 interface ReviewStats {
   total_entries?: number
@@ -533,7 +532,7 @@ export default function MemoryMaintenance() {
         </div>
 
         {events.length > 0 && (
-          <pre className={PRE + ' mt-2'}>{JSON.stringify(events.slice(0, 8), null, 2)}</pre>
+          <CodeBlock maxH={192} className="mt-2">{JSON.stringify(events.slice(0, 8), null, 2)}</CodeBlock>
         )}
       </div>
 
@@ -569,7 +568,7 @@ export default function MemoryMaintenance() {
             {busy === 'item' ? <Loader2 size={11} className="animate-spin" /> : null} 读取
           </Button>
         </Row>
-        {item && <pre className={PRE}>{JSON.stringify(item, null, 2)}</pre>}
+        {item && <CodeBlock maxH={192}>{JSON.stringify(item, null, 2)}</CodeBlock>}
 
         <Row label="新增一条">
           <Input size="sm" className="w-80" value={addContent} onChange={(e) => setAddContent(e.target.value)} placeholder="要记住的内容" aria-label="新增向量记忆内容" />

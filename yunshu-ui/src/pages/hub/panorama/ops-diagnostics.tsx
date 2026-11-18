@@ -15,7 +15,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   AlertTriangle, Activity, FileText, Loader2, RefreshCw, Save, Trash2, Wrench,
 } from 'lucide-react'
-import { Button, Checkbox, ErrorBox, hubDelete, hubGet, hubPut, Input, Notice, Tabs, Textarea } from '../components/ui'
+import { Button, Checkbox, CodeBlock, ErrorBox, hubDelete, hubGet, hubPut, Input, Notice, Tabs, Textarea } from '../components/ui'
 import {
   DIAGNOSTICS_CONFIG,
   DIAGNOSTICS_ERROR_CORRELATION,
@@ -30,7 +30,6 @@ import {
   observabilityTrace,
 } from '@/api/endpoints'
 
-const PRE = 'max-h-40 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 interface ToolRow { name?: string; category?: string; enabled?: boolean; description?: string }
 interface TraceRow { trace_id?: string; name?: string; duration_ms?: number; status?: string; start_time?: string }
@@ -189,21 +188,21 @@ export default function OpsDiagnostics() {
                 <span className="text-micro text-red-400">后端返回错误（已知缺陷，未在本轮修）</span>
               )}
             </div>
-            <pre className={PRE}>{JSON.stringify(diagConfig ?? {}, null, 2)}</pre>
+            <CodeBlock maxH={160}>{JSON.stringify(diagConfig ?? {}, null, 2)}</CodeBlock>
           </div>
 
           <div className="rounded-sm border border-slate-800 bg-slate-950/60 p-2">
             <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
               <Activity size={11} className="text-cyan-400" /> 综合健康检查
             </div>
-            <pre className={PRE}>{JSON.stringify(diagHealth ?? {}, null, 2)}</pre>
+            <CodeBlock maxH={160}>{JSON.stringify(diagHealth ?? {}, null, 2)}</CodeBlock>
           </div>
 
           <div className="rounded-sm border border-slate-800 bg-slate-950/60 p-2">
             <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
               <AlertTriangle size={11} className="text-amber-400" /> 异常关联
             </div>
-            <pre className={PRE}>{JSON.stringify(diagCorr ?? {}, null, 2)}</pre>
+            <CodeBlock maxH={160}>{JSON.stringify(diagCorr ?? {}, null, 2)}</CodeBlock>
           </div>
 
           <div className="rounded-sm border border-slate-800 bg-slate-950/60 p-2">
@@ -231,7 +230,7 @@ export default function OpsDiagnostics() {
             <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
               <FileText size={11} className="text-cyan-400" /> 最近日志（{diagLogs.length}）
             </div>
-            <pre className={PRE}>{JSON.stringify(diagLogs.slice(0, 5), null, 2)}</pre>
+            <CodeBlock maxH={160}>{JSON.stringify(diagLogs.slice(0, 5), null, 2)}</CodeBlock>
           </div>
         </div>
       )}
@@ -308,7 +307,7 @@ export default function OpsDiagnostics() {
                 ))}
               </div>
             )}
-            {traceDetail && <pre className={PRE + ' mt-1'}>{JSON.stringify(traceDetail, null, 2)}</pre>}
+            {traceDetail && <CodeBlock maxH={160} className="mt-1">{JSON.stringify(traceDetail, null, 2)}</CodeBlock>}
           </div>
 
           <div className="rounded-sm border border-slate-800 bg-slate-950/60 p-2">
@@ -339,7 +338,7 @@ export default function OpsDiagnostics() {
           {state && (
             <div className="rounded-sm border border-slate-800 bg-slate-950/60 p-2">
               <div className="mb-1 text-caption text-slate-400">可观测总状态</div>
-              <pre className={PRE}>{JSON.stringify(state, null, 2)}</pre>
+              <CodeBlock maxH={160}>{JSON.stringify(state, null, 2)}</CodeBlock>
             </div>
           )}
         </div>

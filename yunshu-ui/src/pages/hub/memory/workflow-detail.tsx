@@ -5,8 +5,7 @@
  * 用户看不到 description、触发词与步骤定义。这里把 /api/workflow-learning/workflows 已经返回的
  * 完整 model_dump（description / trigger_patterns / steps / 统计）如实呈现，不新增后端接口。
  */
-import { X } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button, ModalBase } from '@/components/ui'
 
 export interface WorkflowStep {
   step_id?: string
@@ -57,23 +56,10 @@ export function WorkflowDetailModal({ wf, onClose }: { wf: WorkflowDetail; onClo
   const steps = wf.steps ?? []
   const triggers = wf.trigger_patterns ?? []
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="工作流详情"
-        onClick={(e) => e.stopPropagation()}
-        className="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 p-5 shadow-2xl"
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h2 className="truncate text-sm font-semibold text-slate-100">{wf.name || wf.id}</h2>
-            <p className="mt-0.5 font-mono text-caption text-slate-500">{wf.id}</p>
-          </div>
-          <Button type="button" onClick={onClose} aria-label="关闭" variant="ghost" size="icon-sm">
-            <X size={16} />
-          </Button>
-        </div>
+    // 【2026-11-18 封装收口】外壳交给 ui/ModalBase（portal + 遮罩 + Esc 捕获 + 滚动锁定 + × 关闭），
+    // 这里只留内容。identity 行（id）放在正文顶部。
+    <ModalBase open onClose={onClose} title={wf.name || wf.id} width="max-w-3xl" scrollable closeButton>
+        <p className="mb-2 font-mono text-caption text-muted-foreground">{wf.id}</p>
 
         <p className="mt-3 whitespace-pre-wrap rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs text-slate-300">
           {wf.description || wf.source_user_input || '（该工作流没有填写说明）'}
@@ -146,7 +132,6 @@ export function WorkflowDetailModal({ wf, onClose }: { wf: WorkflowDetail; onClo
           {wf.converted_to_skill_id && <p className="font-mono">已导出 LLM 参考：{wf.converted_to_skill_id}</p>}
           {(wf.tags ?? []).length > 0 && <p>标签：{(wf.tags ?? []).join('、')}</p>}
         </div>
-      </div>
-    </div>
+    </ModalBase>
   )
 }

@@ -14,12 +14,11 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, Loader2, Play, RefreshCw, X } from 'lucide-react'
-import { Button, hubGet, hubPost, Input, Notice } from '../components/ui'
+import { Button, CodeBlock, hubGet, hubPost, Input, Notice } from '../components/ui'
 import { MODULES_ACTIONS, modulesDetail } from '@/api/endpoints'
 
 /* 【2026-11-18】模块动作按钮改用 Button variant={danger-outline|default}，这两个自造常量删除。 */
 
-const PRE = 'max-h-48 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 interface NodeAction {
   action?: string
@@ -110,7 +109,7 @@ export default function ModuleDetail({ moduleId, onClose }: { moduleId: string; 
       )}
 
       {data?.metrics && Object.keys(data.metrics).length > 0 && (
-        <pre className={PRE}>{JSON.stringify(data.metrics, null, 2)}</pre>
+        <CodeBlock maxH={192}>{JSON.stringify(data.metrics, null, 2)}</CodeBlock>
       )}
 
       <div className="mt-1.5">
@@ -155,12 +154,12 @@ export default function ModuleDetail({ moduleId, onClose }: { moduleId: string; 
         </div>
       )}
 
-      {result && <pre className={PRE + ' mt-1.5'}>{JSON.stringify(result, null, 2)}</pre>}
+      {result && <CodeBlock maxH={192} className="mt-1.5">{JSON.stringify(result, null, 2)}</CodeBlock>}
 
       {(data?.recent_actions ?? []).length > 0 && (
         <div className="mt-1.5">
           <div className="mb-1 text-micro text-slate-500">近期审计（最近 10 条）</div>
-          <pre className={PRE}>{JSON.stringify(data?.recent_actions, null, 2)}</pre>
+          <CodeBlock maxH={192}>{JSON.stringify(data?.recent_actions, null, 2)}</CodeBlock>
         </div>
       )}
     </div>

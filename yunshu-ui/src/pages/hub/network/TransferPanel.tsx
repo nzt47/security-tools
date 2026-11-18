@@ -11,12 +11,11 @@
  */
 import { useCallback, useState } from 'react'
 import { Download, Loader2, Upload } from 'lucide-react'
-import { Button, Checkbox, hubGet, hubPost, Notice, Textarea } from '../components/ui'
+import { Button, Checkbox, CodeBlock, hubGet, hubPost, Notice, Textarea } from '../components/ui'
 import { NETWORK_CONFIG_EXPORT, NETWORK_CONFIG_IMPORT } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 
-const PRE = 'max-h-40 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 export default function NetworkTransfer() {
   const [busy, setBusy] = useState('')
@@ -90,7 +89,7 @@ export default function NetworkTransfer() {
           {busy === 'import' ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />} 导入
         </Button>
       </div>
-      {text && <pre className={PRE + ' mt-2'}>{text.slice(0, 2000)}</pre>}
+      {text && <CodeBlock maxH={160} className="mt-2">{text.slice(0, 2000)}</CodeBlock>}
     </div>
   )
 }

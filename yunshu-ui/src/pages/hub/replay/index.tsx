@@ -17,7 +17,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Film, Loader2, RefreshCw, Search, Trash2,
 } from 'lucide-react'
-import { Button, Checkbox, ErrorBox, hubGet, hubPost, Notice, Select } from '../components/ui'
+import { Button, Checkbox, CodeBlock, ErrorBox, hubGet, hubPost, Notice, Select } from '../components/ui'
 import {
   REPLAY_CLEANUP,
   REPLAY_LIST,
@@ -29,7 +29,6 @@ import {
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
-const PRE = 'max-h-64 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 interface ReplayRow {
   replay_id?: string
@@ -165,7 +164,7 @@ export default function ReplayCenter() {
 
       <div className="mb-2 rounded-lg border border-slate-800 bg-slate-900/50 p-3">
         <div className="mb-1 text-caption text-slate-400">关联统计（错误 / 追踪 / 会话）</div>
-        <pre className={PRE}>{JSON.stringify(stats ?? {}, null, 2)}</pre>
+        <CodeBlock maxH={256}>{JSON.stringify(stats ?? {}, null, 2)}</CodeBlock>
       </div>
 
       <div className="mb-2 rounded-lg border border-red-900/40 bg-red-500/5 p-3">
@@ -181,7 +180,7 @@ export default function ReplayCenter() {
             执行清理
           </Button>
         </div>
-        {cleanupResult && <pre className={PRE + ' mt-2'}>{JSON.stringify(cleanupResult, null, 2)}</pre>}
+        {cleanupResult && <CodeBlock maxH={256} className="mt-2">{JSON.stringify(cleanupResult, null, 2)}</CodeBlock>}
       </div>
 
       {(meta || data) && (
@@ -193,13 +192,13 @@ export default function ReplayCenter() {
           {meta && (
             <>
               <div className="mb-1 text-micro text-slate-500">元数据</div>
-              <pre className={PRE}>{JSON.stringify(meta, null, 2)}</pre>
+              <CodeBlock maxH={256}>{JSON.stringify(meta, null, 2)}</CodeBlock>
             </>
           )}
           {data && (
             <>
               <div className="mt-2 mb-1 text-micro text-slate-500">回放数据</div>
-              <pre className={PRE + ' max-h-80'}>{JSON.stringify(data, null, 2)}</pre>
+              <CodeBlock maxH={320}>{JSON.stringify(data, null, 2)}</CodeBlock>
             </>
           )}
         </div>

@@ -16,7 +16,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Activity, BarChart3, ExternalLink, Gauge, Loader2, RefreshCw, Search, Server,
 } from 'lucide-react'
-import { Button, ErrorBox, hubGet, Input, Select, Tabs } from '../components/ui'
+import { Button, CodeBlock, ErrorBox, hubGet, Input, Select, Tabs } from '../components/ui'
 import {
   BUSINESS_DASHBOARD,
   BUSINESS_DEFINITIONS,
@@ -32,7 +32,6 @@ import {
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
-const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 interface MetricDef {
   name?: string
@@ -236,13 +235,13 @@ export default function BusinessBoard() {
                 {busy === 'metric' ? <Loader2 size={11} className="animate-spin" /> : null} 查询
               </Button>
             </div>
-            {metricDetail && <pre className={PRE}>{JSON.stringify(metricDetail, null, 2)}</pre>}
+            {metricDetail && <CodeBlock maxH={224}>{JSON.stringify(metricDetail, null, 2)}</CodeBlock>}
           </div>
 
           {bizHealth && (
             <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
               <div className="mb-1 text-caption text-slate-400">业务指标健康检查</div>
-              <pre className={PRE}>{JSON.stringify(bizHealth, null, 2)}</pre>
+              <CodeBlock maxH={224}>{JSON.stringify(bizHealth, null, 2)}</CodeBlock>
             </div>
           )}
         </div>
@@ -268,21 +267,21 @@ export default function BusinessBoard() {
             <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
               <Activity size={11} className="text-cyan-400" /> 服务健康
             </div>
-            <pre className={PRE}>{JSON.stringify(svcHealth ?? {}, null, 2)}</pre>
+            <CodeBlock maxH={224}>{JSON.stringify(svcHealth ?? {}, null, 2)}</CodeBlock>
           </div>
 
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
             <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
               <Gauge size={11} className="text-cyan-400" /> 质量监控（评审分数分布与趋势）
             </div>
-            <pre className={PRE}>{JSON.stringify(quality ?? {}, null, 2)}</pre>
+            <CodeBlock maxH={224}>{JSON.stringify(quality ?? {}, null, 2)}</CodeBlock>
           </div>
 
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
             <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
               <Server size={11} className="text-cyan-400" /> 记忆使用（命中率与分布）
             </div>
-            <pre className={PRE}>{JSON.stringify(mem ?? {}, null, 2)}</pre>
+            <CodeBlock maxH={224}>{JSON.stringify(mem ?? {}, null, 2)}</CodeBlock>
           </div>
 
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
@@ -306,7 +305,7 @@ export default function BusinessBoard() {
                 ))}
               </div>
             )}
-            {traceDetail && <pre className={PRE + ' mt-1'}>{JSON.stringify(traceDetail, null, 2)}</pre>}
+            {traceDetail && <CodeBlock maxH={224} className="mt-1">{JSON.stringify(traceDetail, null, 2)}</CodeBlock>}
           </div>
         </div>
       )}

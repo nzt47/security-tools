@@ -5,7 +5,7 @@
  * （variant=primary 取语义主色 --color-primary，不再出现 bg-blue-600 这类第五种强调色）。
  * 仍从本文件导入，避免页面里同时出现两个 ui 命名空间。
  */
-export { Button, Checkbox, Input, Notice, Radio, RowButton, Select, Switch, Slider, Tabs, Textarea } from '@/components/ui'
+export { Button, Checkbox, CodeBlock, Input, ModalBase, Notice, Radio, RowButton, Select, Switch, Slider, Tabs, Textarea } from '@/components/ui'
 
 import type { ReactNode } from 'react'
 // 全局 Badge 只在本文件内部使用（对外仍暴露 hub 那层带 color 枚举的 Badge）

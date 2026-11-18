@@ -16,7 +16,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   FileText, FolderOpen, HardDrive, Loader2, Play, RefreshCw, Search, Trash2, XOctagon,
 } from 'lucide-react'
-import { Button, Checkbox, ErrorBox, hubGet, hubPost, Input, Notice, Select, Tabs, Textarea } from '../components/ui'
+import { Button, Checkbox, CodeBlock, ErrorBox, hubGet, hubPost, Input, Notice, Select, Tabs, Textarea } from '../components/ui'
 import {
   FILESYSTEM_INFO,
   FILESYSTEM_LIST,
@@ -35,7 +35,6 @@ import {
 } from '@/api/endpoints'
 
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
-const PRE = 'max-h-64 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 interface FsItem { name?: string; type?: string; size?: number; modified?: string }
 
@@ -279,7 +278,7 @@ export default function LocalResources() {
               ))}
               {items.length === 0 && <div className="text-caption text-slate-500">空目录或路径不存在。</div>}
             </div>
-            {fileInfo && <pre className={PRE + ' mt-2'}>{JSON.stringify(fileInfo, null, 2)}</pre>}
+            {fileInfo && <CodeBlock maxH={256} className="mt-2">{JSON.stringify(fileInfo, null, 2)}</CodeBlock>}
           </div>
 
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
@@ -288,7 +287,7 @@ export default function LocalResources() {
               <Input size="sm" className="w-56" value={searchPattern} onChange={(e) => setSearchPattern(e.target.value)} placeholder="文件名/通配" aria-label="搜索模式" />
               <Button type="button" variant="default" size="xs" onClick={() => void search()} disabled={loading || searchPattern.trim() === ''} aria-label="搜索文件">搜索</Button>
             </div>
-            {searchResults && <pre className={PRE}>{JSON.stringify(searchResults, null, 2)}</pre>}
+            {searchResults && <CodeBlock maxH={256}>{JSON.stringify(searchResults, null, 2)}</CodeBlock>}
           </div>
 
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
@@ -297,7 +296,7 @@ export default function LocalResources() {
               <Input size="sm" className="w-80" value={readPath} onChange={(e) => setReadPath(e.target.value)} placeholder="文件绝对/相对路径" aria-label="读取文件路径" />
               <Button type="button" variant="accent" size="xs" onClick={() => void readFile()} disabled={loading || readPath.trim() === ''} aria-label="读取文件">读取</Button>
             </div>
-            {readResult && <pre className={PRE}>{JSON.stringify(readResult, null, 2)}</pre>}
+            {readResult && <CodeBlock maxH={256}>{JSON.stringify(readResult, null, 2)}</CodeBlock>}
           </div>
 
           <div className="rounded-lg border border-red-900/40 bg-red-500/5 p-3">
@@ -322,7 +321,7 @@ export default function LocalResources() {
             <div className="mb-2 flex items-center gap-2 text-caption text-slate-400">
               <FolderOpen size={11} className="text-cyan-400" /> 工作区（{wsItems.length} 项）
             </div>
-            {wsInfo && <pre className={PRE + ' mb-2'}>{JSON.stringify(wsInfo, null, 2)}</pre>}
+            {wsInfo && <CodeBlock maxH={256} className="mb-2">{JSON.stringify(wsInfo, null, 2)}</CodeBlock>}
             <div className="flex max-h-56 flex-col gap-1 overflow-y-auto">
               {wsItems.map((it, i) => (
                 <div key={(it.name ?? '') + i} className="flex items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-caption">
@@ -405,7 +404,7 @@ export default function LocalResources() {
               ))}
               {custom.length === 0 && <span className="text-micro text-slate-600">还没有自定义条目（默认白名单不可移除）</span>}
             </div>
-            <pre className={PRE + ' mt-2'}>{JSON.stringify(wl ?? {}, null, 2)}</pre>
+            <CodeBlock maxH={256} className="mt-2">{JSON.stringify(wl ?? {}, null, 2)}</CodeBlock>
           </div>
         </div>
       )}

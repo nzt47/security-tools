@@ -15,7 +15,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { Activity, Loader2, Play, RefreshCw, Square, Zap } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost, Notice } from '../components/ui'
+import { Button, CodeBlock, ErrorBox, hubGet, hubPost, Notice } from '../components/ui'
 import {
   SEARCH_PERF_CHECK,
   SEARCH_PERF_HISTORY,
@@ -25,7 +25,6 @@ import {
   SEARCH_PERF_SUMMARY,
 } from '@/api/endpoints'
 
-const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 interface PerfStatus {
   running?: boolean
@@ -133,7 +132,7 @@ export default function SearchPerformance() {
         <div className="mb-1 text-caption text-slate-400">
           最近摘要（成功 {summary?.tavily_success_count ?? 0} / 失败 {summary?.tavily_failed_count ?? 0} · 平均 {Math.round(summary?.tavily_avg_time ?? 0)}ms）
         </div>
-        <pre className={PRE}>{JSON.stringify(summary ?? {}, null, 2)}</pre>
+        <CodeBlock maxH={224}>{JSON.stringify(summary ?? {}, null, 2)}</CodeBlock>
       </div>
 
       <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">

@@ -45,9 +45,9 @@ export default function KnowledgeAddPanel() {
       </div>
       {err && <Notice tone="danger" size="sm" className="mb-2">{err}</Notice>}
       {ok && (
-        <div className="mb-2 flex items-center gap-1 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">
-          <CheckCircle2 size={11} /> {ok}
-        </div>
+        <Notice tone="success" size="sm" className="mb-2" icon={<CheckCircle2 size={11} />}>
+          {ok}
+        </Notice>
       )}
       <Textarea
         size="sm"

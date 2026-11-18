@@ -7,7 +7,7 @@
  */
 import { useState } from 'react'
 import { Loader2, Lightbulb, ShieldCheck } from 'lucide-react'
-import { Button, hubPost, Input, Textarea } from '../../hub/components/ui'
+import { Button, hubPost, Input, ModalBase, Notice, Textarea } from '../../hub/components/ui'
 
 import {
   SKILLS_MGMT_CREATE_AI,
@@ -50,11 +50,16 @@ export default function GenerateRequirementModal({ initialIntent = '', onClose, 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6" onClick={onClose}>
-      <div className="max-h-[85vh] w-full max-w-xl overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-slate-100">
-          <Lightbulb size={15} className="text-cyan-400" /> 从对话要求生成技能（自动评审-评估）
-        </h3>
+    // 【2026-11-18 封装收口】外壳交给 ui/ModalBase（portal + 遮罩 + Esc 捕获 + 滚动锁定 + × 关闭）
+    <ModalBase
+      open
+      onClose={onClose}
+      title="从对话要求生成技能"
+      header={<span className="flex items-center gap-1.5"><Lightbulb size={15} className="text-primary" /> 从对话要求生成技能（自动评审-评估）</span>}
+      width="max-w-xl"
+      scrollable
+      closeButton
+    >
         <p className="mb-3 text-caption leading-relaxed text-slate-500">
           对话提示词里出现的“能力要求 / 新处理规则”可直接沉淀为技能草稿：AI 生成（失败自动回退模板）→
           自动进入权限 / 合规 / 兼容性评审；有审核兜底，不满意可编辑或删除。
@@ -69,8 +74,8 @@ export default function GenerateRequirementModal({ initialIntent = '', onClose, 
             onChange={(e) => setIntent(e.target.value)}
             placeholder="例如：当用户提到『查天气』时先调用 weather_api，超时 5s 内重试一次并返回结构化结果" />
         </label>
-        {err && <p className="mt-1 text-caption text-red-400">{err}</p>}
-        {okMsg && <p className="mt-1 rounded-md border border-emerald-800/60 bg-emerald-950/30 px-2 py-1.5 text-caption text-emerald-300">{okMsg}</p>}
+        {err && <Notice tone="danger" size="sm" className="mt-1">{err}</Notice>}
+        {okMsg && <Notice tone="success" size="sm" className="mt-1">{okMsg}</Notice>}
         <div className="mt-3 flex flex-wrap justify-end gap-2">
           {okMsg ? (
             <Button type="button" onClick={() => { onDone?.(createdId); onClose() }} variant="accent" size="xs">
@@ -85,7 +90,6 @@ export default function GenerateRequirementModal({ initialIntent = '', onClose, 
             </>
           )}
         </div>
-      </div>
-    </div>
+    </ModalBase>
   )
 }

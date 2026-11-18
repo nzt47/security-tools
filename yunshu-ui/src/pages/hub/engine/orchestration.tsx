@@ -15,7 +15,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { FileStack, Loader2, Play, RefreshCw, Settings2, Wand2 } from 'lucide-react'
-import { Button, Checkbox, ErrorBox, hubGet, hubPost, Input, Notice, Textarea } from '../components/ui'
+import { Button, Checkbox, CodeBlock, ErrorBox, hubGet, hubPost, Input, Notice, Textarea } from '../components/ui'
 import {
   ORCHESTRATOR_SEMANTIC_CONFIG,
   PLANNING_TOGGLE,
@@ -23,7 +23,6 @@ import {
   PROCESS_DISTILL_HEALTH,
 } from '@/api/endpoints'
 
-const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 export default function EngineOrchestration() {
   const [busy, setBusy] = useState('')
@@ -125,7 +124,7 @@ export default function EngineOrchestration() {
           <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
             <Settings2 size={11} className="text-cyan-400" /> 语义层配置（当前生效）
           </div>
-          <pre className={PRE}>{JSON.stringify(sem ?? {}, null, 2)}</pre>
+          <CodeBlock maxH={224}>{JSON.stringify(sem ?? {}, null, 2)}</CodeBlock>
           <div className="mt-2 mb-1 text-caption text-slate-400">API 覆盖层（提交后即时生效；只接受已知键）</div>
           <Textarea
             size="sm"
@@ -169,7 +168,7 @@ export default function EngineOrchestration() {
             <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
               <FileStack size={11} className="text-cyan-400" /> 过程蒸馏可用性
             </div>
-            <pre className={PRE}>{JSON.stringify(health ?? {}, null, 2)}</pre>
+            <CodeBlock maxH={224}>{JSON.stringify(health ?? {}, null, 2)}</CodeBlock>
           </div>
         </div>
       </div>
@@ -200,7 +199,7 @@ export default function EngineOrchestration() {
           </Button>
           <span className="text-micro text-slate-500">产物会固化为 workflow / skill；这里是唯一入口（此前只有 API）。</span>
         </div>
-        {distill && <pre className={PRE + ' mt-2 max-h-72'}>{JSON.stringify(distill, null, 2)}</pre>}
+        {distill && <CodeBlock maxH={288} className="mt-2">{JSON.stringify(distill, null, 2)}</CodeBlock>}
       </div>
     </div>
   )

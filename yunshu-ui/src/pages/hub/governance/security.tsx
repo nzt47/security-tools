@@ -18,7 +18,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   AlertTriangle, Ban, Lock, Loader2, Pause, Play, Power, RefreshCw, RotateCcw, Shield, ShieldAlert, Sliders,
 } from 'lucide-react'
-import { Button, Checkbox, ErrorBox, hubGet, hubPost, Input, Notice, Select, Tabs, Textarea } from '../components/ui'
+import { Button, Checkbox, CodeBlock, ErrorBox, hubGet, hubPost, Input, Notice, Select, Tabs, Textarea } from '../components/ui'
 import {
   PERMISSION_ACCESS_LOG,
   PERMISSION_EMERGENCY,
@@ -36,7 +36,6 @@ import {
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
-const PRE = 'max-h-52 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 const TOGGLE_LABEL: Record<string, string> = {
   dangerous_ops: '危险操作',
@@ -288,15 +287,15 @@ export default function SecurityPanel() {
 
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
             <div className="mb-1 text-caption text-slate-400">权限统计</div>
-            <pre className={PRE}>{JSON.stringify(stats ?? {}, null, 2)}</pre>
+            <CodeBlock maxH={208}>{JSON.stringify(stats ?? {}, null, 2)}</CodeBlock>
           </div>
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
             <div className="mb-1 text-caption text-slate-400">操作 / 权限日志（最近 20 条）</div>
-            <pre className={PRE}>{JSON.stringify(logs ?? {}, null, 2)}</pre>
+            <CodeBlock maxH={208}>{JSON.stringify(logs ?? {}, null, 2)}</CodeBlock>
           </div>
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
             <div className="mb-1 text-caption text-slate-400">数据访问记录（最近 20 条）</div>
-            <pre className={PRE}>{JSON.stringify(accessLogs ?? {}, null, 2)}</pre>
+            <CodeBlock maxH={208}>{JSON.stringify(accessLogs ?? {}, null, 2)}</CodeBlock>
           </div>
         </div>
       )}
@@ -320,14 +319,14 @@ export default function SecurityPanel() {
                 {busy === 'check' ? <Loader2 size={11} className="animate-spin" /> : null} 校验
               </Button>
             </div>
-            {checkResult && <pre className={PRE + ' mt-1'}>{JSON.stringify(checkResult, null, 2)}</pre>}
+            {checkResult && <CodeBlock maxH={208} className="mt-1">{JSON.stringify(checkResult, null, 2)}</CodeBlock>}
           </div>
 
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
             <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
               <AlertTriangle size={11} className="text-amber-400" /> 最近告警
             </div>
-            <pre className={PRE}>{JSON.stringify(alerts ?? {}, null, 2)}</pre>
+            <CodeBlock maxH={208}>{JSON.stringify(alerts ?? {}, null, 2)}</CodeBlock>
           </div>
 
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
@@ -342,7 +341,7 @@ export default function SecurityPanel() {
                 {busy === 'kw-add' ? <Loader2 size={11} className="animate-spin" /> : null} 添加
               </Button>
             </div>
-            <pre className={PRE + ' max-h-72'}>{JSON.stringify(keywords ?? {}, null, 2)}</pre>
+            <CodeBlock maxH={288}>{JSON.stringify(keywords ?? {}, null, 2)}</CodeBlock>
           </div>
         </div>
       )}
@@ -351,7 +350,7 @@ export default function SecurityPanel() {
         <div className="space-y-2">
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
             <div className="mb-1 text-caption text-slate-400">数据采集范围与用途</div>
-            <pre className={PRE + ' max-h-80'}>{JSON.stringify(privacy ?? {}, null, 2)}</pre>
+            <CodeBlock maxH={320}>{JSON.stringify(privacy ?? {}, null, 2)}</CodeBlock>
           </div>
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
             <div className="mb-2 flex flex-wrap items-center gap-2 text-caption text-slate-400">

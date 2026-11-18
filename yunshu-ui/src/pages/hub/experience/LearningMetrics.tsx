@@ -9,11 +9,10 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { BarChart3, Loader2, RefreshCw } from 'lucide-react'
-import { Button, hubGet, Notice } from '../components/ui'
+import { Button, CodeBlock, hubGet, Notice } from '../components/ui'
 import { LEARNING_METRICS } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 interface Metrics {
   days?: number
@@ -67,7 +66,7 @@ export default function LearningMetrics() {
         ))}
       </div>
       {empty && <div className="mb-2 text-micro text-slate-500">窗口内没有评估样本 —— 全 0 是正常态（不是接口坏了）。</div>}
-      <pre className={PRE}>{JSON.stringify(data?.kpis ?? {}, null, 2)}</pre>
+      <CodeBlock maxH={224}>{JSON.stringify(data?.kpis ?? {}, null, 2)}</CodeBlock>
     </div>
   )
 }

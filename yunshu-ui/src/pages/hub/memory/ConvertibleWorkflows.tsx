@@ -6,11 +6,10 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { Loader2, RefreshCw, Repeat } from 'lucide-react'
-import { Button, hubGet, Notice } from '../components/ui'
+import { Button, CodeBlock, hubGet, Notice } from '../components/ui'
 import { WORKFLOW_LEARNING_CONVERTIBLE } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-const PRE = 'max-h-48 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
 interface Candidate {
   id?: string
@@ -60,7 +59,7 @@ export default function ConvertibleWorkflows() {
         ))}
         {rows.length === 0 && <div className="text-caption text-slate-500">没有可转换的工作流 —— 空列表是正常态（要么还没学到，要么都转过了）。</div>}
       </div>
-      {rows.length > 0 && <pre className={PRE + ' mt-2'}>{JSON.stringify(rows.slice(0, 5), null, 2)}</pre>}
+      {rows.length > 0 && <CodeBlock maxH={192} className="mt-2">{JSON.stringify(rows.slice(0, 5), null, 2)}</CodeBlock>}
     </div>
   )
 }

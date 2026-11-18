@@ -20,7 +20,7 @@ import {
   AlertTriangle, CheckCircle2, Copy, FileCode, Gauge, Loader2, MessageSquare,
   Play, RefreshCw, ScrollText, X,
 } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost, Input, RowButton, Select, Tabs, Textarea } from '../components/ui'
+import { Button, CodeBlock, ErrorBox, hubGet, hubPost, Input, RowButton, Select, Tabs, Textarea } from '../components/ui'
 import {
   SKILL_CONTENT,
   SKILLS_MGMT_ASSESS_MERGE_SAFE,
@@ -31,7 +31,6 @@ import {
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 
-const PRE = 'max-h-72 overflow-auto whitespace-pre-wrap wrap-break-word rounded-md border border-slate-800 bg-slate-950 p-2.5 font-mono text-caption leading-relaxed text-slate-300'
 
 type Tab = 'instruction' | 'scripts' | 'params' | 'feedback' | 'duplicates'
 
@@ -393,7 +392,7 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
                   {instruction.hint && (
                     <p className="mb-2 rounded-md border border-amber-800/60 bg-amber-950/20 px-2 py-1 text-caption text-amber-300">{instruction.hint}</p>
                   )}
-                  <pre className={PRE + ' max-h-104'}>{instruction.instruction || '（空）'}</pre>
+                  <CodeBlock maxH={416} size="caption" className="rounded-md p-2.5 leading-relaxed">{instruction.instruction || '（空）'}</CodeBlock>
                 </>
               )}
               {!instruction && !loading && <div className="text-caption text-slate-500">没有取到说明正文。</div>}
@@ -475,10 +474,10 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
                     </div>
                     {execResult.error && <div className="text-caption text-red-300">{execResult.error}</div>}
                     {execResult.result !== undefined && execResult.result !== null && (
-                      <pre className={PRE}>{asJson(execResult.result)}</pre>
+                      <CodeBlock maxH={288} size="caption" className="rounded-md p-2.5 leading-relaxed">{asJson(execResult.result)}</CodeBlock>
                     )}
                     {execResult.stderr && (
-                      <pre className={PRE + ' text-amber-300'}>{String(execResult.stderr).slice(0, 4000)}</pre>
+                      <CodeBlock maxH={288} size="caption" className="rounded-md p-2.5 leading-relaxed text-amber-300">{String(execResult.stderr).slice(0, 4000)}</CodeBlock>
                     )}
                   </div>
                 )}
@@ -513,7 +512,7 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
                 {params?.avoid_params !== undefined && params?.avoid_params !== null && (
                   <div className="mt-2">
                     <div className="mb-1 text-caption text-amber-300">建议回避的参数</div>
-                    <pre className={PRE}>{asJson(params.avoid_params)}</pre>
+                    <CodeBlock maxH={288} size="caption" className="rounded-md p-2.5 leading-relaxed">{asJson(params.avoid_params)}</CodeBlock>
                   </div>
                 )}
                 {params?.current_default_params && (
@@ -522,7 +521,7 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
                       当前默认参数
                       {params.current_default_hash ? <span className="ml-1 font-mono text-micro text-slate-600">#{params.current_default_hash}</span> : null}
                     </div>
-                    <pre className={PRE}>{asJson(params.current_default_params)}</pre>
+                    <CodeBlock maxH={288} size="caption" className="rounded-md p-2.5 leading-relaxed">{asJson(params.current_default_params)}</CodeBlock>
                   </div>
                 )}
               </Section>
@@ -545,13 +544,13 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
                     {optimize.recommendations !== undefined && (
                       <>
                         <div className="text-caption text-slate-400">建议</div>
-                        <pre className={PRE}>{asJson(optimize.recommendations)}</pre>
+                        <CodeBlock maxH={288} size="caption" className="rounded-md p-2.5 leading-relaxed">{asJson(optimize.recommendations)}</CodeBlock>
                       </>
                     )}
                     {optimize.actions_taken !== undefined && (
                       <>
                         <div className="text-caption text-slate-400">已执行</div>
-                        <pre className={PRE}>{asJson(optimize.actions_taken)}</pre>
+                        <CodeBlock maxH={288} size="caption" className="rounded-md p-2.5 leading-relaxed">{asJson(optimize.actions_taken)}</CodeBlock>
                       </>
                     )}
                   </div>
@@ -596,7 +595,7 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
                 {feedback?.by_category && (
                   <div className="mt-2">
                     <div className="mb-1 text-caption text-slate-400">按分类</div>
-                    <pre className={PRE}>{asJson(feedback.by_category)}</pre>
+                    <CodeBlock maxH={288} size="caption" className="rounded-md p-2.5 leading-relaxed">{asJson(feedback.by_category)}</CodeBlock>
                   </div>
                 )}
               </Section>
