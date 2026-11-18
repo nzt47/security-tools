@@ -94,6 +94,7 @@
 | 2026-11-18 | `aaf180c` | 100.0% (14/14) | 0 | 0 | 48.38 | — | 0 | ↑ | docs(handoff): §11.161 封装缺口审计 —— 读数表 · ui/Notice · 剩余 5 类结构性缺口进 handoff_next |
 | 2026-11-18 | `7954688` | 100.0% (14/14) | 0 | 0 | 64.77 | — | 0 | ↑ | docs(handoff): §11.164 —— ModalBase 再补三档形态 · 自造弹窗 7 → 1（剩 TransformQueueDialog） |
 | 2026-11-18 | `3810000` | 100.0% (14/14) | 0 | 0 | 64.53 | — | 0 | ↑ | feat(ui): 带图标提示条 10 处收口 · Table 补 resizable/rowProps/columns.title（hub DataTable |
+| 2026-11-18 | `a16ffad` | 100.0% (14/14) | 0 | 0 | 64.33 | — | 0 | ↑ | docs(handoff): §11.168 —— 带图标提示条 13 → 10（3 处误报）· Table 吸收 DataTable 能力 · 右坞真机读数 |
 | YYYY-MM-DD | `<sha7>` | — | — | — | — | — | — | — | 模板占位行，请替换 |
 
 ---
