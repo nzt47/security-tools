@@ -479,10 +479,14 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
         </div>
 
         {error && (
-          <div className="flex items-start gap-2 border-b border-rose-900/60 bg-rose-950/40 px-4 py-2 text-caption text-rose-300">
-            <AlertTriangle size={12} className="mt-0.5 shrink-0" />
-            <span>{error}</span>
-          </div>
+          <Notice
+            tone="danger"
+            size="md"
+            icon={<AlertTriangle size={12} />}
+            className="rounded-none border-0 border-b px-4 py-2 text-caption"
+          >
+            {error}
+          </Notice>
         )}
         {notice && (
           <Notice tone="success" size="sm">{notice}</Notice>

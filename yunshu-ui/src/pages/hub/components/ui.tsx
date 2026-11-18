@@ -15,10 +15,9 @@ import {
   Loading as UiLoading,
   Notice,
 } from '@/components/ui'
-import { Loader2, AlertTriangle, Inbox } from 'lucide-react'
+import { Loader2, AlertTriangle } from 'lucide-react'
 import { getApiToken } from '../../../lib/apiToken'
-import ColResizer from '../../../components/ColResizer'
-import { useResizableColumns } from '../../../lib/tableCols'
+import Table from '@/components/ui/Table'
 import {
   callabilityColor,
   callabilityMark,
@@ -70,19 +69,17 @@ export function StatCard({
   )
 }
 
-/** 首列默认宽度（px）：名字/标题列总是最需要宽的那个 */
-const FIRST_COL_WIDTH = 240
-/** 其余列默认宽度（px） */
-const OTHER_COL_WIDTH = 160
-
-/** 各列默认宽度：首列宽一点，其余等宽；调用方可用 `colWidths` 逐列覆盖 */
-function defaultColWidths(columns: { key: string }[], override?: Record<string, number>): Record<string, number> {
-  const out: Record<string, number> = {}
-  columns.forEach((c, i) => { out[c.key] = i === 0 ? FIRST_COL_WIDTH : OTHER_COL_WIDTH })
-  return { ...out, ...(override ?? {}) }
-}
-
-/** 通用数据表格 */
+/**
+ * 通用数据表格 —— **薄封装全局 ui/Table**（2026-11-19 封装审计）
+ * 【为什么改成委托】此前这里是 hub 自己的第二套表格实现（手写 thead/tbody + 自己一份
+ * 列宽拖拽 + 自己一份空态），和全局 ui/Table 是两套外观。把「可拖列宽 / colStore /
+ * rowProps / columns.title」补进 Table 之后，这里只负责 translate 老 API：
+ * - `data` → `dataSource`、`keyField` → `rowKey`、`empty` → `emptyText`；
+ * - 缺省单元格仍按 `String(row[key] ?? '')` 取值（Table 原语是 `String(row[key])`，
+ *   直接透传会把缺字段渲染成字面量 "undefined"）；
+ * - 嵌在 hub 的 Card 里 ⇒ `bordered={false}`（外层已经有一层卡片框，避免双层）。
+ * 10 个页面的调用点一行不动。
+ */
 export function DataTable<T extends object>({
   columns, data, keyField, empty = '暂无数据', rowProps,
   resizable = false, colStore = 'yunshu.table.cols.v1', colWidths, minWidth,
@@ -95,7 +92,7 @@ export function DataTable<T extends object>({
   rowProps?: (row: T) => Record<string, string>
   /**
    * 列宽可拖动（与技能中心同一份实现：`lib/tableCols` + `components/ColResizer`）。
-   * 打开后表变 `table-fixed` + `colgroup`，宽度存 localStorage，双击手柄恢复默认。
+   * 打开后表变 `table-fixed` + `colgroup`，宽度存 localStorage，双击手柄恢复该列默认值。
    */
   resizable?: boolean
   /** 列宽的 localStorage 键（**每张表一个**，互不串味） */
@@ -105,53 +102,23 @@ export function DataTable<T extends object>({
   /** 表格最小宽度（px）：窄屏时横向滚动，而不是把列挤成不可读 */
   minWidth?: number
 }) {
-  const { cols, startDrag, reset } = useResizableColumns(defaultColWidths(columns, colWidths), colStore)
-  if (data.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-2 py-10 text-slate-500">
-        <Inbox size={24} />
-        <span className="text-sm">{empty}</span>
-      </div>
-    )
-  }
   return (
-    <div className="overflow-x-auto">
-      <table
-        className={`w-full text-left text-sm${resizable ? ' table-fixed' : ''}`}
-        style={resizable && minWidth ? { minWidth } : undefined}
-      >
-        {resizable && (
-          <colgroup>
-            {columns.map((c) => <col key={c.key} style={{ width: cols[c.key] }} />)}
-          </colgroup>
-        )}
-        <thead>
-          <tr className="border-b border-slate-800 text-xs uppercase tracking-wider text-slate-500">
-            {columns.map((c) => (
-              <th key={c.key} className="px-3 py-2 font-medium">
-                {c.title}
-                {resizable && <ColResizer onStart={startDrag(c.key)} onReset={() => reset(c.key)} />}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((row) => {
-            const r = row as Record<string, unknown>
-            return (
-              <tr key={String(r[keyField])} className="border-b border-slate-800/50 hover:bg-slate-800/30"
-                {...(rowProps ? rowProps(row) : {})}>
-                {columns.map((c) => (
-                  <td key={c.key} className="px-3 py-2.5 text-slate-300">
-                    {c.render ? c.render(row) : String(r[c.key] ?? '')}
-                  </td>
-                ))}
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+    <Table<T>
+      bordered={false}
+      columns={columns.map((c) => ({
+        key: c.key,
+        title: c.title,
+        render: c.render ?? ((row: T) => String((row as Record<string, unknown>)[c.key] ?? '')),
+      }))}
+      dataSource={data}
+      rowKey={(row) => String((row as Record<string, unknown>)[keyField])}
+      emptyText={empty}
+      rowProps={rowProps}
+      resizable={resizable}
+      colStore={colStore}
+      colWidths={colWidths}
+      minWidth={minWidth}
+    />
   )
 }
 

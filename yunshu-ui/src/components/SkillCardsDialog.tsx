@@ -12,7 +12,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, BookOpen, Cpu, Loader2, Search, X } from 'lucide-react'
-import { Button, Input, Tabs } from '@/components/ui'
+import { Button, Input, Notice, Tabs } from '@/components/ui'
 import { authHeader } from '../lib/apiToken'
 import { SKILLS_MGMT_CARDS, SKILLS_MGMT_NATIVE, skillCardLayer } from '../api/endpoints'
 
@@ -262,10 +262,9 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 text-caption leading-relaxed">
           {error ? (
-            <div className="mb-2 flex items-start gap-2 rounded-md border border-red-900/60 bg-red-950/30 px-2.5 py-2 text-red-200">
-              <AlertTriangle size={12} className="mt-0.5 shrink-0" />
-              <span>{error}</span>
-            </div>
+            <Notice tone="danger" size="md" icon={<AlertTriangle size={12} />} className="mb-2 px-2.5 py-2 text-caption">
+              {error}
+            </Notice>
           ) : null}
           {loading ? (
             <div className="flex items-center gap-2 py-8 text-slate-500">

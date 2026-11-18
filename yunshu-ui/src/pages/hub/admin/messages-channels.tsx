@@ -26,7 +26,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   CheckCircle2, Copy, Download, Loader2, PlugZap, Plus, Send, Settings2, SlidersHorizontal, Trash2,
 } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost, Input, Select, Switch, Textarea } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost, Input, Notice, Select, Switch, Textarea } from '../components/ui'
 import {
   CP_SETTINGS,
   cpSetting,
@@ -422,9 +422,9 @@ export default function HubChannelsPanel() {
     <div className="mt-4 flex flex-col gap-3">
       {err && <ErrorBox message={err} />}
       {msg && (
-        <div className="flex items-center gap-1.5 rounded-md border border-emerald-800/60 bg-emerald-500/10 px-2.5 py-1.5 text-caption text-emerald-300">
-          <CheckCircle2 size={12} /> {msg}
-        </div>
+        <Notice tone="success" size="sm" icon={<CheckCircle2 size={12} />} className="px-2.5 py-1.5">
+          {msg}
+        </Notice>
       )}
 
       {/* 接线状态：贴在组标题旁，不折叠、不灰掉 —— 用户必须一眼看到"现在会发什么" */}

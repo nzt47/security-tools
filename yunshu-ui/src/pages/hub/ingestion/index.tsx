@@ -645,14 +645,16 @@ export default function IngestionPage() {
                     </div>
                   )}
                   {plan.merge_suggestion && (
-                    <div className="mt-1 flex flex-wrap items-center gap-2 rounded-sm border border-emerald-900/50 bg-emerald-950/20 px-2 py-1 text-micro text-emerald-200">
-                      <ArrowRight size={12} /> 建议合并到
-                      <span className="font-mono">{plan.merge_suggestion.target_id}</span>
-                      <span className="text-slate-500">{plan.merge_suggestion.reason}</span>
-                      <span className="ml-auto text-slate-400">
-                        草稿生成后在「转化队列」里合并
-                      </span>
-                    </div>
+                    <Notice tone="success" size="sm" icon={null} className="mt-1 px-2 py-1 text-micro">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <ArrowRight size={12} /> 建议合并到
+                        <span className="font-mono">{plan.merge_suggestion.target_id}</span>
+                        <span className="text-slate-500">{plan.merge_suggestion.reason}</span>
+                        <span className="ml-auto text-slate-400">
+                          草稿生成后在「转化队列」里合并
+                        </span>
+                      </div>
+                    </Notice>
                   )}
                 </div>
 

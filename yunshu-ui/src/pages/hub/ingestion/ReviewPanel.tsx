@@ -6,7 +6,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { CheckCircle2, Inbox, Loader2, RefreshCw, Trash2 } from 'lucide-react'
-import { Badge, Button, Checkbox, ErrorBox, hubDelete, hubGet, hubPost, Textarea } from '../components/ui'
+import { Badge, Button, Checkbox, ErrorBox, hubDelete, hubGet, hubPost, Notice, Textarea } from '../components/ui'
 import { authHeader } from '../../../lib/apiToken'
 import {
   INGESTION_DRAFTS,
@@ -319,7 +319,7 @@ export default function ReviewPanel() {
       </div>
 
       {err && <div className="mb-2"><ErrorBox message={err} /></div>}
-      {msg && <div className="mb-2 flex items-center gap-1.5 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300"><CheckCircle2 size={12} /> {msg}</div>}
+      {msg && <Notice tone="success" size="sm" icon={<CheckCircle2 size={12} />} className="mb-2 px-2 py-1">{msg}</Notice>}
       {!queue && busy !== 'queue' && <div className="text-caption text-slate-500">未取到队列。</div>}
       {queue && rows.length === 0 && (
         <div className="flex items-center gap-1.5 text-caption text-slate-500"><Inbox size={11} /> 队列为空 —— 没有待评审/放行的外来技能。</div>

@@ -18,7 +18,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Ban, CheckCircle2, Clock, FileText, Loader2, ListChecks, RefreshCw,
 } from 'lucide-react'
-import { Button, CodeBlock, ErrorBox, hubGet, hubPost, Select } from '../components/ui'
+import { Button, CodeBlock, ErrorBox, hubGet, hubPost, Notice, Select } from '../components/ui'
 import {
   ASYNC_TASKS,
   BACKGROUND_TASKS,
@@ -184,9 +184,9 @@ export default function TaskQueue() {
 
       {err && <ErrorBox message={err} />}
       {msg && (
-        <div className="mb-2 flex items-center gap-1 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">
-          <CheckCircle2 size={11} /> {msg}
-        </div>
+        <Notice tone="success" size="sm" icon={<CheckCircle2 size={11} />} className="mb-2 px-2 py-1">
+          {msg}
+        </Notice>
       )}
 
       <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">

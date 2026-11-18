@@ -17,7 +17,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, CheckCircle2, GitBranch, Loader2, X } from 'lucide-react'
-import { Button, Checkbox } from '@/components/ui'
+import { Button, Checkbox, Notice } from '@/components/ui'
 import { authHeader } from '../../../lib/apiToken'
 import { SKILLS_MGMT } from '../../../api/endpoints'
 
@@ -168,23 +168,19 @@ export default function SkillIntakeDialog({ open, onClose }: Props) {
           </div>
 
           {error ? (
-            <div className="mb-2 flex items-start gap-2 rounded-md border border-red-900/60 bg-red-950/30 px-2.5 py-2 text-red-200">
-              <AlertTriangle size={12} className="mt-0.5 shrink-0" />
-              <span>{error}</span>
-            </div>
+            <Notice tone="danger" size="md" icon={<AlertTriangle size={12} />} className="mb-2 px-2.5 py-2">
+              {error}
+            </Notice>
           ) : null}
           {done ? (
-            <div className="mb-2 flex items-start gap-2 rounded-md border border-emerald-900/60 bg-emerald-950/30 px-2.5 py-2 text-emerald-200">
-              <CheckCircle2 size={12} className="mt-0.5 shrink-0" />
-              <span>
-                <strong>{done.id}</strong>：{done.text}
-                {done.prUrl ? (
-                  <a href={done.prUrl} target="_blank" rel="noreferrer" className="ml-1 text-cyan-300 underline">
-                    查看 PR
-                  </a>
-                ) : null}
-              </span>
-            </div>
+            <Notice tone="success" size="md" icon={<CheckCircle2 size={12} />} className="mb-2 px-2.5 py-2">
+              <strong>{done.id}</strong>：{done.text}
+              {done.prUrl ? (
+                <a href={done.prUrl} target="_blank" rel="noreferrer" className="ml-1 text-cyan-300 underline">
+                  查看 PR
+                </a>
+              ) : null}
+            </Notice>
           ) : null}
 
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">

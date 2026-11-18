@@ -33,7 +33,7 @@ import {
   AlertTriangle, ChevronDown, ChevronRight, CircleSlash, Info, Loader2,
   RefreshCw, ShieldAlert, Siren,
 } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button, Notice } from '@/components/ui'
 import { useSecurityState, formatNumber, formatPercent } from './usePanel'
 import type { Metric } from '@/lib/cpPanelsTypes'
 
@@ -95,10 +95,9 @@ export function PanelShell({
         </div>
       )}
       {!loading && error && (
-        <div className="flex items-start gap-2 rounded-lg border border-red-900/60 bg-red-950/40 px-3 py-2 text-sm text-red-300">
-          <AlertTriangle size={15} className="mt-0.5" />
+        <Notice tone="danger" size="md" icon={<AlertTriangle size={15} />} className="text-ui">
           <span className="break-all">{error}</span>
-        </div>
+        </Notice>
       )}
       {!loading && !error && children}
     </div>
@@ -578,13 +577,12 @@ export function ApprovalZone({
 /** 事故级告警条（自愈面板用） */
 export function IncidentBanner({ count, note }: { count: number; note: string }) {
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-red-900/60 bg-red-950/40 px-3 py-2 text-xs text-red-300">
-      <Siren size={14} />
+    <Notice tone="danger" size="md" icon={<Siren size={14} />}>
       <span>
         当前有 <strong>{count}</strong> 起未闭合事故（status=open）⇒ 面板自动展开
-        <span className="ml-1 text-red-400/70">{note}</span>
+        <span className="ml-1 opacity-70">{note}</span>
       </span>
-    </div>
+    </Notice>
   )
 }
 
