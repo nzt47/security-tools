@@ -3,7 +3,7 @@
  */
 import { useEffect, useRef } from 'react';
 import { CornerDownLeft } from 'lucide-react';
-import { Button } from '@/components/ui';
+import { Button, Textarea } from '@/components/ui';
 
 interface Props {
   value: string;
@@ -32,7 +32,10 @@ export function MessageInput({ value, onChange, onSend, disabled }: Props) {
 
   return (
     <div className="wb-input-wrap">
-      <textarea
+      {/* 【2026-11-19】外观/自动长高仍由 .wb-input + 本组件的 useEffect 决定；原语只提供 ref 转发与一致性 */}
+      <Textarea
+        variant="bare"
+        className="wb-input"
         ref={textareaRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -40,7 +43,6 @@ export function MessageInput({ value, onChange, onSend, disabled }: Props) {
         disabled={disabled}
         rows={1}
         placeholder="输入消息，Enter 发送，Shift+Enter 换行…"
-        className="wb-input"
       />
       <Button
         type="button"

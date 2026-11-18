@@ -12,7 +12,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import hljs from 'highlight.js/lib/common';
-import { Button, Select } from '@/components/ui';
+import { Button, Select, Textarea } from '@/components/ui';
 import { Eraser, FileCode2 } from 'lucide-react';
 
 const STORAGE_KEY = 'yunshu:editor:code:v1';
@@ -180,9 +180,11 @@ export function CodeEditorPanel() {
 
       {/* 编辑 / 预览 上下分栏 */}
       <div className="flex min-h-0 flex-1 flex-col">
-        <textarea
-          ref={textareaRef}
+        {/* 【2026-11-19】布局（flex-1 55%）与等宽外观仍由 .wb-editor-input 决定；原语只做 ref 转发 */}
+        <Textarea
+          variant="bare"
           className="wb-editor-input"
+          ref={textareaRef}
           value={state.content}
           onChange={(e) => updateContent(e.target.value)}
           spellCheck={false}

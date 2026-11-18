@@ -118,19 +118,21 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           aria-invalid={error ? true : undefined}
           disabled={disabled || loading}
           className={cn(
-            'w-full rounded-control border text-body transition-colors',
-            variant === 'default' && SIZE_CLASSES[size],
-            'placeholder:text-muted-foreground',
-            'focus:outline-hidden focus:ring-2 focus:ring-primary/40',
-            variant === 'bare'
-              ? 'border-0 bg-transparent px-0 py-0 text-inherit focus:ring-0'
-              : surface === 'light'
-                ? 'bg-background text-foreground'
-                : 'bg-card text-foreground',
-            variant === 'default' && (error ? 'border-danger' : 'border-border hover:border-foreground/20'),
-            'disabled:cursor-not-allowed disabled:opacity-60',
-            leading != null && slot.leadingPad,
-            hasTrailing && slot.trailingPad,
+            'w-full',
+            // bare：**什么外观都不画**，连字号/边框/内边距都不给 —— 全部交给调用方的类
+            // （.ve-field-input / .devconsole-input 这些 CSS 里有完整规则；多给一条就可能因
+            //   同优先级 + 加载顺序把 padding 覆盖成 0，2026-11-19 实测过）。
+            variant === 'default' && [
+              'rounded-control border text-body transition-colors',
+              SIZE_CLASSES[size],
+              'placeholder:text-muted-foreground',
+              'focus:outline-hidden focus:ring-2 focus:ring-primary/40',
+              surface === 'light' ? 'bg-background text-foreground' : 'bg-card text-foreground',
+              error ? 'border-danger' : 'border-border hover:border-foreground/20',
+              'disabled:cursor-not-allowed disabled:opacity-60',
+              leading != null && slot.leadingPad,
+              hasTrailing && slot.trailingPad,
+            ],
             inputClassName,
           )}
           {...props}

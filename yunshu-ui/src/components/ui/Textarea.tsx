@@ -38,17 +38,15 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textare
       ref={ref}
       aria-invalid={error ? true : undefined}
       className={cn(
-        'w-full',
-        variant === 'default'
-          ? [
-              'resize-y rounded-control border bg-card text-body text-foreground',
-              'placeholder:text-muted-foreground transition-colors',
-              'focus:outline-hidden focus:ring-2 focus:ring-primary/40',
-              error ? 'border-danger' : 'border-border hover:border-foreground/20',
-              'disabled:cursor-not-allowed disabled:opacity-60',
-              SIZE_CLASSES[size],
-            ]
-          : 'border-0 bg-transparent p-0 text-inherit focus:outline-hidden',
+        // bare：**什么都不画**（连 w-full 都不给）—— 外观与尺寸全部由调用方的类决定
+        variant === 'default' && [
+          'w-full resize-y rounded-control border bg-card text-body text-foreground',
+          'placeholder:text-muted-foreground transition-colors',
+          'focus:outline-hidden focus:ring-2 focus:ring-primary/40',
+          error ? 'border-danger' : 'border-border hover:border-foreground/20',
+          'disabled:cursor-not-allowed disabled:opacity-60',
+          SIZE_CLASSES[size],
+        ],
         className,
       )}
       {...props}
