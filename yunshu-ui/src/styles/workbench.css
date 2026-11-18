@@ -274,11 +274,12 @@ body,
   z-index: 5;
 }
 
-/* 抓手本体：28×2 的浅色圆角线，hover 变青（纯视觉，命中区是外面那 44×9） */
+/* 抓手本体：28×2 的浅色圆角线，hover 变青（纯视觉，命中区是外面那 44×9）
+ * 【2026-11-18 Owner】可见线由距顶 3px 改为贴顶 0px（"抓手向上移"）。 */
 .wb-panel-grip::after {
   content: '';
   position: absolute;
-  top: 3px;
+  top: 0;
   left: 50%;
   width: 28px;
   height: 2px;
