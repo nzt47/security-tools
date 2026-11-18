@@ -6,10 +6,11 @@
  * 【交互契约】点掉最后一个类 ⇒ 自动回到 `general`（"一个都不装"不是合法状态：
  * 那等于任何检索都返回空，看起来像坏了）。
  */
+import { Button } from '@/components/ui'
 import { TOPIC_VOCABULARY, DEFAULT_TOPIC, normalizeTopics } from '@/lib/topics'
 
-const ON = 'border-cyan-700 bg-cyan-950/50 text-cyan-200'
-const OFF = 'border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-600'
+/* 选中/未选中交给 Button 的 accent / default 两个语义档（2026-11-18 收口）：
+   原来这里是两条 tailwind 色名（cyan-700 / slate-700），与全局主色不是同一支青。 */
 
 export function TopicPicker({
   value,
@@ -37,19 +38,20 @@ export function TopicPicker({
       {TOPIC_VOCABULARY.map((t) => {
         const on = selected.includes(t.id)
         return (
-          <button
+          <Button
             key={t.id}
-            type="button"
+            size="sm"
+            className="rounded-full"
+            variant={on ? 'accent' : 'default'}
             disabled={disabled}
             aria-pressed={on}
             title={t.hint}
             onClick={() => toggle(t.id)}
             data-testid={`${testId}-${t.id}`}
-            className={`rounded-full border px-2.5 py-1 text-body transition ${on ? ON : OFF} ${disabled ? 'opacity-60' : ''}`}
           >
             {t.label}
             <span className="ml-1 font-mono text-micro opacity-70">{t.id}</span>
-          </button>
+          </Button>
         )
       })}
     </div>

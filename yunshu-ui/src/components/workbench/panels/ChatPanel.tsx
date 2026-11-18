@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Sparkles, Square } from 'lucide-react';
-import { Button } from '@/components/ui';
+import { Badge, Button } from '@/components/ui';
 import { isHistoryMessageId, subscribeStreamLog, useLayoutStore } from '../../../stores/useLayoutStore';
 import { CHAT_FORMATS, chatStyleVars, useChatPrefsStore, type ChatFormat } from '../../../stores/useChatPrefsStore';
 import { MessageItem, isToolStep } from '../chat/MessageItem';
@@ -236,8 +236,8 @@ export function ChatPanel() {
     <div className="flex h-full min-h-0 flex-col">
       {/* 对话工具条：思考/工具显示开关（legacy 💭 Thought / 🔧 工具）+ 输出格式切换 + 风格设置 */}
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-slate-800/70 bg-slate-900/30 px-4 py-1.5">
-        <button
-          type="button"
+        <Button
+          data-testid="display-toggle"
           onClick={() => toggleDisplay('thinking')}
           aria-pressed={showThinking}
           title={
@@ -245,13 +245,18 @@ export function ChatPanel() {
               ? `显示/隐藏对话内的思考过程（本对话 ${stepCounts.thoughts} 步）。右侧「思考过程」面板始终展示完整链路。`
               : '显示/隐藏对话内的思考过程（当前对话暂无可显隐的思考步骤）'
           }
-          className={`wb-display-toggle ${showThinking ? 'on' : 'off'} ${stepCounts.thoughts === 0 ? 'idle' : ''}`}
+          className={stepCounts.thoughts === 0 ? 'opacity-60' : undefined}
+          size="xs"
+          variant="default"
+          active={showThinking}
         >
           💭 思考
-          {stepCounts.thoughts > 0 && <span className="wb-display-count">{stepCounts.thoughts}</span>}
-        </button>
-        <button
-          type="button"
+          {stepCounts.thoughts > 0 && (
+            <Badge tone="neutral" size="sm" data-testid="display-count">{stepCounts.thoughts}</Badge>
+          )}
+        </Button>
+        <Button
+          data-testid="display-toggle"
           onClick={() => toggleDisplay('toolcalls')}
           aria-pressed={showToolCalls}
           title={
@@ -259,11 +264,16 @@ export function ChatPanel() {
               ? `显示/隐藏对话内的工具调用步骤（本对话 ${stepCounts.tools} 次）。`
               : '显示/隐藏对话内的工具调用步骤（本次对话未触发工具调用，故暂无可显隐内容）'
           }
-          className={`wb-display-toggle ${showToolCalls ? 'on' : 'off'} ${stepCounts.tools === 0 ? 'idle' : ''}`}
+          className={stepCounts.tools === 0 ? 'opacity-60' : undefined}
+          size="xs"
+          variant="default"
+          active={showToolCalls}
         >
           🔧 工具
-          {stepCounts.tools > 0 && <span className="wb-display-count">{stepCounts.tools}</span>}
-        </button>
+          {stepCounts.tools > 0 && (
+            <Badge tone="neutral" size="sm" data-testid="display-count">{stepCounts.tools}</Badge>
+          )}
+        </Button>
 
         <span className="mx-1 h-3.5 w-px bg-slate-700/70" />
 

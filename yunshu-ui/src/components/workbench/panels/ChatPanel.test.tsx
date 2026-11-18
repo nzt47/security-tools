@@ -142,21 +142,21 @@ describe('ChatPanel 显示开关（思考 / 工具）', () => {
   it('开关上显示本对话可显隐的步骤计数（思考 1 / 工具 1）', () => {
     seedAssistantWithSteps();
     const { container } = render(<ChatPanel />);
-    const toggles = container.querySelectorAll<HTMLButtonElement>('.wb-display-toggle');
+    const toggles = container.querySelectorAll<HTMLButtonElement>('[data-testid="display-toggle"]');
     expect(toggles).toHaveLength(2);
     // [0]=思考 [1]=工具：计数徽标 = 本对话可显隐的步骤数
     expect(toggles[0].textContent).toContain('思考');
-    expect(toggles[0].querySelector('.wb-display-count')?.textContent).toBe('1');
+    expect(toggles[0].querySelector('[data-testid="display-count"]')?.textContent).toBe('1');
     expect(toggles[1].textContent).toContain('工具');
-    expect(toggles[1].querySelector('.wb-display-count')?.textContent).toBe('1');
+    expect(toggles[1].querySelector('[data-testid="display-count"]')?.textContent).toBe('1');
     expect(toggles[0].getAttribute('aria-pressed')).toBe('true');
   });
 
   it('点击开关切换 aria-pressed 与提示文案（无可显隐内容时说明原因）', () => {
     const { container } = render(<ChatPanel />);
-    const toggles = container.querySelectorAll<HTMLButtonElement>('.wb-display-toggle');
+    const toggles = container.querySelectorAll<HTMLButtonElement>('[data-testid="display-toggle"]');
     // 无步骤：不显示计数徽标，title 说明"暂无可显隐内容"（避免误以为开关坏了）
-    expect(toggles[0].querySelector('.wb-display-count')).toBeNull();
+    expect(toggles[0].querySelector('[data-testid="display-count"]')).toBeNull();
     expect(toggles[0].getAttribute('title')).toContain('暂无可显隐的思考步骤');
     expect(toggles[1].getAttribute('title')).toContain('未触发工具调用');
     expect(toggles[0].getAttribute('aria-pressed')).toBe('true');
@@ -165,10 +165,10 @@ describe('ChatPanel 显示开关（思考 / 工具）', () => {
   it('点击思考开关后 aria-pressed 变为 false（开关确实生效）', () => {
     seedAssistantWithSteps();
     const { container } = render(<ChatPanel />);
-    const toggles = container.querySelectorAll<HTMLButtonElement>('.wb-display-toggle');
+    const toggles = container.querySelectorAll<HTMLButtonElement>('[data-testid="display-toggle"]');
     fireEvent.click(toggles[0]);
     expect(
-      container.querySelectorAll<HTMLButtonElement>('.wb-display-toggle')[0].getAttribute('aria-pressed'),
+      container.querySelectorAll<HTMLButtonElement>('[data-testid="display-toggle"]')[0].getAttribute('aria-pressed'),
     ).toBe('false');
   });
 });
