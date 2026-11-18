@@ -12,9 +12,8 @@
  * 把授权姿态交回用户，档位随每次请求体 permission_mode 发给后端，工具闸门即时生效
  * （见 agent/tool_gate.py 的 _permission_mode）。
  */
-import { useEffect, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
-import { Button, RowButton } from '@/components/ui'
+import { Button, MenuPanel, RowButton, useMenu } from '@/components/ui'
 import {
   PERMISSION_MODES,
   useChatPrefsStore,
@@ -31,49 +30,32 @@ const TONE: Record<PermissionMode, string> = {
 export function PermissionModeMenu() {
   const permissionMode = useChatPrefsStore((s) => s.permissionMode)
   const setPermissionMode = useChatPrefsStore((s) => s.setPermissionMode)
-  const [open, setOpen] = useState(false)
-  const boxRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const onDown = (e: MouseEvent) => {
-      if (!boxRef.current?.contains(e.target as Node)) setOpen(false)
-    }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    window.addEventListener('mousedown', onDown)
-    window.addEventListener('keydown', onKey)
-    return () => {
-      window.removeEventListener('mousedown', onDown)
-      window.removeEventListener('keydown', onKey)
-    }
-  }, [open])
+  // 【2026-11-18 封装收口】外点关闭 / Esc（捕获）/ portal 定位都交给 ui/Menu
+  const menu = useMenu<HTMLButtonElement>()
 
   const current = PERMISSION_MODES[permissionMode]
 
   return (
-    <div className="relative" ref={boxRef}>
+    <div className="relative">
       <Button
+        ref={menu.anchorRef}
         size="xs"
         variant="default"
-        active={open}
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
+        active={menu.open}
+        onClick={menu.toggle}
+        aria-expanded={menu.open}
         aria-haspopup="menu"
         data-testid="permission-mode-menu"
         title={`权限档位：${current.label} —— ${current.hint}`}
       >
         <span>{current.icon}</span>
         <span>权限：{current.label}</span>
-        <ChevronDown size={10} className={open ? 'rotate-180 transition-transform' : 'transition-transform'} />
+        <ChevronDown size={10} className={menu.open ? 'rotate-180 transition-transform' : 'transition-transform'} />
       </Button>
 
-      {open && (
-        <div
-          role="menu"
-          className="absolute right-0 top-[calc(100%+6px)] z-80 w-[340px] rounded-xl border border-slate-700 bg-slate-900/98 p-2 text-body shadow-2xl backdrop-blur-sm"
-        >
+      {menu.open && (
+        <MenuPanel anchorRef={menu.anchorRef} onClose={menu.close} width={340} label="权限档位">
+
           <div className="mb-1.5 px-1 text-micro uppercase tracking-wider text-slate-500">权限档位</div>
           {(Object.keys(PERMISSION_MODES) as PermissionMode[]).map((m) => {
             const item = PERMISSION_MODES[m]
@@ -87,7 +69,7 @@ export function PermissionModeMenu() {
                 selected={active}
                 onClick={() => {
                   setPermissionMode(m)
-                  setOpen(false)
+                  menu.close()
                 }}
                 className="mb-1 rounded-lg border border-slate-800 px-2 py-1.5"
               >
@@ -104,7 +86,7 @@ export function PermissionModeMenu() {
             档位随每条消息发给后端、即时生效；它只决定"要不要逐条审批"，不改任何工具能力。
             完全权限会跳过 L2/L3 审批，请只在可信环境使用。
           </div>
-        </div>
+        </MenuPanel>
       )}
     </div>
   )

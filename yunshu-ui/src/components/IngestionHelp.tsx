@@ -10,7 +10,7 @@
  * 内容与页面按钮**逐字对得上**（步骤里写的就是按钮文案），改按钮请回来同步这里。
  */
 import { BookOpen, X } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button, ModalBase } from '@/components/ui'
 
 export type HelpStation = {
   no: number
@@ -94,21 +94,30 @@ export default function IngestionHelp({ open, onClose, onGo }: Props) {
   const autoCount = STATIONS.filter((s) => s.auto).length
   const manualCount = STATIONS.length - autoCount
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4"
-      role="dialog" aria-modal="true" aria-label="能力获取使用手册">
-      <div className="flex max-h-[86vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-slate-700 bg-slate-900 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <BookOpen size={14} className="text-cyan-400" />
-            <h2 className="text-sm font-semibold text-slate-100">能力获取 · 使用手册</h2>
-            <span className="text-caption text-slate-500">从入口材料到最终能力</span>
-          </div>
-          <Button type="button" onClick={onClose} aria-label="关闭使用手册" variant="ghost" size="icon-sm">
-            <X size={14} />
+    // 【2026-11-18 封装收口】外壳交给 ui/ModalBase（portal + 遮罩 + Esc 捕获 + 滚动锁定 + ×）
+    <ModalBase
+      open
+      onClose={onClose}
+      title="能力获取使用手册"
+      header={<span className="flex items-center gap-2"><BookOpen size={14} className="text-primary" /> 能力获取 · 使用手册 <span className="text-caption font-normal text-muted-foreground">从入口材料到最终能力</span></span>}
+      width="max-w-3xl"
+      scrollable
+      closeButton
+      footer={
+        <>
+          <Button type="button" onClick={() => { onGo('review'); onClose() }} variant="default" size="xs">
+            去草稿评审
           </Button>
-        </div>
-
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 text-caption leading-relaxed text-slate-300">
+          <Button type="button" onClick={() => { onGo('queue'); onClose() }} variant="default" size="xs">
+            去转化队列
+          </Button>
+          <Button type="button" onClick={onClose} variant="accent" size="xs">
+            知道了
+          </Button>
+        </>
+      }
+    >
+        <div className="text-caption leading-relaxed text-slate-300">
           <p className="rounded-md border border-cyan-900/50 bg-cyan-950/20 px-2.5 py-2">
             <strong className="text-cyan-200">一句话：</strong>
             这一页把「外来材料」变成<strong className="text-slate-100">可评审的草稿</strong>；
@@ -172,19 +181,6 @@ export default function IngestionHelp({ open, onClose, onGo }: Props) {
             <li><strong className="text-slate-300">原生重叠</strong>：技能正文与某个内置工具（如 read_file）语义重复，提示你改用工具而不是新技能。</li>
           </ul>
         </div>
-
-        <div className="flex items-center justify-end gap-2 border-t border-slate-800 px-4 py-2">
-          <Button type="button" onClick={() => { onGo('review'); onClose() }} variant="default" size="xs">
-            去草稿评审
-          </Button>
-          <Button type="button" onClick={() => { onGo('queue'); onClose() }} variant="default" size="xs">
-            去转化队列
-          </Button>
-          <Button type="button" onClick={onClose} variant="accent" size="xs">
-            知道了
-          </Button>
-        </div>
-      </div>
-    </div>
+    </ModalBase>
   )
 }

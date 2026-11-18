@@ -12,43 +12,27 @@
  * 延迟从数秒升到数十秒。把选择权交给用户，并在选项说明里直说代价。
  * 选择写入 useChatPrefsStore（LocalStorage 持久化），随每次请求体 `mode` 发给后端。
  */
-import { useEffect, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
-import { Button, RowButton } from '@/components/ui'
+import { Button, MenuPanel, RowButton, useMenu } from '@/components/ui'
 import { CHAT_MODES, useChatPrefsStore, type ChatMode } from '../../../stores/useChatPrefsStore'
 
 export function ChatModeMenu() {
   const mode = useChatPrefsStore((s) => s.mode)
   const setMode = useChatPrefsStore((s) => s.setMode)
-  const [open, setOpen] = useState(false)
-  const boxRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const onDown = (e: MouseEvent) => {
-      if (!boxRef.current?.contains(e.target as Node)) setOpen(false)
-    }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    window.addEventListener('mousedown', onDown)
-    window.addEventListener('keydown', onKey)
-    return () => {
-      window.removeEventListener('mousedown', onDown)
-      window.removeEventListener('keydown', onKey)
-    }
-  }, [open])
+  // 【2026-11-18 封装收口】外点关闭 / Esc（捕获）/ portal 定位都交给 ui/Menu
+  const menu = useMenu<HTMLButtonElement>()
 
   const current = CHAT_MODES[mode]
 
   return (
-    <div className="relative" ref={boxRef}>
+    <div className="relative">
       <Button
+        ref={menu.anchorRef}
         size="xs"
         variant="default"
-        active={open}
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
+        active={menu.open}
+        onClick={menu.toggle}
+        aria-expanded={menu.open}
         aria-haspopup="menu"
         title={`对话模式：${current.label} —— ${current.hint}`}
         // 「完整」是重档，用醒目色提醒（这是模式语义，不是展开态）：与 active 的展开态并存，
@@ -63,14 +47,12 @@ export function ChatModeMenu() {
       >
         <span>{current.icon}</span>
         <span>模式：{current.label}</span>
-        <ChevronDown size={10} className={open ? 'rotate-180 transition-transform' : 'transition-transform'} />
+        <ChevronDown size={10} className={menu.open ? 'rotate-180 transition-transform' : 'transition-transform'} />
       </Button>
 
-      {open && (
-        <div
-          role="menu"
-          className="absolute right-0 top-[calc(100%+6px)] z-80 w-[330px] rounded-xl border border-slate-700 bg-slate-900/98 p-2 text-body shadow-2xl backdrop-blur-sm"
-        >
+      {menu.open && (
+        <MenuPanel anchorRef={menu.anchorRef} onClose={menu.close} width={330} label="对话模式">
+
           <div className="mb-1.5 px-1 text-micro uppercase tracking-wider text-slate-500">对话模式</div>
           {(Object.keys(CHAT_MODES) as ChatMode[]).map((m) => {
             const item = CHAT_MODES[m]
@@ -83,7 +65,7 @@ export function ChatModeMenu() {
                 selected={active}
                 onClick={() => {
                   setMode(m)
-                  setOpen(false)
+                  menu.close()
                 }}
                 className="mb-1 rounded-lg border border-slate-800 px-2 py-1.5"
               >
@@ -100,7 +82,7 @@ export function ChatModeMenu() {
             代价是真实的：完整模式单轮可能触发多次模型调用（规划最多 10 步），延迟与花费都会上去；
             日常问答用轻量，需要"记得住"时用检索；不想每次挑就用「自动」（它只会在任务型/长输入时升档）。
           </div>
-        </div>
+        </MenuPanel>
       )}
     </div>
   )

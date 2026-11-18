@@ -15,13 +15,13 @@
  * 包成 drag source）；把可点按钮塞进 drag source 会让"点按钮"与"拖面板"抢同一个 mousedown。
  * 本组件渲染在面板 body 里，天然在 drag source 之外。
  */
-import { useEffect, useRef, useState } from 'react';
 import { useContext } from 'react';
 import { EllipsisVertical, Maximize2, X } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { MosaicContext, MosaicWindowContext } from 'react-mosaic-component';
 import type { PanelId } from '../../lib/mosaic';
 import { PANEL_TITLES } from '../../lib/mosaic';
+import { MenuPanel, useMenu } from '../ui/Menu';
 import { DetachButton } from './DetachButton';
 
 interface Props {
@@ -31,62 +31,53 @@ interface Props {
 }
 
 export function PanelMenu({ panelId, onDetach }: Props) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
+  // 【2026-11-18 封装收口】外点关闭 / Esc（捕获）/ portal 定位交由 ui/Menu
+  const menu = useMenu<HTMLButtonElement>();
   const { mosaicActions } = useContext(MosaicContext);
   const { mosaicWindowActions } = useContext(MosaicWindowContext);
   const title = PANEL_TITLES[panelId];
 
-  // 菜单开着时：点外面/按 Esc 收起（与工作台其它上下文菜单同一套习惯）
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    window.addEventListener('mousedown', onDown);
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('mousedown', onDown);
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
-
   const expand = () => {
-    setOpen(false);
+    menu.close();
     mosaicActions.expand(mosaicWindowActions.getPath());
   };
 
   const close = () => {
-    setOpen(false);
+    menu.close();
     mosaicActions.remove(mosaicWindowActions.getPath());
   };
 
   return (
-    <div className="wb-panel-menu" ref={rootRef}>
+    <div className="wb-panel-menu">
       <Button
+        ref={menu.anchorRef}
         type="button"
         variant="plain"
         size="bare"
         className="wb-panel-menu-trigger"
         aria-label={`${title} 面板菜单`}
         aria-haspopup="menu"
-        aria-expanded={open}
+        aria-expanded={menu.open}
         title="面板菜单：独立窗口 / 放大 / 关闭"
         data-testid="wb-panel-menu-trigger"
-        onClick={() => setOpen((v) => !v)}
+        onClick={menu.toggle}
       >
         <EllipsisVertical size={12} />
       </Button>
-      {open && (
-        <div className="wb-panel-menu-pop" role="menu" aria-label={`${title} 面板操作`}>
+      {menu.open && (
+        <MenuPanel
+          anchorRef={menu.anchorRef}
+          onClose={menu.close}
+          align="right"
+          width={160}
+          label={`${title} 面板操作`}
+          className="wb-panel-menu-pop"
+        >
           {/* 独立窗口：Web 模式没有 window.electronAPI，DetachButton 会返回 null（既有行为） */}
           <DetachButton
             panelId={panelId}
             onDetached={(target) => {
-              setOpen(false); // 菜单动作一律点了就收起（与本组件的另外两项一致）
+              menu.close(); // 菜单动作一律点了就收起（与本组件的另外两项一致）
               onDetach(target);
             }}
             className="wb-panel-menu-item"
@@ -116,7 +107,7 @@ export function PanelMenu({ panelId, onDetach }: Props) {
             <X size={11} />
             关闭
           </Button>
-        </div>
+        </MenuPanel>
       )}
     </div>
   );

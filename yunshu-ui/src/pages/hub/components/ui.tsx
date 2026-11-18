@@ -9,7 +9,12 @@ export { Button, Checkbox, CodeBlock, Input, ModalBase, Notice, Radio, RowButton
 
 import type { ReactNode } from 'react'
 // 全局 Badge 只在本文件内部使用（对外仍暴露 hub 那层带 color 枚举的 Badge）
-import { Badge as ToneBadge, Notice } from '@/components/ui'
+import {
+  Badge as ToneBadge,
+  Card as UiCard,
+  Loading as UiLoading,
+  Notice,
+} from '@/components/ui'
 import { Loader2, AlertTriangle, Inbox } from 'lucide-react'
 import { getApiToken } from '../../../lib/apiToken'
 import ColResizer from '../../../components/ColResizer'
@@ -21,22 +26,27 @@ import {
   type CallabilityInfo,
 } from '../../../lib/callability'
 
-/** 面板卡片：标题 + 可选操作区 + 内容 */
+/**
+ * 面板卡片：标题 + 可选操作区 + 内容 —— **容器委托全局 ui/Card**（2026-11-18 封装审计）
+ * 此前这里是 hub 自己的 slate 一套（rounded-xl / border-slate-800 / bg-slate-900/60），
+ * 与全局 token 两套颜色；现在外壳走 ui/Card（border-border / bg-card / shadow-card），
+ * 只在它上面加"标题 + 操作区"这一层（那是 hub 特有的排版，不是控件外观）。
+ */
 export function Card({
   title, actions, children, className = '',
 }: {
   title?: string; actions?: ReactNode; children: ReactNode; className?: string
 }) {
   return (
-    <div className={`rounded-xl border border-slate-800 bg-slate-900/60 ${className}`}>
+    <UiCard className={`overflow-hidden ${className}`}>
       {(title || actions) && (
-        <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
-          <h3 className="text-sm font-medium text-slate-200">{title}</h3>
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <h3 className="text-body-lg font-medium text-foreground">{title}</h3>
           {actions && <div className="flex items-center gap-2">{actions}</div>}
         </div>
       )}
       <div className="p-4">{children}</div>
-    </div>
+    </UiCard>
   )
 }
 
@@ -47,14 +57,14 @@ export function StatCard({
   label: string; value: ReactNode; unit?: string; icon?: ReactNode; color?: string
 }) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+    <div className="rounded-card border border-border bg-card p-4">
       <div className="flex items-center justify-between">
-        <span className="text-xs text-slate-500">{label}</span>
+        <span className="text-caption text-muted-foreground">{label}</span>
         {icon && <span className={color}>{icon}</span>}
       </div>
       <div className="mt-2 flex items-baseline gap-1">
-        <span className="text-2xl font-semibold text-white">{value}</span>
-        {unit && <span className="text-xs text-slate-500">{unit}</span>}
+        <span className="text-h1 font-semibold text-foreground">{value}</span>
+        {unit && <span className="text-caption text-muted-foreground">{unit}</span>}
       </div>
     </div>
   )
@@ -145,14 +155,9 @@ export function DataTable<T extends object>({
   )
 }
 
-/** 加载态 */
+/** 加载态 —— 委托全局 ui/Loading（行内形态与密度由 className 保留） */
 export function Loading({ text = '加载中…' }: { text?: string }) {
-  return (
-    <div className="flex items-center justify-center gap-2 py-12 text-slate-400">
-      <Loader2 size={18} className="animate-spin" />
-      <span className="text-sm">{text}</span>
-    </div>
-  )
+  return <UiLoading text={text} className="flex-row py-12" />
 }
 
 /**

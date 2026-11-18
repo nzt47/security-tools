@@ -28,7 +28,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { Badge, Button, Input, RowButton, Select, Switch } from '@/components/ui';
+import { Badge, Button, Input, ModalBase, Notice, RowButton, Select, Switch } from '@/components/ui';
 import type { Project, SessionGroup, SessionMeta } from '../../../lib/sessionApi';
 
 export interface SessionRailProps {
@@ -743,28 +743,9 @@ export function SessionRail({
         每个会话 = 一个任务工作空间（自动创建）；用「项目」归类会话与分组
       </div>
 
-      {/* 新建项目弹窗 */}
+      {/* 新建项目弹窗 —— 外壳走 ui/ModalBase（portal + 遮罩 + Esc 捕获 + × 关闭），这里只留内容 */}
       {projectOpen && (
-        <div
-          className="fixed inset-0 z-90 flex items-center justify-center p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-label="新建项目"
-        >
-          <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-[1px]" onClick={closeProjectModal} />
-          <div className="relative w-[360px] max-w-full rounded-xl border border-slate-700 bg-slate-900 p-4 shadow-2xl">
-            <div className="mb-3 flex items-center justify-between">
-              <span className="text-body-lg font-semibold text-slate-100">新建项目</span>
-              <Button
-                variant="ghost"
-                size="xs"
-                className="w-6 px-0 text-muted-foreground hover:text-foreground"
-                onClick={closeProjectModal}
-                aria-label="关闭新建项目"
-              >
-                <X size={13} />
-              </Button>
-            </div>
+        <ModalBase open onClose={closeProjectModal} title="新建项目" width="max-w-[360px]" closeButton>
 
             <label className="mb-2 block text-caption text-muted-foreground">
               项目名
@@ -817,9 +798,7 @@ export function SessionRail({
             </div>
 
             {projectError && (
-              <div className="mt-2 rounded-md border border-rose-500/40 bg-rose-500/10 px-2 py-1 text-caption text-rose-200">
-                {projectError}
-              </div>
+              <Notice tone="danger" size="sm" className="mt-2">{projectError}</Notice>
             )}
 
             <div className="mt-3 flex items-center justify-end gap-1.5">
@@ -836,8 +815,7 @@ export function SessionRail({
                 创建项目
               </Button>
             </div>
-          </div>
-        </div>
+        </ModalBase>
       )}
     </aside>
   );
