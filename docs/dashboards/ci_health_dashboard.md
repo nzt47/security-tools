@@ -93,6 +93,7 @@
 | 2026-11-18 | `c8f4e7c` | 100.0% (14/14) | 0 | 0 | 47.19 | — | 0 | ↑ | docs(handoff): §11.160 + 清单归零 —— batch2 完成（生产代码原生 button 604 → 0） |
 | 2026-11-18 | `aaf180c` | 100.0% (14/14) | 0 | 0 | 48.38 | — | 0 | ↑ | docs(handoff): §11.161 封装缺口审计 —— 读数表 · ui/Notice · 剩余 5 类结构性缺口进 handoff_next |
 | 2026-11-18 | `7954688` | 100.0% (14/14) | 0 | 0 | 64.77 | — | 0 | ↑ | docs(handoff): §11.164 —— ModalBase 再补三档形态 · 自造弹窗 7 → 1（剩 TransformQueueDialog） |
+| 2026-11-18 | `3810000` | 100.0% (14/14) | 0 | 0 | 64.53 | — | 0 | ↑ | feat(ui): 带图标提示条 10 处收口 · Table 补 resizable/rowProps/columns.title（hub DataTable |
 | YYYY-MM-DD | `<sha7>` | — | — | — | — | — | — | — | 模板占位行，请替换 |
 
 ---
