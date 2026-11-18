@@ -6,9 +6,9 @@
    "id": "ui-encapsulation-gaps",
    "status": "open",
    "priority": "P2",
-   "title": "封装缺口审计（§11.161 起）：剩余 4 个子项 —— 13 处带图标提示条 / DataTable 合并 / 代码编辑器真机 / heading 排版阶梯",
-   "criteria": "§11.161 审计起、§11.166 收口：自造 modal 7 → 0、自造 role=menu 3 → 0、PRE 常量 19 → 0、手写提示条 87 → 61 已迁（13 带图标 + 13 行内/状态映射留下）、raw_textarea 5 → 0、raw_input 12 → 11。新增原语：ui/Notice、ui/CodeBlock、ui/Menu；ModalBase 补 9 项能力（scrollable/closeButton/className/bodyClassName/header/closeOnEsc/drawer/ariaLabel/testId）并改 Esc 捕获。",
-   "next": "① 13 处带图标提示条：逐条 `<Notice tone=… icon={null}>` + 原图标留在 children（别用 codemod，图标与文案组合各异）；判据：真机不再出现两个图标。② DataTable → ui/Table：先把 resizable（可拖列宽 + colStore）/rowProps/columns.title 兼容层补进 Table（既有 5 个调用点不变），再让 hub 的 DataTable 变薄封装；判据：列宽持久化/双击行/空态文案都不变。③ 代码编辑器真机复核：`.wb-editor-input` 已换 Textarea variant=bare，但探针没打开右坞（?panel=code 没渲染出面板，DockPanel 的 tab 名是 'editor'）⇒ 目前只有 tsc/单测覆盖。先解决面板打开方式再量 flex 55% / 高度 / 滚动。④ raw_heading 82：先与 Owner 定 h1/h2/h3 ↔ text-h1/title/body-lg 映射（SectionTitle 只有 4 处在用），再按页分批。"
+   "title": "封装缺口审计（§11.161 起）：剩 1 个子项 —— raw_heading 82 排版阶梯（①②③ 已在 §11.168 收口）",
+   "criteria": "§11.161 审计起：自造 modal 7 → 0、自造 role=menu 3 → 0、PRE 常量 19 → 0、raw_textarea 5 → 0、raw_input 12 → 11。新增原语：ui/Notice、ui/CodeBlock、ui/Menu；ModalBase 补 9 项能力。2026-11-19 §11.168 再收三项：① 13 处「带图标提示条」量具命中里实改 10 处（其余 3 处是误报：HistoryDrawer/WorkspaceDrawer 的图标徽章、memory 删除确认面板里的 <Button>），做法是图标进 Notice 的 icon 槽（布局复杂的 1 处按 icon={null} 留在 children），真机 3 种形态各 1 个图标、颜色走 --color-danger；② ui/Table 吸收 resizable/colStore/colWidths/minWidth/rowProps/columns.title/bordered，既有 4 个调用点不动，pages/hub/components/ui.tsx 的 DataTable 变薄封装（10 个 hub 页面调用点不动；缺省单元格仍按 String(row[key] ?? '')，避免渲染出 undefined）；Table.test 5 → 9 条；③ 代码编辑器真机复核完成：顶栏 aria-label=右栏 的开关把 PANEL.CODE 插回布局树（?panel=code 是导航 key，不是面板 id），读数 flex 1 1 55%（高 408 / 预览 334 / 父 742）、padding 12px 14px、border 0、mono 12px、200 行时 scrollHeight 4102 > clientHeight 408。判据：tsc 0 / eslint 0 / vitest 185 files · 1437 tests；守卫 raw_heading 82 等只降不升；部署 38100005d。",
+   "next": "只剩 ④ raw_heading 82 排版阶梯：**先与 Owner 定 h1/h2/h3 ↔ text-h1 / text-title / text-body-lg 的映射**（这是设计决定，不是机械替换），再按页分批扫，禁止直接批量替换字号。已量的分布（宽松量具 85 个，守卫 82）：h1 14 个用 text-title 8 / text-xl 3 / text-2xl 2 / 无字号 1；h2 22 个用 text-sm 15 / 无字号 5 / text-base 1 / text-title 1；h3 49 个用 text-xs 20 / text-sm 10 / 无字号 7 / text-body 5 / text-base 3 / text-body-lg 3 / text-title 1。SectionTitle 只有 4 处在用。另：3 处量具误报（图标徽章 ×2、删除确认面板 ×1）保持手写，不需要改。"
   },
   {
    "id": "module-topology-no-autodiscovery",
