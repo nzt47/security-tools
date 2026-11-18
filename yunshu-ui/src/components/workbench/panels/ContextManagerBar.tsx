@@ -10,7 +10,6 @@
  * 注：config/compress 写操作需 FLASK_API_TOKEN（401 时提示）。
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { ChevronDown, Gauge, Info, RefreshCw, Minimize2, X } from 'lucide-react'
 import { hubGet, Loading } from '../../../pages/hub/components/ui'
 // 【P1-front 第七批】GET /api/context/status 已带 X-Envelope: v2，改用显式信封解析。
@@ -26,7 +25,7 @@ import {
 } from '@/api/endpoints';
 
 import { CompressPrefixSwitch } from './CompressPrefixSwitch';
-import { Button, Slider } from '@/components/ui';
+import { Button, ModalBase, Slider } from '@/components/ui';
 
 interface CtxStatus {
   /** 分子 = 本会话最近 percentage_window_messages 条正文（与压缩触发同源） */
@@ -158,21 +157,9 @@ export function ContextManagerBar() {
     return () => clearInterval(t)
   }, [load])
 
-  /* 【2026-11-17 Owner】说明面板是浮层 ⇒ 必须**关得掉**，而且要三条路都有：
-     Esc / 点浮层外的暗底 / 面板右上角的「收起」。 */
-  useEffect(() => {
-    if (!infoTab) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation()
-        setInfoTab(null)
-      }
-    }
-    // 用**捕获**阶段：面板里可能有自己的 Esc 处理（输入框/菜单），冒泡阶段会被 stopPropagation 吃掉，
-    // 表现就是"按 Esc 关不掉"（2026-11-17 实测：Playwright 按 Esc 时浮层没关）。
-    window.addEventListener('keydown', onKey, true)
-    return () => window.removeEventListener('keydown', onKey, true)
-  }, [infoTab])
+  /* 【2026-11-17 Owner】说明浮层必须**关得掉**（Esc / 点暗底 / 右上角关闭）。
+     2026-11-18：这三条路现在由 ui/ModalBase 统一提供（Esc 挂捕获阶段、遮罩点击、closeButton），
+     本组件不再自己挂 window 监听 —— 否则两处监听会对同一次 Esc 各关一次。 */
 
   // 各分身的默认窗口（档案事实；取不到就空表，界面如实说"取不到"，不编数）。
   // 与 5s 水位轮询分开：主线档案不会每 5 秒变一次，60s 足够。
@@ -521,30 +508,19 @@ export function ContextManagerBar() {
                   它虽然 z-50，但外层 .workbench-root（z-auto）下的 header.wb-topbar（z-10）
                   是另一个层叠上下文、按顺序画在它上面 ⇒ 顶部那条点不到暗底（elementFromPoint
                   命中 header，点暗底自然关不掉）。portal 出去后层叠次序与祖先无关。 */}
-              {infoTab === 'mechanism' && createPortal(
-              /* 暗底：点一下 = 关（浮层必须可关闭）。浮层本身按内容高度居中，不再被拉成整屏高的空盒子。 */
-              <div
-                role="presentation"
-                onClick={() => setInfoTab(null)}
-                className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
-              >
-              <div
-                role="dialog"
-                aria-modal="true"
-                aria-label="上下文管理说明"
-                onClick={(e) => e.stopPropagation()}
-                className="max-h-full w-full max-w-3xl space-y-2 overflow-y-auto overscroll-contain rounded-xl border border-slate-700 bg-slate-950 p-4 shadow-2xl [scrollbar-gutter:stable]"
-              >
-                <div className="flex items-center justify-between gap-2 text-caption font-medium text-cyan-300">
-                  <span className="flex items-center gap-1.5">
-                    <Info size={11} /> 上下文管理机制（多层次自动策略，无需手动干预）
-                  </span>
-                  {/* 【2026-11-17】关闭动作要**看得见**：原来是 11px 的「收起」文字，Owner 反馈"关不掉"。
-                      现在换成带边框的小按钮 + × 图标（Esc / 点暗底 也能关）。 */}
-                  <Button variant="default" size="xs" onClick={() => setInfoTab(null)} aria-label="收起上下文管理说明">
-                    <X size={11} /> 关闭
-                  </Button>
-                </div>
+              {/* 【2026-11-18 封装收口】说明浮层的外壳交给 ui/ModalBase（portal + 遮罩 + Esc 捕获 +
+                  滚动锁定 + × 关闭），这里只留内容。 */}
+              {infoTab === 'mechanism' && (
+                <ModalBase
+                  open
+                  onClose={() => setInfoTab(null)}
+                  title="上下文管理说明"
+                  header={<span className="flex items-center gap-1.5"><Info size={11} className="text-primary" /> 上下文管理机制（多层次自动策略，无需手动干预）</span>}
+                  width="max-w-3xl"
+                  scrollable
+                  closeButton
+                  bodyClassName="space-y-2"
+                >
                 <div className="text-caption leading-relaxed text-slate-300">
                   <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5">
                     <span className="text-cyan-400">① 异步后台压缩</span>：每次对话后检查 token 总量，
@@ -577,35 +553,23 @@ export function ContextManagerBar() {
                     提示：水位长期 ≥80% 或摘要严重退化时，建议新建会话继续（系统不会自动替你新建会话）。
                   </div>
                 </div>
-              </div>
-              </div>
-              , document.body)}
+                </ModalBase>
+              )}
 
-              {infoTab === 'window' && createPortal(
-                <div
-                  role="presentation"
-                  onClick={() => setInfoTab(null)}
-                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+              {/* 【2026-11-18 封装收口】同上：外壳交给 ui/ModalBase。原来的注释保留在这里：
+                  说明面板曾"无界高度"被祖先 overflow 裁掉；max-h-[70vh] 治不好（vh 相对视口）；
+                  现在由 ModalBase 的 scrollable（max-h 85vh + 正文自滚）承担。 */}
+              {infoTab === 'window' && (
+                <ModalBase
+                  open
+                  onClose={() => setInfoTab(null)}
+                  title="窗口取值参考"
+                  header={<span className="flex items-center gap-1.5"><Info size={11} className="text-primary" /> 窗口该开多大（建议值 + 我们这里的真实约束）</span>}
+                  width="max-w-3xl"
+                  scrollable
+                  closeButton
+                  bodyClassName="space-y-2"
                 >
-                <div
-                  role="dialog"
-                  aria-modal="true"
-                  aria-label="窗口取值参考"
-                  onClick={(e) => e.stopPropagation()}
-                  className="max-h-full w-full max-w-3xl space-y-2 overflow-y-auto overscroll-contain rounded-xl border border-slate-700 bg-slate-950 p-4 shadow-2xl [scrollbar-gutter:stable]"
-                >
-                  {/* 【2026-11-16 Owner】说明面板原来"无界高度"，底部被外层 mosaic 面板 overflow 裁掉。
-                      2026-11-17：max-h-[70vh] 的尝试**没修好**（70vh 相对视口，比祖先可用高度还大 ⇒ 上限不生效，
-                      盒子被裁短且不产生滚动条）。改为 fixed 浮层：上下各留 16px 贴着视口，滚动由自己承担。 */}
-                  <div className="flex items-center justify-between gap-2 text-caption font-medium text-cyan-300">
-                    <span className="flex items-center gap-1.5">
-                      <Info size={11} /> 窗口该开多大（建议值 + 我们这里的真实约束）
-                    </span>
-                    {/* 同上：关闭要看得见（Esc / 点暗底 / 这个按钮，三条路） */}
-                    <Button variant="default" size="xs" onClick={() => setInfoTab(null)} aria-label="收起窗口取值参考">
-                      <X size={11} /> 关闭
-                    </Button>
-                  </div>
 
                   {/* ① 本机的真实数值（全部来自后端读数，不写死） */}
                   <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5 text-caption leading-relaxed text-slate-300">
@@ -702,9 +666,8 @@ export function ContextManagerBar() {
                       改分身默认：工作台 → 智能体主线（主线档案页，列表里有「窗口 …」徽章、编辑区有 context_window_tokens 字段）；改本机当前值：用上面的滑块。
                     </div>
                   </div>
-                </div>
-                </div>
-              , document.body)}
+                </ModalBase>
+              )}
 
             </>
           )}

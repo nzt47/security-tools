@@ -29,6 +29,25 @@ export interface ModalBaseProps {
   /** 点击遮罩是否关闭，默认 true */
   closeOnMask?: boolean
   /**
+   * Esc 是否关闭，默认 true。
+   * 【为什么需要】阻塞式确认（如对话内工具审批）不允许用 Esc"走开"，
+   * 但它仍然要 portal / 遮罩 / 滚动锁定这些外壳能力。
+   */
+  closeOnEsc?: boolean
+  /**
+   * 形态：dialog（默认，居中）/ drawer（右侧抽屉，满高、左描边、宽度由 width 控制）。
+   * 【为什么需要】技能详情这类"抽屉"此前只能自己写外壳（右侧 + 全高 + 自带 tab 头）。
+   */
+  variant?: 'dialog' | 'drawer'
+  /** 透传给对话框容器的 data-testid（测试/探针用） */
+  testId?: string
+  /**
+   * 无障碍名（role=dialog 的 aria-label），默认取 title。
+   * 【为什么需要】抽屉/自定义头部这类弹窗，标题区由调用方自己画（不用 ModalBase 的 header），
+   * 但仍要有一个稳定的无障碍名（测试与读屏都按它找）。
+   */
+  ariaLabel?: string
+  /**
    * 【2026-11-18 补齐】容器附加类：长内容需要 `max-h-[85vh] overflow-y-auto`、
    * 详情弹窗需要更宽的 `max-w-3xl` 之外的排版 —— 此前无法表达，于是页面宁可自己写外壳。
    */
@@ -56,6 +75,10 @@ export default function ModalBase({
   footer,
   width = 'max-w-md',
   closeOnMask = true,
+  closeOnEsc = true,
+  variant = 'dialog',
+  testId,
+  ariaLabel,
   className,
   bodyClassName,
   scrollable = false,
@@ -69,7 +92,7 @@ export default function ModalBase({
     if (!open) return
     restoreFocusRef.current = document.activeElement as HTMLElement | null
     const onKeydown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (closeOnEsc && e.key === 'Escape') onClose()
     }
     // 【2026-11-18】挂**捕获**阶段：工作台面板内部的 Esc 处理会 stopPropagation，
     // 冒泡监听拿不到事件（§11.137 坑 5 的同一条）。弹窗打开时它必须先关。
@@ -82,12 +105,14 @@ export default function ModalBase({
       document.body.style.overflow = prevOverflow
       restoreFocusRef.current?.focus()
     }
-  }, [open, onClose])
+  }, [open, onClose, closeOnEsc])
 
   if (!open) return null
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className={variant === 'drawer'
+      ? 'fixed inset-0 z-50 flex justify-end'
+      : 'fixed inset-0 z-50 flex items-center justify-center p-4'}>
       {/* 遮罩：点击关闭（closeOnMask=false 时仅展示，不响应） */}
       <div
         className="absolute inset-0 bg-overlay/50"
@@ -96,14 +121,18 @@ export default function ModalBase({
       />
       <div
         className={cn(
-          'relative flex w-full flex-col rounded-lg border border-border bg-card text-card-foreground shadow-card',
-          scrollable && 'max-h-[85vh]',
-          width,
+          'relative flex w-full flex-col border-border bg-card text-card-foreground shadow-card',
+          variant === 'drawer'
+            ? 'h-full rounded-none border-l max-w-2xl'
+            : 'rounded-lg border',
+          scrollable && (variant === 'drawer' ? '' : 'max-h-[85vh]'),
+          variant === 'dialog' && width,
           className,
         )}
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        aria-label={ariaLabel ?? title}
+        data-testid={testId}
       >
         {(title || header || closeButton) && (
           <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">

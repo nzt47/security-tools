@@ -8,7 +8,7 @@
  */
 import { useState } from 'react'
 import { ShieldCheck, ShieldX } from 'lucide-react'
-import { Button, Input } from '@/components/ui'
+import { Button, Input, ModalBase, Notice } from '@/components/ui'
 import { useLayoutStore } from '../../../stores/useLayoutStore'
 import { approveRecord, rejectRecord } from '../../../lib/approvalActions'
 
@@ -51,16 +51,19 @@ export function ApprovalPrompt() {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-120 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs"
-      data-testid="approval-prompt"
-      role="dialog"
-      aria-modal="true"
+    // 【2026-11-18 封装收口】外壳交给 ui/ModalBase —— 但它是**阻塞式确认**：
+    // 不允许点暗底 / 按 Esc "走开"（否则会留下一条没人裁决的挂单），所以 closeOnMask/closeOnEsc 都关掉。
+    <ModalBase
+      open
+      onClose={() => {}}
+      closeOnMask={false}
+      closeOnEsc={false}
+      testId="approval-prompt"
+      className="w-[520px] max-w-full border-warning/50"
     >
-      <div className="w-[520px] max-w-full rounded-2xl border border-amber-600/50 bg-slate-900 p-4 shadow-2xl">
         <div className="mb-2 flex items-center gap-2">
-          <ShieldCheck size={16} className="text-amber-400" />
-          <h3 className="text-sm font-semibold text-slate-100">需要你确认这次工具调用</h3>
+          <ShieldCheck size={16} className="text-warning" />
+          <h3 className="text-sm font-semibold text-foreground">需要你确认这次工具调用</h3>
         </div>
         <div className="space-y-1 text-xs text-slate-400">
           <div>工具：<span className="font-mono text-slate-200">{pending.tool}</span></div>
@@ -75,7 +78,7 @@ export function ApprovalPrompt() {
         </div>
 
         <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="备注（批准可留空；驳回必填原因）" data-testid="approval-note" size="xs" className="mt-3" />
-        {err && <div className="mt-2 text-caption text-red-400">{err}</div>}
+        {err && <Notice tone="danger" size="sm" className="mt-2">{err}</Notice>}
 
         <div className="mt-3 flex items-center justify-end gap-2">
           <Button type="button" disabled={busy} onClick={() => void decide(false)} data-testid="approval-reject" variant="danger-outline" size="xs">
@@ -85,7 +88,6 @@ export function ApprovalPrompt() {
             <ShieldCheck size={12} /> {busy ? '提交中…' : '批准并继续'}
           </Button>
         </div>
-      </div>
-    </div>
+    </ModalBase>
   )
 }

@@ -20,7 +20,7 @@ import {
   AlertTriangle, CheckCircle2, Copy, FileCode, Gauge, Loader2, MessageSquare,
   Play, RefreshCw, ScrollText, X,
 } from 'lucide-react'
-import { Button, CodeBlock, ErrorBox, hubGet, hubPost, Input, RowButton, Select, Tabs, Textarea } from '../components/ui'
+import { Button, CodeBlock, ErrorBox, hubGet, hubPost, Input, ModalBase, RowButton, Select, Tabs, Textarea } from '../components/ui'
 import {
   SKILL_CONTENT,
   SKILLS_MGMT_ASSESS_MERGE_SAFE,
@@ -332,13 +332,15 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
   const desc = skill.description_zh || skill.description || ''
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/60" onClick={onClose}>
-      <div
-        className="flex h-full w-full max-w-2xl flex-col border-l border-slate-700 bg-slate-900 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-label={'技能详情 · ' + title}
-      >
+    // 【2026-11-18 封装收口】外壳交给 ui/ModalBase 的 drawer 形态（右侧全高 + 遮罩 + Esc 捕获 + 焦点还原）；
+    // 头部仍是本组件自己画（标题 + id + 描述 + 分段 Tab），所以正文区去掉内边距。
+    <ModalBase
+      open
+      onClose={onClose}
+      variant="drawer"
+      ariaLabel={'技能详情 · ' + title}
+      bodyClassName="p-0 flex min-h-0 flex-1 flex-col"
+    >
         {/* 头部 */}
         <div className="border-b border-slate-800 px-4 py-3">
           <div className="flex items-start gap-2">
@@ -699,7 +701,6 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
             </Section>
           )}
         </div>
-      </div>
-    </div>
+    </ModalBase>
   )
 }

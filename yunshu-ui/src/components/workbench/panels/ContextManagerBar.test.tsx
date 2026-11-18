@@ -224,7 +224,7 @@ describe('ContextManagerBar · DSH 三组读数', () => {
     expect(screen.getByText(/不会覆盖你手调过的值/)).toBeTruthy()
     expect(screen.queryByText(/目前做不到/)).toBeNull()
     // 收起
-    fireEvent.click(screen.getByRole('button', { name: '收起窗口取值参考' }))
+    fireEvent.click(screen.getByRole('button', { name: '关闭' }))
   })
 
   it('窗口取值参考：会列出各分身声明的窗口（读 /api/agent-lines，不手抄）', async () => {
@@ -257,7 +257,7 @@ describe('ContextManagerBar · DSH 三组读数', () => {
     await screen.findByText('会话统计')
     fireEvent.click(screen.getByRole('button', { name: '窗口取值参考' }))
     expect(await screen.findByText(/窗口该开多大/)).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: '收起窗口取值参考' }))
+    fireEvent.click(screen.getByRole('button', { name: '关闭' }))
     await waitFor(() => expect(screen.queryByText(/窗口该开多大/)).toBeNull())
   })
 
@@ -269,8 +269,10 @@ describe('ContextManagerBar · DSH 三组读数', () => {
     await screen.findByText('会话统计')
     fireEvent.click(screen.getByRole('button', { name: '窗口取值参考' }))
     const dlg = await screen.findByRole('dialog', { name: '窗口取值参考' })
-    expect(dlg.className).toContain('max-h-full')       // 按内容高度，不再被拉成整屏空盒子
-    expect(dlg.className).toContain('overflow-y-auto')  // 内容多了自己滚
+    // 【2026-11-18】外壳改为 ui/ModalBase：限高不再是 max-h-full，而是 scrollable 档的 85vh，
+    // 滚动落在正文区（标题/底部按钮不跟着滚）。
+    expect(dlg.className).toContain('max-h-[85vh]')
+    expect(dlg.querySelector('.overflow-y-auto')).not.toBeNull()
     fireEvent.keyDown(window, { key: 'Escape' })
     await waitFor(() => expect(screen.queryByRole('dialog', { name: '窗口取值参考' })).toBeNull())
   })
@@ -284,8 +286,10 @@ describe('ContextManagerBar · DSH 三组读数', () => {
     // 点面板内部：不该关
     fireEvent.click(dlg)
     expect(screen.queryByRole('dialog', { name: '窗口取值参考' })).toBeTruthy()
-    // 点暗底（dialog 的父节点）：关
-    fireEvent.click(dlg.parentElement as HTMLElement)
+    // 点暗底：ModalBase 的遮罩是 dialog 的**兄弟节点**（aria-hidden），不是父节点
+    const mask = dlg.parentElement!.querySelector('[aria-hidden="true"]')
+    expect(mask).not.toBeNull()
+    fireEvent.click(mask as HTMLElement)
     await waitFor(() => expect(screen.queryByRole('dialog', { name: '窗口取值参考' })).toBeNull())
   })
 })
