@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-18T13:34:00+08:00",
+ "updated_at": "2026-11-18T13:50:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -938,7 +938,7 @@
    "priority": "P2",
    "title": "UI 原语迁移第 2/3 批：提示词实验室之外的原生按钮/下拉/输入（735/54/233 处）",
    "criteria": "2026-11-16 审计+第 1 批+第 2 批分片一之后：components/ui 只有 12 个文件在用。现读数（2026-11-17 第 95 轮）：raw_button 247 / raw_select 6 / raw_input 93 / **raw_textarea 7** / raw_heading 85 / arbitrary_text 0 / css_hardcoded_color 387。",
-   "next": "2026-11-18 13:3x（§11.157）：条件选中行 11 处 → RowButton selected（导航项 / 会话移动分组·项目 / 对话模式与权限档位菜单 / 智能体菜单 / 分身菜单），选中态统一为主色淡底 + aria-current；图标按钮 7 处 → Button(ghost, icon-xs)（三个刷新、三个删除 ×、展开箭头）。守卫：raw_button 604 → **108** · raw_select 53 → 1 · raw_input 227 → 17 · raw_textarea 43 → 5 · arbitrary_text 0 · raw_heading 85 · css_hardcoded_color 358。剩余 108 的分桶：expr 72（逐个看条件语义）/ literal-other 10（行内可点区域，套 RowButton 会改行高）/ css-family 13（.wb-chip/.wb-panel-menu-item/.pl-icon-btn/.kb-*/.lm-*，已判定不迁）/ none 5（审批按钮靠父级 CSS）/ row 1（SkillCardsDialog 卡片行，需给 RowButton 加卡片变体）。"
+   "next": "2026-11-18 13:5x（§11.158）：剩余清单已独立成文 —— **docs/handoff/batch2_remaining.md**（文件+行号+分类，共 101 处 .tsx 原生 button）：expr 72 / css-family 14 / inline-area 9 / none 5 / literal 1。下一轮按该清单的 expr 分组推：每处只判断两件事 —— ①它是按钮还是行/标签（行→RowButton、标签→Badge、动作→Button）；②条件分支是不是选中态（选中→active/selected，风险色→danger/warning）。inline-area 9 处先别动（行内可点区域，套 RowButton 会改行高，需先给 RowButton 加 bare 变体，单独立项）；css-family 与 none 两类按 §11.153 判定不迁。当前守卫：raw_button 108 · raw_select 1 · raw_input 17 · raw_textarea 5 · arbitrary_text 0 · raw_heading 85 · css_hardcoded_color 358。"
   },
   {
    "id": "ui-typography-codemod",
