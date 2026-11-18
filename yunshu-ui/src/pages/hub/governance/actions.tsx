@@ -121,9 +121,11 @@ export function AbsoluteActionBar({ target, targetLabel, onDone }: ActionsBarPro
       <ApprovalZone inline>
         <div className="flex flex-wrap items-center gap-2">
           {SEVEN_ACTIONS.map((a) => (
-            <button
+            <Button
               key={a.action}
               type="button"
+              size="xs"
+              variant={a.action === 'rollback' ? 'primary' : 'default'}
               title={a.hint}
               disabled={busy !== '' || !target}
               data-primary={a.action === 'rollback' ? 'true' : undefined}
@@ -137,17 +139,20 @@ export function AbsoluteActionBar({ target, targetLabel, onDone }: ActionsBarPro
               {a.action === 'switch_forge' && (
                 <span className="ml-1 text-micro text-amber-400/80" title="需二次认证码">*</span>
               )}
-            </button>
+            </Button>
           ))}
-          <button
+          <Button
             type="button"
+            size="xs"
+            variant="default"
+            active={neverOpen}
             onClick={() => setNeverOpen((v) => !v)}
             disabled={secLoading}
             title="永不自动化五类（§7）：需 UI 显式确认，单次 action + 60s"
           >
             <Ban size={11} />
             <span className="ml-1">永不自动化五类</span>
-          </button>
+          </Button>
         </div>
       </ApprovalZone>
 

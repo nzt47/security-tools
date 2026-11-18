@@ -818,10 +818,12 @@ function ApprovalRow({
       {/* ★ U2：审批按钮区挂在工作台内的 Shadow DOM 自治单元里 */}
       <ApprovalZone inline>
         <div className="flex items-center gap-2">
-          <button type="button" disabled={busy || !sec} data-primary="true" onClick={() => single('approve')}>
+          <Button type="button" variant="primary" size="xs" disabled={busy || !sec} data-primary="true" onClick={() => single('approve')}>
             批准
-          </button>
-          <button type="button" disabled={busy || !sec} onClick={() => single('reject')}>驳回</button>
+          </Button>
+          <Button type="button" variant="default" size="xs" disabled={busy || !sec} onClick={() => single('reject')}>
+            驳回
+          </Button>
         </div>
       </ApprovalZone>
     </div>

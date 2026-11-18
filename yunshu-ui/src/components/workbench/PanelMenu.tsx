@@ -18,6 +18,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useContext } from 'react';
 import { EllipsisVertical, Maximize2, X } from 'lucide-react';
+import { Button } from '@/components/ui';
 import { MosaicContext, MosaicWindowContext } from 'react-mosaic-component';
 import type { PanelId } from '../../lib/mosaic';
 import { PANEL_TITLES } from '../../lib/mosaic';
@@ -65,8 +66,10 @@ export function PanelMenu({ panelId, onDetach }: Props) {
 
   return (
     <div className="wb-panel-menu" ref={rootRef}>
-      <button
+      <Button
         type="button"
+        variant="plain"
+        size="bare"
         className="wb-panel-menu-trigger"
         aria-label={`${title} 面板菜单`}
         aria-haspopup="menu"
@@ -76,7 +79,7 @@ export function PanelMenu({ panelId, onDetach }: Props) {
         onClick={() => setOpen((v) => !v)}
       >
         <EllipsisVertical size={12} />
-      </button>
+      </Button>
       {open && (
         <div className="wb-panel-menu-pop" role="menu" aria-label={`${title} 面板操作`}>
           {/* 独立窗口：Web 模式没有 window.electronAPI，DetachButton 会返回 null（既有行为） */}
@@ -89,8 +92,10 @@ export function PanelMenu({ panelId, onDetach }: Props) {
             className="wb-panel-menu-item"
             ariaLabel="独立窗口"
           />
-          <button
+          <Button
             type="button"
+            variant="plain"
+            size="bare"
             role="menuitem"
             aria-label="放大"
             className="wb-panel-menu-item"
@@ -98,17 +103,19 @@ export function PanelMenu({ panelId, onDetach }: Props) {
           >
             <Maximize2 size={11} />
             放大
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="danger-outline"
+            size="bare"
             role="menuitem"
             aria-label="关闭"
-            className="wb-panel-menu-item danger"
+            className="wb-panel-menu-item"
             onClick={close}
           >
             <X size={11} />
             关闭
-          </button>
+          </Button>
         </div>
       )}
     </div>

@@ -332,15 +332,17 @@ export function ChatPanel() {
             </p>
             <div className="flex flex-col gap-2">
               {SUGGESTIONS.map((s) => (
-                <button
+                <Button
                   key={s}
                   type="button"
-                  className="wb-chip"
+                  variant="default"
+                  size="sm"
+                  className="justify-start whitespace-normal text-left"
                   onClick={() => sendMessage(s)}
                   disabled={streaming}
                 >
                   {s}
-                </button>
+                </Button>
               ))}
             </div>
           </motion.div>
