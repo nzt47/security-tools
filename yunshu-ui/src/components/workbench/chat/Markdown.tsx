@@ -9,6 +9,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import { Check, Copy } from 'lucide-react';
+import { Button } from '@/components/ui'
 
 /** 从 <pre> 的子 <code> 元素上取语言名（className="language-xxx"） */
 function extractLanguage(codeElement: ReactNode): string {
@@ -47,10 +48,10 @@ function CodeBlock({
     <div className="wb-codeblock">
       <div className="wb-codeblock-bar">
         <span className="wb-codeblock-lang">{language}</span>
-        <button className="wb-codeblock-copy" type="button" onClick={copy} title="复制代码">
+        <Button variant="plain" size="bare" className="wb-codeblock-copy" type="button" onClick={copy} title="复制代码">
           {copied ? <Check size={12} /> : <Copy size={12} />}
           {copied ? '已复制' : '复制'}
-        </button>
+        </Button>
       </div>
       <pre className="wb-codeblock-pre">{children}</pre>
     </div>

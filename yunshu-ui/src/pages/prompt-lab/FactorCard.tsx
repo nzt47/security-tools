@@ -3,6 +3,7 @@
  * 从 PromptLab.tsx 拆分（原 169-196 行，逻辑不变）。
  */
 import { Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui'
 import { CATEGORIES } from '../../lib/promptFactors';
 import type { FactorValue, PromptFactorDef } from '../../lib/promptFactorTypes';
 import FactorControl from './FactorControl';
@@ -21,9 +22,9 @@ export default function FactorCard({ def, value, onChange, onRemove }: FactorCar
       <div className="pl-factor-head">
         <span className="pl-factor-name">{def.name}</span>
         {def.custom && (
-          <button type="button" className="pl-icon-btn" onClick={() => onRemove?.(def.id)} title="删除此自定义因素">
+          <Button type="button" variant="plain" size="bare" className="pl-icon-btn" onClick={() => onRemove?.(def.id)} title="删除此自定义因素">
             <Trash2 size={13} />
-          </button>
+          </Button>
         )}
       </div>
       <p className="pl-factor-desc">{def.desc}</p>

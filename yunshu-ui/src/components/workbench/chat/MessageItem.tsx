@@ -14,6 +14,7 @@
  *    颜色主题 / 气泡圆角 / 字号由容器上的 --chat-* CSS 变量驱动（见 useChatPrefsStore）。
  */
 import { useState } from 'react';
+import { Button } from '@/components/ui';
 import { motion } from 'framer-motion';
 import { CheckCircle2, ChevronDown, ChevronRight, EyeOff, Loader2, Wrench, XCircle } from 'lucide-react';
 import { isHistoryMessageId, type ChatMessage, type ThinkingEvent } from '../../../stores/useLayoutStore';
@@ -58,12 +59,12 @@ function CollapsibleBlock({
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className={`${className} ${open ? 'open' : ''}`}>
-      <button type="button" className="wb-step-head" aria-expanded={open} onClick={() => setOpen(!open)}>
+      <Button type="button" variant="plain" size="bare" className="wb-step-head" aria-expanded={open} onClick={() => setOpen(!open)}>
         {open ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
         {icon}
         <span className="wb-step-title">{title}</span>
         {meta && <span className="wb-step-meta">{meta}</span>}
-      </button>
+      </Button>
       {open && <div className="wb-step-body">{children}</div>}
     </div>
   );
@@ -174,24 +175,28 @@ export function MessageItem({
 
         {/* 开关关闭时的提示条：让「显示/隐藏」开关的效果可见、可一键恢复 */}
         {!isUser && !showThinking && thoughtSteps.length > 0 && (
-          <button
+          <Button
             type="button"
+            variant="plain"
+            size="bare"
             className="wb-hidden-chip"
             onClick={() => setDisplay('thinking', true)}
             title="点击重新显示思考过程"
           >
             <EyeOff size={10} /> 思考过程已隐藏（{thoughtSteps.length} 步）· 点击显示
-          </button>
+          </Button>
         )}
         {!isUser && !showToolCalls && toolSteps.length > 0 && (
-          <button
+          <Button
             type="button"
+            variant="plain"
+            size="bare"
             className="wb-hidden-chip"
             onClick={() => setDisplay('toolcalls', true)}
             title="点击重新显示工具调用步骤"
           >
             <EyeOff size={10} /> 工具调用已隐藏（{toolSteps.length} 步）· 点击显示
-          </button>
+          </Button>
         )}
 
         <div className={`wb-bubble ${isUser ? 'wb-bubble-user' : 'wb-bubble-bot'}`}>

@@ -351,9 +351,11 @@ export default function PromptLab() {
                       {Object.keys(personality.profiles).length > 0 && (
                         <div className="pl-preset-row" role="group" aria-label="人格预设">
                           {Object.entries(personality.profiles).map(([key, preset]) => (
-                            <button
+                            <Button
                               key={key}
                               type="button"
+                              variant="plain"
+                              size="bare"
                               className={`pl-preset-chip ${personality.profile === key ? 'active' : ''}`}
                               onClick={() => personality.applyProfile(key)}
                               disabled={personality.applying}
@@ -361,17 +363,19 @@ export default function PromptLab() {
                               aria-pressed={personality.profile === key}
                             >
                               {preset.name}
-                            </button>
+                            </Button>
                           ))}
-                          <button
+                          <Button
                             type="button"
+                            variant="plain"
+                            size="bare"
                             className="pl-preset-chip"
                             onClick={personality.reset}
                             disabled={personality.applying}
                             title="回到默认档（温和助人型）"
                           >
                             重置
-                          </button>
+                          </Button>
                         </div>
                       )}
                       <p className="pl-personality-status">{personalityStatus}</p>

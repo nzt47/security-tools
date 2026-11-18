@@ -12,7 +12,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import hljs from 'highlight.js/lib/common';
-import { Select } from '@/components/ui';
+import { Button, Select } from '@/components/ui';
 import { Eraser, FileCode2 } from 'lucide-react';
 
 const STORAGE_KEY = 'yunshu:editor:code:v1';
@@ -161,18 +161,20 @@ export function CodeEditorPanel() {
           />
         </div>
         <div className="ml-auto flex items-center gap-1.5">
-          <button type="button" className="wb-chip py-1!" onClick={loadSample}>
+          <Button type="button" variant="default" size="xs" className="wb-chip" onClick={loadSample}>
             示例代码
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="wb-chip py-1!"
+            variant="default"
+            size="xs"
+            className="wb-chip"
             onClick={clearAll}
             title="清空内容"
           >
             <Eraser size={11} />
             清空
-          </button>
+          </Button>
         </div>
       </div>
 
