@@ -225,13 +225,7 @@ export default function MemoryImportPanel() {
         {sources.length === 0 && <span className="text-slate-600">探测来源中…</span>}
         {sources.map((s) => (
           <label key={s.id} className={'inline-flex items-center gap-1 ' + (s.available ? '' : 'opacity-40')}>
-            <input
-              type="checkbox"
-              checked={pickedSources.includes(s.id)}
-              disabled={!s.available || busy !== ''}
-              onChange={() => toggleSource(s.id)}
-              aria-label={'来源 ' + s.label}
-            />
+            <Checkbox checked={pickedSources.includes(s.id)} disabled={!s.available || busy !== ''} onChange={() => toggleSource(s.id)} aria-label={'来源 ' + s.label} />
             {s.label}
             {!s.available && <span className="text-micro text-slate-500">（未找到）</span>}
           </label>
@@ -241,13 +235,7 @@ export default function MemoryImportPanel() {
           className={'inline-flex items-center gap-1 ' + (llmAvailable ? '' : 'opacity-40')}
           title={llmAvailable ? '只作用于会话批次；规则/提问轨迹不会被改写' : '未配置 LLM_API_KEY / DEEPSEEK_API_KEY'}
         >
-          <input
-            type="checkbox"
-            checked={useLlm}
-            disabled={busy !== '' || !llmAvailable}
-            onChange={(e) => setUseLlm(e.target.checked)}
-            aria-label="用 LLM 摘要"
-          />
+          <Checkbox checked={useLlm} disabled={busy !== '' || !llmAvailable} onChange={(e) => setUseLlm(e.target.checked)} aria-label="用 LLM 摘要" />
           用 LLM 摘要（会话批次）
           {!llmAvailable && <span className="text-micro text-slate-500">（未配置）</span>}
         </label>
@@ -303,12 +291,7 @@ export default function MemoryImportPanel() {
                   return (
                     <tr key={b.batch_id} className="border-t border-slate-800/70 align-top">
                       <td className="px-2 py-1">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => setPickedBatches((prev) => (checked ? prev.filter((x) => x !== b.batch_id) : [...prev, b.batch_id]))}
-                          aria-label={'选择批次 ' + b.batch_id}
-                        />
+                        <Checkbox checked={checked} onChange={() => setPickedBatches((prev) => (checked ? prev.filter((x) => x !== b.batch_id) : [...prev, b.batch_id]))} aria-label={'选择批次 ' + b.batch_id} />
                       </td>
                       <td className="px-2 py-1 font-mono text-slate-400">{b.batch_id}</td>
                       <td className="px-2 py-1 text-slate-300">{b.carrier_label}</td>

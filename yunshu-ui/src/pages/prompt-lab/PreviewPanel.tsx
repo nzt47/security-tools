@@ -14,7 +14,7 @@
  * 组件不再接收 mode / onModeChange / sim。
  */
 import { Loader2, Settings2, Download, Wrench } from 'lucide-react';
-import { Button, Input } from '@/components/ui'
+import { Button, Checkbox, Input } from '@/components/ui'
 import { usePromptLabStore } from '../../stores/usePromptLabStore';
 import RadarChart from './RadarChart';
 
@@ -198,11 +198,7 @@ export default function PreviewPanel({
           </summary>
           <label className="pl-field">
             <span>用云枢默认 LLM</span>
-            <input
-              type="checkbox"
-              checked={llm.useBackend}
-              onChange={(e) => setLlm({ useBackend: e.target.checked })}
-            />
+            <Checkbox checked={llm.useBackend} onChange={(e) => setLlm({ useBackend: e.target.checked })} />
           </label>
           <p className="pl-export-hint">
             勾选（默认）＝由后端用 <code>.env</code> 里已配置的模型生成，无需 Endpoint / API Key。

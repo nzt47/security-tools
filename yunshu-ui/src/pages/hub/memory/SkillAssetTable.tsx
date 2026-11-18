@@ -15,7 +15,7 @@ import {
   ChevronDown, ChevronRight, Copy, Download, FilePlus, Filter, Folder, Lightbulb, Loader2, Layers, Plus,
   RefreshCw, Rocket, ScrollText, ShieldCheck, Trash2, X, Zap,
 } from 'lucide-react'
-import { Button, CallabilityBadge, hubGet, hubPost, Input, Select, Switch, Textarea } from '../components/ui'
+import { Button, CallabilityBadge, Checkbox, hubGet, hubPost, Input, Select, Switch, Textarea } from '../components/ui'
 import { authHeader, getApiToken } from '../../../lib/apiToken'
 import ClassIcon from './class-icon'
 import ApiTokenPrompt from './api-token-prompt'
@@ -1270,8 +1270,7 @@ function ConflictModal({ onClose, onDone }: { onClose: () => void; onDone: () =>
             <li key={it.skill_id} className="rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1.5 text-caption">
               <div className="flex flex-wrap items-center gap-1.5">
                 {it.action === 'disable' && (
-                  <input type="checkbox" checked={!!picked[it.skill_id]}
-                    onChange={(e) => setPicked({ ...picked, [it.skill_id]: e.target.checked })} />
+                  <Checkbox checked={!!picked[it.skill_id]} onChange={(e) => setPicked({ ...picked, [it.skill_id]: e.target.checked })} />
                 )}
                 <span className="font-mono text-cyan-300">{it.skill_id}</span>
                 <span className="text-slate-300">{it.name}</span>

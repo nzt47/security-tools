@@ -71,7 +71,7 @@ import {
   usePanel,
   useSecurityState,
 } from './usePanel'
-import { Button, Input, Select } from '@/components/ui'
+import { Button, Checkbox, Input, Select } from '@/components/ui'
 import { AbsoluteActionBar } from './actions'
 import { ImplicitEntryLog, recordImplicitEntry } from './implicitEntry'
 import { SettingsPanel } from './settings'
@@ -621,12 +621,7 @@ export function ApprovalInboxPanel() {
 
           {/* 默认只列"需要你来翻"的待办；对话内审批可按需展开（排障/审计） */}
           <label className="mb-2 flex items-center gap-1.5 text-caption text-slate-500">
-            <input
-              type="checkbox"
-              data-testid="approvals-include-inline"
-              checked={includeInline}
-              onChange={(e) => setIncludeInline(e.target.checked)}
-            />
+            <Checkbox data-testid="approvals-include-inline" checked={includeInline} onChange={(e) => setIncludeInline(e.target.checked)} />
             含「对话内弹窗」审批（{data.inline_hidden ?? 0} 条）
           </label>
 
@@ -777,7 +772,7 @@ function ApprovalRow({
 
   return (
     <div className="flex items-start gap-3 border-b border-slate-800/60 px-3 py-2 text-xs">
-      <input type="checkbox" checked={checked} onChange={onToggle} className="mt-1" />
+      <Checkbox checked={checked} onChange={onToggle} className="mt-1" />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           {/* 记录 id：批量裁决与审计追溯的唯一句柄——裁决被拒时要能把它原样报出去 */}

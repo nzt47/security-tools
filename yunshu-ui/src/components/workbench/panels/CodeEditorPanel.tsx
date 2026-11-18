@@ -12,6 +12,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import hljs from 'highlight.js/lib/common';
+import { Select } from '@/components/ui';
 import { Eraser, FileCode2 } from 'lucide-react';
 
 const STORAGE_KEY = 'yunshu:editor:code:v1';
@@ -149,18 +150,16 @@ export function CodeEditorPanel() {
       {/* 工具条：语言选择 + 示例 / 清空 */}
       <div className="flex items-center gap-2 border-b border-slate-800/60 px-3 py-2">
         <FileCode2 size={13} className="text-cyan-400/80" />
-        <select
-          className="wb-editor-lang"
-          value={state.lang}
-          onChange={(e) => changeLang(e.target.value)}
-          aria-label="代码语言"
-        >
-          {LANGUAGES.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.label}
-            </option>
-          ))}
-        </select>
+        <div className="w-36">
+          <Select
+            size="xs"
+            aria-label="代码语言"
+            value={state.lang}
+            onChange={(v) => changeLang(v)}
+            hidePlaceholder
+            options={LANGUAGES.map((l) => ({ label: l.label, value: l.id }))}
+          />
+        </div>
         <div className="ml-auto flex items-center gap-1.5">
           <button type="button" className="wb-chip py-1!" onClick={loadSample}>
             示例代码

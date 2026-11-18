@@ -68,11 +68,13 @@ export default function CustomFactorForm({ onClose }: CustomFactorFormProps) {
         <div className="pl-modal-grid">
           <label className="pl-field">
             <span>分类</span>
-            <select className="pl-select" value={category} onChange={(e) => setCategory(e.target.value as FactorCategory)}>
-              {CATEGORIES.map((c) => (
-                <option key={c.id} value={c.id}>{c.label}</option>
-              ))}
-            </select>
+            <Select
+              value={category}
+              onChange={(v) => setCategory(v as FactorCategory)}
+              size="sm"
+              hidePlaceholder
+              options={CATEGORIES.map((c) => ({ label: c.label, value: c.id }))}
+            />
           </label>
           <label className="pl-field">
             <span>控件类型</span>

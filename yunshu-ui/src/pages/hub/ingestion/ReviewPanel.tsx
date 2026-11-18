@@ -369,8 +369,7 @@ export default function ReviewPanel() {
             const verdict = q.review?.review_verdict || ''
             return (
               <div key={'q-' + id} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-caption">
-                <input type="checkbox" checked={sel.includes(id)} onChange={() => setSel((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])}
-                  disabled={loading} aria-label={'选择外来技能 ' + id} />
+                <Checkbox checked={sel.includes(id)} onChange={() => setSel((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])} disabled={loading} aria-label={'选择外来技能 ' + id} />
                 <span className="font-mono text-micro text-cyan-300">{id}</span>
                 <span className="text-slate-300">{q.name ?? ''}</span>
                 <span className="truncate text-micro text-slate-500">{q.source ?? ''}</span>

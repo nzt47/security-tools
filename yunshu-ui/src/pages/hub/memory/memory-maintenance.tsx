@@ -505,12 +505,7 @@ export default function MemoryMaintenance() {
         )}
 
         <Row label="监控开关">
-          <input
-            type="checkbox"
-            checked={config.enabled === true}
-            onChange={(e) => setConfig((c) => ({ ...c, enabled: e.target.checked }))}
-            aria-label="窗口监控开关"
-          />
+          <Checkbox checked={config.enabled === true} onChange={(e) => setConfig((c) => ({ ...c, enabled: e.target.checked }))} aria-label="窗口监控开关" />
         </Row>
         <Row label="空闲阈值(s)">
           <Input size="sm" className="w-20" value={String(config.idle_timeout_sec ?? '')} aria-label="空闲阈值秒"

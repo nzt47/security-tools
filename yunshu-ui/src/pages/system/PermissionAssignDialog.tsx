@@ -4,7 +4,7 @@
  * 提交异步由父组件控制（saving 防重复提交），错误提示由 request.ts 拦截器统一处理。
  */
 import { useEffect, useState } from 'react'
-import { Button, Loading, ModalBase } from '@/components/ui'
+import { Button, Checkbox, Loading, ModalBase } from '@/components/ui'
 import { getPermissionList, type PermissionItem, type RoleItem } from '@/api/role'
 
 interface PermissionAssignDialogProps {
@@ -104,12 +104,7 @@ export default function PermissionAssignDialog({
                     key={p.code}
                     className="flex cursor-pointer items-center gap-2 text-sm text-foreground"
                   >
-                    <input
-                      type="checkbox"
-                      checked={checked.has(p.code)}
-                      onChange={() => toggle(p.code)}
-                      className="h-4 w-4 rounded-sm accent-primary"
-                    />
+                    <Checkbox checked={checked.has(p.code)} onChange={() => toggle(p.code)} className="h-4 w-4 rounded-sm accent-primary" />
                     {p.label}
                     <span className="ml-auto font-mono text-xs text-muted-foreground">{p.code}</span>
                   </label>

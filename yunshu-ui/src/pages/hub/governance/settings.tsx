@@ -66,7 +66,7 @@ import {
   toneForRisk,
   type StatusTone,
 } from './components'
-import { Button, Input } from '@/components/ui'
+import { Button, Input, Select } from '@/components/ui'
 import { usePanel } from './usePanel'
 
 // ═══════════════════════════════════════════════════════════
@@ -455,35 +455,32 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
     control = (
       <div className="flex flex-col items-end gap-0.5">
         <div className="flex items-center gap-1.5">
-        <select
-          aria-label={`${item.key} 的值`}
-          data-cp-setting-select={item.key}
-          value={selectValue}
-          onChange={(e) => {
-            const next = e.target.value
-            if (confirmFirst) {
-              ctx.onOpenConfirm(item)
-              ctx.onDraft(item.key, next)
-            } else {
-              // 先落草稿（让单选与说明立刻跟着走），再提交；回读成功后以服务端值为准
-              ctx.onDraft(item.key, next)
-              ctx.onSelect(item, next)
-            }
-          }}
-          disabled={busy || editing}
-          className="w-44 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 font-mono text-caption text-slate-200 disabled:opacity-50"
-        >
-          {!choices.includes(String(ctx.drafts[item.key] ?? item.display_value ?? '')) && (
-            <option value={String(ctx.drafts[item.key] ?? item.display_value ?? '')}>
-              {String(ctx.drafts[item.key] ?? item.display_value ?? '（未设置）')}
-            </option>
-          )}
-          {choices.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
+        <div className="w-44">
+          <Select
+            aria-label={`${item.key} 的值`}
+            data-cp-setting-select={item.key}
+            size="xs"
+            value={selectValue}
+            defaultValue={undefined}
+            onChange={(next) => {
+              if (confirmFirst) {
+                ctx.onOpenConfirm(item)
+                ctx.onDraft(item.key, next)
+              } else {
+                // 先落草稿（让单选与说明立刻跟着走），再提交；回读成功后以服务端值为准
+                ctx.onDraft(item.key, next)
+                ctx.onSelect(item, next)
+              }
+            }}
+            disabled={busy || editing}
+            hidePlaceholder
+            options={(() => {
+              const cur = String(ctx.drafts[item.key] ?? item.display_value ?? '')
+              const list = choices.includes(cur) ? choices : [cur, ...choices]
+              return list.map((c) => ({ value: c, label: c === '' ? '（未设置）' : c }))
+            })()}
+          />
+        </div>
         <span className="text-micro text-slate-600">排它单选</span>
         </div>
         {choiceNotes[selectValue] ? (

@@ -12,7 +12,7 @@ import {
   AlertTriangle, ArrowRight, BookOpen, CheckCircle2, FileText, FolderOpen, GitBranch,
   Layers, Loader2, PackagePlus, RefreshCw, Search, ShieldCheck,
 } from 'lucide-react'
-import { Badge, Button, Card, ErrorBox, Input, PageHeader, Select, Tabs, Textarea } from '../components/ui'
+import { Badge, Button, Card, Checkbox, ErrorBox, Input, PageHeader, Select, Tabs, Textarea } from '../components/ui'
 import GovernancePanel from './governance'
 import ReviewPanel from './ReviewPanel'
 import MemoryDraftPanel from './MemoryDraftPanel'
@@ -466,13 +466,7 @@ export default function IngestionPage() {
                     {sources.candidates.slice(0, sourceShown).map((c) => (
                       <div key={c.path}
                         className="flex w-full items-center gap-2 border-b border-slate-800/60 px-2 py-1.5 text-left text-caption text-slate-300 last:border-b-0 hover:bg-slate-800/50">
-                        <input type="checkbox" className="shrink-0"
-                          aria-label={'批量选择 ' + c.name}
-                          disabled={!c.previewable}
-                          checked={batchSel.includes(c.path)}
-                          onChange={(e) => setBatchSel((prev) => e.target.checked
-                            ? (prev.includes(c.path) ? prev : [...prev, c.path].slice(0, BATCH_MAX))
-                            : prev.filter((x) => x !== c.path))} />
+                        <Checkbox className="shrink-0" aria-label={'批量选择 ' + c.name} disabled={!c.previewable} checked={batchSel.includes(c.path)} onChange={(e) => setBatchSel((prev) => e.target.checked ? (prev.includes(c.path) ? prev : [...prev, c.path].slice(0, BATCH_MAX)) : prev.filter((x) => x !== c.path))} />
                         <button type="button"
                           className="flex min-w-0 flex-1 items-center gap-2 text-left"
                           onClick={() => {
@@ -699,9 +693,7 @@ export default function IngestionPage() {
                 </div>
 
                 <label className="flex items-start gap-2 text-caption text-slate-300">
-                  <input type="checkbox" className="mt-0.5" checked={confirmed}
-                    aria-label="我已核对预览计划"
-                    onChange={(e) => setConfirmed(e.target.checked)} />
+                  <Checkbox className="mt-0.5" checked={confirmed} aria-label="我已核对预览计划" onChange={(e) => setConfirmed(e.target.checked)} />
                   <span>我已核对预览计划（来源、形态、去重/合并目标与警告）；确认后才落库。</span>
                 </label>
 
