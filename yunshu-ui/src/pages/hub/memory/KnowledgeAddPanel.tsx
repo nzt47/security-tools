@@ -8,7 +8,7 @@
  */
 import { useState } from 'react'
 import { CheckCircle2, Loader2, Plus } from 'lucide-react'
-import { Button, hubPost, Input, Textarea } from '../components/ui'
+import { Button, hubPost, Input, Notice, Textarea } from '../components/ui'
 import { KNOWLEDGE_ADD } from '@/api/endpoints'
 
 export default function KnowledgeAddPanel() {
@@ -43,7 +43,7 @@ export default function KnowledgeAddPanel() {
         <h3 className="text-xs font-semibold text-slate-200">新增知识文档</h3>
         <span className="text-micro text-slate-500">直接写入向量知识库（内容必填）</span>
       </div>
-      {err && <div className="mb-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-caption text-red-300">{err}</div>}
+      {err && <Notice tone="danger" size="sm" className="mb-2">{err}</Notice>}
       {ok && (
         <div className="mb-2 flex items-center gap-1 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">
           <CheckCircle2 size={11} /> {ok}

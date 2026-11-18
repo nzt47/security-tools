@@ -13,7 +13,7 @@
  */
 import { useState } from 'react'
 import { Download, Info, Loader2, RefreshCw } from 'lucide-react'
-import { Button, hubGet, hubPost } from '../components/ui'
+import { Button, hubGet, hubPost, Notice } from '../components/ui'
 import { subagentByName, subagentOfflinePack, subagentReload } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-micro text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
@@ -79,8 +79,8 @@ export default function SubagentRowActions({ name }: { name: string }) {
         </div>
       )}
 
-      {err && <div className="rounded-sm border border-red-900/60 bg-red-500/10 px-1.5 py-1 text-micro text-red-300">{err}</div>}
-      {msg && <div className="rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-1.5 py-1 text-micro text-emerald-300">{msg}</div>}
+      {err && <Notice tone="danger" size="sm" className="text-micro">{err}</Notice>}
+      {msg && <Notice tone="success" size="sm" className="text-micro">{msg}</Notice>}
       {detail && (
         <div>
           <div className="mb-1 flex items-center justify-end">

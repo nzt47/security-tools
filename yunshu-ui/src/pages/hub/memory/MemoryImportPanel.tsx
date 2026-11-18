@@ -11,7 +11,7 @@
  */
 import { useEffect, useState } from 'react'
 import { DownloadCloud, Loader2, RefreshCw, ShieldCheck, Undo2 } from 'lucide-react'
-import { Button, Card, Checkbox } from '../components/ui'
+import { Button, Card, Checkbox, Notice } from '../components/ui'
 import MemorySessionsImportCard from '@/components/memory/MemorySessionsImportCard'
 import {
   MemoryImportApiError, commitMemoryImport, fetchImportedVectorDocs,
@@ -251,8 +251,8 @@ export default function MemoryImportPanel() {
       )}
       {note && <div className="mb-2 text-caption text-slate-500">{note}</div>}
 
-      {err && <div className="mb-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-caption text-red-300">{err}</div>}
-      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
+      {err && <Notice tone="danger" size="sm" className="mb-2">{err}</Notice>}
+      {msg && <Notice tone="success" size="sm" className="mb-2">{msg}</Notice>}
 
       {plan && (
         <div className="mt-2">
@@ -379,9 +379,9 @@ export default function MemoryImportPanel() {
             {vecBusy ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
           </Button>
         </div>
-        {batchErr && <div className="mb-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-caption text-red-300">{batchErr}</div>}
+        {batchErr && <Notice tone="danger" size="sm" className="mb-2">{batchErr}</Notice>}
         {vecErr && <div className="mb-2 rounded-sm border border-amber-900/60 bg-amber-500/10 px-2 py-1 text-caption text-amber-300">{vecErr}</div>}
-        {batchMsg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{batchMsg}</div>}
+        {batchMsg && <Notice tone="success" size="sm" className="mb-2">{batchMsg}</Notice>}
         {batches.length === 0 ? (
           <div className="py-3 text-center text-caption text-slate-600">还没有导入批次</div>
         ) : (

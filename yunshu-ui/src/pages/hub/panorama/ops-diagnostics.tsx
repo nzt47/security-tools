@@ -15,7 +15,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   AlertTriangle, Activity, FileText, Loader2, RefreshCw, Save, Trash2, Wrench,
 } from 'lucide-react'
-import { Button, Checkbox, ErrorBox, hubDelete, hubGet, hubPut, Input, Tabs, Textarea } from '../components/ui'
+import { Button, Checkbox, ErrorBox, hubDelete, hubGet, hubPut, Input, Notice, Tabs, Textarea } from '../components/ui'
 import {
   DIAGNOSTICS_CONFIG,
   DIAGNOSTICS_ERROR_CORRELATION,
@@ -178,7 +178,7 @@ export default function OpsDiagnostics() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
+      {msg && <Notice tone="success" size="sm" className="mb-2">{msg}</Notice>}
 
       {tab === 'diag' && (
         <div className="space-y-2">

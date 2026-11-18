@@ -208,8 +208,11 @@ describe('PluginManagePage：刷新清单的 401 令牌指引', () => {
     await screen.findByTestId('plugin-config-toggle-memory')
     fireEvent.click(screen.getByRole('button', { name: '刷新清单' }))
 
-    const alert = await screen.findByRole('alert')
-    expect(alert).toHaveTextContent('刷新插件清单失败（401 未授权）')
+    // 【2026-11-18】ErrorBox 现在委托 ui/Notice（danger ⇒ role="alert"），页面上可能同时有
+    // 别的错误提示（如未 mock 的 /api/extensions/list）——所以按**文案**定位本条，再断言它是一整块 alert。
+    const line = await screen.findByText(/刷新插件清单失败（401 未授权）/)
+    const alert = line.closest('[role="alert"]')
+    expect(alert).not.toBeNull()
     expect(alert).toHaveTextContent('请在「API 令牌」中填入 FLASK_API_TOKEN 后重试')
   })
 })

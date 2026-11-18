@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, Loader2, Play, RefreshCw, X } from 'lucide-react'
-import { Button, hubGet, hubPost, Input } from '../components/ui'
+import { Button, hubGet, hubPost, Input, Notice } from '../components/ui'
 import { MODULES_ACTIONS, modulesDetail } from '@/api/endpoints'
 
 /* 【2026-11-18】模块动作按钮改用 Button variant={danger-outline|default}，这两个自造常量删除。 */
@@ -99,8 +99,8 @@ export default function ModuleDetail({ moduleId, onClose }: { moduleId: string; 
         </div>
       </div>
 
-      {err && <div className="mb-1.5 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-micro text-red-300">{err}</div>}
-      {msg && <div className="mb-1.5 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-micro text-emerald-300">{msg}</div>}
+      {err && <Notice tone="danger" size="sm" className="mb-1.5 text-micro">{err}</Notice>}
+      {msg && <Notice tone="success" size="sm" className="mb-1.5 text-micro">{msg}</Notice>}
 
       {data?.description && <div className="mb-1.5 text-caption text-slate-400">{data.description}</div>}
       {data?.status_detail && (

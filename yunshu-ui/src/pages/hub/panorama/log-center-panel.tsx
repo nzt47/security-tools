@@ -16,7 +16,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { Activity, AlertTriangle, BookOpen, Lightbulb, Loader2, RefreshCw, Search, Sparkles } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost, Input, Select, Tabs } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost, Input, Notice, Select, Tabs } from '../components/ui'
 import {
   LOGS_API_ACTIONS,
   LOGS_API_ERRORS,
@@ -251,7 +251,7 @@ export default function LogCenterPanel() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {note && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{note}</div>}
+      {note && <Notice tone="success" size="sm" className="mb-2">{note}</Notice>}
 
       {tab === 'overview' && (
         <div className="space-y-2">

@@ -15,7 +15,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { CheckCircle2, Cpu, Loader2, Plus, RefreshCw, Search, Star, Trash2, Wifi } from 'lucide-react'
-import { Button, ErrorBox, hubDelete, hubGet, hubPost, hubPut, Input, Tabs, Textarea } from '../components/ui'
+import { Button, ErrorBox, hubDelete, hubGet, hubPost, hubPut, Input, Notice, Tabs, Textarea } from '../components/ui'
 import {
   LLM_INSTANCES,
   SEARCH_INSTANCES,
@@ -198,7 +198,7 @@ export default function InstancesPanel() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
+      {msg && <Notice tone="success" size="sm" className="mb-2">{msg}</Notice>}
 
       <div className="mb-2 flex items-center gap-1">
         <Tabs

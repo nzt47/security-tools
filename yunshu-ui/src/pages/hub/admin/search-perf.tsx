@@ -15,7 +15,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { Activity, Loader2, Play, RefreshCw, Square, Zap } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost, Notice } from '../components/ui'
 import {
   SEARCH_PERF_CHECK,
   SEARCH_PERF_HISTORY,
@@ -113,7 +113,7 @@ export default function SearchPerformance() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
+      {msg && <Notice tone="success" size="sm" className="mb-2">{msg}</Notice>}
 
       <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
         {[

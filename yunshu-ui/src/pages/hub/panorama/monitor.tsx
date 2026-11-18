@@ -14,7 +14,7 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import { Activity, RefreshCw, Search, Server } from 'lucide-react'
-import { Badge, Button, Card, DataTable, ErrorBox, Loading, PageHeader, Select, StatCard } from '../components/ui'
+import { Badge, Button, Card, DataTable, ErrorBox, Input, Loading, PageHeader, Select, StatCard } from '../components/ui'
 // 2026-10-18：节点下钻 + 干预（/api/modules/<id>/detail 与 /actions）此前零入口
 import ModuleDetail from './ModuleDetail'
 import { getEnvelope } from '@/api/envelope'
@@ -206,15 +206,15 @@ export default function PanoramaMonitor() {
           + (unregistered.length > 0 ? '；' + unregistered.length + ' 个未登记' : '') + '）'}
         actions={
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-2 py-1.5">
-              <Search size={12} className="text-slate-500" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="搜索模块…"
-                className="w-32 bg-transparent text-xs text-slate-300 placeholder-slate-600 outline-hidden"
-              />
-            </div>
+            <Input
+              className="w-32"
+              size="xs"
+              leading={<Search size={12} />}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="搜索模块…"
+              aria-label="搜索模块"
+            />
             <Select value={statusFilter} onChange={(v) => setStatusFilter(v)} size="sm" placeholder="全部状态" placeholderOptionDisabled={false} options={[{ label: '健康', value: 'healthy' }, { label: '离线', value: 'offline' }, { label: '未启用', value: 'disabled' }]} />
             <Button
               onClick={load}

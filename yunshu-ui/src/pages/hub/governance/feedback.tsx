@@ -20,7 +20,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   BookOpen, CheckCircle2, FileText, Loader2, MessageSquare, RefreshCw, Send, Star,
 } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost, Input, Select, Tabs, Textarea } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost, Input, Notice, Select, Tabs, Textarea } from '../components/ui'
 import DevNotesPanel from './dev-notes'
 import {
   FEEDBACK_LIST,
@@ -204,7 +204,7 @@ export default function FeedbackCenter() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
+      {msg && <Notice tone="success" size="sm" className="mb-2">{msg}</Notice>}
 
       <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-5">
         {[

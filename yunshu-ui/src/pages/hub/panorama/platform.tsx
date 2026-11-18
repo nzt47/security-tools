@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Activity, Cpu, ListChecks, RefreshCw, Search } from 'lucide-react'
-import { Badge, Button, Card, ErrorBox, hubGet, Loading, PageHeader, Tabs, unwrap } from '../components/ui'
+import { Badge, Button, Card, ErrorBox, hubGet, Input, Loading, PageHeader, Tabs, unwrap } from '../components/ui'
 import { SCHEDULER_OVERVIEW, SYSTEM_UNITS, TOOLS_CONFIG } from '@/api/endpoints'
 
 type Unit = { id: string; status: string; headline?: string; detail?: string }
@@ -123,15 +123,15 @@ export default function PlatformCapability() {
           ]}
         />
         {tab !== 'units' ? (
-          <div className="ml-auto flex items-center gap-1 rounded-md border border-slate-800 px-2 py-1">
-            <Search size={11} className="text-slate-500" />
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="搜索"
-              className="w-40 bg-transparent text-caption text-slate-200 outline-none placeholder:text-slate-600"
-            />
-          </div>
+          <Input
+            className="ml-auto w-40"
+            size="xs"
+            leading={<Search size={11} />}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="搜索"
+            aria-label="搜索"
+          />
         ) : null}
       </div>
 

@@ -11,7 +11,7 @@
  */
 import { useState } from 'react'
 import { Download, Loader2, RotateCcw, Trash2 } from 'lucide-react'
-import { Button, Checkbox, hubDelete, hubPost, Input } from '../components/ui'
+import { Button, Checkbox, hubDelete, hubPost, Input, Notice } from '../components/ui'
 import { ASSETS_EXPORT, ASSETS_RESTORE, assetBackupById } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
@@ -65,8 +65,8 @@ export default function AssetsMigration() {
         </div>
       </div>
 
-      {err && <div className="mb-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-caption text-red-300">{err}</div>}
-      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
+      {err && <Notice tone="danger" size="sm" className="mb-2">{err}</Notice>}
+      {msg && <Notice tone="success" size="sm" className="mb-2">{msg}</Notice>}
 
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <Input

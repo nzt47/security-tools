@@ -12,7 +12,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, BookOpen, Cpu, Loader2, Search, X } from 'lucide-react'
-import { Button, Tabs } from '@/components/ui'
+import { Button, Input, Tabs } from '@/components/ui'
 import { authHeader } from '../lib/apiToken'
 import { SKILLS_MGMT_CARDS, SKILLS_MGMT_NATIVE, skillCardLayer } from '../api/endpoints'
 
@@ -244,12 +244,14 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
         </div>
 
         <div className="flex items-center gap-2 border-b border-slate-800 px-4 py-2">
-          <Search size={12} className="text-slate-500" />
-          <input
+          <Input
+            className="min-w-0 flex-1"
+            size="sm"
+            leading={<Search size={12} />}
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={tab === 'skill' ? '按 id / 名称 / 触发条件 / 步骤 过滤…' : '按工具名 / 技能 id 过滤…'}
-            className="min-w-0 flex-1 bg-transparent text-caption text-slate-200 outline-none placeholder:text-slate-600"
+            aria-label="过滤技能或工具"
           />
           <span className="shrink-0 text-micro text-slate-500">
             {tab === 'skill'

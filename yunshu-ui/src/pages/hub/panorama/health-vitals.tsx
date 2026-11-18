@@ -14,7 +14,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Activity, AlertTriangle, Download, Gauge, Loader2, RefreshCw, Save, ShieldCheck, Zap,
 } from 'lucide-react'
-import { Button, Checkbox, ErrorBox, hubGet, hubPut, Textarea } from '../components/ui'
+import { Button, Checkbox, ErrorBox, hubGet, hubPut, Notice, Textarea } from '../components/ui'
 import {
   HEALTH_ALERTS,
   HEALTH_EXPORT,
@@ -144,7 +144,7 @@ export default function HealthVitals() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
+      {msg && <Notice tone="success" size="sm" className="mb-2">{msg}</Notice>}
 
       <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
         {[

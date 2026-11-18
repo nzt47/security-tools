@@ -15,7 +15,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { FileStack, Loader2, Play, RefreshCw, Settings2, Wand2 } from 'lucide-react'
-import { Button, Checkbox, ErrorBox, hubGet, hubPost, Input, Textarea } from '../components/ui'
+import { Button, Checkbox, ErrorBox, hubGet, hubPost, Input, Notice, Textarea } from '../components/ui'
 import {
   ORCHESTRATOR_SEMANTIC_CONFIG,
   PLANNING_TOGGLE,
@@ -118,7 +118,7 @@ export default function EngineOrchestration() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
+      {msg && <Notice tone="success" size="sm" className="mb-2">{msg}</Notice>}
 
       <div className="grid gap-2 lg:grid-cols-2">
         <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">

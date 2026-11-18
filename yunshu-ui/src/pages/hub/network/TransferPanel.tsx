@@ -11,7 +11,7 @@
  */
 import { useCallback, useState } from 'react'
 import { Download, Loader2, Upload } from 'lucide-react'
-import { Button, Checkbox, hubGet, hubPost, Textarea } from '../components/ui'
+import { Button, Checkbox, hubGet, hubPost, Notice, Textarea } from '../components/ui'
 import { NETWORK_CONFIG_EXPORT, NETWORK_CONFIG_IMPORT } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
@@ -73,8 +73,8 @@ export default function NetworkTransfer() {
         </div>
       </div>
 
-      {err && <div className="mb-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-caption text-red-300">{err}</div>}
-      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
+      {err && <Notice tone="danger" size="sm" className="mb-2">{err}</Notice>}
+      {msg && <Notice tone="success" size="sm" className="mb-2">{msg}</Notice>}
 
       <Textarea
         size="sm"

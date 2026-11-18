@@ -15,7 +15,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, CheckCircle2, Lightbulb, Loader2, RefreshCw, Save } from 'lucide-react'
-import { Button, Checkbox, ErrorBox, hubGet, hubPost, Textarea } from '../components/ui'
+import { Button, Checkbox, ErrorBox, hubGet, hubPost, Notice, Textarea } from '../components/ui'
 import { FEEDBACK_LIST, FEEDBACK_SUBMIT, feedbackResolve } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
@@ -114,7 +114,7 @@ export default function DevNotesPanel() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
+      {msg && <Notice tone="success" size="sm" className="mb-2">{msg}</Notice>}
 
       <div className="mb-2 flex items-start gap-2">
         <Textarea

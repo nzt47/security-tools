@@ -18,7 +18,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   AlertTriangle, Ban, Lock, Loader2, Pause, Play, Power, RefreshCw, RotateCcw, Shield, ShieldAlert, Sliders,
 } from 'lucide-react'
-import { Button, Checkbox, ErrorBox, hubGet, hubPost, Input, Select, Tabs, Textarea } from '../components/ui'
+import { Button, Checkbox, ErrorBox, hubGet, hubPost, Input, Notice, Select, Tabs, Textarea } from '../components/ui'
 import {
   PERMISSION_ACCESS_LOG,
   PERMISSION_EMERGENCY,
@@ -185,7 +185,7 @@ export default function SecurityPanel() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
+      {msg && <Notice tone="success" size="sm" className="mb-2">{msg}</Notice>}
 
       {/* 紧急控制：出事时第一个要按的 */}
       <div className="mb-3 rounded-lg border border-red-900/50 bg-red-500/5 p-3">

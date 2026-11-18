@@ -16,7 +16,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   FileText, FolderOpen, HardDrive, Loader2, Play, RefreshCw, Search, Trash2, XOctagon,
 } from 'lucide-react'
-import { Button, Checkbox, ErrorBox, hubGet, hubPost, Input, Select, Tabs, Textarea } from '../components/ui'
+import { Button, Checkbox, ErrorBox, hubGet, hubPost, Input, Notice, Select, Tabs, Textarea } from '../components/ui'
 import {
   FILESYSTEM_INFO,
   FILESYSTEM_LIST,
@@ -235,7 +235,7 @@ export default function LocalResources() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
+      {msg && <Notice tone="success" size="sm" className="mb-2">{msg}</Notice>}
 
       <div className="mb-2 flex items-center gap-1">
         <Tabs

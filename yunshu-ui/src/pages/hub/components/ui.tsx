@@ -5,11 +5,11 @@
  * （variant=primary 取语义主色 --color-primary，不再出现 bg-blue-600 这类第五种强调色）。
  * 仍从本文件导入，避免页面里同时出现两个 ui 命名空间。
  */
-export { Button, Checkbox, Input, Radio, RowButton, Select, Switch, Slider, Tabs, Textarea } from '@/components/ui'
+export { Button, Checkbox, Input, Notice, Radio, RowButton, Select, Switch, Slider, Tabs, Textarea } from '@/components/ui'
 
 import type { ReactNode } from 'react'
 // 全局 Badge 只在本文件内部使用（对外仍暴露 hub 那层带 color 枚举的 Badge）
-import { Badge as ToneBadge } from '@/components/ui'
+import { Badge as ToneBadge, Notice } from '@/components/ui'
 import { Loader2, AlertTriangle, Inbox } from 'lucide-react'
 import { getApiToken } from '../../../lib/apiToken'
 import ColResizer from '../../../components/ColResizer'
@@ -155,13 +155,18 @@ export function Loading({ text = '加载中…' }: { text?: string }) {
   )
 }
 
-/** 错误态 */
+/**
+ * 错误态 —— **委托全局 ui/Notice**（2026-11-18 封装审计）
+ * 【为什么改成委托】此前这里是 hub 自己的一套红框（border-red-900/60 + bg-red-950/40 +
+ * text-red-400），与全局的语义 token 是两套颜色；而它被 48 个文件、104 处调用。
+ * 改实现不改签名 ⇒ 104 处调用点一行不动，颜色统一由 --color-danger 决定。
+ * 密度沿用原来的 px-4/py-3 + 14px（size 档之外用 className 表达，与 Button 同一口径）。
+ */
 export function ErrorBox({ message }: { message: string }) {
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-red-900/60 bg-red-950/40 px-4 py-3 text-sm text-red-400">
-      <AlertTriangle size={16} />
-      <span>{message}</span>
-    </div>
+    <Notice tone="danger" className="px-4 py-3 text-ui" icon={<AlertTriangle size={16} />}>
+      {message}
+    </Notice>
   )
 }
 

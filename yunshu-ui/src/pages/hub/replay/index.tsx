@@ -17,7 +17,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Film, Loader2, RefreshCw, Search, Trash2,
 } from 'lucide-react'
-import { Button, Checkbox, ErrorBox, hubGet, hubPost, Select } from '../components/ui'
+import { Button, Checkbox, ErrorBox, hubGet, hubPost, Notice, Select } from '../components/ui'
 import {
   REPLAY_CLEANUP,
   REPLAY_LIST,
@@ -123,7 +123,7 @@ export default function ReplayCenter() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
+      {msg && <Notice tone="success" size="sm" className="mb-2">{msg}</Notice>}
 
       <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
         {[

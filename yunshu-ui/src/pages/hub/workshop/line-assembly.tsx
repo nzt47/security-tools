@@ -23,7 +23,7 @@
  */
 import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Layers, RefreshCw, Search } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button, Input } from '@/components/ui'
 import {
   fetchLine,
   fetchLines,
@@ -160,15 +160,15 @@ export default function LineAssemblyOverview() {
       {loading && <div className="text-sm text-slate-500">加载中…</div>}
 
       <div className="flex flex-wrap items-center gap-2 text-xs">
-        <span className="flex items-center gap-1 rounded-lg border border-slate-700 px-2 py-1">
-          <Search size={12} className="text-slate-500" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="按 id / 名称过滤"
-            className="w-48 bg-transparent text-xs text-slate-200 outline-hidden"
-          />
-        </span>
+        <Input
+          className="w-48"
+          size="xs"
+          leading={<Search size={12} />}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="按 id / 名称过滤"
+          aria-label="按 id / 名称过滤"
+        />
         <span className="text-slate-500">
           共 {rows.length} 条主线{active ? `；当前激活：${active}` : '；当前未装线（全量工具）'}
         </span>
