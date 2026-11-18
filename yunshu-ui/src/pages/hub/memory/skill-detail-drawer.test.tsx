@@ -25,7 +25,8 @@ afterEach(() => {
   api.hubPost.mockReset()
 })
 
-const openTab = (name: RegExp) => fireEvent.click(screen.getByRole('button', { name }))
+// Tab 条已换成 ui/Tabs 原语（role=tab）；按 tab 取，语义更准。
+const openTab = (name: RegExp) => fireEvent.click(screen.getByRole('tab', { name }))
 
 describe('SkillDetailDrawer', () => {
   it('使用说明：GET instruction，正文与 token 估算上屏', async () => {

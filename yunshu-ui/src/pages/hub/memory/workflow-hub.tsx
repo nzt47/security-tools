@@ -10,7 +10,7 @@
  */
 import { useEffect, useState } from 'react'
 import { PenTool, Workflow } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button, Tabs } from '@/components/ui'
 import { MemoryWorkflowTable } from './workflow'
 import MemoryWorkflowVisual from './workflow-visual'
 import ConvertibleWorkflows from './ConvertibleWorkflows'
@@ -87,26 +87,16 @@ export default function WorkflowHub() {
       </div>
 
       <div className="flex items-center gap-1.5 border-b border-slate-800 px-5 py-2">
-        {TABS.map((t) => {
-          const Icon = t.icon
-          return (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => selectTab(t.key)}
-              aria-selected={tab === t.key}
-              title={t.desc}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs transition-colors ${
-                tab === t.key
-                  ? 'bg-emerald-500/15 font-medium text-emerald-300'
-                  : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
-              }`}
-            >
-              <Icon size={13} />
-              {t.label}
-            </button>
-          )
-        })}
+        <Tabs
+          variant="segmented"
+          size="sm"
+          value={tab}
+          onChange={(v) => selectTab(v as typeof tab)}
+          items={TABS.map((t) => {
+            const Icon = t.icon
+            return { value: t.key, label: <><Icon size={13} />{t.label}</>, title: t.desc }
+          })}
+        />
         <span className="ml-auto hidden font-mono text-micro text-slate-600 md:inline">{active.desc}</span>
       </div>
 

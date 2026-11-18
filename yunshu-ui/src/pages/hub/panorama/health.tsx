@@ -63,7 +63,7 @@ import {
   type AlarmRulesPayload,
 } from '@/api/alarms'
 import { formatAge } from '@/utils/format'
-import { Badge, Button, Card, ErrorBox, hubGet, Input, Loading, PageHeader, Select } from '../components/ui'
+import { Badge, Button, Card, ErrorBox, hubGet, Input, Loading, PageHeader, Select, Tabs } from '../components/ui'
 import { getEnvelope } from '@/api/envelope'
 import { downloadFile } from '../../../utils/system'
 import HealthVitals from './health-vitals'
@@ -1056,16 +1056,17 @@ export default function PanoramaHealth() {
         <>
           {/* ── Tab 导航（老页 7 个 Tab + 本轮拆出的「功能单位」）── */}
           <div className="mb-4 flex flex-wrap gap-1 border-b border-slate-800 pb-3" data-testid="health-tabs">
-            {TABS.map(({ key, label, Icon }) => (
-              <button
-                key={key}
-                data-testid={'tab-' + key}
-                onClick={() => setTab(key)}
-                className={'flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs ' + (tab === key ? 'border-cyan-700 bg-slate-900 text-cyan-400' : 'border-transparent text-slate-400 hover:bg-slate-900')}
-              >
-                <Icon size={12} /> {label}
-              </button>
-            ))}
+            <Tabs
+              variant="pill"
+              size="sm"
+              value={tab}
+              onChange={(v) => setTab(v as typeof tab)}
+              items={TABS.map(({ key, label, Icon }) => ({
+                value: key,
+                label: <><Icon size={12} /> {label}</>,
+                testId: 'tab-' + key,
+              }))}
+            />
           </div>
 
           {/* ══════════ 概览 ══════════ */}

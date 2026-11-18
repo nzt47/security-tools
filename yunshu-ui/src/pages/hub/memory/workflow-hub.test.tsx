@@ -21,7 +21,7 @@ describe('WorkflowHub（工作流叶子）', () => {
 
   it('切到「可视化编辑」：内容切换且 URL 写入 tab=visual（可深链/刷新保持）', () => {
     render(<WorkflowHub />)
-    fireEvent.click(screen.getByRole('button', { name: '可视化编辑' }))
+    fireEvent.click(screen.getByRole('tab', { name: '可视化编辑' }))
     expect(screen.getByText('WF_VISUAL')).toBeTruthy()
     expect(window.location.hash).toContain('panel=workflow')
     expect(window.location.hash).toContain('tab=visual')

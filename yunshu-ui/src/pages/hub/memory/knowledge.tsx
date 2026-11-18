@@ -29,7 +29,7 @@ import {
   getGraph,
 } from '../../../api/knowledge'
 import { ApiError } from '../../../lib/apiClient'
-import { Badge, Button, Card as HubCard, DataTable, ErrorBox, Input, Loading, PageHeader, Select, StatCard } from '../components/ui'
+import { Badge, Button, Card as HubCard, DataTable, ErrorBox, Input, Loading, PageHeader, Select, StatCard, Tabs } from '../components/ui'
 import StatusBadge from '../../../components/Knowledge/StatusBadge'
 import CardDetailView from '../../../components/Knowledge/CardDetail'
 import CardForm from '../../../components/Knowledge/CardForm'
@@ -292,22 +292,17 @@ export default function MemoryKnowledge() {
 
       {/* ── Tab 导航 ── */}
       <div className="mb-4 flex flex-wrap gap-2">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            title={t.hint}
-            onClick={() => setTab(t.key)}
-            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
-              tab === t.key
-                ? 'border-cyan-700 bg-cyan-950/40 text-cyan-300'
-                : 'border-slate-700 text-slate-400 hover:bg-slate-800'
-            }`}
-          >
-            {t.key === 'search' ? <Search size={12} /> : null}
-            {t.label}
-          </button>
-        ))}
+        <Tabs
+          variant="pill"
+          size="sm"
+          value={tab}
+          onChange={(v) => setTab(v as typeof tab)}
+          items={TABS.map((t) => ({
+            value: t.key,
+            label: <>{t.key === 'search' ? <Search size={12} /> : null}{t.label}</>,
+            title: t.hint,
+          }))}
+        />
       </div>
 
       {/* ═══ Tab 1 · 列表与统计（独立加载/错误态）═══ */}

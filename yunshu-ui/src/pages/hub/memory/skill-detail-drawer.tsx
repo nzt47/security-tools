@@ -20,7 +20,7 @@ import {
   AlertTriangle, CheckCircle2, Copy, FileCode, Gauge, Loader2, MessageSquare,
   Play, RefreshCw, ScrollText, X,
 } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost, Input, Select, Textarea } from '../components/ui'
+import { Button, ErrorBox, hubGet, hubPost, Input, Select, Tabs, Textarea } from '../components/ui'
 import {
   SKILL_CONTENT,
   SKILLS_MGMT_ASSESS_MERGE_SAFE,
@@ -353,25 +353,16 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
             </Button>
           </div>
           <div className="mt-2.5 flex flex-wrap items-center gap-1">
-            {TABS.map((t) => {
-              const Icon = t.icon
-              return (
-                <button
-                  key={t.key}
-                  type="button"
-                  onClick={() => setTab(t.key)}
-                  aria-selected={tab === t.key}
-                  title={t.hint}
-                  className={'flex items-center gap-1 rounded-lg px-2.5 py-1 text-caption transition-colors ' + (
-                    tab === t.key
-                      ? 'bg-cyan-500/15 font-medium text-cyan-300'
-                      : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
-                  )}
-                >
-                  <Icon size={11} />{t.label}
-                </button>
-              )
-            })}
+            <Tabs
+              variant="segmented"
+              size="sm"
+              value={tab}
+              onChange={(v) => setTab(v as typeof tab)}
+              items={TABS.map((t) => {
+                const Icon = t.icon
+                return { value: t.key, label: <><Icon size={11} />{t.label}</>, title: t.hint }
+              })}
+            />
             <span className="ml-auto hidden font-mono text-micro text-slate-600 lg:inline">
               {TABS.find((t) => t.key === tab)?.hint}
             </span>

@@ -28,6 +28,8 @@ export interface TabItem {
   count?: ReactNode
   /** 悬浮提示（原页签常用 `hint` 解释这个子模块装什么） */
   title?: string
+  /** 每项的 data-testid（页面/测试按它定位，如 tab-metrics） */
+  testId?: string
   /** 禁用 */
   disabled?: boolean
 }
@@ -93,6 +95,7 @@ export default function Tabs({
             aria-selected={selected}
             disabled={it.disabled}
             title={it.title}
+            data-testid={it.testId}
             onClick={() => onChange(it.value)}
             className={cn(BASE, SIZE[size], selected ? v.on : v.off)}
           >
