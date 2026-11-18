@@ -222,15 +222,17 @@ export default function ToolsGovernance() {
                 {list.map((w) => (
                   <span key={w} className="flex items-center gap-1 rounded-sm bg-slate-800/70 px-1.5 py-0.5 font-mono text-micro text-slate-300">
                     {w}
-                    <button
+                    <Button
                       type="button"
-                      className="text-red-400 hover:text-red-300"
+                      variant="ghost"
+                      size="icon-xs"
+                      className="text-danger hover:text-danger"
                       title="删除该关键词"
                       onClick={() => void removeKeyword(k, w)}
                       aria-label={'删除关键词 ' + w}
                     >
                       ×
-                    </button>
+                    </Button>
                   </span>
                 ))}
               </div>

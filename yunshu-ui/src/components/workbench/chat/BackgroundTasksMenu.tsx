@@ -173,15 +173,14 @@ export function BackgroundTasksMenu() {
               </span>
             </span>
             <div className="flex items-center gap-1">
-              <button
+              <Button variant="ghost" size="icon-xs"
                 type="button"
                 onClick={() => void load()}
                 disabled={loading}
                 title="立即刷新"
-                className="rounded-sm p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
               >
                 {loading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-              </button>
+              </Button>
               <Button type="button" onClick={() => setOpen(false)} aria-label="关闭后台任务菜单" variant="ghost" size="icon-xs">
                 <X size={12} />
               </Button>

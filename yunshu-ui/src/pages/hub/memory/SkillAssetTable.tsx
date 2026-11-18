@@ -564,9 +564,9 @@ export default function SkillAssessManager() {
       <Fragment key={it.id}>
       <tr id={`skill-row-${it.id}`} className={`border-b border-slate-800/60 transition-colors hover:bg-slate-900/40 ${open ? 'bg-slate-900/60' : ''}`}>
         <td className="px-2 py-2">
-          <button type="button" onClick={() => toggleRow(it.id)} className="text-slate-500 hover:text-slate-300" title={open ? '收起报告' : '展开评审-评估报告'}>
+          <Button type="button" variant="ghost" size="icon-xs" onClick={() => toggleRow(it.id)} title={open ? '收起报告' : '展开评审-评估报告'}>
             {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-          </button>
+          </Button>
         </td>
         <td className="px-2 py-2 align-top">
           <div className="flex min-w-0 flex-wrap items-center gap-1.5">

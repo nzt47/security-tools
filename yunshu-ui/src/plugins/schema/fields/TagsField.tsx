@@ -5,7 +5,7 @@
  * - items.enum 存在时额外提供「从可选值添加」下拉（过滤已选）。
  */
 import React, { useState } from 'react';
-import { Select } from '@/components/ui';
+import { Button, Select } from '@/components/ui';
 import { FieldLabel } from './FieldLabel';
 
 export interface TagsFieldProps {
@@ -63,15 +63,17 @@ export function TagsField({
             className="inline-flex items-center gap-1 rounded-full border border-(--border-hover) bg-(--bg-secondary) px-2 py-0.5 text-xs text-(--text-primary)"
           >
             {tag}
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-xs"
               aria-label={`移除${tag}`}
-              className="text-(--text-muted) transition-colors hover:text-(--mascot-error)"
+              className="text-(--text-muted) hover:text-(--mascot-error)"
               onClick={() => removeTag(tag)}
               disabled={disabled}
             >
               ×
-            </button>
+            </Button>
           </span>
         ))}
         <input

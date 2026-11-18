@@ -345,15 +345,14 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
           <div className="mb-2 flex items-center justify-between">
             <span className="font-medium text-slate-200">🤖 当前任务委托的子代理</span>
             <div className="flex items-center gap-1">
-              <button
+              <Button variant="ghost" size="icon-xs"
                 type="button"
                 onClick={() => void load()}
                 disabled={loading}
                 title="刷新子代理列表"
-                className="rounded-sm p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
               >
                 {loading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-              </button>
+              </Button>
               <Button type="button" onClick={() => setOpen(false)} aria-label="关闭子代理菜单" variant="ghost" size="icon-xs">
                 <X size={12} />
               </Button>

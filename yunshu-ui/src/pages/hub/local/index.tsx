@@ -406,7 +406,7 @@ export default function LocalResources() {
               {custom.map((p) => (
                 <span key={p} className="flex items-center gap-1 rounded-sm bg-slate-800/70 px-1.5 py-0.5 font-mono text-micro text-slate-300">
                   {p}
-                  <button type="button" className="text-red-400 hover:text-red-300" onClick={() => void removeWl(p)} aria-label={'移除白名单 ' + p}>×</button>
+                  <Button type="button" variant="ghost" size="icon-xs" className="text-danger hover:text-danger" onClick={() => void removeWl(p)} aria-label={'移除白名单 ' + p}>×</Button>
                 </span>
               ))}
               {custom.length === 0 && <span className="text-micro text-slate-600">还没有自定义条目（默认白名单不可移除）</span>}
