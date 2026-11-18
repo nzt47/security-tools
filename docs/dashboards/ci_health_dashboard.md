@@ -89,6 +89,7 @@
 | 2026-11-17 | `dff087e` | 100.0% (14/14) | 0 | 0 | 35.45 | — | 0 | ↑ | docs(handoff): §11.146 —— raw_textarea 28→7 · Electron 二进制落地 + ⋮ 三项/独立窗口真机验过 |
 | 2026-11-17 | `3e91427` | 100.0% (14/14) | 0 | 0 | 43.92 | — | 0 | ↑ | docs(handoff): §11.148 —— 原语三处已决（Tabs / Button.surface=light / schema 字段）+ 封装补齐 |
 | 2026-11-17 | `610f73e` | 100.0% (14/14) | 0 | 0 | 64.51 | — | 0 | ↑ | docs(handoff): §11.149 —— 徽章类 open 当场做完（ui/Badge 收口 35 处 + StatusBadge 委托），并记录「三 |
+| 2026-11-18 | `42c0469` | 100.0% (14/14) | 0 | 0 | 64.20 | — | 0 | ↑ | docs(handoff): §11.155 —— 多选 pill 收口（TopicPicker / ChatPanel 显示开关）+ DevConsole 不 |
 | YYYY-MM-DD | `<sha7>` | — | — | — | — | — | — | — | 模板占位行，请替换 |
 
 ---
