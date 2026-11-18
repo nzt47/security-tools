@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Route as RouteIcon, RefreshCw, Search } from 'lucide-react'
-import { Button, Select } from '@/components/ui'
+import { Button, Checkbox, Select } from '@/components/ui'
 // 该端点走 v2 统一信封（后端 _ok(payload)）⇒ 必须显式解包；
 // 直接用 request()（返回原始体、不拆信封）会在 {code,data,message} 上读 entries 而**静默拿到空**。
 import { getEnvelope } from '@/api/envelope'
@@ -195,9 +195,7 @@ export default function RouteCoveragePanel() {
           placeholderOptionDisabled={false}
           options={domains.map((d) => ({ label: d, value: d }))}
         />
-        <label className="ml-2 flex items-center gap-1 text-slate-300">
-          <input type="checkbox" checked={liveOnly} onChange={(e) => setLiveOnly(e.target.checked)} /> 只看无死副本
-        </label>
+        <Checkbox checked={liveOnly} onChange={(e) => setLiveOnly(e.target.checked)} label="只看无死副本" />
         <span className="ml-auto flex items-center gap-1 rounded-lg border border-slate-700 px-2 py-1">
           <Search size={12} className="text-slate-500" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="按路径过滤"

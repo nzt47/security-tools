@@ -11,7 +11,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FileDown, FileJson, FileSpreadsheet, Loader2, RefreshCw, X } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button, Radio } from '@/components/ui'
 import { getExportMockUsers, getUserList } from '@/api/user'
 import type { UserListItem } from '@/api/user'
 import { downloadFile } from '@/utils/system'
@@ -204,25 +204,21 @@ export default function DataExport() {
       <div className="flex items-center gap-4 rounded-lg border border-border bg-card px-4 py-3">
         <span className="text-sm text-muted-foreground">导出格式</span>
         <label className="flex cursor-pointer items-center gap-1.5 text-sm text-foreground">
-          <input
-            type="radio"
+          <Radio
             name="format"
             value="csv"
             checked={format === 'csv'}
             onChange={() => setFormat('csv')}
-            className="accent-cyan-500"
           />
           <FileSpreadsheet size={14} className="text-emerald-400" />
           CSV（表格软件可直接打开）
         </label>
         <label className="flex cursor-pointer items-center gap-1.5 text-sm text-foreground">
-          <input
-            type="radio"
+          <Radio
             name="format"
             value="json"
             checked={format === 'json'}
             onChange={() => setFormat('json')}
-            className="accent-cyan-500"
           />
           <FileJson size={14} className="text-amber-400" />
           JSON（保留完整字段结构）

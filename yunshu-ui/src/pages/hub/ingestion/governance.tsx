@@ -11,7 +11,7 @@ import {
   AlertTriangle, Archive, CheckCircle2, GitBranch, Loader2, Merge, RefreshCw, Scissors,
   ShieldCheck, Trash2, Wrench,
 } from 'lucide-react'
-import { Badge, Button, Card, ErrorBox } from '../components/ui'
+import { Badge, Button, Card, Checkbox, ErrorBox, Radio } from '../components/ui'
 import {
   applyGovernance,
   planGovernance,
@@ -128,12 +128,7 @@ export default function GovernancePanel() {
           ) : (
             <>
               <div className="mb-2 flex flex-wrap items-center gap-2 text-caption text-slate-400">
-                <label className="flex items-center gap-1.5">
-                  <input type="checkbox" checked={confirmed}
-                    aria-label="我已核对治理计划"
-                    onChange={(e) => setConfirmed(e.target.checked)} />
-                  我已核对计划（动作/目标/证据）
-                </label>
+                <Checkbox checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} label="我已核对计划（动作/目标/证据）" aria-label="我已核对治理计划" />
                 <Button type="button" variant="accent" size="xs"
                   disabled={!picked || !confirmed || busy !== ''}
                   onClick={() => {
@@ -151,7 +146,7 @@ export default function GovernancePanel() {
                   const key = a.action + ':' + a.target
                   return (
                     <div key={key} className="flex flex-wrap items-center gap-2 bg-slate-950/40 px-2 py-1.5 text-caption">
-                      <input type="radio" name="governance-action" checked={picked === key}
+                      <Radio name="governance-action" checked={picked === key}
                         aria-label={'选择 ' + a.title}
                         onChange={() => { setPicked(key); setConfirmed(false); setPreview(null); setApplied(null) }} />
                       <Badge color={m.tone}><Icon size={10} /> {m.label}</Badge>

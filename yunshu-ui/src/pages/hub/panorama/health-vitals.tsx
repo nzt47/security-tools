@@ -14,7 +14,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Activity, AlertTriangle, Download, Gauge, Loader2, RefreshCw, Save, ShieldCheck, Zap,
 } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPut, Textarea } from '../components/ui'
+import { Button, Checkbox, ErrorBox, hubGet, hubPut, Textarea } from '../components/ui'
 import {
   HEALTH_ALERTS,
   HEALTH_EXPORT,
@@ -233,10 +233,7 @@ export default function HealthVitals() {
           aria-label="健康维度权重 JSON"
         />
         <div className="mt-1 flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-1 text-micro text-slate-400">
-            <input type="checkbox" checked={confirmWeights} onChange={(e) => setConfirmWeights(e.target.checked)} aria-label="确认修改权重" />
-            我确认修改权重
-          </label>
+          <Checkbox checked={confirmWeights} onChange={(e) => setConfirmWeights(e.target.checked)} label="我确认修改权重" aria-label="确认修改权重" />
           <Button type="button" variant="accent" size="xs" onClick={() => void saveWeights()} disabled={loading || !confirmWeights} aria-label="保存权重">
             {busy === 'weights' ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />} 保存权重
           </Button>

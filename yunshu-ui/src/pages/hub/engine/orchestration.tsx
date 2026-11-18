@@ -15,7 +15,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { FileStack, Loader2, Play, RefreshCw, Settings2, Wand2 } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost, Input, Textarea } from '../components/ui'
+import { Button, Checkbox, ErrorBox, hubGet, hubPost, Input, Textarea } from '../components/ui'
 import {
   ORCHESTRATOR_SEMANTIC_CONFIG,
   PLANNING_TOGGLE,
@@ -154,10 +154,7 @@ export default function EngineOrchestration() {
               热生效、**不落配置**：重启后以 config.yaml 的 planning.enabled 为准。
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <label className="flex items-center gap-1 text-micro text-slate-400">
-                <input type="checkbox" checked={confirmPlan} onChange={(e) => setConfirmPlan(e.target.checked)} aria-label="确认切换规划引擎" />
-                我确认切换
-              </label>
+              <Checkbox checked={confirmPlan} onChange={(e) => setConfirmPlan(e.target.checked)} label="我确认切换" aria-label="确认切换规划引擎" />
               <Button type="button" variant="accent" size="xs" onClick={() => void togglePlanning(true)} disabled={loading || !confirmPlan} aria-label="启用规划引擎">
                 启用
               </Button>

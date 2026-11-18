@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react'
 import { getUserInfo, login } from '@/api/user'
 import type { LoginParams, UserInfo } from '@/api/user'
 import { clearToken, setToken } from '@/utils/request'
-import { Button } from '@/components/ui'
+import { Button, Input } from '@/components/ui'
 
 export default function Profile() {
   // 演示页表单不预填默认密码（避免硬编码测试凭证；由用户手动输入）
@@ -64,26 +64,24 @@ export default function Profile() {
       <h1 className="mb-4 text-xl font-semibold">登录测试</h1>
 
       <form onSubmit={handleLogin} className="space-y-3">
-        <input
+        <Input
+          size="md"
+          aria-label="用户名"
           value={form.username}
           onChange={(e) => setForm({ ...form, username: e.target.value })}
           placeholder="用户名"
-          className="w-full rounded-sm border border-gray-300 px-3 py-2"
         />
-        <input
+        <Input
           type="password"
+          size="md"
+          aria-label="密码"
           value={form.password}
           onChange={(e) => setForm({ ...form, password: e.target.value })}
           placeholder="密码"
-          className="w-full rounded-sm border border-gray-300 px-3 py-2"
         />
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-sm bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-        >
+        <Button type="submit" variant="primary" size="md" disabled={loading} className="w-full">
           {loading ? '登录中...' : '登录'}
-        </button>
+        </Button>
       </form>
 
       <div className="mt-6">

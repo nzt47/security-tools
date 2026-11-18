@@ -4,7 +4,7 @@
  * 提交异步由父组件控制（saving 防重复提交），错误提示由 request.ts 拦截器统一处理。
  */
 import { useEffect, useState } from 'react'
-import { Button, Input, ModalBase } from '@/components/ui'
+import { Button, Checkbox, Input, ModalBase } from '@/components/ui'
 import type { MenuItem } from '@/api/menu'
 
 interface MenuFormDialogProps {
@@ -142,15 +142,7 @@ export default function MenuFormDialog({
           placeholder="如 system:user:view（可选）"
           autoComplete="off"
         />
-        <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
-          <input
-            type="checkbox"
-            checked={hideInMenu}
-            onChange={(e) => setHideInMenu(e.target.checked)}
-            className="h-4 w-4 rounded-sm accent-primary"
-          />
-          在菜单中隐藏
-        </label>
+        <Checkbox checked={hideInMenu} onChange={(e) => setHideInMenu(e.target.checked)} label="在菜单中隐藏" />
       </form>
     </ModalBase>
   )

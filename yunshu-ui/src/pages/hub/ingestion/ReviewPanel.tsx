@@ -6,7 +6,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { CheckCircle2, Inbox, Loader2, RefreshCw, Trash2 } from 'lucide-react'
-import { Badge, Button, ErrorBox, hubDelete, hubGet, hubPost, Textarea } from '../components/ui'
+import { Badge, Button, Checkbox, ErrorBox, hubDelete, hubGet, hubPost, Textarea } from '../components/ui'
 import { authHeader } from '../../../lib/apiToken'
 import {
   INGESTION_DRAFTS,
@@ -333,11 +333,7 @@ export default function ReviewPanel() {
               <div className="mt-1 text-red-300">
                 其中 {blocked.length} 条被评审阻断（{blocked.map((r) => r.id).join('、')}）：force 会绕过强制审核链并写审计。
               </div>
-              <label className="mt-1 flex items-center gap-1 text-micro text-slate-300">
-                <input type="checkbox" checked={batchForce} onChange={(e) => setBatchForce(e.target.checked)}
-                  aria-label="确认对阻断项使用 force 豁免" />
-                我确认使用 force 豁免（写审计，可追溯）
-              </label>
+              <Checkbox checked={batchForce} onChange={(e) => setBatchForce(e.target.checked)} label="我确认使用 force 豁免（写审计，可追溯）" aria-label="确认对阻断项使用 force 豁免" />
               <label className="mt-1 flex flex-col gap-1 text-micro text-slate-400">
                 force 豁免原因（至少 4 字）
                 <Textarea size="sm" rows={2} value={batchReason}

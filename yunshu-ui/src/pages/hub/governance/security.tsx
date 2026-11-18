@@ -18,7 +18,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   AlertTriangle, Ban, Lock, Loader2, Pause, Play, Power, RefreshCw, RotateCcw, Shield, ShieldAlert, Sliders,
 } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost, Input, Select, Textarea } from '../components/ui'
+import { Button, Checkbox, ErrorBox, hubGet, hubPost, Input, Select, Textarea } from '../components/ui'
 import {
   PERMISSION_ACCESS_LOG,
   PERMISSION_EMERGENCY,
@@ -364,10 +364,7 @@ export default function SecurityPanel() {
               <span className="text-micro text-slate-500">需要用户明确同意才会读取窗口标题与进程</span>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <label className="flex items-center gap-1 text-micro text-slate-400">
-                <input type="checkbox" checked={confirmConsent} onChange={(e) => setConfirmConsent(e.target.checked)} aria-label="确认窗口授权" />
-                我同意读取窗口活动
-              </label>
+              <Checkbox checked={confirmConsent} onChange={(e) => setConfirmConsent(e.target.checked)} label="我同意读取窗口活动" aria-label="确认窗口授权" />
               <Button type="button" variant="accent" size="xs" onClick={() => void consent()} disabled={loading || !confirmConsent} aria-label="授权窗口活动">
                 {busy === 'consent' ? <Loader2 size={11} className="animate-spin" /> : null} 授权
               </Button>

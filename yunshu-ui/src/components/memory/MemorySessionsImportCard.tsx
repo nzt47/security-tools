@@ -10,7 +10,7 @@
  */
 import { useEffect, useState } from 'react'
 import { DownloadCloud, Loader2, Play } from 'lucide-react'
-import { Button, Card, Checkbox } from '@/pages/hub/components/ui'
+import { Button, Card, Checkbox, Radio } from '@/pages/hub/components/ui'
 import {
   MemoryImportApiError, fetchMemorySessionLatest, fetchMemorySessionSources,
   importMemorySessions,
@@ -104,8 +104,7 @@ export default function MemorySessionsImportCard() {
         {sources.map((s) => (
           <label key={s.id} className={'inline-flex items-center gap-1 ' + (s.available ? '' : 'opacity-40')}
             title={s.detail}>
-            <input
-              type="radio"
+            <Radio
               name="memory-session-source"
               checked={source === s.id}
               disabled={!s.available || busy !== ''}

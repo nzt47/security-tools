@@ -37,7 +37,7 @@ import {
   type SessionMeta,
   type SessionWorkspace,
 } from '../../../lib/sessionApi';
-import { Button, Input } from '@/components/ui';
+import { Button, Checkbox, Input } from '@/components/ui';
 import { copyText } from '../../../utils/clipboard';
 import { isElectron } from '../../../electron/types';
 
@@ -354,15 +354,7 @@ export function WorkspaceDrawer({ session, onClose }: WorkspaceDrawerProps) {
                       </Button>
                     )}
                   </div>
-                  <label className="flex cursor-pointer items-center gap-1.5 text-caption text-slate-400">
-                    <input
-                      type="checkbox"
-                      checked={bindCreate}
-                      onChange={(e) => setBindCreate(e.target.checked)}
-                      className="accent-cyan-500"
-                    />
-                    目录不存在时自动创建
-                  </label>
+                  <Checkbox checked={bindCreate} onChange={(e) => setBindCreate(e.target.checked)} label="目录不存在时自动创建" />
                   <div className="flex items-center justify-end gap-1.5">
                     <Button type="button" onClick={() => { setBindOpen(false); setBindPath(''); setBindCreate(false); }} variant="default" size="xs">
                       取消

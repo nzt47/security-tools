@@ -17,7 +17,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Film, Loader2, RefreshCw, Search, Trash2,
 } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost, Select } from '../components/ui'
+import { Button, Checkbox, ErrorBox, hubGet, hubPost, Select } from '../components/ui'
 import {
   REPLAY_CLEANUP,
   REPLAY_LIST,
@@ -176,10 +176,7 @@ export default function ReplayCenter() {
           <Button type="button" variant="default" size="xs" onClick={() => void cleanup(true)} disabled={loading} aria-label="预览清理回放">
             {busy === 'cleanup' ? <Loader2 size={11} className="animate-spin" /> : null} 预览（dry_run）
           </Button>
-          <label className="flex items-center gap-1 text-micro text-slate-400">
-            <input type="checkbox" checked={confirmCleanup} onChange={(e) => setConfirmCleanup(e.target.checked)} aria-label="确认清理回放" />
-            我确认删除过期回放
-          </label>
+          <Checkbox checked={confirmCleanup} onChange={(e) => setConfirmCleanup(e.target.checked)} label="我确认删除过期回放" aria-label="确认清理回放" />
           <Button type="button" variant="danger-outline" size="xs" onClick={() => void cleanup(false)} disabled={loading || !confirmCleanup} aria-label="清理回放">
             执行清理
           </Button>

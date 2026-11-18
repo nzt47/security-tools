@@ -11,7 +11,7 @@
  */
 import { useCallback, useState } from 'react'
 import { Download, Loader2, Upload } from 'lucide-react'
-import { Button, hubGet, hubPost, Textarea } from '../components/ui'
+import { Button, Checkbox, hubGet, hubPost, Textarea } from '../components/ui'
 import { NETWORK_CONFIG_EXPORT, NETWORK_CONFIG_IMPORT } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
@@ -85,10 +85,7 @@ export default function NetworkTransfer() {
         aria-label="网络配置 JSON"
       />
       <div className="mt-2 flex flex-wrap items-center gap-2">
-        <label className="flex items-center gap-1 text-micro text-slate-400">
-          <input type="checkbox" checked={confirmImport} onChange={(e) => setConfirmImport(e.target.checked)} aria-label="确认导入配置" />
-          我确认用该配置整体替换现有网络配置
-        </label>
+        <Checkbox checked={confirmImport} onChange={(e) => setConfirmImport(e.target.checked)} label="我确认用该配置整体替换现有网络配置" aria-label="确认导入配置" />
         <Button type="button" variant="accent" size="xs" onClick={() => void doImport()} disabled={loading || !confirmImport || text.trim() === ''} aria-label="导入网络配置">
           {busy === 'import' ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />} 导入
         </Button>

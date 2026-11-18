@@ -15,7 +15,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, CheckCircle2, Lightbulb, Loader2, RefreshCw, Save } from 'lucide-react'
-import { Button, ErrorBox, hubGet, hubPost, Textarea } from '../components/ui'
+import { Button, Checkbox, ErrorBox, hubGet, hubPost, Textarea } from '../components/ui'
 import { FEEDBACK_LIST, FEEDBACK_SUBMIT, feedbackResolve } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
@@ -106,10 +106,7 @@ export default function DevNotesPanel() {
           待解决 {openCount} · 共 {rows.length}（复用反馈存储，category=dev-note）
         </span>
         <div className="ml-auto flex items-center gap-2">
-          <label className="flex items-center gap-1 text-micro text-slate-400">
-            <input type="checkbox" checked={showResolved} onChange={(e) => setShowResolved(e.target.checked)} aria-label="显示已解决" />
-            显示已解决
-          </label>
+          <Checkbox checked={showResolved} onChange={(e) => setShowResolved(e.target.checked)} label="显示已解决" />
           <Button type="button" variant="default" size="xs" onClick={() => void load()} disabled={busy !== ''} aria-label="刷新随记">
             {busy === 'load' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
           </Button>

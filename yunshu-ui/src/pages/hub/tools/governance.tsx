@@ -16,7 +16,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Activity, Loader2, RefreshCw, RotateCcw, Tags, Wrench,
 } from 'lucide-react'
-import { Button, ErrorBox, hubDeleteJson, hubGet, hubPost, Input, Select } from '../components/ui'
+import { Button, Checkbox, ErrorBox, hubDeleteJson, hubGet, hubPost, Input, Select } from '../components/ui'
 import {
   TOOLS_CATEGORIES,
   TOOLS_HEALTH,
@@ -208,10 +208,7 @@ export default function ToolsGovernance() {
           >
             {busy === 'kw-upd' ? <Loader2 size={11} className="animate-spin" /> : null} 改名
           </Button>
-          <label className="ml-2 flex items-center gap-1 text-micro text-slate-400">
-            <input type="checkbox" checked={confirmReset} onChange={(e) => setConfirmReset(e.target.checked)} aria-label="确认重置关键词" />
-            我确认重置为默认
-          </label>
+          <Checkbox checked={confirmReset} onChange={(e) => setConfirmReset(e.target.checked)} label="我确认重置为默认" aria-label="确认重置关键词" />
           <Button type="button" variant="danger-outline" size="xs" onClick={() => void resetKeywords()} disabled={loading || !confirmReset} aria-label="重置关键词">
             <RotateCcw size={11} /> 重置
           </Button>

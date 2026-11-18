@@ -14,7 +14,7 @@ import {
   type NotificationItem,
   type NotificationType,
 } from '@/api/notification'
-import { Badge, Button, Card, Empty, Loading, PageContainer, Pagination, Select } from '@/components/ui'
+import { Badge, Button, Card, Checkbox, Empty, Loading, PageContainer, Pagination, Select } from '@/components/ui'
 import { useTablePage } from '@/hooks/useTablePage'
 
 const PAGE_SIZE = 10
@@ -142,15 +142,7 @@ export default function NotificationCenter() {
           aria-label="消息类型"
           className="w-32"
         />
-        <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-foreground">
-          <input
-            type="checkbox"
-            checked={unreadOnlyInput}
-            onChange={(e) => setUnreadOnlyInput(e.target.checked)}
-            className="h-4 w-4 rounded-sm accent-primary"
-          />
-          仅看未读
-        </label>
+        <Checkbox checked={unreadOnlyInput} onChange={(e) => setUnreadOnlyInput(e.target.checked)} label="仅看未读" />
         <Button
           variant="primary"
           onClick={() => handleSearch({ type: typeInput, unreadOnly: unreadOnlyInput })}

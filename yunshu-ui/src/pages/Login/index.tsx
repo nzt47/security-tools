@@ -10,7 +10,7 @@ import { login } from '@/api/user'
 import { setToken as saveToken } from '@/utils/request'
 import { useUserStore } from '@/store/userStore'
 import { toast } from '@/components/Toaster'
-import { Button } from '@/components/ui'
+import { Button, Checkbox, Input } from '@/components/ui'
 
 /** 记住密码的 localStorage key */
 const REMEMBER_KEY = 'yunshu-remember-login'
@@ -201,45 +201,31 @@ export default function LoginPage() {
       <p className="mb-6 mt-1 text-sm text-slate-400">欢迎回来，请登录你的账号</p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="username" className="mb-1.5 block text-sm font-medium text-slate-600">
-            用户名
-          </label>
-          <input
-            id="username"
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="请输入用户名"
-            autoComplete="username"
-            className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-hidden transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-          />
-        </div>
+        <Input
+          id="username"
+          type="text"
+          size="md"
+          surface="light"
+          label="用户名"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="请输入用户名"
+          autoComplete="username"
+        />
 
-        <div>
-          <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-slate-600">
-            密码
-          </label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="请输入密码"
-            autoComplete="current-password"
-            className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-hidden transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-          />
-        </div>
+        <Input
+          id="password"
+          type="password"
+          size="md"
+          surface="light"
+          label="密码"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="请输入密码"
+          autoComplete="current-password"
+        />
 
-        <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
-          <input
-            type="checkbox"
-            checked={remember}
-            onChange={(e) => setRemember(e.target.checked)}
-            className="h-4 w-4 rounded-sm border-slate-300 text-indigo-600 focus:ring-indigo-500"
-          />
-          记住密码
-        </label>
+        <Checkbox checked={remember} onChange={(e) => setRemember(e.target.checked)} label="记住密码" />
 
         <Button type="submit" disabled={loading} className="w-full" variant="default" size="sm">
           {loading && (

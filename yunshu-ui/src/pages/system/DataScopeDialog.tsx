@@ -4,7 +4,7 @@
  * 提交异步由父组件控制（saving 防重复提交），错误提示由 request.ts 拦截器统一处理。
  */
 import { useEffect, useState } from 'react'
-import { Button, ModalBase } from '@/components/ui'
+import { Button, ModalBase, Radio } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import type { DataScope } from '@/api/menu'
 import type { RoleItem } from '@/api/role'
@@ -63,13 +63,12 @@ export default function DataScopeDialog({ open, role, saving, onSubmit, onCancel
                 : 'border-border hover:bg-muted',
             )}
           >
-            <input
-              type="radio"
+            <Radio
               name="data-scope"
               value={opt.value}
               checked={scope === opt.value}
               onChange={() => setScope(opt.value)}
-              className="mt-0.5 h-4 w-4 accent-primary"
+              className="mt-0.5"
             />
             <span>
               <span className="block text-sm font-medium text-foreground">{opt.label}</span>

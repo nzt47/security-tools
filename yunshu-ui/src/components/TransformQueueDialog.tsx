@@ -12,7 +12,7 @@
  *   · 归档目录本身保留（只写 manifest.rolled_back_at），审核证据链不销毁；
  *   · **默认只预览**：先看清"将删除哪些文件"，再点确认（§8 陷阱 31）。
  */
-import { Button } from '@/components/ui'
+import { Button, Checkbox } from '@/components/ui'
 import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, Archive, CheckCircle2, ChevronDown, ChevronRight, Loader2, RotateCcw, Sparkles, X } from 'lucide-react'
 import { authHeader } from '../lib/apiToken'
@@ -497,12 +497,7 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
               <div className="flex items-center justify-between border-b border-slate-800 px-3 py-1.5">
                 <span className="text-caption text-slate-300">统一作业（S1 · 三套入口收敛）</span>
                 <div className="flex items-center gap-3">
-                  <label className="flex cursor-pointer items-center gap-1 text-micro text-slate-400"
-                         title="已归档的作业默认从队列隐藏；勾选后可找回并彻底删除">
-                    <input type="checkbox" checked={showArchived}
-                           onChange={(e) => setShowArchived(e.target.checked)} />
-                    显示已归档
-                  </label>
+                  <Checkbox checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} label="显示已归档" />
                   <span className="text-micro text-slate-500">{jobs.length} 条</span>
                 </div>
               </div>

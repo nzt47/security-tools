@@ -15,7 +15,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   AlertTriangle, Activity, FileText, Loader2, RefreshCw, Save, Trash2, Wrench,
 } from 'lucide-react'
-import { Button, ErrorBox, hubDelete, hubGet, hubPut, Input, Textarea } from '../components/ui'
+import { Button, Checkbox, ErrorBox, hubDelete, hubGet, hubPut, Input, Textarea } from '../components/ui'
 import {
   DIAGNOSTICS_CONFIG,
   DIAGNOSTICS_ERROR_CORRELATION,
@@ -335,10 +335,7 @@ export default function OpsDiagnostics() {
               <Button type="button" variant="accent" size="xs" onClick={() => void saveAlert()} disabled={loading || alertName.trim() === ''} aria-label="保存告警规则">
                 {busy === 'alert' ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />} 保存规则
               </Button>
-              <label className="ml-2 flex items-center gap-1 text-micro text-slate-400">
-                <input type="checkbox" checked={confirmDeleteAlert} onChange={(e) => setConfirmDeleteAlert(e.target.checked)} aria-label="确认删除告警规则" />
-                我确认删除该规则
-              </label>
+              <Checkbox checked={confirmDeleteAlert} onChange={(e) => setConfirmDeleteAlert(e.target.checked)} label="我确认删除该规则" aria-label="确认删除告警规则" />
               <Button type="button" variant="danger-outline" size="xs" onClick={() => void deleteAlert()} disabled={loading || !confirmDeleteAlert || alertName.trim() === ''} aria-label="删除告警规则">
                 <Trash2 size={11} /> 删除规则
               </Button>
