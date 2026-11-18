@@ -9,7 +9,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { BarChart3, Loader2, RefreshCw } from 'lucide-react'
-import { hubGet } from '../components/ui'
+import { Button, hubGet } from '../components/ui'
 import { LEARNING_METRICS } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
@@ -48,9 +48,9 @@ export default function LearningMetrics() {
         <BarChart3 size={13} className="text-cyan-400" />
         <h3 className="text-xs font-semibold text-slate-200">学习有效性度量</h3>
         {data?.days != null && <span className="text-micro text-slate-500">窗口 {data.days} 天</span>}
-        <button type="button" className={BTN + ' ml-auto'} onClick={() => void load()} disabled={busy} aria-label="刷新学习度量">
+        <Button type="button" onClick={() => void load()} disabled={busy} aria-label="刷新学习度量" variant="default" size="xs" className="ml-auto">
           {busy ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-        </button>
+        </Button>
       </div>
       {err && <div className="mb-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-caption text-red-300">{err}</div>}
       <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">

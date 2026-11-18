@@ -188,7 +188,7 @@ export default function ReplayCenter() {
         <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
           <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
             <Film size={11} className="text-cyan-400" /> {activeId}
-            <button type="button" className={BTN + ' ml-auto'} onClick={() => { setMeta(null); setData(null); setActiveId('') }}>关闭</button>
+            <Button type="button" onClick={() => { setMeta(null); setData(null); setActiveId('') }} variant="default" size="xs" className="ml-auto">关闭</Button>
           </div>
           {meta && (
             <>

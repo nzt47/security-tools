@@ -125,10 +125,9 @@ export default function DevNotesPanel() {
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
-        <button type="button" className={BTN_EM + ' shrink-0'} onClick={() => void save()}
-          disabled={busy !== '' || !text.trim()} aria-label="记下来">
+        <Button type="button" onClick={() => void save()} disabled={busy !== '' || !text.trim()} aria-label="记下来" variant="accent" size="xs" className="shrink-0">
           {busy === 'save' ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />} 记下来
-        </button>
+        </Button>
       </div>
 
       {visible.length === 0 ? (
@@ -155,10 +154,9 @@ export default function DevNotesPanel() {
                   </div>
                 </div>
                 {!resolved && (
-                  <button type="button" className={BTN + ' shrink-0'} aria-label={'标记已解决 ' + id}
-                    onClick={() => void resolve(id)} disabled={busy !== ''}>
+                  <Button type="button" aria-label={'标记已解决 ' + id} onClick={() => void resolve(id)} disabled={busy !== ''} variant="default" size="xs" className="shrink-0">
                     {busy === 'resolve:' + id ? <Loader2 size={10} className="animate-spin" /> : <CheckCircle2 size={10} />} 已解决
-                  </button>
+                  </Button>
                 )}
               </li>
             )

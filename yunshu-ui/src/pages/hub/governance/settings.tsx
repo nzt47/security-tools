@@ -1022,41 +1022,35 @@ export function SettingsPanel({ searchDebounceMs = 250 }: SettingsPanelProps) {
               const value =
                 f.id === 'all' ? counts?.total : counts?.by_risk?.[f.id]
               return (
-                <button
+                <Button
                   key={f.id}
-                  type="button"
+                  variant={active ? 'accent' : 'default'}
+                  size="xs"
                   onClick={() => setRisk(f.id)}
                   aria-pressed={active}
                   data-cp-risk-filter={f.id}
-                  className={`rounded-full border px-2 py-0.5 text-caption ${
-                    active
-                      ? 'border-cyan-700 bg-cyan-500/15 text-cyan-200'
-                      : 'border-slate-700 text-slate-400 hover:text-slate-200'
-                  }`}
+                  className="rounded-full"
                 >
                   {f.label}
-                  {value !== undefined && <span className="ml-1 text-slate-500">{value}</span>}
-                </button>
+                  {value !== undefined && <span className="ml-1 opacity-70">{value}</span>}
+                </Button>
               )
             })}
 
-            <button
-              type="button"
+            <Button
+              variant={onlyOverride ? 'accent' : 'default'}
+              size="xs"
               onClick={() => setOnlyOverride((v) => !v)}
               aria-pressed={onlyOverride}
               data-cp-override-filter="true"
+              className="rounded-full"
               title="按『存在 ui_override（生效，或存在但被更高优先级来源覆盖）』筛选；数字为 payload.counts.overridden"
-              className={`rounded-full border px-2 py-0.5 text-caption ${
-                onlyOverride
-                  ? 'border-cyan-700 bg-cyan-500/15 text-cyan-200'
-                  : 'border-slate-700 text-slate-400 hover:text-slate-200'
-              }`}
             >
               只看已覆盖
               {counts?.overridden !== undefined && (
-                <span className="ml-1 text-slate-500">{counts.overridden}</span>
+                <span className="ml-1 opacity-70">{counts.overridden}</span>
               )}
-            </button>
+            </Button>
 
             <span className="text-micro text-slate-500">
               命中 {filtered.length} / 登记 {items.length} 项

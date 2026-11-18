@@ -99,7 +99,7 @@ describe('SecurityPanel', () => {
     api.hubPost.mockResolvedValue({ ok: true, level: 'critical' })
     render(<SecurityPanel />)
     await screen.findByText('权限开关（切换后回读，界面只说后端真实状态）')
-    fireEvent.click(screen.getByRole('button', { name: '危险关键词' }))
+    fireEvent.click(screen.getByRole('tab', { name: '危险关键词' }))
 
     fireEvent.change(screen.getByLabelText('待校验文本'), { target: { value: 'rm -rf /' } })
     fireEvent.click(screen.getByRole('button', { name: '校验危险文本' }))
@@ -118,7 +118,7 @@ describe('SecurityPanel', () => {
     api.hubPost.mockResolvedValue({ ok: true, consent: true })
     render(<SecurityPanel />)
     await screen.findByText('权限开关（切换后回读，界面只说后端真实状态）')
-    fireEvent.click(screen.getByRole('button', { name: '隐私' }))
+    fireEvent.click(screen.getByRole('tab', { name: '隐私' }))
 
     const btn = screen.getByRole('button', { name: '授权窗口活动' }) as HTMLButtonElement
     expect(btn.disabled, '窗口活动属于需明确同意的数据，未勾选不该能提交').toBe(true)

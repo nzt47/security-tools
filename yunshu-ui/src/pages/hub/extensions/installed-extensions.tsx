@@ -154,15 +154,9 @@ export default function InstalledExtensions({ types, title, hint, emptyText, exc
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <h3 className="text-xs font-semibold text-slate-200">{title}</h3>
         <span className="text-micro text-slate-500">{rows.length} 项</span>
-        <button
-          type="button"
-          onClick={() => void load()}
-          disabled={loading}
-          className={BTN + ' ml-auto'}
-          aria-label="刷新已安装扩展"
-        >
+        <Button type="button" onClick={() => void load()} disabled={loading} aria-label="刷新已安装扩展" variant="default" size="xs" className="ml-auto">
           <RefreshCw size={11} className={loading ? 'animate-spin' : ''} /> 刷新
-        </button>
+        </Button>
       </div>
       {hint && <p className="mb-2 text-micro leading-relaxed text-slate-500">{hint}</p>}
       {err && <div className="mb-2"><ErrorBox message={err} /></div>}

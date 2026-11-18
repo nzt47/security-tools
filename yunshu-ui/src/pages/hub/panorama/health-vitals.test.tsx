@@ -112,7 +112,7 @@ describe('OpsDiagnostics', () => {
   it('可观测页：访问统计与日志表', async () => {
     opsGets()
     render(<OpsDiagnostics />)
-    fireEvent.click(screen.getByRole('button', { name: '可观测' }))
+    fireEvent.click(screen.getByRole('tab', { name: '可观测' }))
     await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/api/observability/access_stats'))
     expect(await screen.findByText('12.5%')).toBeTruthy()
     expect(screen.getByText('/api/health')).toBeTruthy()
@@ -123,7 +123,7 @@ describe('OpsDiagnostics', () => {
     api.hubPut.mockResolvedValue({ ok: true })
     api.hubDelete.mockResolvedValue({ ok: true })
     render(<OpsDiagnostics />)
-    fireEvent.click(screen.getByRole('button', { name: '可观测' }))
+    fireEvent.click(screen.getByRole('tab', { name: '可观测' }))
     await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/api/observability/access_stats'))
 
     fireEvent.change(screen.getByLabelText('告警规则名'), { target: { value: 'YunshuHealthScoreCritical' } })

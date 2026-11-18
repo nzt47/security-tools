@@ -72,7 +72,7 @@ describe('InstancesPanel', () => {
     await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/llm/instances/llm1/test', {}))
 
     // 搜索实例在另一个 Tab 里：先切过去，再点它那一行
-    fireEvent.click(screen.getByRole('button', { name: '搜索实例' }))
+    fireEvent.click(screen.getByRole('tab', { name: '搜索实例' }))
     await screen.findByText('DuckDuckGo')
     fireEvent.click(screen.getByRole('button', { name: '设为默认 s1' }))
     await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/search/instances/s1/default', {}))

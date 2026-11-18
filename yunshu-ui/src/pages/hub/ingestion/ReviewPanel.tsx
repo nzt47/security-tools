@@ -405,10 +405,9 @@ export default function ReviewPanel() {
           <span className="text-micro text-slate-500">
             技能 / 工具 / 工作流都写到隔离目录；<b>登记与启用就在这一行</b>（登记默认不启用）
           </span>
-          <button type="button" className={BTN + ' ml-auto'} onClick={() => void loadDrafts()} disabled={loading}
-            aria-label="刷新骨架草稿">
+          <Button type="button" onClick={() => void loadDrafts()} disabled={loading} aria-label="刷新骨架草稿" variant="default" size="xs" className="ml-auto">
             {busy === 'drafts' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-          </button>
+          </Button>
         </div>
         {draftErr && <div className="mb-2"><ErrorBox message={draftErr} /></div>}
         {drafts.length === 0 ? (

@@ -160,10 +160,9 @@ export default function MergeDuplicatesModal({ skillId, skillName, onClose, onDo
                       <Button type="button" variant="default" size="xs" onClick={() => setPending('')}>取消</Button>
                     </span>
                   ) : (
-                    <button type="button" className={BTN + ' ml-auto'} onClick={() => setPending(key)} disabled={busy !== ''}
-                      title="把该技能合并进本技能：先写两侧快照（可撤销），再删源技能">
+                    <Button type="button" onClick={() => setPending(key)} disabled={busy !== ''} title="把该技能合并进本技能：先写两侧快照（可撤销），再删源技能" variant="default" size="xs" className="ml-auto">
                       合并到本技能
-                    </button>
+                    </Button>
                   )}
                 </div>              </li>
             )

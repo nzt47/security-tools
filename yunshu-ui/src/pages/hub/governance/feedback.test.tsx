@@ -82,7 +82,7 @@ describe('FeedbackCenter', () => {
     render(<FeedbackCenter />)
     await screen.findByText('答得不对')
 
-    fireEvent.click(screen.getByRole('button', { name: '提交反馈' })) // 切到「提交反馈」Tab
+    fireEvent.click(screen.getByRole('tab', { name: '提交反馈' })) // 切到「提交反馈」Tab
     const submit = screen.getByRole('button', { name: '提交新反馈' }) as HTMLButtonElement
     expect(submit.disabled, '后端对空 trace_id 直接 400').toBe(true)
     fireEvent.change(screen.getByLabelText('反馈 trace_id'), { target: { value: 't-9' } })
@@ -126,7 +126,7 @@ describe('BusinessBoard', () => {
   it('系统仪表盘：四面并发 + Prometheus 是外链而非 JSON 请求', async () => {
     bizGets()
     render(<BusinessBoard />)
-    fireEvent.click(screen.getByRole('button', { name: '系统仪表盘' }))
+    fireEvent.click(screen.getByRole('tab', { name: '系统仪表盘' }))
     await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/api/dashboard/health'))
     await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/api/dashboard/quality'))
     expect(await screen.findByText('healthy')).toBeTruthy()

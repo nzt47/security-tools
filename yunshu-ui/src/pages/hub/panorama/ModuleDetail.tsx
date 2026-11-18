@@ -17,8 +17,7 @@ import { AlertTriangle, Loader2, Play, RefreshCw, X } from 'lucide-react'
 import { Button, hubGet, hubPost, Input } from '../components/ui'
 import { MODULES_ACTIONS, modulesDetail } from '@/api/endpoints'
 
-const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-caption text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-const BTN_DANGER = BTN + ' border-amber-800/70 text-amber-300 hover:bg-amber-500/10'
+/* 【2026-11-18】模块动作按钮改用 Button variant={danger-outline|default}，这两个自造常量删除。 */
 
 const PRE = 'max-h-48 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-micro text-slate-400'
 
@@ -121,17 +120,18 @@ export default function ModuleDetail({ moduleId, onClose }: { moduleId: string; 
             const key = String(a.action ?? '')
             if (!key) return null
             return (
-              <button
+              <Button
                 key={key}
                 type="button"
-                className={a.danger ? BTN_DANGER : BTN}
+                variant={a.danger ? 'danger-outline' : 'default'}
+                size="xs"
                 onClick={() => setPending(pending === key ? '' : key)}
                 disabled={loading}
                 aria-label={'执行动作 ' + key}
                 title={a.description ?? ''}
               >
                 <Play size={10} /> {a.label || key}
-              </button>
+              </Button>
             )
           })}
           {actions.length === 0 && <span className="text-micro text-slate-600">该节点未声明可执行动作。</span>}

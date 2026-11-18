@@ -701,9 +701,9 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
                 <p className="mt-2 rounded-md border border-emerald-800/60 bg-emerald-950/20 px-2 py-1 text-caption text-emerald-300">{mergeMsg}</p>
               )}
               {mergeId && (
-                <button type="button" className={BTN + ' mt-2'} onClick={() => void undoMerge()} disabled={busy === 'merge'}>
+                <Button type="button" onClick={() => void undoMerge()} disabled={busy === 'merge'} variant="default" size="xs" className="mt-2">
                   撤销合并（{mergeId}）
-                </button>
+                </Button>
               )}
               <p className="mt-2 text-micro text-slate-600">
                 合并 = 保留本技能、把对方内容作为一条版本并入并删除对方（**先写两侧快照**，可在这里撤销）。

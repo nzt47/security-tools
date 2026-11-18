@@ -78,7 +78,7 @@ describe('LocalResources', () => {
     api.hubPost.mockResolvedValue({ ok: true })
     render(<LocalResources />)
     await screen.findByText('app_server.py')
-    fireEvent.click(screen.getByRole('button', { name: '工作区' }))
+    fireEvent.click(screen.getByRole('tab', { name: '工作区' }))
 
     fireEvent.change(screen.getByLabelText('工作区路径'), { target: { value: 'notes/todo.md' } })
     const write = screen.getByRole('button', { name: '写入工作区' }) as HTMLButtonElement
@@ -96,7 +96,7 @@ describe('LocalResources', () => {
     api.hubPost.mockResolvedValue({ ok: true, pid: 4321 })
     render(<LocalResources />)
     await screen.findByText('app_server.py')
-    fireEvent.click(screen.getByRole('button', { name: '进程管控' }))
+    fireEvent.click(screen.getByRole('tab', { name: '进程管控' }))
 
     const start = screen.getByRole('button', { name: '启动进程' }) as HTMLButtonElement
     expect(start.disabled).toBe(true)
@@ -117,7 +117,7 @@ describe('LocalResources', () => {
     api.hubPost.mockResolvedValue({ ok: true })
     render(<LocalResources />)
     await screen.findByText('app_server.py')
-    fireEvent.click(screen.getByRole('button', { name: '进程管控' }))
+    fireEvent.click(screen.getByRole('tab', { name: '进程管控' }))
 
     fireEvent.change(screen.getByLabelText('新增白名单程序'), { target: { value: 'code.exe' } })
     fireEvent.click(screen.getByRole('button', { name: '添加白名单' }))

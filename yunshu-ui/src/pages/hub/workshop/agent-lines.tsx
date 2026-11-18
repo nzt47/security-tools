@@ -278,12 +278,12 @@ function Toggle({ on, label, hint, onChange }: {
   on: boolean; label: string; hint?: string; onChange: (v: boolean) => void
 }) {
   return (
-    <button
+    <Button
+      size="sm"
+      variant="default"
+      active={on}
       onClick={() => onChange(!on)}
-      className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs ${
-        on ? 'border-emerald-700 bg-emerald-950/40 text-emerald-300'
-          : 'border-slate-700 bg-slate-900 text-slate-400 hover:bg-slate-800'
-      }`}
+      className="gap-2"
     >
       <span className={`flex h-3.5 w-3.5 items-center justify-center rounded border ${
         on ? 'border-emerald-500' : 'border-slate-600'
@@ -292,7 +292,7 @@ function Toggle({ on, label, hint, onChange }: {
       </span>
       <span>{label}</span>
       {hint && <span className="text-caption text-slate-500">{hint}</span>}
-    </button>
+    </Button>
   )
 }
 

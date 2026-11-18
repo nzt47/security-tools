@@ -149,13 +149,13 @@ export default function UnitStatus() {
       </div>
 
       <div className="mb-2 flex flex-wrap items-center gap-1">
-        <button type="button" onClick={() => setFamily('')}
-          className={'rounded-md border px-2 py-0.5 text-caption ' + (family === '' ? 'border-cyan-700 bg-cyan-500/10 text-cyan-300' : 'border-slate-700 text-slate-400 hover:bg-slate-800')}>
-          全部</button>
+        <Button type="button" size="xs" variant={family === '' ? 'accent' : 'default'} onClick={() => setFamily('')}>
+          全部
+        </Button>
         {families.map((f) => (
-          <button key={f} type="button" onClick={() => setFamily(f)}
-            className={'rounded-md border px-2 py-0.5 text-caption ' + (family === f ? 'border-cyan-700 bg-cyan-500/10 text-cyan-300' : 'border-slate-700 text-slate-400 hover:bg-slate-800')}>
-            {FAMILY_LABEL[f] ?? f}</button>
+          <Button key={f} type="button" size="xs" variant={family === f ? 'accent' : 'default'} onClick={() => setFamily(f)}>
+            {FAMILY_LABEL[f] ?? f}
+          </Button>
         ))}
         {data?.generated_at && (
           <span className="ml-auto text-micro text-slate-600">采集于 {fmtTime(data.generated_at)}{data.cached ? '（缓存）' : ''}</span>

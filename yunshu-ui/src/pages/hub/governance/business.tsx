@@ -16,7 +16,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Activity, BarChart3, ExternalLink, Gauge, Loader2, RefreshCw, Search, Server,
 } from 'lucide-react'
-import { Button, ErrorBox, hubGet, Input, Select } from '../components/ui'
+import { Button, ErrorBox, hubGet, Input, Select, Tabs } from '../components/ui'
 import {
   BUSINESS_DASHBOARD,
   BUSINESS_DEFINITIONS,
@@ -150,19 +150,13 @@ export default function BusinessBoard() {
       {err && <ErrorBox message={err} />}
 
       <div className="mb-2 flex items-center gap-1">
-        {([['business', '业务指标'], ['dashboard', '系统仪表盘']] as const).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setTab(id)}
-            aria-selected={tab === id}
-            className={'rounded-lg px-2.5 py-1 text-caption transition-colors ' + (
-              tab === id ? 'bg-cyan-500/15 font-medium text-cyan-300' : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
-            )}
-          >
-            {label}
-          </button>
-        ))}
+        <Tabs
+          variant="segmented"
+          size="sm"
+          value={tab}
+          onChange={(v) => setTab(v as typeof tab)}
+          items={([['business', '业务指标'], ['dashboard', '系统仪表盘']] as const).map(([id, label]) => ({ value: id, label }))}
+        />
       </div>
 
       {tab === 'dashboard' && (

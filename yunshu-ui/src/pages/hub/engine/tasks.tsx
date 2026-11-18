@@ -222,7 +222,7 @@ export default function TaskQueue() {
         <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
           <div className="mb-1 flex items-center gap-2 text-caption text-slate-400">
             <FileText size={11} className="text-cyan-400" /> {detailLabel}
-            <button type="button" className={BTN + ' ml-auto'} onClick={() => setDetail(null)}>关闭</button>
+            <Button type="button" onClick={() => setDetail(null)} variant="default" size="xs" className="ml-auto">关闭</Button>
           </div>
           <pre className={PRE + ' max-h-72'}>{JSON.stringify(detail, null, 2)}</pre>
         </div>

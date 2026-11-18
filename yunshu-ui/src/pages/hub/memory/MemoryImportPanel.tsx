@@ -22,7 +22,7 @@ import {
   type MemoryImportRollbackResult,
 } from '@/lib/memoryImportApi'
 
-const BTN_PRIMARY = 'inline-flex items-center gap-1 rounded-md bg-cyan-600 px-3 py-1.5 text-caption font-medium text-white transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-40'
+/* 【2026-11-18 删除 BTN_PRIMARY】页面里唯一的用途（确认删除）已改用 Button variant="danger"。 */
 
 function errText(e: unknown): string {
   if (e instanceof MemoryImportApiError) return e.message
@@ -510,9 +510,10 @@ export default function MemoryImportPanel() {
                 </div>
               ))}
               <div className="mt-2 flex items-center gap-2">
-                <button
+                <Button
                   type="button"
-                  className={BTN_PRIMARY + ' !bg-red-600 hover:!bg-red-500'}
+                  variant="danger"
+                  size="xs"
                   onClick={() => void doRollback(pendingRollback)}
                   disabled={batchBusy !== ''}
                   aria-label={'确认回滚 ' + pendingRollback}
@@ -520,7 +521,7 @@ export default function MemoryImportPanel() {
                   {batchBusy === pendingRollback
                     ? <Loader2 size={11} className="animate-spin" />
                     : <Undo2 size={11} />} 确认删除（不可恢复）
-                </button>
+                </Button>
                 <Button type="button" variant="default" size="xs" onClick={cancelRollback} aria-label={'取消回滚 ' + pendingRollback}>取消</Button>
               </div>
             </>

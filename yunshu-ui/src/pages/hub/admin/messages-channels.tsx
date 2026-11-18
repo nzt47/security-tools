@@ -491,15 +491,9 @@ export default function HubChannelsPanel() {
             {'通道（' + merged.length + ' 个 · 已装 ' + installed.length + ' · 启用 ' + installed.filter((c) => c.enabled).length + '）'}
           </h3>
           <span className="text-micro text-slate-500">未装的点「安装」；装了的在这里配置 / 启停 / 卸载 / 就地发一条测试消息</span>
-          <button
-            type="button"
-            className={BTN + ' ml-auto'}
-            onClick={() => void load()}
-            disabled={loading}
-            aria-label="刷新通道"
-          >
+          <Button type="button" onClick={() => void load()} disabled={loading} aria-label="刷新通道" variant="default" size="xs" className="ml-auto">
             {busy === 'load' ? <Loader2 size={11} className="animate-spin" /> : null} 刷新
-          </button>
+          </Button>
         </div>
         {merged.length === 0 && busy !== 'load' && (
           <div className="text-caption text-slate-500">没有可用的通道模板。</div>
@@ -599,15 +593,9 @@ export default function HubChannelsPanel() {
                     <span className="text-micro text-red-300">
                       卸载对「文件轨独占」的扩展是不可逆删除（force=true 才允许）。确定？
                     </span>
-                    <button
-                      type="button"
-                      className={BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'}
-                      onClick={() => void uninstallInstalled(row)}
-                      disabled={loading}
-                      aria-label={'确认卸载通道 ' + id}
-                    >
+                    <Button type="button" onClick={() => void uninstallInstalled(row)} disabled={loading} aria-label={'确认卸载通道 ' + id} variant="default" size="xs" className="border-red-800/70 text-red-300 hover:bg-red-500/10">
                       {busy === 'uninstall:' + id ? <Loader2 size={11} className="animate-spin" /> : null} 确认卸载
-                    </button>
+                    </Button>
                     <Button type="button" variant="default" size="xs" onClick={() => setConfirmUninstall('')}>取消</Button>
                   </div>
                 )}

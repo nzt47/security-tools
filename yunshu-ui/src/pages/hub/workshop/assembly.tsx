@@ -300,16 +300,16 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
                 {PERMISSIONS.map((p) => {
                   const on = form.permissions.includes(p)
                   return (
-                    <button
+                    <Button
                       key={p}
                       type="button"
+                      size="xs"
+                      variant={on ? 'accent' : 'default'}
+                      className="rounded-full"
                       onClick={() => togglePermission(p)}
                       data-testid={'assembly-permission-' + p}
                       aria-pressed={on}
-                      className={on
-                        ? 'rounded-full border border-cyan-700 bg-cyan-500/15 px-2.5 py-1 text-xs text-cyan-300'
-                        : 'rounded-full border border-slate-700 px-2.5 py-1 text-xs text-slate-400'}
-                    >{p}</button>
+                    >{p}</Button>
                   )
                 })}
               </div>

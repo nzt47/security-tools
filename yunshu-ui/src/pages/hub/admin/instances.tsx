@@ -15,7 +15,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { CheckCircle2, Cpu, Loader2, Plus, RefreshCw, Search, Star, Trash2, Wifi } from 'lucide-react'
-import { Button, ErrorBox, hubDelete, hubGet, hubPost, hubPut, Input, Textarea } from '../components/ui'
+import { Button, ErrorBox, hubDelete, hubGet, hubPost, hubPut, Input, Tabs, Textarea } from '../components/ui'
 import {
   LLM_INSTANCES,
   SEARCH_INSTANCES,
@@ -201,19 +201,13 @@ export default function InstancesPanel() {
       {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
 
       <div className="mb-2 flex items-center gap-1">
-        {([['llm', 'LLM 实例'], ['search', '搜索实例']] as const).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setTab(id)}
-            aria-selected={tab === id}
-            className={'rounded-lg px-2.5 py-1 text-caption transition-colors ' + (
-              tab === id ? 'bg-cyan-500/15 font-medium text-cyan-300' : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
-            )}
-          >
-            {label}
-          </button>
-        ))}
+        <Tabs
+          variant="segmented"
+          size="sm"
+          value={tab}
+          onChange={(v) => setTab(v as typeof tab)}
+          items={([['llm', 'LLM 实例'], ['search', '搜索实例']] as const).map(([id, label]) => ({ value: id, label }))}
+        />
       </div>
 
       <div className="mb-2 rounded-lg border border-slate-800 bg-slate-900/50 p-3">

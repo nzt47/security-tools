@@ -16,7 +16,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   FileText, FolderOpen, HardDrive, Loader2, Play, RefreshCw, Search, Trash2, XOctagon,
 } from 'lucide-react'
-import { Button, Checkbox, ErrorBox, hubGet, hubPost, Input, Select, Textarea } from '../components/ui'
+import { Button, Checkbox, ErrorBox, hubGet, hubPost, Input, Select, Tabs, Textarea } from '../components/ui'
 import {
   FILESYSTEM_INFO,
   FILESYSTEM_LIST,
@@ -238,19 +238,13 @@ export default function LocalResources() {
       {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-caption text-emerald-300">{msg}</div>}
 
       <div className="mb-2 flex items-center gap-1">
-        {([['files', '文件浏览'], ['workspace', '工作区'], ['process', '进程管控']] as const).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setTab(id)}
-            aria-selected={tab === id}
-            className={'rounded-lg px-2.5 py-1 text-caption transition-colors ' + (
-              tab === id ? 'bg-cyan-500/15 font-medium text-cyan-300' : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
-            )}
-          >
-            {label}
-          </button>
-        ))}
+        <Tabs
+          variant="segmented"
+          size="sm"
+          value={tab}
+          onChange={(v) => setTab(v as typeof tab)}
+          items={([['files', '文件浏览'], ['workspace', '工作区'], ['process', '进程管控']] as const).map(([id, label]) => ({ value: id, label }))}
+        />
       </div>
 
       {tab === 'files' && (
