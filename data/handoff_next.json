@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-19T21:25:00+08:00",
+ "updated_at": "2026-11-19T21:47:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -7,16 +7,16 @@
    "status": "done",
    "priority": "P1",
    "title": "叶子页标题统一到 Tab 上面 + TAB 小标题字号收敛（Owner 报「能力获取/引擎 排版不统一」）",
-   "criteria": "2026-11-19 量具：能力获取标题在 Tab 下面（114 vs 70），review/queue/governance 三个 Tab 无标题；引擎/实例与网络没有页标题（Tab 条就是页头）；工具/记忆/分身的子模块又各渲染一个 H1 16+说明 14；业务看板/反馈中心/安全与权限/本地资源页标题只有 h2 14；prompt-lab 区块标题 16。根因：PageHeader/Tabs 只封装外观，不负责「谁在上面」；PageHeader / SectionTitle / 手写 h2 三套标题体系并存，SectionTitle level=2 是 16px，与阶梯 B 不符；容器与子模块都渲染页级标题。处置：新增 PageTabsHeader（h1 16 + 副标题 11 + Tab 条恒在下面），SectionTitle 收为唯一区块标题并按阶梯 B（16/14/12）且新增 title/description/icon，PageHeader 说明改 11px；16 处子模块 PageHeader→SectionTitle；4 个 h2 页标题→h1；能力获取 4 个 Tab 共用页头、引擎新增页头。守卫 pageHeaderOrder.guard.test.ts（含合成反例）+ ui.pageHeader.test.tsx。判据：tsc 0 / eslint 0 / vitest 188 files · 1448 tests；部署 06e9b5fa5 · bundle index-iGd-e8Zf.js · pid 96216；1280/1440/1920 三档标题 y < Tab y、16/11、内容 h2 14/说明 11。",
+   "criteria": "2026-11-19 量具：能力获取标题在 Tab 下面（114 vs 70），review/queue/governance 三个 Tab 无标题；引擎/实例与网络没有页标题（Tab 条就是页头）；工具/记忆/分身的子模块又各渲染一个 H1 16+说明 14；业务看板/反馈中心/安全与权限/本地资源页标题只有 h2 14；prompt-lab 区块标题 16。根因：PageHeader/Tabs 只封装外观，不负责「谁在上面」；PageHeader / SectionTitle / 手写 h2 三套标题体系并存，SectionTitle level=2 是 16px，与阶梯 B 不符；容器与子模块都渲染页级标题。处置：新增 PageTabsHeader（h1 16 + 副标题 11 + Tab 条恒在下面），SectionTitle 收为唯一区块标题并按阶梯 B（16/14/12）且新增 title/description/icon，PageHeader 说明改 11px；17 处子模块 PageHeader→SectionTitle（16 个文件）；4 个 h2 页标题→h1；能力获取 4 个 Tab 共用页头、引擎新增页头。守卫 pageHeaderOrder.guard.test.ts（含合成反例）+ ui.pageHeader.test.tsx。判据：tsc 0 / eslint 0 / vitest 188 files · 1448 tests；部署 06e9b5fa5 · bundle index-iGd-e8Zf.js · pid 96216；1280/1440/1920 三档标题 y < Tab y、16/11、内容 h2 14/说明 11。",
    "next": "无（已收口）。以后新增带页签叶子页一律用 PageTabsHeader；子模块不要再自带 PageHeader。"
   },
   {
    "id": "windows-shard-env-flakes",
-   "status": "open",
+   "status": "done",
    "priority": "P2",
    "title": "ci.yml 的 Windows 分片里有环境敏感用例（不是回归，但判绿总被它打断）",
    "criteria": "2026-11-19 实测：同一批提交在 windows-latest 的 Shard 2 / 4 / 5 各红过 1 条，且都不是当时改动引起的（其中一次提交只改前端）：① test_s6_01_ui_panels.py::TestAuditExport::test_export_contains_verification（assert 1 == 5）；② test_audit_governance_check.py::TestReadOnly::test_full_run_never_appends（assert False is True）；③ test_trace_write_hardening.py::test_degraded_state_is_recoverable_and_counted（trace.store.degraded 不在事件列表）；④ test_ci_guard_fix_regression.py::TestSafeGitRevertStdoutPure::test_stdout纯净_不执行任何git修改。四条**本机单独跑都过**（2 passed / 13 passed），是分片内共享状态/顺序污染或 Windows 环境差异。",
-   "next": "2026-11-19 已按 junit 工件的原始 traceback 归因并修（§11.175）：① 导出前显式 assert chain.flush(timeout=30.0)；② make_chain 的 flush 预算 5→30s（仍断言 True）；③ 新增 _wait_event 有界等待 —— flush 只保证入库，事件留痕在 _mark_committed 之后 best-effort 发出；④ 判据收到 HEAD + --untracked-files=no 的被跟踪状态，git 非 0 重试 5 次后显式失败，并把 data/alarms/、data/ingestion/、test-results/ 补进 .gitignore（data/alarms 此前并未被忽略，-n 2 双 worker 的创建/清理就是 ④ 的红源）。本机 110 passed / 3 skipped；未 --deselect、未放宽断言。等本提交自己的 ci.yml 绿后置 done。"
+   "next": "2026-11-19 已按 junit 工件的原始 traceback 归因并修（§11.175）：① 导出前显式 assert chain.flush(timeout=30.0)；② make_chain 的 flush 预算 5→30s（仍断言 True）；③ 新增 _wait_event 有界等待 —— flush 只保证入库，事件留痕在 _mark_committed 之后 best-effort 发出；④ 判据收到 HEAD + --untracked-files=no 的被跟踪状态，git 非 0 重试 5 次后显式失败，并把 data/alarms/、data/ingestion/、test-results/ 补进 .gitignore（data/alarms 此前并未被忽略，-n 2 双 worker 的创建/清理就是 ④ 的红源）。本机 110 passed / 3 skipped；未 --deselect、未放宽断言。已判绿：06e9b5fa5 的 ci.yml（run 44531420700）27/27 job success，含 windows shard 1–6 与失败基线回归，四条修复所在分片全过 ⇒ 置 done；若再犯按 §11.175 E 先看 flush / write_failed 读数。"
   },
   {
    "id": "ui-encapsulation-gaps",
