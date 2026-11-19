@@ -170,7 +170,7 @@ class TestLocationCoverage:
         # data/skills_repo/<id>/skill.md 未入仓，清单因此少算）。
         # 【2026-10-31】133 -> 135：autoresearch / pdf 入文件轨（§11.32 C · N5）。
         # 【2026-11-07】139 -> 140：chart-visualization 入文件轨（§11.57 ①）。
-        assert len(manifest["entries"]) == 143  # 【2026-11-09】+1：skill_script_run
+        assert len(manifest["entries"]) == 145  # 【2026-11-09】+1：skill_script_run
         for e in manifest["entries"]:
             assert e.get("location") in ("local", "remote"), \
                 f"{e['tool_name']}: location 缺失或非法"

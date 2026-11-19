@@ -22,7 +22,7 @@ import {
   Activity, FileText, Server, Monitor,
   HeartPulse, Users, Hammer,
   Settings, Shield, ListTree, History, Bell, ScrollText, FlaskConical, Route,
-  FileDown, GitBranch, Layers, ListChecks, TrendingUp, SlidersHorizontal, BarChart3, Cpu, ShieldAlert, HardDrive, Film,
+  FileDown, GitBranch, Layers, ListChecks, TrendingUp, SlidersHorizontal, BarChart3, Cpu, ShieldAlert, HardDrive, Film, ShieldCheck,
   PackagePlus, Workflow, Boxes,
 } from 'lucide-react'
 
@@ -75,6 +75,8 @@ const HubAdminExport = lazy(() => import('@/pages/hub/admin/export'))
 // 安全与权限 / 本地资源。此前都只有后端、前端零入口。
 const FeedbackCenter = lazy(() => import('@/pages/hub/governance/feedback'))
 const BusinessBoard = lazy(() => import('@/pages/hub/governance/business'))
+// 【2026-11-19】UI 规范守卫：检查/修复前端封装规范（治理与运营）
+const UiGuardPage = lazy(() => import('@/pages/hub/governance/ui-guard'))
 // 2026-10-18：实例管理 + 搜索性能 合并为一个导航叶子（两 Tab），
 // 避免"配完引擎不知道去哪看效果"。
 const InstancesPanel = lazy(() => import('@/pages/hub/admin/instances-hub'))
@@ -202,6 +204,7 @@ export const HUB_NAV: HubNavItem[] = [
       // 原为 features/route-coverage 自动发现项（顶层），现已删除 manifest（禁止双入口）。
       // 【2026-10-15 IA】原同在这里的「审计导出 / 开关中心」是**运行时**视图，已上移到
       // 全景看板（见该桶内说明）；键不变，旧深链照旧生效。
+      { key: 'governance/ui-guard', label: '规范守卫', icon: ShieldCheck, component: UiGuardPage },
       { key: 'governance/route-coverage', label: '路由覆盖', icon: Route, component: GovernancePanels },
       { key: 'governance/feedback', label: '反馈中心', icon: MessageSquare, component: FeedbackCenter },
       { key: 'governance/business', label: '业务看板', icon: BarChart3, component: BusinessBoard },

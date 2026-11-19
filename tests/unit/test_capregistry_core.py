@@ -171,11 +171,11 @@ class TestQuery:
         # 【2026-11-07】139 → 140、skill 46 → 47、local 117 → 118：
         # chart-visualization（演示技能）入文件轨，见 §11.57 ①。
         # 【2026-11-09】142 → 143：skill_script_run（技能 L3 显式执行点）
-        assert st["total"] == 143, f"能力总数应为 143，实际 {st['total']}"
+        assert st["total"] == 145, f"能力总数应为 145，实际 {st['total']}"
         # 【2026-11-09】tool 93 → 94：skill_script_run（技能 L3 显式执行点）
-        assert st["by_kind"] == {"skill": 49, "tool": 94}
+        assert st["by_kind"] == {"skill": 50, "tool": 95}
         # 【2026-11-09】remote 22 → 23：skill_script_run（子进程执行 ⇒ remote）
-        assert st["by_location"] == {"local": 120, "remote": 23}
+        assert st["by_location"] == {"local": 122, "remote": 23}
         assert st["degraded"] is False
 
     def test_主键索引_tenant_name(self, real_registry):
@@ -210,7 +210,7 @@ class TestQuery:
     @_SKIP_COMMITTED_BASELINE
     def test_索引_确实被构建(self, real_registry):
         idx = real_registry.stats()["index"]
-        assert idx["primary"] == 143  # 【2026-11-07】+1：chart-visualization；【2026-11-09】+1：skill_script_run
+        assert idx["primary"] == 145  # 【2026-11-07】+1：chart-visualization；【2026-11-09】+1：skill_script_run
         assert idx["facet"] >= 1
 
 
@@ -259,7 +259,7 @@ class TestModelCapabilityProbe:
         # stats().total 是 127 —— 两个数含义不同，别混
         # 【2026-10-31】132 -> 134：+2 技能（envelope 仍排除 gstack，故比 stats 少 1）
         # 【2026-11-07】137 -> 138：chart-visualization 入文件轨（§11.57 ①）
-        assert env["data"]["returned"] == env["data"]["total"] == 139
+        assert env["data"]["returned"] == env["data"]["total"] == 141
         assert env["data"]["model_capability"]["supports_tool_calling"] is True
 
     @pytest.mark.parametrize("sentinel", ["none", "off", "-", "no-tools"])
@@ -271,7 +271,7 @@ class TestModelCapabilityProbe:
         assert env["data"]["items"] == []
         # **total 仍然如实报告**：裁剪的是"给这个模型看的清单"，
         # 不是"注册表里有多少能力"。两个数含义不同，不许混。
-        assert env["data"]["total"] == 139  # 【2026-11-09】+1：skill_script_run
+        assert env["data"]["total"] == 141  # 【2026-11-09】+1：skill_script_run
 
     def test_不支持前缀被识别(self):
         ok, why = modelcaps.supports_tool_calling("text-davinci-003")
