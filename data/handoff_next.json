@@ -1,14 +1,14 @@
 {
- "updated_at": "2026-11-20T00:15:00+08:00",
+ "updated_at": "2026-11-20T01:15:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
    "id": "ci-2613fd951-watch",
-   "status": "open",
+   "status": "done",
    "priority": "P1",
-   "title": "判绿 2613fd951 自己的 CI（ci.yml / 契约门禁 / yunshui-ui-tests）",
-   "criteria": "fe1dbf90a 的「契约门禁」红在 test_frontend_stray_baseline：ui-guard.tsx 直接写了 2 处 /api 字面量（要求集中在 src/api/endpoints.ts）。2613fd951 已把 UI_GUARD_CHECK/RULES/FIX 收进 endpoints.ts；本机 test_frontend_stray_baseline 7 passed、tsc 0、面板 4 passed。2613fd951 自己的 ci.yml（27 jobs）/契约门禁/yunshui-ui-tests 尚未判（fe1dbf90a 的 run 44560989553 已被后续 push 取消/过时）。",
-   "next": "gh run list --limit 60 --json ... 按 headSha=2613fd951 查；只认该提交的 run（§9）。绿 → 置 done + 刷新交接卡；红 → 按失败 job 日志修（契约门禁优先看 test_frontend_stray_baseline）。"
+   "title": "判绿 2613fd951 的 CI（ci.yml / 契约门禁 / yunshui-ui-tests）—— 实为真红，已由 4a1cff3e6 修复",
+   "criteria": "2613fd951 的契约门禁（44563105399）与 yunshui-ui 前端测试（44563105824）success；但它自己的 ci.yml（run 44563105694）有 10 个单元分片 + 失败基线回归红。9 类红点全部来自 ui_guard_check 的派生连锁：① route_ui_coverage 产物 hash（端点收进 endpoints.ts、health 迁 server_routes 后落入 unreferenced）；② bm25_raw_top1.json（tool_index sha 变、S0 5.642→5.6684）；③ 路由基线 report.json（intent total_tools 93→94）；④ 路由冲突 v1 的 τ（0.0571→0.0478）；⑤ det2 16→17 / L28 93→94 两处计数；⑥ ui_guard 自身 DYNGATE（spec_from_file_location）与 Windows 黑窗（subprocess 无 hidden_kwargs）；⑦ /api/ui-guard/health 未登记 triage。",
+   "next": "2026-11-20 已修（4a1cff3e6）：干净 worktree 10 个相关测试文件 223 passed；CI 4a1cff3e6 的 ci.yml（run 44569455507）30/30 success，契约门禁 / Route Conflict Gate / 工具检索质量 CI / 环境守卫均 success；已部署 4a1cff3e6 · bundle index-BB8THuS6.js · pid 95268（三处一致），ui-guard health error=0/warning=378/regressions=[]、fix dry_run 0。以后新增工具必须同批重派生这 5 处，并跑 det2/routing_reliability/fusion/route_conflict/proc_hidden。"
   },
   {
    "id": "ui-convention-guard-feature",
