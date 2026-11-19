@@ -626,6 +626,12 @@ class TestAuditExport:
         for i in range(5):
             chain.append(action=f"act{i}", actor="tester", subject=f"s{i}",
                          payload={"i": i}, source="agent")
+        # 【必须先落库再导出】append() 只做「写预留日志 + 入队」，真正的 SQLite 提交
+        # 由后台 writer 线程批量完成；读路径内部的 flush 预算是 FLUSH_TIMEOUT=5s。
+        # 2026-11-19 CI（windows Shard 2，-n 2）实测该预算超时 ⇒ 导出只看到 1 条
+        # （assert 1 == 5）。这里给足提交预算并**照样断言 True**（不是放宽，是消除
+        # 对后台线程调度的依赖；同 test_export_detects_tampering 的「篡改前先落库」）。
+        assert chain.flush(timeout=30.0) is True
         payload = D.audit_export(limit=10, chain=chain)
         assert payload["count"] == 5
         assert payload["verify"]["ok"] is True

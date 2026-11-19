@@ -95,7 +95,12 @@ def make_chain(tmp_path: Path, *, day: str = "2026-09-10", rows: int = 4) -> Aud
     for i in range(rows):
         assert c.append("act%d" % i, "tester", "s:%d" % i, source="agent",
                         ts="%sT00:00:%02d.000000+00:00" % (day, i)) is not None
-    assert c.flush(timeout=5.0) is True
+    # 【为什么给 30s 而不是默认的 5s】Windows CI 的 6 个 shard 是 -n 2（两个 worker
+    # 抢同一台 runner 的磁盘/CPU），FLUSH_TIMEOUT=5s 会超时 ⇒ 夹具在 setup 阶段就红
+    # （2026-11-19 windows Shard 2 实测 assert False is True，where False = flush(timeout=5.0)）。
+    # 提交是后台线程的批量写：这里只放大**等待预算**，仍然要求 flush 返回 True
+    # （记录真的落盘），不是放宽判据。
+    assert c.flush(timeout=30.0) is True
     return c
 
 

@@ -82,16 +82,40 @@ class TestSafeGitRevertStdoutPure:
         assert result["exit_code"] == 0
 
     def test_stdout纯净_不执行任何git修改(self):
-        """dry_run 语义: 不应执行 revert, 工作区保持不变"""
+        """dry_run 语义: 不应执行 revert, 工作区保持不变
+
+        【判据为什么只比「HEAD + 被跟踪文件状态」】CI 的 6 个 shard 是 -n 2，两个
+        worker **共享同一个检出目录**。2026-11-19 windows Shard 5 实测：before 有
+        "?? data/alarms/"、after 没有 —— 另一个 worker 的用例创建/清理了运行期目录，
+        与 safe_revert 无关。revert 只可能改动被跟踪文件与 HEAD，故判据落在这两项上
+        （运行期目录 data/alarms、data/ingestion 同时补进了 .gitignore）。
+
+        【为什么要重试 git】两个 worker 并发跑 git status 会争 .git/index.lock；
+        原实现不检查返回码，锁冲突时 stdout 为空串，比较就成了假红。这里返回码非 0
+        重试几次，仍失败则显式报错（不把「读不到」当作「没变化」）。
+        """
         from safe_git_revert import safe_revert
 
-        status_before = subprocess.run(
-            ["git", "status", "--porcelain"], cwd=PROJECT_ROOT,
-            capture_output=True, text=True, encoding="utf-8").stdout
+        def _git(*args: str) -> str:
+            last = None
+            for _ in range(5):
+                last = subprocess.run(
+                    ["git", *args], cwd=PROJECT_ROOT, capture_output=True,
+                    text=True, encoding="utf-8")
+                if last.returncode == 0:
+                    return last.stdout
+                time.sleep(0.2)
+            raise AssertionError(
+                f"git {' '.join(args)} 连续失败: {(last.stderr or "")[-300:]}")
+
+        def _snapshot() -> tuple:
+            return (_git("rev-parse", "HEAD"),
+                    _git("status", "--porcelain", "--untracked-files=no"))
+
+        head_before, status_before = _snapshot()
         safe_revert("HEAD", dry_run=True)
-        status_after = subprocess.run(
-            ["git", "status", "--porcelain"], cwd=PROJECT_ROOT,
-            capture_output=True, text=True, encoding="utf-8").stdout
+        head_after, status_after = _snapshot()
+        assert head_before == head_after
         assert status_before == status_after
 
 

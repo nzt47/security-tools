@@ -172,6 +172,23 @@ def _event_types(tmp_path) -> List[str]:
     return [str(e.get("type") or "") for e in _read_events(tmp_path)]
 
 
+def _wait_event(tmp_path, event_type: str, *, timeout: float = 10.0) -> List[str]:
+    """有界等待某类事件落盘（返回最后一次读到的事件类型列表）
+
+    【为什么不能读完即断言】flush() 的语义是「记录已入库」，事件留痕是 writer
+    线程在 _mark_committed() 之后 best-effort 发出去的（见 trace_v2
+    _write_to_db_inner 末尾），两者之间没有顺序保证。2026-11-19 CI（windows
+    Shard 4）实测 _event_types(tmp_path) == [] ⇒ 断言「降级有留痕」直接红。
+    这里只是给后台线程一个有界的完成窗口：事件仍必须真的出现（不是放宽口径）。
+    """
+    deadline = time.monotonic() + max(0.0, timeout)
+    types = _event_types(tmp_path)
+    while event_type not in types and time.monotonic() < deadline:
+        time.sleep(0.05)
+        types = _event_types(tmp_path)
+    return types
+
+
 # ════════════════════════════════════════════════════════════
 #  多进程 worker（**模块级**：spawn 需要可 pickle）
 # ════════════════════════════════════════════════════════════
@@ -433,7 +450,8 @@ def test_degraded_state_is_recoverable_and_counted(tmp_path, monkeypatch, open_s
     assert stats["durable"] is False
     # flush() True（在途清零）但 flush_durable() False（没有真落盘）——两个口径分开
     assert store.flush_durable(timeout=10.0) is False
-    assert trace_v2.EVENT_TRACE_DEGRADED in _event_types(tmp_path)   # 降级有落盘留痕
+    assert trace_v2.EVENT_TRACE_DEGRADED in _wait_event(
+        tmp_path, trace_v2.EVENT_TRACE_DEGRADED)   # 降级有落盘留痕（等后台发事件）
 
     # ── 第二步：下一次成功 ⇒ **恢复**（原实现会在这里永久卡在降级态）──
     assert store.record(_trace("b" * 16)) is True

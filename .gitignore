@@ -686,3 +686,13 @@ data/replays/replay_meta.db
 # 只放个 .gitkeep 让目录可建，其余一律忽略。
 secrets/
 !secrets/.gitkeep
+
+# 【2026-11-19】运行期目录：报警器台账 / 能力获取草稿与切分 / CI 测试产物。
+# 三者都是「每次运行都会新建或改写」的状态：被跟踪时 git status 长期挂 "?? "，
+# 且会**被并行的测试 worker 之间的创建/清理挑起** —— 2026-11-19 windows Shard 5
+# 的 test_stdout纯净_不执行任何git修改 就是被 data/alarms/ 的瞬时出现/消失打红的
+# （before 有、after 没有）。与上面 replay_meta.db 段同款口径：显式登记，
+# git add -A / git commit -a 不再带走运行期状态。
+data/alarms/
+data/ingestion/
+test-results/
