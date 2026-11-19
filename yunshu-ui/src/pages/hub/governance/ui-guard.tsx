@@ -16,6 +16,7 @@ import {
   Badge, Button, Card, DataTable, ErrorBox, Loading, Notice, PageTabsHeader,
   SectionTitle, Select, Tabs, hubGet, hubPost,
 } from '../components/ui'
+import { UI_GUARD_CHECK, UI_GUARD_FIX, UI_GUARD_RULES } from '@/api/endpoints'
 
 type Tab = 'overview' | 'findings'
 
@@ -92,7 +93,7 @@ export default function UiGuardPage() {
   const load = useCallback(async () => {
     setLoading(true); setErr('')
     try {
-      const body = await hubGet<{ ok: boolean; report: Report; error?: string }>('/api/ui-guard/check?limit=500')
+      const body = await hubGet<{ ok: boolean; report: Report; error?: string }>(UI_GUARD_CHECK + '?limit=500')
       if (!body?.ok) throw new Error(body?.error || '检查失败')
       setReport(body.report)
     } catch (e) {
@@ -104,7 +105,7 @@ export default function UiGuardPage() {
 
   useEffect(() => { void load() }, [load])
   useEffect(() => {
-    hubGet<{ ok: boolean; rules: RuleDef[] }>('/api/ui-guard/rules')
+    hubGet<{ ok: boolean; rules: RuleDef[] }>(UI_GUARD_RULES)
       .then((b) => { if (b?.ok) setRules(b.rules) })
       .catch(() => { /* 规则清单只是分组辅助，失败不挡主流程 */ })
   }, [])
@@ -128,7 +129,7 @@ export default function UiGuardPage() {
   const runFix = async (apply: boolean) => {
     setFixBusy(true); setFixErr(''); setFixMsg('')
     try {
-      const body = await hubPost<{ ok: boolean; result: FixResult; error?: string }>('/api/ui-guard/fix', {
+      const body = await hubPost<{ ok: boolean; result: FixResult; error?: string }>(UI_GUARD_FIX, {
         dry_run: !apply,
         confirm: apply,
         rules: ['button.alignment', 'heading.scale'],

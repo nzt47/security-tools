@@ -248,6 +248,11 @@ export const experienceBatchRollback = (batchId: string) => `/api/experience/bat
 export const VISUAL_WORKFLOWS = '/api/visual-workflows';
 export const visualWorkflowById = (id: string) => `/api/visual-workflows/${encodeURIComponent(id)}`;
 
+/** UI 规范守卫（2026-11-19）：治理与运营 → 规范守卫 */
+export const UI_GUARD_CHECK = '/api/ui-guard/check';
+export const UI_GUARD_RULES = '/api/ui-guard/rules';
+export const UI_GUARD_FIX = '/api/ui-guard/fix';
+
 export const APPROVAL_SESSION = '/api/approval/session';
 /** 一次性审批链接（会话绑定 + record 绑定；对话内联审批弹窗用） */
 export const APPROVAL_LINK = '/api/approval/link';
