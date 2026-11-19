@@ -9,12 +9,12 @@
  * 统计 / 批次回滚**，ingest 接口保留供 CLI/外部写入。
  *
  * 【UI 纪律】工作台内扩展，不建独立 Web App；复用 pages/hub/components/ui 的
- * Card / StatCard / PageHeader / Loading / ErrorBox / Badge。
+ * Card / StatCard / SectionTitle / Loading / ErrorBox / Badge。
  */
 import LearningMetrics from './LearningMetrics'
 import { useCallback, useEffect, useState } from 'react'
 import { Search, RefreshCw, Undo2, CheckCircle2, XCircle, Archive } from 'lucide-react'
-import { Badge, Button, Card, ErrorBox, Input, Loading, Notice, PageHeader, RowButton, Select, StatCard } from '../components/ui'
+import { Badge, Button, Card, ErrorBox, Input, Loading, Notice, SectionTitle, RowButton, Select, StatCard } from '../components/ui'
 import {
   fetchDetail, fetchList, fetchStats, reviewItem, rollbackBatch, searchPreview,
   type ExperienceHit, type ExperienceItem, type ExperienceStats,
@@ -108,7 +108,7 @@ export default function ExperiencePanel() {
 
   return (
     <div className="p-6">
-      <PageHeader
+      <SectionTitle
         title="经验库"
         description="DSH 历史会话提炼的经验样本：审阅 / 检索预览 / 统计 / 批次回滚"
         actions={

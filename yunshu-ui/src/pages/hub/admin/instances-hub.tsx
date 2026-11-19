@@ -13,6 +13,7 @@
 import { useState } from 'react'
 import { Activity, Cpu, Globe } from 'lucide-react'
 import { Tabs } from '@/components/ui'
+import { PageTabsHeader } from '../components/ui'
 import InstancesPanel from './instances'
 import SearchPerformance from './search-perf'
 import NetworkPage from '@/pages/hub/network'
@@ -39,16 +40,22 @@ export default function InstancesHub() {
   const active = TABS.find(([id]) => id === tab) ?? TABS[0]
   return (
     <div className="flex h-full min-h-0 flex-col bg-slate-950">
-      <div className="flex items-center gap-1.5 border-b border-slate-800 px-4 py-2">
-        <Tabs
-          variant="segmented"
-          size="sm"
-          value={tab}
-          onChange={(v) => setTab(v as typeof tab)}
-          items={TABS.map(([id, label, Icon]) => ({ value: id, label: <><Icon size={13} />{label}</> }))}
-        />
-        <span className="ml-auto font-mono text-micro text-slate-600">{active[3]}</span>
-      </div>
+      {/* 【2026-11-19】此前 Tab 条就是页头、副标题是 10px mono；与其他叶子统一成
+          「h1 标题 + 11px caption 副标题 + 标题在 Tab 上面」。 */}
+      <PageTabsHeader
+        icon={<Cpu size={14} className="text-primary" />}
+        title="实例与网络"
+        hint={active[3]}
+        tabs={(
+          <Tabs
+            variant="segmented"
+            size="sm"
+            value={tab}
+            onChange={(v) => setTab(v as typeof tab)}
+            items={TABS.map(([id, label, Icon]) => ({ value: id, label: <><Icon size={13} />{label}</> }))}
+          />
+        )}
+      />
       <div className="min-h-0 flex-1">
         {tab === 'instances' && <InstancesPanel />}
         {tab === 'perf' && <SearchPerformance />}

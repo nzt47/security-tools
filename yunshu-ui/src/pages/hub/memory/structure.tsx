@@ -13,7 +13,7 @@
  */
 import { useEffect, useState } from 'react'
 import { BookOpen, Brain, Database, Lightbulb, RefreshCw } from 'lucide-react'
-import { Button, Card, hubGet, PageHeader, StatCard } from '../components/ui'
+import { Button, Card, hubGet, SectionTitle, StatCard } from '../components/ui'
 import { MemoryGovernancePanel } from './memory-governance'
 import { getEnvelope } from '@/api/envelope'
 import { EXPERIENCE_STATS, KNOWLEDGE_CARDS, MEMORY_OVERVIEW, VECTOR_STATS } from '@/api/endpoints'
@@ -125,7 +125,7 @@ export default function MemoryStructure() {
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-5">
-      <PageHeader
+      <SectionTitle
         title="记忆结构"
         description="记忆的层次、组成部分、数据来源与职责边界（数量取自真实端点，取不到显示 —）"
       />

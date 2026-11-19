@@ -29,7 +29,7 @@ import {
   getGraph,
 } from '../../../api/knowledge'
 import { ApiError } from '../../../lib/apiClient'
-import { Badge, Button, Card as HubCard, DataTable, ErrorBox, Input, Loading, Notice, PageHeader, Select, StatCard, Tabs } from '../components/ui'
+import { Badge, Button, Card as HubCard, DataTable, ErrorBox, Input, Loading, Notice, SectionTitle, Select, StatCard, Tabs } from '../components/ui'
 import StatusBadge from '../../../components/Knowledge/StatusBadge'
 import CardDetailView from '../../../components/Knowledge/CardDetail'
 import CardForm from '../../../components/Knowledge/CardForm'
@@ -238,7 +238,7 @@ export default function MemoryKnowledge() {
 
   return (
     <div className="p-6">
-      <PageHeader
+      <SectionTitle
         title="知识库系统"
         description="知识卡片管理 · 融合检索 · 健康巡检 · 双链图谱"
         actions={

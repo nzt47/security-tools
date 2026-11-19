@@ -9,9 +9,9 @@
  * LEGACY_NAV_KEY_MAP 归一为 `engine`；本组件再读一次原始 hash 决定初始 Tab。
  */
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { HeartPulse, CalendarClock, History as HistoryIcon, ListChecks, Settings2 } from 'lucide-react'
+import { Activity, HeartPulse, CalendarClock, History as HistoryIcon, ListChecks, Settings2 } from 'lucide-react'
 
-import { Badge, Card, DataTable, ErrorBox, Loading, Tabs } from '../components/ui'
+import { Badge, Card, DataTable, ErrorBox, Loading, PageTabsHeader, Tabs } from '../components/ui'
 import { SCHEDULER_HISTORY } from '@/api/endpoints'
 import { authHeader } from '@/lib/apiToken'
 import { BOOT_PANEL } from '@/workbench/hubNav'
@@ -22,6 +22,15 @@ const TaskQueuePanel = lazy(() => import('./tasks'))
 const OrchestrationPanel = lazy(() => import('./orchestration'))
 
 type Tab = 'heartbeat' | 'scheduler' | 'history' | 'tasks' | 'orchestration'
+
+/** 每个 Tab 的小标题（统一 11px caption，由 PageTabsHeader 渲染；不再各 Tab 自己写 12/14px） */
+const TAB_HINT: Record<Tab, string> = {
+  heartbeat: '默认打开（只读）',
+  scheduler: '启停与改时刻只在这里',
+  history: '最近的调度执行记录',
+  tasks: '后台任务（DAG）',
+  orchestration: '语义层热更 / 过程蒸馏',
+}
 
 const TABS: Array<{ key: Tab; label: string; icon: typeof HeartPulse }> = [
   { key: 'heartbeat', label: '心跳监测', icon: HeartPulse },
@@ -90,21 +99,25 @@ export default function EngineHub() {
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-2 px-6 pt-4">
-        <Tabs
-          variant="segmented"
-          size="sm"
-          value={tab}
-          onChange={(v) => setTab(v as typeof tab)}
-          items={TABS.map((t) => {
-            const Icon = t.icon
-            return { value: t.key, label: <><Icon size={12} /> {t.label}</> }
-          })}
-        />
-        <span className="ml-2 text-xs text-slate-500">
-          只读视图默认打开；启停与改时刻只在「定时任务」内
-        </span>
-      </div>
+      {/* 【2026-11-19】标题回到 Tab 条上面（此前 Tab 条就是页头，压根没有「引擎」标题）；
+          各 Tab 的小标题统一走 PageTabsHeader 的 11px caption，内容里的区块标题统一 h2 14。 */}
+      <PageTabsHeader
+        icon={<Activity size={14} className="text-primary" />}
+        title="引擎"
+        hint={TAB_HINT[tab]}
+        tabs={(
+          <Tabs
+            variant="segmented"
+            size="sm"
+            value={tab}
+            onChange={(v) => setTab(v as typeof tab)}
+            items={TABS.map((t) => {
+              const Icon = t.icon
+              return { value: t.key, label: <><Icon size={12} /> {t.label}</> }
+            })}
+          />
+        )}
+      />
 
       {tab === 'history' ? (
         <div className="p-6">

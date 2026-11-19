@@ -22,6 +22,7 @@ import type { ComponentType } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { Boxes, Loader2, Monitor, Plug, Puzzle, Tags, Terminal, Wrench } from 'lucide-react'
 import { Tabs } from '@/components/ui'
+import { PageTabsHeader } from '../components/ui'
 
 const ToolsToolset = lazy(() => import('./toolset'))
 const ToolsCli = lazy(() => import('./cli'))
@@ -150,26 +151,25 @@ export default function ToolsPage({ initialTab }: ToolsPageProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* 顶栏：模块标题 + Tab 条（6 个子项并列） */}
-      <header className="shrink-0 border-b border-slate-800 bg-slate-900/40 px-5 pt-4">
-        <div className="mb-3 flex items-center gap-2">
-          <Wrench size={14} className="text-primary" />
-          <h1 className="text-title font-semibold text-foreground">工具与接入</h1>
-          <span className="text-caption text-muted-foreground">{active.hint}</span>
-        </div>
-
-        <Tabs
-          variant="folder"
-          className="-mb-px"
-          aria-label="工具与接入子模块"
-          value={tab}
-          onChange={(v) => setTab(v as typeof tab)}
-          items={TOOLS_TABS.map((t) => {
-            const Icon = t.icon
-            return { value: t.id, label: <><Icon size={13} />{t.label}</>, title: t.hint }
-          })}
-        />
-      </header>
+      {/* 顶栏：模块标题 + Tab 条（6 个子项并列）—— 组合由 PageTabsHeader 统一（标题恒在 Tab 上面） */}
+      <PageTabsHeader
+        icon={<Wrench size={14} className="text-primary" />}
+        title="工具与接入"
+        hint={active.hint}
+        tabs={(
+          <Tabs
+            variant="folder"
+            className="-mb-px"
+            aria-label="工具与接入子模块"
+            value={tab}
+            onChange={(v) => setTab(v as typeof tab)}
+            items={TOOLS_TABS.map((t) => {
+              const Icon = t.icon
+              return { value: t.id, label: <><Icon size={13} />{t.label}</>, title: t.hint }
+            })}
+          />
+        )}
+      />
 
       {/* Tab 内容：key={tab} 强制重挂载，避免切换后残留上一个子模块的局部状态 */}
       <div className="min-h-0 flex-1 overflow-y-auto bg-slate-950">

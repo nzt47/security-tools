@@ -18,7 +18,7 @@
  */
 import { Suspense, lazy, useEffect, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { Tabs } from '../components/ui'
+import { PageTabsHeader, Tabs } from '../components/ui'
 import { BookOpen, Brain, Layers, Loader2, Search, Wrench } from 'lucide-react'
 
 // MemoryPage 同时承载「手动记忆 / 自动记忆」（由 mode 参数区分）
@@ -94,25 +94,24 @@ export default function MemoryHub({ initialTab }: MemoryHubProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="shrink-0 border-b border-slate-800 bg-slate-900/40 px-5 pt-4">
-        <div className="mb-3 flex items-center gap-2">
-          <Brain size={14} className="text-primary" />
-          <h1 className="text-title font-semibold text-foreground">记忆管理</h1>
-          <span className="text-caption text-muted-foreground">{active.hint}</span>
-        </div>
-
-        <Tabs
-          variant="folder"
-          className="-mb-px"
-          aria-label="记忆管理子模块"
-          value={tab}
-          onChange={(v) => setTab(v as MemoryTab)}
-          items={MEMORY_TABS.map((t) => {
-            const Icon = t.icon
-            return { value: t.id, label: <><Icon size={13} />{t.label}</>, title: t.hint }
-          })}
-        />
-      </header>
+      <PageTabsHeader
+        icon={<Brain size={14} className="text-primary" />}
+        title="记忆管理"
+        hint={active.hint}
+        tabs={(
+          <Tabs
+            variant="folder"
+            className="-mb-px"
+            aria-label="记忆管理子模块"
+            value={tab}
+            onChange={(v) => setTab(v as MemoryTab)}
+            items={MEMORY_TABS.map((t) => {
+              const Icon = t.icon
+              return { value: t.id, label: <><Icon size={13} />{t.label}</>, title: t.hint }
+            })}
+          />
+        )}
+      />
 
       <div className="min-h-0 flex-1 overflow-y-auto bg-slate-950">
         <Suspense

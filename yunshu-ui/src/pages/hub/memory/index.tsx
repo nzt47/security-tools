@@ -8,7 +8,7 @@
  */
 import { useEffect, useState } from 'react'
 import { Brain, Search, Plus } from 'lucide-react'
-import { Button, Card, ErrorBox, Input, Loading, Notice, PageHeader, StatCard, Textarea } from '../components/ui'
+import { Button, Card, ErrorBox, Input, Loading, Notice, SectionTitle, StatCard, Textarea } from '../components/ui'
 // 【P1-front 第六批】三个端点都已带 X-Envelope: v2（overview 是 GET，另两个是 POST），
 // 改用显式信封解析：GET 走 getEnvelope、POST 走 postEnvelope（后者的请求头语义与 hubPost 逐条对齐）。
 import { getEnvelope, postEnvelope } from '@/api/envelope'
@@ -143,7 +143,7 @@ export default function MemoryPage({ mode = 'manual' }: MemoryPageProps) {
 
   return (
     <div className="p-6">
-      <PageHeader
+      <SectionTitle
         title={isAuto ? '自动记忆' : '记忆管理'}
         description={isAuto ? '系统在对话过程中自动沉淀的记忆 / 知识检索' : '手动记忆 / 自动记忆 / 知识检索'}
       />

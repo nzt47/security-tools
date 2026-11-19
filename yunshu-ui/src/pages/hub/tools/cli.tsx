@@ -4,7 +4,7 @@
  */
 import { useState } from 'react'
 import { Terminal } from 'lucide-react'
-import { Button, Card, hubGet, PageHeader, unwrap } from '../components/ui'
+import { Button, Card, hubGet, SectionTitle, unwrap } from '../components/ui'
 
 import {
   PROCESS_LIST,
@@ -30,7 +30,7 @@ export default function ToolsCli() {
 
   return (
     <div className="p-6">
-      <PageHeader title="CLI 软件" description="命令行工具与系统进程管理" />
+      <SectionTitle title="CLI 软件" description="命令行工具与系统进程管理" />
       <div className="grid gap-4 lg:grid-cols-2">
         <Card title="系统进程">
           <div className="mb-3 flex items-center justify-between">

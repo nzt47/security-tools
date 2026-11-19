@@ -174,7 +174,7 @@ export default function SecurityPanel() {
     <div className="h-full overflow-y-auto p-4">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Shield size={14} className="text-cyan-400" />
-        <h2 className="text-ui font-semibold text-slate-100">安全与权限</h2>
+        <h1 className="text-title font-semibold text-foreground">安全与权限</h1>
         <span className="text-caption text-slate-500">权限开关 · 紧急控制 · 危险关键词 · 隐私清单</span>
         <div className="ml-auto">
           <Button type="button" variant="default" size="xs" onClick={() => { void loadPerm(); void loadSafety(); void loadPrivacy() }} disabled={loading} aria-label="刷新安全与权限">

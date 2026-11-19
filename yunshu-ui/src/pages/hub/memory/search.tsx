@@ -14,7 +14,7 @@
  */
 import { useState } from 'react'
 import { Search } from 'lucide-react'
-import { Button, Card, Input, Loading, ErrorBox, PageHeader, Select } from '../components/ui'
+import { Button, Card, Input, Loading, ErrorBox, SectionTitle, Select } from '../components/ui'
 // 【P1-front 第六批】两个 POST 端点都已带 X-Envelope: v2，改用 postEnvelope 显式解析。
 import { postEnvelope } from '@/api/envelope'
 // 经验库面复用既有 API 封装（GET + Authorization），不新建 HTTP 层。
@@ -94,7 +94,7 @@ export default function MemorySearch() {
 
   return (
     <div className="p-6">
-      <PageHeader title="全库检索" description="一个入口，分面检索：向量记忆 / 知识库 / 经验库（各面分数口径不同，故不跨面混排）" />
+      <SectionTitle title="全库检索" description="一个入口，分面检索：向量记忆 / 知识库 / 经验库（各面分数口径不同，故不跨面混排）" />
       {error && <div className="mb-4"><ErrorBox message={error} /></div>}
       <Card>
         <div className="flex gap-2">

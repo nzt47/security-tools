@@ -15,7 +15,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { FileStack, Loader2, Play, RefreshCw, Settings2, Wand2 } from 'lucide-react'
-import { Button, Checkbox, CodeBlock, ErrorBox, hubGet, hubPost, Input, Notice, Textarea } from '../components/ui'
+import { Button, Checkbox, CodeBlock, ErrorBox, hubGet, hubPost, Input, Notice, SectionTitle, Textarea } from '../components/ui'
 import {
   ORCHESTRATOR_SEMANTIC_CONFIG,
   PLANNING_TOGGLE,
@@ -105,16 +105,16 @@ export default function EngineOrchestration() {
 
   return (
     <div className="h-full overflow-y-auto p-4">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <Settings2 size={14} className="text-cyan-400" />
-        <h2 className="text-ui font-semibold text-slate-100">编排与蒸馏</h2>
-        <span className="text-caption text-slate-500">语义层热更 / 规划引擎开关 / 过程蒸馏（把素材固化成 workflow 或技能）</span>
-        <div className="ml-auto">
+      <SectionTitle
+        icon={<Settings2 size={14} className="text-cyan-400" />}
+        title="编排与蒸馏"
+        description="语义层热更 / 规划引擎开关 / 过程蒸馏（把素材固化成 workflow 或技能）"
+        actions={(
           <Button type="button" variant="default" size="xs" onClick={() => void load()} disabled={loading} aria-label="刷新编排配置">
             {busy === 'load' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
           </Button>
-        </div>
-      </div>
+        )}
+      />
 
       {err && <ErrorBox message={err} />}
       {msg && <Notice tone="success" size="sm" className="mb-2">{msg}</Notice>}

@@ -5,7 +5,7 @@
  * （variant=primary 取语义主色 --color-primary，不再出现 bg-blue-600 这类第五种强调色）。
  * 仍从本文件导入，避免页面里同时出现两个 ui 命名空间。
  */
-export { Button, Checkbox, CodeBlock, Input, ModalBase, Notice, Radio, RowButton, Select, Switch, Slider, Tabs, Textarea } from '@/components/ui'
+export { Button, Checkbox, CodeBlock, Input, ModalBase, Notice, Radio, RowButton, SectionTitle, Select, Switch, Slider, Tabs, Textarea } from '@/components/ui'
 
 import type { ReactNode } from 'react'
 // 全局 Badge 只在本文件内部使用（对外仍暴露 hub 那层带 color 枚举的 Badge）
@@ -220,13 +220,48 @@ export function CallabilityBadge({ info, name, className = '', compact = false }
   )
 }
 
+/**
+ * 叶子页「标题 + Tab 条」的唯一组合方式（2026-11-19，Owner 报「能力获取/引擎 排版不统一」）
+ *
+ * 【为什么单独立这一档】PageHeader 管标题的字号、Tabs 管页签的外观，但**谁在上面**
+ * 没有机制约束：能力获取把 <Tabs> 写在 <PageHeader> 前面（标题落到 Tab 下面）；引擎 /
+ * 实例与网络把 Tab 条当页头（压根没有标题）；各页又自己写 h1/h2 + text-sm/text-xs/
+ * text-caption 的副标题 ⇒ 同一个「Tab 的小标题」在三个页面上是 14/12/11 三种字号。
+ * 这里把「图标 + 标题 + 副标题 + 右侧动作 + Tab 条」收成一个组件：
+ *   - 标题恒为 h1 text-title（16px）；
+ *   - 副标题恒为 text-caption（11px），随激活 Tab 变化；
+ *   - Tab 条恒在标题**下面**。
+ * 新的带页签叶子页一律用它，不要再自己拼 <header> + <Tabs>。
+ */
+export function PageTabsHeader({ icon, title, hint, actions, tabs, className = '' }: {
+  icon?: ReactNode
+  title: string
+  hint?: ReactNode
+  actions?: ReactNode
+  tabs: ReactNode
+  className?: string
+}) {
+  return (
+    <header className={`shrink-0 border-b border-slate-800 bg-slate-900/40 px-5 pt-4 ${className}`}>
+      <div className="mb-3 flex items-center gap-2">
+        {icon}
+        <h1 className="text-title font-semibold text-foreground">{title}</h1>
+        {hint ? <span className="text-caption text-muted-foreground">{hint}</span> : null}
+        {actions ? <div className="ml-auto flex items-center gap-1.5">{actions}</div> : null}
+      </div>
+      {tabs}
+    </header>
+  )
+}
+
+
 /** 页面标题 */
 export function PageHeader({ title, description, actions }: { title: string; description?: string; actions?: ReactNode }) {
   return (
     <div className="mb-5 flex items-start justify-between">
       <div>
-        <h1 className="text-title font-semibold text-white">{title}</h1>
-        {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
+        <h1 className="text-title font-semibold text-foreground">{title}</h1>
+        {description && <p className="mt-1 text-caption text-muted-foreground">{description}</p>}
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}
     </div>

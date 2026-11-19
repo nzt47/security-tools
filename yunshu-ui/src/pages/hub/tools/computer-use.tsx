@@ -8,7 +8,7 @@
  */
 import { useState } from 'react'
 import { Camera, Clipboard, ClipboardPaste, Loader2, Monitor, Navigation, X } from 'lucide-react'
-import { Button, Card, PageHeader, hubGet, hubPost, Input, Textarea } from '../components/ui'
+import { Button, Card, SectionTitle, hubGet, hubPost, Input, Textarea } from '../components/ui'
 
 import {
   BROWSER_NAVIGATE,
@@ -113,7 +113,7 @@ export default function ToolsComputerUse() {
 
   return (
     <div className="p-6">
-      <PageHeader title="Computer Use" description="浏览器自动化与屏幕操作 / 剪贴板" />
+      <SectionTitle title="Computer Use" description="浏览器自动化与屏幕操作 / 剪贴板" />
 
       {result && <div className="mb-3 rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-sm text-cyan-400">{result}</div>}
 

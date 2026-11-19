@@ -5,7 +5,7 @@
 import NetworkTransfer from './TransferPanel'
 import { useEffect, useState } from 'react'
 import { Globe, Save, RotateCcw } from 'lucide-react'
-import { Button, Card, ErrorBox, hubGet, hubPost, Input, Loading, PageHeader, unwrap } from '../components/ui'
+import { Button, Card, ErrorBox, hubGet, hubPost, Input, Loading, SectionTitle, unwrap } from '../components/ui'
 
 import {
   APPLY_NETWORK_CONFIG,
@@ -57,7 +57,7 @@ export default function NetworkPage() {
 
   return (
     <div className="p-6">
-      <PageHeader
+      <SectionTitle
         title="网络配置"
         description="LLM 与网络参数配置"
         actions={

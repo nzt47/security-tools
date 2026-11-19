@@ -17,7 +17,7 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import { ClipboardCopy, Hammer, Loader2, Rocket, ShieldCheck, Users } from 'lucide-react'
-import { Badge, Button, Card, ErrorBox, hubPost, Input, Loading, PageHeader, Select } from '../components/ui'
+import { Badge, Button, Card, ErrorBox, hubPost, Input, Loading, SectionTitle, Select } from '../components/ui'
 import { SUBAGENT_CREATE, SUBAGENT_LIST } from '@/api/endpoints'
 import { getEnvelope } from '@/api/envelope'
 import {
@@ -163,7 +163,7 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
 
   return (
     <div className="p-6">
-      <PageHeader title="组装台" description="按主权二十面拼装一个分身：装什么、缺什么，一目了然" />
+      <SectionTitle title="组装台" description="按主权二十面拼装一个分身：装什么、缺什么，一目了然" />
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Hammer size={14} className="text-cyan-400" />
         <span className="text-xs text-slate-500">起点模板：</span>

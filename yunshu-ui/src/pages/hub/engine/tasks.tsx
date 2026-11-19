@@ -18,7 +18,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Ban, CheckCircle2, Clock, FileText, Loader2, ListChecks, RefreshCw,
 } from 'lucide-react'
-import { Button, CodeBlock, ErrorBox, hubGet, hubPost, Notice, Select } from '../components/ui'
+import { Button, CodeBlock, ErrorBox, hubGet, hubPost, Notice, SectionTitle, Select } from '../components/ui'
 import {
   ASYNC_TASKS,
   BACKGROUND_TASKS,
@@ -170,17 +170,19 @@ export default function TaskQueue() {
 
   return (
     <div className="h-full overflow-y-auto p-4">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <ListChecks size={14} className="text-cyan-400" />
-        <h2 className="text-ui font-semibold text-slate-100">任务队列</h2>
-        <span className="text-caption text-slate-500">后台任务（DAG）与异步任务表 —— 同一个问题的两代实现</span>
-        <div className="ml-auto flex items-center gap-1.5">
-          <Select value={statusFilter} onChange={(v) => { setStatusFilter(v); void load(v)}} aria-label="后台任务状态过滤" size="sm" placeholder="全部状态" placeholderOptionDisabled={false} options={[{ label: 'pending', value: 'pending' }, { label: 'running', value: 'running' }, { label: 'completed', value: 'completed' }, { label: 'failed', value: 'failed' }]} />
-          <Button type="button" variant="default" size="xs" onClick={() => void load()} disabled={loading} aria-label="刷新任务队列">
-            {loading ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-          </Button>
-        </div>
-      </div>
+      <SectionTitle
+        icon={<ListChecks size={14} className="text-cyan-400" />}
+        title="任务队列"
+        description="后台任务（DAG）与异步任务表 —— 同一个问题的两代实现"
+        actions={(
+          <>
+            <Select value={statusFilter} onChange={(v) => { setStatusFilter(v); void load(v)}} aria-label="后台任务状态过滤" size="sm" placeholder="全部状态" placeholderOptionDisabled={false} options={[{ label: 'pending', value: 'pending' }, { label: 'running', value: 'running' }, { label: 'completed', value: 'completed' }, { label: 'failed', value: 'failed' }]} />
+            <Button type="button" variant="default" size="xs" onClick={() => void load()} disabled={loading} aria-label="刷新任务队列">
+              {loading ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
+            </Button>
+          </>
+        )}
+      />
 
       {err && <ErrorBox message={err} />}
       {msg && (

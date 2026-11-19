@@ -21,7 +21,7 @@
 import { useState } from 'react'
 import type { ChangeEvent, KeyboardEvent } from 'react'
 import { ClipboardCopy, Loader2, Package, RefreshCw, Upload } from 'lucide-react'
-import { Button, Card, ErrorBox, Input, PageHeader, Textarea } from '../components/ui'
+import { Button, Card, ErrorBox, Input, SectionTitle, Textarea } from '../components/ui'
 import { ApiError, request } from '@/lib/apiClient'
 import { SUBAGENT_BUNDLE_BY_NAME, SUBAGENT_IMPORT } from '@/api/endpoints'
 
@@ -194,7 +194,7 @@ export default function WorkshopReplicate() {
 
   return (
     <div className="p-6">
-      <PageHeader
+      <SectionTitle
         title="系统自我复制"
         description="装配车间 —— 可带走 bundle：导出与导入都是真实端点，离线运行如实标注"
       />

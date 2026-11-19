@@ -12,7 +12,7 @@ import {
   AlertTriangle, ArrowRight, BookOpen, CheckCircle2, FileText, FolderOpen, GitBranch,
   Layers, Loader2, PackagePlus, RefreshCw, Search, ShieldCheck,
 } from 'lucide-react'
-import { Badge, Button, Card, Checkbox, ErrorBox, Input, Notice, PageHeader, Select, Tabs, Textarea } from '../components/ui'
+import { Badge, Button, Card, Checkbox, ErrorBox, Input, Notice, PageTabsHeader, Select, Tabs, Textarea } from '../components/ui'
 import GovernancePanel from './governance'
 import ReviewPanel from './ReviewPanel'
 import MemoryDraftPanel from './MemoryDraftPanel'
@@ -72,35 +72,12 @@ const BATCH_MAX = 20
 /** 候选列表每页条数（惰加载） */
 const SOURCE_PAGE = 50
 
-function IngestionTabs({ tab, onChange, onHelp }: {
-  tab: IngestionTab
-  onChange: (t: IngestionTab) => void
-  onHelp: () => void
-}) {
-  return (
-    <div className="mb-3 flex items-center gap-1.5">
-      {/* 2026-11-05 IA：转化队列从「技能中心」弹窗搬到这里 —— 摄取 → 生成草稿 → 评审 →
-          登记 → 启用是同一条流水线，队列必须和入口同页（原先在技能中心，等于把第 2 段拆走）。 */}
-      <Tabs
-        variant="pill"
-        size="sm"
-        aria-label="能力获取子模块"
-        value={tab}
-        onChange={(v) => onChange(v as IngestionTab)}
-        items={[
-          { value: 'acquire', label: <><PackagePlus size={12} /> 获取外来能力</> },
-          { value: 'review', label: <><ShieldCheck size={12} /> 草稿评审</> },
-          { value: 'queue', label: <><GitBranch size={12} /> 转化队列</> },
-          { value: 'governance', label: <><Layers size={12} /> 存量治理</> },
-        ]}
-      />
-      {/* 联机帮助：四个 Tab 共用一份手册（流程是跨 Tab 的，只在获取页给会缺一站） */}
-      <Button type="button" variant="default" size="sm" className="ml-auto" onClick={onHelp}
-        aria-label="使用手册">
-        <BookOpen size={12} /> 使用手册
-      </Button>
-    </div>
-  )
+/** 每个 Tab 的「小标题」（统一 11px caption，由 PageTabsHeader 渲染；不再各页自己写 text-sm/text-xs） */
+const TAB_HINT: Record<IngestionTab, string> = {
+  acquire: '外来技能 / 文档 / 提示词 / 插件包 → 摄取、预览、生成草稿（不安装、不注册、不启用）',
+  review: '草稿评审：看计划、改步骤绑定、登记为能力（只在这里登记）',
+  queue: '转化队列：已归档 / 待归档 / 二次确认彻底删除',
+  governance: '存量治理：重复 / 过期 / 冲突的既有能力',
 }
 
 export default function IngestionPage() {
@@ -293,14 +270,46 @@ export default function IngestionPage() {
     ? '生成技能草稿'
     : (form === 'tool' ? '生成工具草稿' : '生成工作流草稿')
 
-  const tabs = <IngestionTabs tab={tab} onChange={setTab} onHelp={openHelp} />
   const helpNode = <IngestionHelp open={helpOpen} onClose={() => setHelpOpen(false)} onGo={setTab} />
+
+  // 【2026-11-19】页头由 PageTabsHeader 统一：标题（16px）恒在 Tab 条**上面**，
+  // 副标题（11px）随激活 Tab 变化；四个分支共用同一个页头（此前 review/queue/
+  // governance 三个分支根本没有标题，acquire 分支的标题还落在 Tab 下面）。
+  const pageHeader = (
+    <PageTabsHeader
+      icon={<PackagePlus size={14} className="text-primary" />}
+      title="能力获取"
+      hint={TAB_HINT[tab]}
+      actions={(
+        <Button type="button" variant="default" size="sm" onClick={openHelp} aria-label="使用手册">
+          <BookOpen size={12} /> 使用手册
+        </Button>
+      )}
+      tabs={(
+        <Tabs
+          variant="pill"
+          size="sm"
+          aria-label="能力获取子模块"
+          value={tab}
+          onChange={(v) => setTab(v as IngestionTab)}
+          items={[
+            { value: 'acquire', label: <><PackagePlus size={12} /> 获取外来能力</> },
+            { value: 'review', label: <><ShieldCheck size={12} /> 草稿评审</> },
+            { value: 'queue', label: <><GitBranch size={12} /> 转化队列</> },
+            { value: 'governance', label: <><Layers size={12} /> 存量治理</> },
+          ]}
+        />
+      )}
+    />
+  )
 
   if (tab === 'review') {
     return (
-      <div className="flex h-full min-h-0 flex-col overflow-auto px-5 py-4">
-        {tabs}
-        <ReviewPanel />
+      <div className="flex h-full min-h-0 flex-col">
+        {pageHeader}
+        <div className="min-h-0 flex-1 overflow-auto px-5 py-4">
+          <ReviewPanel />
+        </div>
         {helpNode}
       </div>
     )
@@ -308,9 +317,11 @@ export default function IngestionPage() {
 
   if (tab === 'queue') {
     return (
-      <div className="flex h-full min-h-0 flex-col overflow-auto px-5 py-4">
-        {tabs}
-        <TransformQueueDialog embedded />
+      <div className="flex h-full min-h-0 flex-col">
+        {pageHeader}
+        <div className="min-h-0 flex-1 overflow-auto px-5 py-4">
+          <TransformQueueDialog embedded />
+        </div>
         {helpNode}
       </div>
     )
@@ -318,22 +329,20 @@ export default function IngestionPage() {
 
   if (tab === 'governance') {
     return (
-      <div className="flex h-full min-h-0 flex-col overflow-auto px-5 py-4">
-        {tabs}
-        <GovernancePanel />
+      <div className="flex h-full min-h-0 flex-col">
+        {pageHeader}
+        <div className="min-h-0 flex-1 overflow-auto px-5 py-4">
+          <GovernancePanel />
+        </div>
         {helpNode}
       </div>
     )
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-auto px-5 py-4">
-      {tabs}
-      <PageHeader
-        title="能力获取"
-        description="外来技能 / 文档 / 提示词 / 插件包 → 摄取、预览、生成草稿（技能卡 / 工具 / 工作流）。这里**不安装、不注册、不启用**：只产出草稿；评审 → 登记 → 启用在「草稿评审 / 转化队列」两个 Tab（点右上「使用手册」看全流程）。"
-      />
-
+    <div className="flex h-full min-h-0 flex-col">
+      {pageHeader}
+      <div className="min-h-0 flex-1 overflow-auto px-5 py-4">
       {helpSeen ? null : (
         <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-cyan-900/50 bg-cyan-950/20 px-3 py-2 text-caption text-cyan-200"
           data-cp-help-banner="true">
@@ -771,6 +780,7 @@ export default function IngestionPage() {
             </Card>
           )}
         </div>
+      </div>
       </div>
       {helpNode}
     </div>

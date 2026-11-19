@@ -12,7 +12,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { Download, Loader2, Plus, Trash2, Power } from 'lucide-react'
-import { Badge, Button, Card, DataTable, ErrorBox, hubGet, hubPost, Input, Loading, PageHeader } from '../components/ui'
+import { Badge, Button, Card, DataTable, ErrorBox, hubGet, hubPost, Input, Loading, SectionTitle } from '../components/ui'
 
 import {
   EXTENSIONS_DISCOVER,
@@ -137,7 +137,7 @@ export default function ToolsMcp() {
 
   return (
     <div className="p-6">
-      <PageHeader
+      <SectionTitle
         title="MCP 系统"
         description="MCP 服务管理与启停"
         actions={<Button variant="primary" size="sm" onClick={() => setShowForm(!showForm)}><Plus size={12} /> 新增服务</Button>}

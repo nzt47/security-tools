@@ -26,7 +26,7 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { Hammer, Layers, Loader2, Package, Route, Trash2, Users } from 'lucide-react'
-import { Button, Card, Loading, ErrorBox, DataTable, Badge, PageHeader, Tabs, hubPost } from '../components/ui'
+import { Button, Card, Loading, ErrorBox, DataTable, Badge, PageTabsHeader, SectionTitle, Tabs, hubPost } from '../components/ui'
 
 import SubagentRowActions from './SubagentRowActions'
 import {
@@ -349,25 +349,24 @@ export default function WorkshopAgents({ initialView }: WorkshopAgentsProps) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* 顶栏：模块标题 + 四视图 Tab 条（子视图即 Tab，点击切换、无需回导航树） */}
-      <header className="shrink-0 border-b border-slate-800 bg-slate-900/40 px-5 pt-4">
-        <div className="mb-3 flex items-center gap-2">
-          <Users size={14} className="text-primary" />
-          <h1 className="text-title font-semibold text-foreground">分身</h1>
-          <span className="text-caption text-muted-foreground">{active.hint}</span>
-        </div>
-
-        <Tabs
-          variant="folder"
-          className="-mb-px"
-          aria-label="分身装配视图"
-          value={view}
-          onChange={(v) => setView(v as typeof view)}
-          items={WORKSHOP_VIEWS.map((t) => {
-            const Icon = t.icon
-            return { value: t.id, label: <><Icon size={13} />{t.label}</>, title: t.hint }
-          })}
-        />
-      </header>
+      <PageTabsHeader
+        icon={<Users size={14} className="text-primary" />}
+        title="分身"
+        hint={active.hint}
+        tabs={(
+          <Tabs
+            variant="folder"
+            className="-mb-px"
+            aria-label="分身装配视图"
+            value={view}
+            onChange={(v) => setView(v as typeof view)}
+            items={WORKSHOP_VIEWS.map((t) => {
+              const Icon = t.icon
+              return { value: t.id, label: <><Icon size={13} />{t.label}</>, title: t.hint }
+            })}
+          />
+        )}
+      />
 
       {/* 视图内容：key={view} 强制重挂载，避免切换后残留上一个视图的局部状态 */}
       <div className="min-h-0 flex-1 overflow-y-auto bg-slate-950">
@@ -381,7 +380,7 @@ export default function WorkshopAgents({ initialView }: WorkshopAgentsProps) {
         >
           {view === 'agents' && (
             <div className="p-6">
-              <PageHeader
+              <SectionTitle
                 title="分身列表"
                 description="存活分身与生效来源（创建请到「组装台」）"
               />

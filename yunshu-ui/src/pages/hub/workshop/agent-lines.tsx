@@ -25,7 +25,7 @@ import {
   Check, Copy, Info, Layers, MessageSquare, Plus, Save, Search, ShieldAlert, Sparkles,
   Target, Trash2, Users,
 } from 'lucide-react'
-import { Badge, Button, CallabilityBadge, Card, ErrorBox, Input, Loading, Notice, PageHeader, RowButton, Textarea } from '../components/ui'
+import { Badge, Button, CallabilityBadge, Card, ErrorBox, Input, Loading, Notice, SectionTitle, RowButton, Textarea } from '../components/ui'
 import { Slider } from '@/components/ui'
 import { callabilityCounts, callabilityLegend, hasCallabilityMark } from '@/lib/callability'
 import {
@@ -1089,7 +1089,7 @@ export default function ToolsAgentLines() {
   if (loading) {
     return (
       <div className="p-6">
-        <PageHeader title="主线管理" description="能力平面档案与装配预览" />
+        <SectionTitle title="主线管理" description="能力平面档案与装配预览" />
         <Loading />
       </div>
     )
@@ -1097,7 +1097,7 @@ export default function ToolsAgentLines() {
 
   return (
     <div className="p-6">
-      <PageHeader
+      <SectionTitle
         title="主线管理"
         description="按四平面（常驻/感知/行动/治理）给不同 Agent 配一条能力主线；改权重可即时看到装配结果"
         actions={
