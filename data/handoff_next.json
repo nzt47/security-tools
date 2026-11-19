@@ -3,6 +3,14 @@
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
+   "id": "windows-shard-env-flakes",
+   "status": "open",
+   "priority": "P2",
+   "title": "ci.yml 的 Windows 分片里有环境敏感用例（不是回归，但判绿总被它打断）",
+   "criteria": "2026-11-19 实测：同一批提交在 windows-latest 的 Shard 2 / 4 / 5 各红过 1 条，且都不是当时改动引起的（其中一次提交只改前端）：① test_s6_01_ui_panels.py::TestAuditExport::test_export_contains_verification（assert 1 == 5）；② test_audit_governance_check.py::TestReadOnly::test_full_run_never_appends（assert False is True）；③ test_trace_write_hardening.py::test_degraded_state_is_recoverable_and_counted（trace.store.degraded 不在事件列表）；④ test_ci_guard_fix_regression.py::TestSafeGitRevertStdoutPure::test_stdout纯净_不执行任何git修改。四条**本机单独跑都过**（2 passed / 13 passed），是分片内共享状态/顺序污染或 Windows 环境差异。",
+   "next": "按口径 §10「测试隔离用 autouse fixture」逐条查共享状态：优先看 ①（审计导出计数依赖全局 audit 链）、③（trace store 的降级计数是模块级单例）、④（stdout 纯度用例依赖 git 可执行与工作区状态）。修法优先级：给这些用例加 autouse 隔离 fixture > 标记 windows skip（sku 只报告）> 放宽断言（最后手段，需写理由）。"
+  },
+  {
    "id": "ui-encapsulation-gaps",
    "status": "done",
    "priority": "P2",
