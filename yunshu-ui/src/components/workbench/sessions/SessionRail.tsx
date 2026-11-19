@@ -17,18 +17,18 @@ import {
   Check,
   ChevronRight,
   Folder,
-  FolderInput,
   FolderOpen,
   FolderPlus,
   Loader2,
   MessageSquare,
+  MoreHorizontal,
   Pencil,
   Plus,
   Search,
   Trash2,
   X,
 } from 'lucide-react';
-import { Badge, Button, Input, ModalBase, Notice, RowButton, Select, Switch } from '@/components/ui';
+import { Badge, Button, Input, MenuPanel, ModalBase, Notice, RowButton, Select, Switch } from '@/components/ui';
 import type { Project, SessionGroup, SessionMeta } from '../../../lib/sessionApi';
 
 export interface SessionRailProps {
@@ -86,6 +86,34 @@ export function formatRelTime(iso?: string): string {
 /** 删除二次确认自动复位时长 */
 const CONFIRM_MS = 2600;
 
+/** 会话栏宽度：默认 260，可拖到 [200, 480]（再窄会话标题全被截，再宽把对话区挤没） */
+const RAIL_WIDTH_KEY = 'yunshu:session-rail-width';
+const RAIL_MIN_WIDTH = 200;
+const RAIL_MAX_WIDTH = 480;
+const RAIL_DEFAULT_WIDTH = 260;
+
+function clampRailWidth(px: number): number {
+  return Math.max(RAIL_MIN_WIDTH, Math.min(RAIL_MAX_WIDTH, px));
+}
+
+function readRailWidth(): number {
+  try {
+    const raw = typeof localStorage === 'undefined' ? null : localStorage.getItem(RAIL_WIDTH_KEY);
+    const n = raw == null ? NaN : Number(raw);
+    return Number.isFinite(n) ? clampRailWidth(n) : RAIL_DEFAULT_WIDTH;
+  } catch {
+    return RAIL_DEFAULT_WIDTH;
+  }
+}
+
+function writeRailWidth(px: number): void {
+  try {
+    if (typeof localStorage !== 'undefined') localStorage.setItem(RAIL_WIDTH_KEY, String(px));
+  } catch {
+    /* 隐私模式 / 配额满：宽度只在本次会话有效 */
+  }
+}
+
 export function SessionRail({
   sessions,
   activeId,
@@ -122,6 +150,35 @@ export function SessionRail({
   const [groupRenameDraft, setGroupRenameDraft] = useState('');
   const [confirmGroupId, setConfirmGroupId] = useState<string | null>(null);
   const [moveFor, setMoveFor] = useState<string | null>(null);
+
+  // 会话行操作菜单（单触发点，参照 DSH）：menuFor = 当前打开菜单的会话 id
+  const [menuFor, setMenuFor] = useState<string | null>(null);
+  const menuAnchor = useRef<HTMLElement | null>(null);
+
+  // 左栏宽度（可拖动，落 localStorage；双击手柄恢复默认）
+  const [railWidth, setRailWidth] = useState(readRailWidth);
+  const railDrag = useRef<{ x: number; w: number } | null>(null);
+  const startRailDrag = (e: React.MouseEvent) => {
+    e.preventDefault();
+    railDrag.current = { x: e.clientX, w: railWidth };
+    const move = (ev: MouseEvent) => {
+      const d = railDrag.current;
+      if (!d) return;
+      setRailWidth(clampRailWidth(d.w + ev.clientX - d.x));
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+      railDrag.current = null;
+      // 松手才落盘（拖动过程中每帧写 localStorage 是白费）
+      setRailWidth((w) => {
+        writeRailWidth(w);
+        return w;
+      });
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  };
 
   // 新建项目弹窗（项目名 + 工作空间绝对路径 + 是否自动创建）
   const [projectOpen, setProjectOpen] = useState(false);
@@ -336,54 +393,55 @@ export function SessionRail({
           )}
         </Button>
 
-        {/* 悬停操作（内联编辑时隐藏） */}
+        {/* 会话操作：**一个标志**（⋯）作为感应区，所有动作进菜单（参照 DSH）。
+            此前是 4 个 hover 按钮平铺在行尾，"工具感应区"占满整行右侧。 */}
         {!editing && (
-          <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover/sess:opacity-100 focus-within:opacity-100">
-            <Button
-              variant="ghost"
-              size="xs"
-              className="w-6 px-0 text-muted-foreground hover:bg-primary/10 hover:text-primary"
-              title="任务工作空间（查看/打开该会话的工作目录）"
-              aria-label="打开工作空间"
-              onClick={() => onOpenWorkspace(s.id)}
-            >
-              <FolderOpen size={12} />
-            </Button>
-            <Button
-              variant="ghost"
-              size="xs"
-              className="w-6 px-0 text-muted-foreground"
-              title="移动到分组"
-              aria-label="移动到分组"
-              onClick={() => setMoveFor(moveFor === s.id ? null : s.id)}
-            >
-              <FolderInput size={12} />
-            </Button>
-            <Button
-              variant="ghost"
-              size="xs"
-              className="w-6 px-0 text-muted-foreground hover:text-foreground"
-              title="重命名会话"
-              aria-label="重命名会话"
-              onClick={() => startRename(s)}
-            >
-              <Pencil size={11} />
-            </Button>
-            <Button
-              variant="ghost"
-              size="xs"
-              className={`w-6 px-0 ${
-                armed
-                  ? 'bg-danger/20 text-danger ring-1 ring-danger/60'
-                  : 'text-muted-foreground hover:bg-danger/10 hover:text-danger'
-              }`}
-              title={armed ? '再次点击确认删除' : '删除会话'}
-              aria-label="删除会话"
+          <Button
+            variant="ghost"
+            size="xs"
+            className={`w-6 shrink-0 px-0 ${
+              menuFor === s.id || armed
+                ? 'text-primary opacity-100'
+                : 'text-muted-foreground opacity-0 group-hover/sess:opacity-100 focus-visible:opacity-100'
+            }`}
+            title="会话操作（工作空间 / 分组 / 重命名 / 删除）"
+            aria-label="会话操作"
+            aria-haspopup="menu"
+            aria-expanded={menuFor === s.id}
+            onClick={(e) => {
+              menuAnchor.current = e.currentTarget;
+              setMenuFor(menuFor === s.id ? null : s.id);
+            }}
+          >
+            <MoreHorizontal size={14} />
+          </Button>
+        )}
+
+        {menuFor === s.id && (
+          <MenuPanel
+            anchorRef={menuAnchor}
+            onClose={() => setMenuFor(null)}
+            width={168}
+            label="会话操作"
+            className="p-1"
+          >
+            <RowButton size="sm" className="px-2 py-1.5" onClick={() => { setMenuFor(null); onOpenWorkspace(s.id); }}>
+              打开工作空间
+            </RowButton>
+            <RowButton size="sm" className="px-2 py-1.5" onClick={() => { setMenuFor(null); setMoveFor(moveFor === s.id ? null : s.id); }}>
+              移动到分组
+            </RowButton>
+            <RowButton size="sm" className="px-2 py-1.5" onClick={() => { setMenuFor(null); startRename(s); }}>
+              重命名会话
+            </RowButton>
+            <RowButton
+              size="sm"
+              className={`px-2 py-1.5 ${armed ? 'bg-danger/20 text-danger' : 'text-danger hover:bg-danger/10'}`}
               onClick={() => armDelete(s.id)}
             >
-              <Trash2 size={11} />
-            </Button>
-          </div>
+              {armed ? '再次点击确认删除' : '删除会话'}
+            </RowButton>
+          </MenuPanel>
         )}
 
         {/* 移动到分组浮层 */}
@@ -552,7 +610,22 @@ export function SessionRail({
   const ungroupedCollapsed = !!collapsed[UNGROUPED_KEY];
 
   return (
-    <aside className="flex h-full min-h-0 w-[260px] shrink-0 flex-col border-r border-slate-800 bg-slate-900/60">
+    <aside
+      style={{ width: railWidth }}
+      className="relative flex h-full min-h-0 shrink-0 flex-col border-r border-slate-800 bg-slate-900/60"
+    >
+      {/* 宽度拖动手柄：视觉仍是原来那条 1px 分隔线，命中区 ±4px（双击恢复默认 260） */}
+      <span
+        role="separator"
+        aria-label="拖动调整会话栏宽度"
+        title="拖动调整会话栏宽度（双击恢复默认）"
+        onMouseDown={startRailDrag}
+        onDoubleClick={() => {
+          setRailWidth(RAIL_DEFAULT_WIDTH);
+          writeRailWidth(RAIL_DEFAULT_WIDTH);
+        }}
+        className="absolute -right-1 top-0 z-10 h-full w-2 cursor-col-resize"
+      />
       {/* 头部：标题 + 新建会话 */}
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-800 px-3 pb-2.5 pt-3">
         <div className="flex items-center gap-2">

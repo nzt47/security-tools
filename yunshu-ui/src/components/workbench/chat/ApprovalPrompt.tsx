@@ -63,7 +63,7 @@ export function ApprovalPrompt() {
     >
         <div className="mb-2 flex items-center gap-2">
           <ShieldCheck size={16} className="text-warning" />
-          <h3 className="text-sm font-semibold text-foreground">需要你确认这次工具调用</h3>
+          <h3 className="text-body font-semibold text-foreground">需要你确认这次工具调用</h3>
         </div>
         <div className="space-y-1 text-xs text-slate-400">
           <div>工具：<span className="font-mono text-slate-200">{pending.tool}</span></div>

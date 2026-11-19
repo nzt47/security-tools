@@ -125,7 +125,7 @@ export default function HealthVitals() {
     <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/40 p-3">
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <ShieldCheck size={13} className="text-cyan-400" />
-        <h3 className="text-xs font-semibold text-slate-200">健康体检</h3>
+        <h3 className="text-body font-semibold text-slate-200">健康体检</h3>
         <span className="text-micro text-slate-500">
           分维度得分 / 趋势 / 历史 / 告警 / 权重 / 一次毫秒级快速体检
         </span>

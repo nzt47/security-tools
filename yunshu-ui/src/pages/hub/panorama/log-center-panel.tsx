@@ -210,7 +210,7 @@ export default function LogCenterPanel() {
   return (
     <div className="mt-5 rounded-xl border border-slate-800 bg-slate-900/40 p-3">
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <h3 className="text-xs font-semibold text-slate-200">日志中心（独立日志应用）</h3>
+        <h3 className="text-body font-semibold text-slate-200">日志中心（独立日志应用）</h3>
         <span className="text-micro text-slate-500">
           操作审计库：类别 / 状态 / 耗时 / 洞察 / 行动建议 —— 与上面的运行期日志是两套数据源
         </span>

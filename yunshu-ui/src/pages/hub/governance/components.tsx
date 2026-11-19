@@ -607,7 +607,7 @@ export function PanelHeader({
     <div className="mb-3 flex items-start justify-between gap-3">
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-slate-100">{title}</h2>
+          <h2 className="text-ui font-semibold text-slate-100">{title}</h2>
           {priority && (
             <StatusBadge tone={tone} title="面板优先级（§7：P0 展开 / P1·P2 折叠）">
               {priority}

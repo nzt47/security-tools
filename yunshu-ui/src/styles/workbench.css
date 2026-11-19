@@ -1125,6 +1125,15 @@ body,
   pointer-events: none;
   border: 1px dashed rgba(34, 211, 238, 0.45);
   background: rgba(4, 6, 13, 0.55);
+  /* 【2026-11-19】面板背景是半透明的（bg-slate-900/80 一类），这层"幽灵"即使压到
+     z-index:0 也会透出来：实测导航栏左边缘那条虚线 = 它的 border 经 80% 面板底
+     混色后的结果（(15,38,57) 逐位可复现）。所以只在**真拖拽**时显示（body.wb-dragging
+     由 WorkbenchApp 的 onDragStart/onDragEnd 加/删），平时彻底透明。 */
+  opacity: 0;
+}
+
+body.wb-dragging .wb-drag-ghost {
+  opacity: 1;
 }
 
 /* ─── 独立窗口布局 ─── */

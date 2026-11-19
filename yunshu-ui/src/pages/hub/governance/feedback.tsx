@@ -187,7 +187,7 @@ export default function FeedbackCenter() {
     <div className="h-full overflow-y-auto p-4">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <MessageSquare size={14} className="text-cyan-400" />
-        <h2 className="text-sm font-semibold text-slate-100">反馈中心</h2>
+        <h2 className="text-ui font-semibold text-slate-100">反馈中心</h2>
         <span className="text-caption text-slate-500">汇总 · 报告 · 优质案例 · 逐条受理 · 提交</span>
         <div className="ml-auto">
           <Button

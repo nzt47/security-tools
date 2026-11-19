@@ -125,7 +125,7 @@ export default function ToolsGovernance() {
     <div className="h-full overflow-y-auto p-4">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Wrench size={14} className="text-cyan-400" />
-        <h2 className="text-sm font-semibold text-slate-100">工具治理</h2>
+        <h2 className="text-ui font-semibold text-slate-100">工具治理</h2>
         <span className="text-caption text-slate-500">分类 / 健康 / 关键词（决定路由选中哪类工具）/ 启用总览</span>
         <div className="ml-auto">
           <Button type="button" variant="default" size="xs" onClick={() => void load()} disabled={loading} aria-label="刷新工具治理">

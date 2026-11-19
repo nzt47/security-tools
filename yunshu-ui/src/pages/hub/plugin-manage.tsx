@@ -555,7 +555,7 @@ export default function PluginManagePage() {
           >
             <div className="mb-3 flex items-center gap-2">
               <PackagePlus size={14} className="text-cyan-400" />
-              <h3 className="text-sm font-semibold text-slate-100">从市场安装插件包</h3>
+              <h3 className="text-body font-semibold text-slate-100">从市场安装插件包</h3>
               <span className="text-micro text-slate-500">只列 `type=plugin`；装完自动刷新清单</span>
               <Button type="button" onClick={() => setMarketOpen(false)} className="ml-auto" aria-label="关闭插件市场抽屉" variant="ghost" size="icon-sm">
                 <X size={12} />

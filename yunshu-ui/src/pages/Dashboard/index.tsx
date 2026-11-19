@@ -133,7 +133,7 @@ export default function Dashboard() {
       </div>
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-xs">
-        <h2 className="text-base font-semibold text-foreground">系统状态</h2>
+        <h2 className="text-ui font-semibold text-foreground">系统状态</h2>
         <p className="mt-0.5 text-xs text-muted-foreground">来自 /api/dashboard/summary 的 systemStatus</p>
         <div className="mt-3 flex items-center gap-2">
           <ShieldCheck size={16} className={data.systemStatus === 'healthy' ? 'text-emerald-400' : 'text-amber-400'} />

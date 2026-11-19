@@ -195,7 +195,7 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
         <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
           <div className="flex items-center gap-2">
             <BookOpen size={14} className="text-cyan-400" />
-            <h2 className="text-sm font-semibold text-slate-100">能力卡</h2>
+            <h2 className="text-ui font-semibold text-slate-100">能力卡</h2>
             <span className="text-caption text-slate-500">我到底有哪些能力</span>
           </div>
           <Button type="button" onClick={onClose} variant="ghost" size="icon-sm">

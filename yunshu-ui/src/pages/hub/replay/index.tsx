@@ -111,7 +111,7 @@ export default function ReplayCenter() {
     <div className="h-full overflow-y-auto p-4">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Film size={14} className="text-cyan-400" />
-        <h2 className="text-sm font-semibold text-slate-100">回放中心</h2>
+        <h2 className="text-ui font-semibold text-slate-100">回放中心</h2>
         <span className="text-caption text-slate-500">会话回放：排障时唯一的现场 —— 清理前必须先看会删多少</span>
         <div className="ml-auto flex flex-wrap items-center gap-1.5">
           <Select value={limit} onChange={(v) => { setLimit(v); void load(v)}} aria-label="回放条数" size="sm" hidePlaceholder options={[{ label: '20 条', value: '20' }, { label: '50 条', value: '50' }, { label: '100 条', value: '100' }]} />

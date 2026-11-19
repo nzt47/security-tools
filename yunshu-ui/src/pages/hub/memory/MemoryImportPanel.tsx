@@ -364,7 +364,7 @@ export default function MemoryImportPanel() {
       <div className="mt-5 border-t border-slate-800 pt-3">
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <Undo2 size={13} className="text-cyan-400" />
-          <h3 className="text-xs font-semibold text-slate-200">已写入批次（可回滚）</h3>
+          <h3 className="text-body font-semibold text-slate-200">已写入批次（可回滚）</h3>
           <span className="text-micro text-slate-500">
             批次为主键（来源徽章 = 外部来源；向量 id/ref 可对账）。回滚 = 物理删除、不可恢复：
             知识卡片凭 ref，向量记忆凭 vector_ids 按 id 真删（老批次才用 msg_id；都没有则需人工）

@@ -55,7 +55,7 @@ export default function AssetsMigration() {
     <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/40 p-3">
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <Download size={13} className="text-cyan-400" />
-        <h3 className="text-xs font-semibold text-slate-200">备份与迁移</h3>
+        <h3 className="text-body font-semibold text-slate-200">备份与迁移</h3>
         <span className="text-micro text-slate-500">导出全部资产 / 从备份恢复 / 删除指定备份</span>
         <div className="ml-auto">
           <a href={ASSETS_EXPORT} download className={BTN} aria-label="导出全部资产">

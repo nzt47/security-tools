@@ -345,7 +345,7 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
         <div className="border-b border-slate-800 px-4 py-3">
           <div className="flex items-start gap-2">
             <div className="min-w-0 flex-1">
-              <h3 className="truncate text-sm font-semibold text-slate-100">{title}</h3>
+              <h3 className="truncate text-body font-semibold text-slate-100">{title}</h3>
               <p className="mt-0.5 truncate font-mono text-micro text-slate-500">{id}</p>
               {desc && <p className="mt-1 line-clamp-2 text-caption text-slate-400">{desc}</p>}
             </div>

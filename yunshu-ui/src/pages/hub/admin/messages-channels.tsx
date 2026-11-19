@@ -442,7 +442,7 @@ export default function HubChannelsPanel() {
       <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <SlidersHorizontal size={12} className="text-cyan-400" />
-          <h3 className="text-xs font-semibold text-slate-200">事件出站（总开关 + 3 类事件）</h3>
+          <h3 className="text-body font-semibold text-slate-200">事件出站（总开关 + 3 类事件）</h3>
           <span className="text-micro text-slate-500">改完热生效（不用重启）；数据源与「开关中心」同一份登记表</span>
         </div>
         {eventErr && <div className="mb-1 text-micro text-red-300">{eventErr}</div>}
@@ -487,7 +487,7 @@ export default function HubChannelsPanel() {
       <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <Settings2 size={12} className="text-cyan-400" />
-          <h3 className="text-xs font-semibold text-slate-200">
+          <h3 className="text-body font-semibold text-slate-200">
             {'通道（' + merged.length + ' 个 · 已装 ' + installed.length + ' · 启用 ' + installed.filter((c) => c.enabled).length + '）'}
           </h3>
           <span className="text-micro text-slate-500">未装的点「安装」；装了的在这里配置 / 启停 / 卸载 / 就地发一条测试消息</span>
@@ -695,7 +695,7 @@ export default function HubChannelsPanel() {
       <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <Plus size={12} className="text-cyan-400" />
-          <h3 className="text-xs font-semibold text-slate-200">新增通道（多通道）</h3>
+          <h3 className="text-body font-semibold text-slate-200">新增通道（多通道）</h3>
           <span className="text-micro text-slate-500">
             同一种类型可以加多条；<span className="text-emerald-300">主通道</span>
             （id 为 email_smtp / webhook）的值会写进 .env，其余只存本机

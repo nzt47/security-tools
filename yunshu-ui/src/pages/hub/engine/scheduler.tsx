@@ -222,7 +222,7 @@ export default function EngineScheduler() {
       )}
       <Card className="mt-4">
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <h3 className="text-sm font-medium text-slate-200">调度器任务（真实执行）</h3>
+          <h3 className="text-body font-medium text-slate-200">调度器任务（真实执行）</h3>
           <span className="text-xs text-slate-500">
             「零 token」= 调用链不含 LLM（悬浮看判据）；带「条件」= 取决于运行时开关（如 dry_run）；改时刻即时生效并写入 data/scheduler_overrides.json
           </span>

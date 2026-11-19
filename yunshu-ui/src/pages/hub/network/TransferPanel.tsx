@@ -60,7 +60,7 @@ export default function NetworkTransfer() {
     <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/40 p-3">
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <Upload size={13} className="text-cyan-400" />
-        <h3 className="text-xs font-semibold text-slate-200">配置迁移</h3>
+        <h3 className="text-body font-semibold text-slate-200">配置迁移</h3>
         <span className="text-micro text-amber-400">导出是脱敏的（api_key 只剩尾号）；导入是整体替换</span>
         <div className="ml-auto flex items-center gap-1.5">
           <a href={NETWORK_CONFIG_EXPORT} download className={BTN} aria-label="下载网络配置">

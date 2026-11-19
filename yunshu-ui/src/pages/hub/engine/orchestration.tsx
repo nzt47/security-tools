@@ -107,7 +107,7 @@ export default function EngineOrchestration() {
     <div className="h-full overflow-y-auto p-4">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Settings2 size={14} className="text-cyan-400" />
-        <h2 className="text-sm font-semibold text-slate-100">编排与蒸馏</h2>
+        <h2 className="text-ui font-semibold text-slate-100">编排与蒸馏</h2>
         <span className="text-caption text-slate-500">语义层热更 / 规划引擎开关 / 过程蒸馏（把素材固化成 workflow 或技能）</span>
         <div className="ml-auto">
           <Button type="button" variant="default" size="xs" onClick={() => void load()} disabled={loading} aria-label="刷新编排配置">

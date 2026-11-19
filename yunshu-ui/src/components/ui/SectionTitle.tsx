@@ -1,7 +1,7 @@
 /**
  * SectionTitle —— 区块标题（统一字号/字重/间距与前置色点）
  * ------------------------------------------------------------------
- * 原来每页各写一套：.pl-category-title / .wb-*title / <h2 className="text-[13px]"> …
+ * 原来每页各写一套：.pl-category-title / .wb-*title / <h2 className="text-ui"> …
  * 字号散装 17 个取值（含 10.5/11.5 半像素）。这里统一成 text-title（16px）/semibold，
  * 前置 dot 用主色，右侧 actions 槽放计数或按钮。
  */

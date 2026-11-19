@@ -55,14 +55,16 @@ function leaves(node: unknown): string[] {
 }
 
 describe('布局水合：下线面板 think / 搬到抽屉的 code 自动迁移', () => {
-  it('历史布局里的 think 与 code 被剔除，nav / chat 保留', () => {
+  it('历史布局里的 think 被剔除；右坞（code）按新口径默认打开、加回树里', () => {
     const layout = useLayoutStore.getState().layout
     expect(layout).not.toBeNull()
-    expect(leaves(layout)).toEqual(['nav', 'chat'])
+    expect(leaves(layout)).toEqual(['nav', 'chat', 'code'])
   })
 
-  it('右坞（code）默认收起：水合后树里没有它，点顶栏开关才插回', () => {
-    expect(leaves(useLayoutStore.getState().layout)).not.toContain('code')
+  it('右坞默认打开：水合后树里有 code，且占最后一位', () => {
+    const list = leaves(useLayoutStore.getState().layout)
+    expect(list).toContain('code')
+    expect(list[list.length - 1]).toBe('code')
   })
 
   it('保留拆方向与外层比例（不因迁移而重置为默认布局）', () => {
@@ -71,11 +73,12 @@ describe('布局水合：下线面板 think / 搬到抽屉的 code 自动迁移'
       splitPercentages: number[]
     }
     expect(layout.direction).toBe('row')
+    // 历史布局里 code 本来就在内层（与 think 同列），迁移只剔除 think ⇒ 外层仍是 16/84
     expect(layout.splitPercentages).toEqual([16, 84])
   })
 
-  it('重置布局 = 默认树（nav | chat），右坞收起', () => {
+  it('重置布局 = 默认树（nav | chat | 右坞）', () => {
     useLayoutStore.getState().resetLayout()
-    expect(leaves(useLayoutStore.getState().layout)).toEqual(['nav', 'chat'])
+    expect(leaves(useLayoutStore.getState().layout)).toEqual(['nav', 'chat', 'code'])
   })
 })

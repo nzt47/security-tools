@@ -174,7 +174,7 @@ export default function SecurityPanel() {
     <div className="h-full overflow-y-auto p-4">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Shield size={14} className="text-cyan-400" />
-        <h2 className="text-sm font-semibold text-slate-100">安全与权限</h2>
+        <h2 className="text-ui font-semibold text-slate-100">安全与权限</h2>
         <span className="text-caption text-slate-500">权限开关 · 紧急控制 · 危险关键词 · 隐私清单</span>
         <div className="ml-auto">
           <Button type="button" variant="default" size="xs" onClick={() => { void loadPerm(); void loadSafety(); void loadPrivacy() }} disabled={loading} aria-label="刷新安全与权限">
@@ -190,7 +190,7 @@ export default function SecurityPanel() {
       <div className="mb-3 rounded-lg border border-red-900/50 bg-red-500/5 p-3">
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <ShieldAlert size={12} className="text-red-400" />
-          <h3 className="text-xs font-semibold text-red-200">紧急控制</h3>
+          <h3 className="text-body font-semibold text-red-200">紧急控制</h3>
           <span className="text-micro text-red-300/80">
             当前：{emer.stopped ? '已停止' : '运行中'}
             {emer.paused ? ' · 已暂停' : ''}

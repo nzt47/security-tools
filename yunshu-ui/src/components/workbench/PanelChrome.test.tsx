@@ -84,9 +84,9 @@ describe('面板标题栏 → 顶部抓手（细条 0 高）', () => {
   it('每个可见面板只有一条抓手，工具条里不再有标题文字', async () => {
     const { container } = await renderApp()
 
-    expect(screen.getAllByTestId('wb-panel-grip')).toHaveLength(2) // nav + chat（右栏是抽屉，不在树里）
+    expect(screen.getAllByTestId('wb-panel-grip')).toHaveLength(3) // nav + chat + 右坞（2026-11-19 起默认打开）
     const toolbars = Array.from(container.querySelectorAll('.mosaic-window > .mosaic-window-toolbar'))
-    expect(toolbars).toHaveLength(2)
+    expect(toolbars).toHaveLength(3)
 
     for (const toolbar of toolbars) {
       // 标题栏整条去掉 ⇒ 工具条自身没有任何文字
@@ -119,11 +119,11 @@ describe('⋮ 菜单：三动作语义与库默认按钮一致', () => {
     openMenu(PANEL_TITLES.chat)
     fireEvent.click(screen.getByRole('menuitem', { name: '关闭' }))
 
-    expect(leaves(useLayoutStore.getState().layout)).toEqual(['nav'])
+    expect(leaves(useLayoutStore.getState().layout)).toEqual(['nav', 'code'])
     const restore = screen.getByRole('button', { name: '主内容' })
     expect(restore).toHaveAttribute('aria-pressed', 'false')
     fireEvent.click(restore)
-    expect(leaves(useLayoutStore.getState().layout)).toEqual(['nav', 'chat'])
+    expect(leaves(useLayoutStore.getState().layout)).toEqual(['nav', 'chat', 'code'])
   })
 
   it('独立窗口 = 走 Electron IPC（含面板 id / 路由），成功后从布局摘除', async () => {
@@ -151,53 +151,58 @@ describe('⋮ 菜单：三动作语义与库默认按钮一致', () => {
     expect(req.panelId).toBe('chat')
     expect(req.route).toBe('/detached/chat')
     expect(req.title).toContain('独立窗口')
-    // 摘除后主内容不在树里 ⇒ 顶栏出现「主内容」开关兜底
-    expect(leaves(useLayoutStore.getState().layout)).toEqual(['nav'])
+    // 摘除后主内容不在树里 ⇒ 顶栏出现「主内容」开关兜底（右坞仍在）
+    expect(leaves(useLayoutStore.getState().layout)).toEqual(['nav', 'code'])
   })
 })
 
 describe('顶栏「导航 / 右栏」开关', () => {
-  it('「导航」摘除后能原位置插回，16/84 比例不丢', async () => {
+  it('「导航」摘除后能原位置插回，比例不丢', async () => {
     await renderApp()
     const toggle = screen.getByRole('button', { name: '导航' })
     expect(toggle).toHaveAttribute('aria-pressed', 'true')
 
     fireEvent.click(toggle)
-    expect(useLayoutStore.getState().layout).toBe('chat')
+    // 三栏时摘掉导航 ⇒ 剩下 chat | code 一列（不是整棵树塌成 'chat'）
+    const mid = useLayoutStore.getState().layout as { children: string[] }
+    expect(mid.children).toEqual(['chat', 'code'])
     expect(toggle).toHaveAttribute('aria-pressed', 'false')
-    expect(screen.getAllByTestId('wb-panel-grip')).toHaveLength(1)
+    expect(screen.getAllByTestId('wb-panel-grip')).toHaveLength(2)
 
     fireEvent.click(toggle)
-    const back = useLayoutStore.getState().layout as { splitPercentages: number[] }
-    expect(leaves(back)).toEqual(['nav', 'chat'])
-    expect(back.splitPercentages).toEqual([16, 84])
+    const back = useLayoutStore.getState().layout as { children: string[]; splitPercentages: number[] }
+    expect(back.children).toEqual(['nav', 'chat', 'code'])
+    expect(back.splitPercentages).toHaveLength(3)
+    expect(back.splitPercentages[0]).toBe(11) // 导航回到默认 11%
   })
 
-  it('右栏默认收起；点开后插成一列（主内容收缩、可拖宽），再点摘除', async () => {
+  it('右栏默认打开（终端 · 实时活动）；顶栏开关可关掉，再点插回最右一列', async () => {
     await renderApp()
-    // 默认收起：树里没有 code，面板只有两个
-    expect(leaves(useLayoutStore.getState().layout)).toEqual(['nav', 'chat'])
-    expect(screen.getAllByTestId('wb-panel-grip')).toHaveLength(2)
+    // 2026-11-19 起默认打开：树里有 code，三块面板
+    expect(leaves(useLayoutStore.getState().layout)).toEqual(['nav', 'chat', 'code'])
+    expect(screen.getAllByTestId('wb-panel-grip')).toHaveLength(3)
     const toggle = screen.getByRole('button', { name: '右栏' })
-    expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    expect(toggle).toHaveAttribute('aria-pressed', 'true')
+    // 右坞默认落在「终端」Tab，且默认是「实时活动」视图
+    expect(screen.getByRole('tab', { name: /终端/ })).toHaveAttribute('aria-selected', 'true')
 
     fireEvent.click(toggle)
-    // 插到最右的**真 mosaic 列**：主内容被迫收缩（不是盖在上面），且分割条可拖宽
+    expect(leaves(useLayoutStore.getState().layout)).toEqual(['nav', 'chat'])
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
+
+    // 再点：插到最右的**真 mosaic 列**（主内容收缩，不是盖在上面）
+    fireEvent.click(toggle)
     const layout = useLayoutStore.getState().layout as {
       children: string[]
       splitPercentages: number[]
     }
     expect(layout.children).toEqual(['nav', 'chat', 'code'])
     expect(layout.splitPercentages).toHaveLength(3)
-    expect(layout.splitPercentages[0]).toBe(16) // 导航不动
-    expect(layout.splitPercentages[1]).toBeLessThan(84) // 主内容让出宽度
+    // 关掉再打开：关的时候剩余两栏按比例放大（11/75 → 14.67），再插回时导航保持 14.67
+    expect(layout.splitPercentages[0]).toBeCloseTo((11 / 75) * 100, 3)
     expect(toggle).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getAllByTestId('wb-panel-grip')).toHaveLength(3)
     // 持久化：状态就在布局树里（同一个 localStorage 键）
     expect(localStorage.getItem(LAYOUT_STORAGE_KEY)).toContain('"code"')
-
-    fireEvent.click(toggle)
-    expect(leaves(useLayoutStore.getState().layout)).toEqual(['nav', 'chat'])
-    expect(toggle).toHaveAttribute('aria-pressed', 'false')
   })
 })

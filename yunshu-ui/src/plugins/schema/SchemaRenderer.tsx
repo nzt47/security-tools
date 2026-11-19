@@ -267,7 +267,7 @@ export function SchemaRenderer({ schema, value, onChange, onSubmit }: SchemaRend
     return (
       <div className="flex flex-col gap-2" data-testid="schema-renderer-degraded">
         {schema && typeof schema === 'object' && (schema as SchemaField).title && (
-          <h3 className="text-base font-semibold text-(--text-primary)">
+          <h3 className="text-body font-semibold text-(--text-primary)">
             {(schema as SchemaField).title}
           </h3>
         )}
@@ -297,7 +297,7 @@ export function SchemaRenderer({ schema, value, onChange, onSubmit }: SchemaRend
   return (
     <div className="flex flex-col gap-4" data-testid="schema-renderer">
       {schema.title && (
-        <h3 className="text-base font-semibold text-(--text-primary)">{schema.title}</h3>
+        <h3 className="text-body font-semibold text-(--text-primary)">{schema.title}</h3>
       )}
       {schema.description && (
         <p className="text-sm text-(--text-muted)">{schema.description}</p>

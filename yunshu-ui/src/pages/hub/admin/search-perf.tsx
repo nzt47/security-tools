@@ -88,7 +88,7 @@ export default function SearchPerformance() {
     <div className="h-full overflow-y-auto p-4">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Activity size={14} className="text-cyan-400" />
-        <h2 className="text-sm font-semibold text-slate-100">搜索性能监控</h2>
+        <h2 className="text-ui font-semibold text-slate-100">搜索性能监控</h2>
         <span className={'text-caption ' + (running ? 'text-emerald-400' : 'text-slate-500')}>
           {running ? '正在运行（' + (status?.interval ?? '?') + ' 秒间隔）' : '未运行'}
         </span>

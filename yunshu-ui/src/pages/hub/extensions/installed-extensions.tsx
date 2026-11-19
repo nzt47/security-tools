@@ -152,7 +152,7 @@ export default function InstalledExtensions({ types, title, hint, emptyText, exc
   return (
     <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-3" data-testid={'installed-ext-' + typeSet}>
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <h3 className="text-xs font-semibold text-slate-200">{title}</h3>
+        <h3 className="text-body font-semibold text-slate-200">{title}</h3>
         <span className="text-micro text-slate-500">{rows.length} 项</span>
         <Button type="button" onClick={() => void load()} disabled={loading} aria-label="刷新已安装扩展" variant="default" size="xs" className="ml-auto">
           <RefreshCw size={11} className={loading ? 'animate-spin' : ''} /> 刷新

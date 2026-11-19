@@ -96,7 +96,7 @@ export default function MergeDuplicatesModal({ skillId, skillName, onClose, onDo
       <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 p-5 shadow-2xl"
         onClick={(e) => e.stopPropagation()} data-testid="merge-duplicates-modal">
         <div className="mb-2 flex items-center justify-between gap-2">
-          <h3 className="flex items-center gap-1.5 text-sm font-semibold text-slate-100">
+          <h3 className="flex items-center gap-1.5 text-body font-semibold text-slate-100">
             <Copy size={13} className="text-cyan-400" /> 合并重复技能 · {skillName || skillId}
           </h3>
           <Button type="button" onClick={onClose} aria-label="关闭合并重复弹窗" variant="ghost" size="icon-sm"><X size={14} /></Button>

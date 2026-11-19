@@ -50,7 +50,7 @@ export default function SystemLog() {
   return (
     <div className="mx-auto max-w-4xl">
       <div className="mb-2 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-foreground">系统日志</h1>
+        <h1 className="text-title font-semibold text-foreground">系统日志</h1>
         {/* 操作级权限控制：无 system:log:export 权限码不渲染导出按钮 */}
         {canExport && (
           <Button type="button" onClick={handleExport} variant="primary" size="sm">

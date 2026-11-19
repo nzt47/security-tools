@@ -607,7 +607,7 @@ export default function MemoryKnowledge() {
             className="max-h-[88vh] w-[560px] max-w-[94vw] overflow-y-auto rounded-xl border border-slate-700 bg-[#1b1e24] p-5 text-slate-200 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="mb-3 text-title font-semibold text-slate-100">
+            <h3 className="mb-3 text-body font-semibold text-slate-100">
               {editing ? `编辑卡片: ${editing.slug}` : '新建卡片'}
             </h3>
             <CardForm

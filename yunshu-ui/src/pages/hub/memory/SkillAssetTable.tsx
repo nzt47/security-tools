@@ -832,7 +832,7 @@ export default function SkillAssessManager() {
   return (
     <div className="mt-5">
       <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-        <h3 className="flex items-center gap-1.5 text-body-lg font-semibold text-slate-200">
+        <h3 className="flex items-center gap-1.5 text-body font-semibold text-slate-200">
           <ShieldCheck size={14} className="text-emerald-400" />
           LLM 技能 · 统一表（运行时 + 资产）
         </h3>
@@ -1884,7 +1884,7 @@ function ModalShell({ title, onClose, children }: { title: string; onClose: () =
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6" onClick={onClose}>
       <div className="max-h-[85vh] w-full max-w-xl overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <h3 className="mb-3 text-sm font-semibold text-slate-100">{title}</h3>
+        <h3 className="mb-3 text-body font-semibold text-slate-100">{title}</h3>
         {children}
       </div>
     </div>

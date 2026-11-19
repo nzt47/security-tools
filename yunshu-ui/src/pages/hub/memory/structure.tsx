@@ -191,7 +191,7 @@ export default function MemoryStructure() {
 
       {/* ── 治理视图（只读）：原「治理面板 · 记忆技能库」，2026-10-18 并入 ────── */}
       <div className="mt-6">
-        <h3 className="text-body-lg font-medium text-slate-200">治理视图（只读）· 召回优先级与四层清单</h3>
+        <h3 className="text-body font-medium text-slate-200">治理视图（只读）· 召回优先级与四层清单</h3>
         <p className="mb-3 mt-1 text-caption text-slate-500">
           从「治理面板」并入这里：四层记忆（策略/事实/偏好/工作）的跨层清单（<b>内容已脱敏</b>）+
           U5 召回优先级契约，走审计口径 /api/cp/memory/skills。此处<b>只呈现</b>，不改变召回结果；

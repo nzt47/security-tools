@@ -19,7 +19,7 @@ export default function PageContainer({ title, description, actions, children }:
     <div className="mx-auto max-w-6xl space-y-5 p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">{title}</h1>
+          <h1 className="text-title font-semibold text-foreground">{title}</h1>
           {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
         </div>
         {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}

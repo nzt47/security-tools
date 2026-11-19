@@ -129,7 +129,7 @@ export default function SkillIntakeDialog({ open, onClose }: Props) {
         <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
           <div className="flex items-center gap-2">
             <GitBranch size={14} className="text-cyan-400" />
-            <h2 className="text-sm font-semibold text-slate-100">入轨助手</h2>
+            <h2 className="text-ui font-semibold text-slate-100">入轨助手</h2>
             <span className="text-caption text-slate-500">把技能从「只在本机」变成「在仓库里」</span>
           </div>
           <Button type="button" onClick={onClose} variant="ghost" size="icon-sm">

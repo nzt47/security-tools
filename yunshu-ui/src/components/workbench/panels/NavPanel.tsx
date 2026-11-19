@@ -26,8 +26,8 @@ function NavLeaf({ item, depth }: { item: HubNavItem; depth: number }) {
     <RowButton
       selected={active}
       onClick={() => setActiveKey(item.key)}
-      className="px-2.5 py-1.5"
-      style={{ paddingLeft: `${depth * 12 + 10}px` }}
+      className="px-2 py-1.5"
+      style={{ paddingLeft: `${depth * 12 + 8}px` }}
       leading={Icon ? <Icon size={13} /> : undefined}
     >
       <span className="truncate">{item.label}</span>
@@ -52,14 +52,17 @@ function NavGroup({
 
   return (
     <div>
+      {/* 【2026-11-19】图标 / 文字 / 展开箭头必须走 RowButton 的 leading / trailing 槽：
+          直接把三个子节点交给 children，会被 RowButton 包进**同一个** flex-1 span 里，
+          而那个 span 不是 flex 容器 ⇒ 图标、文字、箭头各占一行（Owner 实测：分组标题变成三行）。 */}
       <RowButton
         selected={hasActiveChild}
         onClick={() => setOpen(!open)}
-        className="px-2.5 py-1.5 font-medium"
+        className="px-2 py-1.5 font-medium"
+        leading={Icon ? <Icon size={13} /> : undefined}
+        trailing={<ChevronDown size={12} className={`transition-transform ${expanded ? '' : '-rotate-90'}`} />}
       >
-        {Icon && <Icon size={13} />}
-        <span className="flex-1 truncate">{item.label}</span>
-        <ChevronDown size={12} className={`shrink-0 transition-transform ${expanded ? '' : '-rotate-90'}`} />
+        <span className="truncate">{item.label}</span>
       </RowButton>
       {expanded && (
         <div className="ml-2 mt-0.5 space-y-0.5 border-l border-border pl-1.5">
@@ -89,7 +92,7 @@ export function NavPanel() {
 
       {/* 搜索框（Esc 清空；命中分组时整组保留，命中子项时只留该子项） */}
       {/* 细条高度由 .wb-strip（--wb-strip-h 44px）统一给，别再写 py-* */}
-      <div className="wb-strip border-b border-slate-800 px-2">
+      <div className="wb-strip border-b border-slate-800 px-1.5">
         {/* 2026-11-17：图标与清空按钮搬进 ui/Input 的 leading / trailing 槽（正文让位由原语给），
             data-cp-nav-search / -clear 两个测试钩子原样透传。 */}
         <Input
@@ -115,7 +118,9 @@ export function NavPanel() {
       </div>
 
       {/* 导航树 */}
-      <div className="wb-think-scroll min-h-0 flex-1 space-y-1 overflow-y-auto p-2">
+      {/* 列表左右内缩交给行自己（px-2 = 8px，与右坞内容同档）：容器不再额外加 p-2，
+          否则顶层行离面板边 8+8=16px，和右坞的 8px 不在一条线上。 */}
+      <div className="wb-think-scroll min-h-0 flex-1 space-y-0.5 overflow-y-auto py-1">
         {tree.length === 0 ? (
           <div
             data-cp-nav-empty

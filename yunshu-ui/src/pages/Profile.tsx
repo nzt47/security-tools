@@ -61,7 +61,7 @@ export default function Profile() {
 
   return (
     <div className="mx-auto max-w-md p-6">
-      <h1 className="mb-4 text-xl font-semibold">登录测试</h1>
+      <h1 className="mb-4 text-title font-semibold">登录测试</h1>
 
       <form onSubmit={handleLogin} className="space-y-3">
         <Input

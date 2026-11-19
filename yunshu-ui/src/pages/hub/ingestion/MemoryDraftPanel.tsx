@@ -56,7 +56,7 @@ export default function MemoryDraftPanel() {
     <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
       <div className="mb-2 flex items-center gap-2">
         <Sparkles size={13} className="text-cyan-400" />
-        <h3 className="text-sm font-medium text-slate-200">从记忆生成技能草稿</h3>
+        <h3 className="text-body font-medium text-slate-200">从记忆生成技能草稿</h3>
         <span className="text-micro text-slate-500">聚类最近记忆 → 质量闸 → 草稿（进「转化队列」，不自动注册/启用）</span>
       </div>
       <div className="flex flex-wrap items-end gap-2">

@@ -134,7 +134,7 @@ export default function BusinessBoard() {
     <div className="h-full overflow-y-auto p-4">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <BarChart3 size={14} className="text-cyan-400" />
-        <h2 className="text-sm font-semibold text-slate-100">业务看板</h2>
+        <h2 className="text-ui font-semibold text-slate-100">业务看板</h2>
         <span className="text-caption text-slate-500">业务指标（产品面）与系统仪表盘（运行面）</span>
         <div className="ml-auto flex items-center gap-1.5">
           <a href={BUSINESS_PROMETHEUS} target="_blank" rel="noreferrer" className={BTN} aria-label="导出 Prometheus 指标">

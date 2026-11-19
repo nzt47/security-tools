@@ -48,23 +48,45 @@ export const PANEL_TITLES: Record<PanelId, string> = {
  */
 export const DOCK_PANEL_IDS: readonly string[] = [PANEL.CODE];
 
-/** 右坞默认宽度（px）：插回布局时按当前视口折算成百分比 */
-export const DOCK_DEFAULT_WIDTH = 320;
+/**
+ * 右坞默认宽度（px）：插回布局时按当前视口折算成百分比。
+ * 【2026-11-19】320 → 360：5 个 Tab（编辑器/文档/子代理/浏览器/终端）实测需要
+ * ≈341px 才排得下一行，320px 时「终端」被挤到第二行（Owner 实测）。
+ */
+export const DOCK_DEFAULT_WIDTH = 360;
 
-/** 左侧导航默认占根横向 split 的百分比（与 A 步前的观感一致） */
-export const NAV_DEFAULT_PERCENT = 16;
+/**
+ * 右坞在**默认布局**里占的百分比（= DOCK_DEFAULT_WIDTH 在 1440 视口下的折算值）。
+ * 【2026-11-19】Owner 改口径：右坞**默认打开**（此前是"默认收起、点顶栏图标插回"），
+ * 并把默认 Tab 设为「终端 · 实时活动」。
+ */
+export const DOCK_DEFAULT_PERCENT = 25;
+
+/**
+ * 左侧导航默认占根横向 split 的百分比。
+ * 【2026-11-19】16 → 11：Owner 要求"比现在再缩三分之一左右，所有叶子一行放得下"。
+ * 1440 下 228 → 158px，最长叶子（5 个汉字 ≈ 60px）+ 图标 13 + 间距 + 箭头 12 ≈ 121px，
+ * 一行放得下；1280 下 141px 仍够。
+ */
+export const NAV_DEFAULT_PERCENT = 11;
 
 /**
  * 默认布局：nav | chat，splitPercentages 各子区占比之和须为 100
  *
- * 【2026-11-15 定稿】右栏**默认收起**（树里没有 code）：横向少一条常驻列（1440 屏 ≈154px），
- * 点顶栏右栏图标时再插到最右（默认 320px、主内容收缩、可拖宽）。竖向 chrome 见 WorkbenchApp.renderToolbar。
+ * 【2026-11-19 口径变更】右栏**默认打开**（Owner：默认打开、默认落在「终端 · 实时活动」）：
+ * 树里常驻 code 一列（默认 25% ≈ 360px，主内容收缩、中间分割条可拖宽）。
+ * 顶栏「右栏」开关仍可关闭（关闭 = 从树里摘掉；再打开 = 插回最右）。
+ * 历史（2026-11-15）曾定"默认收起"，本轮按 Owner 最新要求改回默认打开。
  */
 export const DEFAULT_LAYOUT: MosaicNode<PanelId> = {
   type: 'split',
   direction: 'row',
-  children: [PANEL.NAV, PANEL.CHAT],
-  splitPercentages: [NAV_DEFAULT_PERCENT, 100 - NAV_DEFAULT_PERCENT],
+  children: [PANEL.NAV, PANEL.CHAT, PANEL.CODE],
+  splitPercentages: [
+    NAV_DEFAULT_PERCENT,
+    100 - NAV_DEFAULT_PERCENT - DOCK_DEFAULT_PERCENT,
+    DOCK_DEFAULT_PERCENT,
+  ],
 };
 
 /** LocalStorage 键（带版本号，升级布局结构时变更） */
@@ -94,17 +116,45 @@ export function stripPanels(value: unknown, ids: readonly string[]): unknown {
   if (value && typeof value === 'object') {
     const node = value as Record<string, unknown>;
     if (node.type === 'split' && Array.isArray(node.children)) {
-      const children = node.children
-        .map((c) => stripPanels(c, ids))
-        .filter((c) => c !== null && c !== undefined);
+      const pcts = Array.isArray(node.splitPercentages) ? node.splitPercentages : undefined;
+      // 每个子节点的"剔除结果 + 原比例"一起走，才能知道**活下来的**是哪些比例
+      // （不能拿新 children 去 includes 老对象：被折叠的子节点已经不是同一个引用了）。
+      const mapped = node.children.map((c, i) => ({ child: stripPanels(c, ids), pct: pcts?.[i] }));
+      const kept = mapped.filter((x) => x.child !== null && x.child !== undefined);
+      const children = kept.map((x) => x.child);
       if (children.length === 0) return null;
       if (children.length === 1) return children[0];
-      const pcts = Array.isArray(node.splitPercentages) ? node.splitPercentages : undefined;
+      // 【2026-11-19 修了个真缺陷】剔除子节点后**不能直接把比例丢掉**：
+      // 丢掉 = 交给 mosaic 均分 ⇒ 用户开着右坞刷新一次，导航就从 16% 变成 50%
+      // （Owner 实测"导航栏默认变得很宽"就是这条；触发条件是"右坞开着时刷新"）。
+      // 正确做法：取活下来的那些比例，再等比归一到 100（16/84 + 右坞 22 ⇒ 仍是 16/84）。
+      let keptPcts: number[] | undefined;
+      if (pcts && pcts.length === node.children.length) {
+        const vals = kept.map((x) => x.pct as number);
+        const sum = vals.reduce((a, b) => a + b, 0);
+        if (sum > 0) {
+          if (Math.abs(sum - 100) < 1e-9) {
+            // 没删掉任何"带宽度"的子节点：原样保留（浮点不能重算，72/28 会变 28.000000000000004）
+            keptPcts = vals.slice();
+          } else {
+            // 删掉的那一格宽度归**最后一个**幸存者（典型场景：右坞收起 ⇒ 导航 16% 不动、
+            // 主内容从 62% 回到 84%）。等比归一会让导航一起变宽（16 → 20.5%），那是错的。
+            const others = vals.slice(0, -1).reduce((a, b) => a + b, 0);
+            const rest = 100 - others;
+            keptPcts = rest > 0
+              ? [...vals.slice(0, -1), Number(rest.toFixed(4))]
+              : vals.map((v) => Number(((v / sum) * 100).toFixed(4)));
+          }
+        }
+      } else if (pcts && pcts.length === children.length) {
+        // 历史数据本来就没对齐（老版本只存了外层比例）：保持旧口径 —— 长度一致才保留
+        keptPcts = pcts.slice();
+      }
       return {
         type: 'split',
         direction: node.direction,
         children,
-        splitPercentages: pcts && pcts.length === children.length ? pcts : undefined,
+        splitPercentages: keptPcts,
       };
     }
     if (node.type === 'tabs' && Array.isArray(node.tabs)) {

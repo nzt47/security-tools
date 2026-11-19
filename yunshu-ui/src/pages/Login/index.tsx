@@ -197,7 +197,7 @@ export default function LoginPage() {
 
   return (
     <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
-      <h1 className="text-2xl font-bold text-slate-800">云枢</h1>
+      <h1 className="text-title font-bold text-slate-800">云枢</h1>
       <p className="mb-6 mt-1 text-sm text-slate-400">欢迎回来，请登录你的账号</p>
 
       <form onSubmit={handleSubmit} className="space-y-4">

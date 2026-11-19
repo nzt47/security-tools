@@ -461,7 +461,7 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
         <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
           <div className="flex items-center gap-2">
             <Archive size={14} className="text-cyan-400" />
-            <h2 className="text-sm font-semibold text-slate-100">转化队列</h2>
+            <h2 className="text-ui font-semibold text-slate-100">转化队列</h2>
             <span className="text-caption text-slate-500">外来技能转化归档 · 判定/审核/卡片 · 可回滚</span>
           </div>
           {!embedded && onClose && (

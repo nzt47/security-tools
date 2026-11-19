@@ -11,10 +11,11 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { MosaicNode } from 'react-mosaic-component';
 import {
-  DOCK_PANEL_IDS,
+  DOCK_DEFAULT_PERCENT,
   DEFAULT_LAYOUT,
   LAYOUT_STORAGE_KEY,
   RETIRED_PANEL_IDS,
+  PANEL,
   addPanelToLayout,
   layoutHasPanel,
   removePanelFromLayout,
@@ -518,7 +519,22 @@ export const useLayoutStore = create<LayoutStore>()(
     }),
     {
       name: LAYOUT_STORAGE_KEY,
-      version: 1,
+      // v2（2026-11-19）：右坞从"默认收起"改为"默认打开" ⇒ 旧布局需要把 code 加回来
+      version: 2,
+      migrate: (persisted, from) => {
+        const saved = persisted as Partial<PersistedState>;
+        if (from >= 2 || !saved.layout) return saved;
+        const stripped = stripPanels(saved.layout, RETIRED_PANEL_IDS);
+        if (!stripped) return saved;
+        return {
+          ...saved,
+          layout: addPanelToLayout(
+            stripped as MosaicNode<PanelId>,
+            PANEL.CODE,
+            DOCK_DEFAULT_PERCENT,
+          ),
+        };
+      },
       storage: createJSONStorage(() => localStorage),
       partialize: (state): PersistedState => ({ layout: state.layout }),
       // 反序列化：先剔除已下线面板（迁移），再校验；非法布局回退默认，保证"刷新不丢布局"且不白屏
@@ -530,8 +546,10 @@ export const useLayoutStore = create<LayoutStore>()(
         //     用户点顶栏右栏图标即可插回（插回后主内容收缩、可拖宽）。
         // 两者都从历史布局中剔除，并保留其余布局意图（比例/拆分），避免整份被
         // 判脏后回退默认 —— 那会让用户的拖拽比例全丢。剔除后外层 16/84 仍在。
+        // 【2026-11-19】右坞改为默认打开 ⇒ 水合时**不再剔除 code**（之前剔除是为了"默认收起"）。
+        // 旧布局由上面的 migrate（v1 → v2）把 code 加回来。
         const migrated = saved.layout
-          ? stripPanels(saved.layout, [...RETIRED_PANEL_IDS, ...DOCK_PANEL_IDS])
+          ? stripPanels(saved.layout, RETIRED_PANEL_IDS)
           : null;
         return {
           ...current,

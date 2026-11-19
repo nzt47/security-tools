@@ -43,7 +43,7 @@ export default function ModeCard() {
     <div className="mb-3 rounded-xl border border-slate-800 bg-slate-900/50 p-3">
       <div className="flex flex-wrap items-center gap-2">
         <Activity size={13} className="text-cyan-400" />
-        <h3 className="text-xs font-semibold text-slate-200">运行模式</h3>
+        <h3 className="text-body font-semibold text-slate-200">运行模式</h3>
         {data?.label && <span className="text-caption text-cyan-300">{data.label}</span>}
         {data?.can_accept_tasks === false && (
           <span className="rounded-sm bg-amber-500/15 px-1.5 py-0.5 text-micro text-amber-300">当前不接受新任务</span>

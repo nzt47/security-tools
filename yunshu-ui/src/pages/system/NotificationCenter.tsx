@@ -208,7 +208,7 @@ export default function NotificationCenter() {
                     {item.silenced_until && item.state === 'firing' && (
                       <Badge tone="neutral" size="md">静默中</Badge>
                     )}
-                    <h3 className="text-sm font-medium text-foreground">{item.title}</h3>
+                    <h3 className="text-body font-medium text-foreground">{item.title}</h3>
                     <span className="ml-auto whitespace-nowrap text-xs text-muted-foreground">{item.createdAt}</span>
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">{item.content}</p>

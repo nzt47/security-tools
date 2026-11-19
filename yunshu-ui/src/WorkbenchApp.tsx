@@ -219,6 +219,8 @@ export default function WorkbenchApp() {
     const onDragEnd = () => {
       setDetachEdge(null);
       dragSourcePanelId = null;
+      // 兜底：拖拽在窗口外结束 / 被 Esc 取消时，MosaicWindow 的 onDragEnd 可能收不到
+      document.body.classList.remove('wb-dragging');
     };
 
     // 捕获阶段监听：确保先于 react-dnd（冒泡阶段）的拖放处理
@@ -254,10 +256,13 @@ export default function WorkbenchApp() {
       createNode={createNode}
       onDragStart={() => {
         dragSourcePanelId = id;
+        // 幽灵预览只在拖拽期间可见（面板底半透明，平时透出来就是一条虚线，见 .wb-drag-ghost 注释）
+        document.body.classList.add('wb-dragging');
         console.info(`[mosaic] 面板拖拽开始：${PANEL_TITLES[id]}（${id}）`);
       }}
       onDragEnd={() => {
         dragSourcePanelId = null;
+        document.body.classList.remove('wb-dragging');
         console.info(`[mosaic] 面板拖拽结束：${id}`);
       }}
     >

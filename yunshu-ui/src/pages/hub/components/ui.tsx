@@ -40,7 +40,7 @@ export function Card({
     <UiCard className={`overflow-hidden ${className}`}>
       {(title || actions) && (
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <h3 className="text-body-lg font-medium text-foreground">{title}</h3>
+          <h3 className="text-body font-medium text-foreground">{title}</h3>
           {actions && <div className="flex items-center gap-2">{actions}</div>}
         </div>
       )}
@@ -225,7 +225,7 @@ export function PageHeader({ title, description, actions }: { title: string; des
   return (
     <div className="mb-5 flex items-start justify-between">
       <div>
-        <h1 className="text-xl font-semibold text-white">{title}</h1>
+        <h1 className="text-title font-semibold text-white">{title}</h1>
         {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}

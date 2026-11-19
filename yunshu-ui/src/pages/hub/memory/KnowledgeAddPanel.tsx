@@ -40,7 +40,7 @@ export default function KnowledgeAddPanel() {
     <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/40 p-3">
       <div className="mb-2 flex items-center gap-2">
         <Plus size={13} className="text-cyan-400" />
-        <h3 className="text-xs font-semibold text-slate-200">新增知识文档</h3>
+        <h3 className="text-body font-semibold text-slate-200">新增知识文档</h3>
         <span className="text-micro text-slate-500">直接写入向量知识库（内容必填）</span>
       </div>
       {err && <Notice tone="danger" size="sm" className="mb-2">{err}</Notice>}

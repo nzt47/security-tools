@@ -224,7 +224,7 @@ export default function LocalResources() {
     <div className="h-full overflow-y-auto p-4">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <HardDrive size={14} className="text-cyan-400" />
-        <h2 className="text-sm font-semibold text-slate-100">本地资源</h2>
+        <h2 className="text-ui font-semibold text-slate-100">本地资源</h2>
         <span className="text-caption text-slate-500">文件浏览 / 工作区 / 进程管控 —— 写与删都需二次确认</span>
         <div className="ml-auto">
           <Button type="button" variant="default" size="xs" onClick={() => { void loadDir(); void loadWs(); void loadProcess() }} disabled={loading} aria-label="刷新本地资源">

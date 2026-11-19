@@ -96,10 +96,19 @@ describe('DockPanel · 右侧可切换边栏', () => {
     localStorage.clear()
   })
 
-  it('默认落在编辑器（升级不丢原有能力）', () => {
+  it('默认落在「终端 · 实时活动」（2026-11-19 起右坞默认打开并看审计链尾部）', () => {
     installFetch()
     render(<DockPanel />)
-    expect(screen.getByRole('tab', { name: /编辑器/ })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tab', { name: /终端/ })).toHaveAttribute('aria-selected', 'true')
+    // 终端里默认就是「实时活动」子视图
+    expect(screen.getByRole('button', { name: '实时活动' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getAllByText(/审计链尾部/).length).toBeGreaterThan(0)
+  })
+
+  it('编辑器 Tab 仍可切回（升级不丢原有能力）', () => {
+    installFetch()
+    render(<DockPanel />)
+    fireEvent.click(screen.getByRole('tab', { name: /编辑器/ }))
     expect(screen.getByPlaceholderText(/在这里编写或粘贴代码/)).toBeInTheDocument()
   })
 
@@ -135,6 +144,8 @@ describe('DockPanel · 右侧可切换边栏', () => {
     installFetch()
     render(<DockPanel />)
     fireEvent.click(screen.getByRole('tab', { name: /终端/ }))
+    // 终端默认是「实时活动」，要先切到「命令」
+    fireEvent.click(screen.getByRole('button', { name: '命令' }))
     await waitFor(() => expect(screen.getByRole('button', { name: 'git status' })).toBeInTheDocument())
     fireEvent.click(screen.getByRole('button', { name: 'git status' }))
     fireEvent.click(screen.getByRole('button', { name: /执行/ }))

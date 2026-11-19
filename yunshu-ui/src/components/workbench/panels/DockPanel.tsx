@@ -83,7 +83,8 @@ function Hint({ children }: { children: ReactNode }) {
 }
 
 export function DockPanel() {
-  const [tab, setTab] = useState<DockTab>('editor')
+  // 【2026-11-19】默认落在「终端」（Owner：右坞默认打开、显示终端的实时活动）
+  const [tab, setTab] = useState<DockTab>('terminal')
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-slate-950/40">
@@ -600,7 +601,8 @@ interface TerminalResult {
 }
 
 function TerminalPane() {
-  const [mode, setMode] = useState<'cmd' | 'activity'>('cmd')
+  // 【2026-11-19】默认看「实时活动」（审计链尾部 = 云枢此刻在做什么），命令面板仍在旁边一键切
+  const [mode, setMode] = useState<'cmd' | 'activity'>('activity')
 
   return (
     <Pane>

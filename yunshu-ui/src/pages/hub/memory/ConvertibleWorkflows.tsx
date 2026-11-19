@@ -41,7 +41,7 @@ export default function ConvertibleWorkflows() {
     <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/40 p-3">
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <Repeat size={13} className="text-cyan-400" />
-        <h3 className="text-xs font-semibold text-slate-200">可转换的工作流（{total}）</h3>
+        <h3 className="text-body font-semibold text-slate-200">可转换的工作流（{total}）</h3>
         <span className="text-micro text-slate-500">满足质量门控、且尚未转成 Skill 的工作流；转完即从这里消失</span>
         <Button type="button" onClick={() => void load()} disabled={busy} aria-label="刷新可转换工作流" variant="default" size="xs" className="ml-auto">
           {busy ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新

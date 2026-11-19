@@ -345,7 +345,7 @@ export default function MemoryMaintenance() {
       <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
         <div className="mb-2 flex items-center gap-2">
           <ScanLine size={12} className="text-cyan-400" />
-          <h3 className="text-xs font-semibold text-slate-200">记忆审查</h3>
+          <h3 className="text-body font-semibold text-slate-200">记忆审查</h3>
           <span className="text-micro text-slate-500">只读体检；压缩会改写来源数据</span>
           <div className="ml-auto flex items-center gap-1.5">
             <Button type="button" variant="default" size="xs" onClick={() => void loadReview()} disabled={loading} aria-label="刷新记忆审查">
@@ -430,7 +430,7 @@ export default function MemoryMaintenance() {
       <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
         <div className="mb-2 flex items-center gap-2">
           <Save size={12} className="text-cyan-400" />
-          <h3 className="text-xs font-semibold text-slate-200">长期摘要</h3>
+          <h3 className="text-body font-semibold text-slate-200">长期摘要</h3>
           <span className="flex items-center gap-1 text-micro text-amber-400">
             <AlertTriangle size={10} /> 后端没有读接口（只有 PUT）—— 这里是盲写，会覆盖现有摘要
           </span>
@@ -465,7 +465,7 @@ export default function MemoryMaintenance() {
       <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
         <div className="mb-2 flex items-center gap-2">
           <Activity size={12} className="text-cyan-400" />
-          <h3 className="text-xs font-semibold text-slate-200">窗口监控</h3>
+          <h3 className="text-body font-semibold text-slate-200">窗口监控</h3>
           <div className="ml-auto">
             <Button type="button" variant="default" size="xs" onClick={() => void loadWindows()} disabled={loading} aria-label="刷新窗口监控">
               {busy === 'windows' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
@@ -540,7 +540,7 @@ export default function MemoryMaintenance() {
       <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
         <div className="mb-2 flex items-center gap-2">
           <Brain size={12} className="text-cyan-400" />
-          <h3 className="text-xs font-semibold text-slate-200">向量维护</h3>
+          <h3 className="text-body font-semibold text-slate-200">向量维护</h3>
           <div className="ml-auto">
             <Button type="button" variant="default" size="xs" onClick={() => void loadRecent()} disabled={loading} aria-label="刷新最近向量记忆">
               {busy === 'recent' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新

@@ -62,7 +62,7 @@ export default function HandoffPanel({ sessionId }: { sessionId: string }) {
     <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <FileText size={12} className="text-cyan-400" />
-        <h3 className="text-xs font-semibold text-slate-200">会话交接文档</h3>
+        <h3 className="text-body font-semibold text-slate-200">会话交接文档</h3>
         <span className="text-micro text-slate-500">把当前会话压缩成 Markdown（含脱敏），落盘到临时目录</span>
       </div>
       {err && <div className="mb-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-caption text-red-300">{err}</div>}

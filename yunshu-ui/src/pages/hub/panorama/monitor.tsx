@@ -310,7 +310,7 @@ export default function PanoramaMonitor() {
 
           {/* ── 模块明细（按域分组；搜索/筛选共用页头输入）── */}
           <div className="mb-2 flex items-center gap-2">
-            <h2 className="text-sm font-medium text-slate-200">模块明细</h2>
+            <h2 className="text-ui font-medium text-slate-200">模块明细</h2>
             <span className="text-caption text-slate-500">
               {query.trim() || statusFilter ? '筛选 ' + filteredCount + ' / ' + allModules.length : '全部 ' + allModules.length}
             </span>

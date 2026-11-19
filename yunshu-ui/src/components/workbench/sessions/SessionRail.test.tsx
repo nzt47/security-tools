@@ -85,14 +85,17 @@ describe('SessionRail · 项目选择条', () => {
     )
 
     const row = container.querySelector('[data-session-id="s-none"]') as HTMLElement
-    fireEvent.click(within(row).getByRole('button', { name: '移动到分组' }))
+    // 2026-11-19：行尾 4 个 hover 按钮收成一个「会话操作」菜单（参照 DSH），先开菜单再选
+    fireEvent.click(within(row).getByRole('button', { name: '会话操作' }))
+    fireEvent.click(screen.getByRole('button', { name: '移动到分组' }))
     const menu = container.querySelector('[data-move-menu]') as HTMLElement
     expect(menu).not.toBeNull()
 
     fireEvent.click(within(menu).getByRole('button', { name: /项目甲/ }))
     expect(onMoveProject).toHaveBeenCalledWith('s-none', 'proj-1')
 
-    fireEvent.click(within(row).getByRole('button', { name: '移动到分组' }))
+    fireEvent.click(within(row).getByRole('button', { name: '会话操作' }))
+    fireEvent.click(screen.getByRole('button', { name: '移动到分组' }))
     const menu2 = container.querySelector('[data-move-menu]') as HTMLElement
     fireEvent.click(within(menu2).getByRole('button', { name: '未归属项目' }))
     expect(onMoveProject).toHaveBeenLastCalledWith('s-none', null)
@@ -121,6 +124,40 @@ describe('SessionRail · 项目选择条', () => {
     )
     await waitFor(() => expect(onSelectProject).toHaveBeenCalledWith('proj-new'))
     await waitFor(() => expect(screen.queryByRole('dialog', { name: '新建项目' })).toBeNull())
+  })
+
+  it('会话操作收成一个标志：菜单里能看到 4 个动作，点击外部关闭', () => {
+    const { container } = render(
+      <SessionRail {...makeProps({ projects: [P1, P2], sessions: SESSIONS, activeProjectId: null })} />,
+    )
+    const row = container.querySelector('[data-session-id="s-none"]') as HTMLElement
+    // 行内不再平铺四个按钮：默认只有「会话操作」这一个感应点
+    expect(within(row).queryByRole('button', { name: '打开工作空间' })).toBeNull()
+
+    fireEvent.click(within(row).getByRole('button', { name: '会话操作' }))
+    expect(screen.getByRole('menu', { name: '会话操作' })).toBeInTheDocument()
+    for (const name of ['打开工作空间', '移动到分组', '重命名会话', '删除会话']) {
+      expect(screen.getByRole('button', { name })).toBeInTheDocument()
+    }
+  })
+
+  it('拖动手柄改会话栏宽度并落 localStorage，双击恢复默认', () => {
+    localStorage.removeItem('yunshu:session-rail-width')
+    const { container } = render(<SessionRail {...makeProps({ sessions: SESSIONS })} />)
+    const aside = container.querySelector('aside') as HTMLElement
+    const handle = screen.getByRole('separator', { name: '拖动调整会话栏宽度' })
+    expect(aside.style.width).toBe('260px')
+
+    fireEvent.mouseDown(handle, { clientX: 300 })
+    fireEvent.mouseMove(window, { clientX: 380 })
+    fireEvent.mouseUp(window)
+    expect(aside.style.width).toBe('340px')
+    expect(localStorage.getItem('yunshu:session-rail-width')).toBe('340')
+
+    fireEvent.doubleClick(handle)
+    expect(aside.style.width).toBe('260px')
+    expect(localStorage.getItem('yunshu:session-rail-width')).toBe('260')
+    localStorage.removeItem('yunshu:session-rail-width')
   })
 
   it('新建项目失败时错误上屏且弹窗保留', async () => {

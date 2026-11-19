@@ -188,7 +188,7 @@ export default function InstancesPanel() {
     <div className="h-full overflow-y-auto p-4">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Cpu size={14} className="text-cyan-400" />
-        <h2 className="text-sm font-semibold text-slate-100">实例管理</h2>
+        <h2 className="text-ui font-semibold text-slate-100">实例管理</h2>
         <span className="text-caption text-slate-500">LLM 实例与搜索实例：新建 / 设为默认 / 连通性测试 / 删除</span>
         <div className="ml-auto">
           <Button type="button" variant="default" size="xs" onClick={() => { void loadLlm(); void loadSearch() }} disabled={loading} aria-label="刷新实例列表">

@@ -22,6 +22,15 @@ import type { Project, SessionGroup, SessionMeta } from '../lib/sessionApi';
  * 【2026-10-30】/api/subagent/list 早已信封化；此前桩返回扁平 {ok,subagents}，
  * 恰好把「组件读顶层 r.subagents」的缺陷盖住（§8：替身照想象写）。
  */
+/**
+ * 打开某会话行的「会话操作」菜单。
+ * 【2026-11-19】行尾原来的 4 个 hover 按钮（工作空间/分组/重命名/删除）收成一个 ⋯ 标志，
+ * 动作都进菜单（参照 DSH）；菜单 portal 到 body，所以用 screen 查。
+ */
+function openSessionMenu(row: HTMLElement) {
+  fireEvent.click(within(row).getByRole('button', { name: '会话操作' }));
+}
+
 function jsonResponse(body: unknown, ok = true, status = 200, envelope = false) {
   const wire = envelope ? { code: 200, data: body } : body
   return {
@@ -399,7 +408,8 @@ describe('WorkbenchChatPage · DSH 式会话界面', () => {
 
     const rowA = container.querySelector('[data-session-id="sess-a"]') as HTMLElement;
     expect(rowA).not.toBeNull();
-    fireEvent.click(within(rowA).getByRole('button', { name: '重命名会话' }));
+    openSessionMenu(rowA);
+    fireEvent.click(screen.getByRole('button', { name: '重命名会话' }));
 
     const input = within(rowA).getByDisplayValue('会话 A');
     fireEvent.change(input, { target: { value: '架构评审会话' } });
@@ -421,17 +431,17 @@ describe('WorkbenchChatPage · DSH 式会话界面', () => {
     });
 
     const rowA = container.querySelector('[data-session-id="sess-a"]') as HTMLElement;
-    const delBtn = within(rowA).getByRole('button', { name: '删除会话' });
+    openSessionMenu(rowA);
 
-    // 第一次点击：进入确认态，不发起请求
-    fireEvent.click(delBtn);
+    // 第一次点击：进入确认态（菜单项变成「再次点击确认删除」），不发起请求
+    fireEvent.click(screen.getByRole('button', { name: '删除会话' }));
     expect(state.fetchMock).not.toHaveBeenCalledWith(
       '/api/sessions/sess-a',
       expect.objectContaining({ method: 'DELETE' }),
     );
 
     // 第二次点击：确认删除
-    fireEvent.click(within(rowA).getByRole('button', { name: '删除会话' }));
+    fireEvent.click(screen.getByRole('button', { name: '再次点击确认删除' }));
     await waitFor(() => {
       expect(state.fetchMock).toHaveBeenCalledWith(
         '/api/sessions/sess-a',
@@ -451,9 +461,9 @@ describe('WorkbenchChatPage · DSH 式会话界面', () => {
     });
 
     const rowB = container.querySelector('[data-session-id="sess-b"]') as HTMLElement;
-    const delBtn = within(rowB).getByRole('button', { name: '删除会话' });
-    fireEvent.click(delBtn);
-    fireEvent.click(within(rowB).getByRole('button', { name: '删除会话' }));
+    openSessionMenu(rowB);
+    fireEvent.click(screen.getByRole('button', { name: '删除会话' }));
+    fireEvent.click(screen.getByRole('button', { name: '再次点击确认删除' }));
 
     await waitFor(() => {
       expect(state.fetchMock).toHaveBeenCalledWith(
@@ -539,7 +549,8 @@ describe('WorkbenchChatPage · DSH 式会话界面', () => {
 
     // 打开会话 A 行的「移动到分组」菜单并选择分组
     const rowA = container.querySelector('[data-session-id="sess-a"]') as HTMLElement;
-    fireEvent.click(within(rowA).getByRole('button', { name: '移动到分组' }));
+    openSessionMenu(rowA);
+    fireEvent.click(screen.getByRole('button', { name: '移动到分组' }));
     const menu = container.querySelector('[data-move-menu]') as HTMLElement;
     expect(menu).not.toBeNull();
     fireEvent.click(within(menu).getByRole('button', { name: /项目 Alpha/ }));
@@ -578,7 +589,8 @@ describe('WorkbenchChatPage · DSH 式会话界面', () => {
 
     // 把 A 移入 Alpha
     const rowA = container.querySelector('[data-session-id="sess-a"]') as HTMLElement;
-    fireEvent.click(within(rowA).getByRole('button', { name: '移动到分组' }));
+    openSessionMenu(rowA);
+    fireEvent.click(screen.getByRole('button', { name: '移动到分组' }));
     const menu = container.querySelector('[data-move-menu]') as HTMLElement;
     fireEvent.click(within(menu).getByRole('button', { name: /项目 Alpha/ }));
 
@@ -732,7 +744,8 @@ describe('WorkbenchChatPage · DSH 式会话界面', () => {
     });
 
     const rowA = container.querySelector('[data-session-id="sess-a"]') as HTMLElement;
-    fireEvent.click(within(rowA).getByRole('button', { name: '移动到分组' }));
+    openSessionMenu(rowA);
+    fireEvent.click(screen.getByRole('button', { name: '移动到分组' }));
     const menu = container.querySelector('[data-move-menu]') as HTMLElement;
     fireEvent.click(within(menu).getByRole('button', { name: /项目甲/ }));
 

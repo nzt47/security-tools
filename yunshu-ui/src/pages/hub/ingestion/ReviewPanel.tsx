@@ -302,7 +302,7 @@ export default function ReviewPanel() {
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <h3 className="text-sm font-medium text-slate-200">外来草稿 · 待评审</h3>
+        <h3 className="text-body font-medium text-slate-200">外来草稿 · 待评审</h3>
         <span className="text-micro text-slate-500">
           外来来源先落 draft；人工审核通过后才能发布
         </span>
@@ -401,7 +401,7 @@ export default function ReviewPanel() {
       {/* 吞噬骨架草稿：tool/workflow 形态的产物不进上面的技能队列，单独列出来 */}
       <div className="mt-4 border-t border-slate-800 pt-3">
         <div className="mb-2 flex flex-wrap items-center gap-2">
-          <h3 className="text-sm font-medium text-slate-200">吞噬生成的草稿（隔离区 · 只读预览）</h3>
+          <h3 className="text-body font-medium text-slate-200">吞噬生成的草稿（隔离区 · 只读预览）</h3>
           <span className="text-micro text-slate-500">
             技能 / 工具 / 工作流都写到隔离目录；<b>登记与启用就在这一行</b>（登记默认不启用）
           </span>

@@ -152,7 +152,7 @@ export default function OpsDiagnostics() {
     <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/40 p-3">
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <Wrench size={13} className="text-cyan-400" />
-        <h3 className="text-xs font-semibold text-slate-200">诊断 / 可观测</h3>
+        <h3 className="text-body font-semibold text-slate-200">诊断 / 可观测</h3>
         <div className="ml-auto flex items-center gap-1.5">
           <Button
             type="button"

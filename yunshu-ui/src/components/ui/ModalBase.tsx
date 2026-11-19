@@ -139,7 +139,7 @@ export default function ModalBase({
             {header != null ? (
               <div className="min-w-0 truncate text-base font-semibold text-foreground">{header}</div>
             ) : title ? (
-              <h3 className="min-w-0 truncate text-base font-semibold text-foreground">{title}</h3>
+              <h3 className="min-w-0 truncate text-body font-semibold text-foreground">{title}</h3>
             ) : (
               <span />
             )}
