@@ -147,20 +147,6 @@ export default function UiGuardPage() {
     }
   }
 
-  const tabs = (
-    <Tabs
-      variant="pill"
-      size="sm"
-      aria-label="规范守卫视图"
-      value={tab}
-      onChange={(v) => setTab(v as Tab)}
-      items={[
-        { value: 'overview', label: <>概览</> },
-        { value: 'findings', label: <>违规明细 {report ? '(' + report.findings_total + ')' : ''}</> },
-      ]}
-    />
-  )
-
   return (
     <div className="flex h-full min-h-0 flex-col">
       <PageTabsHeader
@@ -172,7 +158,19 @@ export default function UiGuardPage() {
             <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> 重新检查
           </Button>
         )}
-        tabs={tabs}
+        tabs={(
+          <Tabs
+            variant="pill"
+            size="sm"
+            aria-label="规范守卫视图"
+            value={tab}
+            onChange={(v) => setTab(v as Tab)}
+            items={[
+              { value: 'overview', label: <>概览</> },
+              { value: 'findings', label: <>违规明细 {report ? '(' + report.findings_total + ')' : ''}</> },
+            ]}
+          />
+        )}
       />
 
       <div className="min-h-0 flex-1 overflow-auto bg-slate-950 px-5 py-4">
