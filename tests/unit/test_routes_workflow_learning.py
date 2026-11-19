@@ -209,3 +209,22 @@ class TestBodylessPost:
         r = c.post(f"/api/workflow-learning/workflows/{wf.id}/toggle", data="x", content_type="text/plain")
         assert r.status_code == 200, r.get_data(as_text=True)
         assert r.get_json().get("ok") is True
+
+    def test_toggle_without_body_flips_enabled(self, client, wf_svc):
+        """不带 enabled ⇒ 翻转（前端开关就是不带 body 的 POST；此前默认 True = 停不了）。"""
+        c, svc = client
+        wf = wf_svc[1]
+        before = svc.get(wf.id).enabled
+        r = c.post(f"/api/workflow-learning/workflows/{wf.id}/toggle")
+        assert r.status_code == 200
+        assert svc.get(wf.id).enabled is (not before)
+        r2 = c.post(f"/api/workflow-learning/workflows/{wf.id}/toggle")
+        assert r2.status_code == 200
+        assert svc.get(wf.id).enabled is before
+
+    def test_toggle_with_explicit_enabled_respects_value(self, client, wf_svc):
+        c, svc = client
+        wf = wf_svc[1]
+        r = c.post(f"/api/workflow-learning/workflows/{wf.id}/toggle", json={"enabled": False})
+        assert r.status_code == 200
+        assert svc.get(wf.id).enabled is False

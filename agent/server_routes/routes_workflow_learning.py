@@ -255,7 +255,13 @@ def register_routes(app, state):
     def api_wf_toggle(wf_id: str):
         try:
             data = request.get_json(silent=True) or {}
-            enabled = bool(data.get("enabled", True))
+            # 【2026-11-19】不带 enabled 时**翻转**而不是一律置 True：
+            # 前端的工作流开关就是 hubPost(url)（不带 body）——此前默认 True 会让
+            # 「停用」静默变成「再启用一次」，开关点了没反应。显式传值仍以传入为准。
+            if "enabled" in data:
+                enabled = bool(data["enabled"])
+            else:
+                enabled = not _svc().get(wf_id).enabled
             wf = _svc().set_enabled(wf_id, enabled)
             return jsonify({"ok": True, "workflow": wf.model_dump()})
         except WorkflowLearningError as e:
