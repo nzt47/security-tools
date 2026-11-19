@@ -72,10 +72,12 @@ export const DOCK_DEFAULT_PERCENT = 28;
 export const NAV_DEFAULT_PERCENT = 11;
 
 /**
- * 导航"刚好放得下所有叶子"的像素宽：最长叶子（5 个汉字 ≈ 60px）
- * + 缩进 20（子项 depth×12+8）+ 图标 13 + 间距 8 + 右侧 8 + 滚动条 6 ≈ 115，留 5px 余量。
+ * 导航的基础像素宽：最长叶子（5 个汉字 ≈ 60px）+ 缩进 20（子项 depth×12+8）
+ * + 图标 13 + 间距 8 + 右侧 8 + 滚动条 6 ≈ 115，留 5px 余量 ⇒ 120。
+ * 【2026-11-19 追加】Owner：「太窄了，再增加 5 个汉字的宽度」⇒ 120 + 5×12 = **180**。
+ * 120px 时叶子虽然放得下，但标签右侧几乎没有余量、分组箭头也贴着边，观感拥挤。
  */
-export const NAV_FIT_WIDTH = 120;
+export const NAV_FIT_WIDTH = 180;
 
 /** 视口宽 → 导航应占的百分比（6%~30% 兜底） */
 export function navPercentFor(viewportWidth: number): number {

@@ -8,6 +8,7 @@
  * 迁移后 think / code 消失，nav / chat 与拆方向/比例保留。
  */
 import { describe, expect, it, vi } from 'vitest'
+import { NAV_FIT_WIDTH } from '../lib/mosaic'
 
 /** 下线前的布局（含对 think 的列拆分） */
 const LEGACY_LAYOUT = {
@@ -73,11 +74,12 @@ describe('布局水合：下线面板 think / 搬到抽屉的 code 自动迁移'
       splitPercentages: number[]
     }
     expect(layout.direction).toBe('row')
-    // 历史外层是 16/84：v3 迁移把导航收到"刚好放得下"的像素宽（jsdom innerWidth=1024 ⇒ 120/1012）
-    const fit = (120 / (window.innerWidth - 12)) * 100
-    expect(layout.splitPercentages[0]).toBeCloseTo(fit, 3)
-    expect(layout.splitPercentages[1]).toBeCloseTo(100 - fit, 3)
-    expect(layout.splitPercentages[0]).toBeLessThan(16)
+    // 历史外层是 16/84：v3 迁移把"比刚好放得下还宽"的导航收窄（只收不放）。
+    // jsdom innerWidth=1024 ⇒ fit ≈ 17.8%，比 16% 还宽 ⇒ 保持 16%（不放大）。
+    const fit = (NAV_FIT_WIDTH / (window.innerWidth - 12)) * 100
+    const expected = Math.min(16, fit)
+    expect(layout.splitPercentages[0]).toBeCloseTo(expected, 3)
+    expect(layout.splitPercentages[1]).toBeCloseTo(100 - expected, 3)
   })
 
   it('重置布局 = 默认树（nav | chat | 右坞）', () => {
