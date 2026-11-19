@@ -133,10 +133,10 @@ export default function ToolsComputerUse() {
             </Button>
           </div>
           <div className="mt-2 flex gap-2">
-            <Button onClick={screenshot} disabled={busyShot} title="GET /api/browser/screenshot" className="flex-1" variant="default" size="xs">
+            <Button onClick={screenshot} disabled={busyShot} title="GET /api/browser/screenshot" className="flex-1 justify-center" variant="default" size="xs">
               {busyShot ? <Loader2 size={12} className="animate-spin" /> : <Camera size={12} />} 截取页面
             </Button>
-            <Button onClick={closeBrowser} title="POST /api/browser/close" className="flex-1" variant="default" size="xs">
+            <Button onClick={closeBrowser} title="POST /api/browser/close" className="flex-1 justify-center" variant="default" size="xs">
               <X size={12} /> 关闭浏览器
             </Button>
           </div>
@@ -153,7 +153,7 @@ export default function ToolsComputerUse() {
 
         <Card title="剪贴板">
           <div className="flex gap-2">
-            <Button onClick={readClipboard} disabled={busyClip} className="flex-1" variant="default" size="sm">
+            <Button onClick={readClipboard} disabled={busyClip} className="flex-1 justify-center" variant="default" size="sm">
               {busyClip ? <Loader2 size={14} className="animate-spin" /> : <Clipboard size={14} />} 读取剪贴板
             </Button>
           </div>

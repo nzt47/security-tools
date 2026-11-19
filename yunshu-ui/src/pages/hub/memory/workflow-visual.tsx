@@ -219,7 +219,7 @@ export default function MemoryWorkflowVisual() {
                       >
                         <Button variant="plain" size="bare"
                           type="button"
-                          className="min-w-0 flex-1 text-left"
+                          className="min-w-0 flex-1 justify-start text-left"
                           onClick={() => void handleLoad(d.id)}
                           title={`${d.description ?? ''} · 更新于 ${d.updated_at ?? ''}`}
                           data-testid={`ve-load-${d.id}`}

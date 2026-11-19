@@ -227,7 +227,7 @@ export default function LoginPage() {
 
         <Checkbox checked={remember} onChange={(e) => setRemember(e.target.checked)} label="记住密码" />
 
-        <Button type="submit" disabled={loading} className="w-full" variant="default" size="sm">
+        <Button type="submit" disabled={loading} className="w-full justify-center" variant="default" size="sm">
           {loading && (
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
           )}

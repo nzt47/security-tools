@@ -617,7 +617,7 @@ export default function WorkbenchChatPage() {
           onContextMenu={(e) => e.preventDefault()}
         >
           <div className="px-2 py-1 text-micro text-slate-500">对话内容 → 技能要求（选中 {ctx.text.length} 字）</div>
-          <Button type="button" onClick={openFromSelection} className="w-full" variant="accent" size="xs">
+          <Button type="button" onClick={openFromSelection} className="w-full justify-center" variant="accent" size="xs">
             <Lightbulb size={12} /> 生成技能（自动评审-评估）
           </Button>
         </div>

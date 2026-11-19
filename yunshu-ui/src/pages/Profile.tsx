@@ -79,7 +79,7 @@ export default function Profile() {
           onChange={(e) => setForm({ ...form, password: e.target.value })}
           placeholder="密码"
         />
-        <Button type="submit" variant="primary" size="md" disabled={loading} className="w-full">
+        <Button type="submit" variant="primary" size="md" disabled={loading} className="w-full justify-center">
           {loading ? '登录中...' : '登录'}
         </Button>
       </form>

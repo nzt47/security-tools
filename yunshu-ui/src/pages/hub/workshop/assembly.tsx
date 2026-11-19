@@ -381,7 +381,7 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
 function FaceRow({ face, expanded, onToggle }: { face: SovereigntyFace; expanded: boolean; onToggle: () => void }) {
   return (
     <div data-testid={'sovereignty-face-' + face.key}>
-      <Button type="button" onClick={onToggle} aria-expanded={expanded} className="w-full" variant="default" size="xs">
+      <Button type="button" onClick={onToggle} aria-expanded={expanded} className="w-full justify-start" variant="default" size="xs">
         <span>{face.label}</span>
         <Badge color={STATE_COLOR[face.state] ?? 'slate'}>{face.state_label}</Badge>
       </Button>

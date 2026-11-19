@@ -343,7 +343,7 @@ export default function MemoryKnowledge() {
                         render: (r) => (
                           <Button variant="plain" size="bare"
                             type="button"
-                            className="max-w-[320px] truncate text-left text-cyan-300 hover:text-cyan-200 hover:underline"
+                            className="max-w-[320px] justify-start truncate text-left text-cyan-300 hover:text-cyan-200 hover:underline"
                             title={`打开卡片: ${r.slug}`}
                             onClick={() => openDetail(r.slug)}
                           >

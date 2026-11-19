@@ -114,7 +114,7 @@ export function ChatStyleMenu() {
                   key={k}
                   size="xs"
                   variant={bubbleStyle === k ? 'accent' : 'default'}
-                  className="flex-1"
+                  className="flex-1 justify-center"
                   onClick={() => setStyle({ bubbleStyle: k })}
                 >
                   {CHAT_BUBBLE_STYLES[k].label}
@@ -132,7 +132,7 @@ export function ChatStyleMenu() {
                   key={k}
                   size="xs"
                   variant={fontSize === k ? 'accent' : 'default'}
-                  className="flex-1"
+                  className="flex-1 justify-center"
                   onClick={() => setStyle({ fontSize: k })}
                 >
                   {CHAT_FONT_SIZES[k].label}
@@ -154,7 +154,7 @@ export function ChatStyleMenu() {
             </div>
           </div>
 
-          <Button type="button" onClick={resetStyle} disabled={isDefault} className="w-full" variant="default" size="xs">
+          <Button type="button" onClick={resetStyle} disabled={isDefault} className="w-full justify-center" variant="default" size="xs">
             <RotateCcw size={11} /> 恢复默认风格
           </Button>
         </div>

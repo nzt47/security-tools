@@ -468,7 +468,7 @@ export default function IngestionPage() {
                         className="flex w-full items-center gap-2 border-b border-slate-800/60 px-2 py-1.5 text-left text-caption text-slate-300 last:border-b-0 hover:bg-slate-800/50">
                         <Checkbox className="shrink-0" aria-label={'批量选择 ' + c.name} disabled={!c.previewable} checked={batchSel.includes(c.path)} onChange={(e) => setBatchSel((prev) => e.target.checked ? (prev.includes(c.path) ? prev : [...prev, c.path].slice(0, BATCH_MAX)) : prev.filter((x) => x !== c.path))} />
                         <Button variant="plain" size="bare" type="button"
-                          className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                          className="flex min-w-0 flex-1 items-center justify-start gap-2 text-left"
                           onClick={() => {
                             setMode('path'); setPathInput(c.path); resetPlan()
                             // 可预览的候选：选中即自动预览（少点一次）；仅展示的候选不动

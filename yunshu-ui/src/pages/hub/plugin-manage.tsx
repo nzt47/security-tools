@@ -462,7 +462,7 @@ export default function PluginManagePage() {
                     data-testid={`plugin-config-toggle-${p.name}`}
                     size="xs"
                     variant={config?.name === p.name ? 'accent' : 'default'}
-                    className="flex-1"
+                    className="flex-1 justify-center"
                     onClick={() => openConfig(p)}
                   >
                     <Settings2 size={11} />

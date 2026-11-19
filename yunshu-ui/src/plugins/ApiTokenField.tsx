@@ -43,7 +43,7 @@ export function ApiTokenField() {
 
   return (
     <div className="api-token-field" data-testid="api-token-field">
-      <Button type="button" data-testid="api-token-toggle" className="w-full" onClick={() => setOpen((v) => !v)} aria-expanded={open} variant="default" size="xs">
+      <Button type="button" data-testid="api-token-toggle" className="w-full justify-start" onClick={() => setOpen((v) => !v)} aria-expanded={open} variant="default" size="xs">
         <span>API 令牌{savedToken ? ' ✓' : ''}</span>
         <span>{open ? '▾' : '▸'}</span>
       </Button>
