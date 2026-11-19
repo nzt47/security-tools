@@ -356,7 +356,10 @@ export function SessionRail({
           type="button"
           onClick={() => onSelect(s.id)}
           title={s.title}
-          className="min-w-0 flex-1 py-1.5 pl-2.5 text-left outline-hidden focus-visible:ring-1 focus-visible:ring-primary/60"
+          /* 【2026-11-19】Button 基类是 inline-flex + justify-center：标题与副行会变成
+             并排的两个 flex item 且居中（实测标题 x=210、时间 x=288，两块整体居中）。
+             改成纵向 + 拉满宽度 + 左对齐，标题一行、时间一行，都从左起。 */
+          className="min-w-0 flex-1 flex-col items-stretch justify-center py-1.5 pl-2.5 text-left outline-hidden focus-visible:ring-1 focus-visible:ring-primary/60"
         >
           {editing ? (
             <input

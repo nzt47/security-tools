@@ -201,7 +201,7 @@ function DocsPane() {
           <p className="px-2 py-3 text-center text-caption text-slate-500">目录为空</p>
         ) : (
           items.map((it) => (
-            <Button key={it.name} type="button" onClick={() => (it.type === 'dir' ? void loadDir(`${path}/${it.name}`) : void open(it.name))} className="w-full" variant="default" size="xs">
+            <Button key={it.name} type="button" onClick={() => (it.type === 'dir' ? void loadDir(`${path}/${it.name}`) : void open(it.name))} className="w-full justify-start text-left" variant="default" size="xs">
               <span className="shrink-0 text-muted-foreground">{it.type === 'dir' ? '📁' : '📄'}</span>
               <span className="truncate">{it.name}</span>
             </Button>

@@ -412,14 +412,26 @@ export function ReasonChain({
   const [open, setOpen] = useState(defaultOpen)
   return (
     <div className="rounded-lg border border-slate-800 bg-slate-900/40">
-      <Button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="w-full" variant="default" size="xs">
+      {/* 【2026-11-19】标题/公式必须被按钮框住：Button 基类带 justify-center + whitespace-nowrap，
+          长标题（「六条件逐项（①-④ 排序 / ⑤⑥ 一票否决）」）和长公式会整段溢出到框外
+          （实测框宽 352、内容 523，右坞打开后更明显）。这里改成左对齐 + 两侧各自截断。 */}
+      <Button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="w-full min-w-0 justify-start whitespace-normal text-left"
+        variant="default"
+        size="xs"
+      >
         <ChevronRight
           size={13}
-          className={`transition-transform ${open ? 'rotate-90' : ''}`}
+          className={`shrink-0 transition-transform ${open ? 'rotate-90' : ''}`}
         />
-        <span className="font-medium">{title}</span>
+        <span className="min-w-0 flex-1 truncate font-medium" title={title}>{title}</span>
         {formula && (
-          <span className="ml-auto font-mono text-micro text-slate-600">{formula}</span>
+          <span className="ml-auto max-w-[45%] shrink-0 truncate font-mono text-micro text-slate-600" title={formula}>
+            {formula}
+          </span>
         )}
       </Button>
       {open && (
@@ -438,7 +450,7 @@ export function ReasonChain({
                   }
                 />
               )}
-              <span className="min-w-0 flex-1">
+              <span className="min-w-0 flex-1 break-words">
                 <span className="text-slate-300">{n.label}</span>
                 {n.value !== undefined && (
                   <span className="ml-1.5 text-slate-100">{n.value}</span>

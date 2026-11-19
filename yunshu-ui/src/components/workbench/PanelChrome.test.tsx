@@ -186,6 +186,11 @@ describe('顶栏「导航 / 右栏」开关', () => {
     // 右坞默认落在「终端」Tab，且默认是「实时活动」视图
     expect(screen.getByRole('tab', { name: /终端/ })).toHaveAttribute('aria-selected', 'true')
 
+    // 关之前把 nav/chat 的占比记下来：右坞宽度是按**当前视口**折算的（jsdom innerWidth 与 CI 不同），
+    // 断言"关掉再打开后导航不变"要用相对值，不能写死 11/75。
+    const before = (useLayoutStore.getState().layout as { splitPercentages: number[] }).splitPercentages
+    const expectedNav = (before[0] / (before[0] + before[1])) * 100
+
     fireEvent.click(toggle)
     expect(leaves(useLayoutStore.getState().layout)).toEqual(['nav', 'chat'])
     expect(toggle).toHaveAttribute('aria-pressed', 'false')
@@ -198,8 +203,8 @@ describe('顶栏「导航 / 右栏」开关', () => {
     }
     expect(layout.children).toEqual(['nav', 'chat', 'code'])
     expect(layout.splitPercentages).toHaveLength(3)
-    // 关掉再打开：关的时候剩余两栏按比例放大（11/75 → 14.67），再插回时导航保持 14.67
-    expect(layout.splitPercentages[0]).toBeCloseTo((11 / 75) * 100, 3)
+    // 关掉时剩余两栏按原比例放大，再插回时导航保持这个（放大后的）比例
+    expect(layout.splitPercentages[0]).toBeCloseTo(expectedNav, 3)
     expect(toggle).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getAllByTestId('wb-panel-grip')).toHaveLength(3)
     // 持久化：状态就在布局树里（同一个 localStorage 键）
