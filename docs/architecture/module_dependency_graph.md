@@ -2978,6 +2978,7 @@ flowchart LR
     agent_ui_guard --> agent_ui_guard_engine
     agent_ui_guard --> agent_ui_guard_fixer
     agent_ui_guard_engine --> agent_ui_guard_models
+    agent_ui_guard_engine -.-> agent_utils
     agent_ui_guard_fixer --> agent_ui_guard_engine
     agent_ui_panels_data --> agent_ui_panels_schema
     agent_ui_panels_data -.-> agent_safe_paths
@@ -3065,7 +3066,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 774
 - 模块节点数: 673
-- 依赖边数: 2260
-- 跨层调用数: 1444
+- 依赖边数: 2261
+- 跨层调用数: 1445
 - 违规调用数: 0
 - 动态 import 数: 1

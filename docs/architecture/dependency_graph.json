@@ -430,7 +430,7 @@
       "name": "utils",
       "layer": "utils",
       "file_path": "",
-      "in_degree": 26,
+      "in_degree": 27,
       "out_degree": 0
     },
     {
@@ -5279,7 +5279,7 @@
       "layer": "ui_guard",
       "file_path": "",
       "in_degree": 2,
-      "out_degree": 1
+      "out_degree": 2
     },
     {
       "path": "agent.ui_guard.fixer",
@@ -31731,7 +31731,7 @@
       "source_layer": "core",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 299,
+      "line": 301,
       "source_file": "agent/tool_router_hybrid.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -31744,7 +31744,7 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 305,
+      "line": 307,
       "source_file": "agent/tool_router_hybrid.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -31757,7 +31757,7 @@
       "source_layer": "core",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 2141,
+      "line": 2143,
       "source_file": "agent/tool_router_hybrid.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -31770,7 +31770,7 @@
       "source_layer": "core",
       "target_layer": "orchestrator",
       "import_type": "from_import",
-      "line": 2160,
+      "line": 2162,
       "source_file": "agent/tool_router_hybrid.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -33759,9 +33759,22 @@
       "source_layer": "ui_guard",
       "target_layer": "ui_guard",
       "import_type": "from_import",
-      "line": 17,
+      "line": 16,
       "source_file": "agent/ui_guard/engine.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_guard.engine",
+      "target": "agent.utils",
+      "source_layer": "ui_guard",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 17,
+      "source_file": "agent/ui_guard/engine.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -34771,8 +34784,8 @@
   "stats": {
     "total_files": 774,
     "total_nodes": 673,
-    "total_edges": 2260,
-    "cross_layer_edges": 1444,
+    "total_edges": 2261,
+    "cross_layer_edges": 1445,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
