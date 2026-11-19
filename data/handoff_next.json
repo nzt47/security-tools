@@ -1,7 +1,15 @@
 {
- "updated_at": "2026-11-19T22:46:00+08:00",
+ "updated_at": "2026-11-19T22:59:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
+  {
+   "id": "agent-ui-onboarding",
+   "status": "done",
+   "priority": "P1",
+   "title": "让 agent 按 UI 封装规范落地：AGENTS.md + 短规范 + 一条 ui:check + 守卫",
+   "criteria": "2026-11-19：CI 已有 vitest 3 守卫 + ui_primitive_convergence --check（代码质量 job），但 agent 没有入口/选型表。落地：① 仓库根 AGENTS.md（harness 每轮自动注入，实测已生效）：先读规范 / 提交前 ui:check / 新原语准入 / 标题字号写在标签上；② docs/ui/封装规范.md ≤80 行（选型表 + 四步 + 反例 + 原语准入）；③ yunshu-ui 增加 npm run ui:guard / ui:audit / ui:check（tsc + eslint + vitest run guard + python 量具），实测 exit 0；④ 3 个守卫均带合成反例。量具：raw_button 8 / raw_select 1 / raw_input 11 / raw_textarea 0 / arbitrary_text 0 / raw_heading 80（基线 85）/ css_hardcoded_color 358。",
+   "next": "可选加强：pre-commit 挂 ui:check；量具趋势进 PR 注释；视觉量具进 CI。新增 UI 原语按规范 §4 同时给契约测试 + 守卫 + index.ts 导出。"
+  },
   {
    "id": "css-heading-tokens",
    "status": "done",
