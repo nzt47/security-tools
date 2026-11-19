@@ -1,7 +1,15 @@
 {
- "updated_at": "2026-11-20T00:05:00+08:00",
+ "updated_at": "2026-11-20T00:15:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
+  {
+   "id": "ci-2613fd951-watch",
+   "status": "open",
+   "priority": "P1",
+   "title": "判绿 2613fd951 自己的 CI（ci.yml / 契约门禁 / yunshui-ui-tests）",
+   "criteria": "fe1dbf90a 的「契约门禁」红在 test_frontend_stray_baseline：ui-guard.tsx 直接写了 2 处 /api 字面量（要求集中在 src/api/endpoints.ts）。2613fd951 已把 UI_GUARD_CHECK/RULES/FIX 收进 endpoints.ts；本机 test_frontend_stray_baseline 7 passed、tsc 0、面板 4 passed。2613fd951 自己的 ci.yml（27 jobs）/契约门禁/yunshui-ui-tests 尚未判（fe1dbf90a 的 run 44560989553 已被后续 push 取消/过时）。",
+   "next": "gh run list --limit 60 --json ... 按 headSha=2613fd951 查；只认该提交的 run（§9）。绿 → 置 done + 刷新交接卡；红 → 按失败 job 日志修（契约门禁优先看 test_frontend_stray_baseline）。"
+  },
   {
    "id": "ui-convention-guard-feature",
    "status": "done",
