@@ -213,7 +213,8 @@ class TestKeywordRouteIsCrossProcessDeterministic:
             "同优先级并列块不是声明序 ⇒ 仍是（或又被）迭代序决定：\n  got =%s\n  decl=%s"
             % (got, decl))
         # 【2026-11-09】15 → 16：code 类新增 skill_script_run（技能 L3 显式执行点）
-        assert len(got) == len(decl) == 16, "本判据依赖 code 类 16 个工具，实测 %d" % len(got)
+        # 【2026-11-19】16 → 17：code 类新增 ui_guard_check（UI 规范守卫，只读）
+        assert len(got) == len(decl) == 17, "本判据依赖 code 类 17 个工具，实测 %d" % len(got)
 
 
 class TestSkillScanOrderIsDeterministic:

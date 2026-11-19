@@ -1,6 +1,11 @@
 {
   "note": "「活体但无静态引用」路由的人工判定台账（2026-10-18，D 项走②按族静态复查）。与 reports/route_ui_coverage.json 双向一致：新增 unreferenced 必须在这里登记，接好线/删掉端点后必须把登记也删掉 —— scripts/audit/unreferenced_triage.py --check 两个方向都查。verdict：keep=仓库内可指认的消费者；keep-ops=无仓库内消费者但有文档化的运维/外部契约；deprecate=已被新端点取代、处于兼容窗口；retire=无消费者、无文档契约。 【2026-10-20 清理】按\"真无用再删\"复核 10 条 retire：删 6 条（auth/token-check、history/search、llm-monitor/records/<id>、skills-mgmt/inject、voice/listen、voice/status，均无代码/测试/前端/文档调用方）；4 条改判 keep 并更正证据（approval/link 校验、memory DELETE 护栏、scheduler/create 有脚本调用、subagent execute 有容器链路用例）。",
   "entries": {
+    "/api/ui-guard/health": {
+      "verdict": "keep-ops",
+      "evidence": "【2026-11-20 登记】系统监控拓扑的状态源（agent/ui_guard/__init__.py 的 MODULE_STATUS_SOURCE=api:/api/ui-guard/health，由 modules_api 的运行期采集器按 api: 前缀调用），不经前端；config/route_ui_intent.json 已标 should_not_be_in_ui。路由模块迁到 agent/server_routes/ 后不再被计为自引用 ⇒ 落入 unreferenced，属预期。",
+      "decided_at": "2026-11-20"
+    },
     "/api/system-prompt/reset": {
       "verdict": "keep-ops",
       "evidence": "【2026-11-15 复核】全仓无调用方（yunshu-ui/src 里 SYSTEM_PROMPT_RESET 常量已随基础模板编辑器删除；plugins/agent/scripts/tests 对 views 的进程内调用 0 处）。保留为运维手工回滚通道：POST /api/system-prompt/reset（空 body）把模板骨架重置为默认。UI 入口按 Owner 要求删除（「基础模板可以不要」），端点本身未删。"

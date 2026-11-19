@@ -2,7 +2,6 @@
 """ui_guard 规则引擎：fast 模式（纯 Python）与 full 模式（可选走 npm/vitest）。"""
 from __future__ import annotations
 
-import importlib.util
 import json
 import logging
 import re
@@ -15,6 +14,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from agent.ui_guard.models import Finding, Report
+from agent.utils import proc as _proc
 
 logger = logging.getLogger(__name__)
 
@@ -54,15 +54,15 @@ _HEALTH_TTL_SEC = 30.0
 
 
 def _audit_module():
-    """加载量具模块（复用它的 METRICS / CSS 正则 / 基线读取，不抄第二份）。"""
+    """加载量具模块（复用它的 METRICS / CSS 正则 / 基线读取，不抄第二份）。
+
+    按**包路径**导入（scripts.audit 是命名空间包）；不用 spec_from_file_location ——
+    detect_dynamic_loads 把「无包路径的外部脚本加载」判 HIGH。
+    """
     if "mod" in _AUDIT_CACHE:
         return _AUDIT_CACHE["mod"]
-    path = REPO_ROOT / "scripts" / "audit" / "ui_primitive_convergence.py"
-    spec = importlib.util.spec_from_file_location("_ui_primitive_convergence", path)
-    if spec is None or spec.loader is None:  # pragma: no cover - 文件缺失是部署错误
-        raise RuntimeError(f"量具模块不可用: {path}")
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
+    from scripts.audit import ui_primitive_convergence as mod
+
     _AUDIT_CACHE["mod"] = mod
     return mod
 
@@ -207,7 +207,8 @@ def _audit_findings(root: Path, out: List[Finding]) -> Dict[str, int]:
 
 def _commit(root: Path) -> str:
     try:
-        p = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=str(root),
+        p = subprocess.run(["git", "rev-parse", "--short", "HEAD"],
+                           **_proc.hidden_kwargs(), cwd=str(root),
                            capture_output=True, text=True, timeout=5)
         return p.stdout.strip() if p.returncode == 0 else ""
     except Exception:  # noqa: BLE001 无 git 环境不应阻断检查
@@ -263,7 +264,8 @@ def check(*, root: Optional[Path] = None, mode: str = "fast",
             (["npx", "vitest", "run", "guard"], "vitest-guard"),
         ):
             try:
-                p = subprocess.run(cmd, cwd=str(root / "yunshu-ui" if name == "vitest-guard" else root),
+                p = subprocess.run(cmd, **_proc.hidden_kwargs(),
+                                   cwd=str(root / "yunshu-ui" if name == "vitest-guard" else root),
                                    capture_output=True, text=True, timeout=180)
                 if p.returncode != 0:
                     errors.append(f"full/{name} 退出码 {p.returncode}: {(p.stderr or p.stdout)[-300:]}")

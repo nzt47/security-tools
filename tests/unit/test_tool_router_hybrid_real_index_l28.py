@@ -110,10 +110,11 @@ class TestFixtureShapeMatchesProduction:
             "YAML 派生的工具集与 data/tool_index.json 不一致 ⇒ 本回归的「真实形状」前提失效"
         )
         # 【2026-11-09】92 → 93：新增 skill_script_run（llm_callable=true、未弃用）
-        assert len(real_tools) == 93, f"真实工具数应为 93，实际 {len(real_tools)}"
+        # 【2026-11-19】93 → 94：新增 ui_guard_check（llm_callable=true、未弃用）
+        assert len(real_tools) == 94, f"真实工具数应为 94，实际 {len(real_tools)}"
 
     def test_index_is_not_a_toy_fixture(self, real_retriever, real_tools):
-        assert real_retriever._bm25.size == len(real_tools) == 93
+        assert real_retriever._bm25.size == len(real_tools) == 94
 
 
 # ════════════════════════════════════════════════════════════
@@ -376,12 +377,13 @@ class TestMinIdfCoverageDoesNotEatGold:
 class TestBaselineCasesDoNotRegress:
     """**逐例**钉住 hybrid_tool 层的语义（复核 A7-2：聚合阈值不是判据）
 
-    基线事实（已提交 `eval/routing_baseline/report.json`）：
+    改前基线（L28 修复前的历史 `eval/routing_baseline/report.json`）：
         `metrics.per_layer.hybrid_tool` = {n:10, accuracy:0.9, n_correct:9,
         claimed_wrong_ids:["TOOL-006"]} ⇒ **改前唯一错例是 TOOL-006**，
         TOOL-010（搜索网页）原本是**命中**的。
     本次工作区状态：TOOL-006 由错转对、TOOL-010 由对转错 ⇒ 该层是
         **9/10 持平（横向置换）**，**不是改进**。
+    当前产物（2026-11-20 因新增 ui_guard_check 重派生）：claimed_wrong_ids=["TOOL-010"]。
 
     ⚠️ 因此「top1 命中率 ≥ 0.9」在改动前后**都成立**，检测不到这次置换
     （与"空转补丁 ⇒ 假覆盖"同型）。本类改为**逐例**断言：两条都必须成立。

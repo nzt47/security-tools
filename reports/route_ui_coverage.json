@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-19T23:39:33",
+  "generated_at": "2026-11-20T00:33:23",
   "totals": {
     "routes": 516,
     "live": 516,
@@ -7,13 +7,13 @@
     "dead_definitions": 0,
     "ui": 455,
     "cli_script": 15,
-    "runtime_only": 13,
-    "unreferenced": 33,
+    "runtime_only": 12,
+    "unreferenced": 34,
     "live_by_category": {
       "ui": 455,
       "cli_script": 15,
-      "runtime_only": 13,
-      "unreferenced": 33
+      "runtime_only": 12,
+      "unreferenced": 34
     },
     "by_intent": {
       "should_be_in_ui": 422,
@@ -60,8 +60,6 @@
       "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
-        "agent/tools/custom/api_multi_search_engine.py",
-        "agent/tools/custom/ingested/byted-bp-cdn-pagesdeploy/scripts/subscribe_cdn.py",
         "scripts/_check_page.py"
       ],
       "where": [
@@ -3665,13 +3663,13 @@
         "agent/server_auth.py",
         "agent/settings/registry.py",
         "app_server.py",
-        "scripts/_t08_http_stress.py",
         "scripts/deploy_workbench.py",
         "scripts/deployment_drill.py",
         "scripts/dev/graceful_shutdown_persist_probe.py",
         "scripts/full_alert_verify.py",
         "scripts/probe_prefix_cache_interaction.py",
-        "scripts/rollback.ps1"
+        "scripts/rollback.ps1",
+        "scripts/rotate_grafana_password.ps1"
       ],
       "where": [
         "plugins/status.py:237"
@@ -11500,13 +11498,11 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/pages/hub/governance/ui-guard.tsx"
+        "yunshu-ui/src/api/endpoints.ts"
       ],
-      "non_ui_refs": [
-        "agent/ui_guard/routes.py"
-      ],
+      "non_ui_refs": [],
       "where": [
-        "agent/ui_guard/routes.py:41"
+        "agent/server_routes/routes_ui_guard.py:41"
       ],
       "description": "ui_guard 的 HTTP 面（面板 + 工具 + 拓扑状态源共用）。",
       "description_source": "module",
@@ -11527,13 +11523,11 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/pages/hub/governance/ui-guard.tsx"
+        "yunshu-ui/src/api/endpoints.ts"
       ],
-      "non_ui_refs": [
-        "agent/ui_guard/routes.py"
-      ],
+      "non_ui_refs": [],
       "where": [
-        "agent/ui_guard/routes.py:64"
+        "agent/server_routes/routes_ui_guard.py:64"
       ],
       "description": "ui_guard 的 HTTP 面（面板 + 工具 + 拓扑状态源共用）。",
       "description_source": "module",
@@ -11549,16 +11543,14 @@
       "methods": [
         "GET"
       ],
-      "category": "runtime_only",
+      "category": "unreferenced",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [],
-      "non_ui_refs": [
-        "agent/ui_guard/routes.py"
-      ],
+      "non_ui_refs": [],
       "where": [
-        "agent/ui_guard/routes.py:86"
+        "agent/server_routes/routes_ui_guard.py:86"
       ],
       "description": "ui_guard 的 HTTP 面（面板 + 工具 + 拓扑状态源共用）。",
       "description_source": "module",
@@ -11579,13 +11571,11 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/pages/hub/governance/ui-guard.tsx"
+        "yunshu-ui/src/api/endpoints.ts"
       ],
-      "non_ui_refs": [
-        "agent/ui_guard/routes.py"
-      ],
+      "non_ui_refs": [],
       "where": [
-        "agent/ui_guard/routes.py:59"
+        "agent/server_routes/routes_ui_guard.py:59"
       ],
       "description": "ui_guard 的 HTTP 面（面板 + 工具 + 拓扑状态源共用）。",
       "description_source": "module",
@@ -13142,7 +13132,6 @@
       "non_ui_refs": [
         "agent/audit/ui_middleware.py",
         "agent/utils/perf_monitor.py",
-        "scripts/_t08_http_stress.py",
         "scripts/baseline_loadtest_py.py",
         "scripts/check_mcp_log_level.py",
         "scripts/deployment_drill.py",
@@ -13151,7 +13140,8 @@
         "scripts/mock_intent_layer_traffic.py",
         "scripts/mock_metrics_server.py",
         "scripts/mock_service_standalone.py",
-        "scripts/monitoring_longrun/c2_harness.py"
+        "scripts/monitoring_longrun/c2_harness.py",
+        "scripts/monitoring_longrun/gen_derived_config.py"
       ],
       "where": [
         "agent/server_routes/routes_logging.py:1268"
@@ -13241,5 +13231,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "0c6bdd6357d5edf6"
+  "content_hash": "8d4299f77e2f79ca"
 }
