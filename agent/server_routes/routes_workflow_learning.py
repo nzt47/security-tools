@@ -111,7 +111,7 @@ def register_routes(app, state):
         }
         """
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             record = LearningRecord(
                 session_id=data.get("session_id", ""),
                 user_input=data.get("user_input", ""),
@@ -141,7 +141,7 @@ def register_routes(app, state):
         Body: {task_text, top_k?}
         """
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             task_text = data.get("task_text", "")
             if not task_text:
                 return jsonify({"ok": False, "error": "缺少 task_text"}), 400
@@ -161,7 +161,7 @@ def register_routes(app, state):
         Returns: WorkflowExecutionResult — matched=False 时调用方应转 LLM
         """
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             task_text = data.get("task_text", "")
             if not task_text:
                 return jsonify({"ok": False, "error": "缺少 task_text"}), 400
@@ -182,7 +182,7 @@ def register_routes(app, state):
         Body: {task_text, params?}
         """
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             task_text = data.get("task_text", "")
             if not task_text:
                 return jsonify({"ok": False, "error": "缺少 task_text"}), 400
@@ -254,7 +254,7 @@ def register_routes(app, state):
     @log_request()
     def api_wf_toggle(wf_id: str):
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             enabled = bool(data.get("enabled", True))
             wf = _svc().set_enabled(wf_id, enabled)
             return jsonify({"ok": True, "workflow": wf.model_dump()})
@@ -269,7 +269,7 @@ def register_routes(app, state):
     @log_request()
     def api_wf_priority(wf_id: str):
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             priority = int(data.get("priority", 50))
             wf = _svc().update_priority(wf_id, priority)
             return jsonify({"ok": True, "workflow": wf.model_dump()})
@@ -299,7 +299,7 @@ def register_routes(app, state):
                 - QUALITY_GATE_FAILED (400)
         """
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             force = bool(data.get("force", False))
             # 术语纪律（TASK-S0-01）：新参数 auto_review 为主；旧参数 auto_digest
             # 兼容读取（≤1 minor；评审语义，与 v7.2 内化语义无关）
@@ -351,7 +351,7 @@ def register_routes(app, state):
             {ok, skill_id, skill_name, source_format, action}
         """
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             external_data = data.get("external_data") or {}
             target_id = str(data.get("target_id", "") or "")
             llm_enabled = bool(data.get("llm_enabled", False))
@@ -403,7 +403,7 @@ def register_routes(app, state):
             {ok, total_input, converted, merged, strengthened, created, failed}
         """
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             external_skills = data.get("external_skills") or []
             if not isinstance(external_skills, list) or not external_skills:
                 return jsonify({

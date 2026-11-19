@@ -132,10 +132,13 @@ class TestHealthScore:
         assert resp.get_json()["ok"] is False
 
     def test_score_calculate_empty_body(self, client, mock_calc):
-        # 真实行为: 无 JSON body 时 request.get_json() 抛 BadRequest → 500 ok:False
+        # 【2026-11-19 契约变更】此前这里断言 500：无 JSON body 时 request.get_json() 抛 BadRequest，
+        # 被 except Exception 收口成 500。但 handler 写的是 'get_json() or {}'（意图=空字典），
+        # 而前端 hubPost(url) 本来就不带 body ⇒ 该 500 是缺陷（工作流页点开关正是同一形态）。
+        # 现在空 body = 空指标 ⇒ 按默认指标算出报告，200 ok:True。
         resp = client.post("/api/health/score/calculate")
-        assert resp.status_code == 500
-        assert resp.get_json()["ok"] is False
+        assert resp.status_code == 200
+        assert resp.get_json()["ok"] is True
 
 
 # ═══════════════════════════════════════════════════════════════

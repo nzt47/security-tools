@@ -101,7 +101,7 @@ def register_routes(app, state):
     def api_system_prompt_config_save():
         """保存提示词组件配置"""
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             mgr = _get_mgr()
             success = mgr.save(data)
             if not success:
@@ -149,7 +149,7 @@ def register_routes(app, state):
     def api_system_prompt_config_apply():
         """根据当前配置生成模板并应用到运行环境"""
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             mgr = _get_mgr()
 
             # 如果有传入配置，先保存
@@ -211,7 +211,7 @@ def register_routes(app, state):
     def api_system_prompt_config_preview():
         """根据提供的配置生成预览模板（不保存）"""
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             config = data.get("config", {})
             # 兼容两种结构：完整 config（含 sections 键）或直接是 sections 字典
             if "sections" not in config:

@@ -186,3 +186,26 @@ class TestExecuteRoute:
         result = body.get("result", {})
         assert result.get("matched") is True
         assert result.get("success") is True
+
+class TestBodylessPost:
+    """前端 hubPost(url) 不带 body（也没有 Content-Type）时不得 500。
+
+    【2026-11-19 实测】POST /api/workflow-learning/workflows/<id>/toggle 无 body ⇒
+    request.get_json() 抛 415/400 ⇒ 被 except Exception 收口成 500「操作失败（详见服务日志）」。
+    修法：这些 handler 本来写的就是 `get_json() or {}`（意图=空字典），改成 silent=True。
+    """
+
+    def test_toggle_without_json_body_returns_200(self, client, wf_svc):
+        c, svc = client
+        wf = wf_svc[1]
+        r = c.post(f"/api/workflow-learning/workflows/{wf.id}/toggle")
+        assert r.status_code == 200, r.get_data(as_text=True)
+        assert r.get_json().get("ok") is True
+        assert svc.get(wf.id) is not None
+
+    def test_toggle_with_text_plain_body_returns_200(self, client, wf_svc):
+        c, svc = client
+        wf = wf_svc[1]
+        r = c.post(f"/api/workflow-learning/workflows/{wf.id}/toggle", data="x", content_type="text/plain")
+        assert r.status_code == 200, r.get_data(as_text=True)
+        assert r.get_json().get("ok") is True

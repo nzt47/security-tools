@@ -120,7 +120,7 @@ def register_routes(app, state):
     @log_request()
     def api_knowledge_query():
         """知识库融合检索：RRF 融合 + 双链扩展 + rerank 重排。"""
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         question = data.get("question", "").strip()
         try:
             top_k = max(1, min(int(data.get("top_k", 5)), 20))

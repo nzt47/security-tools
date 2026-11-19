@@ -48,7 +48,7 @@ def register_routes(app, state):
             context: 上下文信息（可选）
         """
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
 
             trace_id = data.get('trace_id', '')
             feedback_type = data.get('feedback_type', '')
@@ -202,7 +202,7 @@ def register_routes(app, state):
             resolver: 处理人（可选）
         """
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             resolution = data.get('resolution', '')
             resolver = data.get('resolver', '')
 

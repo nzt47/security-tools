@@ -892,7 +892,7 @@ def register_routes(app, state):
         # 优先从实际 HTTP 请求头提取
         headers = dict(request.headers)
         # 如果请求体中提供了 headers，则合并覆盖
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         body_headers = data.get("headers", {})
         if body_headers:
             headers.update(body_headers)
@@ -1143,7 +1143,7 @@ def register_routes(app, state):
         try:
             from agent.monitoring.loki import log_to_loki
             
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             message = data.get("message")
             
             if not message:
@@ -1341,7 +1341,7 @@ def register_routes(app, state):
         Response:
             {"ok": bool, "rule": dict}
         """
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         required_fields = ["name", "expr"]
         missing = [f for f in required_fields if f not in data]
         if missing:
@@ -1396,7 +1396,7 @@ def register_routes(app, state):
         Response:
             {"ok": bool, "rule": dict or None}
         """
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         rules = _load_alert_rules()
         
         found = None
@@ -1463,7 +1463,7 @@ def register_routes(app, state):
         Response:
             {"ok": bool, "error": str or None}
         """
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         expr = data.get("expr", "")
         
         if not expr:

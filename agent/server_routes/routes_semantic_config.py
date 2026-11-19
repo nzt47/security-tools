@@ -72,7 +72,7 @@ def register_routes(app, state=None):
         try:
             from agent.orchestrator.orchestrator import Orchestrator
             _t0 = time.perf_counter()  # Prometheus 指标: 生效延迟
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
 
             # 参数校验：类型映射 + 范围约束
             _type_map = {

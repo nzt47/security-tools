@@ -364,7 +364,7 @@ def register_routes(app, state):
             if category not in ALL_CATEGORIES:
                 return jsonify({"ok": False, "error": f"未知类别 {category}"}), 400
 
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             filepath = _asset_file(category)
             if filepath is None:
                 return jsonify({"ok": False, "error": f"未知类别 {category}"}), 400
@@ -391,7 +391,7 @@ def register_routes(app, state):
     def api_assets_backup():
         """创建资产备份"""
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             categories = data.get("categories")
 
             BACKUPS_DIR.mkdir(parents=True, exist_ok=True)
@@ -459,7 +459,7 @@ def register_routes(app, state):
     def api_assets_restore():
         """从备份恢复资产数据"""
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             backup_id = data.get("backup_id")
             if not backup_id:
                 return jsonify({"ok": False, "error": "缺少 backup_id"}), 400

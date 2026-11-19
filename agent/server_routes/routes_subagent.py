@@ -1009,7 +1009,7 @@ def register_routes(app, state):
         生效模型随 `/api/subagent/list` 与委派响应如实回显。
         """
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
 
             required = ["name", "memory_provider"]
             missing = [k for k in required if k not in data]
@@ -1089,7 +1089,7 @@ def register_routes(app, state):
             task (str): 任务描述
         """
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             task = data.get("task", "").strip()
             if not task:
                 return jsonify({"ok": False, "error": "task 不能为空"}), 400
@@ -1362,7 +1362,7 @@ def register_routes(app, state):
                 非法 ⇒ 400 E_MEMORY_CONFIG
         """
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
 
             # 获取当前配置作为基础
             current = Yunshu.get_subagent(name)

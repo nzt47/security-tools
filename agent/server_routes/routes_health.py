@@ -187,7 +187,7 @@ def register_routes(app, state):
     def api_health_score_calculate():
         """手动提交指标计算健康度"""
         try:
-            metrics = request.get_json() or {}
+            metrics = request.get_json(silent=True) or {}
             
             calculator = get_calculator()
             report = calculator.calculate(metrics)
@@ -268,7 +268,7 @@ def register_routes(app, state):
                 })
             
             # PUT - 更新权重
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             new_weights = data.get("weights", {})
             
             # 验证权重

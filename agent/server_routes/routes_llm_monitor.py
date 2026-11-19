@@ -84,7 +84,7 @@ def register_routes(app, state):
     def api_llm_monitor_toggle():
         """启用或禁用监控"""
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             enabled = data.get("enabled", True)
             monitor = _get_monitor()
             monitor.set_enabled(enabled)
