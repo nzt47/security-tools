@@ -101,7 +101,7 @@ def test_health_形状():
 
 
 def _client():
-    from agent.ui_guard import routes
+    from agent.server_routes import routes_ui_guard as routes
     app = Flask(__name__)
     routes.register_routes(app, None)
     app.config["TESTING"] = True
