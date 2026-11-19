@@ -17,9 +17,11 @@ import {
   RETIRED_PANEL_IDS,
   PANEL,
   addPanelToLayout,
+  defaultLayoutFor,
   layoutHasPanel,
   removePanelFromLayout,
   sanitizeLayout,
+  shrinkNavToFit,
   stripPanels,
   type PanelId,
 } from '../lib/mosaic';
@@ -215,7 +217,10 @@ export const useLayoutStore = create<LayoutStore>()(
       setLayout: (next) => set({ layout: next }),
 
       // 重置布局 = 回到默认树（右坞收起，与首次打开工作台一致）
-      resetLayout: () => set({ layout: DEFAULT_LAYOUT }),
+      // 【2026-11-19】默认布局按视口算：导航宽度 = "刚好放得下所有叶子"的像素宽（见 mosaic.NAV_FIT_WIDTH）
+  resetLayout: () => set({
+    layout: defaultLayoutFor(typeof window === 'undefined' ? 1440 : window.innerWidth),
+  }),
 
       showPanel: (panelId, percent) =>
         set((state) => {
@@ -520,20 +525,29 @@ export const useLayoutStore = create<LayoutStore>()(
     {
       name: LAYOUT_STORAGE_KEY,
       // v2（2026-11-19）：右坞从"默认收起"改为"默认打开" ⇒ 旧布局需要把 code 加回来
-      version: 2,
+      // v3（2026-11-19）：导航宽度改为"刚好放得下所有叶子"的像素宽 ⇒ 比它宽的旧布局收窄（只收不放）
+      version: 3,
       migrate: (persisted, from) => {
         const saved = persisted as Partial<PersistedState>;
-        if (from >= 2 || !saved.layout) return saved;
-        const stripped = stripPanels(saved.layout, RETIRED_PANEL_IDS);
-        if (!stripped) return saved;
-        return {
-          ...saved,
-          layout: addPanelToLayout(
-            stripped as MosaicNode<PanelId>,
-            PANEL.CODE,
-            DOCK_DEFAULT_PERCENT,
-          ),
-        };
+        if (!saved.layout) return saved;
+        let layout: MosaicNode<PanelId> | string | null = saved.layout as MosaicNode<PanelId>;
+        if (from < 2) {
+          const stripped = stripPanels(layout, RETIRED_PANEL_IDS);
+          if (stripped) {
+            layout = addPanelToLayout(
+              stripped as MosaicNode<PanelId>,
+              PANEL.CODE,
+              DOCK_DEFAULT_PERCENT,
+            );
+          }
+        }
+        if (from < 3) {
+          layout = shrinkNavToFit(
+            layout as MosaicNode<PanelId>,
+            typeof window === 'undefined' ? 1440 : window.innerWidth,
+          );
+        }
+        return { ...saved, layout };
       },
       storage: createJSONStorage(() => localStorage),
       partialize: (state): PersistedState => ({ layout: state.layout }),
@@ -551,9 +565,14 @@ export const useLayoutStore = create<LayoutStore>()(
         const migrated = saved.layout
           ? stripPanels(saved.layout, RETIRED_PANEL_IDS)
           : null;
+        const sanitized = migrated ? sanitizeLayout(migrated) ?? null : null;
         return {
           ...current,
-          layout: migrated ? sanitizeLayout(migrated) ?? null : null,
+          // 兜底再收一次：即使 zustand 没走 migrate（版本已是最新、但 nav 仍偏宽），
+          // 也让"比刚好放得下还宽"的导航收窄（只收不放）。
+          layout: sanitized
+            ? shrinkNavToFit(sanitized, typeof window === 'undefined' ? 1440 : window.innerWidth)
+            : null,
         };
       },
     },

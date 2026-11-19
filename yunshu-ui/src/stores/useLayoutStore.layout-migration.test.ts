@@ -67,14 +67,17 @@ describe('布局水合：下线面板 think / 搬到抽屉的 code 自动迁移'
     expect(list[list.length - 1]).toBe('code')
   })
 
-  it('保留拆方向与外层比例（不因迁移而重置为默认布局）', () => {
+  it('保留拆方向；导航按"刚好放得下所有叶子"收窄（只收不放）', () => {
     const layout = useLayoutStore.getState().layout as unknown as {
       direction: string
       splitPercentages: number[]
     }
     expect(layout.direction).toBe('row')
-    // 历史布局里 code 本来就在内层（与 think 同列），迁移只剔除 think ⇒ 外层仍是 16/84
-    expect(layout.splitPercentages).toEqual([16, 84])
+    // 历史外层是 16/84：v3 迁移把导航收到"刚好放得下"的像素宽（jsdom innerWidth=1024 ⇒ 120/1012）
+    const fit = (120 / (window.innerWidth - 12)) * 100
+    expect(layout.splitPercentages[0]).toBeCloseTo(fit, 3)
+    expect(layout.splitPercentages[1]).toBeCloseTo(100 - fit, 3)
+    expect(layout.splitPercentages[0]).toBeLessThan(16)
   })
 
   it('重置布局 = 默认树（nav | chat | 右坞）', () => {

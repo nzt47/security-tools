@@ -65,12 +65,58 @@ export const DOCK_DEFAULT_WIDTH = 360;
 export const DOCK_DEFAULT_PERCENT = 28;
 
 /**
- * 左侧导航默认占根横向 split 的百分比。
- * 【2026-11-19】16 → 11：Owner 要求"比现在再缩三分之一左右，所有叶子一行放得下"。
- * 1440 下 228 → 158px，最长叶子（5 个汉字 ≈ 60px）+ 图标 13 + 间距 + 箭头 12 ≈ 121px，
- * 一行放得下；1280 下 141px 仍够。
+ * 左侧导航默认占根横向 split 的百分比（**静态兜底**：SSR / 单测 / 没有 window 时用）。
+ * 真实运行用 `defaultLayoutFor(innerWidth)` —— 导航宽度要按"刚好放得下所有叶子"的像素宽折算，
+ * 否则同一个百分比在 1920 上会比需要宽 60px（Owner 2026-11-19：「缩到全部叶子能看完整就可以」）。
  */
 export const NAV_DEFAULT_PERCENT = 11;
+
+/**
+ * 导航"刚好放得下所有叶子"的像素宽：最长叶子（5 个汉字 ≈ 60px）
+ * + 缩进 20（子项 depth×12+8）+ 图标 13 + 间距 8 + 右侧 8 + 滚动条 6 ≈ 115，留 5px 余量。
+ */
+export const NAV_FIT_WIDTH = 120;
+
+/** 视口宽 → 导航应占的百分比（6%~30% 兜底） */
+export function navPercentFor(viewportWidth: number): number {
+  const usable = Math.max(320, viewportWidth - 12);
+  return Math.min(30, Math.max(6, (NAV_FIT_WIDTH / usable) * 100));
+}
+
+/** 按视口算出的默认布局（nav 刚好放得下 / 右坞 28%） */
+export function defaultLayoutFor(viewportWidth: number): MosaicNode<PanelId> {
+  const nav = navPercentFor(viewportWidth);
+  return {
+    type: 'split',
+    direction: 'row',
+    children: [PANEL.NAV, PANEL.CHAT, PANEL.CODE],
+    splitPercentages: [nav, 100 - nav - DOCK_DEFAULT_PERCENT, DOCK_DEFAULT_PERCENT],
+  };
+}
+
+/**
+ * 把"比刚好放得下还宽"的导航收窄（**只收不放**）。
+ * 用于水合：老布局里的 11%/16% 是按旧口径算的，在 1920 上仍然偏宽。
+ */
+export function shrinkNavToFit(layout: MosaicNode<PanelId>, viewportWidth: number): MosaicNode<PanelId> {
+  const fit = navPercentFor(viewportWidth);
+  const node = layout as unknown as {
+    type?: string
+    direction?: string
+    children?: unknown[]
+    splitPercentages?: number[]
+  };
+  if (node.type !== 'split' || node.direction !== 'row') return layout;
+  const children = node.children;
+  const pcts = node.splitPercentages;
+  if (!Array.isArray(children) || children.length < 2 || !Array.isArray(pcts) || pcts.length !== children.length) return layout;
+  if (children[0] !== PANEL.NAV || typeof pcts[0] !== 'number' || pcts[0] <= fit + 0.01) return layout;
+  const next = pcts.slice();
+  const delta = next[0] - fit;
+  next[0] = fit;
+  next[1] = next[1] + delta;
+  return { ...(layout as object), splitPercentages: next } as MosaicNode<PanelId>;
+}
 
 /**
  * 默认布局：nav | chat，splitPercentages 各子区占比之和须为 100

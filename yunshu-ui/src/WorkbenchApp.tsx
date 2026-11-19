@@ -25,7 +25,7 @@
  * 跨窗口会话一致：挂载 startCrossWindowSync，独立窗口（分离/重开）与主工作台
  * 共享 messages/thinking（真实 Electron 或 VITE_MOCK_ELECTRON 双标签联调生效）。
  */
-import { useCallback, useEffect, useRef, useState, lazy, Suspense } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react';
 import type { ReactElement } from 'react';
 import { Mosaic, MosaicWindow } from 'react-mosaic-component';
 import type { MosaicNode, MosaicPath } from 'react-mosaic-component';
@@ -33,6 +33,7 @@ import { Cloud, MessageSquare, PanelLeft, PanelRight, RotateCcw } from 'lucide-r
 import { Button } from '@/components/ui';
 import {
   DEFAULT_LAYOUT,
+  defaultLayoutFor,
   DOCK_DEFAULT_WIDTH,
   PANEL,
   PANEL_TITLES,
@@ -148,7 +149,12 @@ export default function WorkbenchApp() {
   // 可见性以**布局树**为准（面板还在不在树里），而不是另存一份布尔：
   // 这样 ⋮ 菜单的"关闭"、拖到边缘分离、顶栏开关三处永远一致，也不会出现
   // "开关说在、树里没有"的错位。右坞（code）也一样 —— 它是个真 mosaic 列。
-  const baseLayout = layout ?? DEFAULT_LAYOUT;
+  // 【2026-11-19】默认布局按视口算：导航宽度 = "刚好放得下所有叶子"（static DEFAULT_LAYOUT 只做 SSR 兜底）
+  const defaultLayout = useMemo(
+    () => defaultLayoutFor(typeof window === 'undefined' ? 1440 : window.innerWidth),
+    [],
+  );
+  const baseLayout = layout ?? defaultLayout;
   const navVisible = layoutHasPanel(baseLayout, PANEL.NAV);
   const chatVisible = layoutHasPanel(baseLayout, PANEL.CHAT);
   const dockVisible = layoutHasPanel(baseLayout, PANEL.CODE);
@@ -186,7 +192,7 @@ export default function WorkbenchApp() {
     // 摘除面板：单子上提 / tabs 折叠由 removePanelFromLayout 处理。
     // 以实际渲染的布局树为基准：layout 未自定义（null）时用 DEFAULT_LAYOUT 兜底，
     // 否则 setLayout(null) 不产生变化，面板不会被移除。
-    const next = removePanelFromLayout(useLayoutStore.getState().layout ?? DEFAULT_LAYOUT, panelId);
+    const next = removePanelFromLayout(useLayoutStore.getState().layout ?? defaultLayout, panelId);
     console.info(`[mosaic] 面板分离成功，从布局摘除：${panelId} → 新布局 ${JSON.stringify(next)}`);
     setLayout(next);
   }, [setLayout]);
@@ -381,7 +387,7 @@ export default function WorkbenchApp() {
 
         <Mosaic<PanelId>
           className="mosaic-custom"
-          value={layout ?? DEFAULT_LAYOUT}
+          value={layout ?? defaultLayout}
           onChange={(next) => {
             // 【Why】拖拽/拆分/关闭面板都会触发：记录布局树变化，配合 [mosaic] 其它日志
             // 排查 removeChild 等面板生命周期告警（dev 下可 Console 过滤 [mosaic]）。
