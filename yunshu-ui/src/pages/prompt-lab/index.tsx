@@ -251,7 +251,7 @@ export default function PromptLab() {
             <ActiveTabIcon size={15} />
           </div>
           <div>
-            <h1 className="pl-title">提示词实验室</h1>
+            <h1 className="pl-title text-title">提示词实验室</h1>
             <p className="pl-subtitle">{activeTab.hint}</p>
           </div>
         </div>
@@ -437,7 +437,7 @@ export default function PromptLab() {
           }
         >
           <section className="pl-identity-col" aria-label="身份提示词（分节配置）">
-            <h2 className="pl-col-title">分节配置（哪些块进提示词）</h2>
+            <h2 className="pl-col-title text-ui">分节配置（哪些块进提示词）</h2>
             <IdentityPromptPanel
               {...toIdentityPromptPanelProps(identity)}
               focusedKey={focusRowKey}

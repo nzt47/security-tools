@@ -42,7 +42,6 @@
 }
 .pl-title {
   margin: 0;
-  font-size: var(--text-title);
   font-weight: 600;
   letter-spacing: 0.06em;
   color: #e2e8f0;
@@ -185,7 +184,6 @@
 }
 .pl-col-title {
   margin: 0 0 12px;
-  font-size: var(--text-body-lg);
   font-weight: 600;
   letter-spacing: 0.02em;
   color: #94a3b8;
@@ -328,7 +326,6 @@
 }
 .pl-preview-head h2 {
   margin: 0;
-  font-size: var(--text-ui);
   font-weight: 600;
   color: #e2e8f0;
 }
@@ -452,7 +449,6 @@
 .pl-preview-block h3,
 .pl-export h3 {
   margin: 0 0 6px;
-  font-size: var(--text-body);
   font-weight: 600;
   color: var(--wb-text-dim);
   letter-spacing: 0.08em;
@@ -675,7 +671,6 @@
 }
 .pl-modal-title {
   margin: 0 0 12px;
-  font-size: var(--text-title);
   font-weight: 600;
   color: #e2e8f0;
 }

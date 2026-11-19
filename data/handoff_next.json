@@ -1,7 +1,15 @@
 {
- "updated_at": "2026-11-19T21:47:00+08:00",
+ "updated_at": "2026-11-19T22:42:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
+  {
+   "id": "css-heading-tokens",
+   "status": "done",
+   "priority": "P2",
+   "title": "最后 12 处「CSS 字号」heading 收口：字号必须显式 text-*（pl-title / pl-col-title / pl-modal-title / kb-detail-title + prompt-lab 预览 8 处）",
+   "criteria": "2026-11-19 量具：全仓剩余 12 个 <h1..h6> 的字号由 CSS 类/父选择器决定 —— .pl-title 16、.pl-col-title 13（body-lg）、.pl-modal-title 16（挂在 h3 上）、.kb-detail-title 20（text-h2）、.pl-preview-head h2 14、.pl-preview-block h3/.pl-export h3 12。于是同一个 h2 可以是 20/16/14/13 四种，且改阶梯时在 JSX 里看不见。处置：12 处全部加显式 token（pl-title text-title / pl-col-title text-ui / pl-modal-title text-title 且 h3→h2 / kb-detail-title text-title 20→16 / preview h2 text-ui / preview h3 text-body），并删掉 PromptLab.css 与 CardDetail.css 里对应的 6 条 font-size 声明；新增守卫 headingScale.guard.test.ts（src 下所有 .tsx 的 <h1..h6> 开标签内必须出现 text-*，带合成反例）。判据：tsc 0 / eslint 0 / vitest 189 files · 1450 tests。",
+   "next": "无（已收口）。新增标题一律在标签上写 text-*（h1 text-title / h2 text-ui / h3 text-body / 说明 text-caption）；守卫会红。"
+  },
   {
    "id": "leaf-header-tabs-order",
    "status": "done",

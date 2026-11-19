@@ -30,7 +30,6 @@
 
 .kb-detail-title {
   margin: 0;
-  font-size: var(--text-h2);
   font-weight: 600;
   word-break: break-all;
 }

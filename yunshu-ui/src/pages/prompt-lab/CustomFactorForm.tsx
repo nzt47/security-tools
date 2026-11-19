@@ -60,7 +60,7 @@ export default function CustomFactorForm({ onClose }: CustomFactorFormProps) {
   return (
     <div className="pl-modal-mask" onClick={onClose}>
       <div className="pl-modal" onClick={(e) => e.stopPropagation()}>
-        <h3 className="pl-modal-title">添加自定义因素</h3>
+        <h2 className="pl-modal-title text-title">添加自定义因素</h2>
         <label className="pl-field">
           <span>名称 *</span>
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="例如：输出语言风格" size="sm" />

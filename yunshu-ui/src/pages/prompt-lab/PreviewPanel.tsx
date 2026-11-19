@@ -91,10 +91,10 @@ export default function PreviewPanel({
     return (
       <aside className="pl-preview">
         <div className="pl-preview-head">
-          <h2>实时预览</h2>
+          <h2 className="text-ui">实时预览</h2>
         </div>
         <div className="pl-preview-block">
-          <h3>最终注入文本（只读）</h3>
+          <h3 className="text-body">最终注入文本（只读）</h3>
           {/* 这块只由左侧「分节配置」的开关组装；因素滑块改的是另一个 Tab 的「生成的提示词」。
               2026-11-15 补两句「哪份是真发的 / 为什么到记忆线索就没了」，见下面与 offTemplateSections。 */}
           <p className="pl-export-hint">
@@ -159,11 +159,11 @@ export default function PreviewPanel({
   return (
     <aside className="pl-preview">
       <div className="pl-preview-head">
-        <h2>实时预览</h2>
+        <h2 className="text-ui">实时预览</h2>
       </div>
 
       <div className="pl-preview-block">
-        <h3>生成的提示词（左侧因素实时生成 · 试跑用它）</h3>
+        <h3 className="text-body">生成的提示词（左侧因素实时生成 · 试跑用它）</h3>
         {/* 两份预览里"哪份是真发的"必须写死在这里：这一份**不是**线上对话的 system message，
             它只在点「跑一次看效果」时作为 user 消息发出去。 */}
         <p className="pl-export-hint">
@@ -175,7 +175,7 @@ export default function PreviewPanel({
 
       {/* 唯一的"输出"入口：真跑一次。默认走云枢已配置的模型，不需要填任何 Key。 */}
       <div className="pl-preview-block">
-        <h3>试跑一次（真实模型）</h3>
+        <h3 className="text-body">试跑一次（真实模型）</h3>
         <p className="pl-export-hint">
           用当前这套提示词真跑一次，看模型实际怎么答。默认走云枢 <code>.env</code> 里已配置的模型
           —— 不用填 Key，每点一次消耗一次 token；改过滑块/参数后旧的回答会清空，需要重新点。
@@ -221,7 +221,7 @@ export default function PreviewPanel({
       </div>
 
       <div className="pl-preview-block">
-        <h3>效果评估</h3>
+        <h3 className="text-body">效果评估</h3>
         <RadarChart data={radar} />
       </div>
 
@@ -230,7 +230,7 @@ export default function PreviewPanel({
             （实测：一次真实请求 8.8k，其中 tools 定义 7.6k、system 提示词只有 ~130 tok、
             记忆线索实测只有几十字符，而面板曾把记忆线索按 5000 计）。改标题 + 指路，
             免得按这些数字去砍不存在的开销。 */}
-        <h3>Token 预算（各节声明值 · 非实测）</h3>
+        <h3 className="text-body">Token 预算（各节声明值 · 非实测）</h3>
         <p className="pl-export-hint">
           真实用量请看「LLM 通信监控」里每次请求的 usage —— 那边的 tools 段通常是大头
           （本部署实测：26 个工具 ≈ 7.6k tok、system 提示词 ≈ 130 tok、缓存命中率 ~97%）。
@@ -267,7 +267,7 @@ export default function PreviewPanel({
       </div>
 
       <div className="pl-export">
-        <h3>数据导出</h3>
+        <h3 className="text-body">数据导出</h3>
         <p className="pl-export-hint">导出当前参数组合与身份提示词模板，便于提示词优化分析（JSON 可再导入，CSV 用于表格处理）。</p>
         <div className="pl-export-actions">
           <Button type="button" variant="default" size="sm" onClick={() => onExport('json')}>

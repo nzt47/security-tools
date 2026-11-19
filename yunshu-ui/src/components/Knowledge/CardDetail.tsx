@@ -52,7 +52,7 @@ const CardDetail: React.FC<CardDetailProps> = ({ card, onOpenLink, onClose }) =>
     <div className="kb-detail-overlay" onClick={onClose}>
       <div className="kb-detail-drawer" onClick={(e) => e.stopPropagation()}>
         <div className="kb-detail-header">
-          <h2 className="kb-detail-title">{card.title}</h2>
+          <h2 className="kb-detail-title text-title">{card.title}</h2>
           <Button type="button" variant="plain" size="bare" className="kb-detail-close" onClick={onClose} title="关闭">
             ✕
           </Button>
