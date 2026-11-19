@@ -581,7 +581,7 @@ flowchart LR
         agent_server_routes_routes_units["agent.server_routes.routes_units"]
         agent_server_routes_routes_visual_workflows["agent.server_routes.routes_visual_workflows"]
         agent_server_routes_routes_workflow_learning["agent.server_routes.routes_workflow_learning"]
-        agent_server_routes_tracing_decorator["agent.server_routes.tracing_decorator"]
+        agent_server_routes_tracing_decorator["agent.server_routes.tracing_decorator"]:::crosslayer
         agent_server_routes_tracing_middleware["agent.server_routes.tracing_middleware"]
     end
     subgraph settings [settings]
@@ -732,9 +732,17 @@ flowchart LR
         agent_tools_task_tools["agent.tools.task_tools"]:::crosslayer
         agent_tools_test_tools["agent.tools.test_tools"]:::crosslayer
         agent_tools_tool_generator["agent.tools.tool_generator"]:::crosslayer
+        agent_tools_ui_guard_tools["agent.tools.ui_guard_tools"]:::crosslayer
         agent_tools_web_tools["agent.tools.web_tools"]:::crosslayer
         agent_tools_win_bash["agent.tools.win_bash"]
         agent_tools_workspace_tools["agent.tools.workspace_tools"]:::crosslayer
+    end
+    subgraph ui_guard [ui_guard]
+        agent_ui_guard["agent.ui_guard"]:::crosslayer
+        agent_ui_guard_engine["agent.ui_guard.engine"]
+        agent_ui_guard_fixer["agent.ui_guard.fixer"]
+        agent_ui_guard_models["agent.ui_guard.models"]
+        agent_ui_guard_routes["agent.ui_guard.routes"]
     end
     subgraph ui_panels [ui_panels]
         agent_ui_panels["agent.ui_panels"]:::crosslayer
@@ -1775,6 +1783,7 @@ flowchart LR
     agent_orchestrator_lifecycle_manager -.-> agent_tools_notify_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_db_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_lint_tools
+    agent_orchestrator_lifecycle_manager -.-> agent_tools_ui_guard_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_skill_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_core_tools
     agent_orchestrator_lifecycle_manager -.-> agent_utils_compatibility
@@ -2952,6 +2961,8 @@ flowchart LR
     agent_tools_test_tools -.-> agent_utils
     agent_tools_tool_generator --> agent
     agent_tools_tool_generator -.-> agent_logging_utils
+    agent_tools_ui_guard_tools --> agent
+    agent_tools_ui_guard_tools -.-> agent_ui_guard
     agent_tools_web_tools --> agent
     agent_tools_web_tools -.-> agent_web
     agent_tools_web_tools -.-> agent_network_config
@@ -2959,6 +2970,15 @@ flowchart LR
     agent_tools_win_bash -.-> agent_utils
     agent_tools_prompt_guard --> agent
     agent_tools_prompt_guard -.-> agent_lines
+    agent_ui_guard --> agent_ui_guard_models
+    agent_ui_guard --> agent_ui_guard_engine
+    agent_ui_guard --> agent_ui_guard_fixer
+    agent_ui_guard_engine --> agent_ui_guard_models
+    agent_ui_guard_fixer --> agent_ui_guard_engine
+    agent_ui_guard_routes -.-> agent_server_auth
+    agent_ui_guard_routes -.-> agent_server_routes__errors
+    agent_ui_guard_routes -.-> agent_server_routes_tracing_decorator
+    agent_ui_guard_routes --> agent_ui_guard
     agent_ui_panels_data --> agent_ui_panels_schema
     agent_ui_panels_data -.-> agent_safe_paths
     agent_ui_panels_data -.-> agent_safe_paths
@@ -3043,9 +3063,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 768
-- 模块节点数: 667
-- 依赖边数: 2248
-- 跨层调用数: 1440
+- 扫描文件数: 774
+- 模块节点数: 673
+- 依赖边数: 2260
+- 跨层调用数: 1445
 - 违规调用数: 0
 - 动态 import 数: 1

@@ -70,7 +70,7 @@
       "name": "server_auth",
       "layer": "core",
       "file_path": "",
-      "in_degree": 26,
+      "in_degree": 27,
       "out_degree": 4
     },
     {
@@ -478,7 +478,7 @@
       "name": "agent",
       "layer": "unknown",
       "file_path": "",
-      "in_degree": 65,
+      "in_degree": 66,
       "out_degree": 0
     },
     {
@@ -2726,7 +2726,7 @@
       "name": "_errors",
       "layer": "server_routes",
       "file_path": "",
-      "in_degree": 14,
+      "in_degree": 15,
       "out_degree": 0
     },
     {
@@ -3103,7 +3103,7 @@
       "layer": "orchestrator",
       "file_path": "agent/orchestrator/lifecycle_manager.py",
       "in_degree": 0,
-      "out_degree": 53
+      "out_degree": 54
     },
     {
       "path": "agent.orchestrator.turn_state",
@@ -3260,6 +3260,14 @@
     {
       "path": "agent.tools.lint_tools",
       "name": "lint_tools",
+      "layer": "tools",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 2
+    },
+    {
+      "path": "agent.tools.ui_guard_tools",
+      "name": "ui_guard_tools",
       "layer": "tools",
       "file_path": "",
       "in_degree": 1,
@@ -4102,7 +4110,7 @@
       "name": "tracing_decorator",
       "layer": "server_routes",
       "file_path": "",
-      "in_degree": 18,
+      "in_degree": 19,
       "out_degree": 2
     },
     {
@@ -5234,12 +5242,52 @@
       "out_degree": 2
     },
     {
+      "path": "agent.ui_guard",
+      "name": "ui_guard",
+      "layer": "ui_guard",
+      "file_path": "",
+      "in_degree": 2,
+      "out_degree": 3
+    },
+    {
       "path": "agent.tools.win_bash",
       "name": "win_bash",
       "layer": "tools",
       "file_path": "agent/tools/win_bash.py",
       "in_degree": 0,
       "out_degree": 1
+    },
+    {
+      "path": "agent.ui_guard.models",
+      "name": "models",
+      "layer": "ui_guard",
+      "file_path": "",
+      "in_degree": 2,
+      "out_degree": 0
+    },
+    {
+      "path": "agent.ui_guard.engine",
+      "name": "engine",
+      "layer": "ui_guard",
+      "file_path": "",
+      "in_degree": 2,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.ui_guard.fixer",
+      "name": "fixer",
+      "layer": "ui_guard",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.ui_guard.routes",
+      "name": "routes",
+      "layer": "ui_guard",
+      "file_path": "agent/ui_guard/routes.py",
+      "in_degree": 0,
+      "out_degree": 4
     },
     {
       "path": "agent.ui_panels.data",
@@ -17916,7 +17964,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 1435,
+      "line": 1438,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -18185,11 +18233,24 @@
     },
     {
       "source": "agent.orchestrator.lifecycle_manager",
+      "target": "agent.tools.ui_guard_tools",
+      "source_layer": "orchestrator",
+      "target_layer": "tools",
+      "import_type": "from_import",
+      "line": 1163,
+      "source_file": "agent/orchestrator/lifecycle_manager.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.orchestrator.lifecycle_manager",
       "target": "agent.tools.skill_tools",
       "source_layer": "orchestrator",
       "target_layer": "tools",
       "import_type": "from_import",
-      "line": 1165,
+      "line": 1167,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -18202,7 +18263,7 @@
       "source_layer": "orchestrator",
       "target_layer": "tools",
       "import_type": "from_import",
-      "line": 1223,
+      "line": 1226,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -18397,7 +18458,7 @@
       "source_layer": "orchestrator",
       "target_layer": "process_distill",
       "import_type": "from_import",
-      "line": 1169,
+      "line": 1171,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -18410,7 +18471,7 @@
       "source_layer": "orchestrator",
       "target_layer": "knowledge",
       "import_type": "from_import",
-      "line": 1178,
+      "line": 1180,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -18423,7 +18484,7 @@
       "source_layer": "orchestrator",
       "target_layer": "unknown",
       "import_type": "from_import",
-      "line": 1209,
+      "line": 1212,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -18540,7 +18601,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 1352,
+      "line": 1355,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -31553,7 +31614,7 @@
       "source_layer": "core",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 324,
+      "line": 326,
       "source_file": "agent/tool_router.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -31566,7 +31627,7 @@
       "source_layer": "core",
       "target_layer": "evolution",
       "import_type": "from_import",
-      "line": 619,
+      "line": 621,
       "source_file": "agent/tool_router.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -31579,7 +31640,7 @@
       "source_layer": "core",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 623,
+      "line": 625,
       "source_file": "agent/tool_router.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -33485,6 +33546,32 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.tools.ui_guard_tools",
+      "target": "agent",
+      "source_layer": "tools",
+      "target_layer": "unknown",
+      "import_type": "from_import",
+      "line": 11,
+      "source_file": "agent/tools/ui_guard_tools.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.tools.ui_guard_tools",
+      "target": "agent.ui_guard",
+      "source_layer": "tools",
+      "target_layer": "ui_guard",
+      "import_type": "from_import",
+      "line": 35,
+      "source_file": "agent/tools/ui_guard_tools.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.tools.web_tools",
       "target": "agent",
       "source_layer": "tools",
@@ -33571,6 +33658,123 @@
       "line": 426,
       "source_file": "agent/tools_prompt_guard.py",
       "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_guard",
+      "target": "agent.ui_guard.models",
+      "source_layer": "ui_guard",
+      "target_layer": "ui_guard",
+      "import_type": "from_import",
+      "line": 20,
+      "source_file": "agent/ui_guard/__init__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_guard",
+      "target": "agent.ui_guard.engine",
+      "source_layer": "ui_guard",
+      "target_layer": "ui_guard",
+      "import_type": "from_import",
+      "line": 21,
+      "source_file": "agent/ui_guard/__init__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_guard",
+      "target": "agent.ui_guard.fixer",
+      "source_layer": "ui_guard",
+      "target_layer": "ui_guard",
+      "import_type": "from_import",
+      "line": 22,
+      "source_file": "agent/ui_guard/__init__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_guard.engine",
+      "target": "agent.ui_guard.models",
+      "source_layer": "ui_guard",
+      "target_layer": "ui_guard",
+      "import_type": "from_import",
+      "line": 17,
+      "source_file": "agent/ui_guard/engine.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_guard.fixer",
+      "target": "agent.ui_guard.engine",
+      "source_layer": "ui_guard",
+      "target_layer": "ui_guard",
+      "import_type": "from_import",
+      "line": 23,
+      "source_file": "agent/ui_guard/fixer.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_guard.routes",
+      "target": "agent.server_auth",
+      "source_layer": "ui_guard",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 15,
+      "source_file": "agent/ui_guard/routes.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_guard.routes",
+      "target": "agent.server_routes._errors",
+      "source_layer": "ui_guard",
+      "target_layer": "server_routes",
+      "import_type": "from_import",
+      "line": 16,
+      "source_file": "agent/ui_guard/routes.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_guard.routes",
+      "target": "agent.server_routes.tracing_decorator",
+      "source_layer": "ui_guard",
+      "target_layer": "server_routes",
+      "import_type": "from_import",
+      "line": 17,
+      "source_file": "agent/ui_guard/routes.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_guard.routes",
+      "target": "agent.ui_guard",
+      "source_layer": "ui_guard",
+      "target_layer": "ui_guard",
+      "import_type": "from_import",
+      "line": 18,
+      "source_file": "agent/ui_guard/routes.py",
+      "is_cross_layer": false,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -34565,10 +34769,10 @@
     }
   ],
   "stats": {
-    "total_files": 768,
-    "total_nodes": 667,
-    "total_edges": 2248,
-    "cross_layer_edges": 1440,
+    "total_files": 774,
+    "total_nodes": 673,
+    "total_edges": 2260,
+    "cross_layer_edges": 1445,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -34580,7 +34784,7 @@
       "extensions": 18,
       "health": 7,
       "audit": 8,
-      "tools": 32,
+      "tools": 33,
       "observability": 13,
       "security": 10,
       "evolution": 1,
@@ -34629,7 +34833,8 @@
       "settings": 8,
       "ui_panels": 3,
       "feedback_collector": 1,
-      "task_planner": 5
+      "task_planner": 5,
+      "ui_guard": 5
     }
   }
 }
