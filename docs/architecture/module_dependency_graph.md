@@ -577,11 +577,12 @@ flowchart LR
         agent_server_routes_routes_skills_mgmt["agent.server_routes.routes_skills_mgmt"]
         agent_server_routes_routes_subagent["agent.server_routes.routes_subagent"]
         agent_server_routes_routes_system_prompt["agent.server_routes.routes_system_prompt"]
+        agent_server_routes_routes_ui_guard["agent.server_routes.routes_ui_guard"]
         agent_server_routes_routes_ui_panels["agent.server_routes.routes_ui_panels"]
         agent_server_routes_routes_units["agent.server_routes.routes_units"]
         agent_server_routes_routes_visual_workflows["agent.server_routes.routes_visual_workflows"]
         agent_server_routes_routes_workflow_learning["agent.server_routes.routes_workflow_learning"]
-        agent_server_routes_tracing_decorator["agent.server_routes.tracing_decorator"]:::crosslayer
+        agent_server_routes_tracing_decorator["agent.server_routes.tracing_decorator"]
         agent_server_routes_tracing_middleware["agent.server_routes.tracing_middleware"]
     end
     subgraph settings [settings]
@@ -742,7 +743,6 @@ flowchart LR
         agent_ui_guard_engine["agent.ui_guard.engine"]
         agent_ui_guard_fixer["agent.ui_guard.fixer"]
         agent_ui_guard_models["agent.ui_guard.models"]
-        agent_ui_guard_routes["agent.ui_guard.routes"]
     end
     subgraph ui_panels [ui_panels]
         agent_ui_panels["agent.ui_panels"]:::crosslayer
@@ -2385,6 +2385,10 @@ flowchart LR
     agent_server_routes_routes_system_prompt -.-> agent_system_prompt_manager
     agent_server_routes_routes_system_prompt -.-> agent_system_prompt_manager
     agent_server_routes_routes_system_prompt -.-> agent_system_prompt_manager
+    agent_server_routes_routes_ui_guard -.-> agent_server_auth
+    agent_server_routes_routes_ui_guard --> agent_server_routes__errors
+    agent_server_routes_routes_ui_guard --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_ui_guard -.-> agent_ui_guard
     agent_server_routes_routes_ui_panels -.-> agent_security
     agent_server_routes_routes_ui_panels -.-> agent_security_actor_matrix
     agent_server_routes_routes_ui_panels -.-> agent_server_auth
@@ -2975,10 +2979,6 @@ flowchart LR
     agent_ui_guard --> agent_ui_guard_fixer
     agent_ui_guard_engine --> agent_ui_guard_models
     agent_ui_guard_fixer --> agent_ui_guard_engine
-    agent_ui_guard_routes -.-> agent_server_auth
-    agent_ui_guard_routes -.-> agent_server_routes__errors
-    agent_ui_guard_routes -.-> agent_server_routes_tracing_decorator
-    agent_ui_guard_routes --> agent_ui_guard
     agent_ui_panels_data --> agent_ui_panels_schema
     agent_ui_panels_data -.-> agent_safe_paths
     agent_ui_panels_data -.-> agent_safe_paths
@@ -3066,6 +3066,6 @@ flowchart LR
 - 扫描文件数: 774
 - 模块节点数: 673
 - 依赖边数: 2260
-- 跨层调用数: 1445
+- 跨层调用数: 1444
 - 违规调用数: 0
 - 动态 import 数: 1
