@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-09T21:13:06",
-  "tool_count": 93,
+  "generated_at": "2026-11-19T23:32:28",
+  "tool_count": 94,
   "categories": [
     "async",
     "code",
@@ -296,6 +296,18 @@
         "sql",
         "limit",
         "params"
+      ]
+    },
+    {
+      "name": "ui_guard_check",
+      "category": "code",
+      "description": "检查云枢前端的 UI 封装规范：原生控件、任意值字号、Button 对齐、标题字号 token、标题是否在 Tab 上面。返回 file:line、规则、修复建议与基线回归；只读，不改文件。改前端前用它自检，或评审 UI diff 时用；落盘修复走工作台「治理与运营 → 规范守卫」。",
+      "version": "1.0.0",
+      "deprecated": false,
+      "parameter_names": [
+        "mode",
+        "rule",
+        "limit"
       ]
     },
     {

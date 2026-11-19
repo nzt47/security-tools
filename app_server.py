@@ -1565,6 +1565,19 @@ except Exception as e:
 
 
 # ════════════════════════════════════════════════════════════
+#  UI 规范守卫（ui_guard, 2026-11-19）
+#  只读检查 + 两类白名单修复；状态源 /api/ui-guard/health 供拓扑采集。
+# ════════════════════════════════════════════════════════════
+
+try:
+    from agent.server_routes.routes_ui_guard import register_routes as reg_ui_guard
+    reg_ui_guard(app, lambda: None)
+    logger.info("UI 规范守卫路由已注册 (/api/ui-guard/*)")
+except Exception as e:
+    _record_route_failure("UI 规范守卫路由", e)
+
+
+# ════════════════════════════════════════════════════════════
 #  审批 HTTP 面（/api/approval/*，TASK-S4-01）
 #  §5.7⑦ 审批面安全（会话绑定 / CSRF / 链接 ≤900s / 二次认证 / DOM 隔离）
 #  ⚠ 此前只在 `agent/server_routes/__init__.py::register_all_routes` 中登记，

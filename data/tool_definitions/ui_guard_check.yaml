@@ -1,0 +1,51 @@
+name: ui_guard_check
+category: code
+description: 检查云枢前端的 UI 封装规范：原生控件、任意值字号、Button 对齐、标题字号 token、标题是否在 Tab 上面。返回 file:line、规则、修复建议与基线回归；只读，不改文件。改前端前用它自检，或评审 UI diff 时用；落盘修复走工作台「治理与运营 → 规范守卫」。
+deprecated: false
+version: 1.0.0
+location: local
+location_reason: "调用链（agent.ui_guard.engine:check）在 6 跳内未命中任何跨边界原语；新增只读工具，backfill 后会重算"
+plane: perceive
+effect: read
+risk: low
+tool_type: tool
+llm_callable: true
+callable_mode: auto
+permission_level: public
+sandbox_allowed: true
+tags: [ui, guard, frontend, convention]
+schema:
+  type: object
+  properties:
+    mode:
+      type: string
+      enum: [fast, full]
+      description: fast=纯 Python（默认）；full=额外跑 npm/vitest 对拍
+    rule:
+      type: string
+      description: 只看某条规则（逗号分隔），如 button.alignment,heading.scale
+    limit:
+      type: integer
+      minimum: 1
+      maximum: 200
+      description: 返回的明细条数上限，默认 40
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    counts:
+      type: object
+    by_rule:
+      type: object
+    baseline:
+      type: object
+    errors:
+      type: array
+    findings:
+      type: array
+    findings_total:
+      type: integer
+  required: [ok]
+  additionalProperties: true
+examples: []
