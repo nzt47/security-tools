@@ -728,6 +728,26 @@
       "area": "可视化工作流",
       "note": "可视化工作流：保存/草稿。"
     },
+    "/api/ui-guard/check": {
+      "intent": "should_be_in_ui",
+      "area": "UI 规范守卫",
+      "note": "规范守卫：检查前端 UI 封装规范（治理与运营 → 规范守卫）。"
+    },
+    "/api/ui-guard/rules": {
+      "intent": "should_be_in_ui",
+      "area": "UI 规范守卫",
+      "note": "规范守卫：规则清单（面板分组）。"
+    },
+    "/api/ui-guard/health": {
+      "intent": "should_not_be_in_ui",
+      "area": "UI 规范守卫",
+      "note": "规范守卫：状态源（系统监控拓扑采集），不需要独立 UI。"
+    },
+    "/api/ui-guard/fix": {
+      "intent": "should_be_in_ui",
+      "area": "UI 规范守卫",
+      "note": "规范守卫：自动修复（默认 dry_run，落盘需 confirm）。"
+    },
 
     "/logs/dashboard": {
       "intent": "should_be_in_ui",

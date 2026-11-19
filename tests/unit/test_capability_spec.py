@@ -152,7 +152,8 @@ class TestCapabilitySpecFields:
         # 而 CI（无这些文件）恒绿 —— 与清单口径同一条判据（见 build_manifest）。
         runtime_only = C.runtime_registered_tool_names()
         committed = {n: m for n, m in metas.items() if n not in runtime_only}
-        assert len(committed) == 94, f"入库工具 YAML 数量变了（实测应为 94）：{len(committed)}"
+        # 【2026-11-19】94 → 95：ui_guard_check（UI 规范守卫，只读）
+        assert len(committed) == 95, f"入库工具 YAML 数量变了（实测应为 95）：{len(committed)}"
         for name, meta in committed.items():
             d = meta.to_dict()          # 不抛异常即通过
             assert d["capability_id"], f"{name}: capability_id 为空"

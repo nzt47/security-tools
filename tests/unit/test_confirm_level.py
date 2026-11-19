@@ -325,13 +325,13 @@ class TestConsistencyWithPermissionLevel:
     def test_清单是入库的派生物(self):
         assert _MANIFEST.exists(), "缺少 data/capability_manifest.json（先跑 sync 脚本）"
 
-    def test_工具侧_93_条全量对拍(self):
+    def test_工具侧_95_条全量对拍(self):
         """E8 的**适用范围是工具侧 94 条** —— 技能侧不适用，理由见下一个用例
 
         `derive_confirm_level` 是**工具侧** L0–L3 的派生（TASK-06 §3 第 2 步）。
         """
         tools = [e for e in _manifest_entries() if e.get("kind") == "tool"]
-        assert len(tools) == 94, len(tools)
+        assert len(tools) == 95, len(tools)
 
         mismatch = []
         for e in tools:
@@ -1106,7 +1106,7 @@ class TestNoYamlWritesNeeded:
     def test_93_个_YAML_仍然零声明(self):
         """本裁决的可复核形式：YAML 侧不写该字段，且这不影响任何判定"""
         metas = _committed_metas()
-        assert len(metas) == 94, len(metas)
+        assert len(metas) == 95, len(metas)
         declared = {k: v.confirm_level for k, v in metas.items() if v.confirm_level}
         assert declared == {}, f"若要写进 YAML 就属于口径变更，必须同时更新本裁决：{declared}"
 

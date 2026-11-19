@@ -193,8 +193,8 @@ class TestQuery:
         # 【2026-10-31】41 -> 43：autoresearch / pdf 入文件轨（enabled_only 口径同 stats-1）
         # 【2026-11-07】44 → 45：chart-visualization 启用态（enabled: true）⇒ enabled_only 口径 +1
         # 【2026-11-09】93 → 94：skill_script_run（技能 L3 显式执行点）
-        assert len(tools) == 94
-        assert len(skills) == 45
+        assert len(tools) == 95
+        assert len(skills) == 46
         remote = real_registry.query(location="remote")
         # 【2026-11-05】21 -> 22：software_install（subprocess.run ⇒ location=remote）
         # 【2026-11-09】22 → 23：skill_script_run 经 SkillExecutor 起子进程 ⇒ remote

@@ -81,7 +81,8 @@
         "/api/cp",
         "/api/permission",
         "/api/permissions",
-        "/api/safety"
+        "/api/safety",
+        "/api/ui-guard"
       ]
     },
     {

@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-11-15T14:31:19",
+  "generated_at": "2026-11-19T23:39:33",
   "totals": {
-    "routes": 512,
-    "live": 512,
+    "routes": 516,
+    "live": 516,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 452,
+    "ui": 455,
     "cli_script": 15,
-    "runtime_only": 12,
+    "runtime_only": 13,
     "unreferenced": 33,
     "live_by_category": {
-      "ui": 452,
+      "ui": 455,
       "cli_script": 15,
-      "runtime_only": 12,
+      "runtime_only": 13,
       "unreferenced": 33
     },
     "by_intent": {
-      "should_be_in_ui": 419,
-      "should_not_be_in_ui": 79,
+      "should_be_in_ui": 422,
+      "should_not_be_in_ui": 80,
       "unclassified": 14
     },
     "by_domain": {
@@ -25,7 +25,7 @@
       "分身与主线": 20,
       "观测与诊断": 83,
       "系统与配置": 46,
-      "治理与审批": 42,
+      "治理与审批": 46,
       "资产与文件": 19,
       "管理与后台": 18,
       "调度与任务": 26,
@@ -37,7 +37,7 @@
       "记忆与知识": 42
     }
   },
-  "frontend_endpoints": 456,
+  "frontend_endpoints": 459,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -60,10 +60,12 @@
       "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
+        "agent/tools/custom/api_multi_search_engine.py",
+        "agent/tools/custom/ingested/byted-bp-cdn-pagesdeploy/scripts/subscribe_cdn.py",
         "scripts/_check_page.py"
       ],
       "where": [
-        "app_server.py:2069"
+        "app_server.py:2082"
       ],
       "description": "首页：重定向到统一工作台（2026-10-03 R0-b legacy 收敛）。",
       "description_source": "handler",
@@ -250,7 +252,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_agent_lines.py:861"
+        "agent/server_routes/routes_agent_lines.py:877"
       ],
       "description": "跑 `LineProfile.validate(known_tools, known_skills)` 并返回问题列表（**不保存**）",
       "description_source": "handler",
@@ -1767,7 +1769,7 @@
         "scripts/compress_memory_now.py"
       ],
       "where": [
-        "plugins/memory.py:440"
+        "plugins/memory.py:442"
       ],
       "description": "手动触发上下文压缩（**已迁移到统一信封**）。",
       "description_source": "handler",
@@ -1792,7 +1794,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:379"
+        "plugins/memory.py:381"
       ],
       "description": "更新上下文控制参数（**已迁移到统一信封**）。",
       "description_source": "handler",
@@ -1819,7 +1821,7 @@
         "agent/modules_api.py"
       ],
       "where": [
-        "plugins/memory.py:203"
+        "plugins/memory.py:205"
       ],
       "description": "获取当前上下文使用状态（**已迁移到统一信封**）。",
       "description_source": "handler",
@@ -3663,13 +3665,13 @@
         "agent/server_auth.py",
         "agent/settings/registry.py",
         "app_server.py",
+        "scripts/_t08_http_stress.py",
         "scripts/deploy_workbench.py",
         "scripts/deployment_drill.py",
         "scripts/dev/graceful_shutdown_persist_probe.py",
         "scripts/full_alert_verify.py",
         "scripts/probe_prefix_cache_interaction.py",
-        "scripts/rollback.ps1",
-        "scripts/rotate_grafana_password.ps1"
+        "scripts/rollback.ps1"
       ],
       "where": [
         "plugins/status.py:237"
@@ -3878,7 +3880,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:1747"
+        "app_server.py:1760"
       ],
       "description": "混合检索器（embedding worker）健康状态（**只读**；永不 500）。",
       "description_source": "handler",
@@ -4455,7 +4457,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:996"
+        "plugins/memory.py:998"
       ],
       "description": "添加知识文档（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -5086,7 +5088,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:581"
+        "plugins/memory.py:583"
       ],
       "description": "【2026-10-25 修正】按序号删除**未实现**，此前恒返回 ok:true 却没删任何东西。",
       "description_source": "handler",
@@ -5111,7 +5113,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:681"
+        "plugins/memory.py:683"
       ],
       "description": "清空长期摘要",
       "description_source": "handler",
@@ -5138,7 +5140,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/memory.py:543"
+        "plugins/memory.py:545"
       ],
       "description": "触发记忆压缩（记忆运维面板的「触发压缩」按钮）。",
       "description_source": "handler",
@@ -5241,7 +5243,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/memory.py:502"
+        "plugins/memory.py:504"
       ],
       "description": "手动添加记忆",
       "description_source": "handler",
@@ -5266,7 +5268,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:602"
+        "plugins/memory.py:604"
       ],
       "description": "按 id 删除一条长期记忆：**默认 dry-run**，真删必须 confirm=true。",
       "description_source": "handler",
@@ -5293,7 +5295,7 @@
         "agent/modules_api.py"
       ],
       "where": [
-        "plugins/memory.py:470"
+        "plugins/memory.py:472"
       ],
       "description": "获取记忆概览",
       "description_source": "handler",
@@ -5319,7 +5321,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:710"
+        "plugins/memory.py:712"
       ],
       "description": "记忆库审查接口（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -5344,7 +5346,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:693"
+        "plugins/memory.py:695"
       ],
       "description": "更新长期摘要内容",
       "description_source": "handler",
@@ -5369,7 +5371,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:1110"
+        "plugins/memory.py:1112"
       ],
       "description": "清空窗口事件记录",
       "description_source": "handler",
@@ -5395,7 +5397,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:1093"
+        "plugins/memory.py:1095"
       ],
       "description": "获取或更新窗口监控配置",
       "description_source": "handler",
@@ -5420,7 +5422,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:1083"
+        "plugins/memory.py:1085"
       ],
       "description": "获取当前活跃窗口",
       "description_source": "handler",
@@ -5445,7 +5447,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:1025"
+        "plugins/memory.py:1027"
       ],
       "description": "获取窗口切换事件",
       "description_source": "handler",
@@ -5470,7 +5472,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:1041"
+        "plugins/memory.py:1043"
       ],
       "description": "获取窗口使用统计",
       "description_source": "handler",
@@ -11194,7 +11196,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2225"
+        "app_server.py:2238"
       ],
       "description": "测试端点：测试除法运算（正常情况）",
       "description_source": "handler",
@@ -11219,7 +11221,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2201"
+        "app_server.py:2214"
       ],
       "description": "测试端点：触发除零错误以验证堆栈捕获",
       "description_source": "handler",
@@ -11244,7 +11246,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2214"
+        "app_server.py:2227"
       ],
       "description": "测试端点：触发空指针错误以验证堆栈捕获",
       "description_source": "handler",
@@ -11488,6 +11490,112 @@
       "domain": "技能与工具"
     },
     {
+      "path": "/api/ui-guard/check",
+      "norm": "/api/ui-guard/check",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/governance/ui-guard.tsx"
+      ],
+      "non_ui_refs": [
+        "agent/ui_guard/routes.py"
+      ],
+      "where": [
+        "agent/ui_guard/routes.py:41"
+      ],
+      "description": "ui_guard 的 HTTP 面（面板 + 工具 + 拓扑状态源共用）。",
+      "description_source": "module",
+      "intent": "should_be_in_ui",
+      "intent_area": "UI 规范守卫",
+      "intent_note": "规范守卫：检查前端 UI 封装规范（治理与运营 → 规范守卫）。",
+      "ui_pending": false,
+      "domain": "治理与审批"
+    },
+    {
+      "path": "/api/ui-guard/fix",
+      "norm": "/api/ui-guard/fix",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/governance/ui-guard.tsx"
+      ],
+      "non_ui_refs": [
+        "agent/ui_guard/routes.py"
+      ],
+      "where": [
+        "agent/ui_guard/routes.py:64"
+      ],
+      "description": "ui_guard 的 HTTP 面（面板 + 工具 + 拓扑状态源共用）。",
+      "description_source": "module",
+      "intent": "should_be_in_ui",
+      "intent_area": "UI 规范守卫",
+      "intent_note": "规范守卫：自动修复（默认 dry_run，落盘需 confirm）。",
+      "ui_pending": false,
+      "domain": "治理与审批"
+    },
+    {
+      "path": "/api/ui-guard/health",
+      "norm": "/api/ui-guard/health",
+      "methods": [
+        "GET"
+      ],
+      "category": "runtime_only",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [],
+      "non_ui_refs": [
+        "agent/ui_guard/routes.py"
+      ],
+      "where": [
+        "agent/ui_guard/routes.py:86"
+      ],
+      "description": "ui_guard 的 HTTP 面（面板 + 工具 + 拓扑状态源共用）。",
+      "description_source": "module",
+      "intent": "should_not_be_in_ui",
+      "intent_area": "UI 规范守卫",
+      "intent_note": "规范守卫：状态源（系统监控拓扑采集），不需要独立 UI。",
+      "ui_pending": false,
+      "domain": "治理与审批"
+    },
+    {
+      "path": "/api/ui-guard/rules",
+      "norm": "/api/ui-guard/rules",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/governance/ui-guard.tsx"
+      ],
+      "non_ui_refs": [
+        "agent/ui_guard/routes.py"
+      ],
+      "where": [
+        "agent/ui_guard/routes.py:59"
+      ],
+      "description": "ui_guard 的 HTTP 面（面板 + 工具 + 拓扑状态源共用）。",
+      "description_source": "module",
+      "intent": "should_be_in_ui",
+      "intent_area": "UI 规范守卫",
+      "intent_note": "规范守卫：规则清单（面板分组）。",
+      "ui_pending": false,
+      "domain": "治理与审批"
+    },
+    {
       "path": "/api/user",
       "norm": "/api/user",
       "methods": [
@@ -11607,7 +11715,7 @@
         "agent/memory_import/targets.py"
       ],
       "where": [
-        "plugins/memory.py:811"
+        "plugins/memory.py:813"
       ],
       "description": "添加单条向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11632,7 +11740,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:834"
+        "plugins/memory.py:836"
       ],
       "description": "批量添加向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11657,7 +11765,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:971"
+        "plugins/memory.py:973"
       ],
       "description": "清空向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11683,8 +11791,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:856",
-        "plugins/memory.py:871"
+        "plugins/memory.py:858",
+        "plugins/memory.py:873"
       ],
       "description": "按 ID 获取记忆项（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11709,7 +11817,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:923"
+        "plugins/memory.py:925"
       ],
       "description": "获取最近的向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11734,7 +11842,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:765"
+        "plugins/memory.py:767"
       ],
       "description": "语义搜索向量记忆",
       "description_source": "handler",
@@ -11759,7 +11867,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:797"
+        "plugins/memory.py:799"
       ],
       "description": "获取向量记忆统计（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -12101,7 +12209,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workflow_learning.py:386"
+        "agent/server_routes/routes_workflow_learning.py:392"
       ],
       "description": "批量把外部 agent 的技能转换为本地技能（自动合并/加强/新建）",
       "description_source": "handler",
@@ -12126,7 +12234,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workflow_learning.py:337"
+        "agent/server_routes/routes_workflow_learning.py:343"
       ],
       "description": "把外部 agent 的技能描述翻译为云枢 SKILL 并注册",
       "description_source": "handler",
@@ -12151,7 +12259,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workflow_learning.py:325"
+        "agent/server_routes/routes_workflow_learning.py:331"
       ],
       "description": "列出当前可转换为 Skill 的工作流（满足质量门控且未转换过）",
       "description_source": "handler",
@@ -12356,7 +12464,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workflow_learning.py:285"
+        "agent/server_routes/routes_workflow_learning.py:291"
       ],
       "description": "把指定工作流抽象为 Skill 并注册到 skills_mgmt",
       "description_source": "handler",
@@ -12381,7 +12489,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workflow_learning.py:266"
+        "agent/server_routes/routes_workflow_learning.py:272"
       ],
       "description": "工作流学习系统 API 路由",
       "description_source": "module",
@@ -12710,7 +12818,7 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2116"
+        "app_server.py:2129"
       ],
       "description": "云枢 React SPA 入口（build:flask 同步自 yunshu-ui/dist → templates/yunshu.html）。",
       "description_source": "handler",
@@ -13034,6 +13142,7 @@
       "non_ui_refs": [
         "agent/audit/ui_middleware.py",
         "agent/utils/perf_monitor.py",
+        "scripts/_t08_http_stress.py",
         "scripts/baseline_loadtest_py.py",
         "scripts/check_mcp_log_level.py",
         "scripts/deployment_drill.py",
@@ -13042,8 +13151,7 @@
         "scripts/mock_intent_layer_traffic.py",
         "scripts/mock_metrics_server.py",
         "scripts/mock_service_standalone.py",
-        "scripts/monitoring_longrun/c2_harness.py",
-        "scripts/monitoring_longrun/gen_derived_config.py"
+        "scripts/monitoring_longrun/c2_harness.py"
       ],
       "where": [
         "agent/server_routes/routes_logging.py:1268"
@@ -13071,7 +13179,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2180"
+        "app_server.py:2193"
       ],
       "description": "[简易] 用户行为回放页面",
       "description_source": "handler",
@@ -13096,7 +13204,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2172"
+        "app_server.py:2185"
       ],
       "description": "搜索引擎状态监控页面",
       "description_source": "handler",
@@ -13122,7 +13230,7 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2153"
+        "app_server.py:2166"
       ],
       "description": "云枢 Web 应用 — 感知底座 + 数字生命对话",
       "description_source": "module",
@@ -13133,5 +13241,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "36ea8991ef9223ed"
+  "content_hash": "0c6bdd6357d5edf6"
 }

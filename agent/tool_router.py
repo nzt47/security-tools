@@ -130,6 +130,8 @@ _DEFAULT_TOOL_CATEGORIES = {
             "sqlite_query", "run_lint",
             # 【2026-11-09】技能 L3 显式执行点（默认停用，启用后归本分类）
             "skill_script_run",
+            # 【2026-11-19】UI 规范守卫（只读；Owner 决定进模型可见集）
+            "ui_guard_check",
         ],
     },
     "system": {
