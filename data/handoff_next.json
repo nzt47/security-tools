@@ -1,7 +1,15 @@
 {
- "updated_at": "2026-11-19T21:05:00+08:00",
+ "updated_at": "2026-11-19T21:25:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
+  {
+   "id": "leaf-header-tabs-order",
+   "status": "done",
+   "priority": "P1",
+   "title": "叶子页标题统一到 Tab 上面 + TAB 小标题字号收敛（Owner 报「能力获取/引擎 排版不统一」）",
+   "criteria": "2026-11-19 量具：能力获取标题在 Tab 下面（114 vs 70），review/queue/governance 三个 Tab 无标题；引擎/实例与网络没有页标题（Tab 条就是页头）；工具/记忆/分身的子模块又各渲染一个 H1 16+说明 14；业务看板/反馈中心/安全与权限/本地资源页标题只有 h2 14；prompt-lab 区块标题 16。根因：PageHeader/Tabs 只封装外观，不负责「谁在上面」；PageHeader / SectionTitle / 手写 h2 三套标题体系并存，SectionTitle level=2 是 16px，与阶梯 B 不符；容器与子模块都渲染页级标题。处置：新增 PageTabsHeader（h1 16 + 副标题 11 + Tab 条恒在下面），SectionTitle 收为唯一区块标题并按阶梯 B（16/14/12）且新增 title/description/icon，PageHeader 说明改 11px；16 处子模块 PageHeader→SectionTitle；4 个 h2 页标题→h1；能力获取 4 个 Tab 共用页头、引擎新增页头。守卫 pageHeaderOrder.guard.test.ts（含合成反例）+ ui.pageHeader.test.tsx。判据：tsc 0 / eslint 0 / vitest 188 files · 1448 tests；部署 06e9b5fa5 · bundle index-iGd-e8Zf.js · pid 96216；1280/1440/1920 三档标题 y < Tab y、16/11、内容 h2 14/说明 11。",
+   "next": "无（已收口）。以后新增带页签叶子页一律用 PageTabsHeader；子模块不要再自带 PageHeader。"
+  },
   {
    "id": "windows-shard-env-flakes",
    "status": "open",
