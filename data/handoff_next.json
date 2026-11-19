@@ -1,7 +1,15 @@
 {
- "updated_at": "2026-11-19T22:59:00+08:00",
+ "updated_at": "2026-11-20T00:05:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
+  {
+   "id": "ui-convention-guard-feature",
+   "status": "done",
+   "priority": "P1",
+   "title": "UI 规范守卫做成云枢功能：模块 + 只读工具 + 技能 + 治理与运营面板 + 一键修复",
+   "criteria": "Owner 2026-11-19 拍板：面板放治理与运营、只读工具进模型可见集、做一键修复、技能 id=ui-convention-guard。交付：① agent/ui_guard（models/engine/fixer + server_routes/routes_ui_guard）——fast 纯 Python 规则引擎，复用 ui_primitive_convergence 的量具正则 + 3 个 vitest 守卫的 Python 等价实现；② GET /api/ui-guard/check|rules|health、POST /fix（默认 dry_run，落盘需 confirm）；③ MODULE_STATUS_SOURCE=api:/api/ui-guard/health ⇒ 拓扑自动发现节点 healthy；④ 工具 ui_guard_check（enabled=true、llm_callable）；⑤ 技能 ui-convention-guard 入轨（能力清单 143→145）；⑥ 面板 governance/ui-guard（概览/明细/修复预览+落盘）。真机：health error=0 warning=378 regressions=[] overall=1.0；面板 0/378/455/0；fix dry_run 0 处（修掉测试文件误命中 5→0）；三处一致 2fbbdc835 / bundle index-BaCpRoI2.js / pid 94356。判据：pytest test_ui_guard 11 passed；干净 worktree 相关 7 文件 361 passed；tsc 0 / eslint 0 / vitest 190 files 1454 tests；route coverage 该进却未进 0、reachability 112 页 0 不可达。",
+   "next": "可选：工作流模板 ui-guard-sweep（检查→判断→apply_patch→复检→报告）；面板趋势行；写工具默认停用 + 审批。"
+  },
   {
    "id": "agent-ui-onboarding",
    "status": "done",

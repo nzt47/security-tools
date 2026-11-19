@@ -107,7 +107,9 @@ def fix(*, dry_run: bool = True, rules: Optional[Sequence[str]] = None,
 
     touched_files: Dict[str, List[Dict[str, Any]]] = {}
     for p in sorted(ui.rglob("*")):
-        if p.suffix not in (".tsx", ".ts") or not p.is_file():
+        # 只改 .tsx，且不碰测试：守卫的合成反例/夹具里会故意写坏样例，
+        # 自动修复绝不能去"修"测试（2026-11-19 实测会命中 3 个 .test 文件）。
+        if p.suffix != ".tsx" or not p.is_file() or ".test." in p.name:
             continue
         rel = p.relative_to(root).as_posix()
         if files and rel not in files:

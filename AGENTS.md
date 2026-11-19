@@ -9,6 +9,7 @@
   一个场景只留一个原语，换旧的先删旧再合新的。
 - 标题字号必须写在标签的 `className`（`text-title/text-ui/text-body`），不许交给 CSS 类；
   带页签的叶子页用 `PageTabsHeader`（标题恒在 Tab 上面）。
+- 对话里可用只读工具 `ui_guard_check`；界面在「治理与运营 → 规范守卫」（自动修复只碰字面量 className 的两类）。
 
 ## 提交
 
