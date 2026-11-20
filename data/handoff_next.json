@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-20T13:40:00+08:00",
+ "updated_at": "2026-11-20T20:10:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -16,7 +16,7 @@
    "priority": "P1",
    "title": "UI 规范守卫做成云枢功能：模块 + 只读工具 + 技能 + 治理与运营面板 + 一键修复",
    "criteria": "Owner 2026-11-19 拍板：面板放治理与运营、只读工具进模型可见集、做一键修复、技能 id=ui-convention-guard。交付：① agent/ui_guard（models/engine/fixer + server_routes/routes_ui_guard）——fast 纯 Python 规则引擎，复用 ui_primitive_convergence 的量具正则 + 3 个 vitest 守卫的 Python 等价实现；② GET /api/ui-guard/check|rules|health、POST /fix（默认 dry_run，落盘需 confirm）；③ MODULE_STATUS_SOURCE=api:/api/ui-guard/health ⇒ 拓扑自动发现节点 healthy；④ 工具 ui_guard_check（enabled=true、llm_callable）；⑤ 技能 ui-convention-guard 入轨（能力清单 143→145）；⑥ 面板 governance/ui-guard（概览/明细/修复预览+落盘）。真机：health error=0 warning=378 regressions=[] overall=1.0；面板 0/378/455/0；fix dry_run 0 处（修掉测试文件误命中 5→0）；三处一致 fe1dbf90a / bundle index-meQu8DXm.js / pid 93416。判据：pytest test_ui_guard 11 passed；干净 worktree 相关 7 文件 361 passed；tsc 0 / eslint 0 / vitest 190 files 1454 tests；route coverage 该进却未进 0、reachability 112 页 0 不可达。",
-   "next": "2026-11-20：C1 工作流模板 + C2 面板趋势行已完成（见 ui-guard-sweep-and-trend）；C3 写工具按 Owner 要求暂缓（见 ui-guard-write-tool，frozen）。"
+   "next": "2026-11-20：C1 工作流模板 + C2 面板趋势行已完成（见 ui-guard-sweep-and-trend）；C3 写工具已落地（见 ui-guard-write-tool，done；部署待工作区干净）。"
   },
   {
    "id": "ui-guard-sweep-and-trend",
@@ -28,11 +28,11 @@
   },
   {
    "id": "ui-guard-write-tool",
-   "status": "frozen",
+   "status": "done",
    "priority": "P2",
-   "title": "ui_guard_fix 写工具（默认停用 + 审批）—— Owner 2026-11-20 暂缓",
-   "criteria": "C 项第 3 件：把面板两类自动修复接到对话。写工具 YAML enabled:false、effect=write/risk=high/permission_level=restricted，工具层 L2 审批；实现复用 agent.ui_guard.fixer.fix(dry_run/confirm)。新增工具 = 5 处连锁（tool_index / capability_manifest+盘点表 / BM25 S0+产物 / 路由基线 report / 路由冲突 τ）+ det2 17→18、L28 94→95、fusion 分位数、routing_reliability 表。Owner 明确「写工具默认停用+审批先不要做」。",
-   "next": "恢复时按 §11.181 F / §11.182 清单同批改 5 处并跑 det2/routing_reliability/fusion/route_conflict/proc_hidden；工具描述/schema 与 @register 逐字一致；先补 dry_run 用例与审批缺口用例，再谈落盘。"
+   "title": "ui_guard_fix 写工具（默认停用 + L2 审批）",
+   "criteria": "2026-11-20 落地（bdae26388 + 782ceef0e）：ui_guard_fix（act/write/high，permission_level=restricted，llm_callable=true，YAML enabled:false 默认停用）只改字面量 className 的两类；dry_run 默认 true、结果最多回 40 条 diff；实现复用 agent.ui_guard.fixer.fix（不碰 .test.，max_files 20）。5 处连锁：tool_index 94→95、能力清单 145→146（tool 96 / local 123）、BM25 S0 5.6684→5.687（n=11 / p10=3.0366 / p90=11.2301 / max=11.7572）、路由基线 total_tools 94→95（hybrid 9/10 不变）、v1 τ 保持 0.0478（27/50 不变）。基线：det2 17→18、L28 94→95、confirm_level high 14→15 / L2 11→12 / 工具 95→96、capregistry 145→146、tool_pruning 8→9、capability spec 145→146。",
+   "next": "CI：782ceef0e 的 ci.yml（run 44729306336）30/30 success；契约门禁 / Settings guard / 工具检索质量 / Route Conflict Gate success。**部署待做**：工作区有另一会话未提交的 LLM 禁用时段改动（app_server/tool_calling/registry/前端等），deploy_workbench 会一并打包 ⇒ 等该工作提交或清理后再部署 bdae26388..782ceef0e；工具默认停用，不部署也不可见。部署后真机验收：/api/tools/config 里 enabled=false / permission=restricted；启用后 dry_run 预览 + dry_run=false 弹 L2 审批。"
   },
   {
    "id": "agent-ui-onboarding",
