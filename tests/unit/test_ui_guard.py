@@ -129,3 +129,44 @@ def test_http_fix_默认干跑_落盘要_confirm():
     bad = c.post("/api/ui-guard/fix", json={"dry_run": False})
     assert bad.status_code == 400
     assert "confirm" in bad.get_json()["error"]
+
+
+def test_history_追加_读取_截断(tmp_path):
+    from agent.ui_guard import history
+
+    p = tmp_path / "history.jsonl"
+    r = check(limit=1)
+    for _ in range(3):
+        assert history.record(r, source="model", path=p) is True
+    items = history.recent(limit=2, path=p)
+    assert len(items) == 2
+    assert items[0]["source"] == "model"
+    assert {"ts", "error", "warning", "total", "regressions", "scanned_files"} <= set(items[0])
+
+    for _ in range(history.MAX_RECORDS + 3):
+        history.record(r, path=p)
+    lines = [x for x in p.read_text(encoding="utf-8").splitlines() if x.strip()]
+    assert len(lines) == history.MAX_RECORDS, "历史只保留最近 N 条"
+
+
+def test_history_坏行被跳过(tmp_path):
+    from agent.ui_guard import history
+
+    p = tmp_path / "history.jsonl"
+    p.write_text("{not-json\n" + json.dumps({"ts": "t", "error": 0}) + "\n", encoding="utf-8")
+    items = history.recent(limit=10, path=p)
+    assert len(items) == 1 and items[0]["ts"] == "t"
+
+
+def test_http_history_只记显式检查(tmp_path, monkeypatch):
+    hist = tmp_path / "history.jsonl"
+    monkeypatch.setenv("UI_GUARD_HISTORY_PATH", str(hist))
+    c = _client()
+    c.get("/api/ui-guard/check?limit=1")
+    assert c.get("/api/ui-guard/history?limit=10").get_json()["items"] == [], (
+        "health/普通检查不应写历史")
+    c.get("/api/ui-guard/check?limit=1&record=1")
+    items = c.get("/api/ui-guard/history?limit=10").get_json()["items"]
+    assert len(items) == 1
+    assert items[0]["source"] == "api" and items[0]["error"] == 0
+    assert items[0]["warning"] >= 0

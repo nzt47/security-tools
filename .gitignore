@@ -696,3 +696,5 @@ secrets/
 data/alarms/
 data/ingestion/
 test-results/
+# 【2026-11-20】规范守卫的检查历史（面板趋势行）：运行期状态，每打开一次面板就追加。
+data/ui_guard_history.jsonl

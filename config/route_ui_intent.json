@@ -738,6 +738,11 @@
       "area": "UI 规范守卫",
       "note": "规范守卫：规则清单（面板分组）。"
     },
+    "/api/ui-guard/history": {
+      "intent": "should_be_in_ui",
+      "area": "UI 规范守卫",
+      "note": "规范守卫：最近检查记录（面板趋势行）。"
+    },
     "/api/ui-guard/health": {
       "intent": "should_not_be_in_ui",
       "area": "UI 规范守卫",

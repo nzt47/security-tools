@@ -252,6 +252,8 @@ export const visualWorkflowById = (id: string) => `/api/visual-workflows/${encod
 export const UI_GUARD_CHECK = '/api/ui-guard/check';
 export const UI_GUARD_RULES = '/api/ui-guard/rules';
 export const UI_GUARD_FIX = '/api/ui-guard/fix';
+/** 最近的显式检查记录（面板趋势行；新 → 旧） */
+export const UI_GUARD_HISTORY = '/api/ui-guard/history';
 
 export const APPROVAL_SESSION = '/api/approval/session';
 /** 一次性审批链接（会话绑定 + record 绑定；对话内联审批弹窗用） */

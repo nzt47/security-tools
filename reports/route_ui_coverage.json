@@ -1,22 +1,22 @@
 {
-  "generated_at": "2026-11-20T00:33:23",
+  "generated_at": "2026-11-20T12:28:21",
   "totals": {
-    "routes": 516,
-    "live": 516,
+    "routes": 517,
+    "live": 517,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 455,
+    "ui": 456,
     "cli_script": 15,
     "runtime_only": 12,
     "unreferenced": 34,
     "live_by_category": {
-      "ui": 455,
+      "ui": 456,
       "cli_script": 15,
       "runtime_only": 12,
       "unreferenced": 34
     },
     "by_intent": {
-      "should_be_in_ui": 422,
+      "should_be_in_ui": 423,
       "should_not_be_in_ui": 80,
       "unclassified": 14
     },
@@ -25,7 +25,7 @@
       "分身与主线": 20,
       "观测与诊断": 83,
       "系统与配置": 46,
-      "治理与审批": 46,
+      "治理与审批": 47,
       "资产与文件": 19,
       "管理与后台": 18,
       "调度与任务": 26,
@@ -37,7 +37,7 @@
       "记忆与知识": 42
     }
   },
-  "frontend_endpoints": 459,
+  "frontend_endpoints": 460,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -11502,7 +11502,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_ui_guard.py:41"
+        "agent/server_routes/routes_ui_guard.py:42"
       ],
       "description": "ui_guard 的 HTTP 面（面板 + 工具 + 拓扑状态源共用）。",
       "description_source": "module",
@@ -11527,7 +11527,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_ui_guard.py:64"
+        "agent/server_routes/routes_ui_guard.py:68"
       ],
       "description": "ui_guard 的 HTTP 面（面板 + 工具 + 拓扑状态源共用）。",
       "description_source": "module",
@@ -11550,13 +11550,38 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_ui_guard.py:86"
+        "agent/server_routes/routes_ui_guard.py:103"
       ],
       "description": "ui_guard 的 HTTP 面（面板 + 工具 + 拓扑状态源共用）。",
       "description_source": "module",
       "intent": "should_not_be_in_ui",
       "intent_area": "UI 规范守卫",
       "intent_note": "规范守卫：状态源（系统监控拓扑采集），不需要独立 UI。",
+      "ui_pending": false,
+      "domain": "治理与审批"
+    },
+    {
+      "path": "/api/ui-guard/history",
+      "norm": "/api/ui-guard/history",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_ui_guard.py:90"
+      ],
+      "description": "ui_guard 的 HTTP 面（面板 + 工具 + 拓扑状态源共用）。",
+      "description_source": "module",
+      "intent": "should_be_in_ui",
+      "intent_area": "UI 规范守卫",
+      "intent_note": "规范守卫：最近检查记录（面板趋势行）。",
       "ui_pending": false,
       "domain": "治理与审批"
     },
@@ -11575,7 +11600,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_ui_guard.py:59"
+        "agent/server_routes/routes_ui_guard.py:63"
       ],
       "description": "ui_guard 的 HTTP 面（面板 + 工具 + 拓扑状态源共用）。",
       "description_source": "module",
@@ -13231,5 +13256,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "8d4299f77e2f79ca"
+  "content_hash": "e39451810bfa31f4"
 }

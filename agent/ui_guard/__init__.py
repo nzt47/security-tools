@@ -4,8 +4,9 @@
     UI 封装规范此前只以「文档 + 3 个 vitest 守卫 + 一个 Python 量具」存在，
     人知道、agent 不一定知道，更没法在对话/工作流里被调用。本模块把同一套
     规则收成一个**只读检查器**（fast 模式纯 Python，生产无 Node 也能跑）：
-      GET  /api/ui-guard/check     检查（filter: mode/rule/limit）
+      GET  /api/ui-guard/check     检查（filter: mode/rule/limit/record）
       POST /api/ui-guard/fix       两类低风险修复（默认 dry_run）
+      GET  /api/ui-guard/history   最近的显式检查记录（面板趋势行）
       GET  /api/ui-guard/health    给「系统监控」拓扑用的状态源
 
 口径（与 docs/ui/封装规范.md、3 个 vitest 守卫逐条对齐）：

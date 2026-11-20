@@ -42,6 +42,10 @@ function gets() {
       { id: 'button.alignment', label: 'Button 对齐', fixable: true, why: '' },
       { id: 'heading.scale', label: '标题字号 token', fixable: true, why: '' },
     ] }
+    if (url.startsWith('/api/ui-guard/history')) return { ok: true, limit: 12, items: [
+      { ts: '2026-11-20T01:00:00Z', source: 'api', mode: 'fast', error: 0, warning: 380, total: 380, regressions: 0, scanned_files: 455, duration_ms: 900 },
+      { ts: '2026-11-20T00:30:00Z', source: 'tool', mode: 'fast', error: 0, warning: 378, total: 378, regressions: 0, scanned_files: 455, duration_ms: 880 },
+    ] }
     return { ok: false }
   })
 }
@@ -50,7 +54,7 @@ describe('规范守卫页', () => {
   it('检查结果上屏：错误/扫描文件/基线通过', async () => {
     gets()
     render(<UiGuardPage />)
-    await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/api/ui-guard/check?limit=500'))
+    await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/api/ui-guard/check?limit=500&record=1'))
     expect(await screen.findByRole('heading', { level: 1, name: '规范守卫' })).toBeTruthy()
     expect(await screen.findByText('扫描文件')).toBeTruthy()
     expect(screen.getAllByText('2').length).toBeGreaterThan(0)
@@ -82,6 +86,15 @@ describe('规范守卫页', () => {
     await waitFor(() => expect(confirm.disabled).toBe(false))
     fireEvent.click(confirm)
     await waitFor(() => expect(api.hubPost).toHaveBeenLastCalledWith('/api/ui-guard/fix', expect.objectContaining({ dry_run: false, confirm: true })))
+  })
+
+  it('趋势行：近 N 次检查上屏，并给出与上次的差值', async () => {
+    gets()
+    render(<UiGuardPage />)
+    expect(await screen.findByText(/检查趋势（近 2 次）/)).toBeTruthy()
+    expect(await screen.findByRole('img', { name: /检查趋势：近 2 次/ })).toBeTruthy()
+    expect(await screen.findByText(/较上次 错误 0 · 警告 \+2/)).toBeTruthy()
+    expect(api.hubGet).toHaveBeenCalledWith('/api/ui-guard/history?limit=12')
   })
 
   it('量具回归非空时，概览给出红条', async () => {

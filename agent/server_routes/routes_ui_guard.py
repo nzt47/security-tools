@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """ui_guard 的 HTTP 面（面板 + 工具 + 拓扑状态源共用）。
 
-    GET  /api/ui-guard/check    检查（?mode=fast|full&rule=a,b&limit=200）
+    GET  /api/ui-guard/check    检查（?mode=fast|full&rule=a,b&limit=200&record=1）
     GET  /api/ui-guard/rules    规则清单（面板分组用）
     POST /api/ui-guard/fix      白名单修复（默认 dry_run；落盘需 confirm=true）
+    GET  /api/ui-guard/history  最近的检查记录（面板趋势行；新 → 旧）
     GET  /api/ui-guard/health   状态源（系统监控拓扑采集）
 """
 from __future__ import annotations
@@ -15,7 +16,7 @@ from flask import jsonify, request
 from agent.server_auth import require_token
 from agent.server_routes._errors import safe_error as _safe
 from agent.server_routes.tracing_decorator import trace_route
-from agent.ui_guard import engine, fixer
+from agent.ui_guard import engine, fixer, history
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,9 @@ def register_routes(app, state=None) -> None:
             except ValueError:
                 limit = 200
             report = engine.check(mode=mode, rules=rules, limit=max(0, min(limit, 1000)))
+            # 只有显式检查才记历史：health 30s 轮询不写（否则趋势被淹）
+            if (request.args.get("record") or "").strip().lower() in ("1", "true", "yes"):
+                history.record(report, source="api")
             return jsonify({"ok": True, "report": report.to_dict(limit=limit)})
         except Exception as exc:  # noqa: BLE001
             return jsonify({"ok": False, "error": _safe(exc, logger)}), 500
@@ -80,6 +84,19 @@ def register_routes(app, state=None) -> None:
                 max_files=int(data.get("max_files") or 20),
             )
             return jsonify({"ok": True, "result": result})
+        except Exception as exc:  # noqa: BLE001
+            return jsonify({"ok": False, "error": _safe(exc, logger)}), 500
+
+    @app.route("/api/ui-guard/history", methods=["GET"])
+    @trace_route("UiGuard")
+    def ui_guard_history():
+        try:
+            try:
+                limit = int(request.args.get("limit") or 20)
+            except ValueError:
+                limit = 20
+            limit = max(1, min(limit, 100))
+            return jsonify({"ok": True, "items": history.recent(limit=limit), "limit": limit})
         except Exception as exc:  # noqa: BLE001
             return jsonify({"ok": False, "error": _safe(exc, logger)}), 500
 

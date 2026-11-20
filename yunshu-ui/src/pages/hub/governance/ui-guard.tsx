@@ -2,12 +2,12 @@
  * 治理与运营 · 规范守卫（2026-11-19）
  *
  * 把「UI 封装规范」从文档变成可执行检查的操作面：
- *  - 概览：错误/警告、量具基线（只降不升）、规则分布；
+ *  - 概览：错误/警告、检查趋势（近 12 次）、量具基线（只降不升）、规则分布；
  *  - 违规明细：file:line + 修复建议，可按规则过滤；
  *  - 自动修复：只有 button.alignment / heading.scale 两类（字面量 className），
  *    先 dry_run 看 diff，再 confirm 落盘（后端默认 dry_run）。
  *
- * 数据源：GET /api/ui-guard/check|rules、POST /api/ui-guard/fix（需令牌）。
+ * 数据源：GET /api/ui-guard/check|rules|history、POST /api/ui-guard/fix（需令牌）。
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { RefreshCw, ShieldCheck, Wrench } from 'lucide-react'
@@ -16,7 +16,7 @@ import {
   Badge, Button, Card, DataTable, ErrorBox, Loading, Notice, PageTabsHeader,
   SectionTitle, Select, Tabs, hubGet, hubPost,
 } from '../components/ui'
-import { UI_GUARD_CHECK, UI_GUARD_FIX, UI_GUARD_RULES } from '@/api/endpoints'
+import { UI_GUARD_CHECK, UI_GUARD_FIX, UI_GUARD_HISTORY, UI_GUARD_RULES } from '@/api/endpoints'
 
 type Tab = 'overview' | 'findings'
 
@@ -54,6 +54,17 @@ interface Report {
 }
 
 interface RuleDef { id: string; label: string; fixable: boolean; why: string }
+interface TrendPoint {
+  ts: string
+  source: string
+  mode: string
+  error: number
+  warning: number
+  total: number
+  regressions: number
+  scanned_files: number
+  duration_ms: number
+}
 interface FixChange { rule: string; file: string; line: number; before: string; after: string; token?: string }
 interface FixResult {
   applied: boolean
@@ -89,13 +100,20 @@ export default function UiGuardPage() {
   const [preview, setPreview] = useState<FixResult | null>(null)
   const [fixMsg, setFixMsg] = useState('')
   const [fixErr, setFixErr] = useState('')
+  const [trend, setTrend] = useState<TrendPoint[]>([])
 
   const load = useCallback(async () => {
     setLoading(true); setErr('')
     try {
-      const body = await hubGet<{ ok: boolean; report: Report; error?: string }>(UI_GUARD_CHECK + '?limit=500')
+      const body = await hubGet<{ ok: boolean; report: Report; error?: string }>(UI_GUARD_CHECK + '?limit=500&record=1')
       if (!body?.ok) throw new Error(body?.error || '检查失败')
       setReport(body.report)
+      try {
+        const h = await hubGet<{ ok: boolean; items: TrendPoint[] }>(UI_GUARD_HISTORY + '?limit=12')
+        if (h?.ok) setTrend(h.items ?? [])
+      } catch {
+        /* 趋势只是辅助，失败不挡检查 */
+      }
     } catch (e) {
       setErr('检查失败：' + (e instanceof Error ? e.message : String(e)))
     } finally {
@@ -199,6 +217,25 @@ export default function UiGuardPage() {
                   <StatBox label="扫描文件" value={report.scanned_files} tone="text-cyan-300" />
                   <StatBox label="基线回归" value={report.baseline.regressions.length} tone={report.baseline.passed ? 'text-emerald-400' : 'text-red-400'} />
                 </div>
+                <Card title={'检查趋势（近 ' + trend.length + ' 次）'} className="mb-4">
+                  {trend.length === 0 ? (
+                    <p className="text-caption text-muted-foreground">
+                      还没有检查记录；点「重新检查」后开始累计（只记显式检查，不记拓扑轮询）。
+                    </p>
+                  ) : (
+                    <>
+                      <TrendBars items={trend} />
+                      <p className="mt-2 text-caption text-muted-foreground">
+                        最新：错误 <span className="font-mono text-red-400">{trend[0].error}</span>
+                        {' · '}警告 <span className="font-mono text-amber-300">{trend[0].warning}</span>
+                        {' · '}回归 <span className="font-mono">{trend[0].regressions}</span>
+                        {trend[1] ? '；较上次 错误 ' + deltaText(trend[0].error, trend[1].error)
+                          + ' · 警告 ' + deltaText(trend[0].warning, trend[1].warning) : ''}
+                        {' '}（{trend[0].source === 'tool' ? '对话工具' : '面板'} · {formatTime(trend[0].ts)}）
+                      </p>
+                    </>
+                  )}
+                </Card>
                 <Card title="量具基线（只降不升）">
                   <DataTable
                     data={baselineRows}
@@ -303,4 +340,38 @@ function StatBox({ label, value, tone }: { label: string; value: number; tone: s
       <div className={'mt-1 font-mono text-h2 ' + tone}>{value}</div>
     </div>
   )
+}
+
+/** 趋势行：按时间从左到右画柱，高度取 error/warning 的较大者。 */
+function TrendBars({ items }: { items: TrendPoint[] }) {
+  const chrono = [...items].reverse()
+  const max = Math.max(1, ...chrono.map((t) => Math.max(t.error, t.warning)))
+  return (
+    <div className="flex h-16 items-end gap-1" role="img" aria-label={'检查趋势：近 ' + items.length + ' 次'}>
+      {chrono.map((t, i) => {
+        const h = Math.max(4, Math.round((Math.max(t.error, t.warning) / max) * 56))
+        const tone = t.error > 0 ? 'bg-red-400/70' : 'bg-amber-400/60'
+        return (
+          <div
+            key={t.ts + ':' + i}
+            className={'flex-1 rounded-sm ' + tone}
+            style={{ height: h }}
+            title={formatTime(t.ts) + ' · 错误 ' + t.error + ' · 警告 ' + t.warning + ' · 回归 ' + t.regressions}
+          />
+        )
+      })}
+    </div>
+  )
+}
+
+function formatTime(ts: string): string {
+  if (!ts) return '—'
+  const d = new Date(ts)
+  if (Number.isNaN(d.getTime())) return ts
+  return d.toLocaleTimeString('zh-CN', { hour12: false })
+}
+
+function deltaText(now: number, prev: number): string {
+  const d = now - prev
+  return d === 0 ? '0' : (d > 0 ? '+' + d : String(d))
 }

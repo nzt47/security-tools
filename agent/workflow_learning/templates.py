@@ -9,8 +9,10 @@
 【口径（改之前先读）】
 1. **模板默认不启用**：`enabled=False` + `status="draft"`。落库 ≠ 上线 ——
    启用与否是人的决定（工作流回放会真的执行工具）。
-2. **只用只读工具**：list_directory / search_files / grep / run_lint / search_memory，
+2. **默认只用只读工具**：list_directory / search_files / grep / run_lint / search_memory，
    effect=read 或低风险静态检查；不写文件、不删东西、不联网。
+   **唯一例外** `tpl-ui-guard-sweep`：workflow_type=hybrid，含 need_llm 判断步与
+   `apply_patch(dry_run=true)` 预览步 —— 只校验补丁、不写盘；模板本身仍默认停用。
 3. **幂等、只补缺**：按 id upsert 前先 `repo.get(id)`；已存在（含用户改过的同 id）
    **一律跳过**，绝不覆盖。删除/改名仍由人来。
 4. **不自动运行**：模板没有 session 来源、observed_count=1、priority 低；
@@ -40,7 +42,8 @@ TEMPLATE_TAGS = ("template", "builtin", "readonly")
 
 
 def _tpl(wf_id: str, name: str, description: str, signature: str,
-         triggers: List[str], steps: List[Dict[str, Any]]) -> Dict[str, Any]:
+         triggers: List[str], steps: List[Dict[str, Any]],
+         workflow_type: str = "toolchain") -> Dict[str, Any]:
     """构造一条模板定义（字段集中在这里，少写重复）。"""
     return {
         "id": wf_id,
@@ -50,7 +53,7 @@ def _tpl(wf_id: str, name: str, description: str, signature: str,
         "trigger_patterns": list(triggers),
         "steps": steps,
         "tags": list(TEMPLATE_TAGS),
-        "workflow_type": "toolchain",
+        "workflow_type": workflow_type,
         "status": WorkflowStatus.DRAFT.value,
         "enabled": False,
         "priority": 10,
@@ -113,6 +116,42 @@ BUILTIN_TEMPLATES: List[Dict[str, Any]] = [
              "params_template": {"query": "$input", "scope": "all", "max_items": 10},
              "output_key": "hits", "description": "命中的记忆条目"},
         ],
+    ),
+    # 【2026-11-20】UI 规范守卫巡检（Owner 同意的 C 项）：
+    #   检查 → LLM 判断/出补丁 → apply_patch(dry_run=true) 校验 → 复检 → LLM 出报告。
+    #   只有 apply_patch 是可写工具，且固定 dry_run=true（不写盘）；模板默认停用。
+    _tpl(
+        "tpl-ui-guard-sweep",
+        "模板·UI 规范守卫巡检",
+        "检查 UI 封装规范 → LLM 判断可自动修项并出 unified diff → apply_patch 只做 dry-run 校验 → "
+        "复检 → 出 Markdown 报告。默认不写盘、不启用。",
+        "巡检 UI 封装规范并给出修复报告",
+        ["UI 规范", "封装规范", "规范守卫", "UI 巡检"],
+        [
+            {"step_id": "check-before", "tool_name": "ui_guard_check",
+             "params_template": {"mode": "fast", "limit": 20},
+             "output_key": "before", "description": "改前检查（只读）"},
+            {"step_id": "judge", "tool_name": "", "need_llm": True,
+             "prompt_template": (
+                 "读取 $step.0.output 的 counts/by_rule/findings。只针对可自动修的两类"
+                 "（button.alignment / heading.scale，且 className 必须是字面量）生成 unified diff；"
+                 "diff 必须含 --- a/路径、+++ b/路径、@@ hunk；不要改结构、不要动 .test. 文件。"
+                 "只输出 diff 本身，不要解释，不要写盘。"),
+             "output_key": "patch", "description": "LLM 判断并给出可 dry-run 的补丁"},
+            {"step_id": "preview", "tool_name": "apply_patch",
+             "params_template": {"patch": "$prev_output", "dry_run": True},
+             "output_key": "preview", "description": "dry-run 校验补丁（不写盘）"},
+            {"step_id": "check-after", "tool_name": "ui_guard_check",
+             "params_template": {"mode": "fast", "limit": 20},
+             "output_key": "after", "description": "复检（只读）"},
+            {"step_id": "report", "tool_name": "", "need_llm": True,
+             "prompt_template": (
+                 "根据 $step.0.output（改前）、$step.2.output（dry-run 结果）、$step.3.output（复检）"
+                 "输出 Markdown 报告：错误/警告数、可自动修项、补丁是否可应用、复检差异、需人工项。"
+                 "不要调用工具，不要写文件。"),
+             "output_key": "report", "description": "出报告（只返回文本）"},
+        ],
+        workflow_type="hybrid",
     ),
 ]
 

@@ -32,7 +32,7 @@ def register_all(dl=None):  # noqa: ARG001 动态加载器契约
         },
     )
     def _ui_guard_check(**kwargs):
-        from agent.ui_guard import check
+        from agent.ui_guard import check, history
 
         mode = str(kwargs.get("mode") or "fast")
         if mode not in ("fast", "full"):
@@ -45,6 +45,8 @@ def register_all(dl=None):  # noqa: ARG001 动态加载器契约
             limit = 40
         limit = max(1, min(limit, 200))
         report = check(mode=mode, rules=rules, limit=limit)
+        # 工具调用也是「显式检查」⇒ 记一条趋势（面板与对话共用一个历史）
+        history.record(report, source="tool")
         data = report.to_dict(limit=limit)
         # 工具结果给模型看：不放全量 300+ 条 CSS 颜色，只给计数 + 前 N 条 + 回归
         return {
