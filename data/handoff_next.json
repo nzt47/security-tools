@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-20T22:05:00+08:00",
+ "updated_at": "2026-11-20T23:58:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -40,23 +40,31 @@
    "priority": "P2",
    "title": "UI 原语守卫存量清零：raw_* 0 / CSS 颜色 0 + 量具口径修正",
    "criteria": "2026-11-20 落地（6f097bc39 批次 + 47407e4a6 引擎同源 + c07d38930 前缀修正）：① 量具口径：.test. 不计 raw_*/raw_heading；CSS 自定义属性定义行不计 css_hardcoded_color；新增 tests/unit/test_ui_primitive_convergence.py 2 条。② 12 处原生控件改原语（NetworkPanel/Memory/DockPanel×3/SessionRail×2/replicate/ApiTokenField/TagsField→Input；SwitchField→Switch；exemption/usePermission 注释改 Button）。③ 358 处 CSS 颜色抽成四套调色板 --wbp-*/--pl-*/--dc-*/--ve-*（值逐字保留，规则只写 var()），StatusBadge 未知态补 --color-unknown、CardDetail 遮罩用 --color-overlay；--wbp-* 与既有 --wb-bg/--wb-text 语义 token 分前缀。④ engine._audit_findings 改为与 scripts/audit 同源（跳过 .test.、剥色板定义、计数取 mod.scan）。基线 raw_button 8→0 / raw_select 1→0 / raw_input 11→0 / raw_heading 80→78 / css_hardcoded_color 358→0。",
-   "next": "真机：面板 0 错误 / 0 警告 / 458 文件 / 0 回归，明细 0 行；--wbp-bg=#04060d、--wbp-text=#d7e2f0、--pl-bg=#04060d（计算值逐字保留），语义 --wb-bg/--wb-text 未被覆盖。部署 c07d38930 · bundle index-CnwV7DdH.js · pid 88876。CI：c07d38930 的 ci.yml（run 44742787591）30/30 success；yunshu-ui 前端测试 success。注意：色板是「字面值集中到 --* 定义」，不是语义重命名；后续可按主题做语义名。"
+   "next": "真机：面板 0 错误 / 0 警告 / 458 文件 / 0 回归，明细 0 行；--wbp-bg=#04060d、--wbp-text=#d7e2f0、--pl-bg=#04060d（计算值逐字保留），语义 --wb-bg/--wb-text 未被覆盖。部署 c07d38930 · bundle index-CnwV7DdH.js · pid 88876。CI：c07d38930 的 ci.yml（run 44742787591）30/30 success；yunshu-ui 前端测试 success。注意：色板是「字面值集中到 --* 定义」，不是语义重命名；后续可按主题做语义名。 补充（2026-11-20 复核）：两处非逐字漂移（ve slate-950 / dc 13.3%）已由 28438b15e 修回，四文件与 6f097bc39^ 逐行等价（.local/verify_palette_equiv.py）。"
   },
   {
    "id": "ui-guard-fix-enable-acceptance",
-   "status": "open",
+   "status": "done",
    "priority": "P2",
    "title": "真机验收 ui_guard_fix 启用路径（默认停用 → 启用 → dry_run → L2 审批 → 关闭）",
-   "criteria": "工具已随 c07d38930 部署为 enabled:false / permission_level=restricted / confirm_level=L2，模型可见集已隐藏。未做：在工具页或 /api/tools/toggle 打开，对话里先 dry_run 预览，再 dry_run=false 触发 L2 审批，验证挂单→单次消费→审计链；验收完把 toggle 关回（data/tools_config.json 运行期状态，不提交）。",
-   "next": "按 §11.185 A 执行；不要改 YAML 默认值；记录 tool 页 enabled 读数、审批单与审计 seq，然后恢复停用。"
+   "criteria": "2026-11-20 真机完成（部署 28438b15e）：/api/tools/toggle 打开后 enabled=true（YAML 未改，关回后 data/tools_config.json 无该键、回落 YAML enabled:false）；对话（mode=plain=轻量，前端默认档）里 dry_run=true 与 dry_run=false **都要 L2 审批**——确认级只取 YAML 元数据（plane=act/effect=write/risk=high ⇒ L2），不看参数；dry_run=true 走收件箱（编排器路径 origin=\"\"），dry_run=false 走「对话内弹窗」（origin=inline_chat，/api/approval/pending 默认 inline_hidden=1）。审批链实测：挂单 approval.submit seq 86681/86694 → approved 86687/86697 → tool.confirm_decision（confirm_level=L2）86690/86700 → 消费台账 data/tool_approval_uses.jsonl 两条（23:16:54 / 23:17:42）→ 同参数重试被拒并要求新单（appr-20261120231810812826-4ae68ca3，seq 86702 submit / 86705 rejected）⇒ 单次消费成立。落盘验证：探针文件 yunshu-ui/src/__uiguard_probe__/FixProbe.tsx 由 dry_run=false 写入 1 处（<h2> → <h2 className=\"text-ui\">），dry_run=true 时文件逐字未变；探针已删除，ui-guard check 回到 0/0/0。",
+   "next": "已验收，工具已关回停用（/api/tools/config：enabled=false / runtime=false；pending 0 条）。留给 Owner 的决策见新条目 ui-guard-fix-preview-needs-approval（预览是否免审批）。"
   },
   {
    "id": "ui-guard-palette-semantic",
    "status": "open",
    "priority": "P3",
    "title": "四套 UI 调色板（--wbp/--pl/--dc/--ve）语义命名（Owner 观感确认后）",
-   "criteria": "§11.184 把 358 条颜色字面值集中到四套调色板变量，规则已 0 字面值；但变量名是角色/色阶（--wbp-bg、--ve-slate-800），不是 --surface/--accent 这类语义名。属可选打磨，需 Owner 先看四页观感再决定。",
-   "next": "若要语义化：先定命名表（每个主题 8-12 个语义名），再逐文件替换定义与 var()；纯 CSS，带三档截图；不要动语义 token --wb-*。"
+   "criteria": "§11.184 把 358 条颜色字面值集中到四套调色板变量，规则已 0 字面值；但变量名是角色/色阶（--wbp-bg、--ve-slate-800），不是 --surface/--accent 这类语义名。属可选打磨，需 Owner 先看四页观感再决定。2026-11-20 复核（.local/verify_palette_equiv.py）：把当前规则里的 var()/color-mix 还原成 rgba 后与 6f097bc39^ 原文逐行比较 —— 四文件原本有两处漂移（VisualEditor 的 minimap mask fill 指向 #0b1220 而非真 slate-950 #020617；DevConsole 的 diff 底色写成 13.3% 而非 34/255=13.333%），已由 28438b15e 修回，现四文件 0 差异。真机计算值：--wbp-bg=#04060d / --wbp-text=#d7e2f0 / --wb-bg=hsl(222 47% 4%) / --wb-text=hsl(210 40% 96%) / --pl-bg=#04060d / --dc-bg=#0d1117 / --ve-bg-deep=#0b1220 / --ve-slate-950=#020617；minimap mask fill = rgb(2 6 23 / 0.55)（与改前逐字一致）。",
+   "next": "等 Owner 看四张 1440 截图（.ui_shots/PALETTE_WB|DC|PL|VE_1440.png）决定要不要语义命名；要改则先定命名表（每个主题 8-12 个语义名），纯 CSS + 三档截图，不动 --wb-*。"
+  },
+  {
+   "id": "ui-guard-fix-preview-needs-approval",
+   "status": "open",
+   "priority": "P3",
+   "title": "ui_guard_fix 的 dry_run=true 预览也需要 L2 审批（确认级只看元数据，不看参数）",
+   "criteria": "2026-11-20 真机实测：dry_run=true 只回 diff、不写盘，但 tool_gate._confirm_level_outcome 的级别来自 YAML 的 plane/effect/risk（act/write/high ⇒ L2），**不读 args**，所以预览同样挂单（首轮对话即 APPROVAL_REQUIRED，审批单 appr-20261120231604864125-046d3ea3）。仓库里没有按参数放宽确认级的机制；CP_TOOL_CONFIRM_LEVEL_EXEMPT 是**工具级**（L2 可豁免），一旦豁免会把 dry_run=false 的写盘一起放开 ⇒ 不能用来只放行预览。对比：面板的 POST /api/ui-guard/fix（dry_run=true）是 UI 写路由，不需要工具层审批。",
+   "next": "待 Owner 决定：(a) 维持现状——预览也点一次审批（最保守，无代码改动）；(b) 做「参数级预览豁免」新机制（tool_gate + YAML 契约 + 用例，影响 13 个 high 工具），属独立议题，需单独立项；(c) 只在话术上引导——要看 diff 用面板预览，对话里直接 dry_run=false。"
   },
   {
    "id": "agent-ui-onboarding",
