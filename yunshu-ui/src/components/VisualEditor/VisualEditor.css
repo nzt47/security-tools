@@ -13,7 +13,9 @@
   --ve-slate-700: #334155;
   --ve-slate-800: #1e293b;
   --ve-slate-900: #0f172a;
-  --ve-slate-950: #0b1220;
+  --ve-slate-950: #020617;
+  /* 深色宿主背景（.ve-dark 的壳/输入底色）：原字面值是深海军蓝，不是 slate-950 */
+  --ve-bg-deep: #0b1220;
   --ve-blue: #3b82f6;
   --ve-cyan: #22d3ee;
   --ve-green: #16a34a;
@@ -345,7 +347,7 @@ textarea.ve-field-input {
  * 不受影响（选择器全部以 .ve-dark 为祖先约束）。
  * ════════════════════════════════════════════════════════════ */
 .ve-dark .ve-root {
-  background: var(--ve-slate-950);
+  background: var(--ve-bg-deep);
   min-height: 0;
 }
 
@@ -426,7 +428,7 @@ textarea.ve-field-input {
 }
 
 .ve-dark .ve-field-input {
-  background: var(--ve-slate-950);
+  background: var(--ve-bg-deep);
   border-color: var(--ve-slate-700);
   color: var(--ve-slate-200);
 }

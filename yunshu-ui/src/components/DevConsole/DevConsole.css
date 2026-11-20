@@ -375,16 +375,16 @@
 }
 .stateinspector-diff-added {
   color: var(--dc-green);
-  background: color-mix(in srgb, var(--dc-green-solid) 13.3%, transparent);
+  background: color-mix(in srgb, var(--dc-green-solid) 13.3333%, transparent);
 }
 .stateinspector-diff-removed {
   color: var(--dc-red);
-  background: color-mix(in srgb, var(--dc-red-solid) 13.3%, transparent);
+  background: color-mix(in srgb, var(--dc-red-solid) 13.3333%, transparent);
   text-decoration: line-through;
 }
 .stateinspector-diff-updated {
   color: var(--dc-yellow);
-  background: color-mix(in srgb, var(--dc-yellow-solid) 13.3%, transparent);
+  background: color-mix(in srgb, var(--dc-yellow-solid) 13.3333%, transparent);
 }
 
 /* ─── 响应式（移动端） ─── */
