@@ -99,6 +99,7 @@ flowchart LR
         agent_learning_budget["agent.learning_budget"]
         agent_learning_metrics["agent.learning_metrics"]:::crosslayer
         agent_learning_metrics_api["agent.learning_metrics_api"]
+        agent_llm_idle_gate["agent.llm_idle_gate"]
         agent_llm_key["agent.llm_key"]:::crosslayer
         agent_llm_monitor["agent.llm_monitor"]
         agent_llm_response_cache["agent.llm_response_cache"]:::crosslayer
@@ -566,6 +567,7 @@ flowchart LR
         agent_server_routes_routes_feedback["agent.server_routes.routes_feedback"]
         agent_server_routes_routes_health["agent.server_routes.routes_health"]
         agent_server_routes_routes_knowledge["agent.server_routes.routes_knowledge"]
+        agent_server_routes_routes_llm_gate["agent.server_routes.routes_llm_gate"]
         agent_server_routes_routes_llm_monitor["agent.server_routes.routes_llm_monitor"]
         agent_server_routes_routes_logging["agent.server_routes.routes_logging"]
         agent_server_routes_routes_memory_import["agent.server_routes.routes_memory_import"]
@@ -1429,6 +1431,7 @@ flowchart LR
     agent_llm_monitor -.-> agent_utils_singleton_manager
     agent_llm_monitor -.-> agent_monitoring_observability_config
     agent_llm_monitor -.-> agent_observability
+    agent_llm_monitor --> agent_llm_idle_gate
     agent_llm_response_cache -.-> agent_caching_multi_level_cache
     agent_llm_response_cache --> agent_logging_utils
     agent_log_system_dashboard -.-> agent_logging_utils
@@ -2234,6 +2237,10 @@ flowchart LR
     agent_server_routes_routes_knowledge -.-> agent_api_envelope
     agent_server_routes_routes_knowledge --> agent_server_routes__errors
     agent_server_routes_routes_knowledge -.-> agent_tool_router_reranker
+    agent_server_routes_routes_llm_gate -.-> agent_server_auth
+    agent_server_routes_routes_llm_gate --> agent_server_routes__errors
+    agent_server_routes_routes_llm_gate --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_llm_gate --> agent
     agent_server_routes_routes_llm_monitor -.-> agent_server_auth
     agent_server_routes_routes_llm_monitor --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_llm_monitor --> agent_server_routes__errors
@@ -2750,6 +2757,8 @@ flowchart LR
     agent_task_scheduler --> agent_tool_gate
     agent_task_scheduler --> agent_tool_gate
     agent_task_scheduler --> agent_tool_gate
+    agent_task_scheduler --> agent_llm_idle_gate
+    agent_task_scheduler --> agent_llm_idle_gate
     agent_task_scheduler -.-> agent_maintenance_zero_token_jobs
     agent_task_scheduler --> agent_weekly_report_generator
     agent_task_scheduler -.-> agent_extensions_channel_bridge
@@ -2758,6 +2767,7 @@ flowchart LR
     agent_task_scheduler -.-> agent_monitoring_observability_config
     agent_task_scheduler -.-> agent_monitoring_observability_config
     agent_task_scheduler -.-> agent_monitoring_observability_config
+    agent_task_scheduler --> agent_llm_idle_gate
     agent_task_scheduler -.-> agent_monitoring_observability_config
     agent_test_permission_system --> agent_permission_system
     agent_text_tools --> agent_logging_utils
@@ -2771,10 +2781,12 @@ flowchart LR
     agent_tool_calling --> agent_circuit_breaker
     agent_tool_calling --> agent
     agent_tool_calling -.-> agent_descriptors_bridge
+    agent_tool_calling --> agent_llm_idle_gate
     agent_tool_calling -.-> agent_capregistry_identity
     agent_tool_calling --> agent_response_workflows
     agent_tool_calling -.-> agent_capregistry_identity
     agent_tool_calling -.-> agent_observability_events
+    agent_tool_calling --> agent_llm_idle_gate
     agent_tool_calling --> agent_timeout_budget
     agent_tool_calling --> agent_timeout_budget
     agent_tool_calling --> agent_tools_prompt_guard
@@ -2783,6 +2795,7 @@ flowchart LR
     agent_tool_calling -.-> agent_observability_trace_v2
     agent_tool_calling -.-> agent_observability_tool_trace
     agent_tool_calling --> agent_response_workflows
+    agent_tool_calling --> agent_llm_idle_gate
     agent_tool_calling --> agent_timeout_budget
     agent_tool_calling --> agent_timeout_budget
     agent_tool_calling --> agent_timeout_budget
@@ -3065,9 +3078,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 775
-- 模块节点数: 673
-- 依赖边数: 2262
-- 跨层调用数: 1446
+- 扫描文件数: 777
+- 模块节点数: 675
+- 依赖边数: 2273
+- 跨层调用数: 1447
 - 违规调用数: 0
 - 动态 import 数: 1
