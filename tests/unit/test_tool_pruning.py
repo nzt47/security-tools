@@ -185,7 +185,8 @@ class Test真实数据两个口径:
         assert len(res.tools) == res.max_tools == 26
         # 【2026-11-05 复核】仍是 8：新增的两条 software_* 不在 engineering 线的 26 个名额里
         # （本机有运行时登记工具时会变 9 —— 那是本机噪音，判绿以干净 worktree 为准）
-        assert len(in_line) == 8
+        # 【2026-11-20】8 → 9：ui_guard_fix（write/high）进入 engineering 线并受保护
+        assert len(in_line) == 9
         assert res.truncated == []
         assert res.token_pruned == []
 
@@ -269,7 +270,8 @@ class TestToken预算零误伤:
         assert plan_off.protected_kept == ()
         assert plan_off.misprune_rate() == 0.0
         # 【2026-11-09】7 → 8：新增 skill_script_run（risk=high）进入同一预算下的误裁集合
-        assert len(hit) == 8, f"无保护口径下的高危误裁基线是 8，实测 {len(hit)}"
+        # 【2026-11-20】8 → 9：新增 ui_guard_fix（risk=high）
+        assert len(hit) == 9, f"无保护口径下的高危误裁基线是 9，实测 {len(hit)}"
 
     def test_预算充足时不裁剪(self, meta, real_defs):
         """对照：预算充足 ⇒ `applied=False`、`dropped=[]`（防"裁剪"被误判为发生）"""
