@@ -117,6 +117,34 @@ def scan(root: Path = UI_SRC) -> Dict[str, int]:
     return counts
 
 
+#: `@import` 只有在「除 @charset/@layer 之外的所有语句之前」才有效（CSS 规范）。
+#: 被任意规则挤到后面 ⇒ 浏览器**整条忽略**（不报错、不警告）。
+#: 【2026-11-21 实测事故】调色板 `:root{}` 块被插到 workbench.css 最前面，把
+#: `@import react-mosaic-component.css` / `highlight.js` 两条挤到规则之后 ⇒
+#: Mosaic 基础样式与 hljs 主题全丢，工作台三列塌成 8px 条（导航看起来"没了"）。
+_STYLE_IMPORT_RE = re.compile(r"@import\s+([^;]+);")
+_STYLE_IMPORT_ALLOWED_PREFIX = re.compile(r"@charset[^;]*;|@layer[^;{]*;")
+
+
+def style_import_violations(root: Path = UI_SRC) -> list:
+    """返回 ``[(相对路径, 之前的残留文本, @import 内容)]``；空列表 = 全部合规。"""
+    bad = []
+    for path in sorted(root.rglob("*.css")):
+        text = path.read_text(encoding="utf-8", errors="replace")
+        # 注释要与原文等长替换，否则定位会偏；剥掉注释后只找**第一条** @import
+        clean = re.sub(r"/\*.*?\*/", lambda m: " " * len(m.group(0)), text, flags=re.S)
+        match = _STYLE_IMPORT_RE.search(clean)
+        if not match:
+            continue
+        head = clean[:match.start()].strip()
+        leftovers = _STYLE_IMPORT_ALLOWED_PREFIX.sub("", head).strip()
+        if leftovers:
+            bad.append((path.relative_to(root).as_posix(),
+                        " ".join(leftovers.split())[:80],
+                        match.group(1).strip()))
+    return bad
+
+
 def load_baseline(path: Path = BASELINE) -> Dict[str, int]:
     """读基线；缺失返回空（首次运行视为待建立）。"""
     try:
@@ -160,11 +188,20 @@ def main(argv=None) -> int:
         print(json.dumps({k: current[k] for k in METRICS}, ensure_ascii=False))
         return 0
 
+    imports_bad = style_import_violations()
     if args.json:
-        print(json.dumps(current, ensure_ascii=False))
+        payload = dict(current)
+        payload["_style_import_violations"] = len(imports_bad)
+        print(json.dumps(payload, ensure_ascii=False))
     else:
         for key in METRICS:
             print("  %-16s %5d" % (key, current[key]))
+        print("  %-16s %5d" % ("css_import_order", len(imports_bad)))
+    if imports_bad:
+        print("[ui-convergence] 失败：@import 被规则挤到后面（浏览器会整条忽略）：")
+        for rel, head, imp in imports_bad:
+            print("   - %s：@import %s 之前出现了 %r" % (rel, imp, head))
+        return 1
     problems = compare(current, load_baseline())
     if problems:
         print("[ui-convergence] 失败：新增了原生控件/任意值字号，请改用 components/ui 原语：")

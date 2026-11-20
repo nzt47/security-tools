@@ -43,3 +43,25 @@ def test_css_变量定义不算硬编码_规则里的照常算(tmp_path):
         encoding="utf-8")
     c = _mod().scan(src)
     assert c["css_hardcoded_color"] == 1, c
+
+
+
+def test_css_import_必须在规则之前(tmp_path):
+    """2026-11-21 事故：调色板 :root 插到最前面，把 @import 挤到规则后 ⇒ 整条被忽略。"""
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "ok.css").write_text(
+        "@charset \"utf-8\";\n@import 'lib/base.css';\n.a { color: red; }\n",
+        encoding="utf-8")
+    (src / "bad.css").write_text(
+        ":root { --x: #fff; }\n.a { color: var(--x); }\n@import 'lib/base.css';\n",
+        encoding="utf-8")
+    mod = _mod()
+    bad = mod.style_import_violations(src)
+    assert [row[0] for row in bad] == ["bad.css"], bad
+
+
+def test_仓库里的css_import都在最前面():
+    mod = _mod()
+    bad = mod.style_import_violations(_ROOT / "yunshu-ui" / "src")
+    assert bad == [], bad

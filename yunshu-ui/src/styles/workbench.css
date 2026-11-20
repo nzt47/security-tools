@@ -1,3 +1,12 @@
+@import 'react-mosaic-component/react-mosaic-component.css';
+@import 'highlight.js/styles/atom-one-dark.css';
+
+/* 【2026-11-21 修复·必读】CSS 规范要求 `@import` 出现在**所有规则之前**（只允许 @charset/@layer）；
+   2026-11-20 的调色板 `:root{}` 块被插到文件最前面，把这两条 @import 挤到了规则后面 ⇒
+   浏览器**整条忽略**它们 ⇒ react-mosaic 基础样式与 highlight.js 暗色主题全丢，
+   工作台 Mosaic 三列塌成 8px 高的条（导航栏看起来"没了"）。
+   守卫：scripts/audit/ui_primitive_convergence.py 的 style_import_violations（--check 会红）。 */
+
 :root {
   /* 工作台**调色板**（2026-11-20）：与语义 token（--wb-panel/--wb-text…）分前缀，
      避免同名覆盖。原 92 处字面值集中于此；规则只写 var(--wbp-*)。 */
@@ -31,12 +40,10 @@
 /**
  * 云枢工作台主题（深色玻璃拟态 / 科技感）
  * ------------------------------------------------
- * 1. 引入 Mosaic 官方样式与 highlight.js 暗色主题
+ * 1. 引入 Mosaic 官方样式与 highlight.js 暗色主题（**在文件最前面**，见顶部注释）
  * 2. 以 CSS 变量锁定配色（青-天蓝主色，避免常见紫渐变套路）
  * 3. 覆写 Mosaic 面板为玻璃面板：半透明 + backdrop-filter
  */
-@import 'react-mosaic-component/react-mosaic-component.css';
-@import 'highlight.js/styles/atom-one-dark.css';
 /* 【2026-11-16 统一】原先这里从 Google Fonts 拉 Chakra Petch + JetBrains Mono：离线/被墙时
    静默回退系统字体 ⇒ 同一台机器上工作台与其它页字体不同。现在字体栈只有 index.css 一份。 */
 
