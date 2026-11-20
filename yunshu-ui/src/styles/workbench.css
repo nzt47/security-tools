@@ -584,6 +584,13 @@ body,
   padding: 10px 14px;
   border-width: 1px;
   border-style: solid;
+  /* 【2026-11-21 修】消息列是 flex column + items-start ⇒ 气泡按**内容 max-content** 收缩，
+     一条长代码行/宽表格就能把它撑到几千 px（真机实测 5406px vs 列宽 456px）：
+     视觉上气泡比思考/工具块宽、右边被面板裁掉，且**不随面板变宽而重排**。
+     max-width: 100% 以消息列为上限；min-width: 0 允许在 flex 里真正收缩。 */
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* ─── 对话风格（主题 / 气泡 / 字号）：由 useChatPrefsStore 折算的 --chat-* 变量驱动 ───
@@ -934,6 +941,9 @@ body,
   font-size: var(--text-body-lg);
   line-height: 1.75;
   color: var(--wbp-text);
+  /* 与气泡同理：内部长行不能把外层撑开（配合 .wb-codeblock 的横向滚动） */
+  min-width: 0;
+  max-width: 100%;
 }
 
 .wb-markdown p {
@@ -982,6 +992,10 @@ body,
   margin: 8px 0;
   border-collapse: collapse;
   font-size: var(--text-body);
+  /* 宽表格自己横向滚动，不撑破气泡（2026-11-21） */
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .wb-markdown th,
@@ -1012,6 +1026,9 @@ body,
   border-radius: 10px;
   border: 1px solid var(--wb-border);
   overflow: hidden;
+  /* 代码块允许横向滚动，但不许把消息气泡撑宽（2026-11-21） */
+  max-width: 100%;
+  min-width: 0;
   background: color-mix(in srgb, var(--wbp-bg-4) 75%, transparent);
 }
 
