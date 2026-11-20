@@ -163,6 +163,9 @@ def _audit_findings(root: Path, out: List[Finding]) -> Dict[str, int]:
     for p in ui.rglob("*"):
         if p.suffix not in mod.SCAN_SUFFIXES or ui_dir in p.parents:
             continue
+        # 【2026-11-20】与 scripts/audit 同口径：.test. 是合成反例，不计入产品量具
+        if ".test." in p.name:
+            continue
         text = p.read_text(encoding="utf-8", errors="replace")
         rel = _rel(root, p)
         for key, pattern in metrics.items():
@@ -188,7 +191,8 @@ def _audit_findings(root: Path, out: List[Finding]) -> Dict[str, int]:
     for p in ui.rglob("*.css"):
         if p.name in mod._CSS_EXEMPT:
             continue
-        text = p.read_text(encoding="utf-8", errors="replace")
+        # 自定义属性定义行是色板声明，不算"规则里的硬编码"（与 scripts/audit 同口径）
+        text = mod._strip_css_var_defs(p.read_text(encoding="utf-8", errors="replace"))
         rel = _rel(root, p)
         found = []
         for pattern in mod._CSS_COLOR_PATTERNS:
@@ -201,8 +205,10 @@ def _audit_findings(root: Path, out: List[Finding]) -> Dict[str, int]:
                 message="CSS 硬编码颜色：改用语义 token / 调色板类",
                 fix_hint="检查 __color-* token 或 Tailwind 语义色",
                 snippet=m.group(0)[:40]))
-    counts["_files"] = len([1 for _ in _ui_files(root)])
-    return counts
+    # 计数以 scripts/audit 的单一实现为准，避免引擎与量具两份口径漂移
+    canonical = mod.scan(ui)
+    canonical["_files"] = len([1 for _ in _ui_files(root)])
+    return canonical
 
 
 def _commit(root: Path) -> str:
