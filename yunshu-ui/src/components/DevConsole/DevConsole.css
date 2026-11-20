@@ -1,10 +1,33 @@
+:root {
+  /* DevConsole 主题色板（GitHub 暗色）。2026-11-20：原本 86 处字面值集中在
+     这些变量里；规则只写 var(--dc-*)，量具只对"规则里的字面值"计数。 */
+  --dc-bg: #0d1117;
+  --dc-panel: #161b22;
+  --dc-panel-alt: #21262d;
+  --dc-border: #30363d;
+  --dc-text: #e6edf3;
+  --dc-muted: #8b949e;
+  --dc-blue: #58a6ff;
+  --dc-blue-solid: #1f6feb;
+  --dc-green: #7ee787;
+  --dc-green-solid: #238636;
+  --dc-yellow: #d29922;
+  --dc-yellow-solid: #9e6a03;
+  --dc-red: #f85149;
+  --dc-red-solid: #da3633;
+  --dc-slate: #1f2937;
+  --dc-white: #fff;
+  --dc-overlay-40: rgba(0, 0, 0, 0.4);
+  --dc-overlay-50: rgba(0, 0, 0, 0.5);
+}
+
 /**
  * DevConsole / StateInspector 暗色主题样式
  *
  * 风格对齐 templates/network_config_debug.html：
- * - 背景 #0d1117 / 卡片 #161b22 / 边框 #30363d
- * - 文本 #e6edf3 / 次要 #8b949e
- * - 状态色：绿 #7ee787 / 黄 #d29922 / 红 #f85149 / 蓝 #58a6ff
+ * - 背景 var(--dc-bg) / 卡片 var(--dc-panel) / 边框 var(--dc-border)
+ * - 文本 var(--dc-text) / 次要 var(--dc-muted)
+ * - 状态色：绿 var(--dc-green) / 黄 var(--dc-yellow) / 红 var(--dc-red) / 蓝 var(--dc-blue)
  *
  * 移动端可用：user-select: text 保证文本可复制；响应式布局自适应。
  */
@@ -17,7 +40,7 @@
   z-index: 99999;
   font-family: 'Cascadia Code', 'Consolas', 'Menlo', monospace;
   font-size: var(--text-body);
-  color: #e6edf3;
+  color: var(--dc-text);
   pointer-events: none; /* 容器本身不拦截事件，仅浮层与图标拦截 */
 }
 
@@ -29,23 +52,23 @@
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: #161b22;
-  border: 1px solid #30363d;
-  color: #58a6ff;
+  background: var(--dc-panel);
+  border: 1px solid var(--dc-border);
+  color: var(--dc-blue);
   cursor: grab;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: var(--text-h2);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 12px var(--dc-overlay-40);
   pointer-events: auto;
   user-select: none;
   z-index: 100000;
   transition: background 0.15s, border-color 0.15s;
 }
 .devconsole-fab:hover {
-  background: #1f2937;
-  border-color: #58a6ff;
+  background: var(--dc-slate);
+  border-color: var(--dc-blue);
 }
 .devconsole-fab:active {
   cursor: grabbing;
@@ -58,8 +81,8 @@
   height: 16px;
   padding: 0 4px;
   border-radius: 8px;
-  background: #f85149;
-  color: #fff;
+  background: var(--dc-red);
+  color: var(--dc-white);
   font-size: var(--text-micro);
   line-height: 16px;
   text-align: center;
@@ -74,10 +97,10 @@
   width: 720px;
   max-width: calc(100vw - 32px);
   max-height: 70vh;
-  background: #0d1117;
-  border: 1px solid #30363d;
+  background: var(--dc-bg);
+  border: 1px solid var(--dc-border);
   border-radius: 10px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 32px var(--dc-overlay-50);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -91,8 +114,8 @@
   align-items: center;
   gap: 4px;
   padding: 8px 12px;
-  background: #161b22;
-  border-bottom: 1px solid #30363d;
+  background: var(--dc-panel);
+  border-bottom: 1px solid var(--dc-border);
   flex-shrink: 0;
 }
 .devconsole-tabs {
@@ -103,7 +126,7 @@
 .devconsole-tab {
   background: transparent;
   border: 1px solid transparent;
-  color: #8b949e;
+  color: var(--dc-muted);
   padding: 4px 12px;
   border-radius: 6px;
   cursor: pointer;
@@ -112,13 +135,13 @@
   transition: all 0.15s;
 }
 .devconsole-tab:hover {
-  color: #e6edf3;
-  background: #21262d;
+  color: var(--dc-text);
+  background: var(--dc-panel-alt);
 }
 .devconsole-tab.active {
-  color: #58a6ff;
-  background: #1f6feb33;
-  border-color: #1f6feb;
+  color: var(--dc-blue);
+  background: color-mix(in srgb, var(--dc-blue-solid) 20%, transparent);
+  border-color: var(--dc-blue-solid);
 }
 .devconsole-tab-count {
   display: inline-block;
@@ -126,15 +149,15 @@
   padding: 0 4px;
   margin-left: 4px;
   border-radius: 8px;
-  background: #30363d;
-  color: #e6edf3;
+  background: var(--dc-border);
+  color: var(--dc-text);
   font-size: var(--text-micro);
   line-height: 14px;
   text-align: center;
 }
 .devconsole-tab-count.error {
-  background: #f8514933;
-  color: #f85149;
+  background: color-mix(in srgb, var(--dc-red) 20%, transparent);
+  color: var(--dc-red);
 }
 
 /* 头部操作按钮 */
@@ -148,15 +171,15 @@
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: #0d1117;
-  border-bottom: 1px solid #30363d;
+  background: var(--dc-bg);
+  border-bottom: 1px solid var(--dc-border);
   flex-shrink: 0;
 }
 .devconsole-input {
   flex: 1;
-  background: #161b22;
-  border: 1px solid #30363d;
-  color: #e6edf3;
+  background: var(--dc-panel);
+  border: 1px solid var(--dc-border);
+  color: var(--dc-text);
   padding: 4px 10px;
   border-radius: 6px;
   font-size: var(--text-body);
@@ -164,7 +187,7 @@
   outline: none;
 }
 .devconsole-input:focus {
-  border-color: #58a6ff;
+  border-color: var(--dc-blue);
 }
 
 /* ─── 记录列表区 ─── */
@@ -173,7 +196,7 @@
   overflow-y: auto;
   overflow-x: hidden;
 }
-/* 【2026-11-16】滚动条统一到 index.css（唯一来源；这里不再自带 8px/#30363d 的一套） */
+/* 【2026-11-16】滚动条统一到 index.css（唯一来源；这里不再自带 8px/var(--dc-border) 的一套） */
 
 /* 表格 */
 .devconsole-table {
@@ -184,18 +207,18 @@
 .devconsole-table th {
   text-align: left;
   padding: 6px 10px;
-  color: #8b949e;
+  color: var(--dc-muted);
   font-weight: 500;
   font-size: var(--text-caption);
-  background: #161b22;
-  border-bottom: 1px solid #30363d;
+  background: var(--dc-panel);
+  border-bottom: 1px solid var(--dc-border);
   position: sticky;
   top: 0;
   z-index: 1;
 }
 .devconsole-table td {
   padding: 6px 10px;
-  border-bottom: 1px solid #21262d;
+  border-bottom: 1px solid var(--dc-panel-alt);
   vertical-align: top;
   word-break: break-all;
   user-select: text; /* 移动端可复制 */
@@ -205,13 +228,13 @@
   transition: background 0.1s;
 }
 .devconsole-row:hover {
-  background: #161b22;
+  background: var(--dc-panel);
 }
 .devconsole-row.expanded {
-  background: #161b22;
+  background: var(--dc-panel);
 }
 .devconsole-row-detail {
-  background: #0d1117;
+  background: var(--dc-bg);
 }
 .devconsole-row-detail td {
   padding: 8px 12px;
@@ -227,24 +250,24 @@
   white-space: nowrap;
 }
 .badge-ok {
-  background: #23863633;
-  color: #7ee787;
+  background: color-mix(in srgb, var(--dc-green-solid) 20%, transparent);
+  color: var(--dc-green);
 }
 .badge-warn {
-  background: #9e6a0333;
-  color: #d29922;
+  background: color-mix(in srgb, var(--dc-yellow-solid) 20%, transparent);
+  color: var(--dc-yellow);
 }
 .badge-err {
-  background: #da363333;
-  color: #f85149;
+  background: color-mix(in srgb, var(--dc-red-solid) 20%, transparent);
+  color: var(--dc-red);
 }
 .badge-info {
-  background: #1f6feb33;
-  color: #58a6ff;
+  background: color-mix(in srgb, var(--dc-blue-solid) 20%, transparent);
+  color: var(--dc-blue);
 }
 .badge-muted {
-  background: #30363d;
-  color: #8b949e;
+  background: var(--dc-border);
+  color: var(--dc-muted);
 }
 
 /* 方法标签 */
@@ -257,41 +280,41 @@
   letter-spacing: 0.5px;
 }
 .method-get {
-  background: #1f6feb33;
-  color: #58a6ff;
+  background: color-mix(in srgb, var(--dc-blue-solid) 20%, transparent);
+  color: var(--dc-blue);
 }
 .method-post {
-  background: #23863633;
-  color: #7ee787;
+  background: color-mix(in srgb, var(--dc-green-solid) 20%, transparent);
+  color: var(--dc-green);
 }
 .method-put {
-  background: #9e6a0333;
-  color: #d29922;
+  background: color-mix(in srgb, var(--dc-yellow-solid) 20%, transparent);
+  color: var(--dc-yellow);
 }
 .method-delete {
-  background: #da363333;
-  color: #f85149;
+  background: color-mix(in srgb, var(--dc-red-solid) 20%, transparent);
+  color: var(--dc-red);
 }
 .method-other {
-  background: #30363d;
-  color: #8b949e;
+  background: var(--dc-border);
+  color: var(--dc-muted);
 }
 
 /* trace_id 单元格 */
 .devconsole-trace {
-  color: #8b949e;
+  color: var(--dc-muted);
   font-size: var(--text-caption);
   cursor: pointer;
 }
 .devconsole-trace:hover {
-  color: #58a6ff;
+  color: var(--dc-blue);
   text-decoration: underline;
 }
 
 /* 代码块（堆栈/详情） */
 .devconsole-code {
-  background: #161b22;
-  border: 1px solid #30363d;
+  background: var(--dc-panel);
+  border: 1px solid var(--dc-border);
   border-radius: 6px;
   padding: 8px 10px;
   font-family: inherit;
@@ -301,24 +324,24 @@
   max-height: 240px;
   overflow-y: auto;
   user-select: text; /* 移动端可复制 */
-  color: #e6edf3;
+  color: var(--dc-text);
 }
 
 /* 空状态 */
 .devconsole-empty {
   padding: 40px 20px;
   text-align: center;
-  color: #8b949e;
+  color: var(--dc-muted);
   font-size: var(--text-body);
 }
 
 /* ─── StateInspector 专用 ─── */
 .stateinspector-section {
   padding: 10px 12px;
-  border-bottom: 1px solid #21262d;
+  border-bottom: 1px solid var(--dc-panel-alt);
 }
 .stateinspector-section-title {
-  color: #7ee787;
+  color: var(--dc-green);
   font-size: var(--text-caption);
   margin: 0 0 8px 0;
   font-weight: 600;
@@ -328,40 +351,40 @@
   gap: 8px;
   padding: 3px 0;
   font-size: var(--text-caption);
-  border-bottom: 1px dotted #21262d;
+  border-bottom: 1px dotted var(--dc-panel-alt);
   align-items: flex-start;
 }
 .stateinspector-key {
-  color: #58a6ff;
+  color: var(--dc-blue);
   min-width: 120px;
   word-break: break-all;
   user-select: text;
 }
 .stateinspector-value {
-  color: #e6edf3;
+  color: var(--dc-text);
   flex: 1;
   word-break: break-all;
   user-select: text;
 }
 .stateinspector-countdown {
-  color: #d29922;
+  color: var(--dc-yellow);
   font-size: var(--text-caption);
 }
 .stateinspector-countdown.expired {
-  color: #f85149;
+  color: var(--dc-red);
 }
 .stateinspector-diff-added {
-  color: #7ee787;
-  background: #23863622;
+  color: var(--dc-green);
+  background: color-mix(in srgb, var(--dc-green-solid) 13.3%, transparent);
 }
 .stateinspector-diff-removed {
-  color: #f85149;
-  background: #da363322;
+  color: var(--dc-red);
+  background: color-mix(in srgb, var(--dc-red-solid) 13.3%, transparent);
   text-decoration: line-through;
 }
 .stateinspector-diff-updated {
-  color: #d29922;
-  background: #9e6a0322;
+  color: var(--dc-yellow);
+  background: color-mix(in srgb, var(--dc-yellow-solid) 13.3%, transparent);
 }
 
 /* ─── 响应式（移动端） ─── */

@@ -176,7 +176,7 @@ export function useToolExemptions(): ToolExemptionState {
  *   - 清单未读到（item 为空：旧后端 / 读取失败）⇒ 渲染成**原来那颗静态徽章**，
  *     页面不进降级页；
  *   - `exemptable=false` ⇒ 锁形态的 `<span>`（不是 button），title 给 blocked_reason；
- *   - 其余 ⇒ 真 `<button>`：点击在「需确认 ⇄ 已豁免」之间切换。
+ *   - 其余 ⇒ 真 `<Button>`：点击在「需确认 ⇄ 已豁免」之间切换。
  *
  * 【为什么不用 <Badge> 包按钮】Badge 只接受 color/children，且行本身是大按钮，
  *   按钮不能嵌按钮 ⇒ 开关做成行按钮的**兄弟节点**（见 lines.tsx 的 ToolPicker）。

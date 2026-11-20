@@ -324,7 +324,7 @@ describe('2. 锁定项（env 锁定）', () => {
     expect(row).not.toBeNull()
     expect(row.getAttribute('data-cp-setting-locked')).toBe('true')
 
-    const control = row.querySelector('input[role="switch"]') as HTMLInputElement
+    const control = row.querySelector('[role="switch"]') as HTMLInputElement
     expect(control).not.toBeNull()
     expect(control).toBeDisabled()
 
@@ -337,7 +337,7 @@ describe('2. 锁定项（env 锁定）', () => {
     renderPanel()
     await loaded()
     const row = document.querySelector(`[data-cp-setting-key="${LOCKED_ITEM.key}"]`) as HTMLElement
-    expect(row.querySelector('input[role="switch"]')).toBeDisabled()
+    expect(row.querySelector('[role="switch"]')).toBeDisabled()
     expect(row.querySelector('[data-cp-submit]')).toBeNull()
     expect(row.querySelector('[data-cp-open-confirm]')).toBeNull()
     expect(row.querySelector('[data-cp-reset]')).toBeNull()
@@ -411,7 +411,7 @@ describe('4. B 级：提交前确认 + 202 待第二位人工', () => {
     renderPanel()
     await screen.findByText('B_BOOL')
     const r2 = document.querySelector('[data-cp-setting-key="B_BOOL"]') as HTMLElement
-    expect(r2.querySelector('input[role="switch"]')).toBeDisabled()
+    expect(r2.querySelector('[role="switch"]')).toBeDisabled()
     expect(row).not.toBeNull()
   })
 
@@ -495,7 +495,7 @@ describe('5. A 级开关直接提交', () => {
     renderPanel()
     await loaded()
     const row = document.querySelector(`[data-cp-setting-key="${A_ITEM.key}"]`) as HTMLElement
-    const sw = row.querySelector('input[role="switch"]') as HTMLInputElement
+    const sw = row.querySelector('[role="switch"]') as HTMLInputElement
     expect(sw).not.toBeDisabled()
     fireEvent.click(sw)
 
@@ -615,7 +615,7 @@ describe('10. 实装形状兼容（service.ChangeOutcome.to_dict）', () => {
     renderPanel()
     await loaded()
     const row = document.querySelector(`[data-cp-setting-key="${A_ITEM.key}"]`) as HTMLElement
-    fireEvent.click(row.querySelector('input[role="switch"]') as HTMLInputElement)
+    fireEvent.click(row.querySelector('[role="switch"]') as HTMLInputElement)
     const applied = await screen.findByText(/已生效/, {}, { timeout: 3000 })
     expect(applied.getAttribute('data-cp-applied')).toBe(A_ITEM.key)
     expect(applied.textContent).toMatch(/ui_override/)

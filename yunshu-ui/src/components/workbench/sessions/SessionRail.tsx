@@ -362,8 +362,9 @@ export function SessionRail({
           className="min-w-0 flex-1 flex-col items-stretch justify-center py-1.5 pl-2.5 text-left outline-hidden focus-visible:ring-1 focus-visible:ring-primary/60"
         >
           {editing ? (
-            <input
+            <Input
               autoFocus
+              variant="bare"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onBlur={commitRename}
@@ -377,7 +378,7 @@ export function SessionRail({
                 }
               }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full rounded-control border border-primary/60 bg-card px-1.5 py-0.5 text-body text-primary outline-hidden"
+              inputClassName="w-full rounded-control border border-primary/60 bg-card px-1.5 py-0.5 text-body text-primary outline-hidden"
             />
           ) : (
             <>
@@ -544,8 +545,9 @@ export function SessionRail({
               {isCollapsed ? <Folder size={12} /> : <FolderOpen size={12} />}
             </span>
             {renaming ? (
-              <input
+              <Input
                 autoFocus
+                variant="bare"
                 value={groupRenameDraft}
                 onChange={(e) => setGroupRenameDraft(e.target.value)}
                 onBlur={commitGroupRename}
@@ -559,7 +561,8 @@ export function SessionRail({
                   }
                 }}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full min-w-0 rounded-control border border-primary/60 bg-card px-1.5 py-0.5 text-body text-primary outline-hidden"
+                className="min-w-0 flex-1"
+                inputClassName="w-full rounded-control border border-primary/60 bg-card px-1.5 py-0.5 text-body text-primary outline-hidden"
               />
             ) : (
               <>

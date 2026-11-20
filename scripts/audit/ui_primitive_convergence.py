@@ -21,7 +21,9 @@
 
 ## 口径
 
-- 统计范围：`yunshu-ui/src/**/*.tsx`，**排除 `src/components/ui/`**（原语内部当然用原生元素）。
+- 统计范围：`yunshu-ui/src/**/*.tsx|ts`，**排除 `src/components/ui/`**（原语内部当然用原生元素）
+  与 **`.test.` 文件**（合成反例/夹具会故意写原生控件，与 vitest 守卫、自动修复同口径；
+  2026-11-20 起排除，raw_button 8→1、raw_select 1→0、raw_heading 80→78）。
 - 指标：raw_button / raw_select / raw_input / raw_textarea / raw_range / arbitrary_text / raw_heading。
 - 基线文件：`data/ui_primitive_baseline.json`（提交入库，随收敛一起减小）。
 """
@@ -64,6 +66,17 @@ _CSS_COLOR_PATTERNS = (r"#[0-9a-fA-F]{3,8}\b", r"\brgba?\(\s*\d")
 #: 参与 CSS 指标的文件（token 定义文件本身豁免）。
 _CSS_EXEMPT = {"index.css"}
 
+#: 自定义属性**定义**行（`--name: <颜色>`）—— 这是色板/主题 token 的声明处，
+#: 与 index.css 同性质：字面值在这一行是"定义"，不是"在规则里硬编码使用"。
+#: 不计入 css_hardcoded_color；`var(--name)` 的使用处本来就没有字面值。
+_CSS_VAR_DEF = re.compile(r"^\s*--[\w-]+\s*:")
+
+
+def _strip_css_var_defs(text: str) -> str:
+    """去掉自定义属性定义行，只留规则里的字面值（用于 CSS 颜色量具）。"""
+    return "\n".join("" if _CSS_VAR_DEF.match(line) else line
+                     for line in text.splitlines())
+
 
 #: 扫描的文件后缀。
 #:
@@ -82,7 +95,10 @@ SCAN_SUFFIXES = (".tsx", ".ts")
 def scan(root: Path = UI_SRC) -> Dict[str, int]:
     """统计当前写法数量（排除 components/ui 原语内部）。"""
     ui_dir = root / "components" / "ui"
-    files = [p for p in root.rglob("*") if p.suffix in SCAN_SUFFIXES and ui_dir not in p.parents]
+    files = [p for p in root.rglob("*")
+             if p.suffix in SCAN_SUFFIXES and ui_dir not in p.parents
+             # 合成反例/夹具（.test.）里的原生控件不是产品代码，与 vitest 守卫同口径排除
+             and ".test." not in p.name]
     counts = {k: 0 for k in METRICS}
     for path in files:
         text = path.read_text(encoding="utf-8", errors="replace")
@@ -94,7 +110,7 @@ def scan(root: Path = UI_SRC) -> Dict[str, int]:
     for path in root.rglob("*.css"):
         if path.name in _CSS_EXEMPT:
             continue
-        text = path.read_text(encoding="utf-8", errors="replace")
+        text = _strip_css_var_defs(path.read_text(encoding="utf-8", errors="replace"))
         for pattern in _CSS_COLOR_PATTERNS:
             counts["css_hardcoded_color"] += len(re.findall(pattern, text))
     counts["_files"] = len(files)

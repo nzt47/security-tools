@@ -263,12 +263,14 @@ export default function WorkshopReplicate() {
             非法即 400 且不建容器，前端只如实展示错误与 problems。
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <input
+            <Input
+              variant="bare"
               type="file"
               accept="application/json,.json"
               onChange={onPickFile}
               data-testid="replicate-import-file"
-              className="text-xs text-slate-400 file:mr-2 file:rounded-lg file:border-0 file:bg-slate-700 file:px-3 file:py-1.5 file:text-xs file:text-slate-100"
+              className="w-auto"
+              inputClassName="text-xs text-slate-400 file:mr-2 file:rounded-lg file:border-0 file:bg-slate-700 file:px-3 file:py-1.5 file:text-xs file:text-slate-100"
             />
             <Button type="button" onClick={importBundle} disabled={importing} data-testid="replicate-import" variant="primary" size="sm">
               {importing ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} 导入

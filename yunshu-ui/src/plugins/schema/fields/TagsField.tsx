@@ -5,7 +5,7 @@
  * - items.enum 存在时额外提供「从可选值添加」下拉（过滤已选）。
  */
 import React, { useState } from 'react';
-import { Button, Select } from '@/components/ui';
+import { Button, Input, Select } from '@/components/ui';
 import { FieldLabel } from './FieldLabel';
 
 export interface TagsFieldProps {
@@ -76,8 +76,10 @@ export function TagsField({
             </Button>
           </span>
         ))}
-        <input
-          className="min-w-24 flex-1 bg-transparent text-sm text-(--text-primary) placeholder:text-(--text-muted) outline-hidden"
+        <Input
+          variant="bare"
+          className="min-w-24 flex-1"
+          inputClassName="bg-transparent text-sm text-(--text-primary) placeholder:text-(--text-muted) outline-hidden"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {

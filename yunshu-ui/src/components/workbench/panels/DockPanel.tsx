@@ -17,7 +17,7 @@ import { BookOpen, Bot, Code2, Globe, Loader2, Play, RefreshCw, Terminal } from 
 import { CodeEditorPanel } from './CodeEditorPanel'
 import { getEnvelope } from '@/api/envelope'
 import { hubGet, hubPost } from '../../../pages/hub/components/ui'
-import { Button, Tabs } from '@/components/ui'
+import { Button, Input, Tabs } from '@/components/ui'
 import { getApiToken } from '@/lib/apiToken'
 import {
   FILESYSTEM_LIST,
@@ -489,12 +489,14 @@ function BrowserPane() {
           if (mode === 'remote') void openRemote(next)
         }}
       >
-        <input
+        <Input
+          variant="bare"
+          className="min-w-0 flex-1"
+          inputClassName="rounded border border-slate-800 bg-slate-950/70 px-1.5 py-0.5 font-mono text-micro text-slate-200 placeholder:text-slate-600 focus:border-cyan-600/60 focus:outline-hidden"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           aria-label="浏览器地址"
           placeholder="http(s)://…"
-          className="min-w-0 flex-1 rounded border border-slate-800 bg-slate-950/70 px-1.5 py-0.5 font-mono text-micro text-slate-200 placeholder:text-slate-600 focus:border-cyan-600/60 focus:outline-hidden"
         />
         <Button type="submit" variant="default" size="xs">
           打开
@@ -509,12 +511,14 @@ function BrowserPane() {
       </form>
       {mode === 'remote' && (
         <div className="flex shrink-0 items-center gap-1 border-b border-slate-800/60 px-2 py-1">
-          <input
+          <Input
+            variant="bare"
+            className="min-w-0 flex-1"
+            inputClassName="rounded border border-slate-800 bg-slate-950/70 px-1.5 py-0.5 text-micro text-slate-200 placeholder:text-slate-600 focus:border-cyan-600/60 focus:outline-hidden"
             value={text}
             onChange={(e) => setText(e.target.value)}
             aria-label="键盘输入"
             placeholder="输入文本后回车（发到当前焦点）"
-            className="min-w-0 flex-1 rounded border border-slate-800 bg-slate-950/70 px-1.5 py-0.5 text-micro text-slate-200 placeholder:text-slate-600 focus:border-cyan-600/60 focus:outline-hidden"
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault()
@@ -708,11 +712,13 @@ function CommandView() {
         </div>
         <div className="mt-1.5 flex items-center gap-1">
           {needsParam && (
-            <input
+            <Input
+              variant="bare"
+              className="w-14"
+              inputClassName="rounded border border-slate-800 bg-slate-950/70 px-1.5 py-0.5 font-mono text-micro text-slate-200"
               value={paramText}
               onChange={(e) => setParamText(e.target.value)}
               aria-label="命令参数"
-              className="w-14 rounded border border-slate-800 bg-slate-950/70 px-1.5 py-0.5 font-mono text-micro text-slate-200"
             />
           )}
           <Button variant="primary" size="xs" onClick={() => void run()} disabled={!picked || loading}>

@@ -1,3 +1,31 @@
+:root {
+  /* PromptLab 主题色板（2026-11-20）：原 88 处字面值集中于此；规则只写 var(--pl-*)，
+     量具只统计"规则里的字面值"（自定义属性定义行不计）。 */
+  --pl-bg: #04060d;
+  --pl-bg-2: #0a101f;
+  --pl-bg-3: #0b1220;
+  --pl-bg-4: #040810;
+  --pl-bg-5: #060a14;
+  --pl-bg-6: #02040a;
+  --pl-cyan: #22d3ee;
+  --pl-sky: #38bdf8;
+  --pl-slate: #94a3b8;
+  --pl-slate-200: #e2e8f0;
+  --pl-slate-300: #cbd5e1;
+  --pl-emerald-300: #6ee7b7;
+  --pl-purple-300: #d8b4fe;
+  --pl-pink: #f472b6;
+  --pl-pink-300: #f9a8d4;
+  --pl-red: #f87171;
+  --pl-red-300: #fca5a5;
+  --pl-amber: #fbbf24;
+  --pl-amber-300: #fcd34d;
+  --pl-amber-200: #fde68a;
+  --pl-paper: #e0faff;
+  --pl-black: #000;
+  --pl-purple: #a855f7;
+}
+
 /**
  * PromptLab · 提示词影响因素实验室 样式
  * ------------------------------------------------
@@ -8,9 +36,9 @@
 .pl-root {
   min-height: 100vh;
   background:
-    radial-gradient(1100px 520px at 8% -8%, rgba(56, 189, 248, 0.12), transparent 60%),
-    radial-gradient(900px 480px at 105% 15%, rgba(34, 211, 238, 0.08), transparent 55%),
-    linear-gradient(180deg, #04060d, #0a101f);
+    radial-gradient(1100px 520px at 8% -8%, color-mix(in srgb, var(--pl-sky) 12%, transparent), transparent 60%),
+    radial-gradient(900px 480px at 105% 15%, color-mix(in srgb, var(--pl-cyan) 8%, transparent), transparent 55%),
+    linear-gradient(180deg, var(--pl-bg), var(--pl-bg-2));
   color: var(--wb-text);
   font-family: var(--wb-font);
 }
@@ -26,7 +54,7 @@
   gap: 12px;
   padding: 12px 20px;
   border-bottom: 1px solid var(--wb-border);
-  background: rgba(4, 6, 13, 0.72);
+  background: color-mix(in srgb, var(--pl-bg) 72%, transparent);
   backdrop-filter: blur(14px);
 }
 .pl-logo-badge {
@@ -37,14 +65,14 @@
   height: 32px;
   border-radius: 9px;
   border: 1px solid var(--wb-border-strong);
-  background: linear-gradient(135deg, rgba(34, 211, 238, 0.16), rgba(56, 189, 248, 0.05));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--pl-cyan) 16%, transparent), color-mix(in srgb, var(--pl-sky) 5%, transparent));
   color: var(--wb-accent);
 }
 .pl-title {
   margin: 0;
   font-weight: 600;
   letter-spacing: 0.06em;
-  color: #e2e8f0;
+  color: var(--pl-slate-200);
 }
 .pl-subtitle {
   margin: 1px 0 0;
@@ -67,7 +95,7 @@
   gap: 6px;
   padding: 8px 20px 0;
   border-bottom: 1px solid var(--wb-border);
-  background: rgba(6, 10, 20, 0.92);
+  background: color-mix(in srgb, var(--pl-bg-5) 92%, transparent);
   backdrop-filter: blur(10px);
 }
 /* Tab 内容容器（LLM 通信监控整屏） */
@@ -89,8 +117,8 @@
   cursor: pointer;
 }
 .pl-icon-btn:hover {
-  color: #f87171;
-  background: rgba(248, 113, 113, 0.12);
+  color: var(--pl-red);
+  background: color-mix(in srgb, var(--pl-red) 12%, transparent);
 }
 
 /* ── 分类筛选 ── */
@@ -102,7 +130,7 @@
   gap: 8px;
   padding: 10px 20px;
   border-bottom: 1px solid var(--wb-border);
-  background: rgba(6, 10, 20, 0.85);
+  background: color-mix(in srgb, var(--pl-bg-5) 85%, transparent);
   backdrop-filter: blur(10px);
 }
 .pl-filter-chip {
@@ -186,7 +214,7 @@
   margin: 0 0 12px;
   font-weight: 600;
   letter-spacing: 0.02em;
-  color: #94a3b8;
+  color: var(--pl-slate);
 }
 .pl-preview {
   /* ② 最终注入文本：三列里唯一"吃剩余"的，拖宽前两列时它自动让位
@@ -258,7 +286,7 @@
 .pl-factor-name {
   font-size: var(--text-body-lg);
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--pl-slate-200);
 }
 .pl-factor-desc {
   margin: 5px 0 10px;
@@ -316,7 +344,7 @@
   border: 1px solid var(--wb-border);
   background: var(--wb-panel-strong);
   backdrop-filter: blur(14px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 12px 40px color-mix(in srgb, var(--pl-black) 40%, transparent);
 }
 .pl-preview-head {
   display: flex;
@@ -327,7 +355,7 @@
 .pl-preview-head h2 {
   margin: 0;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--pl-slate-200);
 }
 /* 2026-11-15：原来的「模拟 / 真实接口」双模式切换已去掉（Owner 觉得看不懂），
    .pl-mode-switch 的样式随之删除；现在只有一条「试跑一次（真实模型）」主路径。 */
@@ -342,7 +370,7 @@
   padding: 8px 10px;
   border-radius: 8px;
   border: 1px dashed var(--wb-border);
-  background: rgba(148, 163, 184, 0.05);
+  background: color-mix(in srgb, var(--pl-slate) 5%, transparent);
   font-size: var(--text-caption);
   line-height: 1.65;
   color: var(--wb-text-dim);
@@ -350,7 +378,7 @@
 .pl-off-template-head {
   margin-bottom: 6px;
   font-weight: 600;
-  color: #cbd5e1;
+  color: var(--pl-slate-300);
 }
 .pl-off-template ul {
   margin: 0 0 6px;
@@ -366,7 +394,7 @@
 .pl-off-template-stage {
   margin-left: auto;
   flex: none;
-  color: #fcd34d;
+  color: var(--pl-amber-300);
 }
 .pl-off-template-none {
   list-style: none;
@@ -378,7 +406,7 @@
 .pl-off-template code {
   padding: 0 3px;
   border-radius: 3px;
-  background: rgba(148, 163, 184, 0.14);
+  background: color-mix(in srgb, var(--pl-slate) 14%, transparent);
 }
 
 /* 人格预设（原「人格」Tab 上的预设卡 + 重置；Tab 删除后搬进这个分类）
@@ -430,15 +458,15 @@
   gap: 8px;
   margin-bottom: 12px;
   padding: 8px 10px;
-  border: 1px solid rgba(251, 191, 36, 0.35);
+  border: 1px solid color-mix(in srgb, var(--pl-amber) 35%, transparent);
   border-radius: 8px;
-  background: rgba(251, 191, 36, 0.08);
-  color: #fcd34d;
+  background: color-mix(in srgb, var(--pl-amber) 8%, transparent);
+  color: var(--pl-amber-300);
   font-size: var(--text-body);
   line-height: 1.6;
 }
 .pl-warn-strip strong {
-  color: #fde68a;
+  color: var(--pl-amber-200);
 }
 /* 窄列版（因素列 300px 里的「人格」分类）：可换行，按钮独占一行，别把文字挤成一条 */
 .pl-warn-strip-narrow {
@@ -462,8 +490,8 @@
   padding: 10px 12px;
   border-radius: 8px;
   border: 1px solid var(--wb-border);
-  background: rgba(4, 8, 16, 0.75);
-  color: #cbd5e1;
+  background: color-mix(in srgb, var(--pl-bg-4) 75%, transparent);
+  color: var(--pl-slate-300);
   font-family: var(--wb-mono);
   font-size: var(--text-body);
   line-height: 1.6;
@@ -483,9 +511,9 @@
   margin: 0 0 8px;
   padding: 8px 10px;
   border-radius: 8px;
-  border: 1px solid rgba(248, 113, 113, 0.35);
-  background: rgba(248, 113, 113, 0.1);
-  color: #fca5a5;
+  border: 1px solid color-mix(in srgb, var(--pl-red) 35%, transparent);
+  background: color-mix(in srgb, var(--pl-red) 10%, transparent);
+  color: var(--pl-red-300);
   font-size: var(--text-caption);
   line-height: 1.5;
 }
@@ -496,7 +524,7 @@
   padding: 10px;
   border-radius: 8px;
   border: 1px solid var(--wb-border);
-  background: rgba(148, 163, 184, 0.05);
+  background: color-mix(in srgb, var(--pl-slate) 5%, transparent);
 }
 .pl-llm-config summary {
   display: flex;
@@ -557,9 +585,9 @@
 .pl-syspart .pl-token-chip {
   padding: 2px 8px;
   border-radius: 999px;
-  border: 1px solid rgba(244, 114, 182, 0.35);
-  background: rgba(244, 114, 182, 0.08);
-  color: #f9a8d4;
+  border: 1px solid color-mix(in srgb, var(--pl-pink) 35%, transparent);
+  background: color-mix(in srgb, var(--pl-pink) 8%, transparent);
+  color: var(--pl-pink-300);
   font-family: var(--wb-mono);
   font-size: var(--text-caption);
   white-space: nowrap;
@@ -609,14 +637,14 @@
   color: var(--wb-text-dim);
 }
 .pl-token-row.total {
-  background: rgba(34, 211, 238, 0.07);
+  background: color-mix(in srgb, var(--pl-cyan) 7%, transparent);
   font-weight: 600;
 }
 .pl-token-bar {
   height: 6px;
   margin: 8px 0 6px;
   border-radius: 999px;
-  background: rgba(148, 163, 184, 0.15);
+  background: color-mix(in srgb, var(--pl-slate) 15%, transparent);
   overflow: hidden;
 }
 .pl-token-bar-fill {
@@ -655,7 +683,7 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: rgba(2, 4, 10, 0.7);
+  background: color-mix(in srgb, var(--pl-bg-6) 70%, transparent);
   backdrop-filter: blur(4px);
 }
 .pl-modal {
@@ -666,13 +694,13 @@
   padding: 18px;
   border-radius: 14px;
   border: 1px solid var(--wb-border-strong);
-  background: #0b1220;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+  background: var(--pl-bg-3);
+  box-shadow: 0 24px 80px color-mix(in srgb, var(--pl-black) 60%, transparent);
 }
 .pl-modal-title {
   margin: 0 0 12px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--pl-slate-200);
 }
 .pl-modal-actions {
   display: flex;
@@ -689,8 +717,8 @@
   margin-left: 6px;
   padding: 1px 6px;
   border-radius: 6px;
-  border: 1px solid rgba(34, 211, 238, 0.4);
-  background: rgba(34, 211, 238, 0.1);
+  border: 1px solid color-mix(in srgb, var(--pl-cyan) 40%, transparent);
+  background: color-mix(in srgb, var(--pl-cyan) 10%, transparent);
   color: color-mix(in srgb, var(--color-primary) 72%, white);
   font-size: var(--text-micro);
   font-style: normal;
@@ -710,12 +738,12 @@
   padding: 7px 14px;
   border-radius: 10px;
   border: 1px solid var(--wb-border);
-  background: rgba(148, 163, 184, 0.06);
+  background: color-mix(in srgb, var(--pl-slate) 6%, transparent);
   font-size: var(--text-caption);
   color: var(--wb-text-dim);
 }
 .pl-id-stat b {
-  color: #e2e8f0;
+  color: var(--pl-slate-200);
   font-family: var(--wb-mono);
   font-size: var(--text-body-lg);
 }
@@ -731,15 +759,15 @@
 }
 .pl-id-dirty {
   margin-left: 4px;
-  color: #fbbf24;
+  color: var(--pl-amber);
   font-size: var(--text-caption);
 }
 .pl-id-msg {
   margin: 0 0 10px;
   padding: 7px 12px;
   border-radius: 8px;
-  border: 1px solid rgba(34, 211, 238, 0.3);
-  background: rgba(34, 211, 238, 0.08);
+  border: 1px solid color-mix(in srgb, var(--pl-cyan) 30%, transparent);
+  background: color-mix(in srgb, var(--pl-cyan) 8%, transparent);
   color: color-mix(in srgb, var(--color-primary) 72%, white);
   font-size: var(--text-body);
 }
@@ -757,7 +785,7 @@
   gap: 5px;
   margin: 8px 0 0;
   font-size: var(--text-caption);
-  color: #fbbf24;
+  color: var(--pl-amber);
 }
 .pl-id-hint {
   font-size: var(--text-caption);
@@ -769,7 +797,7 @@
   padding: 8px 10px;
   border-radius: 8px;
   border: 1px solid var(--wb-border);
-  background: rgba(4, 8, 16, 0.4);
+  background: color-mix(in srgb, var(--pl-bg-4) 40%, transparent);
   font-size: var(--text-body);
   color: var(--wb-text-dim);
 }
@@ -777,7 +805,7 @@
 .pl-syspart-note {
   margin-left: 10px;
   font-family: var(--wb-mono);
-  color: #f9a8d4;
+  color: var(--pl-pink-300);
   font-size: var(--text-caption);
 }
 
@@ -786,8 +814,8 @@
   margin-right: 6px;
   padding: 0 5px;
   border-radius: 4px;
-  border: 1px solid rgba(34, 211, 238, 0.45);
-  background: rgba(34, 211, 238, 0.12);
+  border: 1px solid color-mix(in srgb, var(--pl-cyan) 45%, transparent);
+  background: color-mix(in srgb, var(--pl-cyan) 12%, transparent);
   color: color-mix(in srgb, var(--color-primary) 72%, white);
   font-family: var(--wb-mono);
   font-size: var(--text-micro);
@@ -795,16 +823,16 @@
 }
 /* 面板项聚焦：与右侧提示词区域的高亮片段呼应 */
 .pl-syspart.focused {
-  border-color: rgba(34, 211, 238, 0.6);
-  box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.25);
+  border-color: color-mix(in srgb, var(--pl-cyan) 60%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--pl-cyan) 25%, transparent);
 }
 /* 提示词区域中的高亮片段（PreviewPanel 按聚焦面板项定位） */
 .pl-hl {
   padding: 1px 2px;
   border-radius: 4px;
-  background: rgba(34, 211, 238, 0.22);
-  box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.5);
-  color: #e0faff;
+  background: color-mix(in srgb, var(--pl-cyan) 22%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pl-cyan) 50%, transparent);
+  color: var(--pl-paper);
 }
 
 /* ── LLM 通信监控区：主内容区 Tab（对齐 legacy「📡 LLM 通信监控」） ── */
@@ -843,19 +871,19 @@
   padding: 8px 12px;
   border-radius: 9px;
   border: 1px solid var(--wb-border);
-  background: rgba(6, 10, 20, 0.55);
+  background: color-mix(in srgb, var(--pl-bg-5) 55%, transparent);
 }
 .lm-stat-box b {
   font-family: var(--wb-mono);
   font-size: var(--text-title);
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--pl-slate-200);
 }
 .lm-stat-box b.ok {
-  color: #6ee7b7;
+  color: var(--pl-emerald-300);
 }
 .lm-stat-box b.warn {
-  color: #fbbf24;
+  color: var(--pl-amber);
 }
 .lm-stat-box span {
   font-size: var(--text-caption);
@@ -898,11 +926,11 @@
 .lm-record {
   border: 1px solid var(--wb-border);
   border-radius: 8px;
-  background: rgba(6, 10, 20, 0.55);
+  background: color-mix(in srgb, var(--pl-bg-5) 55%, transparent);
   overflow: hidden;
 }
 .lm-record.error {
-  border-color: rgba(248, 113, 113, 0.4);
+  border-color: color-mix(in srgb, var(--pl-red) 40%, transparent);
 }
 .lm-record-head {
   display: flex;
@@ -919,7 +947,7 @@
   cursor: pointer;
 }
 .lm-record-head:hover {
-  background: rgba(34, 211, 238, 0.06);
+  background: color-mix(in srgb, var(--pl-cyan) 6%, transparent);
 }
 .lm-ico {
   flex-shrink: 0;
@@ -928,7 +956,7 @@
   flex-shrink: 0;
   padding: 0 6px;
   border-radius: 3px;
-  background: rgba(148, 163, 184, 0.12);
+  background: color-mix(in srgb, var(--pl-slate) 12%, transparent);
   color: var(--wb-accent);
   font-family: var(--wb-mono);
   font-size: var(--text-caption);
@@ -938,20 +966,20 @@
   padding: 0 6px;
   border-radius: 3px;
   font-size: var(--text-micro);
-  background: rgba(148, 163, 184, 0.14);
+  background: color-mix(in srgb, var(--pl-slate) 14%, transparent);
   color: var(--wb-text-dim);
 }
 .lm-badge.chat {
-  background: rgba(34, 211, 238, 0.14);
+  background: color-mix(in srgb, var(--pl-cyan) 14%, transparent);
   color: color-mix(in srgb, var(--color-primary) 72%, white);
 }
 .lm-badge.tool_calling {
-  background: rgba(168, 85, 247, 0.16);
-  color: #d8b4fe;
+  background: color-mix(in srgb, var(--pl-purple) 16%, transparent);
+  color: var(--pl-purple-300);
 }
 .lm-badge.summarize {
-  background: rgba(251, 191, 36, 0.16);
-  color: #fcd34d;
+  background: color-mix(in srgb, var(--pl-amber) 16%, transparent);
+  color: var(--pl-amber-300);
 }
 /* 记录时间（2026-10-13：与 Token 并列显示；此前只显示 Token） */
 .lm-time {
@@ -965,8 +993,8 @@
   flex-shrink: 0;
   padding: 0 6px;
   border-radius: 4px;
-  border: 1px solid rgba(34, 211, 238, 0.28);
-  background: rgba(34, 211, 238, 0.08);
+  border: 1px solid color-mix(in srgb, var(--pl-cyan) 28%, transparent);
+  background: color-mix(in srgb, var(--pl-cyan) 8%, transparent);
   color: color-mix(in srgb, var(--color-primary) 55%, white);
   font-family: var(--wb-mono);
   font-size: var(--text-caption);
@@ -982,13 +1010,13 @@
   color: var(--wb-text-dim);
 }
 .lm-flag.err {
-  color: #f87171;
+  color: var(--pl-red);
 }
 .lm-flag.restored {
   padding: 0 5px;
   border-radius: 4px;
-  background: rgba(251, 191, 36, 0.14);
-  color: #fcd34d;
+  background: color-mix(in srgb, var(--pl-amber) 14%, transparent);
+  color: var(--pl-amber-300);
   font-size: var(--text-micro);
 }
 .lm-duration {
@@ -1013,7 +1041,7 @@
 .lm-panel {
   border: 1px solid var(--wb-border);
   border-radius: 8px;
-  background: rgba(4, 8, 16, 0.5);
+  background: color-mix(in srgb, var(--pl-bg-4) 50%, transparent);
   overflow: hidden;
 }
 .lm-panel-head {
@@ -1038,7 +1066,7 @@
   border-left: 2px solid var(--wb-border-strong);
   padding: 5px 8px;
   border-radius: 0 6px 6px 0;
-  background: rgba(148, 163, 184, 0.05);
+  background: color-mix(in srgb, var(--pl-slate) 5%, transparent);
 }
 .lm-msg .lm-role {
   display: block;
@@ -1054,37 +1082,37 @@
   font-family: var(--wb-mono);
   font-size: var(--text-caption);
   line-height: 1.5;
-  color: #cbd5e1;
+  color: var(--pl-slate-300);
 }
 .lm-msg.system {
-  border-left-color: rgba(34, 211, 238, 0.6);
+  border-left-color: color-mix(in srgb, var(--pl-cyan) 60%, transparent);
 }
 .lm-msg.system .lm-content.tools {
-  color: #d8b4fe;
+  color: var(--pl-purple-300);
 }
 .lm-msg.reasoning {
-  border-left-color: rgba(251, 191, 36, 0.6);
+  border-left-color: color-mix(in srgb, var(--pl-amber) 60%, transparent);
 }
 .lm-msg.reasoning .lm-content {
-  color: #fcd34d;
+  color: var(--pl-amber-300);
 }
 .lm-msg.toolcall,
 .lm-msg.toolcall .lm-content.mono {
-  border-left-color: rgba(168, 85, 247, 0.6);
-  color: #d8b4fe;
+  border-left-color: color-mix(in srgb, var(--pl-purple) 60%, transparent);
+  color: var(--pl-purple-300);
 }
 .lm-msg.error {
-  border-left-color: rgba(248, 113, 113, 0.65);
+  border-left-color: color-mix(in srgb, var(--pl-red) 65%, transparent);
 }
 .lm-msg.error .lm-content {
-  color: #fca5a5;
+  color: var(--pl-red-300);
 }
 .lm-toolcall {
   margin-top: 4px;
   padding: 4px 8px;
   border-radius: 4px;
-  background: rgba(4, 8, 16, 0.6);
-  color: #d8b4fe;
+  background: color-mix(in srgb, var(--pl-bg-4) 60%, transparent);
+  color: var(--pl-purple-300);
   font-family: var(--wb-mono);
   font-size: var(--text-caption);
   white-space: pre-wrap;

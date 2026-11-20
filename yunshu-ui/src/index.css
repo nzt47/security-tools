@@ -32,6 +32,9 @@
      没有语义 name 可落。补上后 CSS 与 TSX 都能用同一个语义色（TSX 侧的 amber 工具类保持不动）。 */
   --color-warning: hsl(var(--warning));
 
+  /* 【2026-11-20】知识库「未知状态」的紫：此前是 #c59bff / rgba(170,110,255) 两处字面值。 */
+  --color-unknown: hsl(var(--unknown));
+
   --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.4), 0 1px 3px 0 rgb(0 0 0 / 0.3);
 
   /* ── 字号阶梯（2026-11-16 统一：全仓唯一来源）────────────────────────────
@@ -219,6 +222,7 @@
 
   --success: 152 60% 45%;
   --warning: 33 100% 65%;
+  --unknown: 265 100% 80%;
 
   /* ── 旧变量名 → 语义 token 的唯一映射（2026-11-17）────────────────────
      为什么在这里：styles/theme.css **没有任何入口 import**（main.tsx 只 import 本文件），

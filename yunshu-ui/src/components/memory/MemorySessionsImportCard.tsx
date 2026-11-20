@@ -10,7 +10,7 @@
  */
 import { useEffect, useState } from 'react'
 import { DownloadCloud, Loader2, Play } from 'lucide-react'
-import { Button, Card, Checkbox, Radio } from '@/pages/hub/components/ui'
+import { Button, Card, Checkbox, Input, Radio } from '@/pages/hub/components/ui'
 import {
   MemoryImportApiError, fetchMemorySessionLatest, fetchMemorySessionSources,
   importMemorySessions,
@@ -122,13 +122,15 @@ export default function MemorySessionsImportCard() {
         <label className="inline-flex items-center gap-1"
           title="0 = 全部；填 N 则每次最多处理 N 个还没导入的会话，可反复执行直到「待导入」为 0">
           每次最多处理
-          <input
+          <Input
+            variant="bare"
             type="number"
             min={0}
             value={limit}
             disabled={busy !== ''}
             onChange={(e) => setLimit(Math.max(0, Number(e.target.value) || 0))}
-            className="w-14 rounded border border-slate-700 bg-slate-900 px-1 py-0.5 text-caption"
+            className="w-16"
+            inputClassName="w-14 rounded border border-slate-700 bg-slate-900 px-1 py-0.5 text-caption"
             aria-label="最多待导入会话数"
           />
           个待导入会话（0=全部）

@@ -12,7 +12,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { clearApiToken, getApiToken, setApiToken, subscribeApiToken } from '../lib/apiToken';
-import { Button } from '@/components/ui'
+import { Button, Input } from '@/components/ui'
 
 export function ApiTokenField() {
   const [open, setOpen] = useState(false);
@@ -50,13 +50,14 @@ export function ApiTokenField() {
 
       {open && (
         <div className="mt-1.5 rounded-md border border-slate-700 bg-slate-950/60 p-2" data-testid="api-token-body">
-          <input
+          <Input
             type="password"
             data-testid="api-token-input"
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder="输入 FLASK_API_TOKEN"
-            className="w-full rounded-md border border-slate-700 bg-slate-950/60 px-2 py-1 text-xs text-slate-200 placeholder:text-slate-600 outline-hidden focus:border-cyan-500"
+            variant="bare"
+            inputClassName="w-full rounded-md border border-slate-700 bg-slate-950/60 px-2 py-1 text-xs text-slate-200 placeholder:text-slate-600 outline-hidden focus:border-cyan-500"
           />
           <div className="mt-1.5 flex items-center gap-2">
             <Button type="button" data-testid="api-token-save" onClick={handleSave} variant="primary" size="xs">

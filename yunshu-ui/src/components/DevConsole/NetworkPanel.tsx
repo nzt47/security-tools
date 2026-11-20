@@ -10,7 +10,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useDevConsoleStore } from './store';
 import type { NetworkRecord } from './types';
-import { Button } from '@/components/ui';
+import { Button, Input } from '@/components/ui';
 import {
   copyText,
   formatTime,
@@ -62,8 +62,10 @@ const NetworkPanel: React.FC = () => {
   return (
     <>
       <div className="devconsole-toolbar">
-        <input
-          className="devconsole-input"
+        <Input
+          variant="bare"
+          className="min-w-0 flex-1"
+          inputClassName="devconsole-input"
           type="text"
           placeholder="过滤 URL / 状态码 / trace_id"
           value={filter}

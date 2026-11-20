@@ -8,7 +8,7 @@
  *
  * 用法（按钮级权限控制）：
  *   const canExport = usePermission('system:log:export')
- *   {canExport && <button onClick={handleExport}>导出</button>}
+ *   {canExport && <Button onClick={handleExport}>导出</Button>}
  *
  * 【Why 不依赖 router/routes】：SystemLog → usePermission → routes → SystemLog
  * 会形成循环依赖，模块求值时组件尚未导出（routes.tsx 中 <SystemLog/> 为 undefined，

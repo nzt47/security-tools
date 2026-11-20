@@ -107,8 +107,8 @@ describe('SwitchField（boolean）', () => {
   it('以 role=switch 渲染并切换 onChange', () => {
     const onChange = vi.fn();
     const { rerender } = render(<SwitchField label="规划引擎" value={false} onChange={onChange} />);
-    const sw = screen.getByRole('switch') as HTMLInputElement;
-    expect(sw.checked).toBe(false);
+    const sw = screen.getByRole('switch') as HTMLElement;
+    expect(sw.getAttribute('aria-checked')).toBe('false');
     fireEvent.click(sw);
     expect(onChange).toHaveBeenCalledWith(true);
     // 受控：父级把 value 更新为 true 后，再次点击应回调 false
@@ -119,7 +119,7 @@ describe('SwitchField（boolean）', () => {
 
   it('受控：value=true 时 checked', () => {
     render(<SwitchField label="enabled" value={true} onChange={() => {}} />);
-    expect((screen.getByRole('switch') as HTMLInputElement).checked).toBe(true);
+    expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('true');
   });
 });
 

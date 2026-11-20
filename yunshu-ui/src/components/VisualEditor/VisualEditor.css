@@ -1,3 +1,29 @@
+:root {
+  /* VisualEditor 主题色板（浅色编辑器 + slate 阶）。2026-11-20：原 88 处字面值集中到
+     这些变量；规则只写 var(--ve-*)，量具只对"规则里的字面值"计数。 */
+  --ve-white: #fff;
+  --ve-black: #000;
+  --ve-slate-50: #f8fafc;
+  --ve-slate-100: #f1f5f9;
+  --ve-slate-200: #e2e8f0;
+  --ve-slate-300: #cbd5e1;
+  --ve-slate-400: #94a3b8;
+  --ve-slate-500: #64748b;
+  --ve-slate-600: #475569;
+  --ve-slate-700: #334155;
+  --ve-slate-800: #1e293b;
+  --ve-slate-900: #0f172a;
+  --ve-slate-950: #0b1220;
+  --ve-blue: #3b82f6;
+  --ve-cyan: #22d3ee;
+  --ve-green: #16a34a;
+  --ve-emerald: #10b981;
+  --ve-red: #dc2626;
+  --ve-amber: #f59e0b;
+  --ve-violet: #8b5cf6;
+  --ve-indigo: #6366f1;
+}
+
 /**
  * VisualEditor 样式
  * 三栏布局 + 顶部工具栏 + 底部 YAML 预览
@@ -7,7 +33,7 @@
   flex-direction: column;
   height: 100%;
   min-height: 500px;
-  background: #f8fafc;
+  background: var(--ve-slate-50);
 }
 
 .ve-toolbar {
@@ -15,14 +41,14 @@
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: #fff;
-  border-bottom: 1px solid #e2e8f0;
+  background: var(--ve-white);
+  border-bottom: 1px solid var(--ve-slate-200);
 }
 
 .ve-toolbar-divider {
   width: 1px;
   height: 20px;
-  background: #e2e8f0;
+  background: var(--ve-slate-200);
   margin: 0 4px;
 }
 
@@ -48,7 +74,7 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #64748b;
+  color: var(--ve-slate-500);
 }
 
 /* 2026-10-26：空画布提示 + 面板"点击也能加"的说明（此前只有拖拽，点了没反应像坏了） */
@@ -60,10 +86,10 @@
   z-index: 5;
   pointer-events: none;
   padding: 6px 12px;
-  border: 1px dashed #cbd5e1;
+  border: 1px dashed var(--ve-slate-300);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.92);
-  color: #475569;
+  background: color-mix(in srgb, var(--ve-white) 92%, transparent);
+  color: var(--ve-slate-600);
   font-size: var(--text-body);
   white-space: nowrap;
 }
@@ -71,14 +97,14 @@
 .ve-palette-hint {
   padding: 0 12px 8px;
   font-size: var(--text-caption);
-  color: #94a3b8;
+  color: var(--ve-slate-400);
 }
 
 /* ─── 组件面板 ─── */
 .ve-palette {
   width: 200px;
-  background: #fff;
-  border-right: 1px solid #e2e8f0;
+  background: var(--ve-white);
+  border-right: 1px solid var(--ve-slate-200);
   overflow-y: auto;
   flex-shrink: 0;
 }
@@ -87,8 +113,8 @@
   padding: 12px;
   font-weight: 600;
   font-size: var(--text-ui);
-  color: #1e293b;
-  border-bottom: 1px solid #f1f5f9;
+  color: var(--ve-slate-800);
+  border-bottom: 1px solid var(--ve-slate-100);
 }
 
 .ve-palette-group {
@@ -99,7 +125,7 @@
   padding: 4px 12px;
   font-size: var(--text-caption);
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--ve-slate-400);
   text-transform: uppercase;
 }
 
@@ -110,12 +136,12 @@
   padding: 8px 12px;
   cursor: grab;
   font-size: var(--text-body-lg);
-  color: #334155;
+  color: var(--ve-slate-700);
   transition: background 0.15s;
 }
 
 .ve-palette-item:hover {
-  background: #f1f5f9;
+  background: var(--ve-slate-100);
 }
 
 .ve-palette-item:active {
@@ -132,17 +158,17 @@
 .ve-node {
   min-width: 160px;
   max-width: 220px;
-  background: #fff;
-  border: 2px solid #e2e8f0;
+  background: var(--ve-white);
+  border: 2px solid var(--ve-slate-200);
   border-radius: 8px;
   font-size: var(--text-body);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--ve-black) 10%, transparent);
   transition: border-color 0.15s;
 }
 
 .ve-node-selected {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  border-color: var(--ve-blue);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ve-blue) 20%, transparent);
 }
 
 .ve-node-header {
@@ -151,8 +177,8 @@
   gap: 6px;
   padding: 8px 12px;
   font-weight: 600;
-  color: #1e293b;
-  border-bottom: 1px solid #f1f5f9;
+  color: var(--ve-slate-800);
+  border-bottom: 1px solid var(--ve-slate-100);
 }
 
 .ve-node-icon {
@@ -164,44 +190,44 @@
 }
 
 .ve-node-meta {
-  color: #64748b;
+  color: var(--ve-slate-500);
   font-size: var(--text-caption);
   line-height: 1.5;
 }
 
 .ve-branch-true {
-  color: #16a34a;
+  color: var(--ve-green);
 }
 
 .ve-branch-false {
-  color: #dc2626;
+  color: var(--ve-red);
 }
 
 .ve-node-skill {
-  border-top: 3px solid #3b82f6;
+  border-top: 3px solid var(--ve-blue);
 }
 
 .ve-node-conditional {
-  border-top: 3px solid #f59e0b;
+  border-top: 3px solid var(--ve-amber);
 }
 
 .ve-node-loop {
-  border-top: 3px solid #8b5cf6;
+  border-top: 3px solid var(--ve-violet);
 }
 
 .ve-node-agent {
-  border-top: 3px solid #10b981;
+  border-top: 3px solid var(--ve-emerald);
 }
 
 .ve-node-workflow {
-  border-top: 3px solid #6366f1;
+  border-top: 3px solid var(--ve-indigo);
 }
 
 /* ─── 属性面板 ─── */
 .ve-properties {
   width: 260px;
-  background: #fff;
-  border-left: 1px solid #e2e8f0;
+  background: var(--ve-white);
+  border-left: 1px solid var(--ve-slate-200);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -211,14 +237,14 @@
   padding: 12px;
   font-weight: 600;
   font-size: var(--text-ui);
-  color: #1e293b;
-  border-bottom: 1px solid #f1f5f9;
+  color: var(--ve-slate-800);
+  border-bottom: 1px solid var(--ve-slate-100);
 }
 
 .ve-properties-empty .ve-properties-placeholder {
   padding: 40px 12px;
   text-align: center;
-  color: #94a3b8;
+  color: var(--ve-slate-400);
   font-size: var(--text-body-lg);
 }
 
@@ -236,25 +262,25 @@
   display: block;
   font-size: var(--text-body);
   font-weight: 500;
-  color: #475569;
+  color: var(--ve-slate-600);
   margin-bottom: 4px;
 }
 
 .ve-field-input {
   width: 100%;
   padding: 6px 8px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--ve-slate-300);
   border-radius: 4px;
   font-size: var(--text-body-lg);
-  color: #1e293b;
-  background: #fff;
+  color: var(--ve-slate-800);
+  background: var(--ve-white);
   box-sizing: border-box;
 }
 
 .ve-field-input:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+  border-color: var(--ve-blue);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ve-blue) 15%, transparent);
 }
 
 textarea.ve-field-input {
@@ -267,15 +293,15 @@ textarea.ve-field-input {
   display: flex;
   gap: 8px;
   padding: 12px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--ve-slate-100);
 }
 
 /* ─── 按钮 ─── */
 /* ─── YAML 预览 ─── */
 .ve-yaml-preview {
   height: 180px;
-  border-top: 1px solid #e2e8f0;
-  background: #1e293b;
+  border-top: 1px solid var(--ve-slate-200);
+  background: var(--ve-slate-800);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -287,13 +313,13 @@ textarea.ve-field-input {
   align-items: center;
   padding: 6px 12px;
   font-size: var(--text-body);
-  color: #94a3b8;
-  background: #0f172a;
+  color: var(--ve-slate-400);
+  background: var(--ve-slate-900);
 }
 
 .ve-yaml-stats {
   font-size: var(--text-caption);
-  color: #64748b;
+  color: var(--ve-slate-500);
 }
 
 .ve-yaml-content {
@@ -304,7 +330,7 @@ textarea.ve-field-input {
   font-family: 'Cascadia Code', 'Fira Code', monospace;
   font-size: var(--text-body);
   line-height: 1.6;
-  color: #e2e8f0;
+  color: var(--ve-slate-200);
   white-space: pre-wrap;
 }
 
@@ -319,122 +345,122 @@ textarea.ve-field-input {
  * 不受影响（选择器全部以 .ve-dark 为祖先约束）。
  * ════════════════════════════════════════════════════════════ */
 .ve-dark .ve-root {
-  background: #0b1220;
+  background: var(--ve-slate-950);
   min-height: 0;
 }
 
 .ve-dark .ve-toolbar {
-  background: #0f172a;
-  border-bottom-color: #1e293b;
+  background: var(--ve-slate-900);
+  border-bottom-color: var(--ve-slate-800);
 }
 
 .ve-dark .ve-toolbar-divider {
-  background: #334155;
+  background: var(--ve-slate-700);
 }
 
 .ve-dark .ve-canvas-loading {
-  color: #64748b;
+  color: var(--ve-slate-500);
 }
 
 /* 组件面板 */
 .ve-dark .ve-palette {
-  background: #0f172a;
-  border-right-color: #1e293b;
+  background: var(--ve-slate-900);
+  border-right-color: var(--ve-slate-800);
 }
 
 .ve-dark .ve-palette-header {
-  color: #e2e8f0;
-  border-bottom-color: #1e293b;
+  color: var(--ve-slate-200);
+  border-bottom-color: var(--ve-slate-800);
 }
 
 .ve-dark .ve-palette-group-title {
-  color: #64748b;
+  color: var(--ve-slate-500);
 }
 
 .ve-dark .ve-palette-item {
-  color: #cbd5e1;
+  color: var(--ve-slate-300);
 }
 
 .ve-dark .ve-palette-item:hover {
-  background: #1e293b;
+  background: var(--ve-slate-800);
 }
 
 /* 节点卡片 */
 .ve-dark .ve-node {
-  background: #0f172a;
-  border-color: #334155;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  background: var(--ve-slate-900);
+  border-color: var(--ve-slate-700);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--ve-black) 45%, transparent);
 }
 
 .ve-dark .ve-node-selected {
-  border-color: #22d3ee;
-  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.22);
+  border-color: var(--ve-cyan);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ve-cyan) 22%, transparent);
 }
 
 .ve-dark .ve-node-header {
-  color: #f1f5f9;
-  border-bottom-color: #1e293b;
+  color: var(--ve-slate-100);
+  border-bottom-color: var(--ve-slate-800);
 }
 
 .ve-dark .ve-node-meta {
-  color: #94a3b8;
+  color: var(--ve-slate-400);
 }
 
 /* 属性面板 */
 .ve-dark .ve-properties {
-  background: #0f172a;
-  border-left-color: #1e293b;
+  background: var(--ve-slate-900);
+  border-left-color: var(--ve-slate-800);
 }
 
 .ve-dark .ve-properties-header {
-  color: #e2e8f0;
-  border-bottom-color: #1e293b;
+  color: var(--ve-slate-200);
+  border-bottom-color: var(--ve-slate-800);
 }
 
 .ve-dark .ve-properties-empty .ve-properties-placeholder {
-  color: #64748b;
+  color: var(--ve-slate-500);
 }
 
 .ve-dark .ve-field-label {
-  color: #94a3b8;
+  color: var(--ve-slate-400);
 }
 
 .ve-dark .ve-field-input {
-  background: #0b1220;
-  border-color: #334155;
-  color: #e2e8f0;
+  background: var(--ve-slate-950);
+  border-color: var(--ve-slate-700);
+  color: var(--ve-slate-200);
 }
 
 .ve-dark .ve-field-input:focus {
-  border-color: #22d3ee;
-  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.18);
+  border-color: var(--ve-cyan);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ve-cyan) 18%, transparent);
 }
 
 .ve-dark .ve-properties-actions {
-  border-top-color: #1e293b;
+  border-top-color: var(--ve-slate-800);
 }
 
 /* 按钮 */
 .ve-dark .ve-dark .ve-dark .ve-dark .ve-dark .ve-dark .ve-dark .ve-dark /* YAML 预览（原本即深色，微调分隔线） */
 .ve-dark .ve-yaml-preview {
-  border-top-color: #1e293b;
+  border-top-color: var(--ve-slate-800);
 }
 
 /* ReactFlow 内建控件深色化 */
 .ve-dark .react-flow__controls button {
-  background: #0f172a;
-  border-bottom: 1px solid #1e293b;
-  fill: #cbd5e1;
+  background: var(--ve-slate-900);
+  border-bottom: 1px solid var(--ve-slate-800);
+  fill: var(--ve-slate-300);
 }
 
 .ve-dark .react-flow__controls button:hover {
-  background: #1e293b;
+  background: var(--ve-slate-800);
 }
 
 .ve-dark .react-flow__minimap {
-  background: #0f172a;
+  background: var(--ve-slate-900);
 }
 
 .ve-dark .react-flow__minimap-mask {
-  fill: rgba(2, 6, 23, 0.55);
+  fill: color-mix(in srgb, var(--ve-slate-950) 55%, transparent);
 }

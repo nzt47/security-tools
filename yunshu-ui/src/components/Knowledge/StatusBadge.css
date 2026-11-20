@@ -33,7 +33,7 @@
 
 /* 未知 — 紫 */
 .kb-status--unknown {
-  color: #c59bff;
-  background: rgba(170, 110, 255, 0.14);
-  border-color: rgba(170, 110, 255, 0.4);
+  color: var(--color-unknown);
+  background: color-mix(in srgb, var(--color-unknown) 14%, transparent);
+  border-color: color-mix(in srgb, var(--color-unknown) 40%, transparent);
 }
