@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-11-20T19:10:18",
+  "generated_at": "2026-11-21T00:16:09",
   "scope": "仓库可复现口径：data/tool_definitions/*.yaml + data/skill_callability.yaml + data/skills_repo/*/skill.md + data/permission_policies.json + 注册点静态扫描（不含 .gitignore 里的运行时技能目录/台账）",
   "runtime_only_declarations": [
     "global-core-principles",
@@ -3391,7 +3391,7 @@
       "location_source": "declaration",
       "location_derived_source": "executor_boundary",
       "location_evidence": [
-        "调用链（agent.tools.fan_out_tools:_fan_out）在 6 跳内未命中任何跨边界原语；另有 235 个调用点静态无法解析（见 unresolved）",
+        "调用链（agent.tools.fan_out_tools:_fan_out）在 6 跳内未命中任何跨边界原语；另有 236 个调用点静态无法解析（见 unresolved）",
         "声明钉住 location=local，与事实判定一致"
       ],
       "location_declared": "local",
@@ -3446,6 +3446,7 @@
         "_expo.CLASS_LABELS.get",
         "_metadata_level",
         "_name_conflicts.append",
+        "_raw_preview.get",
         "any",
         "as_completed",
         "assemble",
@@ -8800,6 +8801,7 @@
         "_WARNED.clear",
         "_name_conflicts.append",
         "_perf_time.perf_counter",
+        "args.get",
         "bool",
         "consume",
         "data.pop",
@@ -17798,7 +17800,7 @@
       "location_source": "declaration",
       "location_derived_source": "executor_boundary",
       "location_evidence": [
-        "调用链（agent.tools.fan_out_tools:_fan_out）在 6 跳内未命中任何跨边界原语；另有 235 个调用点静态无法解析（见 unresolved）",
+        "调用链（agent.tools.fan_out_tools:_fan_out）在 6 跳内未命中任何跨边界原语；另有 236 个调用点静态无法解析（见 unresolved）",
         "声明钉住 location=local，与事实判定一致"
       ],
       "location_declared": "local",
@@ -17853,6 +17855,7 @@
         "_expo.CLASS_LABELS.get",
         "_metadata_level",
         "_name_conflicts.append",
+        "_raw_preview.get",
         "any",
         "as_completed",
         "assemble",
@@ -23207,6 +23210,7 @@
         "_WARNED.clear",
         "_name_conflicts.append",
         "_perf_time.perf_counter",
+        "args.get",
         "bool",
         "consume",
         "data.pop",
