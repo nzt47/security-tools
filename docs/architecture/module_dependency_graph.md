@@ -2967,6 +2967,7 @@ flowchart LR
     agent_tools_tool_generator -.-> agent_logging_utils
     agent_tools_ui_guard_tools --> agent
     agent_tools_ui_guard_tools -.-> agent_ui_guard
+    agent_tools_ui_guard_tools -.-> agent_ui_guard
     agent_tools_web_tools --> agent
     agent_tools_web_tools -.-> agent_web
     agent_tools_web_tools -.-> agent_network_config
@@ -3066,7 +3067,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 775
 - 模块节点数: 673
-- 依赖边数: 2261
-- 跨层调用数: 1445
+- 依赖边数: 2262
+- 跨层调用数: 1446
 - 违规调用数: 0
 - 动态 import 数: 1
