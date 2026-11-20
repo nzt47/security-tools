@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-20T23:58:00+08:00",
+ "updated_at": "2026-11-21T01:05:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -55,16 +55,24 @@
    "status": "open",
    "priority": "P3",
    "title": "四套 UI 调色板（--wbp/--pl/--dc/--ve）语义命名（Owner 观感确认后）",
-   "criteria": "§11.184 把 358 条颜色字面值集中到四套调色板变量，规则已 0 字面值；但变量名是角色/色阶（--wbp-bg、--ve-slate-800），不是 --surface/--accent 这类语义名。属可选打磨，需 Owner 先看四页观感再决定。2026-11-20 复核（.local/verify_palette_equiv.py）：把当前规则里的 var()/color-mix 还原成 rgba 后与 6f097bc39^ 原文逐行比较 —— 四文件原本有两处漂移（VisualEditor 的 minimap mask fill 指向 #0b1220 而非真 slate-950 #020617；DevConsole 的 diff 底色写成 13.3% 而非 34/255=13.333%），已由 28438b15e 修回，现四文件 0 差异。真机计算值：--wbp-bg=#04060d / --wbp-text=#d7e2f0 / --wb-bg=hsl(222 47% 4%) / --wb-text=hsl(210 40% 96%) / --pl-bg=#04060d / --dc-bg=#0d1117 / --ve-bg-deep=#0b1220 / --ve-slate-950=#020617；minimap mask fill = rgb(2 6 23 / 0.55)（与改前逐字一致）。",
-   "next": "等 Owner 看四张 1440 截图（.ui_shots/PALETTE_WB|DC|PL|VE_1440.png）决定要不要语义命名；要改则先定命名表（每个主题 8-12 个语义名），纯 CSS + 三档截图，不动 --wb-*。"
+   "criteria": "§11.184 把 358 条颜色字面值集中到四套调色板变量，规则已 0 字面值；但变量名是角色/色阶（--wbp-bg、--ve-slate-800），不是 --surface/--accent 这类语义名。属可选打磨，需 Owner 先看四页观感再决定。2026-11-20 复核（.local/verify_palette_equiv.py）：把当前规则里的 var()/color-mix 还原成 rgba 后与 6f097bc39^ 原文逐行比较 —— 四文件原本有两处漂移（VisualEditor 的 minimap mask fill 指向 #0b1220 而非真 slate-950 #020617；DevConsole 的 diff 底色写成 13.3% 而非 34/255=13.333%），已由 28438b15e 修回，现四文件 0 差异。真机计算值：--wbp-bg=#04060d / --wbp-text=#d7e2f0 / --wb-bg=hsl(222 47% 4%) / --wb-text=hsl(210 40% 96%) / --pl-bg=#04060d / --dc-bg=#0d1117 / --ve-bg-deep=#0b1220 / --ve-slate-950=#020617；minimap mask fill = rgb(2 6 23 / 0.55)（与改前逐字一致）。 2026-11-21 追记：Owner 说的「全乱/导航没了」不是调色板取值问题，而是 @import 顺序事故（见 css-import-order-regression，已修 ad25d69d3）；修后四页计算值仍与改前逐字一致，截图重拍为 .ui_shots/LAYOUT_WB_1440.png / LAYOUT_WB_1920.png / PALETTE_PL_1440.png / PALETTE_DC_1440.png / PALETTE_VE_1440.png。",
+   "next": "等 Owner 看修后截图再决定要不要语义命名（纯改名，不改变观感）；要改先定命名表（每主题 8-12 个语义名），纯 CSS + 三档截图，不动 --wb-*。"
+  },
+  {
+   "id": "css-import-order-regression",
+   "status": "done",
+   "priority": "P1",
+   "title": "@import 被调色板块挤到规则之后 ⇒ Mosaic/hljs 样式整条失效（工作台三列塌成 8px、导航看起来没了）",
+   "criteria": "Owner 2026-11-21 看 §11.186 截图报「全乱了、导航栏没了」。根因：§11.184 的调色板 :root{} 被插到 yunshu-ui/src/styles/workbench.css 最前面，而该文件第 38/39 行有 @import（react-mosaic-component / highlight.js）；CSS 规范要求 @import 位于除 @charset/@layer 外所有语句之前 ⇒ 浏览器整条忽略 ⇒ Mosaic 基础样式与 hljs 暗色主题全丢。真机 1440 实测（修前）：.mosaic 1428×840，但 .mosaic-root 只有 24px、三个 .mosaic-window 各 8px（y=54/62/70）、构建产物里 .mosaic 基础规则 0 条。修法 ad25d69d3：两条 @import 移回第 1/2 行；重建后产物出现 .mosaic{width:100%;height:100%} 与 .mosaic-root{position:absolute;inset:3px}。修后真机：.mosaic-root 1428×840，三列 180/848/400 且各高 840，导航列 180px、顶栏 48px。守卫：ui_primitive_convergence.style_import_violations()（--check 红、--json 带 _style_import_violations）+ 2 条单测（合成反例 + 仓库 0 违规）。",
+   "next": "以后 @import 只写 CSS 文件最前（@charset/@layer 之后）；npm run ui:check 的 css_import_order 会红。同类静默失效不易被颜色量具发现 —— 颜色等价 ≠ 样式表已加载。"
   },
   {
    "id": "ui-guard-fix-preview-needs-approval",
-   "status": "open",
+   "status": "done",
    "priority": "P3",
-   "title": "ui_guard_fix 的 dry_run=true 预览也需要 L2 审批（确认级只看元数据，不看参数）",
-   "criteria": "2026-11-20 真机实测：dry_run=true 只回 diff、不写盘，但 tool_gate._confirm_level_outcome 的级别来自 YAML 的 plane/effect/risk（act/write/high ⇒ L2），**不读 args**，所以预览同样挂单（首轮对话即 APPROVAL_REQUIRED，审批单 appr-20261120231604864125-046d3ea3）。仓库里没有按参数放宽确认级的机制；CP_TOOL_CONFIRM_LEVEL_EXEMPT 是**工具级**（L2 可豁免），一旦豁免会把 dry_run=false 的写盘一起放开 ⇒ 不能用来只放行预览。对比：面板的 POST /api/ui-guard/fix（dry_run=true）是 UI 写路由，不需要工具层审批。",
-   "next": "待 Owner 决定：(a) 维持现状——预览也点一次审批（最保守，无代码改动）；(b) 做「参数级预览豁免」新机制（tool_gate + YAML 契约 + 用例，影响 13 个 high 工具），属独立议题，需单独立项；(c) 只在话术上引导——要看 diff 用面板预览，对话里直接 dry_run=false。"
+   "title": "ui_guard_fix 的 dry_run=true 预览免审批（YAML preview 机制；Owner 2026-11-21 决定）",
+   "criteria": "2026-11-21 落地（263df6965 + 清单重派生 c6cced8f2）：① ToolMeta 增 preview_arg/preview_value（只接受布尔，缺 arg/非布尔 ⇒ 未声明，fail-closed），load_tool_meta 解析 YAML preview 块；② tool_gate._preview_passthrough + _confirm_level_outcome 的 ①-d 分支，四条边界：只对 L1/L2、只对 effect ∈ {read, write}、必须 args[arg] is True（缺参/字符串 true/数字 1 都不算）、未声明工具零影响；命中写一条 decision=preview_passthrough 的确认决策审计（seq 86757）；黑名单/受限会话/描述符/伦理/严格模式不在此层，照常生效；③ ui_guard_fix.yaml 声明 preview: {arg: dry_run, value: true}。真机：dry_run=true 无审批事件、工具直接执行（ok=true, change_count=1, 文件未变）；dry_run=false 仍 APPROVAL_REQUIRED（L2，appr-20261121004913671530-a2e4ce75，已驳回清理）；验收后工具关回停用、pending 0、ui-guard check 0/0/0。",
+   "next": "以后别的工具要「预览免确认」只需在 YAML 加 preview 块（effect 必须 read/write；L3 永不生效）。注意缺参不放行：模型若省略 dry_run，仍会走一次审批（保守）。"
   },
   {
    "id": "agent-ui-onboarding",
