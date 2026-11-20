@@ -1593,6 +1593,42 @@ def _meta_field(meta: Any, name: str, default: Any = "") -> Any:
         return default
 
 
+#: 「预览型调用」免确认允许的 effect（2026-11-21）。
+#: 只允许 read / write：`dry_run=true` 这类声明的语义是"只看不写"；execute / extend
+#: 即使带 dry_run 也可能有副作用（发起外部动作），一律不放行。
+_PREVIEW_SAFE_EFFECTS = ("read", "write")
+
+
+def _preview_passthrough(func_name: str, args: Optional[Dict[str, Any]],
+                         level: str, meta: Any) -> bool:
+    """本次调用是否是"**声明过的只读预览**"（YAML `preview: {arg, value}`）。
+
+    【为什么需要】`ui_guard_fix` 的 `dry_run=true` 只回 diff、不写盘，但确认级来自
+    YAML 元数据（plane/effect/risk）而**不看参数** ⇒ 预览也要人点一次审批，
+    与"先干跑看一眼"的用法冲突（Owner 2026-11-21 决定：预览免审批）。
+
+    【边界（四条，缺一不可）】
+      1. 只对 **L1/L2**：L3 是"默认禁止、须显式预授权"，任何参数都不得改写这个语义；
+      2. 只对 **effect ∈ {read, write}**：execute/extend 即便带 dry_run 也可能有外部副作用；
+      3. 必须**显式命中**声明的 `arg == value`：缺参、传字符串 "true"、传 1 都不算
+         （`is` 比较，不猜"差不多"的写法）；
+      4. 未声明 `preview` 的工具**逐字节无影响**（默认空串 ⇒ 恒 False）。
+
+    命中后仍会写一条 `decision=preview_passthrough` 的确认决策审计；**其余闸门不变**
+    （黑名单 / 受限会话 / 描述符 / 伦理硬规则 / 严格模式都在本层之外，照常生效）。
+    """
+    if str(level or "").strip().upper() not in ("L1", "L2"):
+        return False
+    effect = str(_meta_field(meta, "effect", "") or "").strip()
+    if effect not in _PREVIEW_SAFE_EFFECTS:
+        return False
+    arg = str(_meta_field(meta, "preview_arg", "") or "").strip()
+    value = _meta_field(meta, "preview_value", None)
+    if not arg or not isinstance(value, bool) or not isinstance(args, dict):
+        return False
+    return args.get(arg) is value
+
+
 def _confirm_level_outcome(func_name: str, args: Optional[Dict[str, Any]],
                            session_source: Optional[str] = None,
                            meta_override: Any = None
@@ -1741,6 +1777,19 @@ def _confirm_level_outcome(func_name: str, args: Optional[Dict[str, Any]],
                 reason="%s；操作员豁免名单命中（%s）" % (reason, CONFIRM_LEVEL_EXEMPT_ENV),
                 tenant_id=tenant_id, version=version)
             return None
+
+    # ①-d **预览型调用免确认**（YAML `preview: {arg, value}`；Owner 2026-11-21 决定）
+    #   位置在豁免名单之后、影子模式之前：预览是**显式声明**的只读语义，不必在影子期
+    #   被报成"将要求确认"。L3 / execute / extend / 参数不是布尔 true ⇒ 一律不命中。
+    if _preview_passthrough(func_name, args, level, meta):
+        _audit_confirm_decision(
+            tool=func_name, level=level, decision="preview_passthrough",
+            identity=identity, source=source,
+            reason=("%s；预览型调用命中 YAML preview 声明（%s=%r），不落盘 ⇒ 免确认"
+                    % (reason, _meta_field(meta, "preview_arg", ""),
+                       _meta_field(meta, "preview_value", None))),
+            tenant_id=tenant_id, version=version)
+        return None
 
     if _confirm_level_shadow_enabled():
         _warn_once(

@@ -15,6 +15,12 @@ tags: [code, ui, fix]
 location: local
 location_reason: "调用链（agent.tools.ui_guard_tools:_ui_guard_fix）在 6 跳内未命中任何跨边界原语；另有 77 个调用点静态无法解析（见 unresolved）"
 enabled: false
+# 预览型调用免确认（2026-11-21 Owner 决定）：dry_run 严格等于 true 时只回 diff、不写盘，
+# 不进入 L2 逐次确认；dry_run=false / 缺参 / 非布尔值照旧要审批。
+# 只对 L1/L2 且 effect ∈ {read, write} 生效（见 agent/tool_gate._preview_passthrough）。
+preview:
+  arg: dry_run
+  value: true
 schema:
   type: object
   properties:

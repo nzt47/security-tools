@@ -1154,3 +1154,67 @@ class TestNoYamlWritesNeeded:
 
         # 未声明：原样返回空（不得凭空造出一个 override）
         assert _resolve_confirm_level("", "L2", "理由") == ("", "")
+
+
+
+# ════════════════════════════════════════════════════════════
+#  五之三、预览型调用免确认（YAML `preview: {arg, value}`）
+# ════════════════════════════════════════════════════════════
+
+
+class TestPreviewPassthrough:
+    """预览型调用（`dry_run: true`）免确认 —— Owner 2026-11-21 决定
+
+    【为什么需要】`ui_guard_fix` 的 dry_run=true 只回 diff、不写盘，但确认级来自
+    YAML 元数据（plane/effect/risk）而**不看参数** ⇒ 预览也要人点一次审批，与
+    "先干跑看一眼"的用法冲突。
+    【边界】只对 L1/L2、只对 effect ∈ {read, write}、必须显式 `arg is True`；
+    L3 / execute / 缺参 / 字符串 "true" 一律照旧要审批。
+    """
+
+    class _Meta:
+        def __init__(self, level="L2", effect="write", arg="dry_run", value=True):
+            self.effective_confirm_level = level
+            self.plane = "act"
+            self.effect = effect
+            self.risk = "high"
+            self.tenant_id = "default"
+            self.version = "1.0.0"
+            self.preview_arg = arg
+            self.preview_value = value
+
+    def test_命中时免确认(self):
+        assert G._preview_passthrough("ui_guard_fix", {"dry_run": True}, "L2", self._Meta())
+
+    @pytest.mark.parametrize("args", [{"dry_run": False}, {}, {"dry_run": "true"},
+                                      {"dry_run": 1}, None])
+    def test_不是严格_true_就不放行(self, args):
+        assert not G._preview_passthrough("ui_guard_fix", args, "L2", self._Meta())
+
+    def test_L3_永不放行(self):
+        """L3 的语义是"默认禁止，须显式预授权"；参数不得改写它"""
+        assert not G._preview_passthrough("ui_guard_fix", {"dry_run": True}, "L3",
+                                          self._Meta(level="L3"))
+
+    def test_execute_类工具不放行(self):
+        """execute/extend 即便带 dry_run 也可能有外部副作用"""
+        assert not G._preview_passthrough("x", {"dry_run": True}, "L2",
+                                          self._Meta(effect="execute"))
+
+    def test_未声明preview的工具无影响(self):
+        assert not G._preview_passthrough("read_file", {"path": "a"}, "L2",
+                                          self._Meta(arg="", value=None))
+
+    def test_仓库里的_ui_guard_fix_确实声明了(self):
+        from agent.lines.models import load_tool_meta
+        meta = load_tool_meta(force=True)["ui_guard_fix"]
+        assert (meta.preview_arg, meta.preview_value) == ("dry_run", True)
+
+    def test_预览调用在整条闸门里放行(self, enforce_on):
+        assert G.check_tool_call("ui_guard_fix", {"dry_run": True, "files": []}) is None
+
+    def test_落盘调用照旧被拦(self, enforce_on):
+        """免的只是预览：dry_run=false 仍然 APPROVAL_REQUIRED（L2）"""
+        blocked = G.check_tool_call("ui_guard_fix", {"dry_run": False, "files": []})
+        assert blocked is not None and blocked["blocked"] is True, blocked
+        assert "confirm_level=L2" in blocked["reason"], blocked["reason"]

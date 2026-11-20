@@ -325,6 +325,11 @@ class ToolMeta:
     # 空串 ⇒ 完全由 :func:`derive_confirm_level` 派生 ⇒ 既有 YAML 零改动即可工作。
     #: 显式声明的确认级别（`L0`–`L3`）；空串 = 未声明 ⇒ 走派生
     confirm_level: str = ""
+    #: 「预览型调用」免确认声明（YAML `preview: {arg, value}`，2026-11-21）。
+    #:   `arg` 参数**恒等于** `value`（布尔）时视为只读预览，不进 L1/L2 逐次确认。
+    #:   只接受布尔值：字符串 "true"/数字会让"参数是否命中"变成猜谜；空串 = 未声明。
+    preview_arg: str = ""
+    preview_value: Any = None
     #: 声明理由。**降级（比派生值更宽）时必须给**，否则该 override 被忽略
     #: （见 :func:`_resolve_confirm_level`）。升级（比派生值更严）不需要理由。
     confirm_level_reason: str = ""
@@ -655,6 +660,12 @@ def load_tool_meta(defs_dir: Optional[str] = None, force: bool = False) -> Dict[
         _cl, _cl_note = _resolve_confirm_level(
             _declared_cl, derive_confirm_level(_plane, _effect, _risk),
             doc.get("confirm_level_reason"))
+        _raw_preview = doc.get("preview") if isinstance(doc.get("preview"), dict) else {}
+        _preview_arg = str(_raw_preview.get("arg") or "").strip()
+        _preview_value = _raw_preview.get("value", None)
+        if not _preview_arg or not isinstance(_preview_value, bool):
+            # 缺 arg 或 value 不是布尔 ⇒ 视为未声明（fail-closed：照旧走确认）
+            _preview_arg, _preview_value = "", None
         out[name] = ToolMeta(
             name=name,
             category=str(doc.get("category") or ""),
@@ -701,6 +712,8 @@ def load_tool_meta(defs_dir: Optional[str] = None, force: bool = False) -> Dict[
             # `_cl_note` 在下面 `logger.info` 里落诊断日志（不静默丢 override）。
             confirm_level=_cl,
             confirm_level_reason=str(doc.get("confirm_level_reason") or "").strip(),
+            preview_arg=_preview_arg,
+            preview_value=_preview_value,
         )
         if _cl_note:
             # 【为什么留日志而不是静默】`_resolve_confirm_level` 可能**丢弃**一个
