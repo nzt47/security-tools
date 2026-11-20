@@ -2381,6 +2381,11 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
     _c("CP_UI_SETTINGS_PATH", CAT_OBSERVABILITY, "data/ui_settings.json",
        "开关中心覆盖层文件路径（只读；测试与多实例部署用它隔离覆盖层）",
        owner="agent/settings/overrides.py"),
+    # 【2026-11-20】规范守卫的检查历史（面板趋势行）落盘路径覆盖口：调用期解析，
+    # 测试/多实例部署用它隔离（默认 data/ui_guard_history.jsonl，运行期状态不入库）。
+    _c("UI_GUARD_HISTORY_PATH", CAT_OBSERVABILITY, "data/ui_guard_history.jsonl",
+       "规范守卫检查历史文件覆盖（只读；测试与多实例部署用它隔离趋势数据）",
+       owner="agent/ui_guard/history.py"),
 
     # ────────────────────────────────────────────────────────
     #  动态家族（前缀 + 运行时后缀；UI 只读展示）
