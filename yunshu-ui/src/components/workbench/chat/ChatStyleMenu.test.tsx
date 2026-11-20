@@ -15,6 +15,7 @@ import { ChatStyleMenu } from './ChatStyleMenu'
 import {
   CHAT_BUBBLE_STYLES,
   CHAT_FONT_SIZES,
+  CHAT_FORMATS,
   CHAT_PREFS_STORAGE_KEY,
   CHAT_THEMES,
   DEFAULT_STYLE,
@@ -30,7 +31,7 @@ function previewRoot(): HTMLElement {
 }
 
 function openMenu() {
-  fireEvent.click(screen.getByRole('button', { name: /风格/ }))
+  fireEvent.click(screen.getByRole('button', { name: '外观' }))
 }
 
 function storedPrefs(): Record<string, unknown> {
@@ -79,16 +80,37 @@ describe('ChatStyleMenu · 风格切换真的生效且持久化', () => {
     expect(storedPrefs().bubbleStyle).toBe('minimal')
   })
 
+  it('选输出格式：store 变 → 预览容器类切换 → 写入 LocalStorage（合并后同一入口）', async () => {
+    render(<ChatStyleMenu />)
+    openMenu()
+
+    fireEvent.click(screen.getByRole('button', { name: CHAT_FORMATS.terminal.label }))
+    await waitFor(() => expect(useChatPrefsStore.getState().format).toBe('terminal'))
+
+    // 预览容器真的换上了终端格式类（不是"状态变了但界面没动"）
+    await waitFor(() =>
+      expect(previewRoot().className).toContain('wb-chat-format-terminal'),
+    )
+    expect(storedPrefs().format).toBe('terminal')
+
+    // 切回气泡：类名跟着回（合并后仍是同一个 store 字段）
+    fireEvent.click(screen.getByRole('button', { name: CHAT_FORMATS.bubble.label }))
+    await waitFor(() => expect(useChatPrefsStore.getState().format).toBe('bubble'))
+    expect(storedPrefs().format).toBe('bubble')
+  })
+
   it('恢复默认风格：store 四项回默认、预览回默认变量、存储同步回默认', async () => {
     render(<ChatStyleMenu />)
     openMenu()
     fireEvent.click(screen.getByTitle(CHAT_THEMES.purple.label))
     fireEvent.click(screen.getByRole('button', { name: CHAT_FONT_SIZES.small.label }))
+    fireEvent.click(screen.getByRole('button', { name: CHAT_FORMATS.compact.label }))
     await waitFor(() => expect(useChatPrefsStore.getState().theme).toBe('purple'))
 
-    fireEvent.click(screen.getByRole('button', { name: /恢复默认风格/ }))
+    fireEvent.click(screen.getByRole('button', { name: /恢复默认外观/ }))
     await waitFor(() => expect(useChatPrefsStore.getState().theme).toBe(DEFAULT_STYLE.theme))
     expect(useChatPrefsStore.getState().fontSize).toBe(DEFAULT_STYLE.fontSize)
+    expect(useChatPrefsStore.getState().format).toBe(DEFAULT_STYLE.format)
     await waitFor(() =>
       expect(previewRoot().style.getPropertyValue('--chat-bot-bg')).toBe(
         CHAT_THEMES[DEFAULT_STYLE.theme].vars['--chat-bot-bg'],
@@ -100,17 +122,17 @@ describe('ChatStyleMenu · 风格切换真的生效且持久化', () => {
   it('已是默认风格时「恢复默认」按钮禁用（不给无效操作）', async () => {
     render(<ChatStyleMenu />)
     openMenu()
-    expect(screen.getByRole('button', { name: /恢复默认风格/ })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /恢复默认外观/ })).toBeDisabled()
     fireEvent.click(screen.getByTitle(CHAT_THEMES.forest.label))
-    await waitFor(() => expect(screen.getByRole('button', { name: /恢复默认风格/ })).toBeEnabled())
+    await waitFor(() => expect(screen.getByRole('button', { name: /恢复默认外观/ })).toBeEnabled())
   })
 
   it('点击外部或按 Esc 关闭菜单（不残留浮层）', async () => {
     render(<ChatStyleMenu />)
     openMenu()
-    expect(screen.getByText('🎨 对话风格')).toBeInTheDocument()
+    expect(screen.getByText('🎨 对话外观')).toBeInTheDocument()
     fireEvent.keyDown(window, { key: 'Escape' })
-    await waitFor(() => expect(screen.queryByText('🎨 对话风格')).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.queryByText('🎨 对话外观')).not.toBeInTheDocument())
   })
 
   it('刷新后风格仍在（真在 LocalStorage 里，而不是只活在内存）', async () => {

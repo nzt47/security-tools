@@ -11,7 +11,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Sparkles, Square } from 'lucide-react';
 import { Badge, Button } from '@/components/ui';
 import { isHistoryMessageId, subscribeStreamLog, useLayoutStore } from '../../../stores/useLayoutStore';
-import { CHAT_FORMATS, chatStyleVars, useChatPrefsStore, type ChatFormat } from '../../../stores/useChatPrefsStore';
+import { chatStyleVars, useChatPrefsStore } from '../../../stores/useChatPrefsStore';
 import { MessageItem, isToolStep } from '../chat/MessageItem';
 import { MessageInput } from '../chat/MessageInput';
 import { ChatStyleMenu } from '../chat/ChatStyleMenu';
@@ -44,8 +44,6 @@ export function ChatPanel() {
   const showThinking = useChatPrefsStore((s) => s.showThinking);
   const showToolCalls = useChatPrefsStore((s) => s.showToolCalls);
   const toggleDisplay = useChatPrefsStore((s) => s.toggleDisplay);
-  const format = useChatPrefsStore((s) => s.format);
-  const setStyle = useChatPrefsStore((s) => s.setStyle);
   const theme = useChatPrefsStore((s) => s.theme);
   const bubbleStyle = useChatPrefsStore((s) => s.bubbleStyle);
   const fontSize = useChatPrefsStore((s) => s.fontSize);
@@ -275,29 +273,10 @@ export function ChatPanel() {
           )}
         </Button>
 
-        <span className="mx-1 h-3.5 w-px bg-slate-700/70" />
-
-        {/* 对话输出格式（多种展示样式切换） */}
-        <span className="text-micro uppercase tracking-wider text-slate-500">输出格式</span>
-        <div className="flex overflow-hidden rounded-md border border-slate-700">
-          {(Object.keys(CHAT_FORMATS) as ChatFormat[]).map((f) => (
-            <Button variant="plain" size="bare"
-              key={f}
-              type="button"
-              onClick={() => setStyle({ format: f })}
-              aria-pressed={format === f}
-              title={CHAT_FORMATS[f].hint}
-              className={`px-2 py-0.5 text-caption transition-colors ${
-                format === f ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-400 hover:bg-slate-800'
-              }`}
-            >
-              {CHAT_FORMATS[f].label}
-            </Button>
-          ))}
-        </div>
-
-        {/* 对话模式（后端跑哪条链路：轻量 / 检索 / 完整）——
-            紧跟「输出格式」右侧：一个管"怎么看"，一个管"怎么跑"，放一起才找得到 */}
+        {/* 对话模式（后端跑哪条链路：轻量 / 检索 / 完整）
+            【2026-11-21】原先它左边是「输出格式」快捷切换器；该切换器已并入
+            「外观」弹层（ChatStyleMenu）—— 输出格式与主题/气泡/字号同属"外观"，
+            不再在工具栏单独占一个入口。 */}
         <ChatModeMenu />
 
         {/* 权限档位（工具要不要逐条审批）—— 紧邻对话模式：一个管"怎么跑"，一个管"授权多大" */}
