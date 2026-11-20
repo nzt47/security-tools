@@ -1190,6 +1190,11 @@ def _wrap_get_client_for_tool_calling(monitor):
                         logger.debug("记录 LLM 工具调用失败: %s", e)
 
                 def _wrapped_create(*args, **kwargs):
+                    # 【2026-11-20】LLM 禁用时段闸门第二道：本钩子把 client 实例的 create
+                    # 换成了闭包并缓存了当时的 orig_create；若类方法补丁装得比闭包晚，
+                    # 闸门会被绕过。这里显式再判一次（禁用时是 no-op）。
+                    from agent.llm_idle_gate import guard as _llm_idle_guard
+                    _llm_idle_guard(source="llm_monitor.wrapped")
                     start = time.time()
                     try:
                         response_obj = orig_create(*args, **kwargs)

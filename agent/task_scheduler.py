@@ -578,6 +578,9 @@ class TaskScheduler:
         try:
             if not isinstance(result, dict):
                 return
+            # 顺延不是失败：不向消息中心发 task.failed（否则每个禁用时段边界都刷告警）
+            if result.get("status") == "skipped":
+                return
             ok = result.get("status") == "success"
             if ok and not task.get("notify_on_complete"):
                 return
@@ -622,8 +625,32 @@ class TaskScheduler:
         try:
             if task["type"] == "python_func":
                 if "func" in task:
-                    task["func"]()
-                result["status"] = "success"
+                    # 【2026-11-20 Owner 第三点】可能调用 LLM 的任务，在禁用时段/提前量
+                    # 不足时**顺延**，不启动"做一半会被掐断"的执行。零 token 任务不受影响。
+                    _defer_reason = ""
+                    if task.get("zero_token") is not True:
+                        try:
+                            from agent.llm_idle_gate import (
+                                seconds_until_blocked, should_defer_task,
+                            )
+                            if should_defer_task():
+                                _left = seconds_until_blocked()
+                                _defer_reason = (
+                                    "距 LLM 禁用时段不足提前量"
+                                    + (f"（剩余 {_left} 秒）" if _left else "（已在禁用时段）")
+                                    + "，本轮顺延，避免任务做一半被中断")
+                        except Exception as _de:  # noqa: BLE001 闸门不可用 ⇒ 按原行为执行
+                            logger.debug("[TaskScheduler] 顺延判定失败（按原行为执行）: %s", _de)
+                    if _defer_reason:
+                        result["status"] = "skipped"
+                        result["error"] = _defer_reason
+                        logger.warning(log_dict({
+                            'module_name': 'task_scheduler', 'action': 'llm_gate.defer',
+                            'msg': f'[TaskScheduler] 任务顺延: {task["name"]}：{_defer_reason}'}))
+                    else:
+                        task["func"]()
+                if result["status"] != "skipped":
+                    result["status"] = "success"
 
             elif task["type"] == "system_command":
                 command = task.get("command", "")
@@ -923,6 +950,32 @@ def _create_scheduler(config=None):
         zero_token=True,
         owner="agent/task_scheduler.py",
     )
+    # 【2026-11-20】LLM 禁用时段闸门（Owner 需求）：计费高峰拒绝所有 LLM 请求。
+    # 真正的拦截在 agent/llm_idle_gate.py::guard（SDK create 层，每次调用即时判定）；
+    # 本任务负责「可见 + 切换点留痕」，每 10 分钟校准一次，零 token。
+    try:
+        from agent.llm_idle_gate import install as _install_llm_gate
+        from agent.llm_idle_gate import tick as _llm_gate_tick
+
+        _install_llm_gate()   # 幂等；早于监控钩子的那次在 app_server 启动时已完成
+        sched.add_interval_task(
+            name="LLM 禁用时段",
+            func=_llm_gate_tick,
+            interval_seconds=600,
+            # 只读时钟/配置 + 切内存标志，调用链不含 LLM
+            zero_token=True,
+            zero_token_note="只按配置的时段与节假日表判定并写状态日志，不调用 LLM",
+            owner="agent/llm_idle_gate.py",
+            description=(
+                "按顶栏配置的禁用时段拒绝所有 LLM 请求（默认工作日 09:00-12:00、"
+                "14:00-18:00，节假日除外）；每 10 分钟校准一次并在切换点留痕。"
+                "开关与时段在工作台顶栏设置。"
+            ),
+        )
+    except Exception as e:  # noqa: BLE001 闸门注册失败不阻断主调度
+        logger.error(log_dict({'module_name': 'task_scheduler', 'action': 'llm_idle_gate',
+                               'msg': f'[TaskScheduler] LLM 禁用时段任务注册失败: {e}'}))
+
     # 零 token 维护作业（09:00-18:00 工作时段内，只读巡检/自洽校验）。
     # 见 agent/maintenance/zero_token_jobs.py；失败只记日志，不阻断主调度。
     try:

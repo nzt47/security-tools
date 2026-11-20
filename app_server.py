@@ -1456,8 +1456,20 @@ except Exception as e:
 # ════════════════════════════════════════════════════════════
 
 try:
+    # 【2026-11-20】LLM 禁用时段：顶栏开关与时段配置（/api/llm-gate）
+    from agent.server_routes.routes_llm_gate import register_routes as reg_llm_gate
+    reg_llm_gate(app, lambda: None)
     from agent.server_routes.routes_llm_monitor import register_routes as reg_llm_monitor
     reg_llm_monitor(app, lambda: None)
+    # 【2026-11-20】LLM 禁用时段闸门必须先于监控钩子安装：监控会把 client 实例的
+    # create 换成闭包并缓存当时的原函数；后装闸门会被闭包绕过。
+    # 闸门是否生效由 LLM_IDLE_GATE_ENABLED 决定（默认关闭，.env 打开）。
+    # 单独兜异常：闸门装不上不能让下面的 LLM 监控钩子也一起跳过。
+    try:
+        from agent.llm_idle_gate import install as install_llm_idle_gate
+        install_llm_idle_gate()
+    except Exception as _gate_err:  # noqa: BLE001
+        logger.warning("LLM 禁用时段闸门安装失败（不影响监控）: %s", _gate_err)
     # 安装 LLM 调用拦截钩子
     from agent.llm_monitor import install_hooks
     install_hooks()

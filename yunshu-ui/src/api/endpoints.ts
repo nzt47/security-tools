@@ -393,6 +393,11 @@ export const LLM_MONITOR_TOGGLE = '/api/llm-monitor/toggle';
 export const LLM_MONITOR_RECORDS = '/api/llm-monitor/records';
 
 // ===============================================================
+//  LLM 禁用时段（/api/llm-gate）：顶栏开关 + 时段配置
+// ===============================================================
+export const LLM_GATE = '/api/llm-gate';
+
+// ===============================================================
 //  记忆 / 向量检索（/api/memory、/api/vector）
 // ===============================================================
 export const MEMORY_MANUAL = '/api/memory/manual';

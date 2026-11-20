@@ -292,7 +292,11 @@ class LLMService:
         """
         if not messages:
             return ""
-        
+        # 【2026-11-20】LLM 禁用时段闸门：在重试/降级之前快速失败，避免禁用时段
+        # 还按 max_retries 打三轮、再切影子模型（那同样会被闸门拒绝）。
+        from agent.llm_idle_gate import guard as _llm_idle_guard
+        _llm_idle_guard(source="memory.llm_service.summarize")
+
         try:
             return self._summarize_with_retry(messages, max_tokens, system_prompt, tools)
         except Exception as e:
@@ -390,7 +394,10 @@ class LLMService:
         """
         if not messages:
             return ""
-        
+        # 【2026-11-20】LLM 禁用时段闸门：见 summarize() 同处说明（重试/降级前快速失败）。
+        from agent.llm_idle_gate import guard as _llm_idle_guard
+        _llm_idle_guard(source="memory.llm_service.chat")
+
         try:
             return self._chat_with_retry(messages, system_prompt, max_tokens, temperature,
                                          extra_body)
@@ -445,6 +452,10 @@ class LLMService:
         """
         if not messages:
             return
+        # 【2026-11-20】LLM 禁用时段闸门：生成器第一次迭代时就快速失败（其余时段
+        # 由 SDK 层兜底；这里让调用方拿到明确的 LLMIdleBlocked，而不是重试后的空流）。
+        from agent.llm_idle_gate import guard as _llm_idle_guard
+        _llm_idle_guard(source="memory.llm_service.chat_stream")
         client = self._get_client()
 
         # 【DSML 根因防线】流式路径的**最后一道收口**。

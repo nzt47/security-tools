@@ -201,6 +201,26 @@ def api_chat():
             "timing": {"total": (time.time() - start_time) * 1000},
         }), 403
 
+    # 【2026-11-20】LLM 禁用时段（计费高峰）：所有 LLM 请求一律拒绝（Owner 口径）。
+    # 在进入对话主链路前给出可读回执；SDK 层 agent.llm_idle_gate.guard 仍是最后防线，
+    # 这里只是让用户拿到一句人话（而不是"处理出错"）。
+    try:
+        from agent.llm_idle_gate import blocked_state as _llm_blocked_state
+        _idle_gate_state = _llm_blocked_state()
+    except Exception:  # noqa: BLE001 闸门自身异常不得击穿对话入口（fail-open）
+        _idle_gate_state = None
+    if _idle_gate_state:
+        logs.append("[IDLE-GATE] 处于 LLM 禁用时段，拒绝请求")
+        return jsonify({
+            "response": _idle_gate_state["message"],
+            "blocked": True,
+            "idle_gate": _idle_gate_state,
+            "mode": _Yunshu.get_behavior_mode().value,
+            "mode_label": _Yunshu._behavior.profile.label,
+            "logs": logs,
+            "timing": {"total": (time.time() - start_time) * 1000},
+        }), 403
+
     # 记录 LLM 状态便于诊断
     llm_state = _Yunshu.get_config()
     logs.append(f"[LLM] 配置状态 - 已配置: {llm_state['configured']}, 提供商: {llm_state['provider']}, API Key已设置: {llm_state['api_key_set']}")
@@ -2955,6 +2975,18 @@ def api_chat_stream():
         logger.debug("[workbench][SSE] 更新当前会话失败: %s", _ce)
 
     def gen():
+        # 【2026-11-20】LLM 禁用时段：在开流前直接回一条 error + done，
+        # 避免把整个对话链路（含 LLM 调用）跑起来后才在 SDK 层抛错。
+        try:
+            from agent.llm_idle_gate import blocked_state as _llm_blocked_state
+            _idle_gate_state = _llm_blocked_state()
+        except Exception:  # noqa: BLE001 闸门自身异常不得击穿流式入口（fail-open）
+            _idle_gate_state = None
+        if _idle_gate_state:
+            yield _sse_event({"type": "error", "message": _idle_gate_state["message"]})
+            yield _sse_event({"type": "done"})
+            return
+
         # 累积流式 chunk 文本，流结束时落盘为 assistant 消息（会话持久化；
         # 客户端中途断开时 finally 仍会保存已生成的部分回复）。
         # 同时累积 thinking 步骤（思考过程 / 工具调用）：随同一条 assistant 消息落盘，

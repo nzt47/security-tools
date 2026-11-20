@@ -2502,6 +2502,22 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        config_path="", needs_restart=True),
 
     # ────────────────────────────────────────────────────────
+    #  LLM 禁用时段（2026-11-20）
+    # ────────────────────────────────────────────────────────
+    _a("LLM_IDLE_GATE_ENABLED", CAT_OBSERVABILITY, False,
+       "LLM 禁用时段闸门的**初始开关**（仅在 data/llm_gate_config.json 不存在时生效）："
+       "置 1/true 后，按配置的禁用时段（默认工作日 09:00-12:00、14:00-18:00，"
+       "中国法定节假日除外）拒绝所有 LLM 请求（含用户对话）；"
+       "运行期请用工作台顶栏开关/配置弹窗，保存后写入 data/llm_gate_config.json 并即时生效",
+       owner="agent/llm_idle_gate.py",
+       config_path="", needs_restart=False),
+    _c("LLM_GATE_CONFIG_FILE", CAT_OBSERVABILITY, "data/llm_gate_config.json",
+       "LLM 禁用时段配置文件路径（运行期状态；默认 data/llm_gate_config.json，"
+       "测试可用环境变量覆盖）",
+       owner="agent/llm_idle_gate.py",
+       validator=Validator("path")),
+
+    # ────────────────────────────────────────────────────────
     #  扩展通道事件接线（2026-10-19）
     # ────────────────────────────────────────────────────────
     _a("CP_CHANNEL_EVENTS", CAT_OBSERVABILITY, True,

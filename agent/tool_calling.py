@@ -418,6 +418,27 @@ class ToolCallingService:
         Returns:
             {"text": str, "steps": [{"type": str, ...}]}
         """
+        # 【2026-11-20】LLM 禁用时段闸门：在工具循环/重试之前快速失败，避免禁用
+        # 时段按 3 次退避 + 降级链路反复撞闸门（SDK 层仍会兜底）。
+        from agent.llm_idle_gate import guard as _llm_idle_guard
+        _llm_idle_guard(source="tool_calling.chat_with_steps")
+
+        # 【2026-11-20 Owner 第三点】把"距禁用时段还剩多久"写进 system prompt：
+        # 让模型**一开始就按剩余时间规划步骤**，而不是做到一半被掐断。
+        _wrapup_sent = False
+        try:
+            from agent.llm_idle_gate import planning_note as _planning_note
+            _budget_note = _planning_note()
+        except Exception:  # noqa: BLE001 时间预算不可用不得阻断对话
+            _budget_note = {"text": "", "wrapup": False}
+        _budget_text = str(_budget_note.get("text") or "")
+        # 已在提前量内 ⇒ system prompt 里已是"立即收尾"，循环里不再重复插一条
+        _wrapup_sent = bool(_budget_note.get("wrapup"))
+        if _budget_text:
+            system_prompt = (_budget_text + "\n\n" + (system_prompt or "")).strip()
+            logger.info(log_dict({'module_name': 'tool_calling', 'action': 'llm_gate.budget',
+                                   'msg': '[ToolCalling] 已注入时间预算：%s' % _budget_text[:120]}))
+
         tool_defs = tools.get_tool_defs(whitelist=tools_whitelist)
         steps = []
         self.last_steps = steps
@@ -519,6 +540,22 @@ class ToolCallingService:
                     return result
 
                 need_tools = tool_defs if round_idx < self._max_rounds else None
+
+                # 【2026-11-20】临近禁用时段：插一条收尾指令并停止新的工具调用，
+                # 让本轮在闸门落下前给出可交付结论（只做一次）。
+                try:
+                    from agent.llm_idle_gate import wrapup_directive as _wrapup_directive
+                    _wrapup_text = _wrapup_directive()
+                except Exception:  # noqa: BLE001
+                    _wrapup_text = ""
+                if _wrapup_text and not _wrapup_sent:
+                    working_messages.append({"role": "system", "content": _wrapup_text})
+                    _wrapup_sent = True
+                    need_tools = None
+                    logger.warning(log_dict({'module_name': 'tool_calling', 'action': 'llm_gate.wrapup',
+                                             'msg': '[ToolCalling] 进入收尾：%s' % _wrapup_text[:120]}))
+                elif _wrapup_sent:
+                    need_tools = None
 
                 # LLM 调用增加指数退避重试，应对瞬时网络波动
                 llm_last_exc = None

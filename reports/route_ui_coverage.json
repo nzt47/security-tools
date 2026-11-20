@@ -1,16 +1,16 @@
 {
-  "generated_at": "2026-11-20T12:28:21",
+  "generated_at": "2026-11-20T18:25:04",
   "totals": {
-    "routes": 517,
-    "live": 517,
+    "routes": 518,
+    "live": 518,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 456,
+    "ui": 457,
     "cli_script": 15,
     "runtime_only": 12,
     "unreferenced": 34,
     "live_by_category": {
-      "ui": 456,
+      "ui": 457,
       "cli_script": 15,
       "runtime_only": 12,
       "unreferenced": 34
@@ -18,12 +18,12 @@
     "by_intent": {
       "should_be_in_ui": 423,
       "should_not_be_in_ui": 80,
-      "unclassified": 14
+      "unclassified": 15
     },
     "by_domain": {
       "页面入口": 7,
       "分身与主线": 20,
-      "观测与诊断": 83,
+      "观测与诊断": 84,
       "系统与配置": 46,
       "治理与审批": 47,
       "资产与文件": 19,
@@ -37,7 +37,7 @@
       "记忆与知识": 42
     }
   },
-  "frontend_endpoints": 460,
+  "frontend_endpoints": 461,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -60,10 +60,12 @@
       "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
+        "agent/tools/custom/api_multi_search_engine.py",
+        "agent/tools/custom/ingested/byted-bp-cdn-pagesdeploy/scripts/subscribe_cdn.py",
         "scripts/_check_page.py"
       ],
       "where": [
-        "app_server.py:2082"
+        "app_server.py:2094"
       ],
       "description": "首页：重定向到统一工作台（2026-10-03 R0-b legacy 收敛）。",
       "description_source": "handler",
@@ -1539,7 +1541,7 @@
         "scripts/probe_prefix_cache_interaction.py"
       ],
       "where": [
-        "plugins/chat.py:2895"
+        "plugins/chat.py:2915"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
@@ -1562,7 +1564,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1181"
+        "plugins/chat.py:1201"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
@@ -3634,7 +3636,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:730"
+        "plugins/chat.py:750"
       ],
       "description": "生成会话交接文档 —— LLM 把当前会话压缩成 Markdown，落盘到 OS 临时目录。",
       "description_source": "handler",
@@ -3663,13 +3665,13 @@
         "agent/server_auth.py",
         "agent/settings/registry.py",
         "app_server.py",
+        "scripts/_t08_http_stress.py",
         "scripts/deploy_workbench.py",
         "scripts/deployment_drill.py",
         "scripts/dev/graceful_shutdown_persist_probe.py",
         "scripts/full_alert_verify.py",
         "scripts/probe_prefix_cache_interaction.py",
-        "scripts/rollback.ps1",
-        "scripts/rotate_grafana_password.ps1"
+        "scripts/rollback.ps1"
       ],
       "where": [
         "plugins/status.py:237"
@@ -3878,7 +3880,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:1760"
+        "app_server.py:1772"
       ],
       "description": "混合检索器（embedding worker）健康状态（**只读**；永不 500）。",
       "description_source": "handler",
@@ -4105,7 +4107,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1159"
+        "plugins/chat.py:1179"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
@@ -4130,7 +4132,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1195"
+        "plugins/chat.py:1215"
       ],
       "description": "删除指定索引的历史记录（同时删除用户消息和助手回复）",
       "description_source": "handler",
@@ -4654,6 +4656,33 @@
       "intent_note": "学习有效性度量查询。",
       "ui_pending": false,
       "domain": "认知与学习"
+    },
+    {
+      "path": "/api/llm-gate",
+      "norm": "/api/llm-gate",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_llm_gate.py:24",
+        "agent/server_routes/routes_llm_gate.py:37"
+      ],
+      "description": "LLM 禁用时段 API（顶栏开关 + 时段配置，2026-11-20）。",
+      "description_source": "module",
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/llm-monitor/clear",
@@ -5784,7 +5813,7 @@
         "scripts/verify_key_revocation.ps1"
       ],
       "where": [
-        "plugins/chat.py:428"
+        "plugins/chat.py:448"
       ],
       "description": "新闻直通接口 — 搜索+翻译+格式化，绕过 LLM",
       "description_source": "handler",
@@ -6842,10 +6871,10 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1004",
-        "plugins/chat.py:996"
+        "plugins/chat.py:1016",
+        "plugins/chat.py:1024"
       ],
-      "description": "新建项目：body {name, path|workspace_root, create?}",
+      "description": "列出全部项目（id / name / workspace_root / created_at / updated_at）",
       "description_source": "handler",
       "intent": "should_be_in_ui",
       "intent_area": "项目/分组",
@@ -6869,8 +6898,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1029",
-        "plugins/chat.py:1058"
+        "plugins/chat.py:1049",
+        "plugins/chat.py:1078"
       ],
       "description": "改名 / 改工作空间：body {name?, path|workspace_root?, create?}（只改传了的字段）",
       "description_source": "handler",
@@ -6895,7 +6924,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:2853"
+        "plugins/chat.py:2873"
       ],
       "description": "提示词实验室「真实接口」的后端代理（2026-10-14 修 404）。",
       "description_source": "handler",
@@ -7930,8 +7959,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1093",
-        "plugins/chat.py:1102"
+        "plugins/chat.py:1113",
+        "plugins/chat.py:1122"
       ],
       "description": "列出分组及 会话→分组 归属表；?project_id= 只返回该项目下的分组",
       "description_source": "handler",
@@ -7957,8 +7986,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1117",
-        "plugins/chat.py:1132"
+        "plugins/chat.py:1137",
+        "plugins/chat.py:1152"
       ],
       "description": "重命名分组",
       "description_source": "handler",
@@ -7986,8 +8015,8 @@
         "scripts/dev/verify_prompt_injection_mock.py"
       ],
       "where": [
-        "plugins/chat.py:510",
-        "plugins/chat.py:549"
+        "plugins/chat.py:530",
+        "plugins/chat.py:569"
       ],
       "description": "获取会话列表",
       "description_source": "handler",
@@ -8012,7 +8041,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:571"
+        "plugins/chat.py:591"
       ],
       "description": "删除会话",
       "description_source": "handler",
@@ -8037,7 +8066,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:628"
+        "plugins/chat.py:648"
       ],
       "description": "设置/清除会话级智能体：body {agent: string|null}；null/空 = 母体。",
       "description_source": "handler",
@@ -8062,7 +8091,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1143"
+        "plugins/chat.py:1163"
       ],
       "description": "把会话移入/移出分组：body {group_id: string|null}；null = 未分组",
       "description_source": "handler",
@@ -8089,8 +8118,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:681",
-        "plugins/chat.py:691"
+        "plugins/chat.py:701",
+        "plugins/chat.py:711"
       ],
       "description": "获取会话消息",
       "description_source": "handler",
@@ -8115,7 +8144,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:606"
+        "plugins/chat.py:626"
       ],
       "description": "把会话归入/移出项目：body {project_id: string|null}；null = 未归属项目。",
       "description_source": "handler",
@@ -8140,7 +8169,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:591"
+        "plugins/chat.py:611"
       ],
       "description": "重命名会话",
       "description_source": "handler",
@@ -8165,7 +8194,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:831"
+        "plugins/chat.py:851"
       ],
       "description": "列出会话工作空间文件树（会话不存在 404）",
       "description_source": "handler",
@@ -8191,8 +8220,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:854",
-        "plugins/chat.py:880"
+        "plugins/chat.py:874",
+        "plugins/chat.py:900"
       ],
       "description": "绑定/切换会话工作空间到本地绝对路径（仿 DSH 添加工作区）",
       "description_source": "handler",
@@ -8217,7 +8246,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:892"
+        "plugins/chat.py:912"
       ],
       "description": "在系统文件管理器中打开该会话的工作空间目录（本机桌面应用场景）",
       "description_source": "handler",
@@ -8242,7 +8271,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:652"
+        "plugins/chat.py:672"
       ],
       "description": "切换当前会话",
       "description_source": "handler",
@@ -8267,7 +8296,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:769"
+        "plugins/chat.py:789"
       ],
       "description": "用交接文档开一个新会话（可选的续接入口）",
       "description_source": "handler",
@@ -11194,7 +11223,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2238"
+        "app_server.py:2250"
       ],
       "description": "测试端点：测试除法运算（正常情况）",
       "description_source": "handler",
@@ -11219,7 +11248,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2214"
+        "app_server.py:2226"
       ],
       "description": "测试端点：触发除零错误以验证堆栈捕获",
       "description_source": "handler",
@@ -11244,7 +11273,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2227"
+        "app_server.py:2239"
       ],
       "description": "测试端点：触发空指针错误以验证堆栈捕获",
       "description_source": "handler",
@@ -12657,11 +12686,11 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:956",
-        "plugins/chat.py:964",
-        "plugins/chat.py:980"
+        "plugins/chat.py:1000",
+        "plugins/chat.py:976",
+        "plugins/chat.py:984"
       ],
-      "description": "列出已添加的工作区（路径/名称/添加时间）",
+      "description": "从记忆列表移除一个工作区（不影响目录本身）：body {path}",
       "description_source": "handler",
       "intent": "should_be_in_ui",
       "intent_area": "工作区",
@@ -12833,7 +12862,7 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2129"
+        "app_server.py:2141"
       ],
       "description": "云枢 React SPA 入口（build:flask 同步自 yunshu-ui/dist → templates/yunshu.html）。",
       "description_source": "handler",
@@ -13157,6 +13186,7 @@
       "non_ui_refs": [
         "agent/audit/ui_middleware.py",
         "agent/utils/perf_monitor.py",
+        "scripts/_t08_http_stress.py",
         "scripts/baseline_loadtest_py.py",
         "scripts/check_mcp_log_level.py",
         "scripts/deployment_drill.py",
@@ -13165,8 +13195,7 @@
         "scripts/mock_intent_layer_traffic.py",
         "scripts/mock_metrics_server.py",
         "scripts/mock_service_standalone.py",
-        "scripts/monitoring_longrun/c2_harness.py",
-        "scripts/monitoring_longrun/gen_derived_config.py"
+        "scripts/monitoring_longrun/c2_harness.py"
       ],
       "where": [
         "agent/server_routes/routes_logging.py:1268"
@@ -13194,7 +13223,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2193"
+        "app_server.py:2205"
       ],
       "description": "[简易] 用户行为回放页面",
       "description_source": "handler",
@@ -13219,7 +13248,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2185"
+        "app_server.py:2197"
       ],
       "description": "搜索引擎状态监控页面",
       "description_source": "handler",
@@ -13245,7 +13274,7 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2166"
+        "app_server.py:2178"
       ],
       "description": "云枢 Web 应用 — 感知底座 + 数字生命对话",
       "description_source": "module",
@@ -13256,5 +13285,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "e39451810bfa31f4"
+  "content_hash": "cae6aeedc3d59c53"
 }

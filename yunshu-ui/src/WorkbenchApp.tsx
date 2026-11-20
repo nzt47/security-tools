@@ -47,7 +47,8 @@ import { findNavItem } from './workbench/hubNav';
 import { NavUrlSync } from './workbench/useNavUrlSync';
 import { useInRouterContext } from 'react-router-dom';
 import Toaster from './components/Toaster';
-import AlarmBell from './components/AlarmBell';
+import AlarmBell from './components/AlarmBell'
+import LlmGateControl from './components/workbench/LlmGateControl';
 import { renderPanel } from './components/workbench/panels/renderPanel';
 import { startCrossWindowSync } from './electron/sync';
 
@@ -364,6 +365,8 @@ export default function WorkbenchApp() {
               </Button>
             )}
           </div>
+          {/* LLM 禁用时段（2026-11-20）：顶栏开关 + 时段配置弹窗。 */}
+          <LlmGateControl />
           {/* 报警器：系统运行期问题的汇报入口（读 /api/alarms，与消息中心同一张台账）。
               「查看全部」由这里注入导航动作 —— 组件本身不认识路由。 */}
           <AlarmBell onOpenAll={() => useWorkbenchNav.getState().setActiveKey('admin/notifications')} />

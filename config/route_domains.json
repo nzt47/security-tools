@@ -60,6 +60,7 @@
         "/api/diagnostics",
         "/api/health",
         "/api/heartbeat",
+        "/api/llm-gate",
         "/api/llm-monitor",
         "/api/modules",
         "/api/observability",
