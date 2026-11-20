@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-20T20:10:00+08:00",
+ "updated_at": "2026-11-20T21:50:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -32,7 +32,15 @@
    "priority": "P2",
    "title": "ui_guard_fix 写工具（默认停用 + L2 审批）",
    "criteria": "2026-11-20 落地（bdae26388 + 782ceef0e）：ui_guard_fix（act/write/high，permission_level=restricted，llm_callable=true，YAML enabled:false 默认停用）只改字面量 className 的两类；dry_run 默认 true、结果最多回 40 条 diff；实现复用 agent.ui_guard.fixer.fix（不碰 .test.，max_files 20）。5 处连锁：tool_index 94→95、能力清单 145→146（tool 96 / local 123）、BM25 S0 5.6684→5.687（n=11 / p10=3.0366 / p90=11.2301 / max=11.7572）、路由基线 total_tools 94→95（hybrid 9/10 不变）、v1 τ 保持 0.0478（27/50 不变）。基线：det2 17→18、L28 94→95、confirm_level high 14→15 / L2 11→12 / 工具 95→96、capregistry 145→146、tool_pruning 8→9、capability spec 145→146。",
-   "next": "CI：782ceef0e 的 ci.yml（run 44729306336）30/30 success；契约门禁 / Settings guard / 工具检索质量 / Route Conflict Gate success。**部署待做**：工作区有另一会话未提交的 LLM 禁用时段改动（app_server/tool_calling/registry/前端等），deploy_workbench 会一并打包 ⇒ 等该工作提交或清理后再部署 bdae26388..782ceef0e；工具默认停用，不部署也不可见。部署后真机验收：/api/tools/config 里 enabled=false / permission=restricted；启用后 dry_run 预览 + dry_run=false 弹 L2 审批。"
+   "next": "2026-11-20 已部署（c07d38930 合并发布，含本工具）：/api/tools/config 里 ui_guard_fix enabled=false / runtime=false；启用后 dry_run 预览 + dry_run=false 弹 L2 审批。CI：782ceef0e 的 ci.yml（run 44729306336）30/30 success；契约门禁 / Settings guard / 工具检索质量 / Route Conflict Gate success。"
+  },
+  {
+   "id": "ui-primitive-debt-zero",
+   "status": "done",
+   "priority": "P2",
+   "title": "UI 原语守卫存量清零：raw_* 0 / CSS 颜色 0 + 量具口径修正",
+   "criteria": "2026-11-20 落地（6f097bc39 批次 + 47407e4a6 引擎同源 + c07d38930 前缀修正）：① 量具口径：.test. 不计 raw_*/raw_heading；CSS 自定义属性定义行不计 css_hardcoded_color；新增 tests/unit/test_ui_primitive_convergence.py 2 条。② 12 处原生控件改原语（NetworkPanel/Memory/DockPanel×3/SessionRail×2/replicate/ApiTokenField/TagsField→Input；SwitchField→Switch；exemption/usePermission 注释改 Button）。③ 358 处 CSS 颜色抽成四套调色板 --wbp-*/--pl-*/--dc-*/--ve-*（值逐字保留，规则只写 var()），StatusBadge 未知态补 --color-unknown、CardDetail 遮罩用 --color-overlay；--wbp-* 与既有 --wb-bg/--wb-text 语义 token 分前缀。④ engine._audit_findings 改为与 scripts/audit 同源（跳过 .test.、剥色板定义、计数取 mod.scan）。基线 raw_button 8→0 / raw_select 1→0 / raw_input 11→0 / raw_heading 80→78 / css_hardcoded_color 358→0。",
+   "next": "真机：面板 0 错误 / 0 警告 / 458 文件 / 0 回归，明细 0 行；--wbp-bg=#04060d、--wbp-text=#d7e2f0、--pl-bg=#04060d（计算值逐字保留），语义 --wb-bg/--wb-text 未被覆盖。部署 c07d38930 · bundle index-CnwV7DdH.js · pid 88876。CI：c07d38930 的 ci.yml（run 44742787591）30/30 success；yunshu-ui 前端测试 success。注意：色板是「字面值集中到 --* 定义」，不是语义重命名；后续可按主题做语义名。"
   },
   {
    "id": "agent-ui-onboarding",
