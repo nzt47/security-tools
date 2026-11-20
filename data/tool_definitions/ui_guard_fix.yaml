@@ -1,0 +1,59 @@
+name: ui_guard_fix
+category: code
+description: "按 UI 封装规范修两类低风险问题：Button 补 justify-*、标题补 text-*。只改字面量 className，跳过 cn(...)/变量与 .test. 文件；默认 dry_run=true 只回 diff，dry_run=false 才写盘（工具层审批，最多 20 文件/200 处）。工具默认停用。"
+deprecated: false
+version: 1.0.0
+plane: act
+effect: write
+risk: high
+tool_type: tool
+llm_callable: true
+callable_mode: auto
+permission_level: restricted
+sandbox_allowed: false
+tags: [code, ui, fix]
+location: local
+location_reason: "调用链（agent.tools.ui_guard_tools:_ui_guard_fix）在 6 跳内未命中任何跨边界原语；另有 77 个调用点静态无法解析（见 unresolved）"
+enabled: false
+schema:
+  type: object
+  properties:
+    dry_run:
+      type: boolean
+      description: 默认 true：只返回 before/after，不写文件；false 才落盘（需审批）
+    rules:
+      type: array
+      items:
+        type: string
+        enum: [button.alignment, heading.scale]
+      description: 只修这些规则；省略=两类都修
+    files:
+      type: array
+      items:
+        type: string
+      description: 只修这些仓库相对路径（yunshu-ui/src 下 .tsx）；省略=全部
+    max_files:
+      type: integer
+      minimum: 1
+      maximum: 50
+      description: 最多改多少个文件，默认 20
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    dry_run:
+      type: boolean
+    applied:
+      type: boolean
+    change_count:
+      type: integer
+    changes:
+      type: array
+    files:
+      type: array
+    errors:
+      type: array
+  required: [ok]
+  additionalProperties: true
+examples: []

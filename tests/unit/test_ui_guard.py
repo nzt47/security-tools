@@ -158,6 +158,53 @@ def test_history_坏行被跳过(tmp_path):
     assert len(items) == 1 and items[0]["ts"] == "t"
 
 
+def test_ui_guard_fix_登记为写工具且默认停用():
+    import yaml
+    from agent.lines.models import load_tool_meta
+
+    y = yaml.safe_load((Path(__file__).resolve().parents[2]
+                        / "data" / "tool_definitions" / "ui_guard_fix.yaml").read_text(encoding="utf-8"))
+    assert y["enabled"] is False, "写工具必须默认停用"
+    meta = load_tool_meta(force=True)["ui_guard_fix"]
+    assert meta.effect == "write" and meta.risk == "high"
+    assert meta.needs_approval is True, "写工具必须落在审批边界内"
+
+
+def test_ui_guard_fix_dry_run_不写盘(tmp_path, monkeypatch):
+    import agent.ui_guard.fixer as fx
+    from agent import tools
+    import agent.tools.ui_guard_tools as ug
+
+    src = tmp_path / "yunshu-ui" / "src"
+    src.mkdir(parents=True)
+    p = src / "Foo.tsx"
+    p.write_text('<div><h2>t</h2></div>\n', encoding="utf-8")
+    monkeypatch.setattr(fx, "REPO_ROOT", tmp_path)
+    ug.register_all()
+
+    out = tools.call("ui_guard_fix", dry_run=True)
+    assert out["ok"] is True and out["dry_run"] is True
+    assert out["change_count"] == 1 and out["changes_total"] == 1
+    assert "text-ui" not in p.read_text(encoding="utf-8"), "dry_run 不应写盘"
+
+
+def test_ui_guard_fix_落盘(tmp_path, monkeypatch):
+    import agent.ui_guard.fixer as fx
+    from agent import tools
+    import agent.tools.ui_guard_tools as ug
+
+    src = tmp_path / "yunshu-ui" / "src"
+    src.mkdir(parents=True)
+    p = src / "Foo.tsx"
+    p.write_text('<div><h2>t</h2></div>\n', encoding="utf-8")
+    monkeypatch.setattr(fx, "REPO_ROOT", tmp_path)
+    ug.register_all()
+
+    out = tools.call("ui_guard_fix", dry_run=False)
+    assert out["ok"] is True and out["applied"] is True
+    assert 'className="text-ui"' in p.read_text(encoding="utf-8")
+
+
 def test_http_history_只记显式检查(tmp_path, monkeypatch):
     hist = tmp_path / "history.jsonl"
     monkeypatch.setenv("UI_GUARD_HISTORY_PATH", str(hist))

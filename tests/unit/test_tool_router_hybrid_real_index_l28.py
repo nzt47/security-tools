@@ -111,10 +111,11 @@ class TestFixtureShapeMatchesProduction:
         )
         # 【2026-11-09】92 → 93：新增 skill_script_run（llm_callable=true、未弃用）
         # 【2026-11-19】93 → 94：新增 ui_guard_check（llm_callable=true、未弃用）
-        assert len(real_tools) == 94, f"真实工具数应为 94，实际 {len(real_tools)}"
+        # 【2026-11-20】94 → 95：新增 ui_guard_fix（llm_callable=true、默认停用但仍入索引）
+        assert len(real_tools) == 95, f"真实工具数应为 95，实际 {len(real_tools)}"
 
     def test_index_is_not_a_toy_fixture(self, real_retriever, real_tools):
-        assert real_retriever._bm25.size == len(real_tools) == 94
+        assert real_retriever._bm25.size == len(real_tools) == 95
 
 
 # ════════════════════════════════════════════════════════════

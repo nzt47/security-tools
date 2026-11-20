@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-19T23:32:28",
-  "tool_count": 94,
+  "generated_at": "2026-11-20T19:10:13",
+  "tool_count": 95,
   "categories": [
     "async",
     "code",
@@ -308,6 +308,19 @@
         "mode",
         "rule",
         "limit"
+      ]
+    },
+    {
+      "name": "ui_guard_fix",
+      "category": "code",
+      "description": "按 UI 封装规范修两类低风险问题：Button 补 justify-*、标题补 text-*。只改字面量 className，跳过 cn(...)/变量与 .test. 文件；默认 dry_run=true 只回 diff，dry_run=false 才写盘（工具层审批，最多 20 文件/200 处）。工具默认停用。",
+      "version": "1.0.0",
+      "deprecated": false,
+      "parameter_names": [
+        "dry_run",
+        "rules",
+        "files",
+        "max_files"
       ]
     },
     {

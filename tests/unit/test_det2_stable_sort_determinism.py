@@ -214,7 +214,8 @@ class TestKeywordRouteIsCrossProcessDeterministic:
             % (got, decl))
         # 【2026-11-09】15 → 16：code 类新增 skill_script_run（技能 L3 显式执行点）
         # 【2026-11-19】16 → 17：code 类新增 ui_guard_check（UI 规范守卫，只读）
-        assert len(got) == len(decl) == 17, "本判据依赖 code 类 17 个工具，实测 %d" % len(got)
+        # 【2026-11-20】17 → 18：code 类新增 ui_guard_fix（受控修复，默认停用）
+        assert len(got) == len(decl) == 18, "本判据依赖 code 类 18 个工具，实测 %d" % len(got)
 
 
 class TestSkillScanOrderIsDeterministic:

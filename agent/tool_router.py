@@ -132,6 +132,8 @@ _DEFAULT_TOOL_CATEGORIES = {
             "skill_script_run",
             # 【2026-11-19】UI 规范守卫（只读；Owner 决定进模型可见集）
             "ui_guard_check",
+            # 【2026-11-20】UI 规范守卫的受控修复（写工具；YAML 默认停用，启用后走审批）
+            "ui_guard_fix",
         ],
     },
     "system": {

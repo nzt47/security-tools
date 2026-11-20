@@ -80,6 +80,8 @@ PLANE_MAP: dict[str, tuple[str, str, str, list[str]]] = {
     "run_lint": ("act", "execute", "low", ["code"]),
     # UI 规范守卫（2026-11-19）：只读检查前端封装规范
     "ui_guard_check": ("perceive", "read", "low", ["code", "ui"]),
+    # UI 规范守卫（2026-11-20）：受控修复（只改字面量 className，YAML 默认停用）
+    "ui_guard_fix": ("act", "write", "high", ["code", "ui", "fix"]),
     "web_extract": ("perceive", "read", "medium", ["web"]),
     "web_post": ("act", "execute", "medium", ["web", "egress"]),
     "web_download": ("act", "write", "medium", ["web"]),

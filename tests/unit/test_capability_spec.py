@@ -153,7 +153,8 @@ class TestCapabilitySpecFields:
         runtime_only = C.runtime_registered_tool_names()
         committed = {n: m for n, m in metas.items() if n not in runtime_only}
         # 【2026-11-19】94 → 95：ui_guard_check（UI 规范守卫，只读）
-        assert len(committed) == 95, f"入库工具 YAML 数量变了（实测应为 95）：{len(committed)}"
+        # 【2026-11-20】95 → 96：ui_guard_fix（受控修复，默认停用但仍登记）
+        assert len(committed) == 96, f"入库工具 YAML 数量变了（实测应为 96）：{len(committed)}"
         for name, meta in committed.items():
             d = meta.to_dict()          # 不抛异常即通过
             assert d["capability_id"], f"{name}: capability_id 为空"
@@ -171,7 +172,8 @@ class TestLocationCoverage:
         # data/skills_repo/<id>/skill.md 未入仓，清单因此少算）。
         # 【2026-10-31】133 -> 135：autoresearch / pdf 入文件轨（§11.32 C · N5）。
         # 【2026-11-07】139 -> 140：chart-visualization 入文件轨（§11.57 ①）。
-        assert len(manifest["entries"]) == 145  # 【2026-11-09】+1：skill_script_run
+        # 【2026-11-20】145 → 146：ui_guard_fix（工具 +1）
+        assert len(manifest["entries"]) == 146
         for e in manifest["entries"]:
             assert e.get("location") in ("local", "remote"), \
                 f"{e['tool_name']}: location 缺失或非法"
