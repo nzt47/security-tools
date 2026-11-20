@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-20T21:50:00+08:00",
+ "updated_at": "2026-11-20T22:05:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -41,6 +41,22 @@
    "title": "UI 原语守卫存量清零：raw_* 0 / CSS 颜色 0 + 量具口径修正",
    "criteria": "2026-11-20 落地（6f097bc39 批次 + 47407e4a6 引擎同源 + c07d38930 前缀修正）：① 量具口径：.test. 不计 raw_*/raw_heading；CSS 自定义属性定义行不计 css_hardcoded_color；新增 tests/unit/test_ui_primitive_convergence.py 2 条。② 12 处原生控件改原语（NetworkPanel/Memory/DockPanel×3/SessionRail×2/replicate/ApiTokenField/TagsField→Input；SwitchField→Switch；exemption/usePermission 注释改 Button）。③ 358 处 CSS 颜色抽成四套调色板 --wbp-*/--pl-*/--dc-*/--ve-*（值逐字保留，规则只写 var()），StatusBadge 未知态补 --color-unknown、CardDetail 遮罩用 --color-overlay；--wbp-* 与既有 --wb-bg/--wb-text 语义 token 分前缀。④ engine._audit_findings 改为与 scripts/audit 同源（跳过 .test.、剥色板定义、计数取 mod.scan）。基线 raw_button 8→0 / raw_select 1→0 / raw_input 11→0 / raw_heading 80→78 / css_hardcoded_color 358→0。",
    "next": "真机：面板 0 错误 / 0 警告 / 458 文件 / 0 回归，明细 0 行；--wbp-bg=#04060d、--wbp-text=#d7e2f0、--pl-bg=#04060d（计算值逐字保留），语义 --wb-bg/--wb-text 未被覆盖。部署 c07d38930 · bundle index-CnwV7DdH.js · pid 88876。CI：c07d38930 的 ci.yml（run 44742787591）30/30 success；yunshu-ui 前端测试 success。注意：色板是「字面值集中到 --* 定义」，不是语义重命名；后续可按主题做语义名。"
+  },
+  {
+   "id": "ui-guard-fix-enable-acceptance",
+   "status": "open",
+   "priority": "P2",
+   "title": "真机验收 ui_guard_fix 启用路径（默认停用 → 启用 → dry_run → L2 审批 → 关闭）",
+   "criteria": "工具已随 c07d38930 部署为 enabled:false / permission_level=restricted / confirm_level=L2，模型可见集已隐藏。未做：在工具页或 /api/tools/toggle 打开，对话里先 dry_run 预览，再 dry_run=false 触发 L2 审批，验证挂单→单次消费→审计链；验收完把 toggle 关回（data/tools_config.json 运行期状态，不提交）。",
+   "next": "按 §11.185 A 执行；不要改 YAML 默认值；记录 tool 页 enabled 读数、审批单与审计 seq，然后恢复停用。"
+  },
+  {
+   "id": "ui-guard-palette-semantic",
+   "status": "open",
+   "priority": "P3",
+   "title": "四套 UI 调色板（--wbp/--pl/--dc/--ve）语义命名（Owner 观感确认后）",
+   "criteria": "§11.184 把 358 条颜色字面值集中到四套调色板变量，规则已 0 字面值；但变量名是角色/色阶（--wbp-bg、--ve-slate-800），不是 --surface/--accent 这类语义名。属可选打磨，需 Owner 先看四页观感再决定。",
+   "next": "若要语义化：先定命名表（每个主题 8-12 个语义名），再逐文件替换定义与 var()；纯 CSS，带三档截图；不要动语义 token --wb-*。"
   },
   {
    "id": "agent-ui-onboarding",
