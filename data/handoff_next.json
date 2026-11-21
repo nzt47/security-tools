@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-21T09:10:00+08:00",
+ "updated_at": "2026-11-21T11:40:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1213,6 +1213,30 @@
    "title": "叶子页页头统一 PageTabsHeader + 页签族统一 folder + 标题行固定 24px",
    "criteria": "2026-11-21 落地 ca4f43740 + 3245f165c：修前 h1 x 186~248 / y 54~78，页签条 y 106~197，页签族混用 folder/pill/segmented。8 个手写页头收口（business/feedback/security/local/platform/health/route-coverage/skill-center/workflow-hub），ui-guard pill→folder；PageTabsHeader 标题行固定 h-6（此前动作控件高度把标题撑高 1~4px）。修后上述页面 h1 全 16px @ (228,70)，页签条 y=106 h=32。",
    "next": "例外：PromptLab 仍用自有 .pl-topbar（248/66，页签条 121/40），要统一需单独一批（独立 CSS）。"
+  },
+  {
+   "id": "ui-guard-tools-in-engineering-boost",
+   "status": "open",
+   "priority": "P3",
+   "title": "ui_guard_check / ui_guard_fix 是否加进 engineering 主线的 boost（默认可见）",
+   "criteria": "2026-11-21 观察：两条 ui_guard 工具都不在任何主线档案的 boost 里，模型只能靠 hybrid 选择看到它们；激活主线是 engineering（data/agent_lines/_active.json）。boost 是入库文件 data/agent_lines/engineering.yaml 的列表（跨平面 +60 分）。加 boost 不影响工具数/能力清单，但会让这两个工具常驻可见（多占 schema token）。",
+   "next": "等 Owner 决定：要默认可见就 append 到 engineering.yaml 的 boost（必要时也 dev）；ui_guard_fix 的 YAML enabled:false 不动，boost 只在启用后才生效。"
+  },
+  {
+   "id": "promptlab-header-unification",
+   "status": "open",
+   "priority": "P3",
+   "title": "PromptLab 页头仍是自有 .pl-topbar（h1 @ 248/66，页签条 121/40），未并入 PageTabsHeader",
+   "criteria": "2026-11-21 页头统一时保留例外：PromptLab 有独立 CSS（pl-title/pl-subtitle/pl-topbar/pl-tabs）与独立观感约定，机械替换会牵动它的三栏布局与字号档。真机：h1 16px @ (248,66)，页签条 y=121 h=40（其它叶子页 228/70 与 106/32）。",
+   "next": "若 Owner 要求完全一致：单独一批 —— 先把 pl-topbar 的 padding/字号映射到 PageTabsHeader，再删多余的 pl-* 规则；三档截图；不要动 pl-* 的业务布局（三栏/预览）。"
+  },
+  {
+   "id": "ci-flake-system-tools-save-tasks",
+   "status": "open",
+   "priority": "P3",
+   "title": "CI 偶发：test_system_tools_core.py::TestSystemToolsLoadSaveTasks::test_save_tasks_creates_directory（ubuntu shard3）",
+   "criteria": "2026-11-21 观察：76371a799 的 ci.yml（run 44841738908）在 ubuntu-22.04 shard3 红一次（assert_called_once），同提交 windows 分片与最终提交 3245f165c 的 30/30 全绿；本机单跑 1 passed（4.7s）。判为环境/顺序敏感（mock os.makedirs 的调用次数依赖创建路径），不是回归。",
+   "next": "再红时先看 junit 的 traceback 与同 worker 的前序用例（xdist 顺序）；不要 --deselect。必要时改成断言\"至少一次且目标路径在调用参数里\"，并在 PR 写清口径变化。"
   }
  ]
 }
