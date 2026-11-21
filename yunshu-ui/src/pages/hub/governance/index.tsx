@@ -17,7 +17,7 @@
 
 import { useMemo, useState } from 'react'
 import {
-  Activity, FileDown, GitBranch, Layers, ScrollText, ShieldAlert,
+  Activity, FileDown, GitBranch, Layers, RefreshCw, ScrollText, ShieldAlert,
   Siren, TrendingUp, Users,
 } from 'lucide-react'
 import {
@@ -596,7 +596,7 @@ export function ApprovalInboxPanel() {
   }
 
   return (
-    <PanelShell loading={loading} error={error} reload={reload}>
+    <PanelShell loading={loading} error={error} reload={reload} hideRefresh>
       {data && (
         <>
           {/* 【2026-11-21 收口】页级标题改 PageHeader（h1 16px + 说明）：
@@ -607,6 +607,11 @@ export function ApprovalInboxPanel() {
             title="审批收件箱"
             description={'批量裁决=逐条走同一审批链（会话+CSRF+链接+二次认证+矩阵），无旁路；'
               + '对话里触发的工具审批在对话内弹窗确认，默认不出现在这里（勾下方开关可看）'}
+            actions={
+              <Button type="button" onClick={reload} variant="accent" size="xs">
+                <RefreshCw size={11} /> 刷新
+              </Button>
+            }
           />
           <PanelHeader
             title="审批收件箱"

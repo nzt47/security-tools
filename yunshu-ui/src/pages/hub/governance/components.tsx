@@ -74,21 +74,26 @@ export function Collapsible({
 
 /** 面板外壳（加载中 / 错误条 / 刷新按钮） */
 export function PanelShell({
-  loading, error, reload, children, onRefresh,
+  loading, error, reload, children, onRefresh, hideRefresh = false,
 }: {
   loading: boolean
   error: string
   reload: () => void
   children: ReactNode
   onRefresh?: () => void
+  /** 单片即整页时置 true：刷新按钮已经进 PageHeader 的动作区，
+   *  否则它会在页标题**上面**多出一行（真机实测标题比别的叶子低 32px） */
+  hideRefresh?: boolean
 }) {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto p-4">
-      <div className="mb-2 flex items-center justify-end gap-2">
-        <Button type="button" onClick={onRefresh || reload} variant="accent" size="xs">
-          <RefreshCw size={11} /> 刷新
-        </Button>
-      </div>
+      {hideRefresh ? null : (
+        <div className="mb-2 flex items-center justify-end gap-2">
+          <Button type="button" onClick={onRefresh || reload} variant="accent" size="xs">
+            <RefreshCw size={11} /> 刷新
+          </Button>
+        </div>
+      )}
       {loading && (
         <div className="flex items-center gap-2 py-8 text-sm text-slate-400">
           <Loader2 size={16} className="animate-spin" /> 加载中…
