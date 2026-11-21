@@ -47,7 +47,10 @@ export default function NetworkTransfer() {
       return
     }
     try {
-      const r = await hubPost<{ ok?: boolean; error?: string; message?: string }>(NETWORK_CONFIG_IMPORT, { config: payload })
+      // 后端字段名是 config_json（字符串），不是已解析的 config 对象；
+      // 2026-11-22 前发 { config } 必然 400「缺少 config_json」。
+      const r = await hubPost<{ ok?: boolean; error?: string; message?: string }>(
+        NETWORK_CONFIG_IMPORT, { config_json: JSON.stringify(payload) })
       if (r?.ok === false) { setErr('导入失败：' + (r.error || 'ok=false')); return }
       setMsg(r?.message ?? '已导入网络配置')
       setConfirmImport(false)

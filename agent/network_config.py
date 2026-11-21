@@ -69,6 +69,12 @@ def default_config_file() -> Path:
         return Path(override)
     return _DEFAULT_NETWORK_CONFIG_FILE
 
+#: 旧版（扁平 schema）曾用顶层 `api_key` / `timeout`；现行配置是嵌套的 llm/network/search，
+#: 这两个键既不在 _DEFAULT_NETWORK_CONFIG 里，也没有任何消费者 —— 而且顶层 api_key 不在
+#: _save 的剥离清单里，前端旧版一旦写入就会明文落进 network_config.json、并原样回给浏览器。
+#: 2026-11-22 起：读（get_all）、写（_save / update）三处一律忽略。
+_LEGACY_TOP_LEVEL_KEYS = ('api_key', 'timeout')
+
 # 默认配置
 _DEFAULT_NETWORK_CONFIG = {
     # LLM 服务配置（单实例，兼容旧版）
@@ -405,6 +411,9 @@ class NetworkConfigManager:
         避免 app_server.py 中 _save 后 apply_search_instances 读取旧缓存覆盖文件。
         """
         save_data = deepcopy(data)
+        # 旧扁平 schema 的遗留顶层键：不落盘（顶层 api_key 会被明文写入、且没有任何消费者）
+        for _legacy_key in _LEGACY_TOP_LEVEL_KEYS:
+            save_data.pop(_legacy_key, None)
         # 移除 llm.api_key（单实例）
         if save_data.get('llm'):
             save_data['llm'].pop('api_key', None)
@@ -580,6 +589,10 @@ class NetworkConfigManager:
                 monitoring_endpoint, "url_auth"
             )
 
+        # 旧扁平 schema 的遗留顶层键：不向调用方回显（它们不在任何 schema 里）
+        for _legacy_key in _LEGACY_TOP_LEVEL_KEYS:
+            safe_config.pop(_legacy_key, None)
+
         return safe_config
 
     def get_raw_config(self) -> dict:
@@ -657,6 +670,9 @@ class NetworkConfigManager:
         # _add_change_log/get_all。
         with self._lock:
             logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.log', 'message': '[网络配置] 开始更新配置...'}))
+            # 旧扁平 schema 的顶层键：请求里带了也忽略（不合并、不落盘、不进变更日志）
+            updates = {k: v for k, v in (updates or {}).items()
+                       if k not in _LEGACY_TOP_LEVEL_KEYS}
             config = self._load()
 
             # 处理 LLM API Key（敏感信息）

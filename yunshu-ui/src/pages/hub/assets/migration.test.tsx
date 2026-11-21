@@ -60,8 +60,10 @@ describe('NetworkTransfer', () => {
     expect(importBtn.disabled, '导入会整体替换配置，必须先确认').toBe(true)
     fireEvent.click(screen.getByLabelText('确认导入配置'))
     fireEvent.click(importBtn)
+    // 后端读的是 config_json（字符串）；2026-11-22 前前端发的是 {config: 对象}，
+    // 运行时必然 400「缺少 config_json」—— 旧断言把这条 bug 当成了契约，已改。
     await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/network-config/import', {
-      config: { llm: { enabled: true } },
+      config_json: '{"llm":{"enabled":true}}',
     }))
   })
 

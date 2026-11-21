@@ -996,3 +996,49 @@ class TestChangeLog:
 # 运行测试
 if __name__ == '__main__':
     pytest.main([__file__, '-v', '--tb=short'])
+
+class TestLegacyFlatSchemaKeys:
+    """旧扁平 schema 的顶层 api_key / timeout：不回显、不落盘、不合并（2026-11-22）
+
+    背景：前端旧版「网络配置」页读写顶层 provider/model/api_key/timeout，
+    其中顶层 api_key 不在 _save 的剥离清单里 —— 一旦填写会以**明文**写进
+    network_config.json，GET 还会原样回给浏览器。现行 schema 是嵌套的
+    llm/network/search，这两个顶层键没有任何消费者。
+    """
+
+    def test_update_ignores_legacy_top_level_keys(self, tmp_path):
+        p = tmp_path / "network_config.json"
+        manager = NetworkConfigManager(config_file=str(p))
+        manager.update({
+            "api_key": "sk-legacy-plaintext",
+            "timeout": "",
+            "network": {"timeout": 31},
+        })
+        saved = json.loads(p.read_text(encoding="utf-8"))
+        assert "api_key" not in saved, "顶层 api_key 不得明文落盘"
+        assert "timeout" not in saved, "顶层 timeout 不是 schema 字段"
+        assert saved["network"]["timeout"] == 31, "嵌套字段照常写入"
+
+    def test_get_all_hides_legacy_top_level_keys(self, tmp_path):
+        p = tmp_path / "network_config.json"
+        p.write_text(
+            json.dumps({"api_key": "sk-old", "timeout": "", "network": {"timeout": 30}}),
+            encoding="utf-8",
+        )
+        manager = NetworkConfigManager(config_file=str(p))
+        cfg = manager.get_all()
+        assert "api_key" not in cfg, "GET 不得回显旧顶层 api_key"
+        assert "timeout" not in cfg, "GET 不得回显旧顶层 timeout"
+        assert cfg["network"]["timeout"] == 30, "嵌套字段照常返回"
+
+    def test_save_strips_legacy_keys_even_if_cache_has_them(self, tmp_path):
+        """防御：其它写入点绕过 update() 时，_save 仍不得把顶层键写进文件"""
+        p = tmp_path / "network_config.json"
+        manager = NetworkConfigManager(config_file=str(p))
+        cache = manager._load()
+        cache["api_key"] = "sk-bypassed"
+        cache["timeout"] = ""
+        manager._save(cache)
+        saved = json.loads(p.read_text(encoding="utf-8"))
+        assert "api_key" not in saved
+        assert "timeout" not in saved
