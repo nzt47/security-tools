@@ -13,6 +13,7 @@ import { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react
 import { hubGet, hubPost } from '../hub/components/ui'
 
 import {
+  SUBAGENT_LIST,
   SYSTEM_PROMPT_CONFIG,
   SYSTEM_PROMPT_CONFIG_APPLY,
   SYSTEM_PROMPT_CONFIG_PREVIEW,
@@ -443,4 +444,64 @@ export function useIdentityPrompt(): UseIdentityPromptResult {
     onReset,
     onReload: () => void reload(),
   }
+}
+// ─── 分身角色方案（按角色类型多套身份提示词） ──────────────────────────
+//
+// 数据源：`GET /api/subagent/list` 的 `role.prompt_sets`（后端 role_catalog 投影，
+// 正文在 agent/subagent/role_prompt_library.py，与受控角色词表单一来源）。
+// 这里只是把「有什么可复制的成稿」拿上屏；真正写进分身的仍是用户的 role_text（≤2000 字）。
+
+export interface RolePromptSet {
+  id: string
+  title: string
+  /** 适用场景（一句话） */
+  scene: string
+  /** 可整段复制的提示词正文 */
+  body: string
+  /** 正文字符数（后端算好一并给出，前端不再重复数） */
+  chars?: number
+}
+
+export interface RolePromptSetGroup {
+  role_id: string
+  role_title: string
+  role_note?: string
+  sets: RolePromptSet[]
+}
+
+export interface UseRolePromptSetsResult {
+  groups: RolePromptSetGroup[]
+  loading: boolean
+  /** 取不到时 groups 为空（页面上只是少一块参考模板，不该报错刷屏） */
+  error: string
+}
+
+export function useRolePromptSets(): UseRolePromptSetsResult {
+  const [groups, setGroups] = useState<RolePromptSetGroup[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      try {
+        const data = await hubGet<{ role?: { prompt_sets?: RolePromptSetGroup[] } }>(SUBAGENT_LIST)
+        const list = Array.isArray(data?.role?.prompt_sets) ? data.role.prompt_sets : []
+        if (!alive) return
+        // 只保留真有方案的组（后端降级时可能是空数组）
+        setGroups(list.filter((g) => g && Array.isArray(g.sets) && g.sets.length > 0))
+      } catch (e) {
+        if (!alive) return
+        setError(e instanceof Error ? e.message : String(e))
+        setGroups([])
+      } finally {
+        if (alive) setLoading(false)
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  return { groups, loading, error }
 }

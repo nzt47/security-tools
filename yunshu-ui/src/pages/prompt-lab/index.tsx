@@ -62,7 +62,7 @@ import LlmMonitorPanel from './LlmMonitorPanel';
 // 它与"影响因素/人格"同属"模型侧配置"，此前只有后端与手改文件。
 // 【2026-11-15 人格不再有两份】原「人格」Tab（pages/hub/personality.tsx）已删除，
 // 6 维滑块 + 预设 + 重置全部住在影响因素页的「人格」分类里（单一入口）。
-import { useIdentityPrompt } from './identityPrompt';
+import { useIdentityPrompt, useRolePromptSets } from './identityPrompt';
 // 人格 6 维 ↔ /api/personality 的同步（首屏 GET 覆盖 + 防抖 400ms POST）
 import { usePersonalityFactors } from './personalityFactors';
 // 三列宽度可拖拽 + 自动保存（Owner 2026-11-15：「由我来定列宽吧」）
@@ -115,6 +115,8 @@ export default function PromptLab() {
 
   // 深度合并：线上「身份提示词」配置（后端模板 = 注入 system message 的唯一来源）
   const identity = useIdentityPrompt();
+  // 分身角色方案（按角色类型多套身份提示词；取不到就不渲染那块，不影响本页）
+  const roleSets = useRolePromptSets();
   /**
    * 「不进最终注入文本」的启用节（emit_stage ≠ system_prompt）：tools 参数 / 用户消息前置 /
    * 运行期注入。2026-11-15 Owner 问「为什么到 ## 记忆线索 {memory_context} 就没有下文了」——
@@ -439,6 +441,7 @@ export default function PromptLab() {
             <h2 className="pl-col-title text-ui">分节配置（哪些块进提示词）</h2>
             <IdentityPromptPanel
               {...toIdentityPromptPanelProps(identity)}
+              roleSets={roleSets.groups}
               focusedKey={focusRowKey}
               onFocusRow={setFocusRowKey}
             />

@@ -16,9 +16,12 @@
  *     （onFocusRow 上抛 key，由页面把 emitText 传给 PreviewPanel.highlightSnippet）。
  * 排序：行序由 identityPrompt.buildRows 按「发出顺序」（模板中的注入位置）给出。
  */
-import { Loader2, RefreshCw, RotateCcw, Save, TriangleAlert, Zap } from 'lucide-react'
+import { useState } from 'react'
+import { Check, Copy, Loader2, RefreshCw, RotateCcw, Save, TriangleAlert, Zap } from 'lucide-react'
 import { SectionTitle, Switch, Textarea, Button} from '@/components/ui'
-import type { IdentityRow, IdentitySummary, UseIdentityPromptResult } from './identityPrompt'
+import type {
+  IdentityRow, IdentitySummary, RolePromptSet, RolePromptSetGroup, UseIdentityPromptResult,
+} from './identityPrompt'
 
 export interface IdentityPromptPanelProps {
   rows: IdentityRow[]
@@ -40,6 +43,11 @@ export interface IdentityPromptPanelProps {
   onFocusRow?: (key: string | null) => void
   /** 当前聚焦的面板项 key */
   focusedKey?: string | null
+  /**
+   * 分身角色方案（按角色类型，每类多套身份提示词）——来自 GET /api/subagent/list 的 role.prompt_sets。
+   * 空数组/未传 = 不渲染这一块（取不到只是少一块参考模板，不在身份提示词面板里报错）。
+   */
+  roleSets?: RolePromptSetGroup[]
 }
 
 /** 由 Hook 结果构造面板 props（组件不直接依赖 Hook 类型，便于测试/复用） */
@@ -66,7 +74,7 @@ export default function IdentityPromptPanel(props: IdentityPromptPanelProps) {
   const {
     rows, summary, loading, saving, applying, dirty, error, msg,
     onToggle, onEditContent, onSave, onApply, onReset, onReload,
-    onFocusRow, focusedKey,
+    onFocusRow, focusedKey, roleSets = [],
   } = props
   const enabledCount = rows.filter((r) => r.enabled).length
   const busy = loading || saving || applying
@@ -234,6 +242,98 @@ export default function IdentityPromptPanel(props: IdentityPromptPanelProps) {
           data/system_prompt.txt）。注入模板段序 = DeepSeek 前缀缓存命中顺序（稳定前置/易变后置）。
         </span>
       </div>
+
+      {roleSets.length > 0 && <RolePromptSetSection roleSets={roleSets} />}
     </section>
+  )
+}
+
+/**
+ * 分身角色方案：按角色类型列出多套**可整段复制**的身份提示词。
+ *
+ * 【为什么放在身份提示词面板里】分身的 role_text 就是「身份提示词」的另一种宿主：
+ * 主智能体那套是逐节配置（线上 system prompt），分身那套是整段粘贴（role_text，≤2000 字）。
+ * 两者放同一页，用户找"给分身写身份"时不会跑去别处。
+ *
+ * 【为什么不直接写入分身】创建/编辑分身有独立的权限与审计链路（role_mode 档位、
+ * red 档需审计），从提示词页越权改分身会绕开那条链路。这里只提供成稿 + 复制。
+ */
+function RolePromptSetSection({ roleSets }: { roleSets: RolePromptSetGroup[] }) {
+  const [roleId, setRoleId] = useState('')
+  const [copied, setCopied] = useState('')
+  const [copyErr, setCopyErr] = useState('')
+  const active = roleSets.find((g) => g.role_id === roleId) ?? roleSets[0]
+  const total = roleSets.reduce((n, g) => n + g.sets.length, 0)
+
+  const copy = async (s: RolePromptSet) => {
+    setCopyErr('')
+    try {
+      await navigator.clipboard.writeText(s.body)
+      setCopied(s.id)
+      window.setTimeout(() => setCopied((cur) => (cur === s.id ? '' : cur)), 1800)
+    } catch {
+      // 复制失败不假装成功：让用户手选文本框里的内容
+      setCopyErr('浏览器不允许写剪贴板：请点开下方文本框全选复制。')
+    }
+  }
+
+  return (
+    <div className="pl-role-sets mt-6">
+      <SectionTitle level={2} actions={<span className="pl-category-count">{roleSets.length} 类角色 · {total} 套</span>}>
+        分身角色方案（按角色类型）
+      </SectionTitle>
+      <p className="pl-category-desc">
+        分身创建时可从这里挑一套<b>角色说明</b>。先选角色类型，再选方案；每套都是自足的通用提示词，
+        <b>复制</b>后粘到「分身 → 角色说明」，档位选「模板+说明」（正文不能超过 2000 字符，后端会拒）。
+        这里只提供成稿，不会改动任何分身。
+      </p>
+
+      <div className="mt-2 flex flex-wrap items-center gap-1.5" role="group" aria-label="分身角色类型">
+        {roleSets.map((g) => (
+          <Button
+            key={g.role_id}
+            type="button"
+            size="xs"
+            variant={g.role_id === active?.role_id ? 'primary' : 'default'}
+            aria-pressed={g.role_id === active?.role_id}
+            onClick={() => { setRoleId(g.role_id); setCopied(''); setCopyErr('') }}
+          >
+            {g.role_title}
+          </Button>
+        ))}
+      </div>
+
+      {active?.role_note && <p className="pl-factor-desc mt-2">{active.role_note}</p>}
+      {copyErr && <p className="pl-error">{copyErr}</p>}
+
+      <div className="pl-card-grid mt-2">
+        {active?.sets.map((s) => (
+          <div key={s.id} className="pl-factor-card" data-cp-role-set={s.id}>
+            <div className="pl-factor-head">
+              <span className="pl-factor-name">{s.title}</span>
+              <span className="pl-token-chip" title="正文字符数（role_text 上限 2000）">
+                {s.chars ?? s.body.length} 字
+              </span>
+            </div>
+            <p className="pl-factor-desc">{s.scene}</p>
+            <Textarea
+              className="mt-2"
+              rows={7}
+              value={s.body}
+              readOnly
+              spellCheck={false}
+              aria-label={s.title + ' 角色提示词正文'}
+            />
+            <div className="mt-2 flex items-center gap-2">
+              <Button type="button" size="sm" variant="default" onClick={() => void copy(s)}>
+                {copied === s.id ? <Check size={12} /> : <Copy size={12} />}
+                {copied === s.id ? '已复制' : '复制'}
+              </Button>
+              <span className="pl-id-hint">粘到「分身 → 角色说明」</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }

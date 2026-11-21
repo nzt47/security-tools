@@ -49,8 +49,11 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any, Dict, List, Mapping, Optional, Tuple
+
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "DEFAULT_ROLE_TIER",
@@ -272,7 +275,21 @@ def role_catalog() -> Dict[str, Any]:
                    "red": is_red_tier(t), "audit": requires_audit(t)} for t in ROLE_TIERS],
         "default_tier": DEFAULT_ROLE_TIER,
         "role_text_max_chars": ROLE_TEXT_MAX_CHARS,
+        # 分身身份提示词方案库（按角色类型多套；正文见 role_prompt_library.py）。
+        # 【惰性导入】方案库要读本模块的词表取角色标题，顶层 import 会成环。
+        "prompt_sets": _prompt_sets_catalog(),
     }
+
+
+def _prompt_sets_catalog() -> List[Dict[str, Any]]:
+    """方案库投影（失败一律降级为空列表：角色视图不可因方案库挂掉而 500）"""
+    try:
+        from agent.subagent.role_prompt_library import prompt_sets_catalog
+
+        return prompt_sets_catalog()
+    except Exception as e:  # noqa: BLE001
+        logger.warning("[SubagentRole] 身份提示词方案库不可用（角色视图照常返回）: %s", e)
+        return []
 
 
 # ======================================================================
