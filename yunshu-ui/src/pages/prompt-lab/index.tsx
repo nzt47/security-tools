@@ -251,7 +251,7 @@ export default function PromptLab() {
           本页保留「吸顶 + 毛玻璃」外观（.pl-page-header），因为本页是整页滚动、页头要跟着吸顶。 */}
       <PageTabsHeader
         className="pl-page-header"
-        icon={<ActiveTabIcon size={15} className="text-muted-foreground" aria-hidden />}
+        icon={<ActiveTabIcon size={14} className="text-muted-foreground" aria-hidden />}
         title="提示词实验室"
         hint={activeTab.hint}
         actions={
@@ -271,6 +271,7 @@ export default function PromptLab() {
         tabs={
           <Tabs
             variant="folder"
+            className="-mb-px"
             aria-label="提示词实验室模块"
             value={tab}
             onChange={(v) => setTab(v as typeof tab)}
