@@ -61,8 +61,9 @@ export default function NotificationsPage() {
       />
       <div className="min-h-0 flex-1 overflow-y-auto">
         <AdminGuard>
-          <div className="p-6">
-            {tab === 'notify' && <NotificationCenter />}
+          {/* 【2026-11-21】p-6 → p-4 + level="section"：标题降为 h2 14px，不再出现第二个 h1 */}
+          <div className="p-4">
+            {tab === 'notify' && <NotificationCenter level="section" />}
             {tab === 'channels' && <HubChannelsPanel />}
           </div>
         </AdminGuard>

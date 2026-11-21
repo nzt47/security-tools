@@ -61,4 +61,15 @@ describe('PageContainer', () => {
     render(<PageContainer title="仅标题">内容</PageContainer>)
     expect(screen.queryByRole('button')).toBeNull()
   })
+
+  it('level="section"：标题降为 h2（页内 Tab 子模块用），整页模式仍是 h1', () => {
+    // 【2026-11-21】账号与权限 / 消息与通道 合页后，子页自带的 PageContainer 又给了一个 h1
+    // ⇒ 一页两个 h1、还多一层 p-6。section 档位把它降成 h2（14px，与 SectionTitle 同档）。
+    const { unmount } = render(<PageContainer level="page" title="整页标题">x</PageContainer>)
+    expect(screen.getByRole('heading', { level: 1, name: '整页标题' })).toBeInTheDocument()
+    unmount()
+    render(<PageContainer level="section" title="区段标题">x</PageContainer>)
+    expect(screen.getByRole('heading', { level: 2, name: '区段标题' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { level: 1, name: '区段标题' })).toBeNull()
+  })
 })

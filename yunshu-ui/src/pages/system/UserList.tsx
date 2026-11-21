@@ -60,14 +60,12 @@ const columns: TableColumn<UserListItem>[] = [
       ),
   },
   { key: 'createdAt', header: '创建时间' },
-  {
-    key: 'actions',
-    header: '操作',
-    render: () => null, // 操作列依赖页面内状态，由页面在 Table 外层用 actionRender 提供
-  },
+  // 【2026-11-21 删除重复列】这里原来还有一枚 key='actions' 的空占位列，而页面渲染时
+  // 又 concat 了真正的 actionColumn（见 columns={[...columns, actionColumn]}）⇒
+  // 表头出现**两个「操作」**（第二个整列空白），React 还报 two children with the same key。
 ]
 
-export default function UserList() {
+export default function UserList({ level = 'page' }: { level?: 'page' | 'section' }) {
   // 搜索输入框（受控，点击「查询」后才写入 query）与跳转页码输入框（受控）
   const [keywordInput, setKeywordInput] = useState('')
   const [pageInput, setPageInput] = useState('1')
@@ -176,6 +174,7 @@ export default function UserList() {
 
   return (
     <PageContainer
+      level={level}
       title="用户管理"
       description="管理系统用户账号、角色与状态"
       actions={

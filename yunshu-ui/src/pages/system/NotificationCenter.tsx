@@ -55,7 +55,7 @@ const TYPE_BADGE: Record<NotificationType, string> = {
   alert: 'bg-danger/10 text-danger',
 }
 
-export default function NotificationCenter() {
+export default function NotificationCenter({ level = 'page' }: { level?: 'page' | 'section' }) {
   const [typeInput, setTypeInput] = useState<NotificationType | ''>('')
   const [unreadOnlyInput, setUnreadOnlyInput] = useState(false)
   const [unread, setUnread] = useState(0)
@@ -108,6 +108,7 @@ export default function NotificationCenter() {
 
   return (
     <PageContainer
+      level={level}
       title="消息中心"
       description="系统运行期报警与恢复记录（与顶栏报警器同一张台账；审批单据请去「审批收件箱」）"
       actions={

@@ -52,7 +52,7 @@ const columns: TableColumn<RoleItem>[] = [
   { key: 'createdAt', header: '创建时间', render: (r) => <span className="text-muted-foreground">{r.createdAt}</span> },
 ]
 
-export default function RoleList() {
+export default function RoleList({ level = 'page' }: { level?: 'page' | 'section' }) {
   const [keywordInput, setKeywordInput] = useState('')
   const [pageInput, setPageInput] = useState('1')
 
@@ -210,6 +210,7 @@ export default function RoleList() {
 
   return (
     <PageContainer
+      level={level}
       title="角色管理"
       description="管理角色、权限分配与数据范围"
       actions={

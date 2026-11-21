@@ -68,10 +68,12 @@ export default function AccountsPage() {
       />
       <div className="min-h-0 flex-1 overflow-y-auto">
         <AdminGuard>
-          <div className="p-6">
-            {tab === 'users' && <UserList />}
-            {tab === 'roles' && <RoleList />}
-            {tab === 'menus' && <MenuList />}
+          {/* 【2026-11-21】p-6 → p-4：与其它叶子一致；子页用 level="section"
+              （标题降为 h2 14px、不再套第二层页面 padding，否则一页两个 h1） */}
+          <div className="p-4">
+            {tab === 'users' && <UserList level="section" />}
+            {tab === 'roles' && <RoleList level="section" />}
+            {tab === 'menus' && <MenuList level="section" />}
           </div>
         </AdminGuard>
       </div>

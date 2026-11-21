@@ -19,7 +19,7 @@ import ConfirmDialog from '@/components/ConfirmDialog'
 import { Badge, Button, Card, Empty, Loading, PageContainer } from '@/components/ui'
 import MenuFormDialog from './MenuFormDialog'
 
-export default function MenuList() {
+export default function MenuList({ level = 'page' }: { level?: 'page' | 'section' }) {
   const [tree, setTree] = useState<MenuItem[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -115,6 +115,7 @@ export default function MenuList() {
 
   return (
     <PageContainer
+      level={level}
       title="菜单管理"
       description="配置侧边栏菜单树（标题 / 路径 / 图标 / 权限码），数据驱动菜单渲染。"
       actions={
