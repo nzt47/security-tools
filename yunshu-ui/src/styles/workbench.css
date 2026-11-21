@@ -8,33 +8,35 @@
    守卫：scripts/audit/ui_primitive_convergence.py 的 style_import_violations（--check 会红）。 */
 
 :root {
-  /* 工作台**调色板**（2026-11-20）：与语义 token（--wb-panel/--wb-text…）分前缀，
-     避免同名覆盖。原 92 处字面值集中于此；规则只写 var(--wbp-*)。 */
-  --wbp-cyan: #22d3ee;
-  --wbp-cyan-200: #a5f3fc;
-  --wbp-cyan-300: #67e8f9;
-  --wbp-sky: #38bdf8;
-  --wbp-sky-300: #7dd3fc;
-  --wbp-sky-100: #e0f2fe;
-  --wbp-blue: #3b82f6;
-  --wbp-emerald: #34d399;
-  --wbp-emerald-300: #6ee7b7;
-  --wbp-slate: #94a3b8;
-  --wbp-slate-300: #cbd5e1;
-  --wbp-slate-100: #f1f5f9;
-  --wbp-red: #f87171;
-  --wbp-red-300: #fca5a5;
-  --wbp-purple: #a855f7;
-  --wbp-purple-300: #d8b4fe;
-  --wbp-amber: #fbbf24;
-  --wbp-text: #d7e2f0;
-  --wbp-paper: #eef6ff;
-  --wbp-bg: #04060d;
-  --wbp-bg-soft: #0a0e1a;
-  --wbp-bg-4: #040810;
-  --wbp-deep: #0f172a;
-  --wbp-deep-2: #020617;
-  --wbp-black: #000;
+  /* 工作台**调色板**：与语义 token（--wb-panel/--wb-text…）分前缀，避免同名覆盖。
+     2026-11-20 把原 92 处字面值集中到这里（规则只写 var(--wbp-*)）；
+     2026-11-21 按 Owner 决定改成语义名（canvas/surface/text/accent/status…，值逐字不变），
+     对照表见 docs/ui/调色板语义命名表.md，等价性量具 .local/verify_palette_equiv.py。 */
+  --wbp-accent: #22d3ee;
+  --wbp-brand-text: #a5f3fc;
+  --wbp-accent-text: #67e8f9;
+  --wbp-accent-alt: #38bdf8;
+  --wbp-brand-glow: #7dd3fc;
+  --wbp-accent-contrast: #e0f2fe;
+  --wbp-accent-strong: #3b82f6;
+  --wbp-success: #34d399;
+  --wbp-success-text: #6ee7b7;
+  --wbp-text-muted: #94a3b8;
+  --wbp-text-secondary: #cbd5e1;
+  --wbp-text-strong: #f1f5f9;
+  --wbp-danger: #f87171;
+  --wbp-danger-text: #fca5a5;
+  --wbp-tool-accent: #a855f7;
+  --wbp-tool-accent-text: #d8b4fe;
+  --wbp-warning: #fbbf24;
+  --wbp-text-primary: #d7e2f0;
+  --wbp-text-heading: #eef6ff;
+  --wbp-canvas: #04060d;
+  --wbp-canvas-raised: #0a0e1a;
+  --wbp-canvas-sunken: #040810;
+  --wbp-surface: #0f172a;
+  --wbp-surface-sunken: #020617;
+  --wbp-shadow: #000;
 }
 
 /**
@@ -81,9 +83,9 @@ body,
   height: 100%;
   overflow: hidden;
   background:
-    radial-gradient(1100px 520px at 8% -8%, color-mix(in srgb, var(--wbp-sky) 14%, transparent), transparent 60%),
-    radial-gradient(900px 480px at 105% 15%, color-mix(in srgb, var(--wbp-cyan) 10%, transparent), transparent 55%),
-    radial-gradient(700px 700px at 50% 120%, color-mix(in srgb, var(--wbp-blue) 8%, transparent), transparent 60%),
+    radial-gradient(1100px 520px at 8% -8%, color-mix(in srgb, var(--wbp-accent-alt) 14%, transparent), transparent 60%),
+    radial-gradient(900px 480px at 105% 15%, color-mix(in srgb, var(--wbp-accent) 10%, transparent), transparent 55%),
+    radial-gradient(700px 700px at 50% 120%, color-mix(in srgb, var(--wbp-accent-strong) 8%, transparent), transparent 60%),
     linear-gradient(180deg, var(--wb-bg), var(--wb-bg-2));
   color: var(--wb-text);
   font-family: var(--wb-font);
@@ -97,7 +99,7 @@ body,
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image: radial-gradient(color-mix(in srgb, var(--wbp-slate) 8%, transparent) 1px, transparent 1px);
+  background-image: radial-gradient(color-mix(in srgb, var(--wbp-text-muted) 8%, transparent) 1px, transparent 1px);
   background-size: 26px 26px;
   mask-image: radial-gradient(ellipse at 30% 0%, black 30%, transparent 75%);
 }
@@ -112,7 +114,7 @@ body,
   padding: 0 16px;
   height: 48px;
   border-bottom: 1px solid var(--wb-border);
-  background: color-mix(in srgb, var(--wbp-bg) 60%, transparent);
+  background: color-mix(in srgb, var(--wbp-canvas) 60%, transparent);
   backdrop-filter: blur(12px);
 }
 
@@ -124,9 +126,9 @@ body,
   height: 30px;
   border-radius: 9px;
   border: 1px solid var(--wb-border-strong);
-  background: linear-gradient(135deg, color-mix(in srgb, var(--wbp-cyan) 16%, transparent), color-mix(in srgb, var(--wbp-sky) 5%, transparent));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--wbp-accent) 16%, transparent), color-mix(in srgb, var(--wbp-accent-alt) 5%, transparent));
   color: var(--wb-accent);
-  box-shadow: 0 0 18px color-mix(in srgb, var(--wbp-cyan) 18%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--wbp-accent) 18%, transparent);
 }
 
 .wb-brand-title {
@@ -134,7 +136,7 @@ body,
   font-size: var(--text-body-lg);
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  background: linear-gradient(90deg, var(--wbp-cyan-200), var(--wbp-sky-300));
+  background: linear-gradient(90deg, var(--wbp-brand-text), var(--wbp-brand-glow));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -147,9 +149,9 @@ body,
   margin-left: 8px;
   padding: 2px 10px;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--wbp-emerald) 25%, transparent);
-  background: color-mix(in srgb, var(--wbp-emerald) 8%, transparent);
-  color: var(--wbp-emerald-300);
+  border: 1px solid color-mix(in srgb, var(--wbp-success) 25%, transparent);
+  background: color-mix(in srgb, var(--wbp-success) 8%, transparent);
+  color: var(--wbp-success-text);
   font-size: var(--text-caption);
 }
 
@@ -169,7 +171,7 @@ body,
   padding: 2px 8px;
   border-radius: 999px;
   border: 1px solid var(--wb-border);
-  background: color-mix(in srgb, var(--wbp-slate) 8%, transparent);
+  background: color-mix(in srgb, var(--wbp-text-muted) 8%, transparent);
   color: var(--wb-text-dim);
   font-family: var(--wb-mono);
   font-size: var(--text-micro);
@@ -181,11 +183,11 @@ body,
   0%,
   100% {
     opacity: 1;
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--wbp-emerald) 40%, transparent);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--wbp-success) 40%, transparent);
   }
   50% {
     opacity: 0.6;
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--wbp-emerald) 0%, transparent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--wbp-success) 0%, transparent);
   }
 }
 
@@ -324,12 +326,12 @@ body,
   height: 2px;
   transform: translateX(-50%);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--wbp-slate) 45%, transparent);
+  background: color-mix(in srgb, var(--wbp-text-muted) 45%, transparent);
   transition: background 0.15s;
 }
 
 .wb-mosaic-body .mosaic-window:hover .wb-panel-grip::after {
-  background: color-mix(in srgb, var(--wbp-cyan) 80%, transparent);
+  background: color-mix(in srgb, var(--wbp-accent) 80%, transparent);
 }
 
 /* ─── 面板右上角悬浮 ⋮ 菜单（独立窗口 / 放大 / 关闭）───
@@ -368,7 +370,7 @@ body,
 
 .wb-panel-menu-trigger:hover {
   opacity: 1;
-  background: color-mix(in srgb, var(--wbp-slate) 16%, transparent);
+  background: color-mix(in srgb, var(--wbp-text-muted) 16%, transparent);
   color: var(--wb-text);
 }
 
@@ -380,9 +382,9 @@ body,
   padding: 3px;
   border: 1px solid var(--wb-border);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--wbp-bg-soft) 96%, transparent);
+  background: color-mix(in srgb, var(--wbp-canvas-raised) 96%, transparent);
   backdrop-filter: blur(10px);
-  box-shadow: 0 10px 28px color-mix(in srgb, var(--wbp-black) 45%, transparent);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--wbp-shadow) 45%, transparent);
 }
 
 .wb-panel-menu-item {
@@ -394,7 +396,7 @@ body,
   border: 0;
   border-radius: 5px;
   background: transparent;
-  color: var(--wbp-slate-300);
+  color: var(--wbp-text-secondary);
   font-family: inherit;
   font-size: var(--text-body);
   text-align: left;
@@ -403,13 +405,13 @@ body,
 }
 
 .wb-panel-menu-item:hover {
-  background: color-mix(in srgb, var(--wbp-cyan) 12%, transparent);
-  color: var(--wbp-cyan-200);
+  background: color-mix(in srgb, var(--wbp-accent) 12%, transparent);
+  color: var(--wbp-brand-text);
 }
 
 .wb-panel-menu-item.danger:hover {
-  background: color-mix(in srgb, var(--wbp-red) 14%, transparent);
-  color: var(--wbp-red-300);
+  background: color-mix(in srgb, var(--wbp-danger) 14%, transparent);
+  color: var(--wbp-danger-text);
 }
 
 /* ─── 分割条：零宽（对齐 DeepSeek Harness 的做法）───
@@ -476,7 +478,7 @@ body,
 }
 
 .wb-mosaic-body .mosaic-split:hover::before {
-  background: color-mix(in srgb, var(--wbp-cyan) 60%, transparent);
+  background: color-mix(in srgb, var(--wbp-accent) 60%, transparent);
 }
 
 /* 库自带的 1px 线元素：父级 width:0 后它会算成负宽，隐藏掉免得留残影 */
@@ -486,7 +488,7 @@ body,
 
 /* 拖拽放置目标 */
 .wb-mosaic-body .mosaic-drop-target .drop-target-container .drop-target {
-  background: color-mix(in srgb, var(--wbp-cyan) 14%, transparent);
+  background: color-mix(in srgb, var(--wbp-accent) 14%, transparent);
   border: 1px dashed var(--wb-border-strong);
   border-radius: var(--wb-radius);
 }
@@ -508,7 +510,7 @@ body,
 
 .wb-mosaic-body .mosaic-default-control:hover {
   color: var(--wb-accent);
-  background: color-mix(in srgb, var(--wbp-cyan) 10%, transparent);
+  background: color-mix(in srgb, var(--wbp-accent) 10%, transparent);
 }
 
 /* ─── 左侧导航 / 历史 ─── */
@@ -529,13 +531,13 @@ body,
 
 .wb-nav-item:hover {
   color: var(--wb-text);
-  background: color-mix(in srgb, var(--wbp-slate) 8%, transparent);
+  background: color-mix(in srgb, var(--wbp-text-muted) 8%, transparent);
 }
 
 .wb-nav-item.active {
   color: var(--wb-accent);
   border-color: var(--wb-border-strong);
-  background: color-mix(in srgb, var(--wbp-cyan) 8%, transparent);
+  background: color-mix(in srgb, var(--wbp-accent) 8%, transparent);
 }
 
 .wb-history-item {
@@ -556,7 +558,7 @@ body,
 
 .wb-history-item:hover {
   color: var(--wb-text);
-  background: color-mix(in srgb, var(--wbp-slate) 8%, transparent);
+  background: color-mix(in srgb, var(--wbp-text-muted) 8%, transparent);
 }
 
 .wb-history-item.active {
@@ -599,15 +601,15 @@ body,
    变量挂在消息列表容器 .wb-chat-surface 上（ChatPanel），故这里只消费变量；
    未设置变量时 fallback 到工作台主题，保证任何入口（独立窗口等）都有兜底观感。 */
 .wb-bubble-user {
-  background: var(--chat-user-bg, color-mix(in srgb, var(--wbp-sky) 10%, transparent));
-  border-color: var(--chat-user-border, color-mix(in srgb, var(--wbp-sky) 20%, transparent));
-  color: var(--chat-user-text, var(--wbp-sky-100));
+  background: var(--chat-user-bg, color-mix(in srgb, var(--wbp-accent-alt) 10%, transparent));
+  border-color: var(--chat-user-border, color-mix(in srgb, var(--wbp-accent-alt) 20%, transparent));
+  color: var(--chat-user-text, var(--wbp-accent-contrast));
   border-radius: var(--chat-bubble-radius-user, 14px 14px 4px 14px);
 }
 .wb-bubble-bot {
-  background: var(--chat-bot-bg, color-mix(in srgb, var(--wbp-deep) 50%, transparent));
-  border-color: var(--chat-bot-border, color-mix(in srgb, var(--wbp-cyan) 15%, transparent));
-  color: var(--chat-bot-text, var(--wbp-slate-100));
+  background: var(--chat-bot-bg, color-mix(in srgb, var(--wbp-surface) 50%, transparent));
+  border-color: var(--chat-bot-border, color-mix(in srgb, var(--wbp-accent) 15%, transparent));
+  color: var(--chat-bot-text, var(--wbp-text-strong));
   border-radius: var(--chat-bubble-radius-bot, 14px 14px 14px 4px);
 }
 .wb-chat-surface {
@@ -634,9 +636,9 @@ body,
   color: var(--wb-text);
 }
 .wb-display-toggle.on {
-  border-color: color-mix(in srgb, var(--wbp-cyan) 55%, transparent);
-  background: color-mix(in srgb, var(--wbp-cyan) 12%, transparent);
-  color: var(--wbp-cyan-300);
+  border-color: color-mix(in srgb, var(--wbp-accent) 55%, transparent);
+  background: color-mix(in srgb, var(--wbp-accent) 12%, transparent);
+  color: var(--wbp-accent-text);
 }
 .wb-display-toggle.off {
   opacity: 0.6;
@@ -650,15 +652,15 @@ body,
   min-width: 14px;
   padding: 0 4px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--wbp-slate) 18%, transparent);
+  background: color-mix(in srgb, var(--wbp-text-muted) 18%, transparent);
   font-family: var(--wb-mono);
   font-size: var(--text-micro);
   line-height: 14px;
   text-align: center;
 }
 .wb-display-toggle.on .wb-display-count {
-  background: color-mix(in srgb, var(--wbp-cyan) 25%, transparent);
-  color: var(--wbp-cyan-200);
+  background: color-mix(in srgb, var(--wbp-accent) 25%, transparent);
+  color: var(--wbp-brand-text);
 }
 
 /* ─── 思考过程 / 工具调用步骤（对话内联显示） ─── */
@@ -666,17 +668,17 @@ body,
 .wb-tool-step {
   width: 100%;
   border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--wbp-slate) 22%, transparent);
-  background: color-mix(in srgb, var(--wbp-deep) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--wbp-text-muted) 22%, transparent);
+  background: color-mix(in srgb, var(--wbp-surface) 45%, transparent);
   overflow: hidden;
 }
 .wb-thought-block {
-  border-color: color-mix(in srgb, var(--wbp-amber) 28%, transparent);
-  background: color-mix(in srgb, var(--wbp-amber) 5%, transparent);
+  border-color: color-mix(in srgb, var(--wbp-warning) 28%, transparent);
+  background: color-mix(in srgb, var(--wbp-warning) 5%, transparent);
 }
 .wb-tool-step {
-  border-color: color-mix(in srgb, var(--wbp-purple) 28%, transparent);
-  background: color-mix(in srgb, var(--wbp-purple) 5%, transparent);
+  border-color: color-mix(in srgb, var(--wbp-tool-accent) 28%, transparent);
+  background: color-mix(in srgb, var(--wbp-tool-accent) 5%, transparent);
 }
 .wb-step-head {
   display: flex;
@@ -686,14 +688,14 @@ body,
   padding: 5px 9px;
   border: none;
   background: transparent;
-  color: var(--wbp-slate-300);
+  color: var(--wbp-text-secondary);
   font-family: inherit;
   font-size: var(--text-body);
   text-align: left;
   cursor: pointer;
 }
 .wb-step-head:hover {
-  background: color-mix(in srgb, var(--wbp-slate) 8%, transparent);
+  background: color-mix(in srgb, var(--wbp-text-muted) 8%, transparent);
 }
 .wb-step-emoji {
   font-size: var(--text-caption);
@@ -719,7 +721,7 @@ body,
   font-family: var(--wb-mono);
   font-size: var(--text-caption);
   line-height: 1.55;
-  color: var(--wbp-slate);
+  color: var(--wbp-text-muted);
 }
 .wb-tool-steps {
   display: flex;
@@ -732,7 +734,7 @@ body,
   align-items: center;
   gap: 6px;
   font-size: var(--text-caption);
-  color: var(--wbp-purple-300);
+  color: var(--wbp-tool-accent-text);
 }
 .wb-tool-steps-head em {
   font-style: normal;
@@ -741,7 +743,7 @@ body,
 }
 .wb-tool-running {
   font-size: var(--text-micro);
-  color: var(--wbp-cyan-300);
+  color: var(--wbp-accent-text);
 }
 
 /* 思考链路逐条列出（阶段事件 / 推理内容） */
@@ -753,22 +755,22 @@ body,
 .wb-step-row {
   padding: 4px 6px;
   border-radius: 7px;
-  border: 1px solid color-mix(in srgb, var(--wbp-slate) 16%, transparent);
-  background: color-mix(in srgb, var(--wbp-deep-2) 35%, transparent);
+  border: 1px solid color-mix(in srgb, var(--wbp-text-muted) 16%, transparent);
+  background: color-mix(in srgb, var(--wbp-surface-sunken) 35%, transparent);
 }
 .wb-step-row.running {
-  border-color: color-mix(in srgb, var(--wbp-cyan) 35%, transparent);
-  background: color-mix(in srgb, var(--wbp-cyan) 6%, transparent);
+  border-color: color-mix(in srgb, var(--wbp-accent) 35%, transparent);
+  background: color-mix(in srgb, var(--wbp-accent) 6%, transparent);
 }
 .wb-step-row.error {
-  border-color: color-mix(in srgb, var(--wbp-red) 40%, transparent);
+  border-color: color-mix(in srgb, var(--wbp-danger) 40%, transparent);
 }
 .wb-step-row-head {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: var(--text-body);
-  color: var(--wbp-slate-300);
+  color: var(--wbp-text-secondary);
 }
 .wb-step-row-title {
   font-weight: 500;
@@ -791,7 +793,7 @@ body,
   gap: 4px;
   padding: 2px 8px;
   border-radius: 999px;
-  border: 1px dashed color-mix(in srgb, var(--wbp-slate) 35%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--wbp-text-muted) 35%, transparent);
   background: transparent;
   color: var(--wb-text-dim);
   font-family: inherit;
@@ -800,8 +802,8 @@ body,
   transition: color 0.15s, border-color 0.15s;
 }
 .wb-hidden-chip:hover {
-  border-color: color-mix(in srgb, var(--wbp-cyan) 50%, transparent);
-  color: var(--wbp-cyan-300);
+  border-color: color-mix(in srgb, var(--wbp-accent) 50%, transparent);
+  color: var(--wbp-accent-text);
 }
 
 /* ─── 输出格式：紧凑 ─── */
@@ -817,7 +819,7 @@ body,
 }
 .wb-msg-role {
   font-style: normal;
-  color: var(--wbp-cyan-300);
+  color: var(--wbp-accent-text);
 }
 .wb-chat-format-compact .wb-bubble {
   padding: 7px 10px;
@@ -844,7 +846,7 @@ body,
      只在未选样式时回落到终端风格的直角。 */
   border-radius: var(--chat-bubble-radius, 4px);
   font-family: var(--wb-mono);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wbp-cyan) 12%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wbp-accent) 12%, transparent);
 }
 .wb-chat-format-terminal :is(p, li, td, th, h1, h2, h3, h4, code, pre) {
   font-family: var(--wb-mono);
@@ -877,15 +879,15 @@ body,
 
 @keyframes wb-msg-flash {
   0% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--wbp-cyan) 0%, transparent);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--wbp-accent) 0%, transparent);
   }
   14% {
     box-shadow:
-      0 0 0 3px color-mix(in srgb, var(--wbp-cyan) 70%, transparent),
-      0 0 24px color-mix(in srgb, var(--wbp-cyan) 38%, transparent);
+      0 0 0 3px color-mix(in srgb, var(--wbp-accent) 70%, transparent),
+      0 0 24px color-mix(in srgb, var(--wbp-accent) 38%, transparent);
   }
   100% {
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--wbp-cyan) 0%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--wbp-accent) 0%, transparent);
   }
 }
 
@@ -916,7 +918,7 @@ body,
 
 .wb-input:focus {
   border-color: var(--wb-border-strong);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--wbp-cyan) 12%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--wbp-accent) 12%, transparent);
 }
 
 /* 【2026-11-16 统一】.wb-send-btn / .wb-stop-btn 已删除：发送改 ui/Button(variant=primary,
@@ -928,7 +930,7 @@ body,
   padding: 7px 14px;
   border-radius: 999px;
   border: 1px solid var(--wb-border);
-  background: color-mix(in srgb, var(--wbp-slate) 5%, transparent);
+  background: color-mix(in srgb, var(--wbp-text-muted) 5%, transparent);
   color: var(--wb-text-dim);
   font-size: var(--text-body);
   cursor: pointer;
@@ -946,7 +948,7 @@ body,
      对真实回复完全无效（只有预览那个内联 font-size 会变）。正文必须跟 --chat-fs。 */
   font-size: var(--chat-fs, var(--text-body-lg));
   line-height: 1.75;
-  color: var(--wbp-text);
+  color: var(--wbp-text-primary);
   /* 与气泡同理：内部长行不能把外层撑开（配合 .wb-codeblock 的横向滚动） */
   min-width: 0;
   max-width: 100%;
@@ -962,7 +964,7 @@ body,
   margin: 14px 0 6px;
   font-weight: 600;
   letter-spacing: 0.02em;
-  color: var(--wbp-paper);
+  color: var(--wbp-text-heading);
 }
 
 .wb-markdown h1 {
@@ -1019,9 +1021,9 @@ body,
 .wb-inline-code {
   padding: 1.5px 6px;
   border-radius: 5px;
-  background: color-mix(in srgb, var(--wbp-cyan) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--wbp-cyan) 18%, transparent);
-  color: var(--wbp-cyan-200);
+  background: color-mix(in srgb, var(--wbp-accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--wbp-accent) 18%, transparent);
+  color: var(--wbp-brand-text);
   font-family: var(--wb-mono);
   font-size: var(--text-body);
 }
@@ -1035,7 +1037,7 @@ body,
   /* 代码块允许横向滚动，但不许把消息气泡撑宽（2026-11-21） */
   max-width: 100%;
   min-width: 0;
-  background: color-mix(in srgb, var(--wbp-bg-4) 75%, transparent);
+  background: color-mix(in srgb, var(--wbp-canvas-sunken) 75%, transparent);
 }
 
 .wb-codeblock-bar {
@@ -1044,7 +1046,7 @@ body,
   justify-content: space-between;
   padding: 4px 10px;
   border-bottom: 1px solid var(--wb-border);
-  background: color-mix(in srgb, var(--wbp-slate) 6%, transparent);
+  background: color-mix(in srgb, var(--wbp-text-muted) 6%, transparent);
 }
 
 .wb-codeblock-lang {
@@ -1101,10 +1103,10 @@ body,
 @keyframes wb-glow {
   0%,
   100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--wbp-cyan) 0%, transparent);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--wbp-accent) 0%, transparent);
   }
   50% {
-    box-shadow: 0 0 14px 0 color-mix(in srgb, var(--wbp-cyan) 18%, transparent);
+    box-shadow: 0 0 14px 0 color-mix(in srgb, var(--wbp-accent) 18%, transparent);
   }
 }
 
@@ -1116,9 +1118,9 @@ body,
   align-items: center;
   justify-content: center;
   border: 1.5px dashed var(--wb-border-strong);
-  background: color-mix(in srgb, var(--wbp-cyan) 12%, transparent);
+  background: color-mix(in srgb, var(--wbp-accent) 12%, transparent);
   backdrop-filter: blur(6px);
-  color: var(--wbp-cyan-200);
+  color: var(--wbp-brand-text);
   font-family: var(--wb-mono);
   font-size: var(--text-body);
   letter-spacing: 0.14em;
@@ -1167,10 +1169,10 @@ body,
 @keyframes wb-detach-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--wbp-cyan) 0%, transparent);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--wbp-accent) 0%, transparent);
   }
   50% {
-    box-shadow: 0 0 24px 0 color-mix(in srgb, var(--wbp-cyan) 28%, transparent);
+    box-shadow: 0 0 24px 0 color-mix(in srgb, var(--wbp-accent) 28%, transparent);
   }
 }
 
@@ -1183,8 +1185,8 @@ body,
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  border: 1px dashed color-mix(in srgb, var(--wbp-cyan) 45%, transparent);
-  background: color-mix(in srgb, var(--wbp-bg) 55%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--wbp-accent) 45%, transparent);
+  background: color-mix(in srgb, var(--wbp-canvas) 55%, transparent);
   /* 【2026-11-19】面板背景是半透明的（bg-slate-900/80 一类），这层"幽灵"即使压到
      z-index:0 也会透出来：实测导航栏左边缘那条虚线 = 它的 border 经 80% 面板底
      混色后的结果（(15,38,57) 逐位可复现）。所以只在**真拖拽**时显示（body.wb-dragging
@@ -1218,7 +1220,7 @@ body.wb-dragging .wb-drag-ghost {
 .wb-editor-lang {
   border-radius: 8px;
   border: 1px solid var(--wb-border);
-  background: color-mix(in srgb, var(--wbp-deep) 70%, transparent);
+  background: color-mix(in srgb, var(--wbp-surface) 70%, transparent);
   color: var(--wb-text-dim);
   font-size: var(--text-body);
   padding: 3px 8px;
@@ -1238,7 +1240,7 @@ body.wb-dragging .wb-drag-ghost {
   outline: none;
   padding: 12px 14px;
   background: transparent;
-  color: var(--wbp-text);
+  color: var(--wbp-text-primary);
   font-family: var(--wb-mono);
   font-size: var(--text-body);
   line-height: 1.7;
@@ -1251,7 +1253,7 @@ body.wb-dragging .wb-drag-ghost {
   flex: 1 1 45%;
   min-height: 0;
   border-top: 1px solid var(--wb-border);
-  background: color-mix(in srgb, var(--wbp-deep-2) 45%, transparent);
+  background: color-mix(in srgb, var(--wbp-surface-sunken) 45%, transparent);
   overflow: auto;
 }
 
@@ -1260,7 +1262,7 @@ body.wb-dragging .wb-drag-ghost {
   font-size: var(--text-micro);
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--wbp-slate) 60%, transparent);
+  color: color-mix(in srgb, var(--wbp-text-muted) 60%, transparent);
   border-bottom: 1px solid var(--wb-border);
 }
 
@@ -1269,7 +1271,7 @@ body.wb-dragging .wb-drag-ghost {
   font-family: var(--wb-mono);
   font-size: var(--text-body);
   line-height: 1.7;
-  color: var(--wbp-text);
+  color: var(--wbp-text-primary);
   overflow: auto;
 }
 

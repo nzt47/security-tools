@@ -1,29 +1,30 @@
 :root {
-  /* VisualEditor 主题色板（浅色编辑器 + slate 阶）。2026-11-20：原 88 处字面值集中到
-     这些变量；规则只写 var(--ve-*)，量具只对"规则里的字面值"计数。 */
-  --ve-white: #fff;
-  --ve-black: #000;
-  --ve-slate-50: #f8fafc;
-  --ve-slate-100: #f1f5f9;
-  --ve-slate-200: #e2e8f0;
-  --ve-slate-300: #cbd5e1;
-  --ve-slate-400: #94a3b8;
-  --ve-slate-500: #64748b;
-  --ve-slate-600: #475569;
-  --ve-slate-700: #334155;
-  --ve-slate-800: #1e293b;
-  --ve-slate-900: #0f172a;
-  --ve-slate-950: #020617;
+  /* VisualEditor 主题色板（浅色编辑器 + 暗色分支）。2026-11-20：原 88 处字面值集中到这些变量；
+     2026-11-21 改成语义名（canvas/surface/text/border/accent/分支与节点…，值逐字不变），
+     对照表见 docs/ui/调色板语义命名表.md。规则只写 var(--ve-*)，量具只对规则里的字面值计数。 */
+  --ve-surface-contrast: #fff;
+  --ve-shadow: #000;
+  --ve-canvas: #f8fafc;
+  --ve-surface: #f1f5f9;
+  --ve-text-primary: #e2e8f0;
+  --ve-border: #cbd5e1;
+  --ve-text-muted: #94a3b8;
+  --ve-text-secondary: #64748b;
+  --ve-text-faint: #475569;
+  --ve-border-strong: #334155;
+  --ve-surface-dark: #1e293b;
+  --ve-canvas-dark: #0f172a;
+  --ve-mask: #020617;
   /* 深色宿主背景（.ve-dark 的壳/输入底色）：原字面值是深海军蓝，不是 slate-950 */
-  --ve-bg-deep: #0b1220;
-  --ve-blue: #3b82f6;
-  --ve-cyan: #22d3ee;
-  --ve-green: #16a34a;
-  --ve-emerald: #10b981;
-  --ve-red: #dc2626;
-  --ve-amber: #f59e0b;
-  --ve-violet: #8b5cf6;
-  --ve-indigo: #6366f1;
+  --ve-surface-dark-deep: #0b1220;
+  --ve-accent: #3b82f6;
+  --ve-accent-alt: #22d3ee;
+  --ve-branch-true: #16a34a;
+  --ve-node-agent: #10b981;
+  --ve-branch-false: #dc2626;
+  --ve-node-conditional: #f59e0b;
+  --ve-node-loop: #8b5cf6;
+  --ve-node-workflow: #6366f1;
 }
 
 /**
@@ -35,7 +36,7 @@
   flex-direction: column;
   height: 100%;
   min-height: 500px;
-  background: var(--ve-slate-50);
+  background: var(--ve-canvas);
 }
 
 .ve-toolbar {
@@ -43,14 +44,14 @@
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: var(--ve-white);
-  border-bottom: 1px solid var(--ve-slate-200);
+  background: var(--ve-surface-contrast);
+  border-bottom: 1px solid var(--ve-text-primary);
 }
 
 .ve-toolbar-divider {
   width: 1px;
   height: 20px;
-  background: var(--ve-slate-200);
+  background: var(--ve-text-primary);
   margin: 0 4px;
 }
 
@@ -76,7 +77,7 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: var(--ve-slate-500);
+  color: var(--ve-text-secondary);
 }
 
 /* 2026-10-26：空画布提示 + 面板"点击也能加"的说明（此前只有拖拽，点了没反应像坏了） */
@@ -88,10 +89,10 @@
   z-index: 5;
   pointer-events: none;
   padding: 6px 12px;
-  border: 1px dashed var(--ve-slate-300);
+  border: 1px dashed var(--ve-border);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--ve-white) 92%, transparent);
-  color: var(--ve-slate-600);
+  background: color-mix(in srgb, var(--ve-surface-contrast) 92%, transparent);
+  color: var(--ve-text-faint);
   font-size: var(--text-body);
   white-space: nowrap;
 }
@@ -99,14 +100,14 @@
 .ve-palette-hint {
   padding: 0 12px 8px;
   font-size: var(--text-caption);
-  color: var(--ve-slate-400);
+  color: var(--ve-text-muted);
 }
 
 /* ─── 组件面板 ─── */
 .ve-palette {
   width: 200px;
-  background: var(--ve-white);
-  border-right: 1px solid var(--ve-slate-200);
+  background: var(--ve-surface-contrast);
+  border-right: 1px solid var(--ve-text-primary);
   overflow-y: auto;
   flex-shrink: 0;
 }
@@ -115,8 +116,8 @@
   padding: 12px;
   font-weight: 600;
   font-size: var(--text-ui);
-  color: var(--ve-slate-800);
-  border-bottom: 1px solid var(--ve-slate-100);
+  color: var(--ve-surface-dark);
+  border-bottom: 1px solid var(--ve-surface);
 }
 
 .ve-palette-group {
@@ -127,7 +128,7 @@
   padding: 4px 12px;
   font-size: var(--text-caption);
   font-weight: 600;
-  color: var(--ve-slate-400);
+  color: var(--ve-text-muted);
   text-transform: uppercase;
 }
 
@@ -138,12 +139,12 @@
   padding: 8px 12px;
   cursor: grab;
   font-size: var(--text-body-lg);
-  color: var(--ve-slate-700);
+  color: var(--ve-border-strong);
   transition: background 0.15s;
 }
 
 .ve-palette-item:hover {
-  background: var(--ve-slate-100);
+  background: var(--ve-surface);
 }
 
 .ve-palette-item:active {
@@ -160,17 +161,17 @@
 .ve-node {
   min-width: 160px;
   max-width: 220px;
-  background: var(--ve-white);
-  border: 2px solid var(--ve-slate-200);
+  background: var(--ve-surface-contrast);
+  border: 2px solid var(--ve-text-primary);
   border-radius: 8px;
   font-size: var(--text-body);
-  box-shadow: 0 1px 3px color-mix(in srgb, var(--ve-black) 10%, transparent);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--ve-shadow) 10%, transparent);
   transition: border-color 0.15s;
 }
 
 .ve-node-selected {
-  border-color: var(--ve-blue);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ve-blue) 20%, transparent);
+  border-color: var(--ve-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ve-accent) 20%, transparent);
 }
 
 .ve-node-header {
@@ -179,8 +180,8 @@
   gap: 6px;
   padding: 8px 12px;
   font-weight: 600;
-  color: var(--ve-slate-800);
-  border-bottom: 1px solid var(--ve-slate-100);
+  color: var(--ve-surface-dark);
+  border-bottom: 1px solid var(--ve-surface);
 }
 
 .ve-node-icon {
@@ -192,44 +193,44 @@
 }
 
 .ve-node-meta {
-  color: var(--ve-slate-500);
+  color: var(--ve-text-secondary);
   font-size: var(--text-caption);
   line-height: 1.5;
 }
 
 .ve-branch-true {
-  color: var(--ve-green);
+  color: var(--ve-branch-true);
 }
 
 .ve-branch-false {
-  color: var(--ve-red);
+  color: var(--ve-branch-false);
 }
 
 .ve-node-skill {
-  border-top: 3px solid var(--ve-blue);
+  border-top: 3px solid var(--ve-accent);
 }
 
 .ve-node-conditional {
-  border-top: 3px solid var(--ve-amber);
+  border-top: 3px solid var(--ve-node-conditional);
 }
 
 .ve-node-loop {
-  border-top: 3px solid var(--ve-violet);
+  border-top: 3px solid var(--ve-node-loop);
 }
 
 .ve-node-agent {
-  border-top: 3px solid var(--ve-emerald);
+  border-top: 3px solid var(--ve-node-agent);
 }
 
 .ve-node-workflow {
-  border-top: 3px solid var(--ve-indigo);
+  border-top: 3px solid var(--ve-node-workflow);
 }
 
 /* ─── 属性面板 ─── */
 .ve-properties {
   width: 260px;
-  background: var(--ve-white);
-  border-left: 1px solid var(--ve-slate-200);
+  background: var(--ve-surface-contrast);
+  border-left: 1px solid var(--ve-text-primary);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -239,14 +240,14 @@
   padding: 12px;
   font-weight: 600;
   font-size: var(--text-ui);
-  color: var(--ve-slate-800);
-  border-bottom: 1px solid var(--ve-slate-100);
+  color: var(--ve-surface-dark);
+  border-bottom: 1px solid var(--ve-surface);
 }
 
 .ve-properties-empty .ve-properties-placeholder {
   padding: 40px 12px;
   text-align: center;
-  color: var(--ve-slate-400);
+  color: var(--ve-text-muted);
   font-size: var(--text-body-lg);
 }
 
@@ -264,25 +265,25 @@
   display: block;
   font-size: var(--text-body);
   font-weight: 500;
-  color: var(--ve-slate-600);
+  color: var(--ve-text-faint);
   margin-bottom: 4px;
 }
 
 .ve-field-input {
   width: 100%;
   padding: 6px 8px;
-  border: 1px solid var(--ve-slate-300);
+  border: 1px solid var(--ve-border);
   border-radius: 4px;
   font-size: var(--text-body-lg);
-  color: var(--ve-slate-800);
-  background: var(--ve-white);
+  color: var(--ve-surface-dark);
+  background: var(--ve-surface-contrast);
   box-sizing: border-box;
 }
 
 .ve-field-input:focus {
   outline: none;
-  border-color: var(--ve-blue);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ve-blue) 15%, transparent);
+  border-color: var(--ve-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ve-accent) 15%, transparent);
 }
 
 textarea.ve-field-input {
@@ -295,15 +296,15 @@ textarea.ve-field-input {
   display: flex;
   gap: 8px;
   padding: 12px;
-  border-top: 1px solid var(--ve-slate-100);
+  border-top: 1px solid var(--ve-surface);
 }
 
 /* ─── 按钮 ─── */
 /* ─── YAML 预览 ─── */
 .ve-yaml-preview {
   height: 180px;
-  border-top: 1px solid var(--ve-slate-200);
-  background: var(--ve-slate-800);
+  border-top: 1px solid var(--ve-text-primary);
+  background: var(--ve-surface-dark);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -315,13 +316,13 @@ textarea.ve-field-input {
   align-items: center;
   padding: 6px 12px;
   font-size: var(--text-body);
-  color: var(--ve-slate-400);
-  background: var(--ve-slate-900);
+  color: var(--ve-text-muted);
+  background: var(--ve-canvas-dark);
 }
 
 .ve-yaml-stats {
   font-size: var(--text-caption);
-  color: var(--ve-slate-500);
+  color: var(--ve-text-secondary);
 }
 
 .ve-yaml-content {
@@ -332,7 +333,7 @@ textarea.ve-field-input {
   font-family: 'Cascadia Code', 'Fira Code', monospace;
   font-size: var(--text-body);
   line-height: 1.6;
-  color: var(--ve-slate-200);
+  color: var(--ve-text-primary);
   white-space: pre-wrap;
 }
 
@@ -347,122 +348,122 @@ textarea.ve-field-input {
  * 不受影响（选择器全部以 .ve-dark 为祖先约束）。
  * ════════════════════════════════════════════════════════════ */
 .ve-dark .ve-root {
-  background: var(--ve-bg-deep);
+  background: var(--ve-surface-dark-deep);
   min-height: 0;
 }
 
 .ve-dark .ve-toolbar {
-  background: var(--ve-slate-900);
-  border-bottom-color: var(--ve-slate-800);
+  background: var(--ve-canvas-dark);
+  border-bottom-color: var(--ve-surface-dark);
 }
 
 .ve-dark .ve-toolbar-divider {
-  background: var(--ve-slate-700);
+  background: var(--ve-border-strong);
 }
 
 .ve-dark .ve-canvas-loading {
-  color: var(--ve-slate-500);
+  color: var(--ve-text-secondary);
 }
 
 /* 组件面板 */
 .ve-dark .ve-palette {
-  background: var(--ve-slate-900);
-  border-right-color: var(--ve-slate-800);
+  background: var(--ve-canvas-dark);
+  border-right-color: var(--ve-surface-dark);
 }
 
 .ve-dark .ve-palette-header {
-  color: var(--ve-slate-200);
-  border-bottom-color: var(--ve-slate-800);
+  color: var(--ve-text-primary);
+  border-bottom-color: var(--ve-surface-dark);
 }
 
 .ve-dark .ve-palette-group-title {
-  color: var(--ve-slate-500);
+  color: var(--ve-text-secondary);
 }
 
 .ve-dark .ve-palette-item {
-  color: var(--ve-slate-300);
+  color: var(--ve-border);
 }
 
 .ve-dark .ve-palette-item:hover {
-  background: var(--ve-slate-800);
+  background: var(--ve-surface-dark);
 }
 
 /* 节点卡片 */
 .ve-dark .ve-node {
-  background: var(--ve-slate-900);
-  border-color: var(--ve-slate-700);
-  box-shadow: 0 1px 4px color-mix(in srgb, var(--ve-black) 45%, transparent);
+  background: var(--ve-canvas-dark);
+  border-color: var(--ve-border-strong);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--ve-shadow) 45%, transparent);
 }
 
 .ve-dark .ve-node-selected {
-  border-color: var(--ve-cyan);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ve-cyan) 22%, transparent);
+  border-color: var(--ve-accent-alt);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ve-accent-alt) 22%, transparent);
 }
 
 .ve-dark .ve-node-header {
-  color: var(--ve-slate-100);
-  border-bottom-color: var(--ve-slate-800);
+  color: var(--ve-surface);
+  border-bottom-color: var(--ve-surface-dark);
 }
 
 .ve-dark .ve-node-meta {
-  color: var(--ve-slate-400);
+  color: var(--ve-text-muted);
 }
 
 /* 属性面板 */
 .ve-dark .ve-properties {
-  background: var(--ve-slate-900);
-  border-left-color: var(--ve-slate-800);
+  background: var(--ve-canvas-dark);
+  border-left-color: var(--ve-surface-dark);
 }
 
 .ve-dark .ve-properties-header {
-  color: var(--ve-slate-200);
-  border-bottom-color: var(--ve-slate-800);
+  color: var(--ve-text-primary);
+  border-bottom-color: var(--ve-surface-dark);
 }
 
 .ve-dark .ve-properties-empty .ve-properties-placeholder {
-  color: var(--ve-slate-500);
+  color: var(--ve-text-secondary);
 }
 
 .ve-dark .ve-field-label {
-  color: var(--ve-slate-400);
+  color: var(--ve-text-muted);
 }
 
 .ve-dark .ve-field-input {
-  background: var(--ve-bg-deep);
-  border-color: var(--ve-slate-700);
-  color: var(--ve-slate-200);
+  background: var(--ve-surface-dark-deep);
+  border-color: var(--ve-border-strong);
+  color: var(--ve-text-primary);
 }
 
 .ve-dark .ve-field-input:focus {
-  border-color: var(--ve-cyan);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ve-cyan) 18%, transparent);
+  border-color: var(--ve-accent-alt);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ve-accent-alt) 18%, transparent);
 }
 
 .ve-dark .ve-properties-actions {
-  border-top-color: var(--ve-slate-800);
+  border-top-color: var(--ve-surface-dark);
 }
 
 /* 按钮 */
 .ve-dark .ve-dark .ve-dark .ve-dark .ve-dark .ve-dark .ve-dark .ve-dark /* YAML 预览（原本即深色，微调分隔线） */
 .ve-dark .ve-yaml-preview {
-  border-top-color: var(--ve-slate-800);
+  border-top-color: var(--ve-surface-dark);
 }
 
 /* ReactFlow 内建控件深色化 */
 .ve-dark .react-flow__controls button {
-  background: var(--ve-slate-900);
-  border-bottom: 1px solid var(--ve-slate-800);
-  fill: var(--ve-slate-300);
+  background: var(--ve-canvas-dark);
+  border-bottom: 1px solid var(--ve-surface-dark);
+  fill: var(--ve-border);
 }
 
 .ve-dark .react-flow__controls button:hover {
-  background: var(--ve-slate-800);
+  background: var(--ve-surface-dark);
 }
 
 .ve-dark .react-flow__minimap {
-  background: var(--ve-slate-900);
+  background: var(--ve-canvas-dark);
 }
 
 .ve-dark .react-flow__minimap-mask {
-  fill: color-mix(in srgb, var(--ve-slate-950) 55%, transparent);
+  fill: color-mix(in srgb, var(--ve-mask) 55%, transparent);
 }

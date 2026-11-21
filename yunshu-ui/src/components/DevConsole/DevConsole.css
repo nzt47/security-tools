@@ -1,33 +1,34 @@
 :root {
-  /* DevConsole 主题色板（GitHub 暗色）。2026-11-20：原本 86 处字面值集中在
-     这些变量里；规则只写 var(--dc-*)，量具只对"规则里的字面值"计数。 */
-  --dc-bg: #0d1117;
-  --dc-panel: #161b22;
-  --dc-panel-alt: #21262d;
+  /* DevConsole 主题色板（GitHub 暗色）。2026-11-20：原本 86 处字面值集中在这些变量里；
+     2026-11-21 改成语义名（canvas/surface/text/info/success/warning/danger…，值逐字不变），
+     对照表见 docs/ui/调色板语义命名表.md。规则只写 var(--dc-*)，量具只对规则里的字面值计数。 */
+  --dc-canvas: #0d1117;
+  --dc-surface: #161b22;
+  --dc-surface-raised: #21262d;
   --dc-border: #30363d;
-  --dc-text: #e6edf3;
-  --dc-muted: #8b949e;
-  --dc-blue: #58a6ff;
-  --dc-blue-solid: #1f6feb;
-  --dc-green: #7ee787;
-  --dc-green-solid: #238636;
-  --dc-yellow: #d29922;
-  --dc-yellow-solid: #9e6a03;
-  --dc-red: #f85149;
-  --dc-red-solid: #da3633;
-  --dc-slate: #1f2937;
-  --dc-white: #fff;
-  --dc-overlay-40: rgba(0, 0, 0, 0.4);
-  --dc-overlay-50: rgba(0, 0, 0, 0.5);
+  --dc-text-primary: #e6edf3;
+  --dc-text-muted: #8b949e;
+  --dc-info-text: #58a6ff;
+  --dc-info-solid: #1f6feb;
+  --dc-success-text: #7ee787;
+  --dc-success-solid: #238636;
+  --dc-warning-text: #d29922;
+  --dc-warning-solid: #9e6a03;
+  --dc-danger-text: #f85149;
+  --dc-danger-solid: #da3633;
+  --dc-surface-inset: #1f2937;
+  --dc-text-contrast: #fff;
+  --dc-shadow-40: rgba(0, 0, 0, 0.4);
+  --dc-shadow-50: rgba(0, 0, 0, 0.5);
 }
 
 /**
  * DevConsole / StateInspector 暗色主题样式
  *
  * 风格对齐 templates/network_config_debug.html：
- * - 背景 var(--dc-bg) / 卡片 var(--dc-panel) / 边框 var(--dc-border)
- * - 文本 var(--dc-text) / 次要 var(--dc-muted)
- * - 状态色：绿 var(--dc-green) / 黄 var(--dc-yellow) / 红 var(--dc-red) / 蓝 var(--dc-blue)
+ * - 背景 var(--dc-canvas) / 卡片 var(--dc-surface) / 边框 var(--dc-border)
+ * - 文本 var(--dc-text-primary) / 次要 var(--dc-text-muted)
+ * - 状态色：绿 var(--dc-success-text) / 黄 var(--dc-warning-text) / 红 var(--dc-danger-text) / 蓝 var(--dc-info-text)
  *
  * 移动端可用：user-select: text 保证文本可复制；响应式布局自适应。
  */
@@ -40,7 +41,7 @@
   z-index: 99999;
   font-family: 'Cascadia Code', 'Consolas', 'Menlo', monospace;
   font-size: var(--text-body);
-  color: var(--dc-text);
+  color: var(--dc-text-primary);
   pointer-events: none; /* 容器本身不拦截事件，仅浮层与图标拦截 */
 }
 
@@ -52,23 +53,23 @@
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: var(--dc-panel);
+  background: var(--dc-surface);
   border: 1px solid var(--dc-border);
-  color: var(--dc-blue);
+  color: var(--dc-info-text);
   cursor: grab;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: var(--text-h2);
-  box-shadow: 0 4px 12px var(--dc-overlay-40);
+  box-shadow: 0 4px 12px var(--dc-shadow-40);
   pointer-events: auto;
   user-select: none;
   z-index: 100000;
   transition: background 0.15s, border-color 0.15s;
 }
 .devconsole-fab:hover {
-  background: var(--dc-slate);
-  border-color: var(--dc-blue);
+  background: var(--dc-surface-inset);
+  border-color: var(--dc-info-text);
 }
 .devconsole-fab:active {
   cursor: grabbing;
@@ -81,8 +82,8 @@
   height: 16px;
   padding: 0 4px;
   border-radius: 8px;
-  background: var(--dc-red);
-  color: var(--dc-white);
+  background: var(--dc-danger-text);
+  color: var(--dc-text-contrast);
   font-size: var(--text-micro);
   line-height: 16px;
   text-align: center;
@@ -97,10 +98,10 @@
   width: 720px;
   max-width: calc(100vw - 32px);
   max-height: 70vh;
-  background: var(--dc-bg);
+  background: var(--dc-canvas);
   border: 1px solid var(--dc-border);
   border-radius: 10px;
-  box-shadow: 0 8px 32px var(--dc-overlay-50);
+  box-shadow: 0 8px 32px var(--dc-shadow-50);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -114,7 +115,7 @@
   align-items: center;
   gap: 4px;
   padding: 8px 12px;
-  background: var(--dc-panel);
+  background: var(--dc-surface);
   border-bottom: 1px solid var(--dc-border);
   flex-shrink: 0;
 }
@@ -126,7 +127,7 @@
 .devconsole-tab {
   background: transparent;
   border: 1px solid transparent;
-  color: var(--dc-muted);
+  color: var(--dc-text-muted);
   padding: 4px 12px;
   border-radius: 6px;
   cursor: pointer;
@@ -135,13 +136,13 @@
   transition: all 0.15s;
 }
 .devconsole-tab:hover {
-  color: var(--dc-text);
-  background: var(--dc-panel-alt);
+  color: var(--dc-text-primary);
+  background: var(--dc-surface-raised);
 }
 .devconsole-tab.active {
-  color: var(--dc-blue);
-  background: color-mix(in srgb, var(--dc-blue-solid) 20%, transparent);
-  border-color: var(--dc-blue-solid);
+  color: var(--dc-info-text);
+  background: color-mix(in srgb, var(--dc-info-solid) 20%, transparent);
+  border-color: var(--dc-info-solid);
 }
 .devconsole-tab-count {
   display: inline-block;
@@ -150,14 +151,14 @@
   margin-left: 4px;
   border-radius: 8px;
   background: var(--dc-border);
-  color: var(--dc-text);
+  color: var(--dc-text-primary);
   font-size: var(--text-micro);
   line-height: 14px;
   text-align: center;
 }
 .devconsole-tab-count.error {
-  background: color-mix(in srgb, var(--dc-red) 20%, transparent);
-  color: var(--dc-red);
+  background: color-mix(in srgb, var(--dc-danger-text) 20%, transparent);
+  color: var(--dc-danger-text);
 }
 
 /* 头部操作按钮 */
@@ -171,15 +172,15 @@
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: var(--dc-bg);
+  background: var(--dc-canvas);
   border-bottom: 1px solid var(--dc-border);
   flex-shrink: 0;
 }
 .devconsole-input {
   flex: 1;
-  background: var(--dc-panel);
+  background: var(--dc-surface);
   border: 1px solid var(--dc-border);
-  color: var(--dc-text);
+  color: var(--dc-text-primary);
   padding: 4px 10px;
   border-radius: 6px;
   font-size: var(--text-body);
@@ -187,7 +188,7 @@
   outline: none;
 }
 .devconsole-input:focus {
-  border-color: var(--dc-blue);
+  border-color: var(--dc-info-text);
 }
 
 /* ─── 记录列表区 ─── */
@@ -207,10 +208,10 @@
 .devconsole-table th {
   text-align: left;
   padding: 6px 10px;
-  color: var(--dc-muted);
+  color: var(--dc-text-muted);
   font-weight: 500;
   font-size: var(--text-caption);
-  background: var(--dc-panel);
+  background: var(--dc-surface);
   border-bottom: 1px solid var(--dc-border);
   position: sticky;
   top: 0;
@@ -218,7 +219,7 @@
 }
 .devconsole-table td {
   padding: 6px 10px;
-  border-bottom: 1px solid var(--dc-panel-alt);
+  border-bottom: 1px solid var(--dc-surface-raised);
   vertical-align: top;
   word-break: break-all;
   user-select: text; /* 移动端可复制 */
@@ -228,13 +229,13 @@
   transition: background 0.1s;
 }
 .devconsole-row:hover {
-  background: var(--dc-panel);
+  background: var(--dc-surface);
 }
 .devconsole-row.expanded {
-  background: var(--dc-panel);
+  background: var(--dc-surface);
 }
 .devconsole-row-detail {
-  background: var(--dc-bg);
+  background: var(--dc-canvas);
 }
 .devconsole-row-detail td {
   padding: 8px 12px;
@@ -250,24 +251,24 @@
   white-space: nowrap;
 }
 .badge-ok {
-  background: color-mix(in srgb, var(--dc-green-solid) 20%, transparent);
-  color: var(--dc-green);
+  background: color-mix(in srgb, var(--dc-success-solid) 20%, transparent);
+  color: var(--dc-success-text);
 }
 .badge-warn {
-  background: color-mix(in srgb, var(--dc-yellow-solid) 20%, transparent);
-  color: var(--dc-yellow);
+  background: color-mix(in srgb, var(--dc-warning-solid) 20%, transparent);
+  color: var(--dc-warning-text);
 }
 .badge-err {
-  background: color-mix(in srgb, var(--dc-red-solid) 20%, transparent);
-  color: var(--dc-red);
+  background: color-mix(in srgb, var(--dc-danger-solid) 20%, transparent);
+  color: var(--dc-danger-text);
 }
 .badge-info {
-  background: color-mix(in srgb, var(--dc-blue-solid) 20%, transparent);
-  color: var(--dc-blue);
+  background: color-mix(in srgb, var(--dc-info-solid) 20%, transparent);
+  color: var(--dc-info-text);
 }
 .badge-muted {
   background: var(--dc-border);
-  color: var(--dc-muted);
+  color: var(--dc-text-muted);
 }
 
 /* 方法标签 */
@@ -280,40 +281,40 @@
   letter-spacing: 0.5px;
 }
 .method-get {
-  background: color-mix(in srgb, var(--dc-blue-solid) 20%, transparent);
-  color: var(--dc-blue);
+  background: color-mix(in srgb, var(--dc-info-solid) 20%, transparent);
+  color: var(--dc-info-text);
 }
 .method-post {
-  background: color-mix(in srgb, var(--dc-green-solid) 20%, transparent);
-  color: var(--dc-green);
+  background: color-mix(in srgb, var(--dc-success-solid) 20%, transparent);
+  color: var(--dc-success-text);
 }
 .method-put {
-  background: color-mix(in srgb, var(--dc-yellow-solid) 20%, transparent);
-  color: var(--dc-yellow);
+  background: color-mix(in srgb, var(--dc-warning-solid) 20%, transparent);
+  color: var(--dc-warning-text);
 }
 .method-delete {
-  background: color-mix(in srgb, var(--dc-red-solid) 20%, transparent);
-  color: var(--dc-red);
+  background: color-mix(in srgb, var(--dc-danger-solid) 20%, transparent);
+  color: var(--dc-danger-text);
 }
 .method-other {
   background: var(--dc-border);
-  color: var(--dc-muted);
+  color: var(--dc-text-muted);
 }
 
 /* trace_id 单元格 */
 .devconsole-trace {
-  color: var(--dc-muted);
+  color: var(--dc-text-muted);
   font-size: var(--text-caption);
   cursor: pointer;
 }
 .devconsole-trace:hover {
-  color: var(--dc-blue);
+  color: var(--dc-info-text);
   text-decoration: underline;
 }
 
 /* 代码块（堆栈/详情） */
 .devconsole-code {
-  background: var(--dc-panel);
+  background: var(--dc-surface);
   border: 1px solid var(--dc-border);
   border-radius: 6px;
   padding: 8px 10px;
@@ -324,24 +325,24 @@
   max-height: 240px;
   overflow-y: auto;
   user-select: text; /* 移动端可复制 */
-  color: var(--dc-text);
+  color: var(--dc-text-primary);
 }
 
 /* 空状态 */
 .devconsole-empty {
   padding: 40px 20px;
   text-align: center;
-  color: var(--dc-muted);
+  color: var(--dc-text-muted);
   font-size: var(--text-body);
 }
 
 /* ─── StateInspector 专用 ─── */
 .stateinspector-section {
   padding: 10px 12px;
-  border-bottom: 1px solid var(--dc-panel-alt);
+  border-bottom: 1px solid var(--dc-surface-raised);
 }
 .stateinspector-section-title {
-  color: var(--dc-green);
+  color: var(--dc-success-text);
   font-size: var(--text-caption);
   margin: 0 0 8px 0;
   font-weight: 600;
@@ -351,40 +352,40 @@
   gap: 8px;
   padding: 3px 0;
   font-size: var(--text-caption);
-  border-bottom: 1px dotted var(--dc-panel-alt);
+  border-bottom: 1px dotted var(--dc-surface-raised);
   align-items: flex-start;
 }
 .stateinspector-key {
-  color: var(--dc-blue);
+  color: var(--dc-info-text);
   min-width: 120px;
   word-break: break-all;
   user-select: text;
 }
 .stateinspector-value {
-  color: var(--dc-text);
+  color: var(--dc-text-primary);
   flex: 1;
   word-break: break-all;
   user-select: text;
 }
 .stateinspector-countdown {
-  color: var(--dc-yellow);
+  color: var(--dc-warning-text);
   font-size: var(--text-caption);
 }
 .stateinspector-countdown.expired {
-  color: var(--dc-red);
+  color: var(--dc-danger-text);
 }
 .stateinspector-diff-added {
-  color: var(--dc-green);
-  background: color-mix(in srgb, var(--dc-green-solid) 13.3333%, transparent);
+  color: var(--dc-success-text);
+  background: color-mix(in srgb, var(--dc-success-solid) 13.3333%, transparent);
 }
 .stateinspector-diff-removed {
-  color: var(--dc-red);
-  background: color-mix(in srgb, var(--dc-red-solid) 13.3333%, transparent);
+  color: var(--dc-danger-text);
+  background: color-mix(in srgb, var(--dc-danger-solid) 13.3333%, transparent);
   text-decoration: line-through;
 }
 .stateinspector-diff-updated {
-  color: var(--dc-yellow);
-  background: color-mix(in srgb, var(--dc-yellow-solid) 13.3333%, transparent);
+  color: var(--dc-warning-text);
+  background: color-mix(in srgb, var(--dc-warning-solid) 13.3333%, transparent);
 }
 
 /* ─── 响应式（移动端） ─── */
