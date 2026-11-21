@@ -103,6 +103,10 @@ export default function SubagentRoleEditor({
   const trimmed = text.trim()
   const tooLong = trimmed.length > maxChars
   const templateTitle = (catalog?.templates ?? []).find((t) => t.id === template)?.title || template || '未装'
+  // 目录外模板 id（词表改过名 / 旧记录）：必须原样保留，不能因为下拉里没有这一项就显示成空、
+  // 一保存把角色悄悄卸掉（后端对"点了名却不在词表"是报错，不是回退 —— 这里同一条纪律）。
+  const templateIds = (catalog?.templates ?? []).map((t) => String(t.id))
+  const outOfCatalog = template !== '' && !templateIds.includes(template)
   const currentTier = String(role?.tier || 'template')
   const currentTierLabel = tiers.find((t) => t.value === currentTier)?.label || currentTier
 
@@ -187,6 +191,12 @@ export default function SubagentRoleEditor({
             {role?.red ? <Badge tone="danger" size="sm" className="ml-1">红档</Badge> : null}
             {role?.audit_required ? <Badge tone="warning" size="sm" className="ml-1">需审计</Badge> : null}
           </p>
+          {outOfCatalog ? (
+            <Notice tone="warning" size="sm" data-testid="role-editor-out-of-catalog">
+              模板 id「{template}」不在当前词表（目录外）：保存会原样保留这个 id，但委派时仍会被拒；
+              建议换一个受控模板。
+            </Notice>
+          ) : null}
           {role?.error ? (
             <Notice tone="danger" size="sm" data-testid="role-editor-current-error">
               当前配置在委派时会被拒：{role.error}
@@ -210,9 +220,14 @@ export default function SubagentRoleEditor({
               placeholder="（不装角色：不注入角色片段）"
               placeholderOptionDisabled={false}
               data-testid="role-editor-template"
-              options={(catalog?.templates ?? []).map((t) => ({
-                label: String(t.title || t.id), value: String(t.id),
-              }))}
+              options={[
+                ...(outOfCatalog
+                  ? [{ label: template + '（目录外：保存会保留这个 id）', value: template }]
+                  : []),
+                ...(catalog?.templates ?? []).map((t) => ({
+                  label: String(t.title || t.id), value: String(t.id),
+                })),
+              ]}
             />
             <Select
               label="角色档位"

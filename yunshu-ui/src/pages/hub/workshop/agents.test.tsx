@@ -53,6 +53,8 @@ const LIST_PAYLOAD = {
     { name: 'alpha', model_id: 'deepseek-v4-pro', memory_provider: 'holographic', status: 'running', llm: { requested: 'deepseek-v4-pro', model: 'deepseek-v4-pro', source: 'explicit', error: '', temperature: null }, role: { template: 'code_review', tier: 'template', source: 'role_template:code_review', fragment_chars: 78, constraints: 0, audit_required: false, red: false, error: '' } },
     { name: 'beta', model_id: '', memory_provider: 'holographic', status: 'idle', llm_temperature: 0.25, llm: { requested: '', model: 'deepseek-flash', source: 'inherit', error: '', temperature: 0.25 }, role: { template: '', tier: 'template', source: '', fragment_chars: 0, constraints: 0, audit_required: false, red: false, error: '' } },
     { name: 'gamma', model_id: 'gpt-4', memory_provider: 'holographic', status: 'idle', llm: { requested: 'gpt-4', model: 'deepseek-flash', source: 'fallback-after-error', error: '派生模型 gpt-4 失败（RuntimeError: 模型名不被接受）：已回退到母体模型 deepseek-flash', temperature: null }, role: { template: 'research', tier: 'full-system', source: 'role_template:research', fragment_chars: 120, constraints: 0, audit_required: true, red: true, error: '' } },
+    // 词表改过名 / 旧记录：模板 id 不在当前目录里，编辑弹窗必须原样保留（不能悄悄卸角色）
+    { name: 'delta', model_id: '', memory_provider: 'default', status: 'idle', llm: { requested: '', model: 'deepseek-flash', source: 'inherit', error: '', temperature: null }, role: { template: 'legacy_role', tier: 'template', source: 'role_template:legacy_role', fragment_chars: 0, constraints: 0, audit_required: false, red: false, error: '未知角色模板 legacy_role' } },
   ],
 }
 
@@ -298,6 +300,17 @@ describe('分身 · 编辑角色', () => {
     const err = await screen.findByTestId('role-editor-error')
     expect(err.textContent).toContain('role_text 超长')
     expect(screen.getByTestId('role-editor')).toBeInTheDocument()
+  })
+
+  it('目录外模板 id 原样保留（不显示成空、不悄悄卸角色）', async () => {
+    await openEditor('delta')
+    expect(selectValue('role-editor-template')).toBe('legacy_role')
+    expect(screen.getByTestId('role-editor-out-of-catalog').textContent).toContain('目录外')
+    const values = Array.from((screen.getByTestId('role-editor-template') as HTMLSelectElement).options).map((o) => o.value)
+    expect(values).toContain('legacy_role')
+    fireEvent.click(screen.getByTestId('role-editor-save'))
+    await waitFor(() => expect(postCalls.length).toBe(1))
+    expect(postCalls[0].body).toEqual({ role_template: 'legacy_role', role_mode: 'template', role_text: '' })
   })
 
   it('未装角色的分身：模板空 + 正文框禁用（没有可依附的受控来源）', async () => {
