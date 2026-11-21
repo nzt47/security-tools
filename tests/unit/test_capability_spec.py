@@ -427,7 +427,9 @@ class TestMainLine:
     def test_主线可见集与装配实跑一致(self, manifest):
         line = manifest["main_line"]
         assert line["line_id"] == "engineering"
-        assert len(line["visible"]) == 26, f"engineering 主线可见集应为 26 条，实得 {len(line['visible'])}"
+        # 【2026-11-21】26 → 27：engineering 的 boost 收进 ui_guard_check / ui_guard_fix 后 max_tools 26→27
+        # （保持 26 会挤掉 run_tests），清单的可见集随之 27 条。
+        assert len(line["visible"]) == 27, f"engineering 主线可见集应为 27 条，实得 {len(line['visible'])}"
         assert set(line["muted"]) == {"web_extract", "web_search", "web_batch"}
         assert "connect_mcp" in line["denied_by_effect"]
 

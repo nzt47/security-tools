@@ -168,7 +168,7 @@ class Test真实数据两个口径:
         assert prot == (high | cl2)
 
     def test_口径二_生产实际上限与截断(self, meta):
-        """**生产实际口径**：激活主线 `engineering` 的 26 个工具里 8 个受保护
+        """**生产实际口径**：激活主线 `engineering` 的 27 个工具里 9 个受保护
 
         同时如实记录一件重要事实：**当前 7 条内置主线的名额截断一次都没发生**
         （`truncated` 恒空 —— 见 `Test装配层裁剪::test_名额截断路径当前不可达`），
@@ -182,10 +182,15 @@ class Test真实数据两个口径:
         print(f"[生产口径] engineering: tools={len(res.tools)}/{res.max_tools}"
               f"，其中受保护 {len(in_line)} 个；truncated={len(res.truncated)}"
               f"；token_pruned={len(res.token_pruned)}")
-        assert len(res.tools) == res.max_tools == 26
-        # 【2026-11-05 复核】仍是 8：新增的两条 software_* 不在 engineering 线的 26 个名额里
-        # （本机有运行时登记工具时会变 9 —— 那是本机噪音，判绿以干净 worktree 为准）
+        # 【2026-11-21】26 → 27：Owner 决定把 ui_guard_check / ui_guard_fix 收进 engineering 的 boost，
+        # 保持 26 会挤掉 run_tests（实测），故 max_tools 26→27。断言仍钉「装配结果 = 上限 = 主线档案的上限」，
+        # 并加一条派生关系：装配用的上限必须等于档案里的 max_tools（防止数据与断言各自漂移）。
+        assert res.max_tools == prof.max_tools
+        assert len(res.tools) == res.max_tools == 27
+        # 【2026-11-05 复核】仍是 8：两条 software_* 不在 engineering 线的名额里
+        # （本机有运行时登记工具时会多 —— 那是本机噪音，判绿以干净 worktree 为准）
         # 【2026-11-20】8 → 9：ui_guard_fix（write/high）进入 engineering 线并受保护
+        # 【2026-11-21】仍 9：ui_guard_check 是只读（不入受保护集合），受保护数不变
         assert len(in_line) == 9
         assert res.truncated == []
         assert res.token_pruned == []
@@ -323,7 +328,8 @@ class Test装配层裁剪:
         assert res.token_budget == 0 and res.token_pruned == []
         assert res.token_used == 0 and res.token_over_budget is False
         assert res.protected_kept == []
-        assert len(res.tools) == 26
+        # 26 → 27（2026-11-21 主线 boost 决定的直接结果；"不裁剪"的语义不变：仍是全部名额都填满）
+        assert len(res.tools) == res.max_tools == 27
 
     def test_装配层超预算_高危零误伤_低危被裁(self, meta):
         """装配结果的 token 预算裁剪：受保护工具零误伤"""
