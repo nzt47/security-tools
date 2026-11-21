@@ -1,8 +1,8 @@
 /**
- * 分身行操作 —— 详情 / 热更新 / 离线包（3 条）
+ * 分身行操作 —— 详情 / 热更新 / 编辑角色 / 离线包（4 条）
  * ------------------------------------------------------------------
  *   GET  /api/subagent/<name>             分身详情
- *   POST /api/subagent/<name>/reload      热更新配置
+ *   POST /api/subagent/<name>/reload      热更新配置（「编辑角色」复用它，只发角色三字段）
  *   GET  /api/subagent/<name>/offline_pack 下载预构建离线包（tar.gz）
  *
  * 【为什么不放"执行"按钮】后端 api_subagent_execute 的 docstring 明写：
@@ -12,18 +12,30 @@
  * 真执行入口是「委派」（delegate），已在组装台里接线。
  */
 import { useState } from 'react'
-import { Download, Info, Loader2, RefreshCw } from 'lucide-react'
+import { Download, Info, Loader2, PenLine, RefreshCw } from 'lucide-react'
 import { Button, CodeBlock, hubGet, hubPost, Notice } from '../components/ui'
+import SubagentRoleEditor, { type RoleEditorCatalog, type RoleEditorRole } from '@/components/SubagentRoleEditor'
 import { subagentByName, subagentOfflinePack, subagentReload } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-micro text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 
-export default function SubagentRowActions({ name }: { name: string }) {
+export default function SubagentRowActions({
+  name, role, catalog, onChanged,
+}: {
+  name: string
+  /** 该分身当前的角色投影（编辑弹窗用它预填模板/档位；**不含正文**） */
+  role?: RoleEditorRole
+  /** 部署级角色词表 + 方案库（随列表一起返回，不另发请求） */
+  catalog?: RoleEditorCatalog
+  /** 角色保存成功后的回调（页面据此重拉列表，回读生效徽章） */
+  onChanged?: () => void
+}) {
   const [busy, setBusy] = useState('')
   const [err, setErr] = useState('')
   const [msg, setMsg] = useState('')
   const [detail, setDetail] = useState<Record<string, unknown> | null>(null)
   const [confirmReload, setConfirmReload] = useState(false)
+  const [roleOpen, setRoleOpen] = useState(false)
 
   const fail = (label: string, e: unknown) => setErr(label + '：' + (e instanceof Error ? e.message : String(e)))
 
@@ -62,6 +74,16 @@ export default function SubagentRowActions({ name }: { name: string }) {
         >
           <RefreshCw size={10} /> 热更新
         </Button>
+        <Button
+          type="button"
+          variant="default" size="xs"
+          onClick={() => setRoleOpen(true)}
+          disabled={loading}
+          aria-label={'编辑角色 ' + name}
+          data-testid={'subagent-edit-role-' + name}
+        >
+          <PenLine size={10} /> 编辑角色
+        </Button>
         {/* 离线包是文件下载：直连端点，不经 hubGet 的 JSON 解析 */}
         <a href={subagentOfflinePack(name)} download className={BTN} aria-label={'下载离线包 ' + name}>
           <Download size={10} /> 离线包
@@ -77,6 +99,16 @@ export default function SubagentRowActions({ name }: { name: string }) {
           <Button type="button" variant="default" size="xs" onClick={() => setConfirmReload(false)}>取消</Button>
         </div>
       )}
+
+      <SubagentRoleEditor
+        name={name}
+        open={roleOpen}
+        role={role}
+        catalog={catalog}
+        onClose={() => setRoleOpen(false)}
+        onSubmit={(payload) => hubPost<{ ok?: boolean; error?: string }>(subagentReload(name), payload)}
+        onSaved={() => { setMsg('角色已更新：' + name); onChanged?.() }}
+      />
 
       {err && <Notice tone="danger" size="sm" className="text-micro">{err}</Notice>}
       {msg && <Notice tone="success" size="sm" className="text-micro">{msg}</Notice>}

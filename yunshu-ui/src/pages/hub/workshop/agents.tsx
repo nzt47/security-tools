@@ -99,6 +99,12 @@ interface RoleCatalog {
   tiers?: { value?: string; label?: string; semantics?: string; red?: boolean; audit?: boolean }[]
   default_tier?: string
   role_text_max_chars?: number
+  /** 分身身份提示词方案库（按角色类型分组；编辑角色弹窗据此给"一键填入"） */
+  prompt_sets?: {
+    role_id?: string
+    role_title?: string
+    sets?: { id?: string; title?: string; scene?: string; body?: string; chars?: number }[]
+  }[]
 }
 
 /** 部署级 LLM 事实 + 可选模型清单（`GET /api/subagent/list` 的 `llm` 段） */
@@ -313,7 +319,12 @@ function SubagentView({ onShowAssembly }: { onShowAssembly?: () => void }) {
                 key: 'actions', title: '操作',
                 render: (r) => (
                   <div className="flex flex-col items-end gap-1">
-                    <SubagentRowActions name={String(r.name)} />
+                    <SubagentRowActions
+                      name={String(r.name)}
+                      role={r.role}
+                      catalog={roleCatalog ?? undefined}
+                      onChanged={load}
+                    />
                     <Button onClick={() => destroy(String(r.name))} variant="danger-outline" size="xs">
                       <Trash2 size={11} /> 销毁
                     </Button>

@@ -154,3 +154,53 @@ export function buildCreatePayload(form: AssembleForm): Record<string, unknown> 
   if (!onlyDefault) body.memory_topics = topics
   return body
 }
+
+// ═══════════════════════════════════════════════════════════
+//  编辑已有分身的角色：热更新请求体（POST /api/subagent/<name>/reload）
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * 角色编辑草稿（弹窗里的即时状态，不是后端配置）。
+ *
+ * [为什么单独一个类型] 弹窗要区分"人没动正文"与"人要清空正文"——两者在
+ * 请求体里是**完全不同**的（不发键 vs 发空串），而在输入框里都表现为"空"。
+ */
+export interface RoleDraft {
+  /** 受控模板 id；空 = 不装角色（system prompt 里没有角色片段，旧行为） */
+  template: string
+  /** 档位：template / template+text / full-system */
+  mode: string
+  /** 本次要写入的自由文本（trim 后为空 = 交给人选的"保留 / 清空"决定） */
+  text: string
+  /** 显式清空该分身现有的自由文本（正文不回显，所以不能靠"留空"猜意图） */
+  clearText: boolean
+}
+
+/**
+ * 草稿 → `POST /api/subagent/<name>/reload` 的角色三字段（**唯一**序列化口径）。
+ *
+ * 后端规矩（agent/server_routes/routes_subagent.py::api_subagent_reload）：
+ * **没传的字段沿用存活容器的现值** —— 这条是防止"改个模板顺手把 role_text 抹了"。
+ * 所以本函数的三条分支必须与它对齐：
+ *
+ *  1. 有输入正文 ⇒ 发 `role_text`（替换）；
+ *  2. 没输入正文 ⇒ **默认不发这个键**（保留现有正文）；
+ *  3. 但三种情况必须显式发空串，否则永远切不回去：
+ *     · 选了「不装角色」（无模板时自由文本没有可依附的受控来源，后端会 400）；
+ *     · 档位切回 `template`（默认档配非空正文后端 400）；
+ *     · 人勾了「清空现有自由文本」。
+ *
+ * [为什么不在这里判长度/词表] 那两条是后端的权威校验（400 + error_code），
+ * 前端只做提示；在这里再判一次就是第二份口径。
+ */
+export function buildRoleUpdatePayload(draft: RoleDraft): Record<string, unknown> {
+  const template = String(draft.template || '').trim()
+  // 没有模板时档位无意义：后端 normalize_tier 会照收，但存一个 full-system 的空角色
+  // 只会让人以后误读 —— 归一为默认档。
+  const mode = template ? String(draft.mode || 'template') : 'template'
+  const text = String(draft.text || '').trim()
+  const body: Record<string, unknown> = { role_template: template, role_mode: mode }
+  if (text) body.role_text = text
+  else if (!template || mode === 'template' || draft.clearText) body.role_text = ''
+  return body
+}

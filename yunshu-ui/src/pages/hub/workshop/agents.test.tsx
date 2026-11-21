@@ -6,7 +6,7 @@
  * 以及"创建入口收敛到组装台"（本页不再有创建表单）。
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import { fireEvent } from '@testing-library/react'
 
 const LINE = {
@@ -38,7 +38,17 @@ function envelope(data: unknown, status = 200) {
 const LIST_PAYLOAD = {
   ok: true, count: 3, channel: {},
   llm: { model: 'deepseek-flash', provider: 'deepseek', options: [{ model: 'deepseek-flash', source: 'deployment' }] },
-  role: { default_tier: 'template', role_text_max_chars: 2000, templates: [{ id: 'code_review', title: '代码审查', body: '…', note: '' }, { id: 'research', title: '资料调研', body: '…', note: '' }], tiers: [{ value: 'template', label: '受控模板', red: false, audit: false }, { value: 'full-system', label: '自由文本进系统提示词（红档）', red: true, audit: true }] },
+  role: {
+    default_tier: 'template', role_text_max_chars: 2000,
+    templates: [{ id: 'code_review', title: '代码审查', body: '…', note: '' }, { id: 'research', title: '资料调研', body: '…', note: '' }],
+    tiers: [
+      { value: 'template', label: '受控模板', red: false, audit: false },
+      { value: 'template+text', label: '模板 + 自由文本（进约束）', red: false, audit: true },
+      { value: 'full-system', label: '自由文本进系统提示词（红档）', red: true, audit: true },
+    ],
+    // 方案库：编辑角色弹窗的"一键填入"（与组装台同源，只有 code_review 有）
+    prompt_sets: [{ role_id: 'code_review', role_title: '代码审查', sets: [{ id: 'cr-strict', title: '严格审查', scene: '只看 diff', body: '你是严格审查者：逐项给出位置/问题/依据/建议。', chars: 26 }] }],
+  },
   subagents: [
     { name: 'alpha', model_id: 'deepseek-v4-pro', memory_provider: 'holographic', status: 'running', llm: { requested: 'deepseek-v4-pro', model: 'deepseek-v4-pro', source: 'explicit', error: '', temperature: null }, role: { template: 'code_review', tier: 'template', source: 'role_template:code_review', fragment_chars: 78, constraints: 0, audit_required: false, red: false, error: '' } },
     { name: 'beta', model_id: '', memory_provider: 'holographic', status: 'idle', llm_temperature: 0.25, llm: { requested: '', model: 'deepseek-flash', source: 'inherit', error: '', temperature: 0.25 }, role: { template: '', tier: 'template', source: '', fragment_chars: 0, constraints: 0, audit_required: false, red: false, error: '' } },
@@ -61,12 +71,15 @@ const CAPABILITIES = {
 }
 
 const postCalls: { url: string; body: Record<string, unknown> }[] = []
+/** 下一批 reload 请求是否要回 400（验证"业务拒绝不关弹窗"） */
+let failReload = false
 const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
   const u = String(url)
   if (init?.method === 'POST') {
     let body: Record<string, unknown> = {}
     try { body = JSON.parse(String(init.body ?? '{}')) } catch { body = {} }
     postCalls.push({ url: u, body })
+    if (failReload && u.includes('/reload')) return json({ ok: false, error: 'role_text 超长（2001 > 2000 字符）' }, 400)
     return envelope({ ok: true })
   }
   if (u.includes('/api/subagent/list')) return envelope(LIST_PAYLOAD)
@@ -84,7 +97,7 @@ const mod = await import('./agents')
 const WorkshopAgents = mod.default
 const { WORKSHOP_VIEWS, WORKSHOP_VIEW_STORAGE_KEY } = mod
 
-beforeEach(() => { localStorage.clear(); fetchMock.mockClear(); postCalls.length = 0 })
+beforeEach(() => { localStorage.clear(); fetchMock.mockClear(); postCalls.length = 0; failReload = false })
 afterEach(cleanup)
 
 describe('装配车间 · 五视图容器', () => {
@@ -194,5 +207,103 @@ describe('装配车间 · 五视图容器', () => {
     await waitFor(() => expect(screen.getByText('gamma')).toBeInTheDocument())
     const cell = screen.getByTestId('subagent-llm-gamma')
     expect(cell.querySelector('[title]')?.getAttribute('title')).toContain('派生模型 gpt-4 失败')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════
+//  编辑已有分身的角色（2026-11-22）
+// ------------------------------------------------------------------
+// 口径：复用 POST /api/subagent/<name>/reload（不新增写路由）；
+// 正文不回显 ⇒ "留空 = 保留" 与 "显式清空" 必须是两种请求体；
+// 红档 full-system 必须先确认（确认前一个请求都不许发）。
+// ═══════════════════════════════════════════════════════════
+describe('分身 · 编辑角色', () => {
+  const openEditor = async (name: string) => {
+    render(<WorkshopAgents />)
+    await waitFor(() => expect(screen.getByText(name)).toBeInTheDocument())
+    fireEvent.click(screen.getByTestId('subagent-edit-role-' + name))
+    await waitFor(() => expect(screen.getByTestId('role-editor')).toBeInTheDocument())
+  }
+  const selectValue = (testId: string) => (screen.getByTestId(testId) as HTMLSelectElement).value
+  const textarea = () => screen.getByTestId('role-editor-text') as HTMLTextAreaElement
+
+  it('入口在行操作里；打开时按当前生效角色预填模板与档位', async () => {
+    await openEditor('alpha')
+    expect(selectValue('role-editor-template')).toBe('code_review')
+    expect(selectValue('role-editor-mode')).toBe('template')
+    expect(screen.getByTestId('role-editor-current').textContent).toContain('代码审查')
+  })
+
+  it('正文不回显：留空 + 非默认档 ⇒ 请求体不带 role_text（后端沿用现值）', async () => {
+    await openEditor('alpha')
+    fireEvent.change(screen.getByTestId('role-editor-mode'), { target: { value: 'template+text' } })
+    fireEvent.click(screen.getByTestId('role-editor-save'))
+    await waitFor(() => expect(postCalls.length).toBe(1))
+    expect(postCalls[0].url).toContain('/api/subagent/alpha/reload')
+    expect(postCalls[0].body).toEqual({ role_template: 'code_review', role_mode: 'template+text' })
+    await waitFor(() => expect(screen.queryByTestId('role-editor')).toBeNull())
+  })
+
+  it('切回受控模板档 ⇒ 显式发空串（否则默认档配旧正文会被后端 400，永远切不回去）', async () => {
+    await openEditor('alpha')
+    fireEvent.change(screen.getByTestId('role-editor-mode'), { target: { value: 'template+text' } })
+    fireEvent.change(screen.getByTestId('role-editor-mode'), { target: { value: 'template' } })
+    fireEvent.click(screen.getByTestId('role-editor-save'))
+    await waitFor(() => expect(postCalls.length).toBe(1))
+    expect(postCalls[0].body).toEqual({ role_template: 'code_review', role_mode: 'template', role_text: '' })
+  })
+
+  it('勾「清空现有自由文本」⇒ 发空串（用户显式表态，不靠留空猜）', async () => {
+    await openEditor('alpha')
+    fireEvent.change(screen.getByTestId('role-editor-mode'), { target: { value: 'template+text' } })
+    fireEvent.click(screen.getByTestId('role-editor-clear'))
+    fireEvent.click(screen.getByTestId('role-editor-save'))
+    await waitFor(() => expect(postCalls.length).toBe(1))
+    expect(postCalls[0].body).toEqual({ role_template: 'code_review', role_mode: 'template+text', role_text: '' })
+  })
+
+  it('输入正文（方案模板一键填入）⇒ 带 role_text，且默认档自动抬到 template+text', async () => {
+    await openEditor('alpha')
+    const body = '你是严格审查者：逐项给出位置/问题/依据/建议。'
+    fireEvent.click(screen.getByTestId('role-editor-set-cr-strict'))
+    expect(textarea().value).toBe(body)
+    expect(selectValue('role-editor-mode')).toBe('template+text')
+    expect(screen.getByTestId('role-editor-count').textContent).toContain(String(body.length))
+    fireEvent.click(screen.getByTestId('role-editor-save'))
+    await waitFor(() => expect(postCalls.length).toBe(1))
+    expect(postCalls[0].body).toEqual({ role_template: 'code_review', role_mode: 'template+text', role_text: body })
+  })
+
+  it('红档 full-system：先二次确认；取消 ⇒ 一个请求都不发，确认 ⇒ 才提交', async () => {
+    await openEditor('alpha')
+    fireEvent.change(screen.getByTestId('role-editor-mode'), { target: { value: 'full-system' } })
+    fireEvent.click(screen.getByTestId('role-editor-save'))
+    const confirm = await screen.findByRole('dialog', { name: '红档：自由文本进系统提示词' })
+    expect(postCalls.length).toBe(0)
+    fireEvent.click(within(confirm).getByRole('button', { name: '取消' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: '红档：自由文本进系统提示词' })).toBeNull())
+    expect(postCalls.length).toBe(0)
+
+    fireEvent.click(screen.getByTestId('role-editor-save'))
+    fireEvent.click(within(await screen.findByRole('dialog', { name: '红档：自由文本进系统提示词' })).getByRole('button', { name: '保存为红档' }))
+    await waitFor(() => expect(postCalls.length).toBe(1))
+    // 红档 + 正文留空 ⇒ 同样"不发 role_text"（保留现有正文；要清空得单独勾）
+    expect(postCalls[0].body).toEqual({ role_template: 'code_review', role_mode: 'full-system' })
+  })
+
+  it('后端 400 ⇒ 原样显示原因且弹窗不关（不假成功）', async () => {
+    failReload = true
+    await openEditor('alpha')
+    fireEvent.click(screen.getByTestId('role-editor-save'))
+    const err = await screen.findByTestId('role-editor-error')
+    expect(err.textContent).toContain('role_text 超长')
+    expect(screen.getByTestId('role-editor')).toBeInTheDocument()
+  })
+
+  it('未装角色的分身：模板空 + 正文框禁用（没有可依附的受控来源）', async () => {
+    await openEditor('beta')
+    expect(selectValue('role-editor-template')).toBe('')
+    expect(textarea()).toBeDisabled()
+    expect(screen.getByTestId('role-editor-text-hint').textContent).toContain('未装角色')
   })
 })
