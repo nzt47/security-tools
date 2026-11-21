@@ -212,7 +212,7 @@ openai==2.40.0
     # via Yunshu (pyproject.toml)
 opencv-python-headless==4.13.0.92
     # via Yunshu (pyproject.toml)
-opentelemetry-api==1.45.1
+opentelemetry-api==1.45.2
     # via
     #   chromadb
     #   opentelemetry-exporter-otlp-proto-grpc
