@@ -10,7 +10,7 @@
  * 与面板顺序实时联动，不依赖再次保存配置。
  */
 import { describe, expect, it } from 'vitest'
-import { buildDisplayOrder, buildRows, type IdentityRawSection } from './identityPrompt'
+import { buildDisplayOrder, buildRows, pickRolePromptSets, type IdentityRawSection } from './identityPrompt'
 
 const sections: Record<string, IdentityRawSection> = {
   identity: { key: 'identity', enabled: true, label: '身份设定', custom_content: '你是云枢。' },
@@ -211,5 +211,28 @@ describe('buildDisplayOrder', () => {
     expect(order.slice(0, 3)).toEqual(['identity', 'principles', 'skill_instructions'])
     expect(order).toContain('orphan')
     expect(order.indexOf('orphan')).toBeGreaterThan(order.indexOf('memory_context'))
+  })
+})
+describe('pickRolePromptSets —— 分身角色方案载荷（2026-11-21）', () => {
+  const groups = [
+    { role_id: 'code_review', role_title: '代码审查', sets: [{ id: 'a', title: '标准审查', scene: 's', body: '正文' }] },
+    { role_id: 'empty', role_title: '空角色', sets: [] },
+  ]
+
+  it('统一信封（{code, data:{role:{prompt_sets}}}）要取到 data 那一层', () => {
+    // 【这条是防静默失败的】后端返回信封；取错层级不会报错，只会"整块不渲染"。
+    const picked = pickRolePromptSets({ code: 200, data: { role: { prompt_sets: groups } } })
+    expect(picked.map((g) => g.role_id)).toEqual(['code_review'])
+  })
+
+  it('平铺形状也容忍（测试替身 / 未来换信封）', () => {
+    expect(pickRolePromptSets({ role: { prompt_sets: groups } }).map((g) => g.role_id)).toEqual(['code_review'])
+  })
+
+  it('没有方案 / 形状不对 ⇒ 空数组，不抛错', () => {
+    expect(pickRolePromptSets(null)).toEqual([])
+    expect(pickRolePromptSets({})).toEqual([])
+    expect(pickRolePromptSets({ data: { role: {} } })).toEqual([])
+    expect(pickRolePromptSets({ data: { role: { prompt_sets: 'nope' } } })).toEqual([])
   })
 })

@@ -476,6 +476,24 @@ export interface UseRolePromptSetsResult {
   error: string
 }
 
+/**
+ * 从 `GET /api/subagent/list` 的载荷里取方案库。
+ *
+ * 【为什么单独一个纯函数】后端返回**统一信封**（`{code, data:{role:{prompt_sets}}}`），
+ * 而这里也容忍平铺形状（测试替身/未来换信封）。取错层级的结果不是报错而是"整块不渲染"，
+ * 属于最难发现的静默失败——所以把它抽出来单测两种形状。
+ */
+export function pickRolePromptSets(payload: unknown): RolePromptSetGroup[] {
+  const root = payload && typeof payload === 'object' && 'data' in (payload as Record<string, unknown>)
+    ? (payload as Record<string, unknown>).data
+    : payload
+  const role = root && typeof root === 'object' ? (root as Record<string, unknown>).role : undefined
+  const list = role && typeof role === 'object' && Array.isArray((role as Record<string, unknown>).prompt_sets)
+    ? ((role as Record<string, unknown>).prompt_sets as RolePromptSetGroup[])
+    : []
+  return list.filter((g) => g && Array.isArray(g.sets) && g.sets.length > 0)
+}
+
 export function useRolePromptSets(): UseRolePromptSetsResult {
   const [groups, setGroups] = useState<RolePromptSetGroup[]>([])
   const [loading, setLoading] = useState(true)
@@ -485,11 +503,9 @@ export function useRolePromptSets(): UseRolePromptSetsResult {
     let alive = true
     ;(async () => {
       try {
-        const data = await hubGet<{ role?: { prompt_sets?: RolePromptSetGroup[] } }>(SUBAGENT_LIST)
-        const list = Array.isArray(data?.role?.prompt_sets) ? data.role.prompt_sets : []
+        const payload = await hubGet<unknown>(SUBAGENT_LIST)
         if (!alive) return
-        // 只保留真有方案的组（后端降级时可能是空数组）
-        setGroups(list.filter((g) => g && Array.isArray(g.sets) && g.sets.length > 0))
+        setGroups(pickRolePromptSets(payload))
       } catch (e) {
         if (!alive) return
         setError(e instanceof Error ? e.message : String(e))
