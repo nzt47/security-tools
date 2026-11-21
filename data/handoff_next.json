@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-21T11:40:00+08:00",
+ "updated_at": "2026-11-21T12:08:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -52,11 +52,11 @@
   },
   {
    "id": "ui-guard-palette-semantic",
-   "status": "open",
+   "status": "done",
    "priority": "P3",
    "title": "四套 UI 调色板（--wbp/--pl/--dc/--ve）语义命名（Owner 观感确认后）",
    "criteria": "§11.184 把 358 条颜色字面值集中到四套调色板变量，规则已 0 字面值；但变量名是角色/色阶（--wbp-bg、--ve-slate-800），不是 --surface/--accent 这类语义名。属可选打磨，需 Owner 先看四页观感再决定。2026-11-20 复核（.local/verify_palette_equiv.py）：把当前规则里的 var()/color-mix 还原成 rgba 后与 6f097bc39^ 原文逐行比较 —— 四文件原本有两处漂移（VisualEditor 的 minimap mask fill 指向 #0b1220 而非真 slate-950 #020617；DevConsole 的 diff 底色写成 13.3% 而非 34/255=13.333%），已由 28438b15e 修回，现四文件 0 差异。真机计算值：--wbp-bg=#04060d / --wbp-text=#d7e2f0 / --wb-bg=hsl(222 47% 4%) / --wb-text=hsl(210 40% 96%) / --pl-bg=#04060d / --dc-bg=#0d1117 / --ve-bg-deep=#0b1220 / --ve-slate-950=#020617；minimap mask fill = rgb(2 6 23 / 0.55)（与改前逐字一致）。 2026-11-21 追记：Owner 说的「全乱/导航没了」不是调色板取值问题，而是 @import 顺序事故（见 css-import-order-regression，已修 ad25d69d3）；修后四页计算值仍与改前逐字一致，截图重拍为 .ui_shots/LAYOUT_WB_1440.png / LAYOUT_WB_1920.png / PALETTE_PL_1440.png / PALETTE_DC_1440.png / PALETTE_VE_1440.png。 2026-11-21 追记：Owner 觉得「全乱/导航没了」的根因是 @import 顺序事故（§11.187，已修）；调色板取值本身与改前逐字一致，语义命名仍只是可选改名。",
-   "next": "等 Owner 看修后截图再决定要不要语义命名（纯改名，不改变观感）；要改先定命名表（每主题 8-12 个语义名），纯 CSS + 三档截图，不动 --wb-*。"
+   "next": "2026-11-21 Owner 决定「全量改名」，已落地 bd7c91d5c：88 个变量 / 438 处引用按显式改名表机械替换（六族：canvas/surface → text → border → accent → status → 业务面），前缀 --wbp/--pl/--dc/--ve 保留，--wb-* 未动；命名表见 docs/ui/调色板语义命名表.md。等价性量具改成声明级（.local/verify_palette_equiv.py）：只比两边都还在的声明，漂移 0；删规则/加规则单独计；--self-test 扰动 1/255 必红。真机计算值未变（--wbp-canvas #04060d / --wbp-text-primary #d7e2f0 / --dc-canvas #0d1117），旧变量名解析为空串。"
   },
   {
    "id": "chat-bubble-width-clamp",
@@ -1212,23 +1212,23 @@
    "priority": "P2",
    "title": "叶子页页头统一 PageTabsHeader + 页签族统一 folder + 标题行固定 24px",
    "criteria": "2026-11-21 落地 ca4f43740 + 3245f165c：修前 h1 x 186~248 / y 54~78，页签条 y 106~197，页签族混用 folder/pill/segmented。8 个手写页头收口（business/feedback/security/local/platform/health/route-coverage/skill-center/workflow-hub），ui-guard pill→folder；PageTabsHeader 标题行固定 h-6（此前动作控件高度把标题撑高 1~4px）。修后上述页面 h1 全 16px @ (228,70)，页签条 y=106 h=32。",
-   "next": "例外：PromptLab 仍用自有 .pl-topbar（248/66，页签条 121/40），要统一需单独一批（独立 CSS）。"
+   "next": "当时唯一的例外 PromptLab 已于 §11.190 并入（7023c3d17 + 290fc2d2c）：现在所有带页签叶子页（含 PromptLab）三档真机读数一致 —— h1 16px @ (228,70)、页签条 y=106 h=32、页头 84。"
   },
   {
    "id": "ui-guard-tools-in-engineering-boost",
-   "status": "open",
+   "status": "done",
    "priority": "P3",
    "title": "ui_guard_check / ui_guard_fix 是否加进 engineering 主线的 boost（默认可见）",
    "criteria": "2026-11-21 观察：两条 ui_guard 工具都不在任何主线档案的 boost 里，模型只能靠 hybrid 选择看到它们；激活主线是 engineering（data/agent_lines/_active.json）。boost 是入库文件 data/agent_lines/engineering.yaml 的列表（跨平面 +60 分）。加 boost 不影响工具数/能力清单，但会让这两个工具常驻可见（多占 schema token）。",
-   "next": "等 Owner 决定：要默认可见就 append 到 engineering.yaml 的 boost（必要时也 dev）；ui_guard_fix 的 YAML enabled:false 不动，boost 只在启用后才生效。"
+   "next": "2026-11-21 Owner 决定「两个都加 + max_tools 26→27」（abb3ca0bf），并重派生清单（947ec5eed）。/api/agent-lines/preview 实测：boost+2 而 max_tools 不变时会挤掉 run_tests；27 时 ui_guard_check 打分入选（score=160）、ui_guard_fix 平面保底、零丢失（act 14 / perceive 10 / resident 3）。ui_guard_fix 的 YAML enabled:false 未动 —— 停用期间不进可见集。以后再加 boost 一律先跑 preview 量「加/丢」再定 max_tools。"
   },
   {
    "id": "promptlab-header-unification",
-   "status": "open",
+   "status": "done",
    "priority": "P3",
    "title": "PromptLab 页头仍是自有 .pl-topbar（h1 @ 248/66，页签条 121/40），未并入 PageTabsHeader",
    "criteria": "2026-11-21 页头统一时保留例外：PromptLab 有独立 CSS（pl-title/pl-subtitle/pl-topbar/pl-tabs）与独立观感约定，机械替换会牵动它的三栏布局与字号档。真机：h1 16px @ (248,66)，页签条 y=121 h=40（其它叶子页 228/70 与 106/32）。",
-   "next": "若 Owner 要求完全一致：单独一批 —— 先把 pl-topbar 的 padding/字号映射到 PageTabsHeader，再删多余的 pl-* 规则；三档截图；不要动 pl-* 的业务布局（三栏/预览）。"
+   "next": "2026-11-21 已并入（7023c3d17 + 像素对齐 290fc2d2c）：icon 槽 14px、hint 走 text-caption、动作 sm→xs、页签仍 folder 且补 -mb-px；删掉 .pl-topbar/.pl-logo-badge/.pl-title/.pl-subtitle/.pl-topbar-actions/.pl-tabs 六条规则，保留 .pl-page-header（吸顶+毛玻璃），.pl-filter 吸顶 97→84。三档真机（1280/1440/1920）prompt-lab 与 health/tools/business 读数完全一致：h1 16px @ (228,70)、页签条 106/32、页头 84。"
   },
   {
    "id": "ci-flake-system-tools-save-tasks",
