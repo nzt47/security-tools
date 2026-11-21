@@ -69,4 +69,15 @@ describe('ReplayCenter', () => {
     fireEvent.click(real)
     await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/replay/cleanup', { dry_run: false }))
   })
+it('页头是 PageHeader：h1 + text-title（不再手拼 h2，真机曾比其他叶子小一号）', async () => {
+    gets()
+    const { container } = render(<ReplayCenter />)
+    await screen.findByText('r1')
+    const h1 = container.querySelector('h1')
+    expect(h1?.textContent).toBe('回放中心')
+    expect(h1?.className).toContain('text-title')
+    // 同名 h2 不许再出现（否则一页两个"回放中心"、字号还不一样）
+    const dup = [...container.querySelectorAll('h2')].filter((e) => e.textContent?.trim() === '回放中心')
+    expect(dup).toHaveLength(0)
+  })
 })

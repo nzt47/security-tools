@@ -17,7 +17,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Film, Loader2, RefreshCw, Search, Trash2,
 } from 'lucide-react'
-import { Button, Checkbox, CodeBlock, ErrorBox, hubGet, hubPost, Notice, Select } from '../components/ui'
+import { Button, Checkbox, CodeBlock, ErrorBox, hubGet, hubPost, Notice, PageHeader, Select } from '../components/ui'
 import {
   REPLAY_CLEANUP,
   REPLAY_LIST,
@@ -109,17 +109,21 @@ export default function ReplayCenter() {
 
   return (
     <div className="h-full overflow-y-auto p-4">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <Film size={14} className="text-cyan-400" />
-        <h2 className="text-ui font-semibold text-slate-100">回放中心</h2>
-        <span className="text-caption text-slate-500">会话回放：排障时唯一的现场 —— 清理前必须先看会删多少</span>
-        <div className="ml-auto flex flex-wrap items-center gap-1.5">
-          <Select value={limit} onChange={(v) => { setLimit(v); void load(v)}} aria-label="回放条数" size="sm" hidePlaceholder options={[{ label: '20 条', value: '20' }, { label: '50 条', value: '50' }, { label: '100 条', value: '100' }]} />
-          <Button type="button" variant="default" size="xs" onClick={() => void load()} disabled={loading} aria-label="刷新回放列表">
-            {busy === 'load' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-          </Button>
-        </div>
-      </div>
+      {/* 【2026-11-21 收口】页头改 PageHeader（h1 16px + 说明 + 右侧动作）：
+          原来这里是手拼 <h2 className="text-ui"> + 图标 + 说明，标题比其他叶子页小一号、
+          也没有 h1（真机逐叶复核发现；封装规范 §1「叶子页头（无页签）→ PageHeader」）。 */}
+      <PageHeader
+        title="回放中心"
+        description="会话回放：排障时唯一的现场 —— 清理前必须先看会删多少"
+        actions={
+          <>
+            <Select value={limit} onChange={(v) => { setLimit(v); void load(v)}} aria-label="回放条数" size="sm" hidePlaceholder options={[{ label: '20 条', value: '20' }, { label: '50 条', value: '50' }, { label: '100 条', value: '100' }]} />
+            <Button type="button" variant="default" size="xs" onClick={() => void load()} disabled={loading} aria-label="刷新回放列表">
+              {busy === 'load' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
+            </Button>
+          </>
+        }
+      />
 
       {err && <ErrorBox message={err} />}
       {msg && <Notice tone="success" size="sm" className="mb-2">{msg}</Notice>}

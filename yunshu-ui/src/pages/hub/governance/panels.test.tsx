@@ -238,6 +238,17 @@ describe('3. 审批收件箱面板（P0）', () => {
     expect(await screen.findByText(/stage\.promote · L1 · 风险 low（2）/)).toBeInTheDocument()
   })
 
+it('页级标题是 h1（PageHeader）：面板头不再重复同名 h2', async () => {
+    api.fetchApprovalInbox.mockResolvedValue(inbox)
+    const { container } = render(<GovernancePanels panel="approvals" />)
+    await screen.findByText(/stage\.promote · L1 · 风险 low（2）/)
+    const h1 = container.querySelector('h1')
+    expect(h1?.textContent).toBe('审批收件箱')
+    expect(h1?.className).toContain('text-title')
+    const dup = [...container.querySelectorAll('h2')].filter((e) => e.textContent?.trim() === '审批收件箱')
+    expect(dup).toHaveLength(0)
+  })
+
   it('★ 缺 undo_hint 的待审记录标注"不出气泡"（规则来自后端）', async () => {
     api.fetchApprovalInbox.mockResolvedValue(inbox)
     render(<GovernancePanels panel="approvals" />)

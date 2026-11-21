@@ -72,6 +72,7 @@ import {
   useSecurityState,
 } from './usePanel'
 import { Button, Checkbox, Input, Notice, Select } from '@/components/ui'
+import { PageHeader } from '../components/ui'
 import { AbsoluteActionBar } from './actions'
 import { ImplicitEntryLog, recordImplicitEntry } from './implicitEntry'
 import { SettingsPanel } from './settings'
@@ -598,10 +599,18 @@ export function ApprovalInboxPanel() {
     <PanelShell loading={loading} error={error} reload={reload}>
       {data && (
         <>
-          <PanelHeader
+          {/* 【2026-11-21 收口】页级标题改 PageHeader（h1 16px + 说明）：
+              审批收件箱是**单片即整页**的叶子（GovernancePanels panel="approvals"），
+              原来只有面板头 h2（14px）⇒ 全站唯一没有 h1 的两页之一（真机逐叶复核发现）。
+              面板头保留徽章/数据源/计数那一行，标题不再重复。 */}
+          <PageHeader
             title="审批收件箱"
             description={'批量裁决=逐条走同一审批链（会话+CSRF+链接+二次认证+矩阵），无旁路；'
               + '对话里触发的工具审批在对话内弹窗确认，默认不出现在这里（勾下方开关可看）'}
+          />
+          <PanelHeader
+            title="审批收件箱"
+            showTitle={false}
             priority={data.panel?.priority}
             datasources={data.panel?.datasources}
             actions={

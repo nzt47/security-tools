@@ -605,12 +605,15 @@ export function PanelHeader({
   priority,
   datasources,
   actions,
+  showTitle = true,
 }: {
   title: string
   description?: string
   priority?: string
   datasources?: string[]
   actions?: ReactNode
+  /** 页面级 h1 已由 PageHeader 给出时置 false（见审批收件箱）：只留徽章/数据源/动作那一行 */
+  showTitle?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const tone: StatusTone =
@@ -619,7 +622,7 @@ export function PanelHeader({
     <div className="mb-3 flex items-start justify-between gap-3">
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <h2 className="text-ui font-semibold text-slate-100">{title}</h2>
+          {showTitle ? <h2 className="text-ui font-semibold text-slate-100">{title}</h2> : null}
           {priority && (
             <StatusBadge tone={tone} title="面板优先级（§7：P0 展开 / P1·P2 折叠）">
               {priority}
