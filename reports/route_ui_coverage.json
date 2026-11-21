@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-21T14:07:34",
+  "generated_at": "2026-11-21T17:57:07",
   "totals": {
     "routes": 518,
     "live": 518,
@@ -1637,7 +1637,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "cognitive/flask_adapter.py:55"
+        "cognitive/flask_adapter.py:55",
+        "plugins/status.py:372"
       ],
       "description": "判断当前读数下任务是否应被拒绝，返回 {rejected, reason}。",
       "description_source": "handler",
@@ -4030,7 +4031,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/status.py:792"
+        "plugins/status.py:811"
       ],
       "description": "心跳检测接口 — 全维度健康检查（**已迁移到统一信封**）。",
       "description_source": "handler",
@@ -4055,7 +4056,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/status.py:820"
+        "plugins/status.py:839"
       ],
       "description": "获取心跳历史（**已迁移到统一信封**）。",
       "description_source": "handler",
@@ -4080,7 +4081,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/status.py:849"
+        "plugins/status.py:868"
       ],
       "description": "获取心跳概览（**已迁移到统一信封**）。",
       "description_source": "handler",
@@ -6243,7 +6244,7 @@
         "app_server.py"
       ],
       "where": [
-        "plugins/status.py:376"
+        "plugins/status.py:395"
       ],
       "description": "获取全景页面所需的所有数据（单次调用，**已迁移到统一信封**）。",
       "description_source": "handler",
@@ -6451,7 +6452,7 @@
         "agent/modules_api.py"
       ],
       "where": [
-        "plugins/status.py:668"
+        "plugins/status.py:687"
       ],
       "description": "读取人格配置（**已迁移到统一信封**）。",
       "description_source": "handler",
@@ -6476,7 +6477,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/status.py:687"
+        "plugins/status.py:706"
       ],
       "description": "status 插件：系统状态、感知与性格域（T1.4，迁移自 app_server.py）。",
       "description_source": "module",
@@ -6503,7 +6504,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/status.py:697"
+        "plugins/status.py:716"
       ],
       "description": "status 插件：系统状态、感知与性格域（T1.4，迁移自 app_server.py）。",
       "description_source": "module",
@@ -6530,7 +6531,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/status.py:707"
+        "plugins/status.py:726"
       ],
       "description": "status 插件：系统状态、感知与性格域（T1.4，迁移自 app_server.py）。",
       "description_source": "module",
@@ -10491,8 +10492,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/status.py:719",
-        "plugins/status.py:735"
+        "plugins/status.py:738",
+        "plugins/status.py:754"
       ],
       "description": "读取 status 插件 schema 全部字段的当前生效值（供 SchemaRenderer 预填）。",
       "description_source": "handler",
