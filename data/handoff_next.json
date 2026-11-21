@@ -1259,7 +1259,7 @@
    "status": "open",
    "priority": "P3",
    "title": "导航重组后的真机复核（剩余 12 条旧深链 + 16 个叶子观感 + 三档截图）",
-   "criteria": "2026-11-21 重组（964dc1d06 / a02078a7f）已部署 a02078a7f（bundle index-DZUJ3j7o.js · pid 106460）。浏览器层只完成 5 条旧深链：panorama/sensors→运行监控·全景感知、panorama/logs→实时日志、admin/audit→操作审计、admin/logs→系统日志、governance/audit→审计链（页签均正确）。其余 12 条与 16 个叶子的观感未跑完：一次 Playwright 会话连跑几十个页面会把本机 Windows Job runner 拖崩（exit 0xC0000005 / 4294930435，连只读工具都起不来，重启后恢复）。",
+   "criteria": "2026-11-21 重组（964dc1d06 / a02078a7f）已部署 a02078a7f（bundle index-DZUJ3j7o.js · pid 106460）。浏览器层只完成 5 条旧深链：panorama/sensors→运行监控·全景感知、panorama/logs→实时日志、admin/audit→操作审计、admin/logs→系统日志、governance/audit→审计链（页签均正确）。其余 12 条与 16 个叶子的观感未跑完：一次 Playwright 会话连跑几十个页面会把本机 Windows Job runner 拖崩（exit 0xC0000005 / 4294930435，连只读工具都起不来，重启后恢复）。**2026-11-21 收尾追加**：深链落点改成契约测试 src/pages/hub/iaLegacy.test.ts（5 用例覆盖 15 条映射，逐条断言「旧 key → 落点叶子 → 页内 Tab」），并补了 health 的 admin 初始 Tab 与页内标题对齐（系统总览 / 调度与开关）；真机再验 admin/dashboard→管理概览、governance/settings→开关中心、日志与审计→审计链、账号与权限→角色、运行监控→两 Tab 均通过。只剩「逐叶观感 + 三档截图」没做。",
    "next": "用 .local/verify_legacy2_1191.py（每批 3 条、每批新浏览器、跑完 close）补完剩余 12 条；再用 .local/verify_ia_1191.py 分批看 16 个叶子并拍三档截图（.ui_shots/IA_*.png）。判据：落点页的当前页签 = 期望页签；注意旧的 ?panel= 不会被改写成新 key（有意的，旧收藏仍可用）。"
   }
  ]
