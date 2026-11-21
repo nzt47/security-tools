@@ -1237,6 +1237,14 @@
    "title": "CI 偶发：test_system_tools_core.py::TestSystemToolsLoadSaveTasks::test_save_tasks_creates_directory（ubuntu shard3）",
    "criteria": "2026-11-21 观察：76371a799 的 ci.yml（run 44841738908）在 ubuntu-22.04 shard3 红一次（assert_called_once），同提交 windows 分片与最终提交 3245f165c 的 30/30 全绿；本机单跑 1 passed（4.7s）。判为环境/顺序敏感（mock os.makedirs 的调用次数依赖创建路径），不是回归。",
    "next": "再红时先看 junit 的 traceback 与同 worker 的前序用例（xdist 顺序）；不要 --deselect。必要时改成断言\"至少一次且目标路径在调用参数里\"，并在 PR 写清口径变化。"
+  },
+{
+   "id": "memory-merge-empty-clobber",
+   "status": "done",
+   "priority": "P2",
+   "title": "记忆压缩：merge_summaries 返回空时照样落盘 ⇒ 把上一份好摘要冲成 0 字节（已修 8d016819b）",
+   "criteria": "2026-11-21 12:18 生产实证（logs/deploy_spawn_20261121_120339.err.log）：压缩本身成功（LLM 回 451 字符），[步骤4] 合并旧摘要（v102）后 merge_summaries 返回 0 字符，[步骤5] 仍 save_summary(v103) ⇒ data/summary.txt 0 字节、版本涨到 103，上一份好摘要被整份冲掉；单位看板 memory.compress 从 ok 转 warn（health 97.8）。根因：2026-10-28 加的空摘要守卫只查 summarizer.compress() 之后，合并之后再没查。修法：合并结果为空 ⇒ 保持旧摘要与版本不变、写 memory_compress_merge_empty 黑匣子事件、累计 _empty_compress_streak（≥3 停手），返回 False。用例：test_memory_compress_guard::test_merge_returning_empty_must_not_clobber_old_summary（7 passed）；memory/tests + 三个 memory 单测 120 passed。",
+   "next": "已部署 8d016819b（pid 101784 · bundle index-CXS-STrM.js）。丢失的摘要已用唯一入口 POST /api/memory/compress 重建：0 字节 v103 → 1171 字节 v104，单位看板回到 18 ok / 0 warn / 100.0。以后改压缩链路要同时守「compress 为空」与「merge 为空」两道；查黑匣子事件 memory_compress_merge_empty 可定位这类静默失败。"
   }
  ]
 }
