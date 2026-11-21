@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-22T00:26:00+08:00",
+ "updated_at": "2026-11-22T00:33:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1283,8 +1283,8 @@
    "status": "done",
    "priority": "P3",
    "title": "已有分身的角色改不了（UI 无入口）—— 后端 reload 早已支持，补「分身 → 编辑角色」入口",
-   "criteria": "2026-11-22 第 144 轮复核：原条目「没有更新路由」的前提已过时 —— POST /api/subagent/<name>/reload 一直带 role_template / role_mode / role_text 三字段（_role_fields 复用 resolve_subagent_role 校验、未传字段沿用存活容器现值以防静默清空、档位变更写热更新日志）。Owner 决定「只加 UI 入口，不新增写路由」（多一条 PUT 就是第二条同义写路径，且要同步 coverage/triage 派生）。落地 0f610bfb0：components/SubagentRoleEditor（ModalBase + ConfirmDialog，红档二次确认）+ 行操作「编辑角色」+ lib/subagentApi.buildRoleUpdatePayload（唯一序列化口径，6 条单测）。语义：正文不回显 ⇒ 留空 = 保留、显式勾选 = 清空；切回 template 档自动发空串（否则默认档配旧正文必 400）；未装角色时正文框禁用。",
-   "next": "已部署：master 0f610bfb0 / bundle index-DKYYzrDc.js / pid 10584（三处一致）。真机（.local/verify_role_edit_1200.py）：探针 code_review/template → 预填正确 → 红档二次确认后 tier=full-system / red=true、行徽章「红档·自由文本进系统提示词」→ 方案一键填入 366 字（template+text，constraints=1）→ 切回 template 正文被清空（constraints=0）→ 销毁后角色读数 null。用例：vitest 196 files · 1499 tests（新增 14 条：8 UI + 6 载荷）/ pytest 213 / ui:check 0。顺带修了两个 .local 验证脚本的老缺陷（verify_assembly_sets 用 get_by_test_id 找 DOM id 必超时；verify_role_copy 未归一化 Windows 剪贴板 CRLF）。"
+   "criteria": "2026-11-22 第 144 轮复核：原条目「没有更新路由」的前提已过时 —— POST /api/subagent/<name>/reload 一直带 role_template / role_mode / role_text 三字段（_role_fields 复用 resolve_subagent_role 校验、未传字段沿用存活容器现值以防静默清空、档位变更写热更新日志）。Owner 决定「只加 UI 入口，不新增写路由」（多一条 PUT 就是第二条同义写路径，且要同步 coverage/triage 派生）。落地 0f610bfb0（目录外模板 id 原样保留由 e869271bf 补）：components/SubagentRoleEditor（ModalBase + ConfirmDialog，红档二次确认）+ 行操作「编辑角色」+ lib/subagentApi.buildRoleUpdatePayload（唯一序列化口径，6 条单测）。语义：正文不回显 ⇒ 留空 = 保留、显式勾选 = 清空；切回 template 档自动发空串（否则默认档配旧正文必 400）；未装角色时正文框禁用。",
+   "next": "已部署（代码提交 e869271bf；线上读数以 /api/version + 交接卡为准，pid/bundle 每次部署都会变）。真机（.local/verify_role_edit_1200.py）：探针 code_review/template → 预填正确 → 红档二次确认后 tier=full-system / red=true、行徽章「红档·自由文本进系统提示词」→ 方案一键填入 366 字（template+text，constraints=1）→ 切回 template 正文被清空（constraints=0）→ 销毁后角色读数 null。用例：vitest 196 files · 1500 tests（新增 15 条：9 UI + 6 载荷）/ pytest 213 / ui:check 0。顺带修了两个 .local 验证脚本的老缺陷（verify_assembly_sets 用 get_by_test_id 找 DOM id 必超时；verify_role_copy 未归一化 Windows 剪贴板 CRLF）。"
   }
  ]
 }
