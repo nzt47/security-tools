@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-21T01:05:00+08:00",
+ "updated_at": "2026-11-21T09:10:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -55,8 +55,16 @@
    "status": "open",
    "priority": "P3",
    "title": "四套 UI 调色板（--wbp/--pl/--dc/--ve）语义命名（Owner 观感确认后）",
-   "criteria": "§11.184 把 358 条颜色字面值集中到四套调色板变量，规则已 0 字面值；但变量名是角色/色阶（--wbp-bg、--ve-slate-800），不是 --surface/--accent 这类语义名。属可选打磨，需 Owner 先看四页观感再决定。2026-11-20 复核（.local/verify_palette_equiv.py）：把当前规则里的 var()/color-mix 还原成 rgba 后与 6f097bc39^ 原文逐行比较 —— 四文件原本有两处漂移（VisualEditor 的 minimap mask fill 指向 #0b1220 而非真 slate-950 #020617；DevConsole 的 diff 底色写成 13.3% 而非 34/255=13.333%），已由 28438b15e 修回，现四文件 0 差异。真机计算值：--wbp-bg=#04060d / --wbp-text=#d7e2f0 / --wb-bg=hsl(222 47% 4%) / --wb-text=hsl(210 40% 96%) / --pl-bg=#04060d / --dc-bg=#0d1117 / --ve-bg-deep=#0b1220 / --ve-slate-950=#020617；minimap mask fill = rgb(2 6 23 / 0.55)（与改前逐字一致）。 2026-11-21 追记：Owner 说的「全乱/导航没了」不是调色板取值问题，而是 @import 顺序事故（见 css-import-order-regression，已修 ad25d69d3）；修后四页计算值仍与改前逐字一致，截图重拍为 .ui_shots/LAYOUT_WB_1440.png / LAYOUT_WB_1920.png / PALETTE_PL_1440.png / PALETTE_DC_1440.png / PALETTE_VE_1440.png。",
+   "criteria": "§11.184 把 358 条颜色字面值集中到四套调色板变量，规则已 0 字面值；但变量名是角色/色阶（--wbp-bg、--ve-slate-800），不是 --surface/--accent 这类语义名。属可选打磨，需 Owner 先看四页观感再决定。2026-11-20 复核（.local/verify_palette_equiv.py）：把当前规则里的 var()/color-mix 还原成 rgba 后与 6f097bc39^ 原文逐行比较 —— 四文件原本有两处漂移（VisualEditor 的 minimap mask fill 指向 #0b1220 而非真 slate-950 #020617；DevConsole 的 diff 底色写成 13.3% 而非 34/255=13.333%），已由 28438b15e 修回，现四文件 0 差异。真机计算值：--wbp-bg=#04060d / --wbp-text=#d7e2f0 / --wb-bg=hsl(222 47% 4%) / --wb-text=hsl(210 40% 96%) / --pl-bg=#04060d / --dc-bg=#0d1117 / --ve-bg-deep=#0b1220 / --ve-slate-950=#020617；minimap mask fill = rgb(2 6 23 / 0.55)（与改前逐字一致）。 2026-11-21 追记：Owner 说的「全乱/导航没了」不是调色板取值问题，而是 @import 顺序事故（见 css-import-order-regression，已修 ad25d69d3）；修后四页计算值仍与改前逐字一致，截图重拍为 .ui_shots/LAYOUT_WB_1440.png / LAYOUT_WB_1920.png / PALETTE_PL_1440.png / PALETTE_DC_1440.png / PALETTE_VE_1440.png。 2026-11-21 追记：Owner 觉得「全乱/导航没了」的根因是 @import 顺序事故（§11.187，已修）；调色板取值本身与改前逐字一致，语义命名仍只是可选改名。",
    "next": "等 Owner 看修后截图再决定要不要语义命名（纯改名，不改变观感）；要改先定命名表（每主题 8-12 个语义名），纯 CSS + 三档截图，不动 --wb-*。"
+  },
+  {
+   "id": "chat-bubble-width-clamp",
+   "status": "done",
+   "priority": "P1",
+   "title": "对话气泡限宽：长代码行不再把气泡撑到 5 千 px，随面板变宽重排",
+   "criteria": "2026-11-21 落地 4b9a19dec：真机 1440 气泡 5406px vs 列 456px、滚动区 scrollWidth 6619；根因是消息列 flex column + items-start ⇒ 气泡按 max-content 收缩，Markdown 代码块的长行没有上限。修法：.wb-bubble/.wb-markdown/.wb-codeblock 加 max-width:100% + min-width:0，表格 display:block + overflow-x:auto。修后气泡 456 = 列 = 思考/工具块，cw=sw=588；1920 时 630=630。守卫 bubbleWidth.guard.test.ts（含合成反例）。",
+   "next": "新增长行内容（代码块/表格）无需再处理：外层限宽 + 内部横向滚动已由守卫钉住。"
   },
   {
    "id": "css-import-order-regression",
@@ -1157,6 +1165,54 @@
    "criteria": "2026-11-18 判定：这些是 hub 这一层的视觉语言（Badge 的 color 枚举是 green/red/amber/cyan/slate，即 hub 调色板；StatCard/PageHeader/DataTable 的形状也只服务 hub 页面），与控制类原语不是一回事。全仓另有约 27 处手写 rounded-full + text-micro 徽章（workbench 面板里的计数/状态），没走 hub Badge 也没走全局原语。",
    "next": "已收口（§11.149）：新增 components/ui/Badge（tone 五档 / size 两档 / dot / pulse / 透传 rest），hub 的 Badge 改为委托（保留 color 老 API 并接受 tone），StatusBadge 与 CallabilityBadge 一并委托；全仓 35 处手写徽章 → codemod 23 + 手动 5。判定 StatCard / PageHeader / DataTable 留在 hub 层（只服务 hub 形状与配色，不是控件）。剩 8 处等宽 chip（SkillAssetTable / agents / TagsField）形状不是徽章，归 batch2 下一片。",
    "done_at": "2026-11-18T07:20:00+08:00"
+  },
+  {
+   "id": "chat-appearance-merge",
+   "status": "done",
+   "priority": "P2",
+   "title": "「输出格式」并入「风格」=「外观」弹层（四分区，单一入口）",
+   "criteria": "2026-11-21 落地 873c5a612：ChatStyleMenu 更名「外观」，四分区 = 输出格式（气泡/紧凑/终端）+ 颜色主题 + 气泡样式 + 字号；预览区套 wb-chat-format-<format>；isDefault/恢复默认含 format；删掉工具栏内联「输出格式」分段控件（避免双入口）。真机三格式差异：气泡=头像+82%列+14/4 圆角；紧凑=无头像+角色标签+92%列；终端=无头像+100%列+等宽+4px。测试新增「选格式 → store/预览类/LocalStorage 三处都变」。",
+   "next": "格式切换要 2 次点击（外观 → 格式）；若 Owner 要快捷切换，再加个只读指示即可。"
+  },
+  {
+   "id": "chat-style-vars-effective",
+   "status": "done",
+   "priority": "P2",
+   "title": "外观里的气泡样式/字号真正作用到消息（含终端格式）",
+   "criteria": "2026-11-21 落地 76371a799：字号被 .wb-markdown 写死 var(--text-body-lg) 与用户消息 <p> 的 text-body-lg 挡住 ⇒ 改 --chat-fs 只影响预览；终端格式 border-radius 写死 4px ⇒ 气泡样式三项无效。修法：markdown 字号 var(--chat-fs,…)、去掉 <p> 的 text-body-lg、终端圆角 var(--chat-bubble-radius,4px)。真机：14→16px 同步；圆润 14/14/14/4 → 简约 6px，三种格式都跟随。守卫 chatStyleTokens.guard.test.ts。",
+   "next": "新增样式档位仍只走 --chat-* 变量；给新元素设字号/圆角时必须消费变量，否则会重犯（守卫会红）。"
+  },
+  {
+   "id": "topbar-cleanup-build-in-nav",
+   "status": "done",
+   "priority": "P3",
+   "title": "顶栏去掉「当前叶子」与构建戳；构建戳移到导航栏页脚（与品牌行分两行）",
+   "criteria": "2026-11-21 落地 0e82ced9d + 8da20fd40：叶子页已有标题 ⇒ 删 ActiveNavLabel 胶囊；BuildStamp 抽到 components/workbench/BuildStamp.tsx 并落到 NavPanel 页脚，与「云枢 · 统一工作台 v3」flex-col 两行；.wb-build-stamp 去掉 margin-left。真机：顶栏只剩品牌/状态/拖拽提示/报警/重置布局；页脚 brand y=844、build y=861。",
+   "next": "导航栏隐藏时构建戳不可见（可从顶栏「导航」开关再打开）；这是有意的取舍。"
+  },
+  {
+   "id": "boost-picker-container-width",
+   "status": "done",
+   "priority": "P2",
+   "title": "主线档案 boost/mute 两个工具窗按容器宽度分栏（不再被 xl 视口断点挤成 195px）",
+   "criteria": "2026-11-21 落地 5376286b1 + db5766229：真机 1440 两窗各 195px（行内 勾选+工具名160+三徽章+豁免开关 全溢出，看着像没左对齐）；根因 xl:grid-cols-2 判视口宽度，工作台三列外壳下主内容只有 ~500px。修法 grid-cols-[repeat(auto-fit,minmax(320px,1fr))] + 工具行 flex-wrap；同时修 Button 对齐守卫失明（tagAt 不跟踪花括号，onClick 箭头函数的 > 会截断标签）并补 12 处 justify-start。修后两窗各 430px、按钮 276px、工具名不溢出。",
+   "next": "面板内布局不要用视口断点（xl:/md:）分栏 —— 工作台是三列外壳，容器宽度远小于视口；用 auto-fit 或容器查询。"
+  },
+  {
+   "id": "button-alignment-guard-blindspot",
+   "status": "done",
+   "priority": "P2",
+   "title": "Button 对齐守卫失明（onClick 箭头函数的 > 截断标签）—— 已修 + 抓出 12 处",
+   "criteria": "2026-11-21 落地 5376286b1：守卫 tagAt 只跳字符串，onClick={() => …} 的 > 会提前结束标签，className 落在截断点之后 ⇒ 对「处理器写在 className 之前」的 Button 全部看不见（boost 窗漏了三个月）。改为跟踪 {} 花括号深度（花括号内按字符串规则跳过）；text-left 规则限定非 flex-col（纵向主轴的 justify-* 管垂直居中）。修好后抓出 12 处，全部补 justify-start；SubagentMenu 委托主按钮显式 justify-center。",
+   "next": "新增行按钮仍按规范写 justify-start；守卫现在能覆盖多行 + 带箭头函数的标签。"
+  },
+  {
+   "id": "leaf-header-tabs-unified",
+   "status": "done",
+   "priority": "P2",
+   "title": "叶子页页头统一 PageTabsHeader + 页签族统一 folder + 标题行固定 24px",
+   "criteria": "2026-11-21 落地 ca4f43740 + 3245f165c：修前 h1 x 186~248 / y 54~78，页签条 y 106~197，页签族混用 folder/pill/segmented。8 个手写页头收口（business/feedback/security/local/platform/health/route-coverage/skill-center/workflow-hub），ui-guard pill→folder；PageTabsHeader 标题行固定 h-6（此前动作控件高度把标题撑高 1~4px）。修后上述页面 h1 全 16px @ (228,70)，页签条 y=106 h=32。",
+   "next": "例外：PromptLab 仍用自有 .pl-topbar（248/66，页签条 121/40），要统一需单独一批（独立 CSS）。"
   }
  ]
 }
