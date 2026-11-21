@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-20T18:25:04",
+  "generated_at": "2026-11-21T14:07:34",
   "totals": {
     "routes": 518,
     "live": 518,
@@ -60,8 +60,6 @@
       "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
-        "agent/tools/custom/api_multi_search_engine.py",
-        "agent/tools/custom/ingested/byted-bp-cdn-pagesdeploy/scripts/subscribe_cdn.py",
         "scripts/_check_page.py"
       ],
       "where": [
@@ -3665,13 +3663,13 @@
         "agent/server_auth.py",
         "agent/settings/registry.py",
         "app_server.py",
-        "scripts/_t08_http_stress.py",
         "scripts/deploy_workbench.py",
         "scripts/deployment_drill.py",
         "scripts/dev/graceful_shutdown_persist_probe.py",
         "scripts/full_alert_verify.py",
         "scripts/probe_prefix_cache_interaction.py",
-        "scripts/rollback.ps1"
+        "scripts/rollback.ps1",
+        "scripts/rotate_grafana_password.ps1"
       ],
       "where": [
         "plugins/status.py:237"
@@ -13186,7 +13184,6 @@
       "non_ui_refs": [
         "agent/audit/ui_middleware.py",
         "agent/utils/perf_monitor.py",
-        "scripts/_t08_http_stress.py",
         "scripts/baseline_loadtest_py.py",
         "scripts/check_mcp_log_level.py",
         "scripts/deployment_drill.py",
@@ -13195,7 +13192,8 @@
         "scripts/mock_intent_layer_traffic.py",
         "scripts/mock_metrics_server.py",
         "scripts/mock_service_standalone.py",
-        "scripts/monitoring_longrun/c2_harness.py"
+        "scripts/monitoring_longrun/c2_harness.py",
+        "scripts/monitoring_longrun/gen_derived_config.py"
       ],
       "where": [
         "agent/server_routes/routes_logging.py:1268"
