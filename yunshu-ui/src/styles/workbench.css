@@ -838,7 +838,9 @@ body,
   width: 100%;
   max-width: 100%;
   padding: 8px 10px;
-  border-radius: 4px;
+  /* 【2026-11-21】原写死 4px ⇒ 终端格式下「气泡样式」三项完全无效；改为跟随色板变量，
+     只在未选样式时回落到终端风格的直角。 */
+  border-radius: var(--chat-bubble-radius, 4px);
   font-family: var(--wb-mono);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wbp-cyan) 12%, transparent);
 }
@@ -938,7 +940,9 @@ body,
 
 /* ─── Markdown / 代码块 ─── */
 .wb-markdown {
-  font-size: var(--text-body-lg);
+  /* 【2026-11-21 修】原先写死 var(--text-body-lg) ⇒ 外观里的「字体大小」改 --chat-fs
+     对真实回复完全无效（只有预览那个内联 font-size 会变）。正文必须跟 --chat-fs。 */
+  font-size: var(--chat-fs, var(--text-body-lg));
   line-height: 1.75;
   color: var(--wbp-text);
   /* 与气泡同理：内部长行不能把外层撑开（配合 .wb-codeblock 的横向滚动） */

@@ -199,9 +199,11 @@ export function MessageItem({
           </Button>
         )}
 
+        {/* 字号跟随「外观 → 字体大小」（--chat-fs 挂在 .wb-chat-surface 上）：
+            这里不要写死 text-body-lg，否则改字号对真实消息无效（2026-11-21 修）。 */}
         <div className={`wb-bubble ${isUser ? 'wb-bubble-user' : 'wb-bubble-bot'}`}>
           {isUser ? (
-            <p className="whitespace-pre-wrap wrap-break-word text-body-lg leading-relaxed">
+            <p className="whitespace-pre-wrap wrap-break-word leading-relaxed">
               {message.content}
             </p>
           ) : (
