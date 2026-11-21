@@ -15,6 +15,7 @@ import { ChevronDown, Search, X } from 'lucide-react'
 import { Button, Input, RowButton } from '@/components/ui'
 import { HUB_NAV, filterNav, type HubNavItem } from '../../../workbench/hubNav'
 import { useWorkbenchNav } from '../../../workbench/navStore'
+import BuildStamp from '../BuildStamp'
 
 function NavLeaf({ item, depth }: { item: HubNavItem; depth: number }) {
   const activeKey = useWorkbenchNav((s) => s.activeKey)
@@ -141,8 +142,11 @@ export function NavPanel() {
         )}
       </div>
 
-      <div className="border-t border-border p-3 text-micro text-muted-foreground">
-        云枢 · 统一工作台 v3
+      {/* 页脚：应用身份 + 构建戳（2026-11-21 从顶栏移到此处 —— 顶栏的构建戳与「当前叶子」
+          都不是导航/操作，放这里与「云枢 · 统一工作台 v3」同处更自然）。 */}
+      <div className="flex items-center justify-between gap-2 border-t border-border p-3 text-micro text-muted-foreground">
+        <span>云枢 · 统一工作台 v3</span>
+        <BuildStamp />
       </div>
     </div>
   )

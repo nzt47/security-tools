@@ -43,7 +43,7 @@ import {
 import type { PanelId } from './lib/mosaic';
 import { useLayoutStore } from './stores/useLayoutStore';
 import { useWorkbenchNav } from './workbench/navStore';
-import { findNavItem } from './workbench/hubNav';
+// 顶栏不再显示当前叶子（2026-11-21）：findNavItem 不需要了
 import { NavUrlSync } from './workbench/useNavUrlSync';
 import { useInRouterContext } from 'react-router-dom';
 import Toaster from './components/Toaster';
@@ -58,31 +58,9 @@ import { startCrossWindowSync } from './electron/sync';
 // 显式设 true 才开，缺省关闭时 DevConsole 返回 null、install() 为空操作）。
 const ObservabilityDevtools = lazy(() => import('./components/ObservabilityDevtools'));
 
-/** 当前激活导航项标签（顶栏显示当前位置） */
-function ActiveNavLabel() {
-  const activeKey = useWorkbenchNav((s) => s.activeKey);
-  const item = findNavItem(activeKey);
-  return item?.label ?? '会话任务';
-}
-
-/**
- * 构建标记（构建期注入的 __YUNSHU_BUILD__）：顶栏小徽标，用于分辨"页面跑的是哪次构建"。
- * 【Why】前端修复上线后，未刷新的页面会一直执行旧 bundle，看起来像"改了没用/还是老问题"。
- * 有构建戳即可一眼确认（悬浮显示完整 ISO 时间与强制刷新提示）。
- */
-function BuildStamp() {
-  const iso = typeof __YUNSHU_BUILD__ === 'string' ? __YUNSHU_BUILD__ : '';
-  if (!iso) return null;
-  const d = new Date(iso);
-  const label = Number.isNaN(d.getTime())
-    ? iso
-    : `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-  return (
-    <span className="wb-build-stamp" title={`当前页面构建于 ${iso}；若与最新构建不符请强制刷新（Ctrl+F5）`}>
-      build {label}
-    </span>
-  );
-}
+/* 【2026-11-21】顶栏不再显示「当前叶子」与构建戳：
+   · 叶子标题已经由各页自己的 PageTabsHeader/PageHeader 提供，顶栏再显示一遍是重复；
+   · 构建戳移到导航栏页脚，与「云枢 · 统一工作台 v3」同处（见 components/workbench/BuildStamp）。 */
 import { PanelMenu } from './components/workbench/PanelMenu';
 import { isElectron } from './electron/types';
 import type { DetachablePanelId } from './electron/ipc';
@@ -305,10 +283,8 @@ export default function WorkbenchApp() {
             <span className="wb-pulse-dot" />
             {isElectron() ? '桌面模式' : 'Web 模式'}
           </span>
-          <span className="ml-1 hidden items-center gap-1.5 rounded-md border border-slate-800 bg-slate-900/70 px-2.5 py-1 text-caption text-cyan-300/90 sm:flex">
-            {ActiveNavLabel()}
-          </span>
-          <BuildStamp />
+          {/* 当前叶子标签与构建戳已移除（2026-11-21）：叶子标题在页面里，
+              构建戳在导航栏页脚。 */}
         </div>
 
         <div className="flex items-center gap-3">
