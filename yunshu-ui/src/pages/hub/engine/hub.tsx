@@ -115,7 +115,7 @@ export default function EngineHub() {
           各 Tab 的小标题统一走 PageTabsHeader 的 11px caption，内容里的区块标题统一 h2 14。 */}
       <PageTabsHeader
         icon={<Activity size={14} className="text-primary" />}
-        title="引擎"
+        title="调度与开关"
         hint={TAB_HINT[tab]}
         tabs={(
           <Tabs

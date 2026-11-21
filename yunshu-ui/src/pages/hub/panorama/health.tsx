@@ -1024,7 +1024,7 @@ export default function PanoramaHealth() {
           页签族统一 folder，data-testid 保留（测试按它定位）。 */}
       <PageTabsHeader
         icon={<Activity size={14} className="text-primary" />}
-        title="健康仪表盘"
+        title="系统总览"
         hint="综合健康度 · 五层探针 · 指标 / 性能 / 告警 / 历史"
         actions={
           <Button onClick={load} variant="default" size="xs">
