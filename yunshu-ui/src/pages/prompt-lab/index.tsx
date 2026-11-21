@@ -36,6 +36,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { FileText, FlaskConical, Plus, Radio, RotateCcw, TriangleAlert } from 'lucide-react';
 import { SectionTitle, Button, Tabs } from '@/components/ui';
+import { PageTabsHeader } from '../hub/components/ui';
 import { usePromptLabStore } from '../../stores/usePromptLabStore';
 import { downloadFile } from '../../utils/system';
 import {
@@ -244,44 +245,41 @@ export default function PromptLab() {
 
   return (
     <div className="pl-root">
-      {/* 顶栏 */}
-      <header className="pl-topbar">
-        <div className="flex items-center gap-2.5">
-          <div className="pl-logo-badge">
-            <ActiveTabIcon size={15} />
-          </div>
-          <div>
-            <h1 className="pl-title text-title">提示词实验室</h1>
-            <p className="pl-subtitle">{activeTab.hint}</p>
-          </div>
-        </div>
-        <div className="pl-topbar-actions">
-          {tab === 'factors' && (
+      {/* 页头（2026-11-21 统一）：与其它叶子页同一个原语 PageTabsHeader —— 标题恒在页签上面。
+          旧版是自有 .pl-topbar（真机 h1 @ (248,66)、页签条 y=121 h=40、首项 12px），
+          与统一页头（h1 @ (228,70)、页签条 y=106 h=32）差在 logo 徽章与外层 padding；
+          本页保留「吸顶 + 毛玻璃」外观（.pl-page-header），因为本页是整页滚动、页头要跟着吸顶。 */}
+      <PageTabsHeader
+        className="pl-page-header"
+        icon={<ActiveTabIcon size={15} className="text-muted-foreground" aria-hidden />}
+        title="提示词实验室"
+        hint={activeTab.hint}
+        actions={
+          tab === 'factors' ? (
             <>
-              <Button type="button" variant="default" size="sm" onClick={() => setShowForm(true)}>
-                <Plus size={13} />
+              <Button type="button" variant="default" size="xs" onClick={() => setShowForm(true)}>
+                <Plus size={12} />
                 添加因素
               </Button>
-              <Button type="button" variant="default" size="sm" onClick={resetValues} title="所有因素恢复默认值">
-                <RotateCcw size={13} />
+              <Button type="button" variant="default" size="xs" onClick={resetValues} title="所有因素恢复默认值">
+                <RotateCcw size={12} />
                 重置
               </Button>
             </>
-          )}
-        </div>
-      </header>
-
-      {/* 主内容区 Tab 条：影响因素实验室 / LLM 通信监控 并列展示 */}
-      <Tabs
-        variant="folder"
-        className="pl-tabs"
-        aria-label="提示词实验室模块"
-        value={tab}
-        onChange={(v) => setTab(v as typeof tab)}
-        items={LAB_TABS.map((t) => {
-          const Icon = t.icon;
-          return { value: t.id, label: <><Icon size={13} />{t.label}</>, title: t.hint };
-        })}
+          ) : null
+        }
+        tabs={
+          <Tabs
+            variant="folder"
+            aria-label="提示词实验室模块"
+            value={tab}
+            onChange={(v) => setTab(v as typeof tab)}
+            items={LAB_TABS.map((t) => {
+              const Icon = t.icon;
+              return { value: t.id, label: <><Icon size={13} />{t.label}</>, title: t.hint };
+            })}
+          />
+        }
       />
       {tab === 'factors' ? (
         <>

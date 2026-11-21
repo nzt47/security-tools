@@ -43,61 +43,22 @@
   font-family: var(--wb-font);
 }
 
-/* ── 顶栏 ── */
-.pl-topbar {
+/* ── 页头（2026-11-21 统一）──
+   组件是 pages/hub/components/ui 的 PageTabsHeader（h1 text-title 16 / hint text-caption 11 /
+   页签恒在标题下面 / px-5 pt-4）。本页只补「吸顶 + 毛玻璃」：其它叶子页的页头在滚动容器之外，
+   不需要 sticky，本页是整页滚动所以保留吸顶。
+   旧版自有顶栏（.pl-topbar / .pl-logo-badge / .pl-title / .pl-subtitle / .pl-topbar-actions）
+   一并删除 —— 那 5 条规则就是 h1 @ (248,66)、页签条 121/40 的来源。 */
+.pl-page-header {
   position: sticky;
   top: 0;
   z-index: 20;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--wb-border);
-  background: color-mix(in srgb, var(--pl-bg) 72%, transparent);
+  background: color-mix(in srgb, var(--pl-bg) 92%, transparent);
   backdrop-filter: blur(14px);
 }
-.pl-logo-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  border: 1px solid var(--wb-border-strong);
-  background: linear-gradient(135deg, color-mix(in srgb, var(--pl-cyan) 16%, transparent), color-mix(in srgb, var(--pl-sky) 5%, transparent));
-  color: var(--wb-accent);
-}
-.pl-title {
-  margin: 0;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: var(--pl-slate-200);
-}
-.pl-subtitle {
-  margin: 1px 0 0;
-  font-size: var(--text-caption);
-  color: var(--wb-text-dim);
-}
-.pl-topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
 
-/* ── 主内容区模块 Tab 条（提示词影响因素实验室 / LLM 通信监控 并列） ── */
-.pl-tabs {
-  position: sticky;
-  top: 57px;
-  z-index: 18;
-  display: flex;
-  align-items: flex-end;
-  gap: 6px;
-  padding: 8px 20px 0;
-  border-bottom: 1px solid var(--wb-border);
-  background: color-mix(in srgb, var(--pl-bg-5) 92%, transparent);
-  backdrop-filter: blur(10px);
-}
+/* 2026-11-21：原 .pl-tabs（页签条单独吸顶 + 自有底色，top:57px）已删 ——
+   页签并入 PageTabsHeader，吸顶与底色统一由 .pl-page-header 负责。 */
 /* Tab 内容容器（LLM 通信监控整屏） */
 .pl-tab-body {
   padding: 20px;
@@ -124,7 +85,8 @@
 /* ── 分类筛选 ── */
 .pl-filter {
   position: sticky;
-  top: 97px;
+  /* 97 → 84（2026-11-21）：页头由自有顶栏(57) + 页签条(40) 换成统一页头（实测高 84）。 */
+  top: 84px;
   z-index: 15;
   display: flex;
   gap: 8px;
@@ -1177,10 +1139,6 @@
   }
 }
 @media (max-width: 640px) {
-  .pl-topbar {
-    flex-direction: column;
-    align-items: flex-start;
-  }
   .pl-card-grid {
     grid-template-columns: 1fr;
   }
