@@ -29,6 +29,10 @@ boost:
 - todo_write
 - search_memory
 - remember
+# UI 规范守卫（2026-11-21 Owner 决定）：读工具默认可见；写工具默认停用（YAML enabled:false），
+# 进 boost 是为了启用后仍稳定可见（停用期间不进可见集）。
+- ui_guard_check
+- ui_guard_fix
 mute:
 - web_extract
 - web_batch
@@ -36,7 +40,8 @@ mute:
 tags:
 - code
 - orchestrate
-max_tools: 26
+# 26 → 27（2026-11-21）：加两个 ui_guard boost 后，实测 26 会挤掉 run_tests；27 实测零丢失。
+max_tools: 27
 # 本分身默认上下文窗口（2026-11-15）：按任务类型的建议起点取中位 —— 代码 Agent / 跨文件理解：需要上下文，但推理比检索更怕噪声
 context_window_tokens: 65536
 effect_allow:
