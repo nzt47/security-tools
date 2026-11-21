@@ -540,7 +540,31 @@ class MemoryManager:
             if old_summary:
                 old_text, old_version = old_summary
                 logger.warning("├─ [步骤4] 合并旧摘要 (版本 %d)", old_version)
-                summary = self._summarizer.merge_summaries(old_text, summary)
+                merged = self._summarizer.merge_summaries(old_text, summary)
+                # 【2026-11-21】合并这步**也会返回 0 字符**（2026-11-21 12:18 生产实证：压缩本身
+                # 回了 451 字符，merge_summaries 回 0 字符，旧代码照样落盘 ⇒ summary.txt 0 字节、
+                # 版本 102→103、把上一份好摘要冲掉）。空摘要守卫只在 compress 之后查过一次，
+                # 合并之后必须**再查一次**：保持旧摘要与版本不变，返回 False 等下次重试。
+                if not (merged or "").strip():
+                    streak = getattr(self, "_empty_compress_streak", 0) + 1
+                    self._empty_compress_streak = streak
+                    logger.error("│   └─ ✗ 合并结果为空，拒绝落盘（保留 v%d 与 %d 字符旧摘要，连续第 %d 次）",
+                                 old_version, len(old_text or ""), streak)
+                    try:
+                        self._black_box.log("memory_compress_merge_empty", {
+                            "old_version": old_version,
+                            "old_chars": len(old_text or ""),
+                            "new_chars": len(summary or ""),
+                            "messages_count": len(recent_messages),
+                            "execution_time_ms": (time.time() - total_start) * 1000,
+                        })
+                    except Exception:  # noqa: BLE001 观测失败不影响压缩决策
+                        pass
+                    if streak >= 3:
+                        logger.error("│   └─ 连续 %d 次空摘要，本轮放弃（保留消息，等下一次触发）", streak)
+                        self._need_compress = False
+                    return False
+                summary = merged
                 new_version = old_version + 1
             else:
                 new_version = 1

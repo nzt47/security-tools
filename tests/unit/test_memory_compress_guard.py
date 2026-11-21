@@ -92,6 +92,21 @@ def test_non_empty_summary_still_persisted():
     assert mm._empty_compress_streak == 0
 
 
+def test_merge_returning_empty_must_not_clobber_old_summary():
+    """合并这一步也会回 0 字符，且旧代码照样落盘（2026-11-21 12:18 生产实证）。
+
+    现场：压缩本身回了 451 字符，merge_summaries 回 0 字符 ⇒ 旧代码把 data/summary.txt
+    写成 0 字节、版本 102→103，把上一份好摘要整份冲掉；单位看板 memory.compress 转 warn。
+    合并之后必须再查一次空：保留旧摘要与版本，返回 False 等下次重试。
+    """
+    mm = _manager("", replies=["一份有效摘要", ""])
+    assert mm._execute_compression() is False
+    assert mm._storage.saved == [], "合并结果为空时不得落盘（版本号也不得涨）"
+    assert any(a == "memory_compress_merge_empty" for a, _ in mm._black_box.events)
+    assert mm._need_compress is True, "失败要保留标记，下一轮还能重试"
+    assert mm._empty_compress_streak == 1
+
+
 def test_three_consecutive_empty_summaries_stop_retrying():
     mm = _manager("")
     for _ in range(3):
