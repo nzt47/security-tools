@@ -17,7 +17,7 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import { ClipboardCopy, Hammer, Loader2, Rocket, ShieldCheck, Users } from 'lucide-react'
-import { Badge, Button, Card, ErrorBox, hubPost, Input, Loading, SectionTitle, Select } from '../components/ui'
+import { Badge, Button, Card, ErrorBox, hubPost, Input, Loading, SectionTitle, Select, Textarea } from '../components/ui'
 import { SUBAGENT_CREATE, SUBAGENT_LIST } from '@/api/endpoints'
 import { getEnvelope } from '@/api/envelope'
 import {
@@ -33,9 +33,24 @@ import {
 import { fetchLines } from '@/lib/agentLinesApi'
 import { TopicPicker } from '@/components/TopicPicker'
 
+interface RolePromptSetLite {
+  id: string
+  title: string
+  scene?: string
+  body: string
+  chars?: number
+}
+interface RolePromptSetsLite {
+  role_id: string
+  role_title?: string
+  sets: RolePromptSetLite[]
+}
 interface RoleCatalogLite {
   templates?: { id?: string; title?: string; note?: string }[]
   tiers?: { value?: string; label?: string; red?: boolean }[]
+  /** 分身身份提示词方案库（agent/subagent/role_prompt_library.py 的投影） */
+  prompt_sets?: RolePromptSetsLite[]
+  role_text_max_chars?: number
 }
 interface LlmCatalogLite {
   model?: string
@@ -116,6 +131,12 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
   }, [])
 
   const payload = useMemo(() => buildCreatePayload(form), [form])
+  // 当前选中角色类型的方案模板（后端角色目录的 prompt_sets；未装角色 / 取不到 = 不显示）
+  const activeRoleSets = useMemo(() => {
+    const groups = roleCatalog?.prompt_sets ?? []
+    return groups.find((g) => g.role_id === form.roleTemplate)?.sets ?? []
+  }, [roleCatalog, form.roleTemplate])
+  const roleTextMax = roleCatalog?.role_text_max_chars ?? 2000
   const previewText = useMemo(() => JSON.stringify(payload, null, 2), [payload])
   const roleTiers = roleCatalog?.tiers?.length ? roleCatalog.tiers : DEFAULT_ROLE_TIERS
 
@@ -129,6 +150,22 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
         ? f.permissions.filter((x) => x !== p)
         : [...f.permissions, p],
     }))
+
+  /**
+   * 套用一套身份提示词方案：正文填进 role_text，并把档位从「受控模板」抬到「模板+自由文本」。
+   *
+   * 【为什么不直接抬到 full-system】那是红档（自由文本进 system prompt，需审计）；
+   * 用户点一下模板就替他把档位升到红档属于"替他表态"。默认档下非空 role_text 会被后端 400，
+   * 所以只在 template 时抬到 template+text；已经是 full-system 的保持不动（不静默降级）。
+   */
+  const applyRoleSet = (s: RolePromptSetLite) => {
+    setForm((f) => ({
+      ...f,
+      roleText: s.body,
+      roleMode: f.roleMode === 'template' ? 'template+text' : f.roleMode,
+    }))
+    setMessage('已套用方案「' + s.title + '」' + (form.roleMode === 'template' ? '，档位已切到「模板 + 自由文本（进约束）」' : ''))
+  }
 
   const applyTemplate = (t: (typeof TEMPLATES)[number]) => {
     setForm({ ...EMPTY_ASSEMBLE_FORM, permissions: ['read'], ...t.form })
@@ -216,7 +253,49 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
                   value: String(t.value),
                 }))}
               />
-              <Input value={form.roleText} onChange={(e) => set('roleText', e.target.value)} data-testid="assembly-role-text" placeholder="角色自由文本（仅显式选 template+text / full-system 档生效）" size="md" />
+              <div className="md:col-span-2">
+                {/* 【2026-11-21】原来是一行 Input：方案模板正文 260~392 字，单行既看不全也不好改 */}
+                <Textarea
+                  value={form.roleText}
+                  onChange={(e) => set('roleText', e.target.value)}
+                  data-testid="assembly-role-text"
+                  aria-label="角色自由文本"
+                  rows={4}
+                  spellCheck={false}
+                  placeholder="角色自由文本（仅显式选 template+text / full-system 档生效）；也可以从下面的方案模板一键填入"
+                />
+                <div className="mt-1 flex items-center justify-between text-caption text-slate-500">
+                  <span>建议一段话讲清：身份 + 不许做什么 + 输出结构</span>
+                  <span data-testid="assembly-role-text-count">
+                    {form.roleText.trim().length} / {roleTextMax}
+                  </span>
+                </div>
+              </div>
+
+              {/* 方案模板：按当前角色类型给多套成稿，点一下填进上面的自由文本 */}
+              {activeRoleSets.length > 0 && (
+                <div className="md:col-span-2">
+                  <p className="text-caption text-slate-500">
+                    方案模板（{roleCatalog?.templates?.find((t) => t.id === form.roleTemplate)?.title ?? form.roleTemplate}）：
+                    点一套直接填入上面的自由文本
+                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                    {activeRoleSets.map((s) => (
+                      <Button
+                        key={s.id}
+                        type="button"
+                        size="xs"
+                        variant={form.roleText === s.body ? 'primary' : 'default'}
+                        title={s.scene ?? ''}
+                        data-testid={'assembly-role-set-' + s.id}
+                        onClick={() => applyRoleSet(s)}
+                      >
+                        {s.title}（{s.chars ?? s.body.length} 字）
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             {/* 自由文本 + 默认档 = 会被后端 400；提前说清，不让使用者白提交（不静默吞掉） */}
             {form.roleText.trim() && form.roleMode === 'template' && (

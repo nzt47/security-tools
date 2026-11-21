@@ -22,7 +22,7 @@ function envelope(data: unknown, status = 200) {
 const LIST_PAYLOAD = {
   ok: true, count: 0, channel: {}, subagents: [],
   llm: { model: 'deepseek-flash', provider: 'deepseek', options: [{ model: 'deepseek-flash', source: 'deployment' }, { model: 'deepseek-v4-pro', source: 'declared' }] },
-  role: { default_tier: 'template', role_text_max_chars: 2000, templates: [{ id: 'code_review', title: '代码审查', body: '…', note: '' }, { id: 'research', title: '资料调研', body: '…', note: '' }], tiers: [{ value: 'template', label: '受控模板', red: false, audit: false }, { value: 'template+text', label: '模板 + 自由文本（进约束）', red: false, audit: true }, { value: 'full-system', label: '自由文本进系统提示词（红档）', red: true, audit: true }] },
+  role: { default_tier: 'template', role_text_max_chars: 2000, templates: [{ id: 'code_review', title: '代码审查', body: '…', note: '' }, { id: 'research', title: '资料调研', body: '…', note: '' }], tiers: [{ value: 'template', label: '受控模板', red: false, audit: false }, { value: 'template+text', label: '模板 + 自由文本（进约束）', red: false, audit: true }, { value: 'full-system', label: '自由文本进系统提示词（红档）', red: true, audit: true }], prompt_sets: [{ role_id: 'code_review', role_title: '代码审查', sets: [{ id: 'code_review.standard', title: '标准审查', scene: '审 diff', body: '审查正文甲', chars: 5 }, { id: 'code_review.blockers', title: '阻断项优先', scene: '卡口', body: '审查正文乙', chars: 5 }] }] },
 }
 
 const CAPABILITIES = {
@@ -118,6 +118,33 @@ describe('组装台 · 生成与自解释', () => {
     expect(previewJson().role_text).toBe('只审查不要改代码')
     expect(previewJson().role_mode).toBe('template+text')
     expect(screen.queryByTestId('assembly-role-text-hint')).toBeNull()
+  })
+
+it('方案模板：选中角色后出现，点一套 ⇒ 填进自由文本并把档位抬到 template+text', async () => {
+    await settle()
+    // 未选角色时不出现（方案是跟着角色类型来的）
+    expect(screen.queryByTestId('assembly-role-set-code_review.standard')).toBeNull()
+    fireEvent.change(screen.getByTestId('assembly-role-template'), { target: { value: 'code_review' } })
+    expect(screen.getByTestId('assembly-role-set-code_review.standard')).toBeInTheDocument()
+    expect(screen.getByTestId('assembly-role-set-code_review.blockers')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByTestId('assembly-role-set-code_review.blockers'))
+    expect((screen.getByTestId('assembly-role-text') as HTMLTextAreaElement).value).toBe('审查正文乙')
+    expect((screen.getByTestId('assembly-role-mode') as HTMLSelectElement).value).toBe('template+text')
+    // 默认档那条警告随之消失（档位已经不是 template）
+    expect(screen.queryByTestId('assembly-role-text-hint')).toBeNull()
+    // 预览/请求体里就是这套正文
+    expect(previewJson().role_text).toBe('审查正文乙')
+    expect(previewJson().role_mode).toBe('template+text')
+  })
+
+  it('方案模板：已经是 full-system 时套用不把档位降级（不替用户表态）', async () => {
+    await settle()
+    fireEvent.change(screen.getByTestId('assembly-role-template'), { target: { value: 'code_review' } })
+    fireEvent.change(screen.getByTestId('assembly-role-mode'), { target: { value: 'full-system' } })
+    fireEvent.click(screen.getByTestId('assembly-role-set-code_review.standard'))
+    expect((screen.getByTestId('assembly-role-mode') as HTMLSelectElement).value).toBe('full-system')
+    expect((screen.getByTestId('assembly-role-text') as HTMLTextAreaElement).value).toBe('审查正文甲')
   })
 
   it('主权清单：三态来自后端，未接线面显示"声明未接线"', async () => {
