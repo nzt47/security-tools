@@ -173,7 +173,7 @@ export default function UiGuardPage() {
         title="规范守卫"
         hint={tab === 'overview' ? 'UI 封装规范 · 量具基线只降不升' : '按 file:line 修；两类可用自动修复'}
         actions={(
-          <Button type="button" variant="default" size="sm" onClick={() => void load()} disabled={loading} aria-label="重新检查">
+          <Button type="button" variant="default" size="xs" onClick={() => void load()} disabled={loading} aria-label="重新检查">
             <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> 重新检查
           </Button>
         )}

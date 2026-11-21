@@ -243,7 +243,10 @@ export function PageTabsHeader({ icon, title, hint, actions, tabs, className = '
 }) {
   return (
     <header className={`shrink-0 border-b border-slate-800 bg-slate-900/40 px-5 pt-4 ${className}`}>
-      <div className="mb-3 flex items-center gap-2">
+      {/* 【2026-11-21】标题行固定 h-6（24px）：否则页头动作里的控件高度（xs=24 / sm=28 /
+          自定义链接=26）会把整行撑高，h1 的 y 在各页之间差 1~4px（真机 70/71/74）。
+          固定后标题与页签条在所有叶子页同一 y。 */}
+      <div className="mb-3 flex h-6 items-center gap-2">
         {icon}
         <h1 className="text-title font-semibold text-foreground">{title}</h1>
         {hint ? <span className="text-caption text-muted-foreground">{hint}</span> : null}

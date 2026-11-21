@@ -142,7 +142,7 @@ export default function RouteCoveragePanel() {
         title="路由覆盖"
         hint={`后端路由 → 前端 UI 的机械盘点 · 生成时间 ${data?.generated_at ?? '—'}`}
         actions={(
-          <Button onClick={load} variant="default" size="sm">
+          <Button onClick={load} variant="default" size="xs">
             <RefreshCw size={12} /> 重新读取
           </Button>
         )}

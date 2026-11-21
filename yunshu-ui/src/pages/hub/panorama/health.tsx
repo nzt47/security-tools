@@ -1019,7 +1019,7 @@ export default function PanoramaHealth() {
         title="健康仪表盘"
         hint="综合健康度 · 五层探针 · 指标 / 性能 / 告警 / 历史"
         actions={
-          <Button onClick={load} variant="default" size="sm">
+          <Button onClick={load} variant="default" size="xs">
             <RefreshCw size={12} /> 刷新
           </Button>
         }
