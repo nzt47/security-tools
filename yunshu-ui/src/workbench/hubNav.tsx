@@ -2,7 +2,7 @@
  * 云枢统一工作台 —— 导航配置中心
  * ------------------------------------------------
  * 单一数据源：导航树（阶段 3 收敛、第三轮 IA 并为 6 桶、**第四轮 IA 再并为 4 桶**）与内容组件映射。
- * 第四轮（2026-10-14）：记忆与资产 + 插件与扩展 + 网络配置并入「会话与配置」，
+ * 第四轮（2026-10-14）：记忆与资产 + 插件与扩展 + 网络配置并入「会话与能力」，
  * 模块列表并入「全景看板」，「系统组件」桶取消。
  * 第五轮（2026-10-14）：模块列表与系统监控同读 /api/modules/topology（双入口）⇒
  * 合并为「系统监控」的页内「模块明细」Tab，独立叶子 components/modules 移除。
@@ -85,10 +85,10 @@ const UiGuardPage = lazy(() => import('@/pages/hub/governance/ui-guard'))
 // 避免"配完引擎不知道去哪看效果"。
 const InstancesPanel = lazy(() => import('@/pages/hub/admin/instances-hub'))
 const SecurityPanel = lazy(() => import('@/pages/hub/governance/security'))
-// 【2026-10-27 IA · §11.12】本地资源挂到「系统管理」桶（原在「会话与配置」）；组件不动。
+// 【2026-10-27 IA · §11.12】本地资源挂到「系统管理」桶（原在「会话与能力」）；组件不动。
 const LocalResources = lazy(() => import('@/pages/hub/local'))
 // 2026-10-18：回放中心（5 条 /api/replay/*）—— 此前前端只有上传，没有列表/详情/清理。
-// 【2026-10-27 IA · §11.12】回放中心挂到「全景看板」桶（原在「会话与配置」）；组件不动。
+// 【2026-10-27 IA · §11.12】回放中心挂到「全景看板」桶（原在「会话与能力」）；组件不动。
 const ReplayCenter = lazy(() => import('@/pages/hub/replay'))
 const PromptLab = lazy(() => import('@/pages/prompt-lab'))
 // 【2026-10-28 IA · 方案 A】「插件与扩展」不再是导航叶子：并入「工具与接入」页第 2 个 Tab
@@ -114,14 +114,18 @@ export interface HubNavItem {
 /** 全量导航树 */
 export const HUB_NAV: HubNavItem[] = [
   // 【阶段 3】顶层收敛（13 → 8 个语义桶）；【第三轮 IA】再并为 6 桶（记忆+资产合桶、
-  // 装配车间并入会话与配置）。桶内子项 key 一律不变 ⇒ 旧深链仍有效；
+  // 装配车间并入会话与能力）。桶内子项 key 一律不变 ⇒ 旧深链仍有效；
   // 消失的「组 key」（engine / workshop）走 LEGACY_NAV_KEY_MAP 兼容映射。
   {
-    key: 'workspace', label: '会话与配置', icon: MessageSquare,
+    // 【2026-11-21 Owner】桶名「会话与配置」→「会话与能力」：配置已成独立桶的语义
+    // （admin = 配置（低频·危险）），同名两处会让人以为这个桶也在"配置系统"；
+    // 桶内 9 叶实际是「会话 / 分身 / 提示词」+「能力获取 / 技能 / 工作流 / 工具」+「记忆 / 资产」。
+    // **key 不变（workspace）** ⇒ 顶层深链与 LEGACY 映射全部照旧。
+    key: 'workspace', label: '会话与能力', icon: MessageSquare,
     children: [
       { key: 'session', label: '会话任务', icon: MessageSquare, component: WorkbenchChatPage },
       // 【2026-10-17 IA】用户口径：分身创建与组装紧跟「会话任务」（先对话、再配分身）。
-      // 【第三轮 IA】装配车间并入「会话与配置」：分身创建与组装 = 对话侧配置。
+      // 【第三轮 IA】装配车间并入「会话与能力」：分身创建与组装 = 对话侧配置。
       // 【2026-10-15 IA】「系统自我复制」并入本页第 3 视图「带走 / 自复制」——后端契约本就是
       // /api/subagent/<name>/bundle（按分身打包），与「分身」是同一条主线的两端；独立叶子
       // workshop/replicate 移除 ⇒ 旧深链经 LEGACY_NAV_KEY_MAP 落到本页（禁止双入口）。
@@ -208,7 +212,7 @@ export const HUB_NAV: HubNavItem[] = [
     ],
   },
   // 【第三轮 IA】原顶层叶子「资产管理」已并入上面的「记忆与资产」桶；
-  // 原顶层分组「装配车间」的两个子项已并入「会话与配置」。二者不再占顶层槽位。
+  // 原顶层分组「装配车间」的两个子项已并入「会话与能力」。二者不再占顶层槽位。
   // ═══ 配置（低频·危险）═════════════════════════════════════════════════
   // 【2026-11-21 导航重组】"配置一次、长期不变"的写操作：账号、实例/网络、消息通道、
   // 本机资源、安全与权限。原来这一桶还混着 4 个纯只读页（仪表盘/操作审计/系统日志/数据导出），
@@ -270,7 +274,7 @@ export function findNavItem(key: string): HubNavItem | undefined {
  * 默认选中项：第一个**叶子**（会话任务）。
  *
  * 【阶段 3 修正】原实现取 HUB_NAV[0].key —— 顶层收敛后 HUB_NAV[0] 是分组
- * 「会话与配置」（无 component），会让工作台默认打开空态（DetachedChatApp 回归用例暴露此点）；
+ * 「会话与能力」（无 component），会让工作台默认打开空态（DetachedChatApp 回归用例暴露此点）；
  * 改为展平后取第一个叶子，语义与注释「第一个叶子」一致。
  */
 export const DEFAULT_NAV_KEY = flattenNav(HUB_NAV).find((it) => !it.children)?.key ?? 'session'
@@ -356,7 +360,7 @@ export const LEGACY_NAV_KEY_MAP: Readonly<Record<string, string>> = Object.freez
   // 旧子项 key 落到本页；engine 自身已是真实叶子，无需再映射。
   'engine/heartbeat': 'engine',
   'engine/scheduler': 'engine',
-  // 【第三轮 IA】装配车间并入会话与配置：组 key 消失，落到其原第一个子项
+  // 【第三轮 IA】装配车间并入会话与能力：组 key 消失，落到其原第一个子项
   'workshop': 'workshop/agents',
   // 【2026-10-15 IA】「系统自我复制」并入「分身创建与组装」第 3 视图（带走 / 自复制）：
   //   独立叶子消失 ⇒ 深链落到本页（页内视图记忆会接续用户上次看的视图）

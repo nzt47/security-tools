@@ -183,7 +183,7 @@ describe('旧深链兼容层（阶段 0 · IA 整合不断链）', () => {
     expect(LEGACY_NAV_KEY_MAP['engine/heartbeat']).toBe('engine')
     expect(LEGACY_NAV_KEY_MAP['engine/scheduler']).toBe('engine')
     expect(LEGACY_NAV_KEY_MAP['engine']).toBeUndefined()
-    // 第三轮 IA：装配车间并入会话与配置 ⇒ 组 key 落到其原第一个子项
+    // 第三轮 IA：装配车间并入会话与能力 ⇒ 组 key 落到其原第一个子项
     expect(LEGACY_NAV_KEY_MAP['workshop']).toBe('workshop/agents')
     // 【第四轮 IA】「记忆与资产」「系统组件」两个桶取消 ⇒ 组 key 也落到其原第一个子项
     expect(LEGACY_NAV_KEY_MAP['memory-assets']).toBe('memory')
@@ -232,7 +232,7 @@ describe('旧深链兼容层（阶段 0 · IA 整合不断链）', () => {
 
   it('新旧都不在树里 ⇒ 空串（拒绝非法 key 的语义不变）', () => {
     expect(resolveNavKey('not-a-real-panel')).toBe('')
-    // 【第四轮 IA】HUB_NAV[0]（会话与配置）如今**已包含** memory ⇒ 旧 key 'experience'
+    // 【第四轮 IA】HUB_NAV[0]（会话与能力）如今**已包含** memory ⇒ 旧 key 'experience'
     // 在其中能解析到 memory，不再是"不在树里"。为守住本用例的判据（映射目标不在
     // 给定树里 ⇒ 空串），改用一棵确实不含 memory 的子树（系统管理桶）。
     const withoutMemory: HubNavItem[] = HUB_NAV.filter((i) => i.key === 'admin')

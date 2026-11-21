@@ -39,8 +39,8 @@ describe('hubNav derivePanelParams（第二轮 IA：assets/memory 收敛为叶�
   })
 })
 
-describe('hubNav 导航结构（技能中心与提示词实验室同属「会话与配置」桶）', () => {
-  it('「技能中心」是「会话与配置」桶内的叶子项，且紧跟在「吞噬」之后（获取在前、管理在后）', () => {
+describe('hubNav 导航结构（技能中心与提示词实验室同属「会话与能力」桶）', () => {
+  it('「技能中心」是「会话与能力」桶内的叶子项，且紧跟在「吞噬」之后（获取在前、管理在后）', () => {
     const workspace = HUB_NAV.find((i) => i.key === 'workspace')
     const childKeys = (workspace?.children ?? []).map((c) => c.key)
     expect(childKeys).toContain('skills-center')
@@ -71,7 +71,7 @@ describe('hubNav 导航结构（技能中心与提示词实验室同属「会话
 })
 
 describe('hubNav 导航结构（2026-10-24：工作流从技能中心拆成独立叶子）', () => {
-  it('「工作流」是「会话与配置」桶内的叶子，且紧跟在「技能中心」之后', () => {
+  it('「工作流」是「会话与能力」桶内的叶子，且紧跟在「技能中心」之后', () => {
     const workspace = HUB_NAV.find((i) => i.key === 'workspace')
     const keys = (workspace?.children ?? []).map((c) => c.key)
     expect(keys).toContain('workflow')
@@ -96,7 +96,7 @@ describe('hubNav 导航结构（工具调用子项收敛为页面内 Tab）', ()
     expect(tools?.component).toBeDefined()
   })
 
-  it('「工具调用」随「会话与配置」桶整体排在「全景看板」之前（配置类在前）', () => {
+  it('「工具调用」随「会话与能力」桶整体排在「全景看板」之前（配置类在前）', () => {
     const topKeys = HUB_NAV.map((i) => i.key)
     // 第三轮 IA 并为 6 桶；【第四轮 IA · 2026-10-14】再并为 4 桶
     expect(topKeys).toEqual(['workspace', 'panorama', 'governance', 'admin'])
@@ -148,7 +148,7 @@ describe('hubNav 顶层收敛（阶段 3 → 第三轮 IA 6 桶 → 第四轮 IA
     ])
   })
 
-  it('【第四轮+第五轮 IA】记忆/资产/插件/网络 并入「会话与配置」；模块列表并入「系统监控」；「系统组件」桶取消', () => {
+  it('【第四轮+第五轮 IA】记忆/资产/插件/网络 并入「会话与能力」；模块列表并入「系统监控」；「系统组件」桶取消', () => {
     const workspace = HUB_NAV.find((i) => i.key === 'workspace')
     const childKeys = (workspace?.children ?? []).map((c) => c.key)
     for (const k of ['memory', 'assets', 'tools']) {
@@ -189,7 +189,7 @@ describe('hubNav 顶层收敛（阶段 3 → 第三轮 IA 6 桶 → 第四轮 IA
     }
   })
 
-  it('「装配车间」并入「会话与配置」；「系统自我复制」已作页内视图（旧深链仍归一）', () => {
+  it('「装配车间」并入「会话与能力」；「系统自我复制」已作页内视图（旧深链仍归一）', () => {
     const keys = flattenNav(HUB_NAV).map((i) => i.key)
     expect(keys).toContain('workshop/agents')
     // 2026-10-15：系统自我复制并入「分身创建与组装」第 3 视图（带走 / 自复制），
@@ -240,7 +240,7 @@ describe('hubNav 顶层收敛（阶段 3 → 第三轮 IA 6 桶 → 第四轮 IA
   })
 
   it('DEFAULT_NAV_KEY 指向第一个叶子（分组无 component，不能作为默认选中）', () => {
-    // 回归：HUB_NAV[0] 是「会话与配置」分组；默认选中必须是可渲染的叶子「会话任务」
+    // 回归：HUB_NAV[0] 是「会话与能力」分组；默认选中必须是可渲染的叶子「会话任务」
     expect(DEFAULT_NAV_KEY).toBe('session')
     expect(findNavItem(DEFAULT_NAV_KEY)?.component).toBeDefined()
   })
@@ -292,7 +292,7 @@ describe('hubNav 导航结构（2026-10-27 · §11.12 两个叶子的 IA 搬迁�
 })
 
 describe('hubNav 导航结构（2026-10-28 · 方案 A：插件与扩展并入「工具与接入」）', () => {
-  it('「工具与接入」是会话与配置桶里的叶子，名称已从「工具调用」改名', () => {
+  it('「工具与接入」是会话与能力桶里的叶子，名称已从「工具调用」改名', () => {
     const item = findNavItem('tools')
     expect(item?.label).toBe('工具与接入')
     expect(item?.children).toBeUndefined()

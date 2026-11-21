@@ -36,6 +36,11 @@ function NavLeaf({ item, depth }: { item: HubNavItem; depth: number }) {
   )
 }
 
+/** 这棵子树里有没有 key 这一项（桶 → 小节 → 叶子的三级都要算） */
+function containsKey(items: HubNavItem[] | undefined, key: string): boolean {
+  return (items ?? []).some((c) => c.key === key || containsKey(c.children, key))
+}
+
 function NavGroup({
   item,
   depth,
@@ -51,7 +56,14 @@ function NavGroup({
   // 等于把叶子藏起来（搜索之外没有入口）。depth <= 1 让桶与小节都默认可见。
   const [open, setOpen] = useState(depth <= 1)
   const Icon = item.icon
-  const hasActiveChild = item.children?.some((c) => useWorkbenchNav.getState().activeKey === c.key)
+  // 【2026-11-21 修两个 bug】
+  // ① 原来用 useWorkbenchNav.getState() 在渲染期读一次 ⇒ 组件**不订阅** store：
+  //    深链进来时首次渲染 activeKey 还是默认值（session），算出的 hasActiveChild=true 就再也不会更新
+  //    ⇒ 无论点哪个页面，「会话与能力」桶永远高亮（Owner 实报）。
+  // ② 原来只比直接子项的 key ⇒ 观测桶（桶 → 小节 → 叶子）永远不会亮。
+  // 改成订阅 activeKey + 递归判「这棵子树里有当前叶子」。
+  const activeKey = useWorkbenchNav((s) => s.activeKey)
+  const hasActiveChild = containsKey(item.children, activeKey)
   const expanded = forceOpen || open
 
   return (

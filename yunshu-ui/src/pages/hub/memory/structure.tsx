@@ -37,7 +37,7 @@ const LAYERS: { name: string; holds: string; life: string; how: string }[] = [
     name: '① 工作记忆（当前窗口）',
     holds: '会话消息 + 系统提示词 + 工具定义',
     life: '一轮对话',
-    how: '由 /api/context/status 实时计量；占用超阈值触发压缩（见「会话与配置 · 上下文」面板）',
+    how: '由 /api/context/status 实时计量；占用超阈值触发压缩（见「会话任务 · 上下文」面板）',
   },
   {
     name: '② 短期记忆（对话摘要）',
@@ -185,7 +185,7 @@ export default function MemoryStructure() {
         </div>
         <p className="mt-3 text-caption text-slate-500">
           提示：三者的统一入口在「全库检索」；「向量记忆」提供手动录入与自动沉淀两种视图。
-          压缩与窗口水位见「会话与配置 · 会话任务」底部的上下文面板。
+          压缩与窗口水位见「会话任务」页底部的上下文面板。
         </p>
       </Card>
 

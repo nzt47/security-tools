@@ -118,3 +118,23 @@ describe('NavPanel 搜索框', () => {
     expect(useWorkbenchNav.getState().activeKey).toBe('governance/approvals')
   })
 })
+
+describe('NavPanel 桶高亮（2026-11-21 回归）', () => {
+  it('当前叶子在观测桶时，首桶「会话与能力」不再高亮、观测桶高亮（原来首桶恒亮）', () => {
+    // 【bug】NavGroup 原来用 getState() 在渲染期读一次 activeKey ⇒ 不订阅 store：
+    // 深链进来时首桶永远是初始渲染算出的「选中」；而且只比直接子项，观测桶（桶→小节→叶）永远不亮。
+    useWorkbenchNav.setState({ activeKey: 'observability/logs' })
+    render(<NavPanel />)
+    const first = screen.getByRole('button', { name: '会话与能力' })
+    const obs = screen.getByRole('button', { name: '观测（只读）' })
+    expect(first.getAttribute('aria-current')).toBeNull()
+    expect(obs.getAttribute('aria-current')).toBe('true')
+  })
+
+  it('当前叶子在首桶时，首桶高亮（叶子本身也高亮）', () => {
+    useWorkbenchNav.setState({ activeKey: 'session' })
+    render(<NavPanel />)
+    expect(screen.getByRole('button', { name: '会话与能力' }).getAttribute('aria-current')).toBe('true')
+    expect(screen.getByRole('button', { name: '观测（只读）' }).getAttribute('aria-current')).toBeNull()
+  })
+})
