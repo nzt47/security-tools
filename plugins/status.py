@@ -369,6 +369,25 @@ def api_cognitive_status():
     })
 
 
+@bp.route("/api/cognitive/reject")
+@_log_request(show_response=False)
+def api_cognitive_reject():
+    """当前读数下任务是否应被拒绝（元认知裁决，与传感器服务同名端点同口径）。
+
+    【为什么在 app_server 侧补这一条（2026-11-21）】
+    UI「运行监控 → 认知闭环」面板把 status 与 reject **并排取**（Promise.allSettled），
+    而 app_server 只挂了 status：`cognitive/flask_adapter.py` 里那份 reject 是
+    **独立传感器服务**（sensor_server）注册的，app_server 根本不加载它 ⇒ 真机每页一条
+    `GET /api/cognitive/reject 404`，「驳回判定」一栏永远空、且不报错（两者都失败才报）。
+    这里按 status **完全相同的读数口径**（body.collect_quick() → to_dict()）补一条，
+    裁决逻辑仍只在 `PromptInjector.should_reject_task` 一处，不复制判据。
+    """
+    from app_server import _Yunshu
+    reading_dicts = [r.to_dict() for r in _Yunshu.body.collect_quick()]
+    rejected, reason = _Yunshu._injector.should_reject_task(reading_dicts)
+    return jsonify({"rejected": bool(rejected), "reason": str(reason or "")})
+
+
 # ════════════════════════════════════════════════════════════
 #  全景 API
 # ════════════════════════════════════════════════════════════
