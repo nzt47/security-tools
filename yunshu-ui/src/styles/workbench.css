@@ -163,7 +163,9 @@ body,
 
 /* 构建戳（顶栏）：分辨"页面跑的是哪次构建"——未刷新会一直跑旧 bundle */
 .wb-build-stamp {
-  margin-left: 8px;
+  /* 2026-11-21：构建戳从顶栏移到导航栏页脚，与品牌行**分两行** ⇒ 去掉左侧外边距 */
+  margin-left: 0;
+  align-self: flex-start;
   padding: 2px 8px;
   border-radius: 999px;
   border: 1px solid var(--wb-border);
