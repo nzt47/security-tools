@@ -179,7 +179,8 @@ export default function UiGuardPage() {
         )}
         tabs={(
           <Tabs
-            variant="pill"
+            variant="folder"
+            className="-mb-px"
             size="sm"
             aria-label="规范守卫视图"
             value={tab}

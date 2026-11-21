@@ -18,7 +18,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   AlertTriangle, Ban, Lock, Loader2, Pause, Play, Power, RefreshCw, RotateCcw, Shield, ShieldAlert, Sliders,
 } from 'lucide-react'
-import { Button, Checkbox, CodeBlock, ErrorBox, hubGet, hubPost, Input, Notice, Select, Tabs, Textarea } from '../components/ui'
+import { Button, Checkbox, CodeBlock, ErrorBox, hubGet, hubPost, Input, Notice, PageTabsHeader, Select, Tabs, Textarea } from '../components/ui'
 import {
   PERMISSION_ACCESS_LOG,
   PERMISSION_EMERGENCY,
@@ -171,17 +171,30 @@ export default function SecurityPanel() {
   const st = (status?.stats ?? {}) as Record<string, number>
 
   return (
-    <div className="h-full overflow-y-auto p-4">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <Shield size={14} className="text-cyan-400" />
-        <h1 className="text-title font-semibold text-foreground">安全与权限</h1>
-        <span className="text-caption text-slate-500">权限开关 · 紧急控制 · 危险关键词 · 隐私清单</span>
-        <div className="ml-auto">
+    <div className="flex h-full min-h-0 flex-col">
+      {/* 【2026-11-21 统一】页头改 PageTabsHeader（页签同时上移进页头），页签族统一 folder。 */}
+      <PageTabsHeader
+        icon={<Shield size={14} className="text-primary" />}
+        title="安全与权限"
+        hint="权限开关 · 紧急控制 · 危险关键词 · 隐私清单"
+        actions={(
           <Button type="button" variant="default" size="xs" onClick={() => { void loadPerm(); void loadSafety(); void loadPrivacy() }} disabled={loading} aria-label="刷新安全与权限">
             {loading ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
           </Button>
-        </div>
-      </div>
+        )}
+        tabs={(
+          <Tabs
+            variant="folder"
+            className="-mb-px"
+            size="sm"
+            value={tab}
+            onChange={(v) => setTab(v as typeof tab)}
+            items={([['perm', '权限与审计'], ['safety', '危险关键词'], ['privacy', '隐私']] as const).map(([id, label]) => ({ value: id, label }))}
+          />
+        )}
+      />
+
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
 
       {err && <ErrorBox message={err} />}
       {msg && <Notice tone="success" size="sm" className="mb-2">{msg}</Notice>}
@@ -231,15 +244,8 @@ export default function SecurityPanel() {
         )}
       </div>
 
-      <div className="mb-2 flex items-center gap-1">
-        <Tabs
-          variant="segmented"
-          size="sm"
-          value={tab}
-          onChange={(v) => setTab(v as typeof tab)}
-          items={([['perm', '权限与审计'], ['safety', '危险关键词'], ['privacy', '隐私']] as const).map(([id, label]) => ({ value: id, label }))}
-        />
-      </div>
+      {/* 页签已上移到 PageTabsHeader（2026-11-21） */}
+
 
       {tab === 'perm' && (
         <div className="space-y-2">
@@ -366,6 +372,7 @@ export default function SecurityPanel() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }

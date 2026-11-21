@@ -20,7 +20,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   BookOpen, CheckCircle2, FileText, Loader2, MessageSquare, RefreshCw, Send, Star,
 } from 'lucide-react'
-import { Button, CodeBlock, ErrorBox, hubGet, hubPost, Input, Notice, Select, Tabs, Textarea } from '../components/ui'
+import { Button, CodeBlock, ErrorBox, hubGet, hubPost, Input, Notice, PageTabsHeader, Select, Tabs, Textarea } from '../components/ui'
 import DevNotesPanel from './dev-notes'
 import {
   FEEDBACK_LIST,
@@ -184,12 +184,14 @@ export default function FeedbackCenter() {
   const loading = busy !== ''
 
   return (
-    <div className="h-full overflow-y-auto p-4">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <MessageSquare size={14} className="text-cyan-400" />
-        <h1 className="text-title font-semibold text-foreground">反馈中心</h1>
-        <span className="text-caption text-slate-500">汇总 · 报告 · 优质案例 · 逐条受理 · 提交</span>
-        <div className="ml-auto">
+    <div className="flex h-full min-h-0 flex-col">
+      {/* 【2026-11-21 统一】页头改 PageTabsHeader，页签上移进页头（原来落在汇总卡之后），
+          页签族统一 folder —— 与「工具/记忆/分身」等叶子页同位置、同字号。 */}
+      <PageTabsHeader
+        icon={<MessageSquare size={14} className="text-primary" />}
+        title="反馈中心"
+        hint="汇总 · 报告 · 优质案例 · 逐条受理 · 提交"
+        actions={(
           <Button
             type="button"
             variant="default" size="xs"
@@ -199,8 +201,20 @@ export default function FeedbackCenter() {
           >
             {loading ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
           </Button>
-        </div>
-      </div>
+        )}
+        tabs={(
+          <Tabs
+            variant="folder"
+            className="-mb-px"
+            size="sm"
+            value={tab}
+            onChange={(v) => setTab(v as typeof tab)}
+            items={([['list', '反馈列表'], ['report', '分析报告'], ['cases', '优质案例'], ['submit', '提交反馈'], ['notes', '开发随记']] as const).map(([id, label]) => ({ value: id, label }))}
+          />
+        )}
+      />
+
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
 
       {err && <ErrorBox message={err} />}
       {msg && <Notice tone="success" size="sm" className="mb-2">{msg}</Notice>}
@@ -220,15 +234,8 @@ export default function FeedbackCenter() {
         ))}
       </div>
 
-      <div className="mb-2 flex items-center gap-1">
-        <Tabs
-          variant="segmented"
-          size="sm"
-          value={tab}
-          onChange={(v) => setTab(v as typeof tab)}
-          items={([['list', '反馈列表'], ['report', '分析报告'], ['cases', '优质案例'], ['submit', '提交反馈'], ['notes', '开发随记']] as const).map(([id, label]) => ({ value: id, label }))}
-        />
-      </div>
+      {/* 页签已上移到 PageTabsHeader（2026-11-21） */}
+
 
       {tab === 'notes' && <DevNotesPanel />}
 
@@ -347,6 +354,7 @@ export default function FeedbackCenter() {
           </p>
         </div>
       )}
+      </div>
     </div>
   )
 }

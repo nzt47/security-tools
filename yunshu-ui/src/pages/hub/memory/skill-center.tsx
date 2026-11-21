@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react'
 import { BookOpen, GitBranch, Hammer, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui'
+import { PageTabsHeader } from '../components/ui'
 import SkillAssetTable from './SkillAssetTable'
 import SkillIntakeDialog from './SkillIntakeDialog'
 import SkillCardsDialog from '../../../components/SkillCardsDialog'
@@ -37,20 +38,15 @@ export default function SkillCenter() {
   }, [])
   return (
     <div className="flex h-full min-h-0 flex-col bg-slate-950">
-      {/* ─── 页头 ─── */}
-      <div className="border-b border-slate-800 px-5 pb-3 pt-4">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-700 bg-slate-900">
-            <Hammer size={14} className="text-cyan-400" />
-          </div>
-          <div>
-            <h1 className="text-title font-semibold text-slate-100">技能中心</h1>
-            <p className="text-caption text-slate-500">
-              LLM 技能（提示/行为注入，模型执行）—— 统一表 = 运行时技能（/api/skills）+ 技能资产（/api/skills-mgmt）按 id 合并
-              <span className="ml-2 text-slate-600">· 本地确定性执行的工作流在「工作流」叶子</span>
-            </p>
-          </div>
-          <Button type="button" onClick={() => setCardsOpen(true)} title="按能力卡（L1）列出现在到底有哪些能力：触发 / 步骤 / 参数 / 示例 / 约束" className="ml-auto shrink-0" variant="accent" size="xs">
+      {/* 【2026-11-21 统一】手写页头 → PageTabsHeader（本页没有页级页签 ⇒ tabs={null}）。 */}
+      <PageTabsHeader
+        icon={<Hammer size={14} className="text-primary" />}
+        title="技能中心"
+        hint="LLM 技能（提示/行为注入，模型执行）· 统一表 = 运行时技能 + 技能资产按 id 合并"
+        tabs={null}
+        actions={(
+          <>
+          <Button type="button" onClick={() => setCardsOpen(true)} title="按能力卡（L1）列出现在到底有哪些能力：触发 / 步骤 / 参数 / 示例 / 约束" className="shrink-0" variant="accent" size="xs">
             <BookOpen size={12} /> 能力卡
           </Button>
           {/* 入轨入口只在真有「未入轨」技能时出现（46/46 已入轨时它是个空转弹窗）。 */}
@@ -61,11 +57,12 @@ export default function SkillCenter() {
           )}
           {/* 2026-11-06：原「转化队列已移至能力获取」去处说明已删 —— 能力获取在主导航里，
               这里再挂一条只是重复指路（禁止双入口）。 */}
-        </div>
-      </div>
+          </>
+        )}
+      />
 
       {/* ─── 内容 ─── */}
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
         <div className="mb-3 flex items-start gap-2 rounded-lg border border-slate-800 bg-slate-900/60 px-3.5 py-2.5 text-xs text-slate-400">
           <Sparkles size={13} className="mt-0.5 shrink-0 text-cyan-400" />
           <span>

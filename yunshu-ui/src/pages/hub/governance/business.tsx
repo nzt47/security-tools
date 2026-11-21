@@ -16,7 +16,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Activity, BarChart3, ExternalLink, Gauge, Loader2, RefreshCw, Search, Server,
 } from 'lucide-react'
-import { Button, CodeBlock, ErrorBox, hubGet, Input, Select, Tabs } from '../components/ui'
+import { Button, CodeBlock, ErrorBox, hubGet, Input, PageTabsHeader, Select, Tabs } from '../components/ui'
 import {
   BUSINESS_DASHBOARD,
   BUSINESS_DEFINITIONS,
@@ -131,32 +131,38 @@ export default function BusinessBoard() {
   const bizCats = Object.keys(bizDashboard ?? {})
 
   return (
-    <div className="h-full overflow-y-auto p-4">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <BarChart3 size={14} className="text-cyan-400" />
-        <h1 className="text-title font-semibold text-foreground">业务看板</h1>
-        <span className="text-caption text-slate-500">业务指标（产品面）与系统仪表盘（运行面）</span>
-        <div className="ml-auto flex items-center gap-1.5">
-          <a href={BUSINESS_PROMETHEUS} target="_blank" rel="noreferrer" className={BTN} aria-label="导出 Prometheus 指标">
-            <ExternalLink size={11} /> Prometheus
-          </a>
-          <Button type="button" variant="default" size="xs" onClick={() => { void loadBusiness(); void loadDashboard() }} disabled={loading} aria-label="刷新业务看板">
-            {loading ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-          </Button>
-        </div>
-      </div>
+    <div className="flex h-full min-h-0 flex-col">
+      {/* 【2026-11-21 统一】原为「紧凑行内标题 + 独立 tab 行」（标题无内边距、页签另起一行）
+          ⇒ 与「工具/记忆/分身」等叶子页的 PageTabsHeader 位置/字号不一致。统一页头原语 + folder 页签族。 */}
+      <PageTabsHeader
+        icon={<BarChart3 size={14} className="text-primary" />}
+        title="业务看板"
+        hint="业务指标（产品面）与系统仪表盘（运行面）"
+        actions={(
+          <>
+            <a href={BUSINESS_PROMETHEUS} target="_blank" rel="noreferrer" className={BTN} aria-label="导出 Prometheus 指标">
+              <ExternalLink size={11} /> Prometheus
+            </a>
+            <Button type="button" variant="default" size="xs" onClick={() => { void loadBusiness(); void loadDashboard() }} disabled={loading} aria-label="刷新业务看板">
+              {loading ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
+            </Button>
+          </>
+        )}
+        tabs={(
+          <Tabs
+            variant="folder"
+            className="-mb-px"
+            size="sm"
+            value={tab}
+            onChange={(v) => setTab(v as typeof tab)}
+            items={([['business', '业务指标'], ['dashboard', '系统仪表盘']] as const).map(([id, label]) => ({ value: id, label }))}
+          />
+        )}
+      />
+
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
 
       {err && <ErrorBox message={err} />}
-
-      <div className="mb-2 flex items-center gap-1">
-        <Tabs
-          variant="segmented"
-          size="sm"
-          value={tab}
-          onChange={(v) => setTab(v as typeof tab)}
-          items={([['business', '业务指标'], ['dashboard', '系统仪表盘']] as const).map(([id, label]) => ({ value: id, label }))}
-        />
-      </div>
 
       {tab === 'dashboard' && (
         <div className="mb-2 rounded-md border border-slate-800 bg-slate-900/40 px-2 py-1.5 text-micro text-slate-500" data-testid="dashboard-scope-note">
@@ -309,6 +315,7 @@ export default function BusinessBoard() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }

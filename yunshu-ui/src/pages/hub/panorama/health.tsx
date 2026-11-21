@@ -63,7 +63,7 @@ import {
   type AlarmRulesPayload,
 } from '@/api/alarms'
 import { formatAge } from '@/utils/format'
-import { Badge, Button, Card, ErrorBox, hubGet, Input, Loading, Notice, PageHeader, Select, Tabs } from '../components/ui'
+import { Badge, Button, Card, ErrorBox, hubGet, Input, Loading, Notice, PageTabsHeader, Select, Tabs } from '../components/ui'
 import { getEnvelope } from '@/api/envelope'
 import { downloadFile } from '../../../utils/system'
 import HealthVitals from './health-vitals'
@@ -1010,19 +1010,38 @@ export default function PanoramaHealth() {
   const overallLevel = levelOf(overallPercent ?? 0)
 
   return (
-    <div className="p-6">
-      <PageHeader
+    <div className="flex h-full min-h-0 flex-col">
+      {/* 【2026-11-21 统一】原为 PageHeader + 内容区里的独立 tab 行（标题在 p-6 里、
+          页签又是另一行）⇒ 与「工具/记忆/分身」等叶子页的页头位置不一致。统一 PageTabsHeader，
+          页签族统一 folder，data-testid 保留（测试按它定位）。 */}
+      <PageTabsHeader
+        icon={<Activity size={14} className="text-primary" />}
         title="健康仪表盘"
-        description="综合健康度 · 五层探针 · 心跳资源 · 指标 / 性能 / 告警 / 历史（对齐根页 health_dashboard.html）"
+        hint="综合健康度 · 五层探针 · 指标 / 性能 / 告警 / 历史"
         actions={
-          <Button
-            onClick={load}
-            variant="default" size="sm"
-          >
+          <Button onClick={load} variant="default" size="sm">
             <RefreshCw size={12} /> 刷新
           </Button>
         }
+        tabs={(
+          <div className="flex flex-wrap gap-1" data-testid="health-tabs">
+            <Tabs
+              variant="folder"
+              className="-mb-px"
+              size="sm"
+              value={tab}
+              onChange={(v) => setTab(v as typeof tab)}
+              items={TABS.map(({ key, label, Icon }) => ({
+                value: key,
+                label: <><Icon size={12} /> {label}</>,
+                testId: 'tab-' + key,
+              }))}
+            />
+          </div>
+        )}
       />
+
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
 
       {/* ── 顶部系统状态条（老页 .realtime-bar）── */}
       <div
@@ -1054,20 +1073,7 @@ export default function PanoramaHealth() {
 
       {loading && points.length === 0 && Object.keys(data).length === 0 ? <Loading /> : (
         <>
-          {/* ── Tab 导航（老页 7 个 Tab + 本轮拆出的「功能单位」）── */}
-          <div className="mb-4 flex flex-wrap gap-1 border-b border-slate-800 pb-3" data-testid="health-tabs">
-            <Tabs
-              variant="pill"
-              size="sm"
-              value={tab}
-              onChange={(v) => setTab(v as typeof tab)}
-              items={TABS.map(({ key, label, Icon }) => ({
-                value: key,
-                label: <><Icon size={12} /> {label}</>,
-                testId: 'tab-' + key,
-              }))}
-            />
-          </div>
+          {/* Tab 导航已上移到 PageTabsHeader（2026-11-21 统一页头） */}
 
           {/* ══════════ 概览 ══════════ */}
           {tab === 'overview' && (
@@ -1583,9 +1589,10 @@ export default function PanoramaHealth() {
           )}
         </>
       )}
-      <ModeCard />
-      <HealthVitals />
-      <OpsDiagnostics />
+        <ModeCard />
+        <HealthVitals />
+        <OpsDiagnostics />
+      </div>
     </div>
   )
 }

@@ -13,8 +13,8 @@
  * 【纪律】后端没给的字段就显示"—"，不在前端重算（沿用 health.tsx 的口径）。
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Activity, Cpu, ListChecks, RefreshCw, Search } from 'lucide-react'
-import { Badge, Button, Card, ErrorBox, hubGet, Input, Loading, PageHeader, Tabs, unwrap } from '../components/ui'
+import { Activity, Boxes, Cpu, ListChecks, RefreshCw, Search } from 'lucide-react'
+import { Badge, Button, Card, ErrorBox, hubGet, Input, Loading, PageTabsHeader, Tabs, unwrap } from '../components/ui'
 import { SCHEDULER_OVERVIEW, SYSTEM_UNITS, TOOLS_CONFIG } from '@/api/endpoints'
 
 type Unit = { id: string; status: string; headline?: string; detail?: string }
@@ -100,19 +100,23 @@ export default function PlatformCapability() {
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-slate-950">
-      <PageHeader
+      {/* 【2026-11-21 统一】原为 PageHeader + 独立 tab 行（标题无内边距、页签另起一行）⇒
+          与「工具/记忆/分身」等叶子页的 PageTabsHeader 位置不一致。统一成同一个页头原语，
+          页签族统一 folder（叶子页页签的唯一视觉家族）。 */}
+      <PageTabsHeader
+        icon={<Boxes size={14} className="text-primary" />}
         title="平台能力"
-        description="云枢自己提供的功能（运维对象）：功能单位 / 工具 / 调度。与「能力卡」分开——那边是 LLM 技能与元生功能。"
+        hint="功能单位 / 工具 / 调度（运维对象）"
         actions={
           <Button type="button" onClick={() => void load()} variant="default" size="xs">
             <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> 刷新
           </Button>
         }
-      />
-
-      <div className="flex items-center gap-1 border-b border-slate-800 px-4 py-2">
+        tabs={(
+          <div className="flex items-center gap-2">
         <Tabs
-          variant="pill"
+          variant="folder"
+          className="-mb-px"
           size="sm"
           value={tab}
           onChange={(v) => { setTab(v as typeof tab); setQ('') }}
@@ -133,9 +137,11 @@ export default function PlatformCapability() {
             aria-label="搜索"
           />
         ) : null}
-      </div>
+          </div>
+        )}
+      />
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
         {error ? <ErrorBox message={error} /> : null}
         {loading && !unitList.length && !tools.length ? <Loading /> : null}
 

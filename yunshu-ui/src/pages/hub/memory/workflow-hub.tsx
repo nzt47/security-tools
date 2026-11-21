@@ -11,6 +11,7 @@
 import { useEffect, useState } from 'react'
 import { PenTool, Workflow } from 'lucide-react'
 import { Button, Tabs } from '@/components/ui'
+import { PageTabsHeader } from '../components/ui'
 import { MemoryWorkflowTable } from './workflow'
 import MemoryWorkflowVisual from './workflow-visual'
 import ConvertibleWorkflows from './ConvertibleWorkflows'
@@ -72,33 +73,29 @@ export default function WorkflowHub() {
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-slate-950">
-      <div className="border-b border-slate-800 px-5 pb-3 pt-4">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-700 bg-slate-900">
-            <Workflow size={14} className="text-emerald-400" />
+      {/* 【2026-11-21 统一】原为手写页头 + 另一行独立页签条（标题/页签各占一行，x/y 与
+          其它叶子页不同）⇒ 改用 PageTabsHeader，页签族统一 folder。 */}
+      <PageTabsHeader
+        icon={<Workflow size={14} className="text-primary" />}
+        title="工作流"
+        hint="学习/编排得到的确定性步骤 · 命中即本地执行（跳过 LLM）"
+        tabs={(
+          <div className="flex items-center gap-1.5">
+            <Tabs
+              variant="folder"
+              className="-mb-px"
+              size="sm"
+              value={tab}
+              onChange={(v) => selectTab(v as typeof tab)}
+              items={TABS.map((t) => {
+                const Icon = t.icon
+                return { value: t.key, label: <><Icon size={13} />{t.label}</>, title: t.desc }
+              })}
+            />
+            <span className="ml-auto hidden font-mono text-micro text-slate-600 md:inline">{active.desc}</span>
           </div>
-          <div>
-            <h1 className="text-title font-semibold text-slate-100">工作流</h1>
-            <p className="text-caption text-slate-500">
-              学习/编排得到的确定性步骤 —— 命中任务描述即本地执行并跳过 LLM；可视化编辑是它的画布入口
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-1.5 border-b border-slate-800 px-5 py-2">
-        <Tabs
-          variant="segmented"
-          size="sm"
-          value={tab}
-          onChange={(v) => selectTab(v as typeof tab)}
-          items={TABS.map((t) => {
-            const Icon = t.icon
-            return { value: t.key, label: <><Icon size={13} />{t.label}</>, title: t.desc }
-          })}
-        />
-        <span className="ml-auto hidden font-mono text-micro text-slate-600 md:inline">{active.desc}</span>
-      </div>
+        )}
+      />
 
       <div className="min-h-0 flex-1">
         {tab === 'skills' && (

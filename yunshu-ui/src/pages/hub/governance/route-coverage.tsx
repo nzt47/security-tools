@@ -15,6 +15,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Route as RouteIcon, RefreshCw, Search } from 'lucide-react'
 import { Button, Checkbox, Input, Notice, Select, Tabs } from '@/components/ui'
+// 叶子页头是 hub 层原语（带页签条/标题/说明/动作），不在全局 components/ui 里
+import { PageTabsHeader } from '../components/ui'
 // 该端点走 v2 统一信封（后端 _ok(payload)）⇒ 必须显式解包；
 // 直接用 request()（返回原始体、不拆信封）会在 {code,data,message} 上读 entries 而**静默拿到空**。
 import { getEnvelope } from '@/api/envelope'
@@ -132,30 +134,31 @@ export default function RouteCoveragePanel() {
   const liveByCat = (t.live_by_category ?? {}) as Record<string, number>
 
   return (
-    <div className="space-y-4 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="flex items-center gap-2 text-title font-semibold text-slate-100">
-            <RouteIcon size={18} className="text-cyan-400" /> 路由覆盖
-          </h1>
-          <p className="mt-1 text-xs text-slate-500">
-            后端路由 → 前端 UI 的机械盘点。数据源为提交产物，生成时间 {data?.generated_at ?? '—'}。
-          </p>
-          <p
-            className="mt-1 max-w-3xl text-caption leading-relaxed text-slate-500"
-            data-testid="route-coverage-scope-note"
-          >
-            口径：每条 = 一个归一化路径（&lt;id&gt; / &lt;int:id&gt; 折成 *），不是运行期 url_map 的规则数；
-            扫描范围含 agent / plugins / sensor / cognitive / memory，因此也会计入其它 Flask app
-            （如 sensor_server）的装饰器，而动态注册（如 /api/open/*）与 Flask 静态路由不在其中；
-            判活 = 该路径存在任一已接线定义，含死副本 = 还存在未接线定义。
-          </p>
-        </div>
-        <Button onClick={load}
-          variant="default" size="sm">
-          <RefreshCw size={12} /> 重新读取
-        </Button>
-      </div>
+    <div className="flex h-full min-h-0 flex-col">
+      {/* 【2026-11-21 统一】原为手写 <h1 text-title>（无内边距、x/y 与其它叶子页不同）⇒
+          改用 PageTabsHeader（本页没有页级页签 ⇒ tabs={null}），口径说明行原样保留在内容区。 */}
+      <PageTabsHeader
+        icon={<RouteIcon size={14} className="text-primary" />}
+        title="路由覆盖"
+        hint={`后端路由 → 前端 UI 的机械盘点 · 生成时间 ${data?.generated_at ?? '—'}`}
+        actions={(
+          <Button onClick={load} variant="default" size="sm">
+            <RefreshCw size={12} /> 重新读取
+          </Button>
+        )}
+        tabs={null}
+      />
+
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+      <p
+        className="max-w-3xl text-caption leading-relaxed text-slate-500"
+        data-testid="route-coverage-scope-note"
+      >
+        口径：每条 = 一个归一化路径（&lt;id&gt; / &lt;int:id&gt; 折成 *），不是运行期 url_map 的规则数；
+        扫描范围含 agent / plugins / sensor / cognitive / memory，因此也会计入其它 Flask app
+        （如 sensor_server）的装饰器，而动态注册（如 /api/open/*）与 Flask 静态路由不在其中；
+        判活 = 该路径存在任一已接线定义，含死副本 = 还存在未接线定义。
+      </p>
 
       {error && <Notice tone="danger" size="md">读取失败：{error}</Notice>}
       {loading && <div className="text-sm text-slate-500">加载中…</div>}
@@ -274,6 +277,7 @@ export default function RouteCoveragePanel() {
           </tbody>
         </table>
         {rows.length > 0 && <div className="px-3 py-2 text-xs text-slate-500">共 {rows.length} 条（全部显示）。</div>}
+      </div>
       </div>
     </div>
   )

@@ -16,7 +16,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   FileText, FolderOpen, HardDrive, Loader2, Play, RefreshCw, Search, Trash2, XOctagon,
 } from 'lucide-react'
-import { Button, Checkbox, CodeBlock, ErrorBox, hubGet, hubPost, Input, Notice, Select, Tabs, Textarea } from '../components/ui'
+import { Button, Checkbox, CodeBlock, ErrorBox, hubGet, hubPost, Input, Notice, PageTabsHeader, Select, Tabs, Textarea } from '../components/ui'
 import {
   FILESYSTEM_INFO,
   FILESYSTEM_LIST,
@@ -221,30 +221,36 @@ export default function LocalResources() {
   const all = (wl?.all ?? []) as string[]
 
   return (
-    <div className="h-full overflow-y-auto p-4">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <HardDrive size={14} className="text-cyan-400" />
-        <h1 className="text-title font-semibold text-foreground">本地资源</h1>
-        <span className="text-caption text-slate-500">文件浏览 / 工作区 / 进程管控 —— 写与删都需二次确认</span>
-        <div className="ml-auto">
+    <div className="flex h-full min-h-0 flex-col">
+      {/* 【2026-11-21 统一】页头改 PageTabsHeader（页签上移进页头），页签族统一 folder。 */}
+      <PageTabsHeader
+        icon={<HardDrive size={14} className="text-primary" />}
+        title="本地资源"
+        hint="文件浏览 / 工作区 / 进程管控 —— 写与删都需二次确认"
+        actions={(
           <Button type="button" variant="default" size="xs" onClick={() => { void loadDir(); void loadWs(); void loadProcess() }} disabled={loading} aria-label="刷新本地资源">
             {loading ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
           </Button>
-        </div>
-      </div>
+        )}
+        tabs={(
+          <Tabs
+            variant="folder"
+            className="-mb-px"
+            size="sm"
+            value={tab}
+            onChange={(v) => setTab(v as typeof tab)}
+            items={([['files', '文件浏览'], ['workspace', '工作区'], ['process', '进程管控']] as const).map(([id, label]) => ({ value: id, label }))}
+          />
+        )}
+      />
+
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
 
       {err && <ErrorBox message={err} />}
       {msg && <Notice tone="success" size="sm" className="mb-2">{msg}</Notice>}
 
-      <div className="mb-2 flex items-center gap-1">
-        <Tabs
-          variant="segmented"
-          size="sm"
-          value={tab}
-          onChange={(v) => setTab(v as typeof tab)}
-          items={([['files', '文件浏览'], ['workspace', '工作区'], ['process', '进程管控']] as const).map(([id, label]) => ({ value: id, label }))}
-        />
-      </div>
+      {/* 页签已上移到 PageTabsHeader（2026-11-21） */}
+
 
       {tab === 'files' && (
         <div className="space-y-2">
@@ -408,6 +414,7 @@ export default function LocalResources() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }
