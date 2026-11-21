@@ -96,7 +96,11 @@ const TYPE_LABEL: Record<string, string> = {
 /** 「在线」口径：与明细筛选/徽章同一套判定，避免两处各算各的 */
 const ONLINE_STATUS: ReadonlySet<string> = new Set(['healthy', 'running', 'online'])
 
-export default function PanoramaMonitor() {
+/**
+ * 【2026-11-21 导航重组】embedded：被「运行监控」容器当一个 Tab 用，
+ * 页头由容器提供；本页只保留自己的工具条（搜索 / 状态筛选 / 刷新）。
+ */
+export default function PanoramaMonitor({ embedded = false }: { embedded?: boolean } = {}) {
   const [domains, setDomains] = useState<Domain[]>([])
   const [unregistered, setUnregistered] = useState<UnregisteredModule[]>([])
   const [autodiscovery, setAutodiscovery] = useState<ModulesTopology['autodiscovery']>(undefined)
@@ -196,35 +200,38 @@ export default function PanoramaMonitor() {
 
   const filteredCount = filteredDomains.reduce((n, d) => n + d.nodes.length, 0)
 
+  const toolbar = (
+    <div className="flex items-center gap-2">
+      <Input
+        className="w-32"
+        size="xs"
+        leading={<Search size={12} />}
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="搜索模块…"
+        aria-label="搜索模块"
+      />
+      <Select value={statusFilter} onChange={(v) => setStatusFilter(v)} size="sm" placeholder="全部状态" placeholderOptionDisabled={false} options={[{ label: '健康', value: 'healthy' }, { label: '离线', value: 'offline' }, { label: '未启用', value: 'disabled' }]} />
+      <Button onClick={load} variant="default" size="sm">
+        <RefreshCw size={12} /> 刷新
+      </Button>
+    </div>
+  )
+
   return (
     <div className="p-6">
-      <PageHeader
-        title="系统监控"
-        description={'运行时视角：模块状态、健康评分与按域明细（' + domains.length + ' 个域 / '
-          + allModules.length + ' 个模块'
-          + (discoveredCount > 0 ? '，其中 ' + discoveredCount + ' 个自动发现' : '')
-          + (unregistered.length > 0 ? '；' + unregistered.length + ' 个未登记' : '') + '）'}
-        actions={
-          <div className="flex items-center gap-2">
-            <Input
-              className="w-32"
-              size="xs"
-              leading={<Search size={12} />}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="搜索模块…"
-              aria-label="搜索模块"
-            />
-            <Select value={statusFilter} onChange={(v) => setStatusFilter(v)} size="sm" placeholder="全部状态" placeholderOptionDisabled={false} options={[{ label: '健康', value: 'healthy' }, { label: '离线', value: 'offline' }, { label: '未启用', value: 'disabled' }]} />
-            <Button
-              onClick={load}
-              variant="default" size="sm"
-            >
-              <RefreshCw size={12} /> 刷新
-            </Button>
-          </div>
-        }
-      />
+      {embedded ? (
+        <div className="mb-3 flex flex-wrap items-center justify-end gap-2">{toolbar}</div>
+      ) : (
+        <PageHeader
+          title="系统监控"
+          description={'运行时视角：模块状态、健康评分与按域明细（' + domains.length + ' 个域 / '
+            + allModules.length + ' 个模块'
+            + (discoveredCount > 0 ? '，其中 ' + discoveredCount + ' 个自动发现' : '')
+            + (unregistered.length > 0 ? '；' + unregistered.length + ' 个未登记' : '') + '）'}
+          actions={toolbar}
+        />
+      )}
       {error && <div className="mb-4"><ErrorBox message={error} /></div>}
 
       {/* 【2026-11-01】读图须知：三个服务节点同源，避免把"一个低分"看成"三处故障" */}

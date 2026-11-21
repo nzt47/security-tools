@@ -46,7 +46,10 @@ function NavGroup({
   /** 搜索态强制展开：命中项若藏在折叠的分组里，等于「搜了也看不见」 */
   forceOpen?: boolean
 }) {
-  const [open, setOpen] = useState(depth === 0)
+  // 【2026-11-21 导航重组】三级树：桶(0) → 小节(1) → 叶子(2)。
+  // 小节默认展开 —— 旧逻辑 depth === 0 只开桶，重组后「运行 / 治理」小节会默认收起，
+  // 等于把叶子藏起来（搜索之外没有入口）。depth <= 1 让桶与小节都默认可见。
+  const [open, setOpen] = useState(depth <= 1)
   const Icon = item.icon
   const hasActiveChild = item.children?.some((c) => useWorkbenchNav.getState().activeKey === c.key)
   const expanded = forceOpen || open

@@ -108,7 +108,11 @@ function normalizeReadings(raw: unknown): SensorReading[] {
   return []
 }
 
-export default function PanoramaSensors() {
+/**
+ * 【2026-11-21 导航重组】embedded：被「运行监控」容器当一个 Tab 用，
+ * 此时不渲染自己的页头（容器已有 PageTabsHeader），刷新按钮留在内容区右上。
+ */
+export default function PanoramaSensors({ embedded = false }: { embedded?: boolean } = {}) {
   const [panorama, setPanorama] = useState<Panorama | null>(null)
   const [sensors, setSensors] = useState<SensorDescriptor[]>([])
   const [healthFallback, setHealthFallback] = useState<SensorReading[]>([])
@@ -167,15 +171,23 @@ export default function PanoramaSensors() {
 
   return (
     <div className="p-6">
-      <PageHeader
-        title="全景感知"
-        description="实时传感器状态与健康指标"
-        actions={
-          <Button onClick={() => setReload((r) => r + 1)} variant="default" size="sm">
+      {embedded ? (
+        <div className="mb-3 flex justify-end">
+          <Button onClick={() => setReload((r) => r + 1)} variant="default" size="xs">
             <RefreshCw size={12} /> 刷新
           </Button>
-        }
-      />
+        </div>
+      ) : (
+        <PageHeader
+          title="全景感知"
+          description="实时传感器状态与健康指标"
+          actions={
+            <Button onClick={() => setReload((r) => r + 1)} variant="default" size="sm">
+              <RefreshCw size={12} /> 刷新
+            </Button>
+          }
+        />
+      )}
 
       {failures.length > 0 && (
         <div className="mb-4 space-y-2" data-testid="panorama-failures">

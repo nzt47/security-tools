@@ -76,7 +76,11 @@ function formatTimestamp(ts: unknown): string {
   return ts === undefined || ts === null || ts === '' ? '' : String(ts)
 }
 
-export default function PanoramaLogs() {
+/**
+ * 【2026-11-21 导航重组】embedded：被「日志与审计」容器当一个 Tab 用，
+ * 页头由容器提供；本页只保留自己的查询工具条。
+ */
+export default function PanoramaLogs({ embedded = false }: { embedded?: boolean } = {}) {
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [level, setLevel] = useState('')
   const [limit, setLimit] = useState(100)
@@ -112,28 +116,47 @@ export default function PanoramaLogs() {
 
   return (
     <div className="p-6">
-      <PageHeader
-        title="日志查看"
-        description="结构化运行日志（来源：/api/observability/logs；过滤与时间窗由后端 agent/monitoring/loki.py 判定）"
-        actions={
-          <div className="flex items-center gap-2">
-            <Select value={level} onChange={(v) => setLevel(v)} size="sm" placeholder="全部级别" placeholderOptionDisabled={false} options={[{ label: 'DEBUG', value: 'DEBUG' }, { label: 'INFO', value: 'INFO' }, { label: 'WARNING', value: 'WARNING' }, { label: 'ERROR', value: 'ERROR' }]} />
-            <Input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load()} placeholder="关键字过滤" size="xs" className="w-40" />
-            <Select
-              size="sm"
-              className="w-24"
-              value={String(limit)}
-              onChange={(v) => setLimit(Number(v))}
-              aria-label="每页条数"
-              hidePlaceholder
-              options={[50, 100, 200].map((n) => ({ label: String(n) + ' 条', value: String(n) }))}
-            />
-            <Button onClick={load} variant="default" size="sm">
-              <RefreshCw size={12} /> 查询
-            </Button>
-          </div>
-        }
-      />
+      {embedded ? (
+        <div className="mb-3 flex flex-wrap items-center justify-end gap-2">
+          <Select value={level} onChange={(v) => setLevel(v)} size="sm" placeholder="全部级别" placeholderOptionDisabled={false} options={[{ label: 'DEBUG', value: 'DEBUG' }, { label: 'INFO', value: 'INFO' }, { label: 'WARNING', value: 'WARNING' }, { label: 'ERROR', value: 'ERROR' }]} />
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load()} placeholder="关键字过滤" size="xs" className="w-40" />
+          <Select
+            size="sm"
+            className="w-24"
+            value={String(limit)}
+            onChange={(v) => setLimit(Number(v))}
+            aria-label="每页条数"
+            hidePlaceholder
+            options={[50, 100, 200].map((n) => ({ label: String(n) + ' 条', value: String(n) }))}
+          />
+          <Button onClick={load} variant="default" size="xs">
+            <RefreshCw size={12} /> 查询
+          </Button>
+        </div>
+      ) : (
+        <PageHeader
+          title="日志查看"
+          description="结构化运行日志（来源：/api/observability/logs；过滤与时间窗由后端 agent/monitoring/loki.py 判定）"
+          actions={
+            <div className="flex items-center gap-2">
+              <Select value={level} onChange={(v) => setLevel(v)} size="sm" placeholder="全部级别" placeholderOptionDisabled={false} options={[{ label: 'DEBUG', value: 'DEBUG' }, { label: 'INFO', value: 'INFO' }, { label: 'WARNING', value: 'WARNING' }, { label: 'ERROR', value: 'ERROR' }]} />
+              <Input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load()} placeholder="关键字过滤" size="xs" className="w-40" />
+              <Select
+                size="sm"
+                className="w-24"
+                value={String(limit)}
+                onChange={(v) => setLimit(Number(v))}
+                aria-label="每页条数"
+                hidePlaceholder
+                options={[50, 100, 200].map((n) => ({ label: String(n) + ' 条', value: String(n) }))}
+              />
+              <Button onClick={load} variant="default" size="sm">
+                <RefreshCw size={12} /> 查询
+              </Button>
+            </div>
+          }
+        />
+      )}
       {error && <div className="mb-4"><ErrorBox message={error} /></div>}
       {loading ? <Loading /> : (
         <Card>

@@ -26,12 +26,13 @@ function searchBox(): HTMLInputElement {
 }
 
 describe('NavPanel 搜索框', () => {
-  it('默认渲染搜索框，且「治理与运营 / 审批收件箱」都在首屏侧栏里', () => {
+  it('默认渲染搜索框，且「操作（可改）/ 审批收件箱」都在首屏侧栏里', () => {
     render(<NavPanel />)
 
     expect(searchBox()).toBeTruthy()
-    expect(screen.getByText('治理与运营')).toBeTruthy()
-    // 顶层分组默认展开（NavGroup 的 depth===0 ⇒ open=true）⇒ 子项本来就在 DOM 里；
+    // 【2026-11-21 重组】桶名改为能力轴：治理与运营 → 操作（可改）
+    expect(screen.getByText('操作（可改）')).toBeTruthy()
+    // 顶层分组默认展开（depth <= 1）⇒ 子项本来就在 DOM 里；
     // 真正的障碍是分组原先排在靠底、要滚动才看得见（见 hubNav.search.test.ts 的层级断言）
     expect(screen.getByText('审批收件箱')).toBeTruthy()
   })
@@ -46,25 +47,37 @@ describe('NavPanel 搜索框', () => {
     expect(screen.queryByText('记忆管理')).toBeNull()
   })
 
-  it('输入分组名「治理」⇒ 整组展开（不必先知道子项叫什么）', () => {
+  it('输入小节名「治理」⇒ 整块展开（不必先知道子项叫什么）', () => {
     render(<NavPanel />)
 
     fireEvent.change(searchBox(), { target: { value: '治理' } })
 
-    expect(screen.getByText('审批收件箱')).toBeTruthy()
-    // 「审计导出 / 开关中心」2026-10-15 已移到「全景看板」桶（运行时运维），
-    // 命中「治理」不再包含它们；这里改用仍在治理面板的「路由覆盖」。
-    expect(screen.getByText('路由覆盖')).toBeTruthy()
-    expect(screen.queryByText('开关中心')).toBeNull()
+    // 【2026-11-21 重组】「治理」既是观测桶下的小节名，也是「治理看板」叶子的名字
+    expect(screen.getByText('治理看板')).toBeTruthy()
+    expect(screen.getByText('业务看板')).toBeTruthy()
+    // 操作桶里的东西不属于"治理"这一块（审批收件箱在操作桶）
+    expect(screen.queryByText('审批收件箱')).toBeNull()
   })
 
-  it('输入分组名「全景」⇒ 整组展开，且能看到已迁入的「审计导出 / 开关中心」（2026-10-15 IA）', () => {
+  it('输入「观测」⇒ 整桶展开，且首屏就能看到合并后的「运行监控 / 日志与审计」', () => {
     render(<NavPanel />)
 
-    fireEvent.change(searchBox(), { target: { value: '全景' } })
+    fireEvent.change(searchBox(), { target: { value: '观测' } })
 
-    expect(screen.getByText('审计导出')).toBeTruthy()
-    expect(screen.getByText('开关中心')).toBeTruthy()
+    expect(screen.getByText('运行监控')).toBeTruthy()
+    expect(screen.getByText('日志与审计')).toBeTruthy()
+    expect(screen.getByText('系统总览')).toBeTruthy()
+  })
+
+  it('旧的页内 Tab 名（审计导出 / 开关中心）不再作为叶子出现 —— 它们已是页内 Tab', () => {
+    render(<NavPanel />)
+
+    fireEvent.change(searchBox(), { target: { value: '审计' } })
+
+    // 只剩合并后的叶子「日志与审计」；点进去在页内切到「审计链」Tab
+    expect(screen.getByText('日志与审计')).toBeTruthy()
+    expect(screen.queryByText('审计导出')).toBeNull()
+    expect(screen.queryByText('开关中心')).toBeNull()
   })
 
   it('无命中 ⇒ 显示"没有匹配"提示（而不是留一片空白侧栏）', () => {

@@ -24,11 +24,12 @@ describe('featureRegistry：真实 features 目录（两个原实例均已归位
     expect(flattenNav(HUB_NAV).find((i) => i.key === 'tools')?.label).toBe('工具与接入')
   })
 
-  it('route-coverage 归入治理面板，不再自动发现/不再单列导航', () => {
+  it('route-coverage 归入治理看板（页内 Tab），不再自动发现/不再单列导航', () => {
     expect(DISCOVERED_FEATURES.map((f) => f.key)).not.toContain('route-coverage')
     expect(flattenNav(HUB_NAV).some((i) => i.key === 'route-coverage')).toBe(false)
-    // 归位后的唯一入口：治理面板 → 路由覆盖
-    expect(flattenNav(HUB_NAV).some((i) => i.key === 'governance/route-coverage')).toBe(true)
+    // 【2026-11-21 重组】唯一入口：观测桶 → 治理看板 → 「路由覆盖」Tab
+    expect(flattenNav(HUB_NAV).some((i) => i.key === 'governance/route-coverage')).toBe(false)
+    expect(flattenNav(HUB_NAV).some((i) => i.key === 'governance/board')).toBe(true)
   })
 
   it('真实目录当前为空也不崩（机制保留给未来功能）', () => {

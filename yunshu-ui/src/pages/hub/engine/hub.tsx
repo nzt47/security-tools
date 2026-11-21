@@ -9,7 +9,7 @@
  * LEGACY_NAV_KEY_MAP 归一为 `engine`；本组件再读一次原始 hash 决定初始 Tab。
  */
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { Activity, HeartPulse, CalendarClock, History as HistoryIcon, ListChecks, Settings2 } from 'lucide-react'
+import { Activity, HeartPulse, CalendarClock, History as HistoryIcon, ListChecks, Settings2, SlidersHorizontal } from 'lucide-react'
 
 import { Badge, Card, DataTable, ErrorBox, Loading, PageTabsHeader, Tabs } from '../components/ui'
 import { SCHEDULER_HISTORY } from '@/api/endpoints'
@@ -20,8 +20,10 @@ const HeartbeatPanel = lazy(() => import('./heartbeat'))
 const SchedulerPanel = lazy(() => import('./scheduler'))
 const TaskQueuePanel = lazy(() => import('./tasks'))
 const OrchestrationPanel = lazy(() => import('./orchestration'))
+// 【2026-11-21 导航重组】开关中心（原独立叶子 governance/settings）并入本页最后一个 Tab
+const SettingsPanel = lazy(() => import('../governance/settings').then((m) => ({ default: m.SettingsPanel })))
 
-type Tab = 'heartbeat' | 'scheduler' | 'history' | 'tasks' | 'orchestration'
+type Tab = 'heartbeat' | 'scheduler' | 'history' | 'tasks' | 'orchestration' | 'settings'
 
 /** 每个 Tab 的小标题（统一 11px caption，由 PageTabsHeader 渲染；不再各 Tab 自己写 12/14px） */
 const TAB_HINT: Record<Tab, string> = {
@@ -30,6 +32,7 @@ const TAB_HINT: Record<Tab, string> = {
   history: '最近的调度执行记录',
   tasks: '后台任务（DAG）',
   orchestration: '语义层热更 / 过程蒸馏',
+  settings: '开关中心：登记表全量 + 生效来源 + 风险分级（2026-11-21 并入）',
 }
 
 const TABS: Array<{ key: Tab; label: string; icon: typeof HeartPulse }> = [
@@ -38,6 +41,9 @@ const TABS: Array<{ key: Tab; label: string; icon: typeof HeartPulse }> = [
   { key: 'history', label: '执行历史', icon: HistoryIcon },
   { key: 'tasks', label: '任务队列', icon: ListChecks },
   { key: 'orchestration', label: '编排与蒸馏', icon: Settings2 },
+  // 【2026-11-21 导航重组】原独立叶子 governance/settings（开关中心）并入本页：
+  // 与「定时任务 / 编排」同属"改系统行为"，且都是低频高危配置；同页免去跨桶跳转。
+  { key: 'settings', label: '开关中心', icon: SlidersHorizontal },
 ]
 
 interface HistoryRow {
@@ -67,6 +73,8 @@ function initialTab(): Tab {
       panel = ''
     }
   }
+  // 【2026-11-21】开关中心并入本页：旧叶子 ?panel=governance/settings 落到「开关中心」Tab
+  if (panel === 'governance/settings') return 'settings'
   return panel === 'engine/scheduler' ? 'scheduler' : 'heartbeat'
 }
 
@@ -163,6 +171,10 @@ export default function EngineHub() {
       ) : tab === 'orchestration' ? (
         <Suspense fallback={<Loading />}>
           <OrchestrationPanel />
+        </Suspense>
+      ) : tab === 'settings' ? (
+        <Suspense fallback={<Loading />}>
+          <SettingsPanel />
         </Suspense>
       ) : (
         <Suspense fallback={<Loading />}>

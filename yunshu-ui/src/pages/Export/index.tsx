@@ -52,7 +52,8 @@ export function buildCsv(users: UserListItem[]): string {
   return [CSV_HEADER, ...users.map(toCsvRow)].join('\n')
 }
 
-export default function DataExport() {
+/** embedded：被「日志与审计」容器当一个 Tab 用，页头由容器提供（统计行与导出按钮保留）。 */
+export default function DataExport({ embedded = false }: { embedded?: boolean } = {}) {
   const [users, setUsers] = useState<UserListItem[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -175,7 +176,7 @@ export default function DataExport() {
       {/* 顶部：标题 + 数据统计 + 操作 */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-title font-semibold text-foreground">数据导出</h1>
+          {!embedded && <h1 className="text-title font-semibold text-foreground">数据导出</h1>}
           <p className="mt-0.5 text-sm text-muted-foreground">
             共 {stats.total} 条 · 启用 {stats.enabled} · 管理员 {stats.admins}
           </p>

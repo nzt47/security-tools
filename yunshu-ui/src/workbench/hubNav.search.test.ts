@@ -40,16 +40,17 @@ describe('filterNav —— 侧栏搜索', () => {
     expect(keys).not.toContain('memory/manual')
   })
 
-  it('命中分组名 ⇒ 整组保留（用户要找的是整个面板，不是猜子项名）', () => {
+  it('命中分组/小节名 ⇒ 整组保留（用户要找的是整块，不是猜子项名）', () => {
     const tree = filterNav(HUB_NAV, '治理')
     const keys = flattenNav(tree).map((i) => i.key)
 
-    // 「审计导出 / 开关中心」2026-10-15 已移到「全景看板」桶（运行时运维），
-    // 命中「治理」不再包含它们；这里用仍在治理面板的 route-coverage 代替。
-    for (const child of ['governance/pipeline', 'governance/approvals', 'governance/route-coverage']) {
-      expect(keys).toContain(child)
-    }
-    expect(keys).not.toContain('memory/manual')
+    // 【2026-11-21 重组】「治理」现在既是观测桶下的小节名（panorama/govern），
+    // 也是叶子「治理看板」的名字 ⇒ 两处整块保留，且带上路径（panorama）。
+    expect(keys).toContain('panorama/govern')
+    expect(keys).toContain('governance/board')
+    expect(keys).toContain('governance/business')
+    expect(keys).toContain('panorama')
+    expect(keys).not.toContain('memory')
   })
 
   it('大小写不敏感（对 key 匹配；标签是中文，走 key 才需要这条）', () => {
@@ -127,32 +128,34 @@ describe('信息架构：「治理与运营」必须一屏可达', () => {
     expect(topKeys).toEqual(['workspace', 'panorama', 'governance', 'admin'])
   })
 
-  it('「审批收件箱」仍是治理与运营下的子项（入口没被搬走）', () => {
+  it('「审批收件箱」是操作桶的第一项（入口没被搬走，仍是 P0 一屏可达）', () => {
     const gov = HUB_NAV.find((i) => i.key === 'governance')
     const childKeys = (gov?.children ?? []).map((c) => c.key)
 
     expect(childKeys).toContain('governance/approvals')
-    expect(childKeys[0]).toBe('governance/pipeline')
-    expect(childKeys[1]).toBe('governance/approvals')
+    expect(childKeys[0]).toBe('governance/approvals')
   })
 
-  it('「路由覆盖」是治理与运营的子项（阶段 2 归位，不再是顶层自动发现项）', () => {
-    const gov = HUB_NAV.find((i) => i.key === 'governance')
-    const childKeys = (gov?.children ?? []).map((c) => c.key)
-
-    expect(childKeys).toContain('governance/route-coverage')
+  it('「路由覆盖」并入观测桶的治理看板（不再是独立叶子，也不再是顶层自动发现项）', () => {
+    const board = findNavItem('governance/board')
+    expect(board?.component).toBeDefined()
+    expect(flattenNav(HUB_NAV).some((i) => i.key === 'governance/route-coverage')).toBe(false)
+    expect(resolveNavKey('governance/route-coverage')).toBe('governance/board')
     expect(HUB_NAV.map((i) => i.key)).not.toContain('route-coverage')
   })
 
-  it('运行时运维子项（审计导出 / 开关中心）挂在「全景看板」桶；路由覆盖仍在治理与运营（2026-10-15 IA）', () => {
-    const panoKeys = (HUB_NAV.find((i) => i.key === 'panorama')?.children ?? []).map((c) => c.key)
-    expect(panoKeys).toContain('governance/audit')
-    expect(panoKeys).toContain('governance/settings')
+  it('审计导出 → 日志与审计；开关中心 → 调度与开关（2026-11-21 重组后的落点）', () => {
+    const runKeys = (HUB_NAV.find((i) => i.key === 'panorama')
+      ?.children?.find((c) => c.key === 'panorama/run')?.children ?? []).map((c) => c.key)
+    expect(runKeys).toContain('observability/logs')
 
-    const govKeys = (HUB_NAV.find((i) => i.key === 'governance')?.children ?? []).map((c) => c.key)
-    expect(govKeys).toContain('governance/route-coverage')
-    expect(govKeys).not.toContain('governance/audit')
-    expect(govKeys).not.toContain('governance/settings')
+    const opsKeys = (HUB_NAV.find((i) => i.key === 'governance')?.children ?? []).map((c) => c.key)
+    expect(opsKeys).toContain('engine')
+    expect(opsKeys).not.toContain('observability/logs')
+
+    // 旧叶子 key 全部还能解析（深链不断）
+    expect(resolveNavKey('governance/audit')).toBe('observability/logs')
+    expect(resolveNavKey('governance/settings')).toBe('engine')
   })
 
   it('【2026-10-31 IA 第二批】「安全与权限」归入「系统管理」桶；key 不变 ⇒ 深链仍解析', () => {
@@ -184,9 +187,9 @@ describe('旧深链兼容层（阶段 0 · IA 整合不断链）', () => {
     expect(LEGACY_NAV_KEY_MAP['workshop']).toBe('workshop/agents')
     // 【第四轮 IA】「记忆与资产」「系统组件」两个桶取消 ⇒ 组 key 也落到其原第一个子项
     expect(LEGACY_NAV_KEY_MAP['memory-assets']).toBe('memory')
-    // 【第五轮】模块列表并入系统监控 ⇒ 旧组 key 与旧叶子 key 都落到 panorama/monitor
-    expect(LEGACY_NAV_KEY_MAP['components']).toBe('panorama/monitor')
-    expect(LEGACY_NAV_KEY_MAP['components/modules']).toBe('panorama/monitor')
+    // 【第五轮】模块列表并入系统监控；【2026-11-21】系统监控再并入运行监控 ⇒ 落点跟着改
+    expect(LEGACY_NAV_KEY_MAP['components']).toBe('panorama/runtime')
+    expect(LEGACY_NAV_KEY_MAP['components/modules']).toBe('panorama/runtime')
     // 第二轮 IA：记忆/资产子项 → 叶子
     expect(LEGACY_NAV_KEY_MAP['memory/experience']).toBe('memory')
     expect(LEGACY_NAV_KEY_MAP['assets/memory']).toBe('assets')
@@ -208,11 +211,14 @@ describe('旧深链兼容层（阶段 0 · IA 整合不断链）', () => {
 
   it('旧 key 已移除但新 key 在树里 ⇒ 落到新 key（深链不断）', () => {
     const icon = HUB_NAV[0].icon
+    // 【2026-11-21】resolveNavKey 现在只认**可渲染叶子**（带 component）：
+    // 合成树也必须带 component，否则会被当成"小节/分组"而返回空串。
+    const Dummy = () => null
     const afterMigration: HubNavItem[] = [
-      { key: 'prompt-lab', label: '提示词实验室', icon },
-      { key: 'memory', label: '记忆管理', icon },
-      { key: 'assets', label: '资产管理', icon },
-      { key: 'tools', label: '工具与接入', icon },
+      { key: 'prompt-lab', label: '提示词实验室', icon, component: Dummy },
+      { key: 'memory', label: '记忆管理', icon, component: Dummy },
+      { key: 'assets', label: '资产管理', icon, component: Dummy },
+      { key: 'tools', label: '工具与接入', icon, component: Dummy },
     ]
     expect(resolveNavKey('persona/personality', afterMigration)).toBe('prompt-lab')
     expect(resolveNavKey('experience', afterMigration)).toBe('memory')

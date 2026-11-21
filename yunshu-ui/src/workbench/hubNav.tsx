@@ -19,10 +19,10 @@ import { lazy, type ComponentType } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
   MessageSquare, LayoutDashboard, Brain, Wrench, Database,
-  Activity, FileText, Server, Monitor,
-  HeartPulse, Users, Hammer,
-  Settings, Shield, ListTree, History, Bell, ScrollText, FlaskConical, Route,
-  FileDown, GitBranch, Layers, ListChecks, TrendingUp, SlidersHorizontal, BarChart3, Cpu, ShieldAlert, HardDrive, Film, ShieldCheck,
+  Activity, FileText, Server,
+  Users, Hammer,
+  Settings, Shield, Bell, FlaskConical,
+  Layers, ListChecks, BarChart3, Cpu, ShieldAlert, HardDrive, Film, ShieldCheck,
   PackagePlus, Workflow, Boxes,
 } from 'lucide-react'
 
@@ -34,12 +34,19 @@ import WorkbenchChatPage from '@/workbench/WorkbenchChatPage'
 import { DISCOVERED_FEATURES } from './featureRegistry'
 
 const PanoramaHealth = lazy(() => import('@/pages/hub/panorama/health'))
-const PanoramaSensors = lazy(() => import('@/pages/hub/panorama/sensors'))
-const PanoramaMonitor = lazy(() => import('@/pages/hub/panorama/monitor'))
+// 【2026-11-21 导航重组】全景感知 + 系统监控 → 一个叶子「运行监控」（页内两 Tab）
+const RuntimeMonitor = lazy(() => import('@/pages/hub/panorama/runtime'))
 // 【2026-11-02 C-3】平台能力：运维对象（功能单位 / 工具 / 调度）单独一个叶子。
 // Owner 口径：平台能力不进「能力卡」（那边是 LLM 技能 + 元生功能），要能单独打开。
 const PlatformCapability = lazy(() => import('@/pages/hub/panorama/platform'))
-const PanoramaLogs = lazy(() => import('@/pages/hub/panorama/logs'))
+// 【2026-11-21 导航重组】日志查看 + 操作审计 + 系统日志 + 审计链 + 数据导出 → 一个叶子「日志与审计」
+const LogsAndAudit = lazy(() => import('@/pages/hub/observability/logs'))
+// 【2026-11-21 导航重组】治理看板：消化流水线 / 能力地图 / 成本 ROI / 自愈事故 / 路由覆盖 五 Tab
+const GovernanceBoard = lazy(() => import('@/pages/hub/governance/board'))
+// 【2026-11-21 导航重组】账号与权限：用户 / 角色 / 菜单 三 Tab
+const AccountsPage = lazy(() => import('@/pages/hub/admin/accounts'))
+// 【2026-11-21 导航重组】消息与通道：通知（只读）/ 通道（可改）两 Tab
+const NotificationsPage = lazy(() => import('@/pages/hub/admin/notifications'))
 const SkillCenter = lazy(() => import('@/pages/hub/memory/skill-center'))
 // 工作流（2026-10-24 IA）：从技能中心拆出的独立叶子 ——
 //   工作流技能（本地 DAG、skip LLM）+ 可视化编辑（画布编排，产物即工作流）同域；
@@ -62,15 +69,12 @@ const EngineHub = lazy(() => import('@/pages/hub/engine/hub'))
 // 原独立叶子 workshop/replicate（系统自我复制）已于 2026-10-15 并入本页第 3 视图
 const WorkshopAgents = lazy(() => import('@/pages/hub/workshop/agents'))
 const AssetsPage = lazy(() => import('@/pages/hub/assets'))
-const HubAdminDashboard = lazy(() => import('@/pages/hub/admin/dashboard'))
-const HubAdminUsers = lazy(() => import('@/pages/hub/admin/index').then((m) => ({ default: m.HubAdminUsers })))
-const HubAdminRoles = lazy(() => import('@/pages/hub/admin/index').then((m) => ({ default: m.HubAdminRoles })))
-const HubAdminMenus = lazy(() => import('@/pages/hub/admin/index').then((m) => ({ default: m.HubAdminMenus })))
-const HubAdminAudit = lazy(() => import('@/pages/hub/admin/index').then((m) => ({ default: m.HubAdminAudit })))
-const HubAdminNotifications = lazy(() => import('@/pages/hub/admin/index').then((m) => ({ default: m.HubAdminNotifications })))
-const HubAdminLogs = lazy(() => import('@/pages/hub/admin/index').then((m) => ({ default: m.HubAdminLogs })))
-// 数据导出：复用管理后台 Export 页（原 /export 路由已随第二套外壳摘除，收敛到系统管理栏目）
-const HubAdminExport = lazy(() => import('@/pages/hub/admin/export'))
+// 【2026-11-21 导航重组】管理后台那 7 个叶子已收口：
+//   仪表盘 → 健康仪表盘「管理概览」Tab（同读 /api/dashboard/summary，双入口消除）；
+//   用户/角色/菜单 → 账号与权限（新叶子 admin/accounts 三 Tab）；
+//   操作审计/系统日志/数据导出 → 日志与审计（新叶子 observability/logs 五 Tab）；
+//   消息中心 → 消息与通道（新叶子 admin/notifications 两 Tab）。
+// 旧 key 全部进 LEGACY_NAV_KEY_MAP，深链不断。
 // 2026-10-18 新增（两批合并）：反馈中心 / 业务看板 / 实例管理；
 // 安全与权限 / 本地资源。此前都只有后端、前端零入口。
 const FeedbackCenter = lazy(() => import('@/pages/hub/governance/feedback'))
@@ -154,85 +158,71 @@ export const HUB_NAV: HubNavItem[] = [
       // 两处 key 都保持不变 ⇒ 旧深链 ?panel=local / ?panel=replay 继续有效（无需 LEGACY 映射）。
     ],
   },
+  // ═══ 观测（只读）═══════════════════════════════════════════════════════
+  // 【2026-11-21 导航重组】桶＝能力轴、小节＝域轴：
+  //   · "只看不改"的东西全在这一个桶里（运行时观测 + 治理分析 + 留档），打开就知道不能动；
+  //   · 小节「运行 / 治理」保留原来的域感，不让"治理"和"系统"混成一锅。
   {
-    key: 'panorama', label: '全景看板', icon: LayoutDashboard,
+    key: 'panorama', label: '观测（只读）', icon: LayoutDashboard,
     children: [
-      { key: 'panorama/health', label: '健康仪表盘', icon: Activity, component: PanoramaHealth },
-      { key: 'panorama/sensors', label: '全景感知', icon: Activity, component: PanoramaSensors },
-      { key: 'panorama/monitor', label: '系统监控', icon: Server, component: PanoramaMonitor },
-      { key: 'panorama/logs', label: '日志查看', icon: FileText, component: PanoramaLogs },
-      // 【2026-11-02 C-3】平台能力：复用 /api/system/units + /api/tools/config +
-      // /api/scheduler/overview 三个既有只读端点（**不造** /api/system/platform-cards，§11.36 K）。
-      { key: 'panorama/platform', label: '平台能力', icon: Boxes, component: PlatformCapability },
-      // 【2026-10-27 IA · §11.12】回放中心从「会话与配置」迁入：会话回放是**运行时观测**产物
-      // （列表/详情/清理读 /api/replay/*），与健康/日志/审计同类；key 不变 ⇒ ?panel=replay 仍有效。
-      { key: 'replay', label: '回放中心', icon: Film, component: ReplayCenter },
-      // 【2026-10-17 IA】心跳监测 + 定时任务 + 执行历史 → 单一叶子「引擎」（页内三 Tab）。
-      // 旧 key engine/heartbeat、engine/scheduler 经 LEGACY_NAV_KEY_MAP 落到本页，
-      // 并保留初始 Tab 语义（组件读原始 hash 决定）。
-      { key: 'engine', label: '引擎', icon: Activity, component: EngineHub },
-      // 【2026-10-15 IA】治理面板 → 全景看板：这两个是**运行时运维视图**，与全景看板的
-      // 运行时观测同类 —— 审计导出读**活的**链式台账 DB（实测 chain_head.count≈7.8 万），
-      // 开关中心读实时登记表（实测 547 项、含 overridden）。键保持不变 ⇒ 旧深链
-      // ?panel=governance/audit|settings 仍有效（derivePanelParams 按 'governance/' 前缀
-      // 推导 panel，与它挂在哪个分组无关；禁止双入口）。
-      { key: 'governance/audit', label: '审计导出', icon: ScrollText, component: GovernancePanels },
-      { key: 'governance/settings', label: '开关中心', icon: SlidersHorizontal, component: GovernancePanels },
+      {
+        key: 'panorama/run', label: '运行', icon: Activity,
+        children: [
+          // 系统总览 = 健康仪表盘（含「管理概览」Tab：原「系统管理 · 仪表盘」并入，同源双入口消除）
+          { key: 'panorama/health', label: '系统总览', icon: Activity, component: PanoramaHealth },
+          // 运行监控 = 全景感知 + 系统拓扑（2026-11-21 合并，页内两 Tab）
+          { key: 'panorama/runtime', label: '运行监控', icon: Server, component: RuntimeMonitor },
+          // 【2026-11-02 C-3】平台能力：复用 /api/system/units + /api/tools/config +
+          // /api/scheduler/overview 三个既有只读端点（**不造** /api/system/platform-cards，§11.36 K）。
+          { key: 'panorama/platform', label: '平台能力', icon: Boxes, component: PlatformCapability },
+          // 日志与审计 = 实时日志 / 操作审计 / 系统日志 / 审计链 / 数据导出（五 Tab）
+          { key: 'observability/logs', label: '日志与审计', icon: FileText, component: LogsAndAudit },
+          // 会话回放是**运行时观测**产物（列表/详情读 /api/replay/*），与日志同类；清理动作在页内
+          { key: 'replay', label: '回放中心', icon: Film, component: ReplayCenter },
+        ],
+      },
+      {
+        key: 'panorama/govern', label: '治理', icon: BarChart3,
+        children: [
+          // 治理看板 = 消化流水线 / 能力地图 / 成本 ROI / 自愈事故 / 路由覆盖（五 Tab，全部只读）
+          { key: 'governance/board', label: '治理看板', icon: Layers, component: GovernanceBoard },
+          // 业务看板自带两 Tab（业务指标 / 系统仪表盘）且体量大，不并进治理看板（避免"页签里的页签"）
+          { key: 'governance/business', label: '业务看板', icon: BarChart3, component: BusinessBoard },
+        ],
+      },
     ],
   },
+  // ═══ 操作（可改）═══════════════════════════════════════════════════════
+  // 【2026-11-21 导航重组】只放"会改东西"的页面：审批 / 反馈 / 规范修复 / 调度与开关。
+  // 六个只读治理面板已进「观测 · 治理看板」，开关中心并入「引擎」最后一个 Tab，
+  // 「安全与权限」「账号」进了配置桶 —— 本桶是日常处置面（P0：审批单据挂单后必须一屏可见）。
   {
-    // v7.2 §7 六面板（P0 展开 / P1·P2 折叠；自愈事故有事故时自动展开）
-    // 全部挂在本工作台内，不另起 Web App（UI 五坑④）
-    // 【2026-09-22 上移】原排在「系统组件」之后（14 项里的第 13 项）⇒ 侧栏要滚到底
-    // 才看得见，而侧栏滚动条只有 6px / 25% 透明度，操作者实测"找不到治理面板"
-    // （连带找不到审批收件箱 ⇒ 审批单据挂单后没人能批）。现上移到「全景看板」之后：
-    // 治理面板是 P0 操作面（审批/开关/自愈），应当一屏可见。
-    // 【2026-10-31 IA 第二批】桶名「治理面板」→「治理与运营」：桶里不只有面板，
-    // 还有反馈中心 / 业务看板 / 路由覆盖这些"运营"视角；key 不变 ⇒ 深链照旧。
-    key: 'governance', label: '治理与运营', icon: Shield,
+    key: 'governance', label: '操作（可改）', icon: Shield,
     children: [
-      { key: 'governance/pipeline', label: '消化流水线', icon: GitBranch, component: GovernancePanels },
       { key: 'governance/approvals', label: '审批收件箱', icon: ListChecks, component: GovernancePanels },
-      { key: 'governance/capabilities', label: '能力地图', icon: Layers, component: GovernancePanels },
-      { key: 'governance/roi', label: '成本 ROI', icon: TrendingUp, component: GovernancePanels },
-      { key: 'governance/incidents', label: '自愈事故', icon: HeartPulse, component: GovernancePanels },
-      // 【2026-10-18 IA】原「记忆技能库」并入「记忆管理 · 记忆结构」：该面板早就不含"技能"
-      // （技能中心已上提为顶层导航），只剩四层记忆只读清单 + U5 召回优先级契约，与记忆结构同域。
-      // 旧深链 ?panel=governance/memory 经 LEGACY_NAV_KEY_MAP 落到 memory（禁止双入口）。
-      // 【阶段 2】路由覆盖归位：数据是构建期审计产物（提交物 + 新鲜度守卫 + 棘轮），
-      // 与全景看板的运行时运维视图语义不匹配，故**留在治理面板**（与「能力地图」同类）。
-      // 原为 features/route-coverage 自动发现项（顶层），现已删除 manifest（禁止双入口）。
-      // 【2026-10-15 IA】原同在这里的「审计导出 / 开关中心」是**运行时**视图，已上移到
-      // 全景看板（见该桶内说明）；键不变，旧深链照旧生效。
-      { key: 'governance/ui-guard', label: '规范守卫', icon: ShieldCheck, component: UiGuardPage },
-      { key: 'governance/route-coverage', label: '路由覆盖', icon: Route, component: GovernancePanels },
       { key: 'governance/feedback', label: '反馈中心', icon: MessageSquare, component: FeedbackCenter },
-      { key: 'governance/business', label: '业务看板', icon: BarChart3, component: BusinessBoard },
-      // 【2026-10-31 IA 第二批】「安全与权限」归入「系统管理」桶：权限开关 / 紧急控制 /
-      // 危险关键词 / 隐私是**系统级**配置（与用户、角色、审计同域），不是治理运营视图。
-      // key 仍是 governance/security ⇒ 旧深链 ?panel=governance/security 照旧有效
-      // （derivePanelParams 按 'governance/' 前缀推导 panel，与挂在哪个桶无关）。
+      // 规范守卫：只读检查 + 受控自动修复（POST /api/ui-guard/fix，默认 dry_run）
+      { key: 'governance/ui-guard', label: '规范守卫', icon: ShieldCheck, component: UiGuardPage },
+      // 调度与开关 = 引擎（心跳/定时任务/执行历史/任务队列/编排与蒸馏/开关中心）
+      { key: 'engine', label: '调度与开关', icon: Activity, component: EngineHub },
     ],
   },
   // 【第三轮 IA】原顶层叶子「资产管理」已并入上面的「记忆与资产」桶；
   // 原顶层分组「装配车间」的两个子项已并入「会话与配置」。二者不再占顶层槽位。
+  // ═══ 配置（低频·危险）═════════════════════════════════════════════════
+  // 【2026-11-21 导航重组】"配置一次、长期不变"的写操作：账号、实例/网络、消息通道、
+  // 本机资源、安全与权限。原来这一桶还混着 4 个纯只读页（仪表盘/操作审计/系统日志/数据导出），
+  // 它们已迁到观测桶（系统总览 / 日志与审计），本桶现在**整桶可写**。
   {
-    key: 'admin', label: '系统管理', icon: Settings,
+    key: 'admin', label: '配置（低频·危险）', icon: Settings,
     children: [
-      { key: 'admin/dashboard', label: '仪表盘', icon: LayoutDashboard, component: HubAdminDashboard },
+      // 账号与权限 = 用户 / 角色 / 菜单（三 Tab）
+      { key: 'admin/accounts', label: '账号与权限', icon: Users, component: AccountsPage },
       { key: 'admin/instances', label: '实例与网络', icon: Cpu, component: InstancesPanel },
-      { key: 'admin/export', label: '数据导出', icon: FileDown, component: HubAdminExport },
-      // 【2026-10-27 IA · §11.12】本地资源从「会话与配置」迁入系统管理：文件浏览 / 工作区 / 进程
-      // 都是**系统级**能力，与「实例与网络」「数据导出」同列（长期可与「工具调用 · CLI 软件」的
-      // 进程管理合并为「本机资源」，本轮先搬不合并）。key 不变 ⇒ ?panel=local 仍有效。
+      // 消息与通道 = 通知（只读）/ 通道（可改）两 Tab
+      { key: 'admin/notifications', label: '消息与通道', icon: Bell, component: NotificationsPage },
+      // 【2026-10-27 IA · §11.12】本地资源：文件浏览 / 工作区 / 进程（本机级能力）。key 不变 ⇒ ?panel=local 仍有效。
       { key: 'local', label: '本地资源', icon: HardDrive, component: LocalResources },
-      { key: 'admin/users', label: '用户列表', icon: Users, component: HubAdminUsers },
-      { key: 'admin/roles', label: '角色权限', icon: Shield, component: HubAdminRoles },
-      { key: 'admin/menus', label: '菜单管理', icon: ListTree, component: HubAdminMenus },
-      { key: 'admin/audit', label: '操作审计', icon: History, component: HubAdminAudit },
-      { key: 'admin/notifications', label: '消息中心', icon: Bell, component: HubAdminNotifications },
-      { key: 'admin/logs', label: '系统日志', icon: ScrollText, component: HubAdminLogs },
-      // 【2026-10-31 IA 第二批】从「治理与运营」迁入（key 不变，深链不断）。
       { key: 'governance/security', label: '安全与权限', icon: ShieldAlert, component: SecurityPanel },
     ],
   },
@@ -379,8 +369,9 @@ export const LEGACY_NAV_KEY_MAP: Readonly<Record<string, string>> = Object.freez
   //   components 一起落到 panorama/monitor。
   // 【2026-10-15】该页进一步把「总览 / 模块明细」两个 Tab 合为一页（同源同口径，
   //   不再有 Tab 切换），旧深链仍落到本页。
-  'components': 'panorama/monitor',
-  'components/modules': 'panorama/monitor',
+  // 【2026-11-21 重组】系统监控并入「运行监控」第二 Tab ⇒ 旧映射的落点跟着改
+  'components': 'panorama/runtime',
+  'components/modules': 'panorama/runtime',
   // 【2026-10-18 IA】治理面板的「记忆技能库」并入「记忆管理 · 记忆结构」（只读治理视图）：
   //   独立叶子消失 ⇒ 旧深链落到 memory（Tab 记忆会接续用户上次看的子模块）
   'governance/memory': 'memory',
@@ -398,6 +389,36 @@ export const LEGACY_NAV_KEY_MAP: Readonly<Record<string, string>> = Object.freez
   'memory/knowledge': 'memory',
   'memory/experience': 'memory',
   'memory/search': 'memory',
+  // 【2026-11-21 导航重组】桶 key 本身也不是可导航目标（三级树里桶只有 children）——
+  // 旧链接 ?panel=panorama|governance|admin|workspace 落到各自第一个叶子，不再渲染空白页。
+  'workspace': 'session',
+  'panorama': 'panorama/health',
+  'governance': 'governance/approvals',
+  'admin': 'admin/accounts',
+  // 【2026-11-21 导航重组 · 观测/操作/配置三分】被合并的 16 个旧叶子 key 全部落到新叶子，
+  // 合并页再按 BOOT_PANEL 打开对应 Tab（见 pages/hub/*/… 的 LEGACY 表）。
+  //   观测：panorama/sensors|monitor → 运行监控；panorama/logs|admin/audit|admin/logs|
+  //         governance/audit|admin/export → 日志与审计；admin/dashboard → 系统总览；
+  //         governance/pipeline|capabilities|roi|incidents|route-coverage → 治理看板。
+  //   操作：governance/settings → 调度与开关（引擎 · 开关中心 Tab）。
+  //   配置：admin/users|roles|menus → 账号与权限。
+  'panorama/sensors': 'panorama/runtime',
+  'panorama/monitor': 'panorama/runtime',
+  'panorama/logs': 'observability/logs',
+  'admin/audit': 'observability/logs',
+  'admin/logs': 'observability/logs',
+  'governance/audit': 'observability/logs',
+  'admin/export': 'observability/logs',
+  'admin/dashboard': 'panorama/health',
+  'governance/pipeline': 'governance/board',
+  'governance/capabilities': 'governance/board',
+  'governance/roi': 'governance/board',
+  'governance/incidents': 'governance/board',
+  'governance/route-coverage': 'governance/board',
+  'governance/settings': 'engine',
+  'admin/users': 'admin/accounts',
+  'admin/roles': 'admin/accounts',
+  'admin/menus': 'admin/accounts',
   // 【第二轮 IA】资产管理子项 → 同一面板（页内分类切换）
   'assets/memory': 'assets',
   'assets/prompts': 'assets',
@@ -415,6 +436,19 @@ export function isNavKey(key: string, items: HubNavItem[] = HUB_NAV): boolean {
 }
 
 /**
+ * key 是否指向**可渲染的叶子**（带 component、没有 children）。
+ *
+ * 【2026-11-21 为什么补】导航重组引入了「桶 → 小节 → 叶子」三级：小节 key（如 panorama/run）
+ * 只用于展开/折叠，点它不导航。但旧版 resolveNavKey 只查「key 存在」⇒ 深链 ?panel=panorama/run
+ * 会被接受，activeKey 指向一个没有组件的节点，ContentPanel 渲染兜底空白页（"工作台坏了"）。
+ * 现在：只有叶子才可作导航目标；桶/小节 key 落到空串（由调用方回退默认页）。
+ */
+export function isNavLeaf(key: string, items: HubNavItem[] = HUB_NAV): boolean {
+  const node = flattenNav(items).find((it) => it.key === key)
+  return !!node && !node.children && !!node.component
+}
+
+/**
  * 把深链 key 规范化成导航树里**真实存在**的 key。
  *
  * 语义（三条，缺一不可）：
@@ -426,9 +460,9 @@ export function isNavKey(key: string, items: HubNavItem[] = HUB_NAV): boolean {
  */
 export function resolveNavKey(key: string, items: HubNavItem[] = HUB_NAV): string {
   if (!key) return ''
-  if (isNavKey(key, items)) return key
+  if (isNavLeaf(key, items)) return key
   const mapped = LEGACY_NAV_KEY_MAP[key]
-  return mapped && isNavKey(mapped, items) ? mapped : ''
+  return mapped && isNavLeaf(mapped, items) ? mapped : ''
 }
 
 /**

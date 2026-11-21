@@ -28,7 +28,8 @@ const MOCK_LOGS: LogRow[] = [
   { time: '2026-08-21 10:41:02', operator: 'admin', action: '删除用户 user12', result: '成功' },
 ]
 
-export default function SystemLog() {
+/** embedded：被「日志与审计」容器当一个 Tab 用，页头由容器提供（导出按钮保留）。 */
+export default function SystemLog({ embedded = false }: { embedded?: boolean } = {}) {
   // 操作级权限：system:log:export（admin 通配持有，manager/user 无 → 按钮隐藏）
   const canExport = usePermission('system:log:export')
 
@@ -50,7 +51,7 @@ export default function SystemLog() {
   return (
     <div className="mx-auto max-w-4xl">
       <div className="mb-2 flex items-center justify-between">
-        <h1 className="text-title font-semibold text-foreground">系统日志</h1>
+        {!embedded && <h1 className="text-title font-semibold text-foreground">系统日志</h1>}
         {/* 操作级权限控制：无 system:log:export 权限码不渲染导出按钮 */}
         {canExport && (
           <Button type="button" onClick={handleExport} variant="primary" size="sm">

@@ -5,7 +5,7 @@
  * 单一来源：key 即参数语义，避免在导航配置里重复声明导致漂移。
  */
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_NAV_KEY, derivePanelParams, findNavItem, flattenNav, HUB_NAV, LEGACY_NAV_KEY_MAP, navKeyFromSearch, resolveNavKey } from './hubNav'
+import { DEFAULT_NAV_KEY, derivePanelParams, findNavItem, flattenNav, HUB_NAV, isNavLeaf, LEGACY_NAV_KEY_MAP, navKeyFromSearch, resolveNavKey } from './hubNav'
 
 describe('hubNav derivePanelParams（第二轮 IA：assets/memory 收敛为叶子）', () => {
   it('assets 与 memory 已是叶子项，不再推导 initialCategory / mode', () => {
@@ -16,9 +16,12 @@ describe('hubNav derivePanelParams（第二轮 IA：assets/memory 收敛为叶�
     expect(derivePanelParams('memory/manual')).toEqual({})
   })
 
-  it('governance/<panel> 仍按 panel 推导', () => {
+  it('governance/<panel> 仍按 panel 推导（只剩审批收件箱这类仍由 GovernancePanels 渲染的叶子）', () => {
     expect(derivePanelParams('governance/approvals')).toEqual({ panel: 'approvals' })
-    expect(derivePanelParams('governance/settings')).toEqual({ panel: 'settings' })
+    // 【2026-11-21 重组】开关中心已并入引擎页（governance/settings → engine · 开关中心 Tab），
+    // 治理看板等新叶子有自己的组件，不靠 panel 参数。
+    expect(resolveNavKey('governance/settings')).toBe('engine')
+    expect(derivePanelParams('governance/board')).toEqual({ panel: 'board' })
   })
 
   it('其它导航项无需参数（组件自带默认视图）', () => {
@@ -157,7 +160,9 @@ describe('hubNav 顶层收敛（阶段 3 → 第三轮 IA 6 桶 → 第四轮 IA
     // 【第五轮 · 2026-10-14】模块列表不再是独立叶子：它与系统监控同读
     //   /api/modules/topology（双入口）⇒ 合并为系统监控页内的「模块明细」Tab。
     expect(flattenNav(HUB_NAV).some((i) => i.key === 'components/modules')).toBe(false)
-    expect(findNavItem('panorama/monitor')?.component).toBeDefined()
+    // 【2026-11-21 重组】系统监控（模块明细）并入「运行监控」第二 Tab
+    expect(findNavItem('panorama/runtime')?.component).toBeDefined()
+    expect(resolveNavKey('components/modules')).toBe('panorama/runtime')
     // 叶子 key 不变 ⇒ 旧深链 ?panel=memory / ?panel=assets 仍解析
     expect(findNavItem('memory')?.component).toBeDefined()
     expect(findNavItem('assets')?.component).toBeDefined()
@@ -175,9 +180,12 @@ describe('hubNav 顶层收敛（阶段 3 → 第三轮 IA 6 桶 → 第四轮 IA
     expect(resolveNavKey('governance/memory')).toBe('memory')
     // 只读治理视图仍可达：记忆管理叶子存在（旧深链因此不会落到空白页）
     expect(findNavItem('memory')?.component).toBeDefined()
-    // 治理面板其余叶子不受影响
-    for (const k of ['governance/pipeline', 'governance/approvals', 'governance/incidents', 'governance/route-coverage']) {
-      expect(keys).toContain(k)
+    // 【2026-11-21 重组】只读治理面板已并入「治理看板」；写的一面（审批）仍是独立叶子
+    expect(keys).toContain('governance/board')
+    expect(keys).toContain('governance/approvals')
+    for (const old of ['governance/pipeline', 'governance/incidents', 'governance/route-coverage']) {
+      expect(keys).not.toContain(old)
+      expect(resolveNavKey(old)).toBe('governance/board')
     }
   })
 
@@ -191,11 +199,20 @@ describe('hubNav 顶层收敛（阶段 3 → 第三轮 IA 6 桶 → 第四轮 IA
     expect(resolveNavKey('workshop/replicate')).toBe('workshop/agents')
   })
 
-  it('桶内子项全部为叶子（不再有嵌套分组，NavPanel 一级展开即可见全部叶子）', () => {
-    for (const bucket of HUB_NAV) {
-      for (const child of bucket.children ?? []) {
-        expect(child.children, `${bucket.key}/${child.key} 不应再有 children`).toBeUndefined()
+  it('桶内最多一层小节；叶子必须在最内层且都带组件（2026-11-21 三级树）', () => {
+    const walk = (items: typeof HUB_NAV, depth: number) => {
+      for (const node of items) {
+        if (node.children) {
+          expect(depth, `${node.key} 超过两层分组`).toBeLessThan(2)
+          walk(node.children, depth + 1)
+        } else {
+          expect(node.component, `${node.key} 是叶子但没有 component`).toBeDefined()
+        }
       }
+    }
+    for (const bucket of HUB_NAV) {
+      expect(bucket.children, `${bucket.key} 应有子项`).toBeDefined()
+      walk(bucket.children ?? [], 1)
     }
   })
 
@@ -203,11 +220,10 @@ describe('hubNav 顶层收敛（阶段 3 → 第三轮 IA 6 桶 → 第四轮 IA
     const keys = flattenNav(HUB_NAV).map((i) => i.key)
     for (const k of [
       'session', 'prompt-lab', 'skills-center', 'workflow', 'tools',
-      'panorama/health', 'panorama/logs', 'engine',
-      'governance/approvals', 'governance/route-coverage',
-      'memory', 'assets',
-      'workshop/agents', 'tools',
-      'admin/dashboard', 'admin/logs',
+      'panorama/health', 'panorama/runtime', 'observability/logs', 'replay',
+      'engine', 'governance/approvals', 'governance/board',
+      'memory', 'assets', 'workshop/agents',
+      'admin/accounts', 'admin/instances', 'admin/notifications', 'local',
     ]) {
       expect(keys).toContain(k)
     }
@@ -231,28 +247,26 @@ describe('hubNav 顶层收敛（阶段 3 → 第三轮 IA 6 桶 → 第四轮 IA
 })
 
 describe('hubNav 导航结构（2026-10-27 · §11.12 两个叶子的 IA 搬迁）', () => {
-  it('「本地资源」搬到「系统管理」，与「实例与网络 / 数据导出」同列', () => {
+  it('「本地资源」留在配置桶（admin），与实例与网络同列（2026-11-21 起整桶可写）', () => {
     const admin = HUB_NAV.find((i) => i.key === 'admin')
     const adminKeys = (admin?.children ?? []).map((c) => c.key)
     expect(adminKeys).toContain('local')
-    // 与系统级配置同列（紧跟在 实例与网络 → 数据导出 之后）
+    // 【2026-11-21 重组】配置桶整桶可写：账号 → 实例 → 消息 → 本地资源 → 安全
     expect(adminKeys.indexOf('local')).toBeGreaterThan(adminKeys.indexOf('admin/instances'))
-    expect(adminKeys.indexOf('local')).toBeGreaterThan(adminKeys.indexOf('admin/export'))
-    expect(adminKeys.indexOf('local')).toBeLessThan(adminKeys.indexOf('admin/users'))
+    expect(adminKeys.indexOf('local')).toBeLessThan(adminKeys.indexOf('governance/security'))
+    expect(adminKeys).not.toContain('admin/export')
     // 原桶不再有它（禁止双入口）
     const workspace = HUB_NAV.find((i) => i.key === 'workspace')
     expect((workspace?.children ?? []).map((c) => c.key)).not.toContain('local')
   })
 
-  it('「回放中心」搬到「全景看板」，与健康/日志/审计同类', () => {
+  it('「回放中心」留在观测桶的「运行」小节，与日志/审计同类', () => {
     const panorama = HUB_NAV.find((i) => i.key === 'panorama')
-    const panoKeys = (panorama?.children ?? []).map((c) => c.key)
-    expect(panoKeys).toContain('replay')
-    expect(panoKeys.indexOf('replay')).toBeGreaterThan(panoKeys.indexOf('panorama/logs'))
-    // 运行时观测三项仍在同一桶（同类归并的依据）
-    for (const k of ['panorama/health', 'panorama/logs', 'governance/audit']) {
-      expect(panoKeys).toContain(k)
-    }
+    const runSection = panorama?.children?.find((c) => c.key === 'panorama/run')
+    const runKeys = (runSection?.children ?? []).map((c) => c.key)
+    expect(runKeys).toContain('replay')
+    expect(runKeys).toContain('observability/logs')
+    expect(runKeys.indexOf('replay')).toBeGreaterThan(runKeys.indexOf('observability/logs'))
     const workspace = HUB_NAV.find((i) => i.key === 'workspace')
     expect((workspace?.children ?? []).map((c) => c.key)).not.toContain('replay')
   })
@@ -300,5 +314,82 @@ describe('hubNav 导航结构（2026-10-28 · 方案 A：插件与扩展并入�
     expect(resolveNavKey('extensions')).toBe('tools')
     expect(navKeyFromSearch('?panel=components/plugins')).toBe('tools')
     expect(navKeyFromSearch('?panel=extensions')).toBe('tools')
+  })
+})
+
+describe('hubNav 导航结构（2026-11-21 · 按「看/改」重组：观测 / 操作 / 配置）', () => {
+  /** 只读叶子白名单（页面里没有任何写操作）—— 变了就要先想清楚"它还算只看吗" */
+  const READ_ONLY = [
+    'panorama/health', 'panorama/runtime', 'panorama/platform', 'observability/logs',
+    'replay', 'governance/board', 'governance/business',
+  ]
+  /** 可写叶子白名单（审批 / 反馈 / 修复 / 调度 / 账号 / 实例 / 消息 / 资源 / 安全） */
+  const WRITABLE = [
+    'governance/approvals', 'governance/feedback', 'governance/ui-guard', 'engine',
+    'admin/accounts', 'admin/instances', 'admin/notifications', 'local', 'governance/security',
+  ]
+
+  it('三个桶的标题改成能力轴：观测（只读）/ 操作（可改）/ 配置（低频·危险）', () => {
+    const label = (k: string) => HUB_NAV.find((i) => i.key === k)?.label
+    expect(label('panorama')).toBe('观测（只读）')
+    expect(label('governance')).toBe('操作（可改）')
+    expect(label('admin')).toBe('配置（低频·危险）')
+  })
+
+  it('观测桶里全是只读叶子；操作 / 配置桶里全是可写叶子（整桶语义一致）', () => {
+    const leavesOf = (bucketKey: string) => {
+      const bucket = HUB_NAV.find((i) => i.key === bucketKey)
+      return flattenNav(bucket?.children ?? []).filter((n) => !n.children).map((n) => n.key)
+    }
+    expect(leavesOf('panorama').sort()).toEqual([...READ_ONLY].sort())
+    expect(leavesOf('governance').sort()).toEqual([...WRITABLE.slice(0, 4)].sort())
+    expect(leavesOf('admin').sort()).toEqual([...WRITABLE.slice(4)].sort())
+  })
+
+  it('被合并的 17 个旧叶子 key 全部落到新叶子（深链不落空白页）', () => {
+    const map: Record<string, string> = {
+      'panorama/sensors': 'panorama/runtime',
+      'panorama/monitor': 'panorama/runtime',
+      'panorama/logs': 'observability/logs',
+      'admin/audit': 'observability/logs',
+      'admin/logs': 'observability/logs',
+      'governance/audit': 'observability/logs',
+      'admin/export': 'observability/logs',
+      'admin/dashboard': 'panorama/health',
+      'governance/pipeline': 'governance/board',
+      'governance/capabilities': 'governance/board',
+      'governance/roi': 'governance/board',
+      'governance/incidents': 'governance/board',
+      'governance/route-coverage': 'governance/board',
+      'governance/settings': 'engine',
+      'admin/users': 'admin/accounts',
+      'admin/roles': 'admin/accounts',
+      'admin/menus': 'admin/accounts',
+    }
+    for (const [oldKey, newKey] of Object.entries(map)) {
+      expect(resolveNavKey(oldKey), oldKey).toBe(newKey)
+      expect(navKeyFromSearch('?panel=' + oldKey), oldKey).toBe(newKey)
+      expect(findNavItem(newKey)?.component, newKey).toBeDefined()
+    }
+  })
+
+  it('小节 key 不是可导航叶子：?panel=panorama/run 落默认页，而不是空白页', () => {
+    expect(isNavLeaf('panorama/run')).toBe(false)
+    expect(isNavLeaf('panorama/govern')).toBe(false)
+    expect(resolveNavKey('panorama/run')).toBe('')
+    expect(navKeyFromSearch('?panel=panorama/run')).toBe('')
+    // 桶 key 本身也不是叶子，但有兼容映射 → 落到第一个叶子
+    expect(isNavLeaf('panorama')).toBe(false)
+    expect(resolveNavKey('panorama')).toBe('panorama/health')
+    expect(resolveNavKey('governance')).toBe('governance/approvals')
+    expect(resolveNavKey('admin')).toBe('admin/accounts')
+  })
+
+  it('两个白名单不相交，且并集 = 三个业务桶的全部叶子（防止把写页面偷渡回观测桶）', () => {
+    const biz = ['panorama', 'governance', 'admin']
+      .flatMap((b) => flattenNav(HUB_NAV.find((i) => i.key === b)?.children ?? [])
+        .filter((n) => !n.children).map((n) => n.key))
+    expect([...READ_ONLY, ...WRITABLE].sort()).toEqual(biz.sort())
+    expect(READ_ONLY.filter((k) => WRITABLE.includes(k))).toEqual([])
   })
 })
