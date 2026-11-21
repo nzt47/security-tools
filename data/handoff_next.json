@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-21T18:10:00+08:00",
+ "updated_at": "2026-11-21T23:35:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1277,6 +1277,14 @@
    "title": "GET /api/cognitive/reject 在 app_server 侧缺失（面板每页 404）—— 已补路由，真机两端点均 200",
    "criteria": "2026-11-21 真机：panorama/runtime 控制台 HTTP 404 /api/cognitive/reject；该路由只在独立传感器服务的cognitive/flask_adapter.py:55，app_server 侧只有 /api/cognitive/status（plugins/status.py）。按 Owner 决定补路由（不是从面板删调用）：plugins/status.py 新增 api_cognitive_reject，读数与 status 完全同源（body.collect_quick() → to_dict()），裁决仍只在 PromptInjector.should_reject_task 一处。真机复验：运行监控页 /api/cognitive/status 与 /api/cognitive/reject 都 200、无 404（.local/probe_cognitive_1194.py）。注意覆盖度产物本来就把这条算「已接入」（它扫到了 flask_adapter 的 @app.route）—— 覆盖 ≠ 可用的又一例。",
    "next": "已完成（49a67237b + 重派生 ae7006dc3）。用例 tests/unit/test_cognitive_reject_route.py（3 条）：路由存在且载荷 {rejected, reason}、读数与 status 同源、前后端字面量一致。以后再加「别的 Flask app 里也有」的路由，先确认 app_server 是否真的挂了它：跑一次真机或看 url_map，别只看 coverage。"
+  },
+  {
+   "id": "subagent-role-edit",
+   "status": "open",
+   "priority": "P3",
+   "title": "已有分身的角色（role_template / role_mode / role_text）改不了：只有 create，没有带审计的更新路由",
+   "criteria": "2026-11-21 第 143 轮做「组装台方案模板一键填入」时确认：/api/subagent/* 只有 create / destroy / execute / delegate / reload，没有更新路由。组装台能挑一套方案填进 role_text，但那是**新建**分身；已有分身要改角色只能重建。不是 bug（创建/编辑都走同一条 role_mode 档位与审计链），是缺一条写路由。",
+   "next": "若要支持：新增 PUT /api/subagent/<name>/role（body: role_template / role_mode / role_text），内部复用 resolve_subagent_role（未知模板/默认档配自由文本 → 400）、写审计、热更新存活容器，并回读；同批补「分身 → 编辑角色」入口 + 用例（含红档二次确认）。先问 Owner 需不需要——重建一个分身的成本很低，多一条写路由就多一处审计面。"
   }
  ]
 }
