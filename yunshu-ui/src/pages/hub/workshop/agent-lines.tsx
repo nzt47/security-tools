@@ -393,7 +393,7 @@ function ToolPicker({ title, hint, tone, tools, selected, exemptions, onToggle, 
               <Button variant="plain" size="bare"
                 onClick={() => onToggle(t.name)}
                 title={t.description || t.name}
-                className="flex min-w-0 flex-1 items-center justify-start gap-2 text-left"
+                className="flex min-w-0 flex-1 flex-wrap items-center justify-start gap-2 text-left"
               >
                 <span className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border ${
                   on ? 'border-current' : 'border-slate-600'
@@ -1435,7 +1435,11 @@ export default function ToolsAgentLines() {
                       {callabilityText && <span className="ml-auto">{callabilityText}</span>}
                     </div>
                   )}
-                  <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                  {/* 【2026-11-21 修】原来是 xl:grid-cols-2 —— xl 看的是**视口**宽度，而工作台是
+                      三列外壳（导航+主内容+右坞），1440 视口下主内容只有 ~500px ⇒ 两个工具窗
+                      各被挤到 ~195px，行内「勾选 + 工具名(160px) + 三个徽章 + 豁免开关」全溢出，
+                      看起来像没左对齐。改成按**容器可用宽度**自动分栏（每列 ≥320px 才并排）。 */}
+                  <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(320px,1fr))]">
                     <ToolPicker
                       title="boost（核心工具加成）"
                       hint="跨平面 +60 分"
