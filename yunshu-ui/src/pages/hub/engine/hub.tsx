@@ -62,6 +62,11 @@ interface HistoryRow {
  * 【为什么不能用当前 hash】导航层会把 `engine/scheduler` 归一成 `engine` 并同步地址栏，
  * 本组件是懒加载的，挂载时原始 hash 往往已被改写 ⇒ 旧深链会丢掉 Tab 意图。
  */
+export function engineInitialTab(panel: string): Tab {
+  if (panel === 'governance/settings') return 'settings'
+  return panel === 'engine/scheduler' ? 'scheduler' : 'heartbeat'
+}
+
 function initialTab(): Tab {
   let panel = BOOT_PANEL
   if (!panel) {
@@ -74,8 +79,7 @@ function initialTab(): Tab {
     }
   }
   // 【2026-11-21】开关中心并入本页：旧叶子 ?panel=governance/settings 落到「开关中心」Tab
-  if (panel === 'governance/settings') return 'settings'
-  return panel === 'engine/scheduler' ? 'scheduler' : 'heartbeat'
+  return engineInitialTab(panel)
 }
 
 export default function EngineHub() {

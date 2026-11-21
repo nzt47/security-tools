@@ -26,7 +26,8 @@ const TABS: Array<{ id: Tab; label: string; icon: typeof Users; hint: string }> 
   { id: 'menus', label: '菜单', icon: ListTree, hint: '菜单树与可见性（后端 /api/auth/menus 下发）' },
 ]
 
-const LEGACY: Record<string, Tab> = {
+/** 旧叶子 key → Tab（单测按它验收深链落点） */
+export const LEGACY: Record<string, Tab> = {
   'admin/users': 'users',
   'admin/roles': 'roles',
   'admin/menus': 'menus',

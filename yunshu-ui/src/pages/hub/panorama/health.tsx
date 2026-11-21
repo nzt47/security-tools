@@ -65,6 +65,7 @@ import {
 import { formatAge } from '@/utils/format'
 import { Badge, Button, Card, ErrorBox, hubGet, Input, Loading, Notice, PageTabsHeader, Select, Tabs } from '../components/ui'
 import { getEnvelope } from '@/api/envelope'
+import { BOOT_PANEL } from '@/workbench/hubNav'
 import { downloadFile } from '../../../utils/system'
 import HealthVitals from './health-vitals'
 import UnitStatus from './unit-status'
@@ -582,6 +583,11 @@ const CHART_TOOLTIP = {
 }
 const AXIS = { stroke: '#64748b', fontSize: 11 }
 
+/** 启动 Tab：旧叶子 admin/dashboard（原「系统管理 · 仪表盘」）落到本页时直接开「管理概览」。 */
+export function initialHealthTab(bootPanel: string): TabKey {
+  return bootPanel === 'admin/dashboard' ? 'admin' : 'overview'
+}
+
 const TABS = [
   { key: 'overview', label: '概览', Icon: LayoutDashboard },
   // 2026-10-29：功能单位面板原先是「永远挂在页面上方」的一块，把每个 Tab 都压得很长；
@@ -801,7 +807,9 @@ export default function PanoramaHealth() {
   const [apiLatencyMs, setApiLatencyMs] = useState<number | null>(null)
   const [collectedAt, setCollectedAt] = useState('')
   const [hours, setHours] = useState(1)
-  const [tab, setTab] = useState<TabKey>('overview')
+  // 【2026-11-21 导航重组】原「系统管理 · 仪表盘」并入本页「管理概览」Tab：
+  // 旧深链 ?panel=admin/dashboard 落到本页时直接打开该 Tab（BOOT_PANEL 是启动瞬间的原始 panel）。
+  const [tab, setTab] = useState<TabKey>(() => initialHealthTab(BOOT_PANEL))
   const [metricSearch, setMetricSearch] = useState('')
   const [metricType, setMetricType] = useState('')
   const [historyLevel, setHistoryLevel] = useState('')

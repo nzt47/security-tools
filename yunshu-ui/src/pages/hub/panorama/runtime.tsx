@@ -24,7 +24,8 @@ const TABS: Array<{ id: Tab; label: string; icon: typeof Activity; hint: string 
   { id: 'topology', label: '系统拓扑', icon: Network, hint: '模块状态、健康评分与按域明细（只读）' },
 ]
 
-const LEGACY: Record<string, Tab> = {
+/** 旧叶子 key → Tab（单测按它验收深链落点） */
+export const LEGACY: Record<string, Tab> = {
   'panorama/sensors': 'sensors',
   'panorama/monitor': 'topology',
 }

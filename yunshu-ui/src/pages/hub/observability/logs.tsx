@@ -37,7 +37,8 @@ const TABS: Array<{ id: Tab; label: string; icon: typeof FileText; hint: string 
   { id: 'export', label: '数据导出', icon: FileDown, hint: '业务表分片导出（CSV / JSON）' },
 ]
 
-const LEGACY: Record<string, Tab> = {
+/** 旧叶子 key → Tab（单测按它验收深链落点） */
+export const LEGACY: Record<string, Tab> = {
   'panorama/logs': 'live',
   'admin/audit': 'ops-audit',
   'admin/logs': 'syslog',

@@ -34,7 +34,8 @@ const TABS: Array<{ id: Tab; label: string; icon: typeof Layers; hint: string }>
   { id: 'route-coverage', label: '路由覆盖', icon: Route, hint: '构建期审计：端点 ↔ UI 覆盖与棘轮（只读）' },
 ]
 
-const LEGACY: Record<string, Tab> = {
+/** 旧叶子 key → Tab（单测按它验收深链落点） */
+export const LEGACY: Record<string, Tab> = {
   'governance/pipeline': 'pipeline',
   'governance/capabilities': 'capabilities',
   'governance/roi': 'roi',
