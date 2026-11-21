@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-21T16:50:00+08:00",
+ "updated_at": "2026-11-21T16:55:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1259,7 +1259,7 @@
    "status": "done",
    "priority": "P3",
    "title": "导航重组后的真机复核（16 叶观感 + 三档截图 + 17 条旧深链全部浏览器落地）—— 已完成",
-   "criteria": "2026-11-21 第 138 轮补完（部署件 9e13cb636 / bundle index-BABK6V-D.js / pid 90028）。① 16 个叶子逐叶真机（1440x900，每批 ≤3 叶、每批新浏览器、跑完即关）：14 叶 h1 与页签数符合预期（系统总览 9 签 / 运行监控 2 / 平台能力 3 / 日志与审计 5 / 治理看板 5 / 业务看板 2 / 反馈中心 5 / 规范守卫 2 / 调度与开关 6 / 账号与权限 3 / 实例与网络 3 / 消息与通道 2 / 本地资源 3 / 安全与权限 3），16 叶横向溢出均为 0、无错误边界文案；**2 叶缺 h1**（回放中心、审批收件箱：页头是手拼 h2.text-ui，14px）→ 已作为新条目 ui-leaf-header-h1 登记。② 17 条旧深链全部浏览器实测通过（判据＝落在新叶子的 h1 + 当前页签命中期望；不判 hash 改写，旧 key 有意不改写）：sensors/monitor→运行监控（全景感知/系统拓扑）、panorama/logs+admin/audit+admin/logs+governance/audit+admin/export→日志与审计（实时日志/操作审计/系统日志/审计链/数据导出）、admin/dashboard→系统总览·管理概览、pipeline/capabilities/roi/incidents/route-coverage→治理看板（五签）、governance/settings→调度与开关·开关中心、users/roles/menus→账号与权限（用户/角色/菜单）。③ 三档侧栏截图 1280/1440/1920（.ui_shots/IA_NAV_*.png）+ 16 叶 1440 截图（.ui_shots/IA_<TAG>_1440.png），三档均 overflowX=0、侧栏与内容不挤压。",
+   "criteria": "2026-11-21 第 138 轮补完（复核时部署件 9e13cb636 / bundle index-BABK6V-D.js / pid 90028；收尾按测试提交 824cd7cd8 重新部署 —— UI 源码未变，现为 bundle index-B3B3n-oa.js / pid 108776）。① 16 个叶子逐叶真机（1440x900，每批 ≤3 叶、每批新浏览器、跑完即关）：14 叶 h1 与页签数符合预期（系统总览 9 签 / 运行监控 2 / 平台能力 3 / 日志与审计 5 / 治理看板 5 / 业务看板 2 / 反馈中心 5 / 规范守卫 2 / 调度与开关 6 / 账号与权限 3 / 实例与网络 3 / 消息与通道 2 / 本地资源 3 / 安全与权限 3），16 叶横向溢出均为 0、无错误边界文案；**2 叶缺 h1**（回放中心、审批收件箱：页头是手拼 h2.text-ui，14px）→ 已作为新条目 ui-leaf-header-h1 登记。② 17 条旧深链全部浏览器实测通过（判据＝落在新叶子的 h1 + 当前页签命中期望；不判 hash 改写，旧 key 有意不改写）：sensors/monitor→运行监控（全景感知/系统拓扑）、panorama/logs+admin/audit+admin/logs+governance/audit+admin/export→日志与审计（实时日志/操作审计/系统日志/审计链/数据导出）、admin/dashboard→系统总览·管理概览、pipeline/capabilities/roi/incidents/route-coverage→治理看板（五签）、governance/settings→调度与开关·开关中心、users/roles/menus→账号与权限（用户/角色/菜单）。③ 三档侧栏截图 1280/1440/1920（.ui_shots/IA_NAV_*.png）+ 16 叶 1440 截图（.ui_shots/IA_<TAG>_1440.png），三档均 overflowX=0、侧栏与内容不挤压。",
    "next": "已完成，无需再跑。复核脚本：.local/verify_ia_1191c.py（--batch N 逐批；--phase legacy --only <key> 单条；内置 --disable-gpu / --js-flags=--max-old-space-size=384 与图片字体拦截的省内存模式，空闲 <1.5GB 时用它；仍报 ERR_INSUFFICIENT_RESOURCES 就等内存回落或停后端再跑）。结果落在 .local/ia_verify_results.json（16 leaves / 17 legacy / 3 navshots / 16 shots 全 ok）。教训：把「观感复核」和「落点判读」拆开跑 —— 落点只需要 h1+页签，不必加载图片。"
   },
   {
@@ -1268,7 +1268,7 @@
    "priority": "P3",
    "title": "两个叶子页没有 h1（回放中心 / 审批收件箱）：页头是手拼 h2.text-ui，比别的叶子小一号",
    "criteria": "2026-11-21 第 138 轮逐叶真机实测发现：16 个叶子里只有这两个 document.querySelectorAll(h1) 为空。回放中心 yunshu-ui/src/pages/hub/replay/index.tsx:114 用 h2 className=text-ui font-semibold 写页头；审批收件箱走 governance/index.tsx:601 的 PanelHeader（面板级标题，title=审批收件箱），单片路由渲染它时就没有页面级 h1。观感：这两个页的标题 14px，其它 14 个叶子是 PageTabsHeader 的 h1 16px。封装规范 §1「叶子页头（无页签）→ PageHeader」+ 反例「再手拼 h1 + 说明」都指向这不是允许的写法；现有守卫（pageHeaderOrder / headingScale / raw_heading 基线）都抓不到它（h2 带的是合法字号 token）。",
-   "next": "两种改法，需 Owner 定视觉后再动（本轮只登记不改，避免半成品页头）：① 直接用 PageHeader（标题 16px + 说明 + actions）：回放中心动作是「条数下拉 + 刷新」，可直接进 actions；审批收件箱的 PO/数据源徽章与「待审/不出气泡」计数目前塞在 PanelHeader，需要决定是进 actions 还是降为 description，且要避免页面 h1 与 PanelHeader 标题重复出现两次；② 给 PageHeader 加 icon/徽章槽（改共用原语，要同批加契约测试 + 守卫）。改完必须：npm run ui:check + 三档截图（.ui_shots/IA_REPLAY_1440.png / IA_APPROVALS_1440.png 是现状证据）。"
+   "next": "两种改法，需 Owner 定视觉后再动（本轮只登记不改，避免半成品页头）：① 直接用 PageHeader（标题 16px + 说明 + actions）：回放中心动作是「条数下拉 + 刷新」，可直接进 actions；审批收件箱的 PO/数据源徽章与「待审/不出气泡」计数目前塞在 PanelHeader，需要决定是进 actions 还是降为 description，且要避免页面 h1 与 PanelHeader 标题重复出现两次；② 给 PageHeader 加 icon/徽章槽（改共用原语，要同批加契约测试 + 守卫）。改完必须：npm run ui:check + 三档截图（.ui_shots/IA_REPLAY_1440.png / IA_APPROVALS_1440.png 是现状证据）。（重部署 824cd7cd8 后浏览器复抽因内存报 ERR_INSUFFICIENT_RESOURCES 未完成，这两页的现状证据仍是修复前那两张图。）"
   },
   {
    "id": "cognitive-reject-404",
