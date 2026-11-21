@@ -45,7 +45,7 @@ describe('InstancesPanel', () => {
     expect(screen.getByText('默认')).toBeTruthy()
   })
 
-  it('新建 LLM 实例带 {instance}，名称与类型必填', async () => {
+  it('新建 LLM 实例带 {instance}；api_endpoint 必填（缺了不提交）', async () => {
     gets()
     api.hubPost.mockResolvedValue({ ok: true })
     render(<InstancesPanel />)
@@ -55,10 +55,39 @@ describe('InstancesPanel', () => {
     expect(create.disabled).toBe(true)
     fireEvent.change(screen.getByLabelText('实例名称'), { target: { value: 'Ollama' } })
     fireEvent.change(screen.getByLabelText('实例类型'), { target: { value: 'ollama' } })
+    // 后端 validate_llm_instance 要求 api_endpoint；缺了就 400，前端先挡住
+    expect(create.disabled, 'LLM 实例缺 api_endpoint 时不允许提交').toBe(true)
+    fireEvent.change(screen.getByLabelText('接口端点'), { target: { value: 'http://127.0.0.1:11434/v1' } })
     expect(create.disabled).toBe(false)
     fireEvent.click(create)
     await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/llm/instances', {
-      instance: { name: 'Ollama', provider: 'ollama', model: '', base_url: '', api_key: '', timeout: 30, enabled: true },
+      // 字段名必须是 api_endpoint（旧写法 base_url 必被后端 400 拒绝）
+      instance: { name: 'Ollama', provider: 'ollama', model: '', api_endpoint: 'http://127.0.0.1:11434/v1', api_key: '', timeout: 30, enabled: true },
+    }))
+  })
+
+  it('搜索实例：内置引擎不必填端点；custom 必填并随请求发 api_endpoint', async () => {
+    gets()
+    api.hubPost.mockResolvedValue({ ok: true })
+    render(<InstancesPanel />)
+    await screen.findByText('DeepSeek')
+
+    fireEvent.click(screen.getByRole('tab', { name: '搜索实例' }))
+    const create = screen.getByRole('button', { name: '新建实例' }) as HTMLButtonElement
+    fireEvent.change(screen.getByLabelText('实例名称'), { target: { value: 'DDG' } })
+    fireEvent.change(screen.getByLabelText('实例类型'), { target: { value: 'duckduckgo' } })
+    expect(create.disabled, '内置引擎不需要 api_endpoint').toBe(false)
+
+    fireEvent.change(screen.getByLabelText('实例类型'), { target: { value: 'custom' } })
+    expect(create.disabled, 'custom 引擎缺 api_endpoint 时不允许提交').toBe(true)
+    fireEvent.change(screen.getByLabelText('搜索接口端点'), { target: { value: 'https://example.com/search?q={query}' } })
+    expect(create.disabled).toBe(false)
+    fireEvent.click(create)
+    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/search/instances', {
+      instance: {
+        name: 'DDG', engine_type: 'custom', api_key: '',
+        api_endpoint: 'https://example.com/search?q={query}', timeout: 30, enabled: true,
+      },
     }))
   })
 

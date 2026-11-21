@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-22T01:35:00+08:00",
+ "updated_at": "2026-11-22T02:35:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1293,6 +1293,14 @@
    "title": "「实例与网络 → 网络配置」与实例管理重复：删 LLM 卡 + 接回嵌套 schema（network.* / search.*）",
    "criteria": "Owner 2026-11-22 问「实例管理与网络配置看着重复，能否合并」。实测：网络配置页的「LLM 配置」卡读写**顶层** provider/model/api_endpoint/api_key/timeout，而后端只认嵌套 llm.*/network.*/search.* 且优先 llm_instances ⇒ 真机 8 个输入全空；保存只写顶层死键（api_key: / timeout:，其中顶层 api_key 还会明文落盘、GET 不脱敏）。同页 timeout 出现两次且互相覆盖；配置迁移导入发 {config} 而后端读 config_json ⇒ 必 400。Owner 选 A：去重但保留两个 Tab（对象不同）。落地 7501d500e：删 LLM 卡、网络卡改 network.*（超时/重试/退避/代理开关+URL）、搜索卡改 search.*（默认引擎下拉来自搜索实例 / 结果上限 / 超时 / 缓存 TTL）、只提交 network/search 两分区、脱敏 proxy_url 不回写、重置加二次确认、导入改 config_json；后端 _save/get_all/update 三处忽略旧扁平顶层键（api_key/timeout）。",
    "next": "已部署代码提交 7501d500e（线上读数以 /api/version 与交接卡为准，pid/bundle 每次部署都会变）。真机（.local/verify_network_1441.py）：UI 值 30/3/0.5 与 10/30/300 与嵌套 schema 一致；默认引擎下拉出现 3 个搜索实例；保存 31→回读 31→恢复 30；保存后 network_config.json 顶层不再有 api_key/timeout（死键已清）。测试：vitest 198 files · 1517 tests、test_network_config 45 passed、指定 pytest 213、ui:check 0。注意：本页只写 network/search；LLM 实例只在实例管理（单一入口）。已知本机红：test_network_config_test_floor 的 reload 用例在 HEAD 上就失败（子进程 stdout 为 None），与本次改动无关。"
+  },
+  {
+   "id": "llm-instance-create-400",
+   "status": "done",
+   "priority": "P1",
+   "title": "新建 LLM 实例恒 400：UI 发 base_url，后端读 api_endpoint；且 400 的 errors[] 被吞成「HTTP 400」",
+   "criteria": "Owner 2026-11-22 报「新建 LLM 出现：新建失败：HTTP 400」。复现：POST /api/llm/instances {instance:{... base_url ...}} → 400 {ok:false, errors:['API 端点 URL 不能为空']}。两处缺陷：① instances.tsx 新建发 base_url、列表也读 base_url，而 validate_llm_instance 与 apply_to_app 都读 api_endpoint ⇒ 任何新建都过不了校验；② hub 的 _hubError 只读 body.error/message，不读 errors[]（校验类 400 的形态）⇒ 界面只剩「HTTP 400」，字段原因被吞。顺带：搜索实例 custom 引擎要求 api_endpoint，但表单没有该字段（同样只能撞 400）。",
+   "next": "落地：新建 LLM 发 api_endpoint（必填，缺了按钮禁用并提示）+ 列表兼容读 api_endpoint；_hubError 支持 errors[] / RFC9457 detail（都没有才落到 HTTP 400）；搜索实例新增 api_endpoint 字段（custom 必填）。用例：instances 6 条 + hubError 3 条；vitest 199 files · 1521 tests；ui:check 0。真机：UI 新建探针实例 → 列表出现 → 删除。"
   }
  ]
 }

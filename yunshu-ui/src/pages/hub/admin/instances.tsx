@@ -33,6 +33,9 @@ interface Instance {
   provider?: string
   model?: string
   engine_type?: string
+  /** 后端实际字段（validate_llm_instance / apply_to_app 都读它） */
+  api_endpoint?: string
+  /** 旧字段名（历史数据可能残留）；只读兼容，不再写入 */
   base_url?: string
   api_key?: string
   timeout?: number
@@ -92,7 +95,8 @@ export default function InstancesPanel() {
       const r = await hubPost<{ ok?: boolean; error?: string; errors?: string[] }>(LLM_INSTANCES, {
         instance: {
           name: fName.trim(), provider: fKind.trim(), model: fModel.trim(),
-          base_url: fBaseUrl.trim(), api_key: fApiKey.trim(),
+          // 后端校验与运行时都读 api_endpoint；base_url 是历史字段名（写它会被 400 拒绝）
+          api_endpoint: fBaseUrl.trim(), api_key: fApiKey.trim(),
           timeout: Number(fTimeout || 30), enabled: true,
         },
       })
@@ -109,6 +113,8 @@ export default function InstancesPanel() {
       const r = await hubPost<{ ok?: boolean; error?: string; errors?: string[] }>(SEARCH_INSTANCES, {
         instance: {
           name: fName.trim(), engine_type: fKind.trim(), api_key: fApiKey.trim(),
+          // custom 引擎后端要求 api_endpoint；内置引擎不必填，只有填了才发
+          ...(fBaseUrl.trim() ? { api_endpoint: fBaseUrl.trim() } : {}),
           timeout: Number(fTimeout || 30), enabled: true,
         },
       })
@@ -281,13 +287,22 @@ export default function InstancesPanel() {
               aria-label="实例类型"
             />
           </label>
+          {tab === 'search' && (
+            <label className="text-caption text-slate-400">api_endpoint（engine_type=custom 时必填）
+              <Input size="sm" className="mt-1 w-full" value={fBaseUrl}
+                onChange={(e) => setFBaseUrl(e.target.value)}
+                placeholder="https://example.com/search?q={query}"
+                aria-label="搜索接口端点" data-testid="search-endpoint" />
+            </label>
+          )}
           {tab === 'llm' && (
             <>
               <label className="text-caption text-slate-400">model
                 <Input size="sm" className="mt-1 w-full" value={fModel} onChange={(e) => setFModel(e.target.value)} aria-label="模型名" />
               </label>
-              <label className="text-caption text-slate-400">base_url
-                <Input size="sm" className="mt-1 w-full" value={fBaseUrl} onChange={(e) => setFBaseUrl(e.target.value)} aria-label="接口基址" />
+              <label className="text-caption text-slate-400">api_endpoint *（必填）
+                <Input size="sm" className="mt-1 w-full" value={fBaseUrl} onChange={(e) => setFBaseUrl(e.target.value)}
+                  placeholder="https://api.openai.com/v1" aria-label="接口端点" data-testid="llm-endpoint" />
               </label>
             </>
           )}
@@ -303,12 +318,16 @@ export default function InstancesPanel() {
             type="button"
             variant="accent" size="xs"
             onClick={() => void (tab === 'llm' ? createLlm() : createSearch())}
-            disabled={loading || fName.trim() === '' || fKind.trim() === ''}
+            disabled={loading || fName.trim() === '' || fKind.trim() === ''
+              || (tab === 'llm' && fBaseUrl.trim() === '')
+              || (tab === 'search' && fKind.trim() === 'custom' && fBaseUrl.trim() === '')}
             aria-label="新建实例"
           >
             {busy === 'create' ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} 新建
           </Button>
-          <span className="ml-2 text-micro text-slate-600">名称与类型必填，其余按引擎要求填写</span>
+          <span className="ml-2 text-micro text-slate-600">
+            名称与类型必填；LLM 实例还需 api_endpoint（后端必填，缺了会 400）
+          </span>
         </div>
       </div>
 

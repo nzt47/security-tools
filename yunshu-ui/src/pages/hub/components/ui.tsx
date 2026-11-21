@@ -285,9 +285,19 @@ export function PageHeader({ icon, title, description, actions }: {
 async function _hubError(res: Response): Promise<Error> {
   let detail = ''
   try {
-    const body = (await res.json()) as { error?: unknown; message?: unknown }
+    const body = (await res.json()) as { error?: unknown; message?: unknown; errors?: unknown; detail?: unknown }
+    // 【2026-11-22】校验类 400 回的是 {ok:false, errors:[...]}（没有 error 字段）——
+    // 此前只读 error/message，界面只剩 "HTTP 400"，把真正的字段原因吞掉了。
     const raw = body?.error ?? body?.message
-    if (typeof raw === 'string' && raw.trim()) detail = raw.trim()
+    if (typeof raw === 'string' && raw.trim()) {
+      detail = raw.trim()
+    } else if (Array.isArray(body?.errors)) {
+      const parts = body.errors.map((x) => String(x).trim()).filter(Boolean)
+      if (parts.length) detail = parts.join('；')
+    } else if (typeof body?.detail === 'string' && body.detail.trim()) {
+      // RFC 9457 的 detail（与 error 同义，兼容两种写法）
+      detail = body.detail.trim()
+    }
   } catch { /* 非 JSON 响应（HTML 错误页等）：保留状态码 */ }
   // 保留 "HTTP <code>" 作为子串：既有调用方/用例按它判读，不能改口径
   return new Error(detail ? detail + '（HTTP ' + res.status + '）' : 'HTTP ' + res.status)
