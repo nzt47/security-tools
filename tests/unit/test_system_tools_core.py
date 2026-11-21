@@ -2065,13 +2065,24 @@ class TestSystemToolsLoadSaveTasks:
     @pytest.mark.unit
     @pytest.mark.p0
     def test_save_tasks_creates_directory(self):
-        """测试保存任务时创建目录"""
+        """保存任务时为目标文件建目录（真建目录，不数全局 os.makedirs 的调用次数）
+
+        【为什么不再 mock os.makedirs 数次数】`agent.tools.task_tools.os` 就是**进程级**的
+        全局 os 模块，`patch('agent.tools.task_tools.os.makedirs')` 会把整个进程的 makedirs
+        换掉：同一窗口里只要别处（并发线程 / 懒加载模块）也建目录，计数就多 1，于是
+        `assert_called_once` 偶发红（2026-11-21 ubuntu shard3 run 44841738908；同提交其它
+        分片绿、本机单跑绿）。改成断言**真实效果**：目标目录原本不存在（多级），保存后目录与
+        文件都必须出现 —— 不受全局计数干扰，而且比原来更严（原来把目录创建 mock 掉了）。
+        """
         with tempfile.TemporaryDirectory() as tmpdir:
-            with patch('agent.tools.task_tools.SCHEDULED_TASKS_FILE', os.path.join(tmpdir, 'tasks.json')):
-                with patch('agent.tools.task_tools.os.makedirs') as mock_mkdirs:
-                    mock_mkdirs.side_effect = lambda *args, **kwargs: None
-                    create_scheduled_task("test", "echo hello")
-                    mock_mkdirs.assert_called_once()
+            nested = os.path.join(tmpdir, "nested", "deeper")
+            target = os.path.join(nested, "tasks.json")
+            with patch('agent.tools.task_tools.SCHEDULED_TASKS_FILE', target):
+                result = create_scheduled_task("test", "echo hello")
+                assert result["ok"] is True
+                assert os.path.isdir(nested), "保存任务时必须建出目标目录"
+                assert os.path.isfile(target), "保存任务时必须落盘任务文件"
+                assert any(t.get("name") == "test" for t in list_scheduled_tasks()["tasks"])
 
 
 class TestSystemToolsWorkspaceComplete:
