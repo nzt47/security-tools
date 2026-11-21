@@ -237,7 +237,7 @@ export function BackgroundTasksMenu() {
                       <Button variant="plain" size="bare"
                         type="button"
                         onClick={() => setExpanded(shown ? null : t.id)}
-                        className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                        className="flex min-w-0 flex-1 items-center justify-start gap-2 text-left"
                         title="展开/收起任务详情"
                       >
                         <ChevronRight size={11} className={`shrink-0 text-slate-500 transition-transform ${shown ? 'rotate-90' : ''}`} />

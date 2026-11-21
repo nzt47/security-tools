@@ -23,7 +23,7 @@
  */
 import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Layers, RefreshCw, Search } from 'lucide-react'
-import { Button, Input, Notice } from '@/components/ui'
+import { Button, Input, Notice, SectionTitle } from '@/components/ui'
 import {
   fetchLine,
   fetchLines,
@@ -134,23 +134,19 @@ export default function LineAssemblyOverview() {
 
   return (
     <div className="space-y-4 p-6" data-testid="line-assembly-overview">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="flex items-center gap-2 text-title font-semibold text-slate-100">
-            <Layers size={18} className="text-cyan-400" /> 主线 × 四面
-          </h1>
-          <p className="mt-1 text-xs text-slate-500">
-            一条主线档案在「工具 / 技能 / 提示词 / 分身」四个面上的样子（横向对比）。
-            四段判定全部来自后端，本页只上屏；逐条编辑与实时预览见本页「主线档案」视图。
-          </p>
-        </div>
-        <Button
-          onClick={() => load()}
-          variant="default" size="sm"
-        >
-          <RefreshCw size={12} /> 重新读取
-        </Button>
-      </div>
+      {/* 【2026-11-21 统一】这里原来是手写 <h1 text-title>（16px）——与页头 PageTabsHeader
+          的标题同字号、又比同页其它视图（主线档案/组装台都没有内层标题）多出一层，
+          Owner 报「主线 × 四面 的标题比其他大」。改成区块标题（h2 = text-ui 14px）。 */}
+      <SectionTitle
+        icon={<Layers size={14} className="text-cyan-400" />}
+        title="主线 × 四面"
+        description="一条主线档案在「工具 / 技能 / 提示词 / 分身」四个面上的样子（横向对比）。四段判定全部来自后端，本页只上屏；逐条编辑与实时预览见本页「主线档案」视图。"
+        actions={(
+          <Button onClick={() => load()} variant="default" size="sm">
+            <RefreshCw size={12} /> 重新读取
+          </Button>
+        )}
+      />
 
       {error && (
         <Notice tone="danger" size="md">

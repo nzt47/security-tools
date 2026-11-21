@@ -122,7 +122,7 @@ export function ImplicitEntryLog({
         <ul className="space-y-1">
           {rows.map((r) => (
             <li key={r.id}>
-              <Button type="button" onClick={() => onReplay?.(r)} disabled={!onReplay} data-cp-implicit-entry={r.entry} className="w-full" variant="accent" size="xs">
+              <Button type="button" onClick={() => onReplay?.(r)} disabled={!onReplay} data-cp-implicit-entry={r.entry} className="w-full justify-start" variant="accent" size="xs">
                 <span
                   className={
                     r.outcome === 'ok'

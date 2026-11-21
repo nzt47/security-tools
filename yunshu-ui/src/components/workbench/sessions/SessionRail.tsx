@@ -535,7 +535,7 @@ export function SessionRail({
             type="button"
             onClick={() => toggleCollapse(g.id)}
             title={isCollapsed ? '展开分组' : '收起分组'}
-            className="flex min-w-0 flex-1 items-center gap-1.5 px-1.5 py-1 text-left outline-hidden"
+            className="flex min-w-0 flex-1 items-center justify-start gap-1.5 px-1.5 py-1 text-left outline-hidden"
           >
             <ChevronRight
               size={11}
@@ -786,7 +786,7 @@ export function SessionRail({
                     type="button"
                     onClick={() => toggleCollapse(UNGROUPED_KEY)}
                     title={ungroupedCollapsed ? '展开未分组' : '收起未分组'}
-                    className="flex min-w-0 flex-1 items-center gap-1.5 text-left outline-hidden"
+                    className="flex min-w-0 flex-1 items-center justify-start gap-1.5 text-left outline-hidden"
                   >
                     <ChevronRight
                       size={11}

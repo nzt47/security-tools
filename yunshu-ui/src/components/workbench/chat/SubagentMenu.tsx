@@ -447,7 +447,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
             />
 
             {/* 八要素中的可选项：留空由后端按文档缺省补齐 */}
-            <Button type="button" onClick={() => setAdvanced((v) => !v)} className="w-full" variant="default" size="xs">
+            <Button type="button" onClick={() => setAdvanced((v) => !v)} className="w-full justify-start" variant="default" size="xs">
               {advanced ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
               高级：约束 / 禁止事项 / 产物格式 / 预算 / 超时（八要素，留空用缺省）
             </Button>
@@ -491,7 +491,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
                     ? '当前没有活跃分身：将用**临时分身**执行（现建现用、跑完即回收），与模型侧 delegate 工具同一条链路'
                     : '把任务交给所选分身执行（真委派：八要素 + 隔离 + Trace + 成本）'
               }
-              className="w-full"
+              className="w-full justify-center"
             >
               {running ? <Loader2 size={11} className="animate-spin" /> : <Play size={11} />}
               {running

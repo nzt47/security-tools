@@ -39,18 +39,49 @@ function walkTsx(dir: string, out: string[] = []): string[] {
   return out
 }
 
-/** 从 `<Button` 到对应的 `>`（跳过字符串里的 >） */
+/** 从 `<Button` 到对应的 `>`。
+ * 【2026-11-21 修】原先只跳过字符串 ⇒ `onClick={() => ...}` 里箭头函数的 `>`
+ * 会把标签**提前截断**，className 落在截断点之后 ⇒ 守卫对"处理器写在 className 之前"
+ * 的 Button 全部失明（分身-主线档案 boost 窗就是这种写法，漏了三个月）。
+ * 现在同时跟踪 `{}` 花括号深度（花括号里再按字符串规则跳过）。 */
+function skipString(text: string, i: number): number {
+  const q = text[i]
+  i += 1
+  while (i < text.length && text[i] !== q) i += text[i] === '\\' ? 2 : 1
+  return i + 1
+}
+
+function skipBraces(text: string, i: number): number {
+  let depth = 0
+  while (i < text.length) {
+    const ch = text[i]
+    if (ch === '"' || ch === "'" || ch === '`') {
+      i = skipString(text, i)
+      continue
+    }
+    if (ch === '{') depth += 1
+    else if (ch === '}') {
+      depth -= 1
+      if (depth === 0) return i + 1
+    }
+    i += 1
+  }
+  return i
+}
+
 function tagAt(text: string, start: number): string {
   let i = start
   while (i < text.length) {
     const ch = text[i]
     if (ch === '"' || ch === "'" || ch === '`') {
-      const q = ch
-      i += 1
-      while (i < text.length && text[i] !== q) i += text[i] === '\\' ? 2 : 1
-    } else if (ch === '>') {
-      return text.slice(start, i)
+      i = skipString(text, i)
+      continue
     }
+    if (ch === '{') {
+      i = skipBraces(text, i)
+      continue
+    }
+    if (ch === '>') return text.slice(start, i)
     i += 1
   }
   return text.slice(start)
@@ -76,7 +107,10 @@ describe('Button 对齐守卫', () => {
         const aligned = cls.includes('justify-start') || cls.includes('justify-center')
         if (full && !aligned) {
           offenders.push(`${rel}:${line} 满宽但未声明对齐：${cls}`)
-        } else if (cls.includes('text-left') && !cls.includes('justify-start')) {
+        } else if (cls.includes('text-left') && !cls.includes('justify-start')
+                   // 【2026-11-21】flex-col 按钮的主轴是纵向：justify-* 管的是垂直居中，
+                   // 与"文字左对齐"无关（SessionRail 的会话行就是 flex-col + 标题/时间两行）。
+                   && !cls.includes('flex-col')) {
           offenders.push(`${rel}:${line} text-left 但缺 justify-start：${cls}`)
         }
         idx = text.indexOf('<Button', idx + 7)

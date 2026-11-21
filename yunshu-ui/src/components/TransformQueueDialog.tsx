@@ -723,7 +723,7 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                   <Button
                     type="button"
                     onClick={() => void toggle(it.transform_id)}
-                    className="w-full"
+                    className="w-full justify-start"
                    variant="default" size="xs">
                     {expanded ? <ChevronDown size={12} className="mt-0.5 text-slate-500" /> : <ChevronRight size={12} className="mt-0.5 text-slate-500" />}
                     <div className="min-w-0 flex-1">

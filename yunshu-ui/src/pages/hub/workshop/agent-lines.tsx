@@ -393,7 +393,7 @@ function ToolPicker({ title, hint, tone, tools, selected, exemptions, onToggle, 
               <Button variant="plain" size="bare"
                 onClick={() => onToggle(t.name)}
                 title={t.description || t.name}
-                className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                className="flex min-w-0 flex-1 items-center justify-start gap-2 text-left"
               >
                 <span className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border ${
                   on ? 'border-current' : 'border-slate-600'

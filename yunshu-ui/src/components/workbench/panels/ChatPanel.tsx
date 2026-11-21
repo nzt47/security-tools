@@ -363,7 +363,7 @@ export function ChatPanel() {
                 type="button"
                 onMouseDown={(e) => { e.preventDefault(); pickSlash(c, false); }}
                 onMouseEnter={() => setHi(idx)}
-                className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-cyan-500/10 ${idx === hiSafe ? 'bg-cyan-500/15 ring-1 ring-cyan-600/50' : ''}`}
+                className={`flex w-full items-center justify-start gap-2 rounded-md px-2 py-1.5 text-left hover:bg-cyan-500/10 ${idx === hiSafe ? 'bg-cyan-500/15 ring-1 ring-cyan-600/50' : ''}`}
               >
                 <span className="shrink-0 font-mono text-caption text-cyan-300">{c.token}</span>
                 <span className="shrink-0 rounded-sm border border-cyan-800/50 bg-cyan-500/10 px-1 text-micro font-medium text-cyan-300" title={`类型 ${c.content_type ?? ''}`}>{typeLabel(c)}</span>

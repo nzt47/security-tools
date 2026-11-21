@@ -265,7 +265,7 @@ export function ContextManagerBar() {
   return (
     <div className="border-t border-slate-800 bg-slate-900/40">
       {/* 折叠条（纯状态展示，无滑块） */}
-      <Button onClick={() => persistExpanded(!expanded)} className="w-full" title="点击展开/折叠上下文监视器" variant="default" size="xs">
+      <Button onClick={() => persistExpanded(!expanded)} className="w-full justify-start" title="点击展开/折叠上下文监视器" variant="default" size="xs">
         <Gauge size={12} className="shrink-0 text-cyan-400" />
         <span className="shrink-0 font-medium">上下文</span>
         {/* 水位进度条 */}

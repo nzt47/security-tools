@@ -468,7 +468,7 @@ export default function PluginManagePage() {
                     <Settings2 size={11} />
                     {config?.name === p.name ? '收起配置' : '配置'}
                   </Button>
-                  <Button data-testid={`plugin-routes-toggle-${p.name}`} onClick={() => setRouteName(routeName === p.name ? null : p.name)} className="flex-1" variant="default" size="xs">
+                  <Button data-testid={`plugin-routes-toggle-${p.name}`} onClick={() => setRouteName(routeName === p.name ? null : p.name)} className="flex-1 justify-start" variant="default" size="xs">
                     <ChevronDown size={11} className={`transition-transform ${routeName === p.name ? 'rotate-180' : ''}`} />
                     {routeName === p.name ? '收起明细' : '路由明细'}
                   </Button>

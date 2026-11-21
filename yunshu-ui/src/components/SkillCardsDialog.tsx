@@ -282,7 +282,7 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
                       <Button variant="plain" size="bare"
                         type="button"
                         onClick={() => setExpanded(isOpen ? null : c.skill_id)}
-                        className="flex w-full items-start gap-2 px-3 py-2 text-left"
+                        className="flex w-full items-start justify-start gap-2 px-3 py-2 text-left"
                       >
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
