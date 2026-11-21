@@ -9,7 +9,7 @@
  * 落到本页，并由 BOOT_PANEL 决定初始 Tab（沿用引擎页的做法）。
  */
 import { useState } from 'react'
-import { Activity, Network } from 'lucide-react'
+import { Activity, Network, Server } from 'lucide-react'
 import { PageTabsHeader } from '../components/ui'
 import { Tabs } from '@/components/ui'
 import { BOOT_PANEL } from '@/workbench/hubNav'
@@ -43,6 +43,7 @@ export default function RuntimeMonitor() {
   return (
     <div className="flex h-full min-h-0 flex-col bg-slate-950">
       <PageTabsHeader
+        icon={<Server size={14} className="text-primary" />}
         title="运行监控"
         hint={active.hint}
         tabs={

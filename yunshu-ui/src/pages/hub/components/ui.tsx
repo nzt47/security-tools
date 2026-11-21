@@ -258,12 +258,22 @@ export function PageTabsHeader({ icon, title, hint, actions, tabs, className = '
 }
 
 
-/** 页面标题 */
-export function PageHeader({ title, description, actions }: { title: string; description?: string; actions?: ReactNode }) {
+/** 页面标题（无页签的叶子页；带页签用 PageTabsHeader） */
+export function PageHeader({ icon, title, description, actions }: {
+  icon?: ReactNode
+  title: string
+  description?: string
+  actions?: ReactNode
+}) {
   return (
     <div className="mb-5 flex items-start justify-between">
-      <div>
-        <h1 className="text-title font-semibold text-foreground">{title}</h1>
+      <div className="min-w-0">
+        {/* 【2026-11-21】标题行固定 h-6（24px），与 PageTabsHeader 同一条基线：
+            有图标/没图标的叶子，h1 的 y 与字号都一致（真机量过 70）。 */}
+        <div className="flex h-6 items-center gap-2">
+          {icon}
+          <h1 className="text-title font-semibold text-foreground">{title}</h1>
+        </div>
         {description && <p className="mt-1 text-caption text-muted-foreground">{description}</p>}
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}

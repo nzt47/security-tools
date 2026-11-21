@@ -17,7 +17,7 @@
 
 import { useMemo, useState } from 'react'
 import {
-  Activity, FileDown, GitBranch, Layers, RefreshCw, ScrollText, ShieldAlert,
+  Activity, FileDown, GitBranch, Layers, ListChecks, RefreshCw, ScrollText, ShieldAlert,
   Siren, TrendingUp, Users,
 } from 'lucide-react'
 import {
@@ -604,6 +604,7 @@ export function ApprovalInboxPanel() {
               原来只有面板头 h2（14px）⇒ 全站唯一没有 h1 的两页之一（真机逐叶复核发现）。
               面板头保留徽章/数据源/计数那一行，标题不再重复。 */}
           <PageHeader
+            icon={<ListChecks size={14} className="text-primary" />}
             title="审批收件箱"
             description={'批量裁决=逐条走同一审批链（会话+CSRF+链接+二次认证+矩阵），无旁路；'
               + '对话里触发的工具审批在对话内弹窗确认，默认不出现在这里（勾下方开关可看）'}

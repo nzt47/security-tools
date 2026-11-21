@@ -58,13 +58,15 @@ describe('SecurityPanel', () => {
     render(<SecurityPanel />)
     // 【CI 实测】只看标题会与 status 的返回赛跑：标题先渲染，开关行还是空态，
     // 于是点下去会按「当前=false」算出 enabled=true。必须等这一行反映已加载状态
-    // （file_write 默认开 ⇒ 按钮写"关闭"）再点。
+    // （file_write 默认开 ⇒ aria-checked=true）再点。
+    // 【2026-11-21】开关从「开/关文字 + 按钮」改成 Switch（role=switch），
+    // 状态判据随之从按钮文案改成 aria-checked。
     await waitFor(() => expect(
-      screen.getByRole('button', { name: '切换开关 file_write' }).textContent,
-    ).toContain('关闭'))
+      screen.getByRole('switch', { name: '切换开关 file_write' }).getAttribute('aria-checked'),
+    ).toBe('true'))
     const before = api.hubGet.mock.calls.filter((c) => c[0] === '/api/permission/status').length
 
-    fireEvent.click(screen.getByRole('button', { name: '切换开关 file_write' }))
+    fireEvent.click(screen.getByRole('switch', { name: '切换开关 file_write' }))
     await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/permission/toggle', { key: 'file_write', enabled: false }))
     await waitFor(() => {
       const after = api.hubGet.mock.calls.filter((c) => c[0] === '/api/permission/status').length

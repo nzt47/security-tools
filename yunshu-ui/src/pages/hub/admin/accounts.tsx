@@ -46,6 +46,7 @@ export default function AccountsPage() {
   return (
     <div className="flex h-full min-h-0 flex-col bg-slate-950">
       <PageTabsHeader
+        icon={<Users size={14} className="text-primary" />}
         title="账号与权限"
         hint={active.hint}
         tabs={

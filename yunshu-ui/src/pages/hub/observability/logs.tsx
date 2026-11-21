@@ -59,6 +59,7 @@ export default function LogsAndAudit() {
   return (
     <div className="flex h-full min-h-0 flex-col bg-slate-950">
       <PageTabsHeader
+        icon={<FileText size={14} className="text-primary" />}
         title="日志与审计"
         hint={active.hint}
         tabs={

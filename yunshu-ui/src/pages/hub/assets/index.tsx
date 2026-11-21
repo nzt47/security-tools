@@ -9,7 +9,7 @@
  */
 import AssetsMigration from './MigrationPanel'
 import { useEffect, useState } from 'react'
-import { Archive, Plus, Trash2 } from 'lucide-react'
+import { Archive, Database, Plus, Trash2 } from 'lucide-react'
 import { Badge, Button, Card, DataTable, ErrorBox, hubDelete, hubGet, hubPost, Input, Loading, PageHeader, RowButton } from '../components/ui'
 import {
   ASSETS_OVERVIEW,
@@ -166,6 +166,7 @@ export default function AssetsPage({ initialCategory = 'memory' }: AssetsPagePro
   return (
     <div className="p-6">
       <PageHeader
+        icon={<Database size={14} className="text-primary" />}
         title="资产管理"
         description="集中式管理与备份系统 —— 8 类资产"
         actions={

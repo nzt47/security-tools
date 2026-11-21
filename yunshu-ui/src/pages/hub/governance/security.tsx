@@ -18,7 +18,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   AlertTriangle, Ban, Lock, Loader2, Pause, Play, Power, RefreshCw, RotateCcw, Shield, ShieldAlert, Sliders,
 } from 'lucide-react'
-import { Button, Checkbox, CodeBlock, ErrorBox, hubGet, hubPost, Input, Notice, PageTabsHeader, Select, Tabs, Textarea } from '../components/ui'
+import { Button, Checkbox, CodeBlock, ErrorBox, hubGet, hubPost, Input, Notice, PageTabsHeader, Select, Switch, Tabs, Textarea } from '../components/ui'
 import {
   PERMISSION_ACCESS_LOG,
   PERMISSION_EMERGENCY,
@@ -274,17 +274,18 @@ export default function SecurityPanel() {
                   <div key={key} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-caption">
                     <span className="text-slate-300">{TOGGLE_LABEL[key]}</span>
                     <span className="font-mono text-micro text-slate-600">{key}</span>
-                    <span className={on ? 'text-emerald-400' : 'text-slate-500'}>{on ? '开' : '关'}</span>
-                    <Button
-                      type="button"
-                      variant={on ? 'danger-outline' : 'accent'}
-                      size="xs"
-                      onClick={() => void toggle(key, !on)}
-                      disabled={loading}
-                      aria-label={'切换开关 ' + key}
-                    >
-                      {busy === 'toggle:' + key ? <Loader2 size={11} className="animate-spin" /> : null} {on ? '关闭' : '开启'}
-                    </Button>
+                    {/* 【2026-11-21 统一】开关就是状态：用 Switch（role=switch + aria-checked），
+                        不再是一枚「开/关」文字 + 「开启/关闭」文字按钮 —— 与消息与通道/技能资产/
+                        工具治理同一口径（Owner 2026-11-16 三条硬口径见 components/ui/Switch.tsx）。 */}
+                    <span className="ml-auto flex items-center gap-2">
+                      {busy === 'toggle:' + key ? <Loader2 size={11} className="animate-spin text-slate-400" /> : null}
+                      <Switch
+                        checked={on}
+                        disabled={loading}
+                        label={'切换开关 ' + key}
+                        onCheckedChange={(next) => void toggle(key, next)}
+                      />
+                    </span>
                   </div>
                 )
               })}

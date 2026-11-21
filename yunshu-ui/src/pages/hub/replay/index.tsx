@@ -113,6 +113,7 @@ export default function ReplayCenter() {
           原来这里是手拼 <h2 className="text-ui"> + 图标 + 说明，标题比其他叶子页小一号、
           也没有 h1（真机逐叶复核发现；封装规范 §1「叶子页头（无页签）→ PageHeader」）。 */}
       <PageHeader
+        icon={<Film size={14} className="text-primary" />}
         title="回放中心"
         description="会话回放：排障时唯一的现场 —— 清理前必须先看会删多少"
         actions={

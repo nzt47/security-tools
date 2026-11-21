@@ -39,6 +39,7 @@ export default function NotificationsPage() {
   return (
     <div className="flex h-full min-h-0 flex-col bg-slate-950">
       <PageTabsHeader
+        icon={<Bell size={14} className="text-primary" />}
         title="消息与通道"
         hint={active.hint}
         tabs={

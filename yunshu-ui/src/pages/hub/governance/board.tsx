@@ -57,6 +57,7 @@ export default function GovernanceBoard() {
   return (
     <div className="flex h-full min-h-0 flex-col bg-slate-950">
       <PageTabsHeader
+        icon={<Layers size={14} className="text-primary" />}
         title="治理看板"
         hint={active.hint}
         tabs={
