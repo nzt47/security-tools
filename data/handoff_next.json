@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-22T13:53:00+08:00",
+ "updated_at": "2026-11-22T15:02:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1349,6 +1349,14 @@
    "title": "Markdown 镜像 _flush 读不到的键会静默丢弃（CI shard6 偶发 10 个 .md 只有 2 个的根因）",
    "criteria": "ci run 44988628696（4e253ecf9）shard6 windows 红在 test_tlm_markdown_sync::test_10_records_render_to_10_md_files「期望 10 实际 2」；junit 工件定因后确认两条触发形态：① batch 阈值触发的 flush 跑在 save 线程里，前几条尚未对另一连接可见（只读到 2 条）；② HolographicAdapter.get_raw_memories 把读异常吞成 []（与确实不存在同形）。原 _flush 把 swap 走的整批 pending 丢掉，读不到的 key 既不渲染也不再重试。修法：seen/missing 比对 + _requeue_unread() 放回 pending（setdefault 尊重新事件），连续 MAX_MISSING_RETRIES=3 次才放弃并留 error，成功渲染清零；不新起 Timer（保持一次 burst 一次 flush）。同批修测试里的恒真等待（_pending == {} or True）为 _flush_until(谓词)。",
    "next": "2026-11-22 落地 17573c5ca 并部署（17573c5ca / bundle index-HQFAckeT.js / pid 14324，三处一致）。读数：test_tlm_markdown_sync 37 passed（+1）、+ test_tlm_bidirectional_sync 6 passed 合计 43；Debounce 用例仍只 1 次 flush；负向验证（关掉重排）新用例红。待复核：17573c5ca 的 ci.yml 应 30/30（上一提交 4e253ecf9 的红就是这条 flake）。遗留观察：若日后仍偶发，先看 flush.requeue_unread 的 warning 计数，不要在测试里加 sleep。"
+  },
+  {
+   "id": "nav-panorama-flat",
+   "status": "done",
+   "priority": "P2",
+   "title": "观测（只读）取消「运行 / 治理」两个小节 —— 叶子直接挂桶下（Owner 2026-11-22 要求）",
+   "criteria": "Owner：将导航栏中 观测（只读）的两个小标题 运行 和 治理 取消掉。改法：hubNav.tsx 的 panorama children 由 [小节 运行{5 叶}, 小节 治理{2 叶}] 拍平成 7 个叶子（系统总览/运行监控/平台能力/日志与审计/回放中心/治理看板/业务看板，顺序不变）。零风险依据：叶子 key 全不变（旧深链照旧）；小节 key 本来就不是导航目标（isNavLeaf 只认带 component），?panel=panorama/run 删前删后都落默认页；桶 key panorama 仍映射 panorama/health；另外三个桶本来就扁平。用例同步 3 处按小节断言的：hubNav.test.ts（回放中心同属观测桶 + children 必须全是叶子）、hubNav.search.test.ts（搜索治理只剩治理看板，不带出 business）、NavPanel.search.test.tsx。",
+   "next": "2026-11-22 落地 35b5a0da9 并部署（35b5a0da9 / bundle index-3rzr8kpq.js / pid 8828，三处一致）。读数：npx vitest run 199 files · 1524 tests 全绿（先停后端）；tsc 0；ui:check exit 0（raw_heading 70 / css_hardcoded_color 0）。真机 1440x900（.local/probe_nav_flat_1210.py）：侧栏 = 观测（只读）→ 系统总览/运行监控/平台能力/日志与审计/回放中心/治理看板/业务看板，运行与治理不再作为行出现；截图 .ui_shots/NAV_FLAT_OBS_1440.png。文档：docs/ui/导航重组方案.md 补 2026-11-22 更新块；交接 §11.210。"
   }
  ]
 }
