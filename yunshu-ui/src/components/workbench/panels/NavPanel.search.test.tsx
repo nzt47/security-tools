@@ -25,6 +25,16 @@ function searchBox(): HTMLInputElement {
   return screen.getByLabelText('搜索功能') as HTMLInputElement
 }
 
+/** 分组标题按钮（RowButton 是原生 button；按 role 找最稳，避免命中文本节点） */
+function groupButton(label: string): HTMLElement {
+  return screen.getByRole('button', { name: new RegExp('^' + label) }) as HTMLElement
+}
+
+/** 取某个分组标题按钮的 aria-expanded */
+function groupExpanded(label: string): string | null {
+  return groupButton(label).getAttribute('aria-expanded')
+}
+
 describe('NavPanel 搜索框', () => {
   it('默认渲染搜索框，且「操作（可改）/ 审批收件箱」都在首屏侧栏里', () => {
     render(<NavPanel />)
@@ -45,6 +55,29 @@ describe('NavPanel 搜索框', () => {
     expect(screen.getByText('审批收件箱')).toBeTruthy()
     // 搜索态强制展开分组 ⇒ 命中项一定在屏幕上，而不是藏在折叠里
     expect(screen.queryByText('记忆管理')).toBeNull()
+  })
+
+  it('搜索态分组仍可收起（2026-11-22：旧 forceOpen 把折叠钉死，点了没反应）', () => {
+    render(<NavPanel />)
+    fireEvent.change(searchBox(), { target: { value: '审批' } })
+    // 搜索命中后自动展开（命中项必须在屏幕上）
+    expect(groupExpanded('操作（可改）')).toBe('true')
+    fireEvent.click(groupButton('操作（可改）'))
+    expect(groupExpanded('操作（可改）')).toBe('false')
+    expect(screen.queryByText('审批收件箱')).toBeNull()
+    // 再点回来
+    fireEvent.click(groupButton('操作（可改）'))
+    expect(groupExpanded('操作（可改）')).toBe('true')
+    expect(screen.getByText('审批收件箱')).toBeTruthy()
+  })
+
+  it('换搜索词 ⇒ 分组重新展开（不必先手动点开）', () => {
+    render(<NavPanel />)
+    fireEvent.change(searchBox(), { target: { value: '审批' } })
+    fireEvent.click(groupButton('操作（可改）'))
+    expect(groupExpanded('操作（可改）')).toBe('false')
+    fireEvent.change(searchBox(), { target: { value: '收件' } })  // 仍命中「审批收件箱」，但查询词变了
+    expect(groupExpanded('操作（可改）')).toBe('true')
   })
 
   it('输入「治理」⇒ 只留命中的叶子与路径（2026-11-22 小节取消后不再整块带出兄弟页）', () => {

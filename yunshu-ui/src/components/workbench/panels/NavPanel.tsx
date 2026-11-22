@@ -44,12 +44,9 @@ function containsKey(items: HubNavItem[] | undefined, key: string): boolean {
 function NavGroup({
   item,
   depth,
-  forceOpen = false,
 }: {
   item: HubNavItem
   depth: number
-  /** 搜索态强制展开：命中项若藏在折叠的分组里，等于「搜了也看不见」 */
-  forceOpen?: boolean
 }) {
   // 分级树：桶(0) → 小节(1) → 叶子(2)。
   // depth <= 1 让桶与小节都默认可见（旧逻辑只开 depth === 0）。
@@ -63,18 +60,24 @@ function NavGroup({
   //    ⇒ 无论点哪个页面，「会话与能力」桶永远高亮（Owner 实报）。
   // ② 原来只比直接子项的 key ⇒ 观测桶（桶 → 小节 → 叶子）永远不会亮。
   // 改成订阅 activeKey + 递归判「这棵子树里有当前叶子」。
+  // 【2026-11-22 删 forceOpen】旧写法 `expanded = forceOpen || open` 在搜索态把折叠钉死
+  // （用户点标题没反应，与开关中心同一个病）。现在搜索态改用「查询变化时换 key 重挂」
+  // 让分组回到默认展开（命中项照样可见），折叠权始终归用户。见 NavPanel 里的 treeKey。
   const activeKey = useWorkbenchNav((s) => s.activeKey)
   const hasActiveChild = containsKey(item.children, activeKey)
-  const expanded = forceOpen || open
+  const expanded = open
 
   return (
     <div>
       {/* 【2026-11-19】图标 / 文字 / 展开箭头必须走 RowButton 的 leading / trailing 槽：
           直接把三个子节点交给 children，会被 RowButton 包进**同一个** flex-1 span 里，
           而那个 span 不是 flex 容器 ⇒ 图标、文字、箭头各占一行（Owner 实测：分组标题变成三行）。 */}
+      {/* 无障碍（2026-11-22）：折叠组要暴露展开态，与 governance 的 Collapsible 同口径；
+          原来这里没有 aria-expanded，屏幕阅读器与用例都看不出分组是开还是关。 */}
       <RowButton
         selected={hasActiveChild}
         onClick={() => setOpen(!open)}
+        aria-expanded={expanded}
         className="px-2 py-1.5 font-medium"
         leading={Icon ? <Icon size={13} /> : undefined}
         trailing={<ChevronDown size={12} className={`transition-transform ${expanded ? '' : '-rotate-90'}`} />}
@@ -85,7 +88,7 @@ function NavGroup({
         <div className="ml-2 mt-0.5 space-y-0.5 border-l border-border pl-1.5">
           {item.children?.map((child) =>
             child.children ? (
-              <NavGroup key={child.key} item={child} depth={depth + 1} forceOpen={forceOpen} />
+              <NavGroup key={child.key} item={child} depth={depth + 1} />
             ) : (
               <NavLeaf key={child.key} item={child} depth={depth + 1} />
             ),
@@ -138,6 +141,8 @@ export function NavPanel() {
       {/* 列表左右内缩交给行自己（px-2 = 8px，与右坞内容同档）：容器不再额外加 p-2，
           否则顶层行离面板边 8+8=16px，和右坞的 8px 不在一条线上。 */}
       <div className="wb-think-scroll min-h-0 flex-1 space-y-0.5 overflow-y-auto py-1">
+        {/* 【2026-11-22】搜索态"自动展开"靠换 key 重挂实现：查询一变，整棵子树回到默认展开；
+            用户随后仍可自行折叠（旧 forceOpen 会把这件事锁死）。清空搜索 ⇒ key 回到原值。 */}
         {tree.length === 0 ? (
           <div
             data-cp-nav-empty
@@ -148,13 +153,14 @@ export function NavPanel() {
             可试试「审批」「治理」「记忆」
           </div>
         ) : (
-          tree.map((item) =>
-            item.children ? (
-              <NavGroup key={item.key} item={item} depth={0} forceOpen={searching} />
+          tree.map((item) => {
+            const treeKey = searching ? `${item.key}|${query.trim()}` : item.key
+            return item.children ? (
+              <NavGroup key={treeKey} item={item} depth={0} />
             ) : (
-              <NavLeaf key={item.key} item={item} depth={0} />
-            ),
-          )
+              <NavLeaf key={treeKey} item={item} depth={0} />
+            )
+          })
         )}
       </div>
 
