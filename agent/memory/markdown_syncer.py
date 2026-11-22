@@ -70,6 +70,9 @@ class MarkdownSyncer:
         # 之后 adapter.save_with_embedding(...) 会自动触发 notify_change → flush
     """
 
+    #: 「这轮读不到」的 upsert 键最多重排几次（成功渲染即清零；防止被并发删除的键空转）
+    MAX_MISSING_RETRIES = 3
+
     def __init__(
         self,
         adapter: Any,
@@ -90,6 +93,9 @@ class MarkdownSyncer:
         # notify_change 见到则跳过（避免立即重渲染文件），并移除该 key。
         # 幂等性作为第二道保险：即便抑制失效，file_hash==db_hash 也会终止回环。
         self._suppress_keys: set[str] = set()
+        # 「这轮读不到」的 upsert 键的连续重试次数（成功渲染后清零）：
+        # 防止被并发删除的键在 pending 里无限空转，也保证真丢了会有一条 error 留痕。
+        self._retry_counts: dict[str, int] = {}
         self._closed = False
         # [TLM-L2 优化] read_fragment 路径缓存：key → filepath，避免每次 glob 跨目录查找
         # Why: glob(recursive=True) 是 O(子目录数)，缓存后 O(1)；专用锁避免与 _flush 竞争
@@ -227,6 +233,53 @@ class MarkdownSyncer:
 
     # ── flush 主流程 ──
 
+    def _requeue_unread(self, keys: list[str]) -> None:
+        """把这一轮**读不到**的 upsert 键放回 pending（不静默丢）。
+
+        【为什么必须有】_flush 在锁内 swap 走 pending 后，若这批 key 在库里读不到，
+        原实现什么都不做 ⇒ 键就此消失：既不渲染，也不再重试，.md 永远补不回来。
+        实测形态（ci run 44988628696 shard6 / windows-latest）：10 条 save 的第 10 条
+        在 save 线程里触发 batch flush，此时前几条可能尚未可见 ⇒ get_raw_memories 只回
+        2 条，另外 8 条被丢弃，断言「期望 10 个 .md，实际 2」。
+        另：adapter.get_raw_memories **把读异常吞成 []**（见 holographic_adapter），
+        所以"读失败"与"确实不存在"在这里无法区分 —— 两种都必须重排，不能赌。
+
+        【边界】重排不新起 Timer：不改变「一次 burst 只 flush 一次」的既有契约；
+        下一次 notify / 显式 _flush / close 时的 residual 落盘都会把它们带走。
+        连续 MAX_MISSING_RETRIES 次仍读不到才放弃，并留一条 error。
+        """
+        requeued: list[str] = []
+        dropped: list[str] = []
+        with self._lock:
+            for k in keys:
+                n = self._retry_counts.get(k, 0) + 1
+                if n > self.MAX_MISSING_RETRIES:
+                    self._retry_counts.pop(k, None)
+                    dropped.append(k)
+                    continue
+                self._retry_counts[k] = n
+                # setdefault：期间若已有更新的事件（delete/new upsert），以那个为准
+                self._pending.setdefault(k, "upsert")
+                requeued.append(k)
+        if requeued:
+            logger.warning(
+                log_dict({
+                    "module_name": "markdown_syncer",
+                    "action": "flush.requeue_unread",
+                    "msg": f"[MarkdownSyncer] {len(requeued)} 个键本轮读不到（并发提交/读失败），"
+                           f"已放回 pending 待下次 flush: {requeued[:5]}",
+                })
+            )
+        if dropped:
+            logger.error(
+                log_dict({
+                    "module_name": "markdown_syncer",
+                    "action": "flush.drop_unread",
+                    "msg": f"[MarkdownSyncer] {len(dropped)} 个键连续 {self.MAX_MISSING_RETRIES} 次"
+                           f"读不到，已放弃（多半已被并发删除）: {dropped[:5]}",
+                })
+            )
+
     def _flush(self):
         """取出 pending 批量渲染（锁内仅交换 pending，I/O 在锁外）"""
         if self._closed:
@@ -270,6 +323,15 @@ class MarkdownSyncer:
                     })
                 )
                 records = []
+            seen_keys = {str(rec.get("key")) for rec in records if isinstance(rec, dict)}
+            missing_keys = [k for k in upsert_keys if k not in seen_keys]
+            if missing_keys:
+                # 读不到 ≠ 不存在（可能是并发提交尚未可见，也可能是读失败被吞成 []）
+                self._requeue_unread(missing_keys)
+            if seen_keys:
+                with self._lock:
+                    for k in seen_keys:
+                        self._retry_counts.pop(k, None)
             grouped: dict[str, list] = {}
             for rec in records:
                 cat = rec.get("category") or "uncategorized"

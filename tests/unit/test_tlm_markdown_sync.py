@@ -101,6 +101,35 @@ def _mutate_db_direct(adapter, key: str, data: str, metadata: dict):
         conn.commit()
 
 
+def _md_files(md_dir):
+    """当前 md 目录下所有 .md（递归）"""
+    out = []
+    for root, _, fs in os.walk(md_dir):
+        for f in fs:
+            if f.endswith(".md"):
+                out.append(os.path.join(root, f))
+    return out
+
+
+def _flush_until(syncer, predicate, timeout=15.0):
+    """反复 _flush + 短睡，直到 predicate 成立（慢机上"写完了但还没可见"很常见）。
+
+    【为什么需要】_write_memories 的 save 是 async；第 batch_threshold 条到达时会在
+    save 线程里当场 flush 一次，此刻前几条可能尚未可见 ⇒ 那一次只写得出一部分。
+    原用例写的是 `_wait_for(lambda: syncer._pending == {} or True)` —— `or True`
+    让它**恒真**，等于没等（Windows 慢机偶发「期望 10 个 .md，实际 2」，
+    ci run 44988628696 shard6 实测）。
+    """
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        syncer._flush()
+        if predicate():
+            return True
+        time.sleep(0.05)
+    syncer._flush()
+    return predicate()
+
+
 def _wait_for(predicate, timeout=2.0, interval=0.05):
     """轮询等待条件成立，避免硬编码 sleep 导致 flaky"""
     deadline = time.time() + timeout
@@ -118,9 +147,9 @@ def _wait_for(predicate, timeout=2.0, interval=0.05):
 class TestForwardSync:
     def test_10_records_render_to_10_md_files(self, adapter, syncer, md_dir):
         _write_memories(adapter, count=10)
-        # 等 debounce flush
-        assert _wait_for(lambda: syncer._pending == {} or True)  # noqa
-        syncer._flush()  # 强制 flush 残留
+        # 等 10 条全部落成 .md（原写法 `_pending == {} or True` 恒真 = 没等）
+        assert _flush_until(syncer, lambda: len(_md_files(md_dir)) == 10), (
+            f"期望 10 个 .md 文件，实际 {len(_md_files(md_dir))}")
 
         # 收集所有 .md
         md_files = []
@@ -138,11 +167,28 @@ class TestForwardSync:
         assert len(os.listdir(pref_dir)) == 5
         assert len(os.listdir(note_dir)) == 5
 
+    def test_读不到记录的键会重排不会静默丢(self, adapter, syncer, md_dir, monkeypatch):
+        """_flush 读不到时**不能丢键**：放回 pending，下一轮补渲染。
+
+        根因形态（ci run 44988628696 shard6 / windows-latest）：batch 触发的 flush 在
+        save 线程里跑，前几条尚未可见 ⇒ get_raw_memories 只回一部分；原实现把 swap 走的
+        整批 pending 丢掉，剩下的 .md 永远补不回来。adapter.get_raw_memories 还会把读异常
+        吞成 []（与"确实不存在"同形），所以两种都必须重排。
+        """
+        _write_memories(adapter, count=3)
+        real = adapter.get_raw_memories
+        monkeypatch.setattr(adapter, "get_raw_memories", lambda keys: [])
+        syncer._flush()
+        assert _md_files(md_dir) == []
+        assert {"k000", "k001", "k002"} <= set(syncer._pending), (
+            "读不到的键必须回到 pending，否则 .md 永远少这几个")
+        monkeypatch.setattr(adapter, "get_raw_memories", real)
+        assert _flush_until(syncer, lambda: len(_md_files(md_dir)) == 3), "重排后下一轮应补齐"
+
     def test_front_matter_format(self, adapter, syncer, md_dir):
         _write_memories(adapter, count=1)
-        syncer._flush()
         fp = os.path.join(md_dir, "preference", "k000.md")
-        assert os.path.exists(fp)
+        assert _flush_until(syncer, lambda: os.path.exists(fp)), f"没有渲染出 {fp}"
         parsed = parse_markdown_file(fp)
         assert parsed is not None, "Front Matter 解析失败"
         fm = parsed["front_matter"]
