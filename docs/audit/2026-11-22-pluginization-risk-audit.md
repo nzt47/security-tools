@@ -267,6 +267,7 @@ cd yunshu-ui && npm run ui:check
 | P1-4 调度诚实度 | `/api/schedules` 对未实现 action 返回 400 NOT_IMPLEMENTED（与工具同口径）；history 增加 `executed`；UI 提示 | `test_scheduler_honesty` |
 | P1-5 安装白名单 | `CP_PLUGIN_INSTALL_ALLOWLIST` 精确匹配；空 = 拒绝；`pip:` 直装一律拒绝 | `test_plugin_policy` / `test_plugin_package_gate` |
 | P1-4 横切通知 | 系统命令任务支持 `notify_on_complete` 并持久化/重启保留 | `test_scheduler_notify_plumbing` |
+| P2-A 进程隔离（第一批） | 插件包改独立子进程 + JSON-RPC；超时硬杀；最小环境变量白名单；`CP_PLUGIN_PROCESS_ISOLATION=1` / `CP_PLUGIN_PROCESS_TIMEOUT_SEC=30` | `test_plugin_process_isolation` |
 
 **实测（2026-11-22 22:20，master 87e8c29bc / bundle index-hPBimolB.js / pid 20320）**
 
@@ -284,7 +285,7 @@ cd yunshu-ui && npm run ui:check
 
 **明确未做（不是漏，是不该现在做）**
 
-- **真进程隔离**：需要把 `load_plugin` 改成子进程 + JSON-RPC（P2）。当前用“默认关闭 + 白名单”作为过渡；这比假沙箱安全。
+- **进程边界已做，OS 级沙箱未做**：插件包现在跑独立子进程（超时硬杀 + 最小 env），但仍是当前用户身份，能读当前用户能读的文件；文件系统/网络沙箱（AppContainer/seccomp/容器）是 P3。
 - **签名/commit pin**：需要密钥管理与发布流程；本轮先做“默认关 + 精确白名单”，不假装有签名。
 - **工具 `result_schema` 扩面**：86/101 没有输出契约；猜 schema 会产生新的“假契约”，比没有更坏。建议按高风险工具逐个补。
 - **插件路由硬超时**：waitress 无每请求超时；本轮只做并发 bulkhead（防吃光线程）。硬超时需子进程/网关层，放 P2。

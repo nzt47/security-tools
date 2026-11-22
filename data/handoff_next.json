@@ -1412,7 +1412,7 @@
    "priority": "P1",
    "title": "插件化安全收口 P0/P1：第三方插件包默认关闭 + 依赖隔离 + API版本/健康 + bulkhead + 调度诚实度",
    "criteria": "P0：CP_PLUGIN_PACKAGES_ENABLED 默认 0（install/toggle 403）；依赖装 .deps 且 pip returncode 失败即安装失败；PluginSandbox 标注未接线并加生产 import 守卫；插件 UI 默认关。P1：Plugin.api_version=1；manifest status/load_error/load_ms/load_failures；CP_PLUGIN_MAX_CONCURRENT 每插件 bulkhead；/api/schedules action 未实现返回 400 NOT_IMPLEMENTED 并加 executed 字段；CP_PLUGIN_INSTALL_ALLOWLIST 精确匹配；系统命令任务 notify_on_complete 持久化。",
-   "next": "2026-11-22 落地 e2dc2b7a3 / 87e8c29bc / 2a52ad05a 并部署（2a52ad05a / bundle index-CjgbtD6a.js / pid 5364，三处一致）。测试：前端 200 files · 1534 tests；指定 pytest + 新增套件 374 passed；ui:check exit 0；真机 403/400 与 PLUGIN_SAFE_DEFAULT_1440.png。P2 未做：真进程隔离、签名/commit pin、result_schema 扩面、路由硬超时、插件 UI iframe（见 docs/audit/2026-11-22-pluginization-risk-audit.md §10）。"
+   "next": "2026-11-22 落地 e2dc2b7a3 / 87e8c29bc / 2a52ad05a 并部署（2a52ad05a / bundle index-CjgbtD6a.js / pid 5364，三处一致）。测试：前端 200 files · 1534 tests；指定 pytest + 新增套件 374 passed；ui:check exit 0；真机 403/400 与 PLUGIN_SAFE_DEFAULT_1440.png。P2：进程隔离第一批已落地（plugin_process/plugin_worker：子进程 + 超时硬杀 + 最小 env）；OS 级 FS/net 沙箱、签名/commit pin、result_schema 扩面、路由硬超时、插件 UI iframe 仍待（见 docs/audit/2026-11-22-pluginization-risk-audit.md §10）。"
   }
  ]
 }

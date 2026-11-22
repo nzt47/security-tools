@@ -25,10 +25,14 @@ ENV_PLUGIN_PACKAGES_ENABLED = "CP_PLUGIN_PACKAGES_ENABLED"
 ENV_PLUGIN_CLIENT_UI_ENABLED = "CP_PLUGIN_CLIENT_UI_ENABLED"
 ENV_PLUGIN_INSTALL_ALLOWLIST = "CP_PLUGIN_INSTALL_ALLOWLIST"
 ENV_PLUGIN_MAX_CONCURRENT = "CP_PLUGIN_MAX_CONCURRENT"
+ENV_PLUGIN_PROCESS_ISOLATION = "CP_PLUGIN_PROCESS_ISOLATION"
+ENV_PLUGIN_PROCESS_TIMEOUT = "CP_PLUGIN_PROCESS_TIMEOUT_SEC"
 
 _TRUTHY = frozenset({"1", "true", "yes", "on"})
 _DEFAULT_MAX_CONCURRENT = 4
 _MAX_CONCURRENT_CAP = 64
+_DEFAULT_PROCESS_TIMEOUT_SEC = 30.0
+_MAX_PROCESS_TIMEOUT_SEC = 300.0
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
@@ -68,6 +72,21 @@ def source_allowed(source: str) -> bool:
     if not s:
         return False
     return s in set(allow)
+
+
+def plugin_process_isolation_enabled() -> bool:
+    """第三方插件包是否走独立子进程（默认开；关 = 回退旧的进程内 import）。"""
+    return _env_bool(ENV_PLUGIN_PROCESS_ISOLATION, True)
+
+
+def process_timeout() -> float:
+    """单次插件工具调用的墙钟上界（秒）；超时即杀子进程。"""
+    raw = str(os.environ.get(ENV_PLUGIN_PROCESS_TIMEOUT, "") or "").strip()
+    try:
+        value = float(raw) if raw else _DEFAULT_PROCESS_TIMEOUT_SEC
+    except (TypeError, ValueError):
+        value = _DEFAULT_PROCESS_TIMEOUT_SEC
+    return max(1.0, min(value, _MAX_PROCESS_TIMEOUT_SEC))
 
 
 def max_concurrent() -> int:

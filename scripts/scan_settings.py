@@ -238,6 +238,10 @@ PROCESS_ENV_DENYLIST: Dict[str, str] = {
     # ⇒ 按本表口径（"读它不是为了让运维切换行为"）逐条显式声明；
     #   **不是**把可疑项塞进白名单了事（未声明的来源照样进 undeclared_process_env）。
     "PATH": "OS 可执行搜索路径（sensor 蓝图探测读取，用于报告），非开关",
+    # 【P2 进程隔离】插件子进程启动需要的最小 OS 变量；它们不是云枢开关。
+    "SYSTEMROOT": "Windows 系统目录（子进程解释器启动必需），非开关",
+    "WINDIR": "Windows 安装目录（SYSTEMROOT 别名，子进程启动必需），非开关",
+    "COMSPEC": "Windows 命令解释器路径（子进程启动必需），非开关",
     "TEMP": "OS 临时目录（sensor 环境探测读取，用于报告），非开关",
     "TMP": "OS 临时目录（同上；Windows 上的兜底变量），非开关",
     "APPDATA": "OS 用户配置目录（sensor_server 读取，用于报告），非开关",

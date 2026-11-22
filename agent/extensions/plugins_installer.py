@@ -258,6 +258,11 @@ class PluginInstaller:
         if not plugin_policy.source_allowed(plugin_data.get("source", "")):
             return False, "插件来源不在白名单内（CP_PLUGIN_INSTALL_ALLOWLIST）。"
 
+        # 【2026-11-22 P2】默认走独立子进程：插件代码不再进宿主进程；
+        # 关掉开关才回退旧的进程内 import（仅排障用）。
+        if plugin_policy.plugin_process_isolation_enabled():
+            return self._load_plugin_isolated(plugin_id, plugin_data, install_path)
+
         try:
             # 添加到 Python 路径
             plugin_dir = os.path.dirname(install_path)
@@ -327,14 +332,89 @@ class PluginInstaller:
             )
             return False, f"插件加载失败: {e}"
 
+    def _load_plugin_isolated(self, plugin_id: str, plugin_data: dict,
+                               install_path: str) -> Tuple[bool, str]:
+        """把插件包加载到独立子进程，并注册代理工具（P2 进程隔离）。"""
+        try:
+            from agent.extensions.plugin_process import PluginProcess, PluginProcessError
+        except Exception as exc:  # noqa: BLE001
+            logger.error(log_dict({'module_name': 'plugins_installer', 'action': 'isolated.import_failed',
+                                   'msg': f'[插件安装器] 进程隔离模块不可用: {type(exc).__name__}'}))
+            self._store.update_status(ExtensionType.PLUGIN, plugin_id, ExtensionStatus.ERROR)
+            return False, "插件进程隔离模块不可用"
+
+        config = plugin_data.get("config")
+        proc = PluginProcess(
+            plugin_id, install_path,
+            config=config if isinstance(config, dict) else {},
+            timeout=plugin_policy.process_timeout(),
+        )
+        try:
+            tools = proc.start()
+        except PluginProcessError as exc:
+            logger.error(log_dict({'module_name': 'plugins_installer', 'action': 'isolated.start_failed',
+                                   'msg': f'[插件安装器] 插件进程启动失败: {exc.message}'}))
+            self._store.update_status(ExtensionType.PLUGIN, plugin_id, ExtensionStatus.ERROR)
+            return False, f"插件进程启动失败: {exc.message}"
+
+        registered = []
+        try:
+            for tool in tools:
+                name = str(tool.get("name") or "").strip()
+                if not name:
+                    continue
+                if self._tool_register_fn:
+                    self._tool_register_fn(
+                        name=name,
+                        description=str(tool.get("description") or ""),
+                        handler=self._make_process_proxy(proc, name),
+                        schema=tool.get("schema") if isinstance(tool.get("schema"), dict) else {},
+                        source="plugin",
+                        source_id=plugin_id,
+                    )
+                    registered.append(name)
+        except Exception as exc:  # noqa: BLE001
+            logger.error(log_dict({'module_name': 'plugins_installer', 'action': 'isolated.register_failed',
+                                   'msg': f'[插件安装器] 插件工具注册失败: {type(exc).__name__}'}))
+            proc.close()
+            if self._tool_unregister_fn:
+                try:
+                    self._tool_unregister_fn(source="plugin", source_id=plugin_id)
+                except Exception:
+                    pass
+            self._store.update_status(ExtensionType.PLUGIN, plugin_id, ExtensionStatus.ERROR)
+            return False, "插件工具注册失败"
+
+        self._loaded_plugins[plugin_id] = proc
+        self._store.update_status(ExtensionType.PLUGIN, plugin_id, ExtensionStatus.ENABLED)
+        logger.info(log_dict({'module_name': 'plugins_installer', 'action': 'isolated.loaded',
+                               'msg': f"[插件安装器] 插件 '{plugin_id}' 已进程隔离加载（{len(registered)} 个工具）"}))
+        return True, f"插件已加载（进程隔离）: {plugin_id}"
+
+    @staticmethod
+    def _make_process_proxy(proc, tool_name: str):
+        """工具 handler 代理：调用子进程；异常收口为结构化错误（不抛到宿主）。"""
+        def _proxy(**kwargs):
+            try:
+                return proc.call(tool_name, kwargs)
+            except Exception as exc:  # noqa: BLE001  PluginProcessError 的 message 已脱敏
+                message = getattr(exc, "message", None) or "插件工具执行失败"
+                code = getattr(exc, "error_code", "PLUGIN_PROCESS_ERROR")
+                return {"ok": False, "error": str(message), "error_code": str(code), "tool": tool_name}
+        return _proxy
+
     def unload_plugin(self, plugin_id: str) -> Tuple[bool, str]:
         """卸载已加载的插件"""
         instance = self._loaded_plugins.pop(plugin_id, None)
-        if instance and hasattr(instance, "on_unload"):
+        if instance is not None:
             try:
-                instance.on_unload()
+                from agent.extensions.plugin_process import PluginProcess
+                if isinstance(instance, PluginProcess):
+                    instance.close()
+                elif hasattr(instance, "on_unload"):
+                    instance.on_unload()
             except Exception as e:
-                logger.warning(log_dict({'module_name': 'plugins_installer', 'action': 'log', 'msg': f'[插件安装器] 插件卸载回调失败: {e}'}))
+                logger.warning(log_dict({'module_name': 'plugins_installer', 'action': 'log', 'msg': f'[插件安装器] 插件卸载回调失败: {type(e).__name__}'}))
 
         # 注销插件注册的工具
         if self._tool_unregister_fn:

@@ -604,6 +604,14 @@ _REGISTRY_ROWS: List[SettingSpec] = [
        "每个插件允许的并发请求数（0 = 关闭插件级并发闸门）；默认 4，上限 64",
        owner="agent/extensions/plugin_policy.py",
        validator=_int_range(0, 64)),
+    _b("CP_PLUGIN_PROCESS_ISOLATION", CAT_EXTERNAL, True,
+       "第三方插件包是否在独立子进程加载/执行（默认开）。关 = 回退旧的进程内 import，"
+       "仅用于排障；进程内模式没有超时硬杀，安全边界更弱",
+       owner="agent/extensions/plugin_policy.py"),
+    _b("CP_PLUGIN_PROCESS_TIMEOUT_SEC", CAT_EXTERNAL, 30,
+       "单次插件工具调用超时（秒）；超时即杀插件子进程。范围 1–300",
+       owner="agent/extensions/plugin_policy.py",
+       validator=_int_range(1, 300)),
     # 【P5 container 执行档（2026-10-09）】容器通道的开关/镜像/CLI。开启即安全姿态变更
     # （委派改在容器内执行）⇒ 用 _b；镜像与 CLI 属外部依赖端点，用 _c（只读脱敏）。
     _b("CP_SUBAGENT_CONTAINER_ENABLED", CAT_SELF_HEALING, False,
