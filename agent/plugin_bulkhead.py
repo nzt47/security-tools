@@ -18,7 +18,6 @@ BoundedSemaphore：只限制“同时进入该插件”的请求数，不改变�
 from __future__ import annotations
 
 import threading
-from typing import Dict
 
 
 class PluginBulkhead:
@@ -30,7 +29,7 @@ class PluginBulkhead:
         except (TypeError, ValueError):
             self._limit = 0
         self._lock = threading.RLock()
-        self._sems: Dict[str, threading.BoundedSemaphore] = {}
+        self._sems: dict[str, threading.BoundedSemaphore] = {}
 
     @property
     def limit(self) -> int:
@@ -63,10 +62,3 @@ class PluginBulkhead:
                 # 多释放一次不应把请求打成 500（闸门自身不能成为故障源）
                 pass
 
-    def snapshot(self) -> Dict[str, int]:
-        """只读诊断：插件名 → 当前剩余额度（不保证瞬时精确）。"""
-        with self._lock:
-            return {
-                name: (self._limit if self._limit <= 0 else sem._value)
-                for name, sem in self._sems.items()
-            }
