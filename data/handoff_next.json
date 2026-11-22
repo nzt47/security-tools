@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-22T02:35:00+08:00",
+ "updated_at": "2026-11-22T09:45:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1301,6 +1301,14 @@
    "title": "新建 LLM 实例恒 400：UI 发 base_url，后端读 api_endpoint；且 400 的 errors[] 被吞成「HTTP 400」",
    "criteria": "Owner 2026-11-22 报「新建 LLM 出现：新建失败：HTTP 400」。复现：POST /api/llm/instances {instance:{... base_url ...}} → 400 {ok:false, errors:['API 端点 URL 不能为空']}。两处缺陷：① instances.tsx 新建发 base_url、列表也读 base_url，而 validate_llm_instance 与 apply_to_app 都读 api_endpoint ⇒ 任何新建都过不了校验；② hub 的 _hubError 只读 body.error/message，不读 errors[]（校验类 400 的形态）⇒ 界面只剩「HTTP 400」，字段原因被吞。顺带：搜索实例 custom 引擎要求 api_endpoint，但表单没有该字段（同样只能撞 400）。",
    "next": "落地：新建 LLM 发 api_endpoint（必填，缺了按钮禁用并提示）+ 列表兼容读 api_endpoint；_hubError 支持 errors[] / RFC9457 detail（都没有才落到 HTTP 400）；搜索实例新增 api_endpoint 字段（custom 必填）。用例：instances 6 条 + hubError 3 条；vitest 199 files · 1521 tests；ui:check 0。真机：UI 新建探针实例 → 列表出现 → 删除。"
+  },
+  {
+   "id": "search-engine-case-400",
+   "status": "done",
+   "priority": "P2",
+   "title": "新建搜索实例提示「未知的内置引擎类型: Tavily」——引擎类型是自由文本且大小写精确匹配",
+   "criteria": "Owner 2026-11-22 报「新建 搜索实例时提示：新建失败：未知的内置引擎类型: Tavily（HTTP 400）」。BUILTIN_ENGINES 全是小写（tavily/firecrawl/bing/...），而界面 engine_type 是自由文本，用户输入 Tavily/Bing 这类首字母大写即被精确匹配判为未知；错误文案也只说「未知」，不列可选值。",
+   "next": "落地：界面改成引擎类型下拉（与 BUILTIN_ENGINES 对齐，全小写，含 custom）；路由入口 normalize_engine_type（去空白+小写）后再校验/存储，API 调用方写 Tavily 也能通过；未知引擎的错误文案列出可选值。用例：instances 选项断言 + normalize/错误文案单测。验证：.local/verify_search_engine_1443.py（UI 下拉建实例→列表→删除；API 用 'Tavily' 建→回读小写→删除）。"
   }
  ]
 }

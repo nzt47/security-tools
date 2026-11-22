@@ -107,6 +107,16 @@ BUILTIN_ENGINES = {'tavily', 'firecrawl', 'bing', 'google', 'brave',
                    'duckduckgo', 'baidu', 'sogou', 'so360'}
 
 
+def normalize_engine_type(value: Any) -> str:
+    """引擎类型归一化：去首尾空白 + 小写（词表与 "custom" 都是小写）。
+
+    【为什么在路由入口做】内置引擎表是小写，而界面/API 调用方常写 "Tavily"/"Bing"；
+    精确匹配会回「未知的内置引擎类型: Tavily」，用户看不出是大小写问题。
+    归一化只做大小写/空白，不做拼写纠正（拼错仍报错，并列出可选值）。
+    """
+    return str(value or "").strip().lower()
+
+
 def validate_search_instance(instance: dict) -> List[str]:
     """验证搜索实例配置
 
@@ -125,7 +135,11 @@ def validate_search_instance(instance: dict) -> List[str]:
     if not engine_type:
         errors.append('引擎类型不能为空')
     elif engine_type != 'custom' and engine_type not in BUILTIN_ENGINES:
-        errors.append(f'未知的内置引擎类型: {engine_type}')
+        # 列出可选值：否则调用方只知道"未知"，不知道该填什么（大小写也算"未知"）
+        errors.append(
+            f'未知的内置引擎类型: {engine_type}'
+            f'（可选：{" / ".join(sorted(BUILTIN_ENGINES))}；自定义请填 custom）'
+        )
 
     if engine_type == 'custom' and not instance.get('api_endpoint'):
         errors.append('自定义引擎必须提供 API 端点 URL')

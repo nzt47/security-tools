@@ -15,7 +15,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { CheckCircle2, Cpu, Loader2, Plus, RefreshCw, Search, Star, Trash2, Wifi } from 'lucide-react'
-import { Button, ErrorBox, hubDelete, hubGet, hubPost, hubPut, Input, Notice, Tabs, Textarea } from '../components/ui'
+import { Button, ErrorBox, hubDelete, hubGet, hubPost, hubPut, Input, Notice, Select, Tabs, Textarea } from '../components/ui'
 import {
   LLM_INSTANCES,
   SEARCH_INSTANCES,
@@ -44,6 +44,25 @@ interface Instance {
 }
 
 type Tab = 'llm' | 'search'
+
+/**
+ * 搜索实例的引擎类型（与 agent/config_validation.BUILTIN_ENGINES 对齐，全小写）。
+ * 用下拉而不是自由文本：后端按精确词表校验，「Tavily」「Bing」这种首字母大写
+ * 会被当成"未知的内置引擎类型"（2026-11-22 Owner 实测）。
+ * custom = 自定义端点，必须同时填 api_endpoint。
+ */
+const ENGINE_OPTIONS = [
+  { value: 'duckduckgo', label: 'DuckDuckGo' },
+  { value: 'sogou', label: '搜狗搜索' },
+  { value: 'so360', label: '360 搜索' },
+  { value: 'bing', label: 'Bing' },
+  { value: 'google', label: 'Google' },
+  { value: 'brave', label: 'Brave' },
+  { value: 'baidu', label: '百度' },
+  { value: 'tavily', label: 'Tavily（需 key）' },
+  { value: 'firecrawl', label: 'Firecrawl（需 key）' },
+  { value: 'custom', label: 'custom（自定义端点）' },
+]
 
 export default function InstancesPanel() {
   const [tab, setTab] = useState<Tab>('llm')
@@ -211,7 +230,7 @@ export default function InstancesPanel() {
           variant="segmented"
           size="sm"
           value={tab}
-          onChange={(v) => setTab(v as typeof tab)}
+          onChange={(v) => { setTab(v as typeof tab); setFKind('') }}
           items={([['llm', 'LLM 实例'], ['search', '搜索实例']] as const).map(([id, label]) => ({ value: id, label }))}
         />
       </div>
@@ -279,13 +298,25 @@ export default function InstancesPanel() {
           </label>
           <label className="text-caption text-slate-400">
             {tab === 'llm' ? 'provider' : 'engine_type'}
-            <Input
-              size="sm" className="mt-1 w-full"
-              value={fKind}
-              onChange={(e) => setFKind(e.target.value)}
-              placeholder={tab === 'llm' ? 'openai / deepseek / ollama' : 'duckduckgo / sogou / bing'}
-              aria-label="实例类型"
-            />
+            {tab === 'llm' ? (
+              <Input
+                size="sm" className="mt-1 w-full"
+                value={fKind}
+                onChange={(e) => setFKind(e.target.value)}
+                placeholder="openai / deepseek / ollama"
+                aria-label="实例类型"
+              />
+            ) : (
+              <Select
+                size="sm" className="mt-1 w-full"
+                value={fKind}
+                onChange={setFKind}
+                placeholder="选择引擎类型"
+                aria-label="实例类型"
+                data-testid="search-engine-type"
+                options={ENGINE_OPTIONS}
+              />
+            )}
           </label>
           {tab === 'search' && (
             <label className="text-caption text-slate-400">api_endpoint（engine_type=custom 时必填）

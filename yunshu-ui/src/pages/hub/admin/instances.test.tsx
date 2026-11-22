@@ -73,6 +73,10 @@ describe('InstancesPanel', () => {
     await screen.findByText('DeepSeek')
 
     fireEvent.click(screen.getByRole('tab', { name: '搜索实例' }))
+    // 引擎类型是下拉（不是自由文本）：后端按精确小写词表校验，键盘输入 "Tavily" 只会得到 400
+    const engineOptions = Array.from((screen.getByTestId('search-engine-type') as HTMLSelectElement).options).map((o) => o.value)
+    expect(engineOptions).toEqual(expect.arrayContaining(['duckduckgo', 'tavily', 'custom']))
+    expect(engineOptions, '下拉值必须全小写（与 BUILTIN_ENGINES 对齐）').not.toContain('Tavily')
     const create = screen.getByRole('button', { name: '新建实例' }) as HTMLButtonElement
     fireEvent.change(screen.getByLabelText('实例名称'), { target: { value: 'DDG' } })
     fireEvent.change(screen.getByLabelText('实例类型'), { target: { value: 'duckduckgo' } })
@@ -102,7 +106,9 @@ describe('InstancesPanel', () => {
 
     // 搜索实例在另一个 Tab 里：先切过去，再点它那一行
     fireEvent.click(screen.getByRole('tab', { name: '搜索实例' }))
-    await screen.findByText('DuckDuckGo')
+    // 注意：不能按文本找「DuckDuckGo」—— 下方 engine_type 下拉的 option 也是同名文本，
+    // getByText 会命中多个元素。按行内动作按钮定位更稳。
+    await screen.findByRole('button', { name: '设为默认 s1' })
     fireEvent.click(screen.getByRole('button', { name: '设为默认 s1' }))
     await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/search/instances/s1/default', {}))
   })

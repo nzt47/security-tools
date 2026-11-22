@@ -25,7 +25,10 @@ from flask import Blueprint, request, jsonify
 from .plugin_api import Plugin, register_plugin
 from agent.server_auth import require_token, log_request
 from agent.network_config import _DEFAULT_SEARCH_INSTANCE
-from agent.config_validation import validate_search_instance as _validate_search_instance
+from agent.config_validation import (
+    normalize_engine_type as _normalize_engine_type,
+    validate_search_instance as _validate_search_instance,
+)
 
 # S2-02 审计平权：设置类写路由的语义化审计（不可用时退化为 no-op）
 # 【2026-10-15】原 routes_config.py 的 /api/config 带 @audit_action("config.write")，
@@ -529,7 +532,10 @@ def api_search_instance_add():
     t0 = _time.time()
     try:
         data = request.get_json() or {}
-        instance = data.get("instance", {})
+        instance = dict(data.get("instance", {}) or {})
+        # 「Tavily」「Bing」这类大小写不统一很常见：入口统一归一化（词表与 custom 都是小写）
+        if "engine_type" in instance:
+            instance["engine_type"] = _normalize_engine_type(instance["engine_type"])
         errors = _validate_search_instance(instance)
         if errors:
             return jsonify({"ok": False, "errors": errors}), 400
@@ -589,7 +595,10 @@ def api_search_instance_update(instance_id):
     t0 = _time.time()
     try:
         data = request.get_json() or {}
-        updates = data.get("updates", {})
+        updates = dict(data.get("updates", {}) or {})
+        # 同新增：engine_type 大小写/空白在此归一化，避免「Tavily」被当成未知引擎
+        if "engine_type" in updates:
+            updates["engine_type"] = _normalize_engine_type(updates["engine_type"])
         priority_before = _network_config_mgr.get_all().get('search', {}).get('engine_priority', [])
         config = _network_config_mgr.get_raw_config()
         for inst in config.get('search_instances', []):
