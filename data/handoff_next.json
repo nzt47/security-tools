@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-22T12:45:00+08:00",
+ "updated_at": "2026-11-22T13:53:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1333,6 +1333,22 @@
    "title": "Dependabot 3 条 medium（opentelemetry-api GHSA-mf5v-w3w3-f6cg）：按硬钉整组升 1.45.2",
    "criteria": "开项时 gh api dependabot/alerts?state=open = 3（同一条公告，分别挂 requirements.txt / requirements-dev.txt / requirements-test.txt）。仓库里已有 Dependabot PR #1544，但它只升 api，「依赖一致性（pyproject ↔ requirements ↔ 实装）」与「Lint and Type Check」两条红 —— 根因是 sdk 1.45.1 的 requires_dist 硬钉 opentelemetry-api==1.45.1。按 aa07446ba 先例整组升：api/sdk/proto/exporter-proto-common/exporter-proto-grpc -> 1.45.2、semconv 0.66b2、exporter-otlp-common 0.66b2（各自上下游 requires_dist 校验过）。",
    "next": "2026-11-22 落地 de26acd67 并部署（de26acd67 / bundle index-DIXcgcHy.js / pid 192，三处一致）；本机：pip 七个包全 1.45.2/0.66b2、chromadb 1.5.9 import ok、audit_dependency_drift --fail-on-conflict 真冲突 0、追踪 115 passed、可观测 143 passed。PR #1544 已评论并关闭（分支已删）。待复核：GitHub 重算依赖图后 dependabot alerts 应归 0（当前仍报 3 = 还没重算）；判据是 master 的 requirements.txt 不再含 opentelemetry-api==1.45.1。"
+  },
+  {
+   "id": "instance-payload-contract",
+   "status": "done",
+   "priority": "P2",
+   "title": "实例管理跨端载荷契约：一份 fixture 同时喂前端用例与后端校验（防 base_url/api_endpoint 这类漂移）",
+   "criteria": "§11.201/§11.202/§11.203 三轮的 bug 是同一类（前端发的字段名 != 后端读的字段名），而两侧各有用例且都绿 —— 没有一条用例把两侧的字节对上。契约锁 = yunshu-ui/src/lib/fixtures/instancePayload.json 作为唯一事实源（llm / llm_update / search / search_update 四份载荷）；前端 instances.test.tsx 断言发出去的就是这几份字节；后端 tests/unit/test_instance_payload_contract.py 把同一份字节喂给 validate_llm_instance / add_llm_instance / update_llm_instance、validate_search_instance + normalize_engine_type + 默认模板；并锁「回读带 api_endpoint 且不含 base_url」「编辑载荷不带 api_key」。判据：把 fixture 的 api_endpoint 改成 base_url 必须双向红（实测 pytest 4 failed、vitest 3 failed），改回来必须全绿。",
+   "next": "2026-11-22 落地 4e253ecf9 并部署（4e253ecf9 / bundle index-_jzhtCwo.js / pid 16648，三处一致）；tsc 0、ui:check exit 0（raw_heading 70 / css_hardcoded_color 0）、admin+lib vitest 15 files 131 tests、契约 pytest 5 passed。tsconfig 加了 resolveJsonModule（用例 import JSON）。延伸（未做）：同一套做法可覆盖 network / search 分区的保存载荷（网络配置页只提交两个分区，字段漂移同样只会在真机暴露）。"
+  },
+  {
+   "id": "tlm-flush-requeue-unread",
+   "status": "done",
+   "priority": "P2",
+   "title": "Markdown 镜像 _flush 读不到的键会静默丢弃（CI shard6 偶发 10 个 .md 只有 2 个的根因）",
+   "criteria": "ci run 44988628696（4e253ecf9）shard6 windows 红在 test_tlm_markdown_sync::test_10_records_render_to_10_md_files「期望 10 实际 2」；junit 工件定因后确认两条触发形态：① batch 阈值触发的 flush 跑在 save 线程里，前几条尚未对另一连接可见（只读到 2 条）；② HolographicAdapter.get_raw_memories 把读异常吞成 []（与确实不存在同形）。原 _flush 把 swap 走的整批 pending 丢掉，读不到的 key 既不渲染也不再重试。修法：seen/missing 比对 + _requeue_unread() 放回 pending（setdefault 尊重新事件），连续 MAX_MISSING_RETRIES=3 次才放弃并留 error，成功渲染清零；不新起 Timer（保持一次 burst 一次 flush）。同批修测试里的恒真等待（_pending == {} or True）为 _flush_until(谓词)。",
+   "next": "2026-11-22 落地 17573c5ca 并部署（17573c5ca / bundle index-HQFAckeT.js / pid 14324，三处一致）。读数：test_tlm_markdown_sync 37 passed（+1）、+ test_tlm_bidirectional_sync 6 passed 合计 43；Debounce 用例仍只 1 次 flush；负向验证（关掉重排）新用例红。待复核：17573c5ca 的 ci.yml 应 30/30（上一提交 4e253ecf9 的红就是这条 flake）。遗留观察：若日后仍偶发，先看 flush.requeue_unread 的 warning 计数，不要在测试里加 sleep。"
   }
  ]
 }
