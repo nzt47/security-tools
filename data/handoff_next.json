@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-22T10:36:00+08:00",
+ "updated_at": "2026-11-22T12:24:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1317,6 +1317,14 @@
    "title": "实例管理：点已有实例不能带出配置改（尤其名称）——加编辑模式（表单预填 + PUT）",
    "criteria": "Owner 2026-11-22 要求「点击已有实例，必须在新建配置输入框显示已配置的内容，方便更改。特别是名称。」原页面只有新建表单：LLM 有「详情」JSON 编辑，搜索实例完全没有编辑入口；行操作里也没有「编辑」。",
    "next": "落地：每行加「编辑」→ 表单预填名称/provider 或 engine_type/model/api_endpoint/timeout；api_key 不回填（列表是脱敏值，留空 = 保留原密钥）；按钮变「保存修改」走 PUT（LLM PUT {updates}，搜索 PUT {updates}，custom 才发 api_endpoint）；取消编辑 / 切 Tab 复位。用例 3 条（LLM 预填+PUT、搜索预填+PUT、取消复位）。真机 .local/verify_instance_edit_1444.py：改探针实例名 → 回读 → 删除。基线：vitest 199 files · 1524 tests / ui:check 0。"
+  },
+  {
+   "id": "codeql-last-4-alerts",
+   "status": "done",
+   "priority": "P1",
+   "title": "code scanning 最后 4 条告警清零（2×py/stack-trace-exposure、1×py/path-injection、1×py/insecure-protocol）",
+   "criteria": "2026-11-22 实盘：gh api code-scanning/alerts?state=open 在 master（577644e5d）只剩 4 条 —— #747 routes_llm_gate.py:46、#746 routes_ui_guard.py:86（源 fixer.py:119/142）、#744 memory_import/transcript.py:306、#743 monitoring/dependency_probe.py:125。按 docs/security/codeql_triage_2026-11-01.md 的纪律「改 producer、不猜 sink」：① 新增领域异常 GateConfigError(ValueError)，文案挂 .message，路由不再 str(异常)；② fixer 读/写失败的 errors 条目只留异常类别（原文进 logger）；③ 报告文件名前缀改常量表 _REPORT_PREFIX_BY_SOURCE（常量键→常量值），未知来源 400 不落盘；④ 探测专用 _tls_context() 显式 minimum_version=TLSv1_2，不放松 check_hostname。新增 7 条回归用例（含注入 BOOM_SECRET 断言不泄漏、TLS 最低版本断言）。",
+   "next": "2026-11-22 已落地 4e2200446 并部署（4e2200446 / bundle index-BjAJK9QZ.js / pid 4280）；本地 4 个测试文件 78 passed、指定 pytest 集 273 passed；真机：POST /api/llm-gate 非法时段回「第 1 条时段的结束时间必须晚于开始时间」、GET /api/memory/import/sessions/latest?source=../evil 回 400「source 只能取 dsh / claude / trae」。复核（12:22）：gh api code-scanning/alerts?state=open = 0，#747/#746/#744/#743 全部 state=fixed（不是 dismissed）⇒ 2026-11-01 分诊的 641 条告警全部清零。遗留（有意保留）：plugins/system_tools._sanitize 按 key 名脱敏，会把右坞浏览器的业务文案（如「会话不存在或已过期」）换成「执行失败（详见服务日志）」；要修需先把 ssrf_guard verdict 的机器可读 category 透到 UI，别直接拆脱敏层。"
   }
  ]
 }
