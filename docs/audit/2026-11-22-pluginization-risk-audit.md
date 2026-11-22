@@ -268,6 +268,20 @@ cd yunshu-ui && npm run ui:check
 | P1-5 安装白名单 | `CP_PLUGIN_INSTALL_ALLOWLIST` 精确匹配；空 = 拒绝；`pip:` 直装一律拒绝 | `test_plugin_policy` / `test_plugin_package_gate` |
 | P1-4 横切通知 | 系统命令任务支持 `notify_on_complete` 并持久化/重启保留 | `test_scheduler_notify_plumbing` |
 
+**实测（2026-11-22 22:20，master 87e8c29bc / bundle index-hPBimolB.js / pid 20320）**
+
+- 三处一致：backend/frontend 均 `87e8c29bc`；`/api/plugins` host 显示
+  `plugin_packages_enabled=false`、`plugin_client_ui_enabled=false`、`plugin_api_version=1`。
+- `POST /api/extensions/install {type:plugin}` → **403 PLUGIN_PACKAGES_DISABLED**；
+  `POST /api/extensions/toggle {type:plugin,enabled:true}` → 同样 403。
+- `POST /api/schedules {action:run}` → **400 NOT_IMPLEMENTED**。
+- 真机（1440×900，`.local/probe_plugin_safe_default_1223.py`）：插件包横幅可见、
+  市场按钮 disabled、demo 插件界面显示“已停用”；截图 `.ui_shots/PLUGIN_SAFE_DEFAULT_1440.png`。
+- 测试：前端 **200 files · 1534 tests**；指定 pytest + 新增套件 **374 passed**；`npm run ui:check` exit 0。
+- 【实测发现】本机 `data/ui_settings.json` 里 `CP_SCHEDULER_ACTION_EXECUTION=true`（历史误开）。
+  仅靠环境开关会让工具/API 继续空跑；本轮加 `ACTION_EXECUTION_IMPLEMENTED=False` 的代码事实，
+  开关在代码接线前**不生效**，实机已回到 400。这条也说明“开关中心里的值”不能替代“代码确实实现了”。
+
 **明确未做（不是漏，是不该现在做）**
 
 - **真进程隔离**：需要把 `load_plugin` 改成子进程 + JSON-RPC（P2）。当前用“默认关闭 + 白名单”作为过渡；这比假沙箱安全。
