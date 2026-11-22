@@ -560,6 +560,40 @@ describe('6. 搜索与筛选', () => {
     expect(screen.getByText(SECRET_ITEM.key as string)).toBeInTheDocument()
   })
 
+  it('选 A/B/C 之后分类分组仍能点标题收起（筛选只负责自动展开，不锁死折叠）', async () => {
+    /* 【2026-11-22 Owner 实报】原来 CategoryGroup 传 forceOpen={filtering}
+       ⇒ expanded = forceOpen || open，选了 A/B/C 后点标题只翻内部 state、界面不动：
+       「全部」能收起，A/B/C 不能。现在改成 key 重挂（筛选变化回到默认展开），折叠权归用户。 */
+    renderPanel()
+    await loaded()
+    const header = () =>
+      document.querySelector(
+        '[data-cp-settings-category="orchestration_planning"] button[aria-expanded]',
+      ) as HTMLElement | null
+    expect(header()?.getAttribute('aria-expanded')).toBe('true')
+
+    fireEvent.click(document.querySelector('[data-cp-risk-filter="A"]') as HTMLElement)
+    // 筛选后自动展开（原意保留）
+    await waitFor(() => expect(header()?.getAttribute('aria-expanded')).toBe('true'))
+    // 关键：现在点标题真的能收起（旧实现这里恒为 true）
+    fireEvent.click(header() as HTMLElement)
+    expect(header()?.getAttribute('aria-expanded')).toBe('false')
+  })
+
+  it('切换筛选条件后分组自动重新展开（不用手动点开）', async () => {
+    renderPanel()
+    await loaded()
+    const header = () =>
+      document.querySelector(
+        '[data-cp-settings-category="orchestration_planning"] button[aria-expanded]',
+      ) as HTMLElement | null
+    fireEvent.click(header() as HTMLElement)
+    expect(header()?.getAttribute('aria-expanded')).toBe('false')
+
+    fireEvent.click(document.querySelector('[data-cp-risk-filter="A"]') as HTMLElement)
+    await waitFor(() => expect(header()?.getAttribute('aria-expanded')).toBe('true'))
+  })
+
   it('无命中时给出空态（不渲染任何 0 占位数字）', async () => {
     renderPanel()
     await loaded()

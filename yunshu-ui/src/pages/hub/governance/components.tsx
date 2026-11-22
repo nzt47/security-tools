@@ -40,22 +40,23 @@ import type { Metric } from '@/lib/cpPanelsTypes'
 /**
  * 折叠区（P1/P2 默认收起；P0 默认展开）
  *
- * `forceOpen`：外部强制展开（开关中心在搜索/筛选时要求分组展开）；
- * 默认 `false`，既有调用行为不变。
+ * 【2026-11-22 删掉 forceOpen】它原来的语义是 `expanded = forceOpen || open` ⇒
+ * 为真时**用户点标题收不起来**。开关中心拿它做"筛选时强制展开"，于是选了 A/B/C
+ * （或输入搜索词 / 勾「只看已覆盖」）之后分组怎么点都不动（Owner 实报）。
+ * 现在"筛选变化自动展开"改用「换 key 重挂」（见 settings.tsx 的 CategoryGroup），
+ * 折叠权始终归用户；本组件只保留 defaultOpen 一个入口。
  */
 export function Collapsible({
-  title, subtitle, defaultOpen = false, icon, children, forceOpen = false,
+  title, subtitle, defaultOpen = false, icon, children,
 }: {
   title: string
   subtitle?: string
   defaultOpen?: boolean
   icon?: ReactNode
   children: ReactNode
-  /** 强制展开（为真时以展开为准） */
-  forceOpen?: boolean
 }) {
   const [open, setOpen] = useState(defaultOpen)
-  const expanded = forceOpen || open
+  const expanded = open
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900/40">
       <RowButton

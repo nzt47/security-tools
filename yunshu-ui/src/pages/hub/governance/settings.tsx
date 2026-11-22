@@ -302,14 +302,15 @@ function CategoryGroup({
   label,
   shown,
   declared,
-  forceOpen,
+  resetToken,
   children,
 }: {
   id: string
   label: string
   shown: number
   declared?: number
-  forceOpen: boolean
+  /** 筛选条件指纹：**变化时重挂**该分组（回到默认展开），但展开/收起仍归用户 */
+  resetToken: string
   children: ReactNode
 }) {
   const subtitle = declared !== undefined && declared !== shown
@@ -317,11 +318,15 @@ function CategoryGroup({
     : `${shown} 项`
   return (
     <div className="mb-2" data-cp-settings-category={id}>
+      {/* 【2026-11-22 修】原来传 forceOpen={filtering} ⇒ expanded = forceOpen || open，
+          选了 A/B/C（或输入搜索词、勾「只看已覆盖」）之后点标题只翻内部 state、界面不动
+          （Owner 实报：「全部」能收起，A/B/C 不能）。现在改成 **key 重挂**：筛选条件一变就
+          回到默认展开（保留"筛选后结果不藏着"的原意），之后用户点标题照常收起/展开。 */}
       <Collapsible
+        key={resetToken}
         title={label}
         subtitle={subtitle}
         defaultOpen
-        forceOpen={forceOpen}
       >
         <div className="p-2" data-cp-category-count={id}>
           {children}
@@ -934,6 +939,9 @@ export function SettingsPanel({ searchDebounceMs = 250 }: SettingsPanelProps) {
 
   const counts = data?.counts
   const filtering = needle.trim() !== '' || risk !== 'all' || onlyOverride
+  // 筛选指纹（2026-11-22）：分组以它为 key ⇒ 条件一变就重新展开；
+  // **不用** forceOpen，否则筛选态下分组永远收不起来（Owner 实报的那个 bug）。
+  const filterToken = `${risk}|${needle.trim()}|${onlyOverride ? '1' : '0'}`
 
   if (data && !data.ok) {
     return (
@@ -1093,7 +1101,7 @@ export function SettingsPanel({ searchDebounceMs = 250 }: SettingsPanelProps) {
                   label={g.label}
                   shown={g.rows.length}
                   declared={g.declared}
-                  forceOpen={filtering}
+                  resetToken={filterToken}
                 >
                   {virtual ? (
                     <VirtualList
