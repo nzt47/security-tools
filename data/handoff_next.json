@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-22T15:02:00+08:00",
+ "updated_at": "2026-11-22T15:32:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1357,6 +1357,14 @@
    "title": "观测（只读）取消「运行 / 治理」两个小节 —— 叶子直接挂桶下（Owner 2026-11-22 要求）",
    "criteria": "Owner：将导航栏中 观测（只读）的两个小标题 运行 和 治理 取消掉。改法：hubNav.tsx 的 panorama children 由 [小节 运行{5 叶}, 小节 治理{2 叶}] 拍平成 7 个叶子（系统总览/运行监控/平台能力/日志与审计/回放中心/治理看板/业务看板，顺序不变）。零风险依据：叶子 key 全不变（旧深链照旧）；小节 key 本来就不是导航目标（isNavLeaf 只认带 component），?panel=panorama/run 删前删后都落默认页；桶 key panorama 仍映射 panorama/health；另外三个桶本来就扁平。用例同步 3 处按小节断言的：hubNav.test.ts（回放中心同属观测桶 + children 必须全是叶子）、hubNav.search.test.ts（搜索治理只剩治理看板，不带出 business）、NavPanel.search.test.tsx。",
    "next": "2026-11-22 落地 35b5a0da9 并部署（35b5a0da9 / bundle index-3rzr8kpq.js / pid 8828，三处一致）。读数：npx vitest run 199 files · 1524 tests 全绿（先停后端）；tsc 0；ui:check exit 0（raw_heading 70 / css_hardcoded_color 0）。真机 1440x900（.local/probe_nav_flat_1210.py）：侧栏 = 观测（只读）→ 系统总览/运行监控/平台能力/日志与审计/回放中心/治理看板/业务看板，运行与治理不再作为行出现；截图 .ui_shots/NAV_FLAT_OBS_1440.png。文档：docs/ui/导航重组方案.md 补 2026-11-22 更新块；交接 §11.210。"
+  },
+  {
+   "id": "feishu-webhook-payload-dialect",
+   "status": "done",
+   "priority": "P1",
+   "title": "飞书 webhook 发送成功但机器人没收到：载荷方言 + 业务码校验（钉钉同修）",
+   "criteria": "Owner 现场：消息中心配飞书自定义机器人 webhook，点发送回「消息已发送」，机器人没收到。两步探针（真实 URL）：① 云枢载荷 {text, source} -> HTTP 200 + {code:19002, msg:params error, msg_type need}；② 飞书载荷 {msg_type, content:{text}} -> HTTP 200 + {code:0, msg:success}（真送达）。根因：_handle_webhook 只发通用 {text}（只对 Slack 兼容端点成立），且只看 HTTP 状态判成功，而飞书/钉钉的失败也是 200（业务码在 body）。修法：按主机判方言（feishu/dingtalk/generic）、业务码非 0 或 ok=false 判失败、ChannelRejected 把服务端 code/msg 作为可读原因回界面（不用 str(exc)）、HTTPError 转可读原因；超时/响应体上限提常量。",
+   "next": "2026-11-22 落地 bd4ec88d8 并部署（bd4ec88d8 / bundle index-Cnvb4MRQ.js / pid 13812，三处一致）。读数：新增 test_channel_webhook_delivery.py 9 条；通道/扩展 8 文件 126 passed；真实飞书 URL 回 HTTP 200（业务码 0 才返回）；端到端 POST /api/extensions/channels/send 回 {ok:true, message:消息已发送: HTTP 200}（机器人已收到两条验证消息）。边界：加签（sign secret）未做 —— 该机器人未开加签；若开启，现在会如实报 code=19021，要做需加可选配置字段 + env 键 + 开关登记（属另一批）。"
   }
  ]
 }
