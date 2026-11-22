@@ -68,6 +68,12 @@ WEBHOOK_BODY_MAX_BYTES = 4096
 #: 且各自的成功形状与通用 {"text"} 不同（2026-11-22 现场：飞书回 code=19002 仍被当成功）。
 _FEISHU_HOSTS = ("open.feishu.cn", "open.larksuite.com", "larksuite.com", "feishu.cn")
 _DINGTALK_HOSTS = ("oapi.dingtalk.com", "api.dingtalk.com", "dingtalk.com")
+#: 服务端拒收码 → 一句可执行的下一步（没有的就只报 code/msg）
+_REJECTION_HINTS = {
+    "19021": "（该机器人启用了加签：请检查「加签密钥」是否与飞书后台一致、本机时间是否准确）",
+    "19002": "（载荷形状被拒：飞书要 msg_type + content.text）",
+    "310000": "（钉钉拒收：常见于加签不匹配或关键词未命中）",
+}
 
 
 class ChannelRejected(ValueError):
@@ -476,18 +482,65 @@ class ChannelInstaller:
         return "generic"
 
     @staticmethod
-    def _build_webhook_payload(url: str, message: str,
-                               extra: Dict[str, Any]) -> Dict[str, Any]:
-        """按目标服务端拼载荷。
+    def _feishu_sign(secret: str, timestamp: str) -> str:
+        """飞书自定义机器人「加签」：base64(HmacSHA256(key="{ts}\n{secret}", msg=""))。
 
-        - 飞书：{"msg_type": "text", "content": {"text": ...}}
+        与飞书官方示例逐字一致（key 是拼接串、msg 为空 —— 与钉钉的方向相反，别抄串）。
+        """
+        import base64
+        import hashlib
+        import hmac
+        string_to_sign = f"{timestamp}\n{secret}"
+        digest = hmac.new(string_to_sign.encode("utf-8"), b"",
+                          digestmod=hashlib.sha256).digest()
+        return base64.b64encode(digest).decode("utf-8")
+
+    @staticmethod
+    def _dingtalk_sign(secret: str, timestamp_ms: str) -> str:
+        """钉钉自定义机器人「加签」：base64(HmacSHA256(key=secret, msg="{ts}\n{secret}"))。
+
+        与飞书**方向相反**（钉钉 key=密钥、msg=拼接串），且时间戳是毫秒、签在 URL 查询串上。
+        """
+        import base64
+        import hashlib
+        import hmac
+        string_to_sign = f"{timestamp_ms}\n{secret}"
+        digest = hmac.new(secret.encode("utf-8"), string_to_sign.encode("utf-8"),
+                          digestmod=hashlib.sha256).digest()
+        return base64.b64encode(digest).decode("utf-8")
+
+    @staticmethod
+    def _signed_webhook_url(url: str, secret: str) -> str:
+        """钉钉：把 timestamp/sign 追加到查询串（保留原有参数）。其它方言原样返回。"""
+        if not secret or ChannelInstaller._webhook_dialect(url) != "dingtalk":
+            return url
+        from urllib.parse import quote, urlsplit
+        ts = str(int(time.time() * 1000))
+        sign = ChannelInstaller._dingtalk_sign(secret, ts)
+        parts = urlsplit(url)
+        query = (parts.query + "&" if parts.query else "") + \
+            f"timestamp={ts}&sign={quote(sign, safe='')}"
+        return parts._replace(query=query).geturl()
+
+    @staticmethod
+    def _build_webhook_payload(url: str, message: str,
+                               extra: Dict[str, Any],
+                               sign_secret: str = "") -> Dict[str, Any]:
+        """按目标服务端拼载荷（含可选加签）。
+
+        - 飞书：{"msg_type": "text", "content": {"text": ...}}；开了加签再加 timestamp/sign
           （发聚合形状 {"text": ...} ⇒ 200 + code=19002 "params error, msg_type need"）
-        - 钉钉：{"msgtype": "text", "text": {"content": ...}}（同款坑：200 + errcode）
-        - Slack / 其它（Slack 兼容端点）：{"text": ..., "source": "yunshu"}
+        - 钉钉：{"msgtype": "text", "text": {"content": ...}}；加签在 URL 查询串上（见 _signed_webhook_url）
+        - Slack / 其它（Slack 兼容端点）：{"text": ..., "source": "yunshu"}，不签名
         """
         dialect = ChannelInstaller._webhook_dialect(url)
         if dialect == "feishu":
-            return {"msg_type": "text", "content": {"text": message}}
+            payload: Dict[str, Any] = {"msg_type": "text", "content": {"text": message}}
+            if sign_secret:
+                ts = str(int(time.time()))
+                payload["timestamp"] = ts
+                payload["sign"] = ChannelInstaller._feishu_sign(sign_secret, ts)
+            return payload
         if dialect == "dingtalk":
             return {"msgtype": "text", "text": {"content": message}}
         return {"text": message, "source": "yunshu", **extra}
@@ -510,8 +563,10 @@ class ChannelInstaller:
         if raw_code is not None and str(raw_code) != "0":
             detail = str(data.get("msg") or data.get("errmsg") or data.get("message") or "")[:120]
             suffix = ("：" + detail) if detail else ""
+            # 已知码给一句"下一步"（19021 飞书加签失败最常见：密钥填错/没填/时钟偏差）
+            hint = _REJECTION_HINTS.get(str(raw_code), "")
             return ChannelRejected(
-                f"服务端拒收本次消息（HTTP {status}，code={raw_code}{suffix}）",
+                f"服务端拒收本次消息（HTTP {status}，code={raw_code}{suffix}）{hint}",
                 code=str(raw_code))
         if data.get("ok") is False:
             detail = str(data.get("error") or data.get("msg") or "")[:120]
@@ -535,10 +590,13 @@ class ChannelInstaller:
         if not webhook_url:
             raise ValueError("Webhook URL 未配置")
 
-        payload = ChannelInstaller._build_webhook_payload(webhook_url, message, kwargs)
+        # 加签密钥（可选；空 = 该机器人未开加签）。飞书签在 body，钉钉签在 URL 查询串
+        sign_secret = str(config.get("sign_secret") or "").strip()
+        payload = ChannelInstaller._build_webhook_payload(
+            webhook_url, message, kwargs, sign_secret=sign_secret)
         data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         req = urllib.request.Request(
-            webhook_url,
+            ChannelInstaller._signed_webhook_url(webhook_url, sign_secret),
             data=data,
             headers={"Content-Type": "application/json"},
             method=config.get("method", "POST"),

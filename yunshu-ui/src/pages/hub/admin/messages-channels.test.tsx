@@ -367,6 +367,80 @@ describe('HubChannelsPanel', () => {
     expect(await screen.findByText('本机 · 不写 .env')).toBeTruthy()
   })
 
+  // ── 飞书/钉钉「加签」可选字段（2026-11-22）──
+  //
+  // 后端 resolved_channels 里多一个 sign_secret（secret=true，env 键 CP_ALERT_WEBHOOK_SIGN_SECRET）；
+  // 本页只渲染 —— 但"留空 = 不改 / 清除口令 = null"这两条必须真的发对。
+  function setupWebhookView(overrides: Record<string, unknown> = {}) {
+    const view = {
+      channel_id: 'webhook',
+      channel_type: 'webhook',
+      primary: true,
+      env_keys: ['CP_ALERT_WEBHOOK_URL', 'CP_ALERT_WEBHOOK_SIGN_SECRET'],
+      fields: [
+        {
+          field: 'webhook_url', env_key: 'CP_ALERT_WEBHOOK_URL', secret: false,
+          local: 'https://open.feishu.cn/open-apis/bot/v2/hook/x', local_configured: true,
+          effective: 'https://open.feishu.cn/open-apis/bot/v2/hook/x', source: 'channel',
+          source_label: '通道本地配置', configured: true,
+        },
+        {
+          field: 'sign_secret', env_key: 'CP_ALERT_WEBHOOK_SIGN_SECRET', secret: true,
+          local: '***', local_configured: true, effective: '***', source: 'channel',
+          source_label: '通道本地配置', configured: true,
+        },
+      ],
+      extra: {},
+      example: { channel_type: 'webhook', webhook_url: 'https://example.com/hooks/x', sign_secret: '' },
+      notes: ['飞书/钉钉自定义机器人若开了「加签」，把密钥填到「加签密钥」；没开就留空。'],
+      ...overrides,
+    }
+    api.hubGet.mockImplementation(async (url: string) => {
+      if (url === '/api/extensions/discover') {
+        return {
+          ok: true,
+          builtin_channels: [{ id: 'webhook', name: 'Webhook 通道', installed: true }],
+          resolved_channels: [view],
+        }
+      }
+      if (url === '/api/extensions/list') {
+        return { ok: true, extensions: [{ ext_id: 'webhook', ext_type: 'channel', name: 'Webhook 通道', enabled: true }] }
+      }
+      return { ok: true }
+    })
+  }
+
+  it('加签密钥是可选口令字段：密码框上屏、显示 env 键；留空保存不带该键', async () => {
+    setupWebhookView()
+    api.hubPost.mockResolvedValue({ ok: true })
+    render(<HubChannelsPanel />)
+    fireEvent.click(await screen.findByRole('button', { name: '配置通道 webhook' }))
+
+    const input = screen.getByLabelText('通道字段 webhook sign_secret') as HTMLInputElement
+    expect(input.type).toBe('password')        // 口令类：不回显
+    expect(input.value).toBe('')
+    expect(input.placeholder).toContain('已配置')
+    expect(screen.getByText('CP_ALERT_WEBHOOK_SIGN_SECRET')).toBeTruthy()
+    expect(screen.getByText('加签密钥（飞书/钉钉开了签名校验时填）')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: '保存通道配置 webhook' }))
+    await waitFor(() => expect(api.hubPost).toHaveBeenCalled())
+    const body = api.hubPost.mock.calls.at(-1)?.[1] as { config: Record<string, unknown> }
+    expect('sign_secret' in body.config, '留空必须不带该键（后端 = 不修改）').toBe(false)
+  })
+
+  it('加签密钥可以显式清除：点「清除口令」后保存发 null（后端据此删键）', async () => {
+    setupWebhookView()
+    api.hubPost.mockResolvedValue({ ok: true })
+    render(<HubChannelsPanel />)
+    fireEvent.click(await screen.findByRole('button', { name: '配置通道 webhook' }))
+    fireEvent.click(screen.getByRole('button', { name: '清除口令 webhook' }))
+    fireEvent.click(screen.getByRole('button', { name: '保存通道配置 webhook' }))
+    await waitFor(() => expect(api.hubPost).toHaveBeenCalled())
+    const body = api.hubPost.mock.calls.at(-1)?.[1] as { config: Record<string, unknown> }
+    expect(body.config.sign_secret).toBeNull()
+  })
+
   it('口令不回显：来源徽标上屏，留空 = 不带该键（不误清授权码）', async () => {
     setupWithView(viewOf(), { smtp_server: 'smtp.example.com', 'smtp_password': 'pw-9x' })
     api.hubPost.mockResolvedValue({ ok: true, message: '已更新通道配置: email_smtp（.env 改 1 项 / 删 0 项）' })

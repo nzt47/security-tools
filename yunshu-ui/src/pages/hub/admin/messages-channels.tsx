@@ -103,6 +103,8 @@ const FIELD_LABELS: Record<string, string> = {
   from_address: '发件人',
   default_to: '收件人（逗号分隔）',
   webhook_url: 'Webhook 地址',
+  // 飞书/钉钉自定义机器人的加签密钥（可选；后端按 SECRET_FIELDS 永久掩码）
+  sign_secret: '加签密钥（飞书/钉钉开了签名校验时填）',
 }
 
 /** 来源徽标配色：本地 > .env 专用键 > .env 旧键 > 默认 */
@@ -667,7 +669,8 @@ export default function HubChannelsPanel() {
                     )}
                     <div className="text-micro text-slate-500">
                       其余字段（method / headers / use_tls …）用下面的高级 JSON；口令不会在这里回显。
-                      留空字段保存后 = <strong>从 .env 删除该键</strong>（读取回落到 .env 旧键 / 默认值，不写空串占位）。
+                      非口令字段留空保存 = <strong>从 .env 删除该键</strong>（回落到旧键 / 默认值，不写空串占位）；
+                      口令类（SMTP 口令 / 加签密钥）留空 = <strong>不修改</strong>，要清空请用「清除口令」。
                     </div>
                     <Textarea
                       size="sm"

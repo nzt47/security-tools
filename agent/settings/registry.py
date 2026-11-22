@@ -2225,6 +2225,11 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        "空 = 回落 ERROR_REPORTING_WEBHOOK_URL 与默认值"
        "（agent/extensions/channel_env_bridge.py）",
        owner="agent/extensions/channel_env_bridge.py", secret=True),
+    _secret("CP_ALERT_WEBHOOK_SIGN_SECRET", CAT_EXTERNAL,
+            "报警通道（Webhook）的**加签密钥**（飞书/钉钉自定义机器人开启签名校验时用）："
+            "由消息通道页写入 .env，此处只读脱敏；空 = 该机器人未开加签"
+            "（agent/extensions/channel_env_bridge.py 读，agent/extensions/channels_installer.py 用它算 sign）",
+            owner="agent/extensions/channel_env_bridge.py"),
 
     # ────────────────────────────────────────────────────────
     #  【L5】扫描根扩容后补登记的「表外」开关（2026-09-23）

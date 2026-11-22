@@ -67,6 +67,9 @@ ENV_KEYS_BY_TYPE: Dict[str, Tuple[Tuple[str, str], ...]] = {
     ),
     TYPE_WEBHOOK: (
         ('webhook_url', 'CP_ALERT_WEBHOOK_URL'),
+        # 【2026-11-22】飞书/钉钉自定义机器人的「加签」密钥（可选）。
+        # 填了才带 timestamp+sign；不填 = 该机器人未开加签（现状）。
+        ('sign_secret', 'CP_ALERT_WEBHOOK_SIGN_SECRET'),
     ),
 }
 
@@ -86,7 +89,7 @@ LEGACY_ENV_BY_TYPE: Dict[str, Tuple[Tuple[str, str], ...]] = {
 }
 
 #: 口令类字段（对外永久掩码；留空 = 不改）
-SECRET_FIELDS = frozenset({'smtp_password'})
+SECRET_FIELDS = frozenset({'smtp_password', 'sign_secret'})
 
 #: 掩码常量（唯一形态；不保留任何片段/长度）
 MASK = '***'
@@ -134,6 +137,8 @@ EXAMPLE_TEMPLATES: Dict[str, Dict[str, Any]] = {
     TYPE_WEBHOOK: {
         'channel_type': 'webhook',
         'webhook_url': 'https://example.com/hooks/yunshu-alert',
+        # 可选：飞书/钉钉自定义机器人开启「加签」时才需要（留空 = 未开加签）
+        'sign_secret': '',
         'method': 'POST',
         'headers': {'Content-Type': 'application/json'},
     },
@@ -151,6 +156,8 @@ EXAMPLE_NOTES: Dict[str, Tuple[str, ...]] = {
         '地址要能被本机直接访问（不要填内网占位域名）。',
         '保存后地址会写进 .env（CP_ALERT_WEBHOOK_URL），重启后仍然生效。',
         '留空并保存 = 从 .env 删除该键 ⇒ 回落到旧键 ERROR_REPORTING_WEBHOOK_URL / 默认值。',
+        '飞书/钉钉自定义机器人若开了「加签」，把密钥填到「加签密钥」（写 CP_ALERT_WEBHOOK_SIGN_SECRET）；'
+        '没开就留空。留空 = 不改，要清空请用「清除口令」。',
     ),
 }
 
@@ -201,7 +208,10 @@ def _dedicated_env_values(ctype: str) -> Dict[str, str]:
             'default_to': os.environ.get('CP_ALERT_SMTP_TO', ''),
         }
     if ctype == TYPE_WEBHOOK:
-        return {'webhook_url': os.environ.get('CP_ALERT_WEBHOOK_URL', '')}
+        return {
+            'webhook_url': os.environ.get('CP_ALERT_WEBHOOK_URL', ''),
+            'sign_secret': os.environ.get('CP_ALERT_WEBHOOK_SIGN_SECRET', ''),
+        }
     return {}
 
 
