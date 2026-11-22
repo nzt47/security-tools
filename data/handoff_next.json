@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-22T15:32:00+08:00",
+ "updated_at": "2026-11-22T18:22:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1365,6 +1365,14 @@
    "title": "飞书 webhook 发送成功但机器人没收到：载荷方言 + 业务码校验（钉钉同修）",
    "criteria": "Owner 现场：消息中心配飞书自定义机器人 webhook，点发送回「消息已发送」，机器人没收到。两步探针（真实 URL）：① 云枢载荷 {text, source} -> HTTP 200 + {code:19002, msg:params error, msg_type need}；② 飞书载荷 {msg_type, content:{text}} -> HTTP 200 + {code:0, msg:success}（真送达）。根因：_handle_webhook 只发通用 {text}（只对 Slack 兼容端点成立），且只看 HTTP 状态判成功，而飞书/钉钉的失败也是 200（业务码在 body）。修法：按主机判方言（feishu/dingtalk/generic）、业务码非 0 或 ok=false 判失败、ChannelRejected 把服务端 code/msg 作为可读原因回界面（不用 str(exc)）、HTTPError 转可读原因；超时/响应体上限提常量。",
    "next": "2026-11-22 落地 bd4ec88d8 并部署（bd4ec88d8 / bundle index-Cnvb4MRQ.js / pid 13812，三处一致）。读数：新增 test_channel_webhook_delivery.py 9 条；通道/扩展 8 文件 126 passed；真实飞书 URL 回 HTTP 200（业务码 0 才返回）；端到端 POST /api/extensions/channels/send 回 {ok:true, message:消息已发送: HTTP 200}（机器人已收到两条验证消息）。边界：加签（sign secret）未做 —— 该机器人未开加签；若开启，现在会如实报 code=19021，要做需加可选配置字段 + env 键 + 开关登记（属另一批）。"
+  },
+  {
+   "id": "settings-collapse-under-filter",
+   "status": "done",
+   "priority": "P2",
+   "title": "开关中心选 A/B/C 后分类分组收不起来（forceOpen 锁死折叠）",
+   "criteria": "Owner 实报：调度与开关 → 开关中心，点「全部」时分类可收缩，选 A/B/C 收不起来。根因：CategoryGroup 传 forceOpen={filtering}，Collapsible 的 expanded = forceOpen || open；filtering = 有搜索词 || risk != all || 只看已覆盖 ⇒ 筛选态下点标题只翻内部 state。修法：Collapsible 删掉 forceOpen（唯一语义是用户收不起来）；CategoryGroup 改收筛选指纹 resetToken 并作为 key ⇒ 条件变化时重挂回默认展开（保留筛选后自动可见），折叠权归用户。用例 +2（选 A 后可收起 / 换筛选自动展开），负向验证（临时恒展开）实测 2 failed。",
+   "next": "2026-11-22 落地 f61c4bf58 并部署（f61c4bf58 / bundle index-DEIO76QS.js，三处一致）。读数：tsc 0；vitest 199 files · 1526 tests 全绿；ui:check exit 0（raw_heading 70 / css_hardcoded_color 0）。真机：初始 true → 选 A 后 true → 点标题 false → 切回全部 true；截图 .ui_shots/SETTINGS_COLLAPSE_A_1440.png（探针 .local/probe_settings_collapse_1220.py）。延伸：全仓凡是 expanded = forced || state 的写法都可能有同类问题（本轮只修了开关中心）。"
   }
  ]
 }
