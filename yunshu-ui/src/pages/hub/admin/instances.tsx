@@ -357,7 +357,9 @@ export default function InstancesPanel() {
             {busy === 'create' ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} 新建
           </Button>
           <span className="ml-2 text-micro text-slate-600">
-            名称与类型必填；LLM 实例还需 api_endpoint（后端必填，缺了会 400）
+            {tab === 'llm'
+              ? '名称、provider、api_endpoint 必填（后端校验，缺了会 400）'
+              : '名称与引擎类型必填；custom 还需 api_endpoint'}
           </span>
         </div>
       </div>
