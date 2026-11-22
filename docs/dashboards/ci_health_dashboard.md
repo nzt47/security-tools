@@ -130,6 +130,7 @@
 | 2026-11-22 | `f302876` | 100.0% (10/10) | 0 | 0 | 72.13 | — | 0 | ↑ | docs(handoff): settings-collapse-under-filter 置 done（开关中心筛选态折叠权还给用户） |
 | 2026-11-22 | `111cfaa` | 100.0% (10/10) | 0 | 0 | 99.23 | — | 0 | ↑ | docs(handoff): feishu-webhook-sign-secret 置 done（加签字段 + env 键 + 登记 + 两家签名） |
 | 2026-11-22 | `a118efe` | 100.0% (10/10) | 0 | 0 | 100.18 | — | 0 | ↑ | docs(handoff): §11.215 会话转移 + 两条 frozen（_sanitize 吞文案 / 钉钉加签无真机） |
+| 2026-11-22 | `bd1bc2d` | 100.0% (10/10) | 0 | 0 | 101.44 | — | 0 | ↑ | chore(plugin-bulkhead): 去掉未使用的 snapshot 与 typing.Dict |
 | YYYY-MM-DD | `<sha7>` | — | — | — | — | — | — | — | 模板占位行，请替换 |
 
 ---
