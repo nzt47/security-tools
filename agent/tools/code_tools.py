@@ -208,8 +208,9 @@ def register_all(dl):
                     "（agent/task_scheduler.py 的 system_command 任务类型，它带"
                     "_guard_scheduled_command 权限闸门）；"
                     "② 若你只是需要延迟/重复地跑一个工具，请在对话里直接调用该工具；"
-                    f"③ 运维若已另行实现 action 分支，可置 {ACTION_EXECUTION_ENV}=1 恢复本工具"
-                    "（届时返回值会显式带上 action_execution_implemented=true）。"),
+                    f"③ 本开关只在 agent/scheduling.ACTION_EXECUTION_IMPLEMENTED=True"
+                    f"（action 分支真的接线）后才生效；届时再置 {ACTION_EXECUTION_ENV}=1 恢复。"
+                    "当前该常量仍是 False，所以置 1 也不会恢复，别再重试。"),
             }
 
         try:

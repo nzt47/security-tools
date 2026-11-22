@@ -951,8 +951,9 @@ _c("CP_SUBAGENT_CALLBACK_ALLOW", CAT_SELF_HEALING, "",
        "agent/scheduling.py::_execute_task 的 action 分支是 pass ⇒ 工具面 "
        "schedule_task 创建的任务会按时触发但**不执行任何动作**（谎报成功）。"
        "默认 0 ⇒ schedule_task 直接返回 error_code=NOT_IMPLEMENTED 并拒绝创建，"
-       "使模型不再收到「成功」；置 1/true/yes/on ⇒ 恢复创建（返回值显式带 "
-       "action_execution_implemented=true），仅在运维已另行实现 action 分支后使用",
+       "使模型不再收到「成功」。注意：本开关只在代码里 "
+       "agent/scheduling.ACTION_EXECUTION_IMPLEMENTED=True（action 分支真的接线）后才生效；"
+       "当前该常量仍为 False，故即使置 1 也不会恢复创建。",
        owner="agent/tools/code_tools.py",
        impact="影响面：默认 0=schedule_task 不可用（拒绝创建，返回 NOT_IMPLEMENTED）；"
               "置 1=恢复创建定时任务，但动作是否真的执行取决于 action 分支是否已实现"),

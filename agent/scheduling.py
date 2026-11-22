@@ -57,9 +57,16 @@ SCHEDULED_STORE_FILE = DATA_DIR / "scheduled_tasks.json"
 ACTION_EXECUTION_ENV = "CP_SCHEDULER_ACTION_EXECUTION"
 _ACTION_ENABLED_VALUES = frozenset({"1", "true", "yes", "on"})
 
+#: 【2026-11-22】action 分支的代码事实：当前 _execute_task 仍是 pass。
+#: 环境开关只在代码真的接线后才生效 —— 否则一个历史误开的 data/ui_settings.json 覆盖
+#: （本机实测就是 true）会让工具/API 继续“创建成功、实际空跑”。
+ACTION_EXECUTION_IMPLEMENTED = False
+
 
 def action_execution_enabled() -> bool:
-    """action 分支是否已接线；读不到/非法一律 False（安全默认）。"""
+    """action 分支是否真的会执行：代码未接线 ⇒ 恒 False（开关也救不了）。"""
+    if not ACTION_EXECUTION_IMPLEMENTED:
+        return False
     try:
         raw = str(os.environ.get(ACTION_EXECUTION_ENV, "0")).strip().lower()
     except Exception:  # noqa: BLE001

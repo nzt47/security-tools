@@ -16,6 +16,9 @@ def test_action_execution_defaults_off(monkeypatch):
     monkeypatch.delenv(scheduling.ACTION_EXECUTION_ENV, raising=False)
     assert scheduling.action_execution_enabled() is False
     monkeypatch.setenv(scheduling.ACTION_EXECUTION_ENV, "1")
+    # 【2026-11-22】代码未接线时，历史误开的 override 也不能让空跑恢复。
+    assert scheduling.action_execution_enabled() is False
+    monkeypatch.setattr(scheduling, "ACTION_EXECUTION_IMPLEMENTED", True)
     assert scheduling.action_execution_enabled() is True
 
 
