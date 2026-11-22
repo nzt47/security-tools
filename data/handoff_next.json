@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-22T19:06:00+08:00",
+ "updated_at": "2026-11-22T19:20:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1381,6 +1381,14 @@
    "title": "扫同类「用户改不回来」：导航搜索态折叠 + 新增 forcedState 守卫（ui:check 内）",
    "criteria": "Owner：查找同类问题（用户改不回来），发现了一并修。全仓扫描：force*/expanded = … || … 只剩 NavPanel.tsx:68（搜索态 forceOpen，与开关中心同源）；checked/selected/open = … || …、|| true、checked={true}、aria-pressed={true} 均 0 处；setBusy/setSaving 等 42 处 × 32 文件抽查 3 处均双路径复位。改法：NavPanel 删 forceOpen，顶层树以 item.key|查询词 为 key（查询变化重挂回默认展开），补 aria-expanded；新增 src/lib/forcedState.guard.test.ts（剥注释后三条规则 + 自测 + 负向注入实测）。",
    "next": "2026-11-22 落地 e0e8b695c 并部署（e0e8b695c / bundle index-BY-Ru93L.js，三处一致）。读数：tsc 0；vitest 200 files · 1531 tests 全绿；ui:check exit 0（raw_heading 70 / css_hardcoded_color 0）。真机：搜索「审批」→ aria-expanded=true；点「操作（可改）」→ false（旧实现无反应）；换「收件」→ true；截图 .ui_shots/NAV_SEARCH_COLLAPSE_1440.png（探针 .local/probe_nav_search_collapse_1221.py）。守卫已进 ui:guard ⇒ CI 的「代码质量检查」会跑；以后写 force* 或 || true 会当场红。未覆盖的动态写法（cn(...) 拼接、运行时拼串）静态扫不到，看到应拆成可控状态 + reset token。"
+  },
+  {
+   "id": "feishu-webhook-sign-secret",
+   "status": "done",
+   "priority": "P1",
+   "title": "webhook 加签支持：可选 sign_secret 字段 + CP_ALERT_WEBHOOK_SIGN_SECRET + 开关登记 + 飞书/钉钉签名",
+   "criteria": "Owner：把飞书的加签（sign secret）支持做了。字段层：channel_env_bridge 的 webhook 加 ('sign_secret','CP_ALERT_WEBHOOK_SIGN_SECRET') 并进 SECRET_FIELDS（掩码 / 留空=不改 / null=删键）；_dedicated_env_values 逐条字面量读该键；registry 用 _secret 登记；channels_installer 飞书签在 body（timestamp 秒 + base64(HmacSHA256(key='{ts}\\n{secret}', msg=''))）、钉钉签在 URL 查询串（毫秒 + key=secret/msg=拼接串，方向相反）；19021/19002/310000 给可执行提示；UI 加字段标签并修「留空=删键」那句对口令类字段的错话。",
+   "next": "2026-11-22 落地 112892241 并部署（112892241 / bundle index-DNOeR2fU.js，三处一致）。读数：test_channel_sign_secret 9 条 + 通道/登记合计 58 passed；scan_settings --check （agent/extensions + agent/settings）零缺口（550 开关 / 缺口 0 / 动态家族 0）；前端 200 files · 1533 tests、tsc 0、ui:check exit 0。真机：discover 里有 sign_secret 字段；配置→.env 写键→发送 200；清空→.env 删键→发送 200；截图 .ui_shots/CHANNEL_SIGN_FIELD_1440.png。边界：该机器人当前未开加签（带错签名不会被拒），开加签后错密钥会如实报 19021 + 提示；钉钉算法已实现但无真机可验。"
   }
  ]
 }
