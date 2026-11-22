@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-22T12:24:00+08:00",
+ "updated_at": "2026-11-22T12:45:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1325,6 +1325,14 @@
    "title": "code scanning 最后 4 条告警清零（2×py/stack-trace-exposure、1×py/path-injection、1×py/insecure-protocol）",
    "criteria": "2026-11-22 实盘：gh api code-scanning/alerts?state=open 在 master（577644e5d）只剩 4 条 —— #747 routes_llm_gate.py:46、#746 routes_ui_guard.py:86（源 fixer.py:119/142）、#744 memory_import/transcript.py:306、#743 monitoring/dependency_probe.py:125。按 docs/security/codeql_triage_2026-11-01.md 的纪律「改 producer、不猜 sink」：① 新增领域异常 GateConfigError(ValueError)，文案挂 .message，路由不再 str(异常)；② fixer 读/写失败的 errors 条目只留异常类别（原文进 logger）；③ 报告文件名前缀改常量表 _REPORT_PREFIX_BY_SOURCE（常量键→常量值），未知来源 400 不落盘；④ 探测专用 _tls_context() 显式 minimum_version=TLSv1_2，不放松 check_hostname。新增 7 条回归用例（含注入 BOOM_SECRET 断言不泄漏、TLS 最低版本断言）。",
    "next": "2026-11-22 已落地 4e2200446 并部署（4e2200446 / bundle index-BjAJK9QZ.js / pid 4280）；本地 4 个测试文件 78 passed、指定 pytest 集 273 passed；真机：POST /api/llm-gate 非法时段回「第 1 条时段的结束时间必须晚于开始时间」、GET /api/memory/import/sessions/latest?source=../evil 回 400「source 只能取 dsh / claude / trae」。复核（12:22）：gh api code-scanning/alerts?state=open = 0，#747/#746/#744/#743 全部 state=fixed（不是 dismissed）⇒ 2026-11-01 分诊的 641 条告警全部清零。遗留（有意保留）：plugins/system_tools._sanitize 按 key 名脱敏，会把右坞浏览器的业务文案（如「会话不存在或已过期」）换成「执行失败（详见服务日志）」；要修需先把 ssrf_guard verdict 的机器可读 category 透到 UI，别直接拆脱敏层。"
+  },
+  {
+   "id": "dependabot-opentelemetry-1452",
+   "status": "done",
+   "priority": "P2",
+   "title": "Dependabot 3 条 medium（opentelemetry-api GHSA-mf5v-w3w3-f6cg）：按硬钉整组升 1.45.2",
+   "criteria": "开项时 gh api dependabot/alerts?state=open = 3（同一条公告，分别挂 requirements.txt / requirements-dev.txt / requirements-test.txt）。仓库里已有 Dependabot PR #1544，但它只升 api，「依赖一致性（pyproject ↔ requirements ↔ 实装）」与「Lint and Type Check」两条红 —— 根因是 sdk 1.45.1 的 requires_dist 硬钉 opentelemetry-api==1.45.1。按 aa07446ba 先例整组升：api/sdk/proto/exporter-proto-common/exporter-proto-grpc -> 1.45.2、semconv 0.66b2、exporter-otlp-common 0.66b2（各自上下游 requires_dist 校验过）。",
+   "next": "2026-11-22 落地 de26acd67 并部署（de26acd67 / bundle index-DIXcgcHy.js / pid 192，三处一致）；本机：pip 七个包全 1.45.2/0.66b2、chromadb 1.5.9 import ok、audit_dependency_drift --fail-on-conflict 真冲突 0、追踪 115 passed、可观测 143 passed。PR #1544 已评论并关闭（分支已删）。待复核：GitHub 重算依赖图后 dependabot alerts 应归 0（当前仍报 3 = 还没重算）；判据是 master 的 requirements.txt 不再含 opentelemetry-api==1.45.1。"
   }
  ]
 }
