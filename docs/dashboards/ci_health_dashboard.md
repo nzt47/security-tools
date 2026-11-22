@@ -124,6 +124,7 @@
 | 2026-11-22 | `4e22004` | 100.0% (10/10) | 0 | 0 | 50.15 | — | 0 | ↑ | fix(security): 清掉 code scanning 剩余 4 条告警（异常原文 / 路径注入 / TLS 版本） |
 | 2026-11-22 | `de26acd` | 100.0% (10/10) | 0 | 0 | 97.78 | — | 0 | ↑ | chore(deps): opentelemetry 整组 1.45.1 -> 1.45.2（api/sdk/proto/exporters + semconv |
 | 2026-11-22 | `17573c5` | 100.0% (10/10) | 0 | 0 | 98.10 | — | 0 | ↑ | fix(memory): _flush 读不到的键不再静默丢弃（CI shard6 偶发 10 个 .md 只有 2 个的根因） |
+| 2026-11-22 | `acd66dd` | 100.0% (10/10) | 0 | 0 | 65.91 | — | 0 | ↑ | docs(handoff): 登记 instance-payload-contract 与 tlm-flush-requeue-unread（两个 done） |
 | YYYY-MM-DD | `<sha7>` | — | — | — | — | — | — | — | 模板占位行，请替换 |
 
 ---
