@@ -47,14 +47,14 @@ describe('NavPanel 搜索框', () => {
     expect(screen.queryByText('记忆管理')).toBeNull()
   })
 
-  it('输入小节名「治理」⇒ 整块展开（不必先知道子项叫什么）', () => {
+  it('输入「治理」⇒ 只留命中的叶子与路径（2026-11-22 小节取消后不再整块带出兄弟页）', () => {
     render(<NavPanel />)
 
     fireEvent.change(searchBox(), { target: { value: '治理' } })
 
-    // 【2026-11-21 重组】「治理」既是观测桶下的小节名，也是「治理看板」叶子的名字
     expect(screen.getByText('治理看板')).toBeTruthy()
-    expect(screen.getByText('业务看板')).toBeTruthy()
+    // 观测桶的「治理」小节已取消 ⇒ 兄弟页「业务看板」不再因小节同名被整块带出
+    expect(screen.queryByText('业务看板')).toBeNull()
     // 操作桶里的东西不属于"治理"这一块（审批收件箱在操作桶）
     expect(screen.queryByText('审批收件箱')).toBeNull()
   })

@@ -260,10 +260,11 @@ describe('hubNav 导航结构（2026-10-27 · §11.12 两个叶子的 IA 搬迁�
     expect((workspace?.children ?? []).map((c) => c.key)).not.toContain('local')
   })
 
-  it('「回放中心」留在观测桶的「运行」小节，与日志/审计同类', () => {
+  it('「回放中心」与日志/审计同属观测桶（2026-11-22 小节取消后直接挂桶下）', () => {
     const panorama = HUB_NAV.find((i) => i.key === 'panorama')
-    const runSection = panorama?.children?.find((c) => c.key === 'panorama/run')
-    const runKeys = (runSection?.children ?? []).map((c) => c.key)
+    const runKeys = (panorama?.children ?? []).map((c) => c.key)
+    // 观测桶已拍平：children 全是叶子（有 component、不再有 children）
+    expect((panorama?.children ?? []).every((c) => !c.children && Boolean(c.component))).toBe(true)
     expect(runKeys).toContain('replay')
     expect(runKeys).toContain('observability/logs')
     expect(runKeys.indexOf('replay')).toBeGreaterThan(runKeys.indexOf('observability/logs'))
@@ -373,7 +374,9 @@ describe('hubNav 导航结构（2026-11-21 · 按「看/改」重组：观测 / 
     }
   })
 
-  it('小节 key 不是可导航叶子：?panel=panorama/run 落默认页，而不是空白页', () => {
+  it('旧小节 key 不是可导航叶子：?panel=panorama/run 落默认页，而不是空白页', () => {
+    // 【2026-11-22 Owner】观测桶的「运行 / 治理」两个小节已取消（叶子直接挂桶下）。
+    // 小节 key 从来不是叶子；旧链接仍必须落默认页（不是空白页）—— 这条继续锁。
     expect(isNavLeaf('panorama/run')).toBe(false)
     expect(isNavLeaf('panorama/govern')).toBe(false)
     expect(resolveNavKey('panorama/run')).toBe('')

@@ -163,37 +163,32 @@ export const HUB_NAV: HubNavItem[] = [
     ],
   },
   // ═══ 观测（只读）═══════════════════════════════════════════════════════
-  // 【2026-11-21 导航重组】桶＝能力轴、小节＝域轴：
-  //   · "只看不改"的东西全在这一个桶里（运行时观测 + 治理分析 + 留档），打开就知道不能动；
-  //   · 小节「运行 / 治理」保留原来的域感，不让"治理"和"系统"混成一锅。
+  // 【2026-11-22 Owner 要求】取消「运行 / 治理」两个小节，叶子直接挂在桶下
+  //   （与「会话与能力」同形：桶 → 叶子，少一层折叠）。
+  //   · 小节 key（panorama/run、panorama/govern）**从来不是可导航叶子**（isNavLeaf 只认带
+  //     component 的项）⇒ 删小节不影响任何深链；旧链接 ?panel=panorama/run 本来就落默认页，
+  //     用例 test/hubNav.test.ts 继续锁着这条；
+  //   · 叶子 key 一个没动 ⇒ 系统总览 / 运行监控 / 平台能力 / 日志与审计 / 回放中心 /
+  //     治理看板 / 业务看板 的旧链接全部照旧；
+  //   · 桶 key 'panorama' 仍映射到第一个叶子（panorama/health）。
   {
     key: 'panorama', label: '观测（只读）', icon: LayoutDashboard,
     children: [
-      {
-        key: 'panorama/run', label: '运行', icon: Activity,
-        children: [
-          // 系统总览 = 健康仪表盘（含「管理概览」Tab：原「系统管理 · 仪表盘」并入，同源双入口消除）
-          { key: 'panorama/health', label: '系统总览', icon: Activity, component: PanoramaHealth },
-          // 运行监控 = 全景感知 + 系统拓扑（2026-11-21 合并，页内两 Tab）
-          { key: 'panorama/runtime', label: '运行监控', icon: Server, component: RuntimeMonitor },
-          // 【2026-11-02 C-3】平台能力：复用 /api/system/units + /api/tools/config +
-          // /api/scheduler/overview 三个既有只读端点（**不造** /api/system/platform-cards，§11.36 K）。
-          { key: 'panorama/platform', label: '平台能力', icon: Boxes, component: PlatformCapability },
-          // 日志与审计 = 实时日志 / 操作审计 / 系统日志 / 审计链 / 数据导出（五 Tab）
-          { key: 'observability/logs', label: '日志与审计', icon: FileText, component: LogsAndAudit },
-          // 会话回放是**运行时观测**产物（列表/详情读 /api/replay/*），与日志同类；清理动作在页内
-          { key: 'replay', label: '回放中心', icon: Film, component: ReplayCenter },
-        ],
-      },
-      {
-        key: 'panorama/govern', label: '治理', icon: BarChart3,
-        children: [
-          // 治理看板 = 消化流水线 / 能力地图 / 成本 ROI / 自愈事故 / 路由覆盖（五 Tab，全部只读）
-          { key: 'governance/board', label: '治理看板', icon: Layers, component: GovernanceBoard },
-          // 业务看板自带两 Tab（业务指标 / 系统仪表盘）且体量大，不并进治理看板（避免"页签里的页签"）
-          { key: 'governance/business', label: '业务看板', icon: BarChart3, component: BusinessBoard },
-        ],
-      },
+      // 系统总览 = 健康仪表盘（含「管理概览」Tab：原「系统管理 · 仪表盘」并入，同源双入口消除）
+      { key: 'panorama/health', label: '系统总览', icon: Activity, component: PanoramaHealth },
+      // 运行监控 = 全景感知 + 系统拓扑（2026-11-21 合并，页内两 Tab）
+      { key: 'panorama/runtime', label: '运行监控', icon: Server, component: RuntimeMonitor },
+      // 【2026-11-02 C-3】平台能力：复用 /api/system/units + /api/tools/config +
+      // /api/scheduler/overview 三个既有只读端点（**不造** /api/system/platform-cards，§11.36 K）。
+      { key: 'panorama/platform', label: '平台能力', icon: Boxes, component: PlatformCapability },
+      // 日志与审计 = 实时日志 / 操作审计 / 系统日志 / 审计链 / 数据导出（五 Tab）
+      { key: 'observability/logs', label: '日志与审计', icon: FileText, component: LogsAndAudit },
+      // 会话回放是**运行时观测**产物（列表/详情读 /api/replay/*），与日志同类；清理动作在页内
+      { key: 'replay', label: '回放中心', icon: Film, component: ReplayCenter },
+      // 治理看板 = 消化流水线 / 能力地图 / 成本 ROI / 自愈事故 / 路由覆盖（五 Tab，全部只读）
+      { key: 'governance/board', label: '治理看板', icon: Layers, component: GovernanceBoard },
+      // 业务看板自带两 Tab（业务指标 / 系统仪表盘）且体量大，不并进治理看板（避免"页签里的页签"）
+      { key: 'governance/business', label: '业务看板', icon: BarChart3, component: BusinessBoard },
     ],
   },
   // ═══ 操作（可改）═══════════════════════════════════════════════════════
@@ -442,8 +437,9 @@ export function isNavKey(key: string, items: HubNavItem[] = HUB_NAV): boolean {
 /**
  * key 是否指向**可渲染的叶子**（带 component、没有 children）。
  *
- * 【2026-11-21 为什么补】导航重组引入了「桶 → 小节 → 叶子」三级：小节 key（如 panorama/run）
- * 只用于展开/折叠，点它不导航。但旧版 resolveNavKey 只查「key 存在」⇒ 深链 ?panel=panorama/run
+ * 【2026-11-21 为什么补】导航重组曾引入「桶 → 小节 → 叶子」三级：小节 key（如 panorama/run）
+ * 只用于展开/折叠，点它不导航（【2026-11-22】小节已取消，但旧深链 ?panel=panorama/run 仍要落默认页）。
+ * 旧版 resolveNavKey 只查「key 存在」⇒ 深链 ?panel=panorama/run
  * 会被接受，activeKey 指向一个没有组件的节点，ContentPanel 渲染兜底空白页（"工作台坏了"）。
  * 现在：只有叶子才可作导航目标；桶/小节 key 落到空串（由调用方回退默认页）。
  */

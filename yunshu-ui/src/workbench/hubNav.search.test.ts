@@ -44,12 +44,12 @@ describe('filterNav —— 侧栏搜索', () => {
     const tree = filterNav(HUB_NAV, '治理')
     const keys = flattenNav(tree).map((i) => i.key)
 
-    // 【2026-11-21 重组】「治理」现在既是观测桶下的小节名（panorama/govern），
-    // 也是叶子「治理看板」的名字 ⇒ 两处整块保留，且带上路径（panorama）。
-    expect(keys).toContain('panorama/govern')
+    // 【2026-11-22】观测桶的「治理」小节已取消 ⇒ 只剩叶子「治理看板」命中（+ 路径桶 panorama）
     expect(keys).toContain('governance/board')
-    expect(keys).toContain('governance/business')
     expect(keys).toContain('panorama')
+    expect(keys).not.toContain('panorama/govern')
+    // 取消小节的直接后果：兄弟页不再因为"小节同名"被整块带出（写死，免得小节回潮）
+    expect(keys).not.toContain('governance/business')
     expect(keys).not.toContain('memory')
   })
 
@@ -145,8 +145,8 @@ describe('信息架构：「治理与运营」必须一屏可达', () => {
   })
 
   it('审计导出 → 日志与审计；开关中心 → 调度与开关（2026-11-21 重组后的落点）', () => {
-    const runKeys = (HUB_NAV.find((i) => i.key === 'panorama')
-      ?.children?.find((c) => c.key === 'panorama/run')?.children ?? []).map((c) => c.key)
+    // 【2026-11-22】观测桶已拍平（取消「运行 / 治理」小节）⇒ 叶子直接是 bucket 的 children
+    const runKeys = (HUB_NAV.find((i) => i.key === 'panorama')?.children ?? []).map((c) => c.key)
     expect(runKeys).toContain('observability/logs')
 
     const opsKeys = (HUB_NAV.find((i) => i.key === 'governance')?.children ?? []).map((c) => c.key)
