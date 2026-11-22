@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-22T19:20:00+08:00",
+ "updated_at": "2026-11-22T19:38:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1389,6 +1389,22 @@
    "title": "webhook 加签支持：可选 sign_secret 字段 + CP_ALERT_WEBHOOK_SIGN_SECRET + 开关登记 + 飞书/钉钉签名",
    "criteria": "Owner：把飞书的加签（sign secret）支持做了。字段层：channel_env_bridge 的 webhook 加 ('sign_secret','CP_ALERT_WEBHOOK_SIGN_SECRET') 并进 SECRET_FIELDS（掩码 / 留空=不改 / null=删键）；_dedicated_env_values 逐条字面量读该键；registry 用 _secret 登记；channels_installer 飞书签在 body（timestamp 秒 + base64(HmacSHA256(key='{ts}\\n{secret}', msg=''))）、钉钉签在 URL 查询串（毫秒 + key=secret/msg=拼接串，方向相反）；19021/19002/310000 给可执行提示；UI 加字段标签并修「留空=删键」那句对口令类字段的错话。",
    "next": "2026-11-22 落地 112892241 并部署（112892241 / bundle index-DNOeR2fU.js，三处一致）。读数：test_channel_sign_secret 9 条 + 通道/登记合计 58 passed；scan_settings --check （agent/extensions + agent/settings）零缺口（550 开关 / 缺口 0 / 动态家族 0）；前端 200 files · 1533 tests、tsc 0、ui:check exit 0。真机：discover 里有 sign_secret 字段；配置→.env 写键→发送 200；清空→.env 删键→发送 200；截图 .ui_shots/CHANNEL_SIGN_FIELD_1440.png。边界：该机器人当前未开加签（带错签名不会被拒），开加签后错密钥会如实报 19021 + 提示；钉钉算法已实现但无真机可验。"
+  },
+  {
+   "id": "sanitize-swallow-browser-msg",
+   "status": "frozen",
+   "priority": "P3",
+   "title": "右坞浏览器的业务文案被 plugins/system_tools._sanitize 按 key 名吞掉（无会话时回「执行失败（详见服务日志）」）",
+   "criteria": "2026-11-22 实测：GET /api/browser/state（无会话）本应回「会话不存在或已过期」，实际被 _sanitize 的 error 键脱敏成「执行失败（详见服务日志）」。_sanitize 是 CodeQL B2 那批的兜底层（按 error/check_error/detail/reason 四个键名脱敏），而 browser_remote 的 check_target 会经 ssrf_guard.reason 把异常文本带进 error ⇒ 直接拆脱敏会引入新的 py/stack-trace-exposure。",
+   "next": "暂不改。要修必须先做结构化错误码：ssrf_guard 的 SsrfVerdict 已有 category 字段，把它透成 route 的 error_code，再让 UI 按 code 显示固定文案（脱敏层保留，业务码不经 error 键）。动之前先写方案 + 两条用例（有会话/无会话、SSRF 拒绝三种）。"
+  },
+  {
+   "id": "dingtalk-sign-live-verify",
+   "status": "frozen",
+   "priority": "P3",
+   "title": "钉钉自定义机器人「加签」已实现但无真机验证",
+   "criteria": "2026-11-22 随 feishu-webhook-sign-secret（112892241）一起实现：同一 sign_secret 字段，timestamp 毫秒 + sign=base64(HmacSHA256(key=secret, msg='{ts}\\n{secret}')) 追加到 URL 查询串（保留 access_token），算法与飞书方向相反；单测 test_channel_sign_secret.py 覆盖公式与 URL 拼接。",
+   "next": "有钉钉机器人时补一次真机：开「加签」→ 填密钥 → 消息中心手动发送 → 期望 200；密钥填错时期望 310000 且界面显示「钉钉拒收：常见于加签不匹配或关键词未命中」。不需要真机也能改动的部分（文案/字段）已就绪。"
   }
  ]
 }
