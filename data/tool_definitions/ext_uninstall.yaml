@@ -31,4 +31,13 @@ schema:
   required:
   - type
   - id
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

@@ -110,7 +110,10 @@ class PluginInstaller:
         if not plugin_policy.source_allowed(source):
             return False, ("插件来源不在白名单内（CP_PLUGIN_INSTALL_ALLOWLIST）。"
                            "白名单为空时拒绝一切安装。")
-        ext_type, location, subpath = self._engine.parse_source(source)
+        base_source, ref = plugin_policy.split_github_ref(source)
+        if ref and not plugin_policy.valid_github_ref(ref):
+            return False, "插件 ref 不合法（只接受分支/标签/commit 的安全字符）"
+        ext_type, location, subpath = self._engine.parse_source(base_source)
         if ext_type == "pip":
             return False, ("不支持从 pip: 直接安装插件包（会把依赖装进宿主环境）。"
                            "请改用 github:/local: 并在独立环境中安装依赖。")
@@ -124,7 +127,7 @@ class PluginInstaller:
             # 从 GitHub 下载
             repo_name = location.split("/")[-1]
             target_dir = plugins_dir / repo_name
-            success = self._engine.download_from_github(location, subpath, target_dir)
+            success = self._engine.download_from_github(location, subpath, target_dir, ref=ref)
             if not success:
                 return False, f"GitHub 下载失败: {location}"
             install_path = target_dir

@@ -43,4 +43,13 @@ schema:
   required:
   - service_id
   - transport
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

@@ -28,9 +28,22 @@ def test_bool_and_allowlist_parsing(monkeypatch):
     assert plugin_policy.plugin_client_ui_enabled() is False
     assert plugin_policy.install_allowlist() == ("github:owner/repo", "local:/tmp/plugin")
     assert plugin_policy.source_allowed("github:owner/repo") is True
-    assert plugin_policy.source_allowed("github:owner/repo@v1.2.3") is False
+    assert plugin_policy.source_allowed("github:owner/repo@v1.2.3") is True
+    assert plugin_policy.source_allowed("github:owner/repo@-bad") is False
     assert plugin_policy.source_allowed("github:owner/repo-evil") is False
     assert plugin_policy.source_allowed("https://owner/repo") is False
+
+
+def test_github_ref_split_and_validation():
+    assert plugin_policy.split_github_ref("github:owner/repo@v1.2.3") == (
+        "github:owner/repo", "v1.2.3")
+    assert plugin_policy.split_github_ref("github:owner/repo") == (
+        "github:owner/repo", "")
+    assert plugin_policy.valid_github_ref("v1.2.3") is True
+    assert plugin_policy.valid_github_ref("main") is True
+    assert plugin_policy.valid_github_ref("-bad") is False
+    assert plugin_policy.valid_github_ref("a..b") is False
+    assert plugin_policy.valid_github_ref("") is False
 
 
 def test_max_concurrent_clamped(monkeypatch):

@@ -34,4 +34,13 @@ schema:
       description: '是否后台执行（fire-and-forget）。true=立即返回 task_id，稍后用 get_task_status/get_task_result 取结果；false（默认）=阻塞等待本次执行结果'
   required:
   - command
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

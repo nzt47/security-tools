@@ -70,7 +70,28 @@ class InstallEngine:
         return ("local", source, "")
 
     @staticmethod
-    def download_from_github(repo: str, subpath: str, target_dir: Path) -> bool:
+    def _clone_repo(repo: str, clone_dir: Path, ref: str = "") -> bool:
+        """git clone（可带 ref）；失败返回 False，不把半成品当成功。"""
+        url = f"https://github.com/{repo}.git"
+        cmd = ["git", "clone", "--depth", "1"]
+        if ref:
+            cmd.extend(["--branch", str(ref)])
+        cmd.extend([url, str(clone_dir)])
+        try:
+            result = subprocess.run(
+                cmd, **_proc.hidden_kwargs(), capture_output=True, text=True, timeout=120,
+            )
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            shutil.rmtree(clone_dir, ignore_errors=True)
+            return False
+        if result.returncode != 0 or not clone_dir.exists():
+            shutil.rmtree(clone_dir, ignore_errors=True)
+            return False
+        return True
+
+
+    @staticmethod
+    def download_from_github(repo: str, subpath: str, target_dir: Path, ref: str = "") -> bool:
         """从 GitHub 下载扩展包
 
         尝试顺序：
@@ -78,7 +99,7 @@ class InstallEngine:
         2. 使用 git clone
         3. 下载 ZIP 归档
         """
-        logger.info(log_dict({'module_name': 'installer', 'action': 'github.repo.subpath', 'msg': f'[安装引擎] 从 GitHub 下载: {repo}/{subpath}'}))
+        logger.info(log_dict({'module_name': 'installer', 'action': 'github.repo.subpath', 'msg': f'[安装引擎] 从 GitHub 下载: {repo}/{subpath} ref={ref or "default"}'}))
 
         # 方法 1: gh CLI
         try:
@@ -89,12 +110,7 @@ class InstallEngine:
             if result.returncode == 0:
                 logger.info(log_dict({'module_name': 'installer', 'action': 'cli.repo', 'msg': f'[安装引擎] 使用 gh CLI 克隆: {repo}'}))
                 clone_dir = target_dir / "repo"
-                subprocess.run(
-                    ["git", "clone", "--depth", "1",
-                     f"https://github.com/{repo}.git", str(clone_dir)], **_proc.hidden_kwargs(),
-                    capture_output=True, timeout=120,
-                )
-                if clone_dir.exists():
+                if InstallEngine._clone_repo(repo, clone_dir, ref):
                     if subpath:
                         src = clone_dir / subpath
                         if src.exists():
@@ -105,19 +121,14 @@ class InstallEngine:
                         InstallEngine._merge_dir(clone_dir, target_dir)
                         shutil.rmtree(clone_dir, ignore_errors=True)
                         return True
-            return False
+            # gh 可用但 clone 失败（如 ref 是 commit SHA，--branch 不支持）⇒ 继续走方法 2/3
         except (subprocess.TimeoutExpired, FileNotFoundError):
             pass
 
         # 方法 2: git clone
         try:
             clone_dir = target_dir / "repo"
-            subprocess.run(
-                ["git", "clone", "--depth", "1",
-                 f"https://github.com/{repo}.git", str(clone_dir)], **_proc.hidden_kwargs(),
-                capture_output=True, timeout=120,
-            )
-            if clone_dir.exists():
+            if InstallEngine._clone_repo(repo, clone_dir, ref):
                 if subpath:
                     src = clone_dir / subpath
                     if src.exists():
@@ -134,7 +145,9 @@ class InstallEngine:
         # 方法 3: 下载 ZIP
         try:
             import urllib.request
-            zip_url = f"https://api.github.com/repos/{repo}/zipball/main"
+            from urllib.parse import quote as _quote
+            zip_ref = _quote(ref, safe="") if ref else "main"
+            zip_url = f"https://api.github.com/repos/{repo}/zipball/{zip_ref}"
             zip_path = target_dir / "archive.zip"
             logger.info(log_dict({'module_name': 'installer', 'action': 'zip.zip_url', 'msg': f'[安装引擎] 下载 ZIP: {zip_url}'}))
 

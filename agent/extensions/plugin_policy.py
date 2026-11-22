@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import os
+import re
 from typing import Tuple
 
 ENV_PLUGIN_PACKAGES_ENABLED = "CP_PLUGIN_PACKAGES_ENABLED"
@@ -59,6 +60,26 @@ def install_allowlist() -> Tuple[str, ...]:
     return tuple(item.strip().lower() for item in raw.split(",") if item.strip())
 
 
+def split_github_ref(source: str) -> Tuple[str, str]:
+    """拆 github:owner/repo@ref → (github:owner/repo, ref)；非 github 原样返回。"""
+    s = str(source or "").strip()
+    if s.lower().startswith("github:") and "@" in s:
+        base, ref = s.rsplit("@", 1)
+        return base, ref.strip()
+    return s, ""
+
+
+_REF_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$")
+
+
+def valid_github_ref(ref: str) -> bool:
+    """插件安装 ref 只接受分支/标签/commit 形态的安全字符。"""
+    r = str(ref or "").strip()
+    if not r or r.startswith("-") or ".." in r or r.endswith("/") or r.endswith(".lock"):
+        return False
+    return bool(_REF_RE.match(r))
+
+
 def source_allowed(source: str) -> bool:
     """来源是否在白名单内。
 
@@ -68,8 +89,11 @@ def source_allowed(source: str) -> bool:
     allow = install_allowlist()
     if not allow:
         return False
-    s = str(source or "").strip().lower()
+    s, ref = split_github_ref(source)
+    s = s.lower()
     if not s:
+        return False
+    if ref and not valid_github_ref(ref):
         return False
     return s in set(allow)
 
