@@ -131,6 +131,7 @@
 | 2026-11-22 | `111cfaa` | 100.0% (10/10) | 0 | 0 | 99.23 | — | 0 | ↑ | docs(handoff): feishu-webhook-sign-secret 置 done（加签字段 + env 键 + 登记 + 两家签名） |
 | 2026-11-22 | `a118efe` | 100.0% (10/10) | 0 | 0 | 100.18 | — | 0 | ↑ | docs(handoff): §11.215 会话转移 + 两条 frozen（_sanitize 吞文案 / 钉钉加签无真机） |
 | 2026-11-22 | `bd1bc2d` | 100.0% (10/10) | 0 | 0 | 101.44 | — | 0 | ↑ | chore(plugin-bulkhead): 去掉未使用的 snapshot 与 typing.Dict |
+| 2026-11-22 | `549836a` | 100.0% (14/14) | 0 | 0 | 73.53 | — | 0 | ↑ | feat(plugin-isolation): 插件包改独立子进程 + 超时硬杀 + 最小 env（P2 第一批） |
 | YYYY-MM-DD | `<sha7>` | — | — | — | — | — | — | — | 模板占位行，请替换 |
 
 ---
