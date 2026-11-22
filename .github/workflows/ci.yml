@@ -1100,13 +1100,19 @@ jobs:
           EOF
 
       - name: 解析 junit.xml 并更新看板
+        # 【2026-11-22】commit 摘要走 env 而不是内联插值：摘要里只要出现双引号，
+        # 内联写法会把 shell 引号提前闭合，argparse 收到半截参数直接 exit 2
+        #（407f5b16f 的提交信息含引号就踩过）。
+        env:
+          CI_NOTE: ${{ steps.note.outputs.note }}
+          CI_SHA: ${{ github.sha }}
         run: |
           echo "=== 更新 CI 健康度看板 ==="
           python scripts/update_ci_health_dashboard.py \
             --junit test-results/junit.xml \
             --dashboard docs/dashboards/ci_health_dashboard.md \
-            --sha ${{ github.sha }} \
-            --note "${{ steps.note.outputs.note }}"
+            --sha "$CI_SHA" \
+            --note "$CI_NOTE"
 
       - name: 提交并推送看板更新
         run: |
