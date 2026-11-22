@@ -14,7 +14,7 @@
  * 前端必须把"这是默认实例"和"确认删除"两件事都说清楚。
  */
 import { useCallback, useEffect, useState } from 'react'
-import { CheckCircle2, Cpu, Loader2, Plus, RefreshCw, Search, Star, Trash2, Wifi } from 'lucide-react'
+import { CheckCircle2, Cpu, Loader2, Pencil, Plus, RefreshCw, Save, Search, Star, Trash2, Wifi } from 'lucide-react'
 import { Button, ErrorBox, hubDelete, hubGet, hubPost, hubPut, Input, Notice, Select, Tabs, Textarea } from '../components/ui'
 import {
   LLM_INSTANCES,
@@ -83,6 +83,33 @@ export default function InstancesPanel() {
   const [fBaseUrl, setFBaseUrl] = useState('')
   const [fApiKey, setFApiKey] = useState('')
   const [fTimeout, setFTimeout] = useState('30')
+  // 正在编辑的实例 id（空 = 新建模式）。点行的「编辑」把已配置内容填进下面的表单。
+  const [editingId, setEditingId] = useState('')
+
+  const resetForm = () => {
+    setEditingId('')
+    setFName(''); setFKind(''); setFModel(''); setFBaseUrl(''); setFApiKey(''); setFTimeout('30')
+  }
+
+  /**
+   * 把一条已有实例载入表单（编辑模式）。
+   *
+   * 【api_key 为什么不回填】列表返回的是脱敏值（***xxxx）；回填再保存会把脱敏值写回去。
+   * 留空 = 保留原密钥；要换密钥就重填（只有非空且非脱敏值才会被后端 _save_secure 写入）。
+   */
+  const beginEdit = (it: Instance) => {
+    const id = String(it.id || '')
+    if (!id) return
+    setEditingId(id)
+    setFName(String(it.name || ''))
+    setFKind(String((tab === 'llm' ? it.provider : it.engine_type) || ''))
+    setFModel(String(it.model || ''))
+    setFBaseUrl(String(it.api_endpoint || it.base_url || ''))
+    setFApiKey('')
+    setFTimeout(String(it.timeout ?? 30))
+    setErr('')
+    setMsg('')
+  }
 
   const fail = (label: string, e: unknown) => setErr(label + '：' + (e instanceof Error ? e.message : String(e)))
   const bad = (label: string, r?: { error?: string; errors?: string[] }) =>
@@ -121,7 +148,7 @@ export default function InstancesPanel() {
       })
       if (r?.ok === false) { bad('新建失败', r); return }
       setMsg('已创建 LLM 实例：' + fName.trim())
-      setFName(''); setFApiKey('')
+      resetForm()
       await loadLlm()
     } catch (e) { fail('新建失败', e) } finally { setBusy('') }
   }
@@ -139,9 +166,40 @@ export default function InstancesPanel() {
       })
       if (r?.ok === false) { bad('新建失败', r); return }
       setMsg('已创建搜索实例：' + fName.trim())
-      setFName(''); setFApiKey('')
+      resetForm()
       await loadSearch()
     } catch (e) { fail('新建失败', e) } finally { setBusy('') }
+  }
+
+  /**
+   * 保存对已有实例的修改（PUT）。
+   *
+   * 【为什么按钮/文案与新建共用一套表单】Owner 要"点已有实例就能看到已配置内容并改"；
+   * 新建与编辑字段完全相同，共用表单避免两套输入互相漂移。
+   * 【api_key 留空 = 保留】只有非空且非脱敏值才进 updates。
+   */
+  const saveEdit = async () => {
+    if (!editingId) return
+    setBusy('edit'); setErr(''); setMsg('')
+    const key = fApiKey.trim()
+    const updates: Record<string, unknown> = tab === 'llm'
+      ? {
+          name: fName.trim(), provider: fKind.trim(), model: fModel.trim(),
+          api_endpoint: fBaseUrl.trim(), timeout: Number(fTimeout || 30),
+        }
+      : {
+          name: fName.trim(), engine_type: fKind.trim(), timeout: Number(fTimeout || 30),
+          ...(fBaseUrl.trim() ? { api_endpoint: fBaseUrl.trim() } : {}),
+        }
+    if (key && !key.startsWith('***')) updates.api_key = key
+    try {
+      const url = tab === 'llm' ? llmInstance(editingId) : searchInstance(editingId)
+      const r = await hubPut<{ ok?: boolean; error?: string; errors?: string[] }>(url, { updates })
+      if (r?.ok === false) { bad('保存修改失败', r); return }
+      setMsg('已保存修改：' + fName.trim())
+      resetForm()
+      await (tab === 'llm' ? loadLlm() : loadSearch())
+    } catch (e) { fail('保存修改失败', e) } finally { setBusy('') }
   }
 
   const setDefault = async (kind: Tab, id: string) => {
@@ -230,7 +288,7 @@ export default function InstancesPanel() {
           variant="segmented"
           size="sm"
           value={tab}
-          onChange={(v) => { setTab(v as typeof tab); setFKind('') }}
+          onChange={(v) => { setTab(v as typeof tab); resetForm() }}
           items={([['llm', 'LLM 实例'], ['search', '搜索实例']] as const).map(([id, label]) => ({ value: id, label }))}
         />
       </div>
@@ -255,6 +313,15 @@ export default function InstancesPanel() {
                     {it.enabled === false ? '停用' : '启用'}
                   </span>
                   <span className="ml-auto flex flex-wrap items-center gap-1">
+                    <Button
+                      type="button" variant="default" size="xs"
+                      onClick={() => beginEdit(it)}
+                      disabled={loading}
+                      aria-label={'编辑实例 ' + id}
+                      data-testid={'instance-edit-' + id}
+                    >
+                      <Pencil size={11} /> 编辑
+                    </Button>
                     <Button type="button" variant="default" size="xs" onClick={() => void setDefault(tab, id)} disabled={loading || it.is_default === true} aria-label={'设为默认 ' + id}>
                       <Star size={11} /> 设为默认
                     </Button>
@@ -290,7 +357,13 @@ export default function InstancesPanel() {
 
       <div className="mb-2 rounded-lg border border-slate-800 bg-slate-900/50 p-3">
         <div className="mb-2 flex items-center gap-2 text-caption text-slate-400">
-          <Plus size={11} className="text-cyan-400" /> 新建{tab === 'llm' ? ' LLM ' : '搜索'}实例
+          {editingId ? <Pencil size={11} className="text-amber-400" /> : <Plus size={11} className="text-cyan-400" />}
+          {editingId
+            ? '编辑' + (tab === 'llm' ? ' LLM ' : '搜索') + '实例（id: ' + editingId + '）'
+            : '新建' + (tab === 'llm' ? ' LLM ' : '搜索') + '实例'}
+          <span className="text-micro text-slate-500">
+            {editingId ? '已填入当前配置；api_key 留空 = 保留原密钥' : '点任一行的「编辑」可载入已配置内容'}
+          </span>
         </div>
         <div className="grid gap-2 sm:grid-cols-2">
           <label className="text-caption text-slate-400">名称
@@ -348,14 +421,23 @@ export default function InstancesPanel() {
           <Button
             type="button"
             variant="accent" size="xs"
-            onClick={() => void (tab === 'llm' ? createLlm() : createSearch())}
+            onClick={() => void (editingId ? saveEdit() : (tab === 'llm' ? createLlm() : createSearch()))}
             disabled={loading || fName.trim() === '' || fKind.trim() === ''
               || (tab === 'llm' && fBaseUrl.trim() === '')
               || (tab === 'search' && fKind.trim() === 'custom' && fBaseUrl.trim() === '')}
-            aria-label="新建实例"
+            aria-label={editingId ? '保存实例修改' : '新建实例'}
+            data-testid={editingId ? 'instance-save' : 'instance-create'}
           >
-            {busy === 'create' ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} 新建
+            {busy === 'create' || busy === 'edit'
+              ? <Loader2 size={11} className="animate-spin" />
+              : (editingId ? <Save size={11} /> : <Plus size={11} />)}
+            {editingId ? '保存修改' : '新建'}
           </Button>
+          {editingId && (
+            <Button type="button" variant="default" size="xs" onClick={() => { resetForm(); setMsg('已取消编辑') }} aria-label="取消编辑">
+              取消编辑
+            </Button>
+          )}
           <span className="ml-2 text-micro text-slate-600">
             {tab === 'llm'
               ? '名称、provider、api_endpoint 必填（后端校验，缺了会 400）'

@@ -28,8 +28,8 @@ afterEach(() => {
 
 function gets() {
   api.hubGet.mockImplementation(async (url: string) => {
-    if (url === '/api/llm/instances') return { ok: true, instances: [{ id: 'llm1', name: 'DeepSeek', provider: 'deepseek', model: 'v3', enabled: true, is_default: true }] }
-    if (url === '/api/search/instances') return { ok: true, instances: [{ id: 's1', name: 'DuckDuckGo', engine_type: 'duckduckgo', enabled: true, is_default: false }] }
+    if (url === '/api/llm/instances') return { ok: true, instances: [{ id: 'llm1', name: 'DeepSeek', provider: 'deepseek', model: 'v3', api_endpoint: 'https://api.deepseek.com/v1', timeout: 30, enabled: true, is_default: true }] }
+    if (url === '/api/search/instances') return { ok: true, instances: [{ id: 's1', name: 'DuckDuckGo', engine_type: 'duckduckgo', timeout: 30, enabled: true, is_default: false }] }
     if (url === '/api/llm/instances/llm1') return { id: 'llm1', instance: { name: 'DeepSeek', provider: 'deepseek' } }
     return { ok: true }
   })
@@ -111,6 +111,63 @@ describe('InstancesPanel', () => {
     await screen.findByRole('button', { name: '设为默认 s1' })
     fireEvent.click(screen.getByRole('button', { name: '设为默认 s1' }))
     await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/search/instances/s1/default', {}))
+  })
+
+  it('点「编辑」把已有 LLM 实例填进表单；保存走 PUT（api_key 留空不发送）', async () => {
+    gets()
+    api.hubPut.mockResolvedValue({ ok: true })
+    render(<InstancesPanel />)
+    await screen.findByText('DeepSeek')
+
+    fireEvent.click(screen.getByRole('button', { name: '编辑实例 llm1' }))
+    expect((screen.getByLabelText('实例名称') as HTMLInputElement).value).toBe('DeepSeek')
+    expect((screen.getByLabelText('实例类型') as HTMLInputElement).value).toBe('deepseek')
+    expect((screen.getByLabelText('模型名') as HTMLInputElement).value).toBe('v3')
+    expect((screen.getByTestId('llm-endpoint') as HTMLInputElement).value).toBe('https://api.deepseek.com/v1')
+    expect((screen.getByLabelText('实例超时秒') as HTMLInputElement).value).toBe('30')
+    const save = screen.getByTestId('instance-save')
+    expect(save.textContent).toContain('保存修改')
+
+    fireEvent.change(screen.getByLabelText('实例名称'), { target: { value: 'DeepSeek 主实例' } })
+    fireEvent.click(save)
+    await waitFor(() => expect(api.hubPut).toHaveBeenCalledWith('/api/llm/instances/llm1', {
+      updates: {
+        name: 'DeepSeek 主实例', provider: 'deepseek', model: 'v3',
+        api_endpoint: 'https://api.deepseek.com/v1', timeout: 30,
+      },
+    }))
+    expect((api.hubPut.mock.calls[0][1] as { updates: Record<string, unknown> }).updates).not.toHaveProperty('api_key')
+  })
+
+  it('搜索实例同样可编辑：预填引擎类型/名称，保存走 PUT', async () => {
+    gets()
+    api.hubPut.mockResolvedValue({ ok: true })
+    render(<InstancesPanel />)
+    await screen.findByText('DeepSeek')
+
+    fireEvent.click(screen.getByRole('tab', { name: '搜索实例' }))
+    await screen.findByRole('button', { name: '设为默认 s1' })
+    fireEvent.click(screen.getByRole('button', { name: '编辑实例 s1' }))
+    expect((screen.getByLabelText('实例名称') as HTMLInputElement).value).toBe('DuckDuckGo')
+    expect((screen.getByTestId('search-engine-type') as HTMLSelectElement).value).toBe('duckduckgo')
+
+    fireEvent.change(screen.getByLabelText('实例名称'), { target: { value: 'DDG 主实例' } })
+    fireEvent.click(screen.getByTestId('instance-save'))
+    await waitFor(() => expect(api.hubPut).toHaveBeenCalledWith('/api/search/instances/s1', {
+      updates: { name: 'DDG 主实例', engine_type: 'duckduckgo', timeout: 30 },
+    }))
+  })
+
+  it('取消编辑清空表单并回到新建模式', async () => {
+    gets()
+    render(<InstancesPanel />)
+    await screen.findByText('DeepSeek')
+
+    fireEvent.click(screen.getByRole('button', { name: '编辑实例 llm1' }))
+    expect((screen.getByLabelText('实例名称') as HTMLInputElement).value).toBe('DeepSeek')
+    fireEvent.click(screen.getByRole('button', { name: '取消编辑' }))
+    expect((screen.getByLabelText('实例名称') as HTMLInputElement).value).toBe('')
+    expect(screen.getByRole('button', { name: '新建实例' })).toBeTruthy()
   })
 
   it('删除要两步：展开确认时不发请求', async () => {

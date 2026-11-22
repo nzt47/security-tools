@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-22T09:45:00+08:00",
+ "updated_at": "2026-11-22T10:36:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1309,6 +1309,14 @@
    "title": "新建搜索实例提示「未知的内置引擎类型: Tavily」——引擎类型是自由文本且大小写精确匹配",
    "criteria": "Owner 2026-11-22 报「新建 搜索实例时提示：新建失败：未知的内置引擎类型: Tavily（HTTP 400）」。BUILTIN_ENGINES 全是小写（tavily/firecrawl/bing/...），而界面 engine_type 是自由文本，用户输入 Tavily/Bing 这类首字母大写即被精确匹配判为未知；错误文案也只说「未知」，不列可选值。",
    "next": "落地：界面改成引擎类型下拉（与 BUILTIN_ENGINES 对齐，全小写，含 custom）；路由入口 normalize_engine_type（去空白+小写）后再校验/存储，API 调用方写 Tavily 也能通过；未知引擎的错误文案列出可选值。用例：instances 选项断言 + normalize/错误文案单测。验证：.local/verify_search_engine_1443.py（UI 下拉建实例→列表→删除；API 用 'Tavily' 建→回读小写→删除）。"
+  },
+  {
+   "id": "instance-edit-prefill",
+   "status": "done",
+   "priority": "P2",
+   "title": "实例管理：点已有实例不能带出配置改（尤其名称）——加编辑模式（表单预填 + PUT）",
+   "criteria": "Owner 2026-11-22 要求「点击已有实例，必须在新建配置输入框显示已配置的内容，方便更改。特别是名称。」原页面只有新建表单：LLM 有「详情」JSON 编辑，搜索实例完全没有编辑入口；行操作里也没有「编辑」。",
+   "next": "落地：每行加「编辑」→ 表单预填名称/provider 或 engine_type/model/api_endpoint/timeout；api_key 不回填（列表是脱敏值，留空 = 保留原密钥）；按钮变「保存修改」走 PUT（LLM PUT {updates}，搜索 PUT {updates}，custom 才发 api_endpoint）；取消编辑 / 切 Tab 复位。用例 3 条（LLM 预填+PUT、搜索预填+PUT、取消复位）。真机 .local/verify_instance_edit_1444.py：改探针实例名 → 回读 → 删除。基线：vitest 199 files · 1524 tests / ui:check 0。"
   }
  ]
 }
