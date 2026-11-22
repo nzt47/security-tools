@@ -217,3 +217,28 @@ def test_http_history_只记显式检查(tmp_path, monkeypatch):
     assert len(items) == 1
     assert items[0]["source"] == "api" and items[0]["error"] == 0
     assert items[0]["warning"] >= 0
+
+
+def test_fix_读失败只回异常类别(tmp_path, monkeypatch):
+    """py/stack-trace-exposure（code scanning #746）：读/写失败的错误条目里不许有异常原文。
+
+    原文含绝对路径与系统错误码，回到浏览器就是信息泄露；只回类别（OSError/…）。
+    """
+    src = tmp_path / "yunshu-ui" / "src"
+    src.mkdir(parents=True)
+    (src / "Bar.tsx").write_text("<h2>标题</h2>", encoding="utf-8")
+
+    real_read = Path.read_text
+
+    def boom(self, *args, **kwargs):
+        if str(self).endswith(".tsx"):
+            raise OSError("BOOM_SECRET C:/abs/path/to/file")
+        return real_read(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", boom)
+    res = fixer.fix(dry_run=True, root=tmp_path)
+    assert res["ok"] is False
+    assert any("读失败" in e for e in res["errors"])
+    assert all("BOOM_SECRET" not in e for e in res["errors"]), (
+        "读失败的错误条目里带了异常原文 ⇒ 会随 /api/ui-guard/fix 回到浏览器")
+    assert any("OSError" in e for e in res["errors"])

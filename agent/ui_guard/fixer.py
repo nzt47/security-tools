@@ -14,6 +14,7 @@
 """
 from __future__ import annotations
 
+import logging
 import os
 import re
 import tempfile
@@ -23,6 +24,8 @@ from typing import Any, Dict, List, Optional, Sequence
 from agent.ui_guard.engine import (FIXABLE_RULES, REPO_ROOT, RULE_BUTTON,
                                    RULE_HEADING, _CLASS_ATTR, _TAG_BUTTON,
                                    _TAG_HEADING, _line_of, check)
+
+logger = logging.getLogger(__name__)
 
 _TITLE_TOKEN = {"1": "text-title", "2": "text-ui"}
 _LITERAL_CLASS = re.compile(r"""className=(?:"([^"]*)"|'([^']*)')""")
@@ -117,7 +120,10 @@ def fix(*, dry_run: bool = True, rules: Optional[Sequence[str]] = None,
         try:
             text = p.read_text(encoding="utf-8")
         except OSError as exc:
-            errors.append(f"读失败 {rel}: {exc}")
+            # 异常原文（含绝对路径/系统错误码）只进日志；响应体只留类别
+            # （py/stack-trace-exposure：CodeQL 认的是"异常对象流向响应体"）。
+            logger.warning("[ui-guard] 读失败 %s: %s", rel, exc)
+            errors.append(f"读失败 {rel}（{type(exc).__name__}）")
             continue
         edits = [e for e in _edits_for_text(text, rel) if e["rule"] in wanted]
         if not edits:
@@ -140,7 +146,8 @@ def fix(*, dry_run: bool = True, rules: Optional[Sequence[str]] = None,
                     fh.write(new_text)
                 os.replace(tmp, p)
             except OSError as exc:
-                errors.append(f"写失败 {rel}: {exc}")
+                logger.warning("[ui-guard] 写失败 %s: %s", rel, exc)
+                errors.append(f"写失败 {rel}（{type(exc).__name__}）")
 
     result: Dict[str, Any] = {
         "ok": not errors,

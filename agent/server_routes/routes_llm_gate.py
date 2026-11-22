@@ -41,9 +41,14 @@ def register_routes(app, state):
         data = request.get_json(silent=True) or {}
         try:
             config = gate.save_config(data)
-        except ValueError as e:
-            # 校验文案是后端自己给的（不含内部路径/堆栈），可直接回给前端
-            return jsonify({"ok": False, "error": str(e)}), 400
+        except gate.GateConfigError as exc:
+            # 校验文案是后端自己给的（不含内部路径/堆栈）：走 .message 属性，
+            # 不要用 str() 包异常对象 —— 那是 py/stack-trace-exposure 的典型形态（口径 §3.5）。
+            return jsonify({"ok": False, "error": exc.message}), 400
+        except ValueError:
+            # 不是本模块的校验错误（形状异常）：只说"参数不合法"，原文只进日志
+            logger.warning("LLM 禁用时段配置参数异常（非校验错误）", exc_info=True)
+            return jsonify({"ok": False, "error": "配置参数不合法（详见服务日志）"}), 400
         except Exception as e:  # noqa: BLE001
             logger.error("保存 LLM 禁用时段配置失败: %s", e, exc_info=True)
             return jsonify({"ok": False, "error": _safe(e, logger)}), 500

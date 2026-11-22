@@ -90,6 +90,18 @@ def _classify(exc: BaseException) -> str:
     return CODE_OTHER
 
 
+def _tls_context() -> "ssl.SSLContext":
+    """探测专用 TLS 上下文：**显式抬到最低 TLS 1.2**（py/insecure-protocol）。
+
+    `ssl.create_default_context()` 的最低版本取决于 Python/OpenSSL 组合，最老可能放行
+    TLSv1/1.1；依赖面探测只连公开端点（LLM / 邮件 / Webhook），抬到 1.2 不损能力。
+    不放松 `check_hostname`：握手失败按 CODE_TLS 记类别即可，不弱化校验。
+    """
+    context = ssl.create_default_context()
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
+    return context
+
+
 def probe_target(target: Dict[str, Any], *, timeout: float = PROBE_TIMEOUT_SEC,
                  connector: Optional[Callable[..., Any]] = None,
                  retries: int = PROBE_RETRIES) -> Dict[str, Any]:
@@ -121,7 +133,7 @@ def probe_target(target: Dict[str, Any], *, timeout: float = PROBE_TIMEOUT_SEC,
         try:
             sock = (connector or socket.create_connection)((host, port), timeout)
             if use_tls:
-                context = ssl.create_default_context()
+                context = _tls_context()
                 sock = context.wrap_socket(sock, server_hostname=host)
             result["ok"] = True
             result["code"] = ""

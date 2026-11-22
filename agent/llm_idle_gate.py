@@ -136,6 +136,22 @@ class LLMIdleBlocked(RuntimeError):
         super().__init__(str(state.get("message") or "当前处于 LLM 禁用时段，请求已暂停"))
 
 
+class GateConfigError(ValueError):
+    """配置校验失败：文案由本模块**自产**，路由层原样回给前端。
+
+    【为什么不是裸 ValueError（py/stack-trace-exposure）】CodeQL 认的是「异常对象流向
+    响应体」：路由层一旦 `str(e)` 就把异常原文带到浏览器。把文案挂在**普通属性**
+    `.message` 上（值是校验函数里的字面量/拼接，来源不是异常对象），响应体里就不再有
+    异常派生串 —— 与 agent/server_routes 里其它领域异常的 `exc.message` 口径一致
+    （见口径 §3.5）。子类保留 ValueError，故现有的 `except ValueError` 调用点
+    （`_read_file` 读坏配置回落默认值）行为不变。
+    """
+
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(message)
+
+
 # ══════════════════════════════════════════════════════════════
 #  时钟 / 节假日
 # ══════════════════════════════════════════════════════════════
@@ -222,10 +238,10 @@ def _parse_hhmm(value: Any) -> int:
     text = str(value or "").strip()
     parts = text.split(":")
     if len(parts) != 2 or not all(p.isdigit() for p in parts):
-        raise ValueError(f"时间格式应为 HH:MM，收到 {text!r}")
+        raise GateConfigError(f"时间格式应为 HH:MM，收到 {text!r}")
     hour, minute = int(parts[0]), int(parts[1])
     if not (0 <= hour <= 23 and 0 <= minute <= 59):
-        raise ValueError(f"时间超出范围: {text!r}")
+        raise GateConfigError(f"时间超出范围: {text!r}")
     return hour * 60 + minute
 
 
@@ -234,42 +250,42 @@ def _fmt_hhmm(minutes: int) -> str:
 
 
 def normalize_config(raw: Any, base: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """把任意输入规范化成合法配置；非法抛 ValueError（文案直接给前端）。"""
+    """把任意输入规范化成合法配置；非法抛 GateConfigError（文案直接给前端）。"""
     if not isinstance(raw, dict):
-        raise ValueError("配置必须是 JSON 对象")
+        raise GateConfigError("配置必须是 JSON 对象")
     base = base or _default_config()
     enabled = raw.get("enabled", base["enabled"])
     if not isinstance(enabled, bool):
-        raise ValueError("enabled 必须是布尔值")
+        raise GateConfigError("enabled 必须是布尔值")
     skip_holidays = raw.get("skip_holidays", base["skip_holidays"])
     if not isinstance(skip_holidays, bool):
-        raise ValueError("skip_holidays 必须是布尔值")
+        raise GateConfigError("skip_holidays 必须是布尔值")
     try:
         lead_seconds = int(raw.get("lead_seconds", base["lead_seconds"]))
     except (TypeError, ValueError):
-        raise ValueError("lead_seconds 必须是整数") from None
+        raise GateConfigError("lead_seconds 必须是整数") from None
     if not (0 <= lead_seconds <= 3600):
-        raise ValueError("lead_seconds 必须在 0-3600 秒之间")
+        raise GateConfigError("lead_seconds 必须在 0-3600 秒之间")
 
     windows_raw = raw.get("windows", base["windows"])
     if not isinstance(windows_raw, list):
-        raise ValueError("windows 必须是数组")
+        raise GateConfigError("windows 必须是数组")
     if len(windows_raw) > MAX_WINDOWS:
-        raise ValueError(f"禁用时段最多 {MAX_WINDOWS} 条")
+        raise GateConfigError(f"禁用时段最多 {MAX_WINDOWS} 条")
     windows: List[Dict[str, Any]] = []
     for idx, item in enumerate(windows_raw):
         if not isinstance(item, dict):
-            raise ValueError(f"第 {idx + 1} 条时段必须是对象")
+            raise GateConfigError(f"第 {idx + 1} 条时段必须是对象")
         days_raw = item.get("days")
         if not isinstance(days_raw, list) or not days_raw:
-            raise ValueError(f"第 {idx + 1} 条时段至少要选一个星期")
+            raise GateConfigError(f"第 {idx + 1} 条时段至少要选一个星期")
         days = sorted({int(d) for d in days_raw})
         if any(d < 0 or d > 6 for d in days):
-            raise ValueError(f"第 {idx + 1} 条时段的星期必须是 0-6（周一=0）")
+            raise GateConfigError(f"第 {idx + 1} 条时段的星期必须是 0-6（周一=0）")
         start_min = _parse_hhmm(item.get("start"))
         end_min = _parse_hhmm(item.get("end"))
         if end_min <= start_min:
-            raise ValueError(f"第 {idx + 1} 条时段的结束时间必须晚于开始时间")
+            raise GateConfigError(f"第 {idx + 1} 条时段的结束时间必须晚于开始时间")
         windows.append({
             "days": days,
             "start": _fmt_hhmm(start_min),
@@ -321,7 +337,7 @@ def get_config() -> Dict[str, Any]:
 
 
 def save_config(patch: Any) -> Dict[str, Any]:
-    """部分更新并落盘；非法抛 ValueError。返回保存后的完整配置。"""
+    """部分更新并落盘；非法抛 GateConfigError。返回保存后的完整配置。"""
     global _config_cache, _config_sig
     current = get_config()
     merged = dict(current)

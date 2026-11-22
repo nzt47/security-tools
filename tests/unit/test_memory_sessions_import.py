@@ -400,3 +400,21 @@ def test_trae_limit_does_not_short_circuit_remaining_groups(tmp_path):
     rows = [json.loads(line) for line in
             p["messages_path"].read_text(encoding="utf-8").splitlines()]
     assert len(rows) == 3
+
+
+def test_报告文件名只由常量前缀决定(tmp_path):
+    """py/path-injection（code scanning #744）：请求里的 source 不进文件名。
+
+    文件名前缀取 `_REPORT_PREFIX_BY_SOURCE` 的**常量值**（常量键 → 常量值，
+    口径 §4.3 认可的写法）；未知来源 400 且不落盘 —— 不能靠"user 串拼路径 + 自己校验"。
+    """
+    from pathlib import Path
+
+    path = transcript._write_report(tmp_path, "claude", dry_run=True, payload={"a": 1})
+    assert Path(path).name.startswith("claude-")
+
+    with pytest.raises(transcript.MemoryImportError):
+        transcript._write_report(tmp_path, "../../evil", dry_run=True, payload={})
+
+    names = [p.name for p in (tmp_path / transcript.REPORT_DIRNAME).iterdir()]
+    assert names and all("evil" not in n for n in names)

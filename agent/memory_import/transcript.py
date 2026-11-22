@@ -46,6 +46,15 @@ DEFAULT_ROOT = Path(__file__).resolve().parents[2] / "data" / "memory" / "import
 LEDGER_FILENAME = "ledger.json"
 REPORT_DIRNAME = "reports"
 
+#: 报告文件名的**来源前缀**（常量键 → 常量值；dsh/claude/trae 与 SESSION_SOURCES 同源）。
+#: 不能把请求里的 source 直接拼进文件名：py/path-injection 只认「用户串有没有进路径表达式」，
+#: 我们自己的白名单校验它不认（口径 §4.3）。走常量表取前缀，用户串只参与等值比较。
+_REPORT_PREFIX_BY_SOURCE = {
+    SOURCE_DSH: "dsh",
+    SOURCE_CLAUDE: "claude",
+    SOURCE_TRAE: "trae",
+}
+
 #: 单条正文上限（与 dsh / claude 读取器同口径）
 MAX_MESSAGE_CHARS = 20000
 #: 单次运行的护栏（防止一次把整台机器吃满）
@@ -299,12 +308,17 @@ def _scan_ref(ref: SessionRef, stats: ScanStats) -> TranscriptSession:
 
 
 def _write_report(root: Path, source: str, dry_run: bool, payload: Dict[str, Any]) -> str:
+    prefix = _REPORT_PREFIX_BY_SOURCE.get(str(source or "").strip().lower())
+    if not prefix:
+        raise MemoryImportError(
+            "source 只能取 " + " / ".join(SESSION_SOURCES),
+            status=400, code="unsupported-source", title="不支持的来源")
     stamp = datetime.now().strftime("%Y%m%dT%H%M%S")
     directory = root / REPORT_DIRNAME
     directory.mkdir(parents=True, exist_ok=True)
-    path = directory / f"{source}-{stamp}-{'dry' if dry_run else 'exec'}.json"
+    path = directory / f"{prefix}-{stamp}-{'dry' if dry_run else 'exec'}.json"
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=1), encoding="utf-8")
-    reports = sorted(directory.glob(f"{source}-*.json"))
+    reports = sorted(directory.glob(f"{prefix}-*.json"))
     for old in reports[:-MAX_REPORTS]:
         try:
             old.unlink()

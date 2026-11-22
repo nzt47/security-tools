@@ -316,3 +316,43 @@ class TestScheduledTask:
         result = sched.run_task(sched.tasks[0])
         assert result["status"] == "success"
         assert calls == [1]
+
+
+class Test校验文案走领域异常:
+    """py/stack-trace-exposure（code scanning #747）的回归锁。
+
+    口径：校验文案由本模块**自产**，挂在 `GateConfigError.message` 上；路由层用
+    `.message` 回前端，**不用** `str(exc)` —— 后者是「异常对象流向响应体」的标准形态，
+    CodeQL 会判 error。这里同时锁"行为"和"形态"两件事。
+    """
+
+    def test_校验失败抛领域异常且仍是_ValueError(self):
+        with pytest.raises(gate.GateConfigError) as ei:
+            gate.normalize_config({"windows": [{"days": [0], "start": "10:00",
+                                                "end": "09:00"}]})
+        # 既有 `except ValueError` 的调用点（_read_file 回落默认值）行为不变
+        assert isinstance(ei.value, ValueError)
+        assert "结束时间" in ei.value.message
+
+    def test_路由回_message_原文而不是异常字符串(self, tmp_path):
+        from flask import Flask
+
+        from agent.server_routes.routes_llm_gate import register_routes
+
+        app = Flask("llm_gate_api_msg")
+        register_routes(app, lambda: None)
+        bad = app.test_client().post("/api/llm-gate", json={
+            "windows": [{"days": [0], "start": "10:00", "end": "09:00"}],
+        })
+        assert bad.status_code == 400
+        # 文案逐字等于校验函数给的那句（没有异常类名/引号包装等异常派生痕迹）
+        assert bad.get_json()["error"] == "第 1 条时段的结束时间必须晚于开始时间"
+
+    def test_路由源码里不再有_str_exc(self):
+        from pathlib import Path
+
+        src = (Path(__file__).resolve().parents[2] / "agent" / "server_routes"
+               / "routes_llm_gate.py").read_text(encoding="utf-8")
+        assert "str(e)" not in src and "str(exc)" not in src, (
+            "routes_llm_gate.py 又用 str(异常) 回前端 ⇒ py/stack-trace-exposure 会复发；"
+            "改用 GateConfigError.message")

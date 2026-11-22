@@ -155,3 +155,13 @@ def test_连续失败计数累加与清零(tmp_path, monkeypatch):
     second = dp.run_once(bad)
     assert first["results"][0]["consecutive_failures"] == 1
     assert second["results"][0]["consecutive_failures"] == 2
+
+
+def test_TLS_探测上下文显式抬到1_2():
+    """py/insecure-protocol（code scanning #743）：探测上下文不得放行 TLSv1/1.1。
+
+    只连公开端点（LLM/邮件/Webhook），抬到 1.2 不损能力；也不许靠关掉证书校验换"能连上"。
+    """
+    ctx = dp._tls_context()
+    assert ctx.minimum_version == ssl.TLSVersion.TLSv1_2
+    assert ctx.check_hostname is True and ctx.verify_mode == ssl.CERT_REQUIRED
