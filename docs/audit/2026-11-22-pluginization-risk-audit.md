@@ -268,6 +268,7 @@ cd yunshu-ui && npm run ui:check
 | P1-5 安装白名单 | `CP_PLUGIN_INSTALL_ALLOWLIST` 精确匹配；空 = 拒绝；`pip:` 直装一律拒绝 | `test_plugin_policy` / `test_plugin_package_gate` |
 | P1-4 横切通知 | 系统命令任务支持 `notify_on_complete` 并持久化/重启保留 | `test_scheduler_notify_plumbing` |
 | P2-A 进程隔离（第一批） | 插件包改独立子进程 + JSON-RPC；超时硬杀；最小环境变量白名单；`CP_PLUGIN_PROCESS_ISOLATION=1` / `CP_PLUGIN_PROCESS_TIMEOUT_SEC=30` | `test_plugin_process_isolation` |
+| P2-B 来源固定 + L3 契约 | `github:owner/repo@ref` 固定分支/标签/commit（白名单仍按 base 仓库）；10 个 tracked L3 工具补 `result_schema`（require `ok`） | `test_plugin_source_pin` / `test_l3_result_schema` |
 
 **实测（2026-11-22 22:20，master 87e8c29bc / bundle index-hPBimolB.js / pid 20320）**
 

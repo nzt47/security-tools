@@ -523,7 +523,9 @@ class TestResultSchema:
 
     def test_未声明契约时如实披露而不是谎报通过(self, real_registry):
         from agent.capregistry.contract import result_status
-        spec = real_registry.get("shell_execute")
+        # 2026-11-23：shell_execute 已补 result_schema（P2 L3 扩面），
+        # 用一个仍**未声明**契约的高频工具守住“如实披露 undeclared”这条语义。
+        spec = real_registry.get("web_search")
         out = result_status(spec, {"anything": 1})
         assert out["contract"] == "undeclared"
         assert out["status"] == "ok"      # 不制造假红
