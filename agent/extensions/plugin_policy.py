@@ -1,0 +1,80 @@
+"""第三方插件包的安装/加载策略（P0 安全收口，2026-11-22）。
+
+【为什么单独一个叶子模块】
+- 安装、加载、启停、UI 展示、并发闸门都要读同一组环境变量。
+  分散读会重演本仓“同一口径抄多份”的老问题（§M-40）。
+- 本模块只做**读取 + 判定**，不碰文件、不 import 插件代码，便于单测。
+
+【默认值为什么是“关”】
+- 当前部署 0 个第三方插件包；插件包一旦加载，就在宿主主进程里以完整权限运行
+  （见 plugins_installer.load_plugin），依赖还会 pip install 进宿主环境。
+- 在“进程隔离 + 签名/白名单”完成之前，默认关闭是零业务影响的唯一安全默认。
+- 需要开发调试时显式设 CP_PLUGIN_PACKAGES_ENABLED=1，并配 CP_PLUGIN_INSTALL_ALLOWLIST。
+
+【白名单语义】
+- 逗号分隔，大小写不敏感；每一项是完整来源，如 github:owner/repo、local:/path。
+- 只做**精确匹配**；不做 URL 前缀匹配，也不接受未实现的 @ref 变体。
+- 白名单为空 = 一律拒绝；宁可让调试者显式登记，也不做“空=全放行”。
+"""
+from __future__ import annotations
+
+import os
+from typing import Tuple
+
+ENV_PLUGIN_PACKAGES_ENABLED = "CP_PLUGIN_PACKAGES_ENABLED"
+ENV_PLUGIN_CLIENT_UI_ENABLED = "CP_PLUGIN_CLIENT_UI_ENABLED"
+ENV_PLUGIN_INSTALL_ALLOWLIST = "CP_PLUGIN_INSTALL_ALLOWLIST"
+ENV_PLUGIN_MAX_CONCURRENT = "CP_PLUGIN_MAX_CONCURRENT"
+
+_TRUTHY = frozenset({"1", "true", "yes", "on"})
+_DEFAULT_MAX_CONCURRENT = 4
+_MAX_CONCURRENT_CAP = 64
+
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    """读布尔开关；未设置/非法 ⇒ default（不抛异常）。"""
+    raw = str(os.environ.get(name, "") or "").strip().lower()
+    if not raw:
+        return default
+    return raw in _TRUTHY
+
+
+def plugin_packages_enabled() -> bool:
+    """第三方插件包安装/加载总开关（默认关）。"""
+    return _env_bool(ENV_PLUGIN_PACKAGES_ENABLED, False)
+
+
+def plugin_client_ui_enabled() -> bool:
+    """插件自带前端 UI（client_slot）总开关（默认关；隔离未完成）。"""
+    return _env_bool(ENV_PLUGIN_CLIENT_UI_ENABLED, False)
+
+
+def install_allowlist() -> Tuple[str, ...]:
+    """来源白名单（小写、去空）；空元组表示“一个都不允许”。"""
+    raw = str(os.environ.get(ENV_PLUGIN_INSTALL_ALLOWLIST, "") or "")
+    return tuple(item.strip().lower() for item in raw.split(",") if item.strip())
+
+
+def source_allowed(source: str) -> bool:
+    """来源是否在白名单内。
+
+    只做精确匹配；不做 URL 前缀匹配（https://a/b 匹配 https://a/bc 是经典越权），
+    也不接受当前安装器并不支持的 @ref 变体。
+    """
+    allow = install_allowlist()
+    if not allow:
+        return False
+    s = str(source or "").strip().lower()
+    if not s:
+        return False
+    return s in set(allow)
+
+
+def max_concurrent() -> int:
+    """每个插件允许的并发请求数；0 = 关闭插件级并发闸门。"""
+    raw = str(os.environ.get(ENV_PLUGIN_MAX_CONCURRENT, "") or "").strip()
+    try:
+        value = int(raw) if raw else _DEFAULT_MAX_CONCURRENT
+    except (TypeError, ValueError):
+        value = _DEFAULT_MAX_CONCURRENT
+    return max(0, min(value, _MAX_CONCURRENT_CAP))

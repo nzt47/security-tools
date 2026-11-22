@@ -1,6 +1,5 @@
 """工具注册模块 — 代码工具（审查、架构图、文本优化、数据处理、调度、异步任务）"""
 import logging
-import os
 
 from agent import tools as _tools
 
@@ -157,23 +156,6 @@ def register_all(dl):
     #  定时调度工具
     # ════════════════════════════════════════════════════════════
 
-    # ── 动作执行开关（TASK-06 E13；D5 已登记 agent/settings/registry.py）──
-    # 【为什么默认关闭】`agent/scheduling.py::_execute_task` 的 action 分支是 `pass`
-    #   ⇒ 创建出来的任务**永不产生任何动作**。默认关闭时本工具**直接拒绝创建**，
-    #   使模型不再收到"成功"（E13 的硬要求）。
-    # 【为什么保留开关而不是删掉工具】工具名是既有契约的一部分（91 个 YAML 之
-    #   一、`data/tool_index.json` 索引里也有它）；将来把 action 分支接到
-    #   `agent/task_scheduler.py::_guard_scheduled_command` 之下后，置 1 即恢复。
-    _ACTION_EXEC_ENV = "CP_SCHEDULER_ACTION_EXECUTION"
-
-    def _scheduler_action_execution_enabled() -> bool:
-        """定时任务 action 是否真的会被执行（读环境变量；无法识别 ⇒ 关）"""
-        try:
-            raw = os.environ.get(_ACTION_EXEC_ENV, "0")
-        except Exception:  # noqa: BLE001
-            return False
-        return str(raw).strip().lower() in ("1", "true", "yes", "on")
-
     @_tools.register("schedule_task", "创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理", schema={
         "type": "object",
         "properties": {
@@ -206,7 +188,8 @@ def register_all(dl):
         # ⇒ 任务会**按时触发**但**不执行任何动作**。原实现照常返回
         # `{"ok": True, "task": {...}}`，模型据此认为"调度已生效"。
         # 这是"名义能力面 > 实际能力面"里最危险的一类（能力谎报成功）。
-        if not _scheduler_action_execution_enabled():
+        from agent.scheduling import action_execution_enabled, ACTION_EXECUTION_ENV
+        if not action_execution_enabled():
             return {
                 "ok": False,
                 # 【不易·错误码用 NOT_IMPLEMENTED 而不是 PERMISSION_DENIED】
@@ -225,7 +208,7 @@ def register_all(dl):
                     "（agent/task_scheduler.py 的 system_command 任务类型，它带"
                     "_guard_scheduled_command 权限闸门）；"
                     "② 若你只是需要延迟/重复地跑一个工具，请在对话里直接调用该工具；"
-                    f"③ 运维若已另行实现 action 分支，可置 {_ACTION_EXEC_ENV}=1 恢复本工具"
+                    f"③ 运维若已另行实现 action 分支，可置 {ACTION_EXECUTION_ENV}=1 恢复本工具"
                     "（届时返回值会显式带上 action_execution_implemented=true）。"),
             }
 

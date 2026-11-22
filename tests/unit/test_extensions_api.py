@@ -172,6 +172,33 @@ class TestExtensionsAPI(unittest.TestCase):
         self.state.extension_mgr.get_installed_by_type.assert_called_once()
         print("[测试] test_installed_extensions - 通过")
 
+    def test_install_plugin_package_disabled_by_default(self):
+        """【2026-11-22 P0】第三方插件包默认关闭：HTTP 入口必须 403，不能落到 manager。"""
+        import os
+        os.environ.pop("CP_PLUGIN_PACKAGES_ENABLED", None)
+        response = self.client.post(
+            "/api/extensions/install",
+            data=json.dumps({"type": "plugin", "source": "github:owner/repo"}),
+            content_type="application/json",
+        )
+        data = json.loads(response.data.decode("utf-8"))
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(data["code"], "PLUGIN_PACKAGES_DISABLED")
+        self.state.extension_mgr.install.assert_not_called()
+
+    def test_toggle_plugin_disabled_by_default(self):
+        import os
+        os.environ.pop("CP_PLUGIN_PACKAGES_ENABLED", None)
+        response = self.client.post(
+            "/api/extensions/toggle",
+            data=json.dumps({"type": "plugin", "id": "x", "enabled": True}),
+            content_type="application/json",
+        )
+        data = json.loads(response.data.decode("utf-8"))
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(data["code"], "PLUGIN_PACKAGES_DISABLED")
+        self.state.extension_mgr.toggle.assert_not_called()
+
     def test_install_extension_success(self):
         """测试安装扩展成功"""
         print("[测试] test_install_extension_success")

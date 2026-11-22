@@ -294,13 +294,15 @@ def api_scheduler_create():
     name = data.get("name", "")
     command = data.get("command", "")
     interval_sec = data.get("interval_sec", 60)
+    notify_on_complete = data.get("notify_on_complete") is True
     if not name or not command:
         return jsonify({"ok": False, "error": "缺少 name 或 command"}), 400
     # 安全检查
     safety = _safety_guard.check(command)
     if safety["level"] == "critical":
         return jsonify({"ok": False, "blocked": True, "safety": safety}), 403
-    result = create_scheduled_task(name, command, interval_sec)
+    result = create_scheduled_task(name, command, interval_sec,
+                                   notify_on_complete=notify_on_complete)
     return jsonify(result)
 
 
@@ -396,6 +398,18 @@ def api_schedules_create():
         return jsonify({"ok": False, "error": "必须提供 interval_minutes 或 cron_expr"}), 400
     if cron_expr.strip() and not _SchedCls.validate_cron_expr(cron_expr):
         return jsonify({"ok": False, "error": f"无效的 cron 表达式: {cron_expr}"}), 400
+    # 【2026-11-22 P1】与工具 schedule_task 同一诚实度：action 分支未实现时
+    # 不许“创建成功、实际空跑”。UI 的 action 输入因此会在提交时收到明确 400。
+    if str(action or "").strip():
+        from agent.scheduling import action_execution_enabled
+        if not action_execution_enabled():
+            return jsonify({
+                "ok": False,
+                "error_code": "NOT_IMPLEMENTED",
+                "implemented": False,
+                "error": ("调度引擎的 action 分支尚未实现：任务会按时触发但不会执行任何动作。"
+                          "请改用系统命令调度（/api/scheduler/create），或等 action 接线。"),
+            }), 400
     result = _sched.add_task(
         name=name, action=action, params=params,
         interval_minutes=interval_minutes, cron_expr=cron_expr, enabled=enabled,

@@ -5,6 +5,11 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 from flask import Blueprint
 
+#: 插件 API 版本（宿主与插件之间的稳定接口号）。
+#: 2026-11-22 P1：`Plugin.api_version` 必须与之相等；不兼容的插件在 register 时
+#: 当场 ValueError，loader 会记入 manifest 的 load_failures（不再静默）。
+PLUGIN_API_VERSION = "1"
+
 @dataclass
 class Plugin:
     """插件声明。
@@ -24,13 +29,18 @@ class Plugin:
     """
     name: str
     version: str
+    api_version: str = PLUGIN_API_VERSION
     description: str = ""
+    #: 运行时由 loader 回填（毫秒）；只用于健康展示，不是插件声明的一部分。
+    load_ms: int = 0
     schema: Dict[str, Any] = field(default_factory=dict)
     blueprint: Optional[Blueprint] = None
     submit_url: str = ""  # 配置提交端点（T3.3）：空串表示「暂不支持在线修改」
     client_slot: Optional[Dict[str, str]] = None  # 前端动态装载（T4.2）：{slotId, module}
 
 _REGISTRY: List[Plugin] = []
+#: 加载失败记录（模块级；只记类名/模块名，不记异常原文）。
+_LOAD_FAILURES: List[dict] = []
 
 def _validate_schema(name: str, schema: Any) -> None:
     """校验 Plugin.schema（JSON Schema 子集协议，见 docs/yunshu-pluginization/PLAN-3-schema-ui.md §2）。
@@ -49,9 +59,34 @@ def _validate_schema(name: str, schema: Any) -> None:
 
 def register_plugin(plugin: Plugin) -> Plugin:
     _validate_schema(plugin.name, plugin.schema)
+    # 【P1】API 版本不符 ⇒ 拒绝注册（插件作者必须显式声明/升级）。
+    # 默认值就是当前版本，故既有 14 个内置插件无需改动。
+    declared = str(getattr(plugin, "api_version", "") or "").strip()
+    if declared != PLUGIN_API_VERSION:
+        raise ValueError(
+            f"plugin {plugin.name}: api_version={declared!r} 不兼容宿主 "
+            f"{PLUGIN_API_VERSION!r}")
     if not any(p.name == plugin.name for p in _REGISTRY):
         _REGISTRY.append(plugin)
     return plugin
+
+
+def record_load_failure(module: str, exc: BaseException) -> None:
+    """记录一次插件加载失败（模块名 + 异常类名；原文只进日志）。"""
+    _LOAD_FAILURES.append({
+        "module": str(module or ""),
+        "error": type(exc).__name__,
+    })
+
+
+def clear_load_failures() -> None:
+    """清空加载失败记录（refresh_manifest 重建前调用）。"""
+    _LOAD_FAILURES.clear()
+
+
+def load_failures() -> List[dict]:
+    """只读快照（测试/UI 用）。"""
+    return [dict(x) for x in _LOAD_FAILURES]
 
 def get_plugins() -> List[Plugin]:
     return list(_REGISTRY)
@@ -165,6 +200,16 @@ def manifest(app=None) -> Dict[str, Any]:
     import sys, flask
     _app = _resolve_app(app)
     source = "url_map" if _app is not None else "unavailable"
+    # 插件包/插件 UI 的总开关由 agent.extensions.plugin_policy 统一读取；
+    # 读不到时按“关”展示（安全默认），不让插件清单因为扩展子系统故障而消失。
+    packages_enabled = False
+    client_ui_enabled = False
+    try:
+        from agent.extensions import plugin_policy
+        packages_enabled = bool(plugin_policy.plugin_packages_enabled())
+        client_ui_enabled = bool(plugin_policy.plugin_client_ui_enabled())
+    except Exception:  # noqa: BLE001
+        pass
     return {
         "plugins": [
             {
@@ -174,6 +219,10 @@ def manifest(app=None) -> Dict[str, Any]:
                 "schema": p.schema or {},  # 统一约定：无 schema 输出为空 dict
                 "submit_url": p.submit_url,  # 配置提交端点（T3.3）；空串 = 不支持在线修改
                 "client_slot": p.client_slot,  # 前端动态装载（T4.2）；None = 无客户端模块
+                "api_version": getattr(p, "api_version", PLUGIN_API_VERSION),
+                "status": "ok",
+                "load_error": "",
+                "load_ms": int(getattr(p, "load_ms", 0) or 0),
                 "routes": plugin_routes(p, _app),
                 # 【为什么把来源写进契约】"routes 为空"有两种截然不同的原因：
                 #   ① 该插件确实没有路由；② 当前拿不到 app（派生不可用）。
@@ -182,7 +231,14 @@ def manifest(app=None) -> Dict[str, Any]:
             }
             for p in _REGISTRY
         ],
-        "host": {"python": sys.version.split()[0], "flask": flask.__version__},
+        "host": {
+            "python": sys.version.split()[0],
+            "flask": flask.__version__,
+            "plugin_api_version": PLUGIN_API_VERSION,
+            "plugin_packages_enabled": packages_enabled,
+            "plugin_client_ui_enabled": client_ui_enabled,
+        },
+        "load_failures": load_failures(),
     }
 
 

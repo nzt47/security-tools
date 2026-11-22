@@ -586,6 +586,24 @@ _REGISTRY_ROWS: List[SettingSpec] = [
     _b("YUNSHU_OPEN_API_ENDPOINTS", CAT_EXTERNAL, "",
        "对外开放的端点清单（形如 GET /api/status,POST /api/chat）；默认为空=不开放任何能力。每项都会被 /api/open/* 以 API Key 鉴权+限流+配额暴露，填错等于扩大攻击面",
        owner="agent/api_gateway_flask.py"),
+    # 【2026-11-22 插件化安全收口 P0/P1】第三方插件包在宿主主进程 import，与宿主同权限；
+    # 在进程隔离/签名完成前默认关闭。三个开关都由 agent/extensions/plugin_policy.py 读取。
+    _b("CP_PLUGIN_PACKAGES_ENABLED", CAT_EXTERNAL, False,
+       "第三方插件包安装/加载总开关；默认关（关时 /api/extensions/install|toggle 对 plugin 返回 403）。"
+       "开启前必须同时配来源白名单，否则仍拒绝一切安装",
+       owner="agent/extensions/plugin_policy.py"),
+    _b("CP_PLUGIN_INSTALL_ALLOWLIST", CAT_EXTERNAL, "",
+       "第三方插件包允许的来源（逗号分隔，如 github:owner/repo,local:/path）；空 = 一个都不允许。"
+       "只做精确匹配，不做 URL 前缀匹配",
+       owner="agent/extensions/plugin_policy.py"),
+    _b("CP_PLUGIN_CLIENT_UI_ENABLED", CAT_EXTERNAL, False,
+       "插件自带前端 UI（client_slot）总开关；默认关。开启即允许插件 JS 在宿主页面同源执行"
+       "（可读 localStorage 里的 API 令牌），隔离完成前不要打开",
+       owner="agent/extensions/plugin_policy.py"),
+    _b("CP_PLUGIN_MAX_CONCURRENT", CAT_EXTERNAL, 4,
+       "每个插件允许的并发请求数（0 = 关闭插件级并发闸门）；默认 4，上限 64",
+       owner="agent/extensions/plugin_policy.py",
+       validator=_int_range(0, 64)),
     # 【P5 container 执行档（2026-10-09）】容器通道的开关/镜像/CLI。开启即安全姿态变更
     # （委派改在容器内执行）⇒ 用 _b；镜像与 CLI 属外部依赖端点，用 _c（只读脱敏）。
     _b("CP_SUBAGENT_CONTAINER_ENABLED", CAT_SELF_HEALING, False,

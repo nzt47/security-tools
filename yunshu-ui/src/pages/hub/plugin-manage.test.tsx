@@ -104,7 +104,13 @@ const MANIFEST = {
       client_slot: null,
     },
   ],
-  host: { python: '3.12', flask: '3.1' },
+  host: {
+    python: '3.12',
+    flask: '3.1',
+    plugin_api_version: '1',
+    plugin_packages_enabled: true,
+    plugin_client_ui_enabled: true,
+  },
 }
 
 afterEach(() => {
@@ -280,6 +286,34 @@ describe('PluginManagePage：从市场安装插件包（插件包安装入口收
     await waitFor(() => expect(fetchMock.mock.calls.some(
       ([u]) => String(u) === '/api/extensions/market/search?type=plugin&q=' + encodeURIComponent('演示 插件'),
     )).toBe(true))
+  })
+})
+
+describe('PluginManagePage：安全默认（插件包/插件 UI 关闭）', () => {
+  const DISABLED = {
+    plugins: [
+      {
+        name: 'demo', version: '1.0.0', description: '演示', schema: {},
+        submit_url: '', routes: ['/api/demo/probe'],
+        client_slot: { slotId: 'panels', module: '/plugins/demo-ui.js' },
+      },
+    ],
+    host: {
+      python: '3.12', flask: '3.1', plugin_api_version: '1',
+      plugin_packages_enabled: false, plugin_client_ui_enabled: false,
+    },
+    load_failures: [{ module: 'broken_plugin', error: 'ImportError' }],
+  }
+
+  it('默认关闭时：市场入口禁用、插件界面不挂载、加载失败上屏', async () => {
+    const fetchMock = installFetch([{ match: isGetPlugins, body: DISABLED }])
+    render(<PluginManagePage />)
+
+    expect(await screen.findByTestId('plugin-packages-disabled')).toBeInTheDocument()
+    expect(screen.getByTestId('plugin-market-open')).toBeDisabled()
+    expect(screen.getByTestId('plugin-client-slot-disabled-demo')).toBeInTheDocument()
+    expect(screen.getByTestId('plugin-load-failures')).toHaveTextContent('broken_plugin')
+    expect(fetchMock.mock.calls.some(([u]) => String(u).includes('demo-ui.js'))).toBe(false)
   })
 })
 

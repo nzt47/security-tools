@@ -44,6 +44,7 @@ from agent.extensions.base import (
 )
 from agent.extensions.installer import InstallEngine
 from agent.extensions.store import ExtensionStore
+from . import plugin_policy
 from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
@@ -101,7 +102,18 @@ class PluginInstaller:
             (成功标志, 消息)
         """
         logger.info(log_dict({'module_name': 'plugins_installer', 'action': 'source', 'msg': f'[插件安装器] 安装插件: {source}'}))
+        # 【2026-11-22 P0】默认关闭 + 来源白名单：插件代码在主进程 import，同权限；
+        # 在进程隔离/签名完成前，默认值必须是“一个都不装”。
+        if not plugin_policy.plugin_packages_enabled():
+            return False, ("第三方插件包暂未开放：进程隔离与签名校验尚未完成。"
+                           "如确需调试，请显式设置 CP_PLUGIN_PACKAGES_ENABLED=1 并配置来源白名单。")
+        if not plugin_policy.source_allowed(source):
+            return False, ("插件来源不在白名单内（CP_PLUGIN_INSTALL_ALLOWLIST）。"
+                           "白名单为空时拒绝一切安装。")
         ext_type, location, subpath = self._engine.parse_source(source)
+        if ext_type == "pip":
+            return False, ("不支持从 pip: 直接安装插件包（会把依赖装进宿主环境）。"
+                           "请改用 github:/local: 并在独立环境中安装依赖。")
 
         plugins_dir = _PLUGINS_DIR
         plugins_dir.mkdir(parents=True, exist_ok=True)
@@ -197,9 +209,16 @@ class PluginInstaller:
         # 安装依赖
         deps = plugin_info.get("dependencies", [])
         if deps:
-            failed = self._engine.install_dependencies(deps)
+            # 【2026-11-22 P0】依赖装到插件自己的 .deps/，不再污染宿主 Python 环境；
+            # 任一依赖失败即整体失败（不再 warning 后继续登记为“已安装”）。
+            deps_dir = (Path(install_path) / ".deps") if install_path and os.path.isdir(str(install_path)) else None
+            if deps_dir is None:
+                return False, "单文件插件无法隔离依赖：请改为目录包，或预装依赖后再安装"
+            failed = self._engine.install_dependencies(deps, target_dir=deps_dir)
             if failed:
-                logger.warning(log_dict({'module_name': 'plugins_installer', 'action': 'failed', 'msg': f'[插件安装器] 部分依赖安装失败: {failed}'}))
+                logger.error(log_dict({'module_name': 'plugins_installer', 'action': 'deps_failed',
+                                       'msg': f'[插件安装器] 依赖安装失败: {failed}'}))
+                return False, f"插件依赖安装失败: {', '.join(str(x) for x in failed)}"
 
         # 记录到扩展存储
         meta = ExtensionMetadata(
@@ -232,12 +251,22 @@ class PluginInstaller:
         install_path = plugin_data.get("install_path", "")
         if not install_path or not os.path.exists(install_path):
             return False, f"插件路径不存在: {install_path}"
+        # 【2026-11-22 P0】加载同样受总开关/白名单约束：安装入口关了，已落盘的包也不能被
+        # 直接 toggle 起来执行。
+        if not plugin_policy.plugin_packages_enabled():
+            return False, "第三方插件包暂未开放（进程隔离与签名校验尚未完成）。"
+        if not plugin_policy.source_allowed(plugin_data.get("source", "")):
+            return False, "插件来源不在白名单内（CP_PLUGIN_INSTALL_ALLOWLIST）。"
 
         try:
             # 添加到 Python 路径
             plugin_dir = os.path.dirname(install_path)
             if plugin_dir not in sys.path:
                 sys.path.insert(0, plugin_dir)
+            # 依赖只从插件自己的 .deps/ 取；不碰宿主 site-packages。
+            deps_dir = Path(install_path) / ".deps" if os.path.isdir(str(install_path)) else None
+            if deps_dir is not None and deps_dir.is_dir() and str(deps_dir) not in sys.path:
+                sys.path.insert(0, str(deps_dir))
 
             module_name = os.path.basename(install_path)
             if module_name.endswith(".py"):
@@ -355,7 +384,11 @@ class PluginInstaller:
         new_enabled = enabled if enabled is not None else not plugin_data.get("enabled", True)
 
         if new_enabled:
-            self.load_plugin(plugin_id)
+            # 【2026-11-22 P0】原实现忽略 load_plugin 的返回值：加载失败仍写 ENABLED 并回“已启用”。
+            # 现在加载失败必须如实返回失败，且状态不能被改成 ENABLED。
+            ok, msg = self.load_plugin(plugin_id)
+            if not ok:
+                return False, msg, False
         else:
             self.unload_plugin(plugin_id)
 

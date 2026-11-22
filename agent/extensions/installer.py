@@ -247,25 +247,34 @@ class InstallEngine:
             return False
 
     @staticmethod
-    def install_pip_package(package: str) -> bool:
-        """安装 pip 包"""
+    def install_pip_package(package: str, target_dir: Optional[Path] = None) -> bool:
+        """安装 pip 包；target_dir 非空时装进该目录，不污染宿主环境。"""
         logger.info(log_dict({'module_name': 'installer', 'action': 'pip.package', 'msg': f'[安装引擎] 安装 pip 包: {package}'}))
+        cmd = [sys.executable, "-m", "pip", "install", package]
+        if target_dir is not None:
+            cmd.extend(["--target", str(target_dir)])
         try:
-            subprocess.run(
-                [sys.executable, "-m", "pip", "install", package], **_proc.hidden_kwargs(),
+            result = subprocess.run(
+                cmd, **_proc.hidden_kwargs(),
                 capture_output=True, text=True, timeout=120,
             )
+            # 【2026-11-22 P0】原实现不检查 returncode，pip 失败也返回 True，
+            # 插件被登记为“已安装”、加载时才炸。现在失败即 False，由上层整体失败。
+            if result.returncode != 0:
+                logger.error(log_dict({'module_name': 'installer', 'action': 'pip.failed',
+                                       'msg': f'[安装引擎] pip 安装失败: {package} rc={result.returncode}'}))
+                return False
             return True
         except subprocess.TimeoutExpired as e:
             logger.error(log_dict({'module_name': 'installer', 'action': 'pip', 'msg': f'[安装引擎] pip 安装超时: {e}'}))
             return False
 
     @staticmethod
-    def install_dependencies(dependencies: List[str]) -> List[str]:
+    def install_dependencies(dependencies: List[str], target_dir: Optional[Path] = None) -> List[str]:
         """批量安装 Python 依赖，返回失败列表"""
         failed = []
         for dep in dependencies:
-            if not InstallEngine.install_pip_package(dep):
+            if not InstallEngine.install_pip_package(dep, target_dir=target_dir):
                 failed.append(dep)
         return failed
 

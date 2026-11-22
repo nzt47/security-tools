@@ -603,6 +603,17 @@ def api_extensions_install():
         if not ext_type or not source:
             return jsonify({"ok": False, "error": "缺少 type 或 source/id"}), 400
 
+        # 【2026-11-22 P0】第三方插件包默认关闭 + 来源白名单；这里是 HTTP 入口的
+        # 第一道闸（installer 内部还有第二道，防直接调用绕过）。
+        if ext_type == "plugin":
+            from agent.extensions import plugin_policy
+            if not plugin_policy.plugin_packages_enabled():
+                return jsonify({"ok": False, "code": "PLUGIN_PACKAGES_DISABLED",
+                                "error": "第三方插件包暂未开放（进程隔离与签名校验尚未完成）。"}), 403
+            if not plugin_policy.source_allowed(source):
+                return jsonify({"ok": False, "code": "PLUGIN_SOURCE_NOT_ALLOWED",
+                                "error": "插件来源不在白名单内（CP_PLUGIN_INSTALL_ALLOWLIST）。"}), 403
+
         result = _extension_mgr.install(ext_type, source, **kwargs)
         return jsonify(result)
     except Exception as e:
@@ -648,6 +659,14 @@ def api_extensions_toggle():
 
         if not ext_type or not ext_id:
             return jsonify({"ok": False, "error": "缺少 type 或 id"}), 400
+
+        # 【2026-11-22 P0】插件包启用受总开关约束；显式 enabled=false 的停用仍允许，
+        # 否则已装包无法关闭。
+        if ext_type == "plugin" and data.get("enabled") is not False:
+            from agent.extensions import plugin_policy
+            if not plugin_policy.plugin_packages_enabled():
+                return jsonify({"ok": False, "code": "PLUGIN_PACKAGES_DISABLED",
+                                "error": "第三方插件包暂未开放（进程隔离与签名校验尚未完成）。"}), 403
 
         result = _extension_mgr.toggle(ext_type, ext_id, enabled)
         return jsonify(result)

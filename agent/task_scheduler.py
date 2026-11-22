@@ -352,7 +352,8 @@ class TaskScheduler:
         logger.info(log_dict({'module_name': 'task_scheduler', 'action': 'name.interval_seconds', 'msg': f'[TaskScheduler] 添加任务: {name} (每{interval_seconds}秒)'}))
 
     def add_command_task(self, name: str, command: str, interval_sec: int,
-                         task_id: str = "", enabled: bool = True) -> None:
+                         task_id: str = "", enabled: bool = True,
+                         notify_on_complete: bool = False) -> None:
         """添加系统命令任务（由 API 创建时调用）"""
         task = {
             "name": name,
@@ -361,6 +362,8 @@ class TaskScheduler:
             "interval": interval_sec,
             "last_run": None,
             "enabled": enabled,
+            # 【P1】成功也外发（默认只失败发）；与 _dispatch_task_event 的判据同源。
+            "notify_on_complete": bool(notify_on_complete),
             "task_id": task_id or self._generate_task_id("cmd"),
         }
         self.tasks.append(task)
@@ -816,6 +819,7 @@ class TaskScheduler:
                     interval_sec=t.get("interval_sec", 60),
                     task_id=t.get("id", ""),
                     enabled=t.get("enabled", True),
+                    notify_on_complete=t.get("notify_on_complete") is True,
                 )
                 count += 1
             logger.info(log_dict({'module_name': 'task_scheduler', 'action': 'json.count', 'msg': f'[TaskScheduler] 从 JSON 加载了 {count} 个任务'}))

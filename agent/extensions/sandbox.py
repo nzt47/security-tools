@@ -1,10 +1,15 @@
-"""插件沙箱 — 权限隔离与安全执行环境
+"""插件沙箱（**未接线的实验件，不是安全边界**）。
 
-提供插件的安全执行环境，包括：
-- 权限隔离：限制插件对系统资源的访问
-- 资源限制：CPU、内存、磁盘使用限制
-- 网络隔离：控制插件的网络访问
-- 安全审计：记录插件的所有操作
+【2026-11-22 P0 诚实化声明】
+- 本模块的 ``PluginSandbox.execute_in_sandbox`` 是**进程内直接调用** ``func(*args)``：
+  没有独立进程、没有 rlimit/cgroup、没有网络/文件系统隔离；``ResourceLimits`` 只被
+  保存、从未执行；``_create_isolated_env`` 还直接 ``os.environ.copy()``（密钥全继承）。
+- 全仓**没有生产调用方**；真正的第三方插件包加载路径是
+  ``agent/extensions/plugins_installer.py::load_plugin``，它当前仍在主进程 ``import``。
+- 因此：**不要**用本模块声称“插件已被沙箱隔离”。在进程隔离完成前，第三方插件包
+  默认关闭（``CP_PLUGIN_PACKAGES_ENABLED=0``）；需要隔离请走子进程 + JSON-RPC。
+- 本模块保留仅因既有单测覆盖其数据结构；``tests/unit/test_plugin_sandbox_not_wired.py``
+  会阻止生产代码误把它接成“安全边界”。
 """
 
 import os

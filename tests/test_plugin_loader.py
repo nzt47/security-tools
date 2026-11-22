@@ -54,6 +54,7 @@ def _isolated_loader_state():
     saved_registry = list(api._REGISTRY)
     saved_blueprints = set(loader._loaded_blueprints)
     api._REGISTRY.clear()
+    api.clear_load_failures()
     loader._loaded_blueprints.clear()
     yield
     api._REGISTRY[:] = saved_registry
@@ -109,6 +110,9 @@ def test_load_all_isolates_broken_modules(pkg):
     # 损坏插件仅记日志，不阻断整体，返回成功数 = 1
     assert loader.load_all() == 1
     assert [p.name for p in api._REGISTRY] == ["a"]
+    # 【P1】失败不再只 print：manifest 的 load_failures 必须能看到两个坏模块。
+    failed = {x["module"] for x in api.load_failures()}
+    assert {"broken_runtime", "broken_syntax"} <= failed
 
 
 def test_load_all_idempotent_without_reload(pkg):

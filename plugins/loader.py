@@ -30,13 +30,18 @@ reload 安全（无线程、无网络、无 app_server 顶层引用；循环导�
 from __future__ import annotations
 
 import importlib
+import logging
 import pkgutil
 import sys
 import threading
+import time
 from pathlib import Path
 from typing import Any, Dict, Iterator, List
 
 from .plugin_api import Plugin, register_plugin
+from . import plugin_api as _api
+
+logger = logging.getLogger(__name__)
 
 # 扫描目录 / 导入用包名（测试可 monkeypatch 指向临时包）
 PLUGIN_DIR = Path(__file__).parent
@@ -101,10 +106,19 @@ def load_all(*, reload_existing: bool = False) -> int:
         try:
             if full in sys.modules and not reload_existing:
                 continue  # 已导入（显式清单/之前加载），幂等跳过
+            before = {p.name for p in _api.get_plugins()}
+            started = time.perf_counter()
             _import_module(name)
+            elapsed_ms = int((time.perf_counter() - started) * 1000)
+            for p in _api.get_plugins():
+                if p.name not in before:
+                    p.load_ms = elapsed_ms
             loaded += 1
         except Exception as exc:  # noqa: BLE001 - 单插件失败隔离，不阻断整体
-            print(f"[plugins] 加载 {name} 失败: {exc}")
+            # 【2026-11-22 P1】不再只 print：结构化日志 + manifest load_failures，
+            # 让“插件没加载上”变成可查的事实；异常原文只进日志（不回响应）。
+            logger.error("[plugins] 加载 %s 失败: %s", name, exc, exc_info=True)
+            _api.record_load_failure(name, exc)
     return loaded
 
 
@@ -123,6 +137,7 @@ def refresh_manifest() -> Dict[str, Any]:
         old_registry = api._REGISTRY
         fresh: List[Plugin] = []
         api._REGISTRY = fresh
+        api.clear_load_failures()
         try:
             load_all(reload_existing=True)
             if not fresh and old_registry:

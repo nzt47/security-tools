@@ -965,6 +965,50 @@ def _api_auth_gate():
         return None
 
 
+# ── 插件级并发闸门（P1 bulkhead）──────────────────────────────────
+# 必须注册在鉴权闸门**之后**：未授权请求先被 401 拦掉，不占插件额度；
+# 也必须晚于插件蓝图装配：此时 get_plugins() 才能给出 blueprint.name。
+_PLUGIN_BLUEPRINTS = set()
+_PLUGIN_BULKHEAD = None
+try:
+    from agent.plugin_bulkhead import PluginBulkhead as _PluginBulkhead
+    from agent.extensions import plugin_policy as _plugin_policy
+    _PLUGIN_BLUEPRINTS = {
+        p.blueprint.name for p in get_plugins() if p.blueprint is not None
+    }
+    _PLUGIN_BULKHEAD = _PluginBulkhead(_plugin_policy.max_concurrent())
+    if _PLUGIN_BULKHEAD.limit > 0:
+        logger.info("[启动] 插件级并发闸门已装载：每插件上限 %s（%s 个插件蓝图）",
+                    _PLUGIN_BULKHEAD.limit, len(_PLUGIN_BLUEPRINTS))
+except Exception as _pbe:  # noqa: BLE001 闸门装不上不阻断启动（但必须可见）
+    logger.warning("[启动] 插件级并发闸门装载失败（本进程不启用）: %s", _pbe)
+
+
+@app.before_request
+def _plugin_bulkhead_enter():
+    """插件请求进入前非阻塞拿额度；拿不到直接 429，不排队。"""
+    if _PLUGIN_BULKHEAD is None or not _PLUGIN_BLUEPRINTS:
+        return None
+    bp = request.blueprint
+    if not bp or bp not in _PLUGIN_BLUEPRINTS:
+        return None
+    if not _PLUGIN_BULKHEAD.acquire(bp):
+        logger.warning("[PluginBulkhead] 插件 %s 并发已满，拒绝 %s %s",
+                       bp, request.method, request.path)
+        return jsonify({"ok": False, "error": "插件并发请求过多，请稍后重试",
+                        "error_code": "PLUGIN_BUSY"}), 429
+    g._plugin_bulkhead_bp = bp
+    return None
+
+
+@app.teardown_request
+def _plugin_bulkhead_exit(exc):
+    """归还额度；任何路径（正常 / 异常 / 429 之后的 teardown）都必须释放。"""
+    bp = getattr(g, "_plugin_bulkhead_bp", None)
+    if bp and _PLUGIN_BULKHEAD is not None:
+        _PLUGIN_BULKHEAD.release(bp)
+
+
 def log_request(show_body=True, show_response=True):
     """接口日志装饰器 - 记录请求和响应的详细信息
     

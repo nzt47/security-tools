@@ -184,6 +184,9 @@ export default function EngineScheduler() {
             <Input value={cron} onChange={(e) => setCron(e.target.value)} placeholder="cron 表达式(可选)" size="md" />
             <Button onClick={create} variant="primary" size="sm">创建</Button>
           </div>
+          <p className="mt-2 text-micro text-amber-400" data-testid="scheduler-action-unimplemented">
+            action 调度尚未实现：填写「动作」会被后端拒绝（400 NOT_IMPLEMENTED），请留空创建占位任务，或改用系统命令调度。
+          </p>
         </Card>
       )}
       {loading ? <Loading /> : (

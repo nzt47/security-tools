@@ -52,6 +52,20 @@ SCHEDULE_HISTORY_FILE = DATA_DIR / "schedule_history.jsonl"
 #:   "scheduler_tasks"  ← 本引擎的任务（cron_expr + action/params + interval 分钟）
 SCHEDULED_STORE_FILE = DATA_DIR / "scheduled_tasks.json"
 
+#: action 是否真的会被执行（与 code_tools / API 共用同一开关）。
+#: 默认 0：本引擎的 action 分支是空实现，创建时就必须如实拒绝，不再“创建成功、空跑”。
+ACTION_EXECUTION_ENV = "CP_SCHEDULER_ACTION_EXECUTION"
+_ACTION_ENABLED_VALUES = frozenset({"1", "true", "yes", "on"})
+
+
+def action_execution_enabled() -> bool:
+    """action 分支是否已接线；读不到/非法一律 False（安全默认）。"""
+    try:
+        raw = str(os.environ.get(ACTION_EXECUTION_ENV, "0")).strip().lower()
+    except Exception:  # noqa: BLE001
+        return False
+    return raw in _ACTION_ENABLED_VALUES
+
 # 数据目录确保存在
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -517,7 +531,9 @@ class Scheduler:
 
         detail = result_msg if success else error_msg
         # 历史记录里**显式带上 executed 标志**，使"触发"与"执行"在数据上可分
-        self.log_execution(task_id, success, detail)
+        # 【P1】记录里显式区分“触发”与“动作执行”：action 未实现时 executed=False，
+        # 消费者不必只靠 result 文案猜。
+        self.log_execution(task_id, success, detail, executed=False)
 
         logger.info(log_dict({
             'module_name': 'scheduling', 'action': 'log',
@@ -604,8 +620,8 @@ class Scheduler:
         except Exception as e:
             logger.error(log_dict({'module_name': 'scheduling', 'action': 'log', 'msg': '[调度系统] 加载持久化数据失败: %s' % e}))
 
-    def log_execution(self, task_id: str, success: bool, result: str):
-        """记录执行历史到 data/schedule_history.jsonl"""
+    def log_execution(self, task_id: str, success: bool, result: str, executed: bool = False):
+        """记录执行历史到 data/schedule_history.jsonl（executed=动作是否真的执行）"""
         try:
             with self._lock:
                 task = self._tasks.get(task_id, {})
@@ -616,6 +632,7 @@ class Scheduler:
                 "name": task_name,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "success": success,
+                "executed": bool(executed),
                 "result": result[:500],
             }
 

@@ -51,6 +51,7 @@ interface PluginInfo {
   description: string
   schema: Json | null
   routes: string[]
+  loadMs?: number
   submitUrl?: string
   clientSlot?: { slotId?: string; module?: string } | null
 }
@@ -58,6 +59,19 @@ interface PluginInfo {
 interface Notice {
   kind: 'ok' | 'err'
   text: string
+}
+
+interface HostInfo {
+  python?: string
+  flask?: string
+  plugin_api_version?: string
+  plugin_packages_enabled?: boolean
+  plugin_client_ui_enabled?: boolean
+}
+
+interface LoadFailure {
+  module?: string
+  error?: string
 }
 
 /** 市场搜索命中的插件包（/api/extensions/market/search?type=plugin） */
@@ -96,6 +110,7 @@ function normalizePlugin(raw: unknown): PluginInfo | null {
     description: typeof r.description === 'string' ? r.description : '',
     schema,
     routes: Array.isArray(r.routes) ? r.routes.filter((x): x is string => typeof x === 'string') : [],
+    loadMs: typeof r.load_ms === 'number' ? r.load_ms : (typeof r.loadMs === 'number' ? r.loadMs : 0),
     submitUrl: typeof submitRaw === 'string' ? submitRaw : '',
     clientSlot:
       cs && typeof cs.slotId === 'string' && typeof cs.module === 'string'
@@ -124,7 +139,8 @@ function pickSchemaFields(schema: Json, current: Record<string, unknown>): Json 
 
 export default function PluginManagePage() {
   const [plugins, setPlugins] = useState<PluginInfo[]>([])
-  const [host, setHost] = useState<{ python?: string; flask?: string } | null>(null)
+  const [host, setHost] = useState<HostInfo | null>(null)
+  const [loadFailures, setLoadFailures] = useState<LoadFailure[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState<Notice | null>(null)
@@ -156,7 +172,7 @@ export default function PluginManagePage() {
   const load = useCallback(() => {
     setLoading(true)
     setError('')
-    request<{ plugins?: unknown[]; host?: { python?: string; flask?: string } }>(PLUGINS)
+    request<{ plugins?: unknown[]; host?: HostInfo; load_failures?: unknown[] }>(PLUGINS)
       .then((d) => {
         setPlugins(
           Array.isArray(d?.plugins)
@@ -164,6 +180,7 @@ export default function PluginManagePage() {
             : [],
         )
         setHost(d?.host ?? null)
+        setLoadFailures(Array.isArray(d?.load_failures) ? (d.load_failures as LoadFailure[]) : [])
       })
       .catch((e) => { setError(e instanceof Error ? e.message : String(e)) })
       .finally(() => setLoading(false))
@@ -173,8 +190,16 @@ export default function PluginManagePage() {
 
   // 【2026-10-15 合并「扩展呈现」】声明 client_slot 的插件自动挂载自带 UI：
   // 插件作者只写 public/plugins/<name>.js + 后端声明，新增即被发现，无需改前端。
+  // 插件自带 UI 默认关闭：插件 JS 与宿主同源，可读 localStorage 里的 API 令牌。
+  // 只有服务端显式 plugin_client_ui_enabled=true 才挂载；旧服务端缺字段时按 true 兼容。
+  const clientUiEnabled = host?.plugin_client_ui_enabled !== false
+  const packagesEnabled = host?.plugin_packages_enabled !== false
   useEffect(() => {
     let cancelled = false
+    if (!clientUiEnabled) {
+      setMounted({})
+      return () => { cancelled = true }
+    }
     const withSlot = plugins.filter((p) => p.clientSlot?.module)
     void (async () => {
       for (const p of withSlot) {
@@ -185,7 +210,7 @@ export default function PluginManagePage() {
       }
     })()
     return () => { cancelled = true }
-  }, [plugins])
+  }, [plugins, clientUiEnabled])
 
   /** 拉取当前配置面板插件的生效值（仅 schema 声明字段；失败静默回退 default） */
   const loadCurrentValues = useCallback(async (plugin: PluginInfo) => {
@@ -406,7 +431,7 @@ export default function PluginManagePage() {
     <div className="p-6">
       <PageHeader
         title="插件与扩展"
-        description={`已加载 ${plugins.length} 个插件${host?.flask ? `（Flask ${host.flask} / Python ${host.python ?? ''}）` : ''}；逐插件可展开配置、路由明细与插件自带界面`}
+        description={`已加载 ${plugins.length} 个插件${host?.flask ? `（Flask ${host.flask} / Python ${host.python ?? ''}）` : ''}；逐插件可展开配置、路由明细与插件自带界面${host?.plugin_api_version ? `；插件 API v${host.plugin_api_version}` : ''}`}
         actions={
           <div className="flex items-center gap-2">
             <div className="w-60" data-testid="plugin-api-token-wrap">
@@ -418,7 +443,13 @@ export default function PluginManagePage() {
             >
               <RefreshCw size={12} /> 刷新列表
             </Button>
-            <Button onClick={openMarket} data-testid="plugin-market-open" variant="accent" size="xs">
+            <Button
+              onClick={openMarket}
+              data-testid="plugin-market-open"
+              variant="accent" size="xs"
+              disabled={!packagesEnabled}
+              title={packagesEnabled ? undefined : '第三方插件包暂未开放（进程隔离与签名校验尚未完成）'}
+            >
               <PackagePlus size={12} /> 从市场安装插件包
             </Button>
             <Button variant="primary" size="sm" onClick={reload} disabled={refreshing}>
@@ -429,6 +460,16 @@ export default function PluginManagePage() {
         }
       />
       {error && <div className="mb-4"><ErrorBox message={error} /></div>}
+      {!packagesEnabled && (
+        <div className="mb-4 rounded-lg border border-amber-900/60 bg-amber-950/30 px-4 py-2 text-sm text-amber-300" data-testid="plugin-packages-disabled">
+          第三方插件包暂未开放：进程隔离与签名校验尚未完成。已安装包仍可查看/卸载，但不能安装或启用。
+        </div>
+      )}
+      {loadFailures.length > 0 && (
+        <div className="mb-4 rounded-lg border border-red-900/60 bg-red-950/40 px-4 py-2 text-sm text-red-300" role="alert" data-testid="plugin-load-failures">
+          有 {loadFailures.length} 个插件加载失败：{loadFailures.map((f) => f.module || '?').join('、')}（详见服务日志）
+        </div>
+      )}
       {notice && (
         <div
           className={`mb-4 rounded-lg border px-4 py-2 text-sm ${
@@ -453,6 +494,7 @@ export default function PluginManagePage() {
                 </p>
                 <div className="flex flex-wrap items-center gap-2 text-caption">
                   <Badge color="slate">{p.routes?.length ?? 0} 条路由</Badge>
+                  {!!p.loadMs && <Badge color="slate">加载 {p.loadMs}ms</Badge>}
                   {isConfigurable(p) && <Badge color="green">可配置</Badge>}
                   {p.clientSlot && <Badge color="amber">前端插槽</Badge>}
                 </div>
@@ -503,8 +545,14 @@ export default function PluginManagePage() {
                   </div>
                 )}
 
-                {/* 插件自带 UI（原「扩展呈现」）：声明 client_slot 才渲染；失败必须上屏 */}
-                {p.clientSlot?.module && (
+                {/* 插件自带 UI（原「扩展呈现」）：声明 client_slot 才渲染；失败必须上屏。
+                    默认关闭（同源 JS 可读 API 令牌）；服务端 plugin_client_ui_enabled=true 才挂载。 */}
+                {p.clientSlot?.module && !clientUiEnabled && (
+                  <div className="rounded-lg border border-amber-900/60 bg-amber-950/30 px-3 py-2 text-caption text-amber-300" data-testid={`plugin-client-slot-disabled-${p.name}`}>
+                    插件界面已停用（安全隔离待完成）
+                  </div>
+                )}
+                {p.clientSlot?.module && clientUiEnabled && (
                   <div
                     className="rounded-lg border border-slate-800 bg-slate-950/60 p-3"
                     data-testid={`plugin-client-slot-${p.name}`}
@@ -590,7 +638,7 @@ export default function PluginManagePage() {
                       <span className="rounded-sm bg-slate-800 px-1.5 py-0.5 text-micro text-slate-400">
                         {m.market_type ?? m.source ?? 'plugin'}
                       </span>
-                      <Button type="button" onClick={() => void installMarketPlugin(id)} disabled={marketBusy !== ''} aria-label={'安装插件包 ' + id} variant="default" size="xs">
+                      <Button type="button" onClick={() => void installMarketPlugin(String(m.source && /^(github|url|local|path):/.test(String(m.source)) ? m.source : id))} disabled={marketBusy !== ''} aria-label={'安装插件包 ' + id} variant="default" size="xs">
                         {marketBusy === 'install:' + id ? <Loader2 size={11} className="animate-spin" /> : <PackagePlus size={11} />} 安装
                       </Button>
                     </span>

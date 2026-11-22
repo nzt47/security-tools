@@ -63,7 +63,7 @@ def list_scheduled_tasks():
     return _load_tasks()
 
 
-def create_scheduled_task(name, command, interval_sec=60, enabled=True):
+def create_scheduled_task(name, command, interval_sec=60, enabled=True, notify_on_complete=False):
     """创建受控的定时任务（仅限白名单命令）"""
     # 白名单检查
     allowed = ["python", "echo", "dir", "type", "curl", "ping"]
@@ -78,6 +78,7 @@ def create_scheduled_task(name, command, interval_sec=60, enabled=True):
         "command": command,
         "interval_sec": interval_sec,
         "enabled": enabled,
+        "notify_on_complete": bool(notify_on_complete),
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
         "last_run": None,
         "run_count": 0,
@@ -90,7 +91,8 @@ def create_scheduled_task(name, command, interval_sec=60, enabled=True):
         from agent.task_scheduler import get_scheduler
         scheduler = get_scheduler()
         if scheduler.running:
-            scheduler.add_command_task(name, command, interval_sec, task["id"], enabled)
+            scheduler.add_command_task(name, command, interval_sec, task["id"], enabled,
+                                       notify_on_complete=notify_on_complete)
     except Exception:
         pass
     return {"ok": True, "task": task}
