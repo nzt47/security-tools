@@ -61,6 +61,29 @@ SEND_ERR_TLS = "邮件服务器 TLS 握手超时（网络抖动或被中间设�
 SEND_ERR_TIMEOUT = "连接邮件服务器超时，已自动重试一次；请检查出网/代理后重试"
 SEND_ERR_AUTH = "邮件服务器拒绝登录（账号或授权码不对），详见服务日志"
 SEND_ERR_GENERIC = "发送失败（原因见服务日志）"
+#: Webhook 单次投递超时（秒）与响应体读取上限（业务码/原因只在前 4KB 里）
+WEBHOOK_TIMEOUT_SEC = 10
+WEBHOOK_BODY_MAX_BYTES = 4096
+#: webhook 目标主机 → 载荷方言。飞书与钉钉**都**是「HTTP 200 + 业务码非 0 表示失败」，
+#: 且各自的成功形状与通用 {"text"} 不同（2026-11-22 现场：飞书回 code=19002 仍被当成功）。
+_FEISHU_HOSTS = ("open.feishu.cn", "open.larksuite.com", "larksuite.com", "feishu.cn")
+_DINGTALK_HOSTS = ("oapi.dingtalk.com", "api.dingtalk.com", "dingtalk.com")
+
+
+class ChannelRejected(ValueError):
+    """通道服务端**业务拒绝**：HTTP 2xx，但响应体里的业务码非 0（或 ok=false）。
+
+    【为什么单列一类（2026-11-22 现场）】飞书自定义机器人对形状不对的载荷回
+    HTTP **200** + {"code":19002,"msg":"params error, msg_type need"}；旧实现只看
+    "urlopen 有没有抛异常" ⇒ 界面「消息已发送」，机器人一个字都没收到。
+    这类原因不是堆栈（是对方给的 code/msg），可以直接回给界面 ⇒ 挂 .message，
+    路由层/JSON 不用 str(exc)（与 llm_idle_gate.GateConfigError 同款口径）。
+    """
+
+    def __init__(self, message: str, *, code: str = ""):
+        self.message = message
+        self.code = str(code or "")
+        super().__init__(message)
 
 
 def _trace_id():
@@ -320,6 +343,9 @@ class ChannelInstaller:
         """异常 → 对外文案（类别 + 下一步）。**不包含异常原文**。"""
         import smtplib
         import ssl
+        if isinstance(exc, ChannelRejected):
+            # 对方明确拒收（code/msg 是服务端给的、不含密钥与堆栈）⇒ 原样回给界面
+            return exc.message
         if isinstance(exc, smtplib.SMTPAuthenticationError):
             return SEND_ERR_AUTH
         if isinstance(exc, ssl.SSLError) or "handshake" in str(exc).lower():
@@ -434,29 +460,105 @@ class ChannelInstaller:
         return handlers.get(channel_type)
 
     @staticmethod
+    def _webhook_dialect(url: str) -> str:
+        """按主机判定 webhook 方言：feishu / dingtalk / generic（未命中即通用）。"""
+        from urllib.parse import urlsplit
+        try:
+            host = (urlsplit(url).hostname or "").lower()
+        except ValueError:
+            host = ""
+        for h in _FEISHU_HOSTS:
+            if host == h or host.endswith("." + h):
+                return "feishu"
+        for h in _DINGTALK_HOSTS:
+            if host == h or host.endswith("." + h):
+                return "dingtalk"
+        return "generic"
+
+    @staticmethod
+    def _build_webhook_payload(url: str, message: str,
+                               extra: Dict[str, Any]) -> Dict[str, Any]:
+        """按目标服务端拼载荷。
+
+        - 飞书：{"msg_type": "text", "content": {"text": ...}}
+          （发聚合形状 {"text": ...} ⇒ 200 + code=19002 "params error, msg_type need"）
+        - 钉钉：{"msgtype": "text", "text": {"content": ...}}（同款坑：200 + errcode）
+        - Slack / 其它（Slack 兼容端点）：{"text": ..., "source": "yunshu"}
+        """
+        dialect = ChannelInstaller._webhook_dialect(url)
+        if dialect == "feishu":
+            return {"msg_type": "text", "content": {"text": message}}
+        if dialect == "dingtalk":
+            return {"msgtype": "text", "text": {"content": message}}
+        return {"text": message, "source": "yunshu", **extra}
+
+    @staticmethod
+    def _webhook_rejection(body_text: str, status: int) -> Optional["ChannelRejected"]:
+        """HTTP 2xx 也可能是失败：解析响应体业务码，非 0 / ok=false ⇒ 拒收。
+
+        飞书 {"code":0}、钉钉 {"errcode":0} 才算成功；Slack 之类回纯文本 "ok" ⇒ 不拦。
+        """
+        if not body_text:
+            return None
+        try:
+            data = json.loads(body_text)
+        except ValueError:
+            return None
+        if not isinstance(data, dict):
+            return None
+        raw_code = data.get("code", data.get("errcode"))
+        if raw_code is not None and str(raw_code) != "0":
+            detail = str(data.get("msg") or data.get("errmsg") or data.get("message") or "")[:120]
+            suffix = ("：" + detail) if detail else ""
+            return ChannelRejected(
+                f"服务端拒收本次消息（HTTP {status}，code={raw_code}{suffix}）",
+                code=str(raw_code))
+        if data.get("ok") is False:
+            detail = str(data.get("error") or data.get("msg") or "")[:120]
+            suffix = ("：" + detail) if detail else ""
+            return ChannelRejected(
+                f"服务端拒收本次消息（HTTP {status}{suffix}）", code="ok=false")
+        return None
+
+    @staticmethod
     def _handle_webhook(config: Dict, message: str, **kwargs) -> str:
-        """Webhook 默认处理器"""
+        """Webhook 默认处理器（飞书 / 钉钉 / 通用三种方言 + **业务码校验**）。
+
+        【2026-11-22 修的两个坑】①载荷形状：飞书/钉钉各有自己的成功形状，
+        发通用 {"text"} 会被拒；②成功判据：两家的失败也是 HTTP 200，只看状态码会把
+        "拒收"当"已发送"（现场：飞书 code=19002，界面却显示成功）。
+        """
+        import urllib.error
         import urllib.request
-        import json
 
         webhook_url = config.get("webhook_url", "")
         if not webhook_url:
             raise ValueError("Webhook URL 未配置")
 
-        data = json.dumps({
-            "text": message,
-            "source": "yunshu",
-            **kwargs,
-        }).encode("utf-8")
-
+        payload = ChannelInstaller._build_webhook_payload(webhook_url, message, kwargs)
+        data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         req = urllib.request.Request(
             webhook_url,
             data=data,
             headers={"Content-Type": "application/json"},
             method=config.get("method", "POST"),
         )
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            return f"HTTP {resp.status}"
+        try:
+            with urllib.request.urlopen(req, timeout=WEBHOOK_TIMEOUT_SEC) as resp:
+                status = int(getattr(resp, "status", 200) or 200)
+                try:
+                    body_text = resp.read(WEBHOOK_BODY_MAX_BYTES).decode("utf-8", "replace")
+                except Exception:  # noqa: BLE001 读不到响应体不改判"已投递"
+                    body_text = ""
+        except urllib.error.HTTPError as exc:
+            # 4xx/5xx：对方明确回了状态码，如实转成可读原因（原文只进日志）
+            raise ChannelRejected(f"服务端返回 HTTP {exc.code}（详情见服务日志）",
+                                  code=str(exc.code)) from None
+
+        rejected = ChannelInstaller._webhook_rejection(body_text, status)
+        if rejected is not None:
+            raise rejected
+        return f"HTTP {status}"
 
     @staticmethod
     def _handle_smtp(config: Dict, message: str, **kwargs) -> str:
