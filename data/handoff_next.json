@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-22T18:22:00+08:00",
+ "updated_at": "2026-11-22T19:06:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1373,6 +1373,14 @@
    "title": "开关中心选 A/B/C 后分类分组收不起来（forceOpen 锁死折叠）",
    "criteria": "Owner 实报：调度与开关 → 开关中心，点「全部」时分类可收缩，选 A/B/C 收不起来。根因：CategoryGroup 传 forceOpen={filtering}，Collapsible 的 expanded = forceOpen || open；filtering = 有搜索词 || risk != all || 只看已覆盖 ⇒ 筛选态下点标题只翻内部 state。修法：Collapsible 删掉 forceOpen（唯一语义是用户收不起来）；CategoryGroup 改收筛选指纹 resetToken 并作为 key ⇒ 条件变化时重挂回默认展开（保留筛选后自动可见），折叠权归用户。用例 +2（选 A 后可收起 / 换筛选自动展开），负向验证（临时恒展开）实测 2 failed。",
    "next": "2026-11-22 落地 f61c4bf58 并部署（f61c4bf58 / bundle index-DEIO76QS.js，三处一致）。读数：tsc 0；vitest 199 files · 1526 tests 全绿；ui:check exit 0（raw_heading 70 / css_hardcoded_color 0）。真机：初始 true → 选 A 后 true → 点标题 false → 切回全部 true；截图 .ui_shots/SETTINGS_COLLAPSE_A_1440.png（探针 .local/probe_settings_collapse_1220.py）。延伸：全仓凡是 expanded = forced || state 的写法都可能有同类问题（本轮只修了开关中心）。"
+  },
+  {
+   "id": "forced-state-sweep",
+   "status": "done",
+   "priority": "P2",
+   "title": "扫同类「用户改不回来」：导航搜索态折叠 + 新增 forcedState 守卫（ui:check 内）",
+   "criteria": "Owner：查找同类问题（用户改不回来），发现了一并修。全仓扫描：force*/expanded = … || … 只剩 NavPanel.tsx:68（搜索态 forceOpen，与开关中心同源）；checked/selected/open = … || …、|| true、checked={true}、aria-pressed={true} 均 0 处；setBusy/setSaving 等 42 处 × 32 文件抽查 3 处均双路径复位。改法：NavPanel 删 forceOpen，顶层树以 item.key|查询词 为 key（查询变化重挂回默认展开），补 aria-expanded；新增 src/lib/forcedState.guard.test.ts（剥注释后三条规则 + 自测 + 负向注入实测）。",
+   "next": "2026-11-22 落地 e0e8b695c 并部署（e0e8b695c / bundle index-BY-Ru93L.js，三处一致）。读数：tsc 0；vitest 200 files · 1531 tests 全绿；ui:check exit 0（raw_heading 70 / css_hardcoded_color 0）。真机：搜索「审批」→ aria-expanded=true；点「操作（可改）」→ false（旧实现无反应）；换「收件」→ true；截图 .ui_shots/NAV_SEARCH_COLLAPSE_1440.png（探针 .local/probe_nav_search_collapse_1221.py）。守卫已进 ui:guard ⇒ CI 的「代码质量检查」会跑；以后写 force* 或 || true 会当场红。未覆盖的动态写法（cn(...) 拼接、运行时拼串）静态扫不到，看到应拆成可控状态 + reset token。"
   }
  ]
 }
