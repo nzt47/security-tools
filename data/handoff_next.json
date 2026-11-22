@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-22T19:38:00+08:00",
+ "updated_at": "2026-11-22T22:24:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1405,6 +1405,14 @@
    "title": "钉钉自定义机器人「加签」已实现但无真机验证",
    "criteria": "2026-11-22 随 feishu-webhook-sign-secret（112892241）一起实现：同一 sign_secret 字段，timestamp 毫秒 + sign=base64(HmacSHA256(key=secret, msg='{ts}\\n{secret}')) 追加到 URL 查询串（保留 access_token），算法与飞书方向相反；单测 test_channel_sign_secret.py 覆盖公式与 URL 拼接。",
    "next": "有钉钉机器人时补一次真机：开「加签」→ 填密钥 → 消息中心手动发送 → 期望 200；密钥填错时期望 310000 且界面显示「钉钉拒收：常见于加签不匹配或关键词未命中」。不需要真机也能改动的部分（文案/字段）已就绪。"
+  },
+  {
+   "id": "plugin-security-p0p1",
+   "status": "done",
+   "priority": "P1",
+   "title": "插件化安全收口 P0/P1：第三方插件包默认关闭 + 依赖隔离 + API版本/健康 + bulkhead + 调度诚实度",
+   "criteria": "P0：CP_PLUGIN_PACKAGES_ENABLED 默认 0（install/toggle 403）；依赖装 .deps 且 pip returncode 失败即安装失败；PluginSandbox 标注未接线并加生产 import 守卫；插件 UI 默认关。P1：Plugin.api_version=1；manifest status/load_error/load_ms/load_failures；CP_PLUGIN_MAX_CONCURRENT 每插件 bulkhead；/api/schedules action 未实现返回 400 NOT_IMPLEMENTED 并加 executed 字段；CP_PLUGIN_INSTALL_ALLOWLIST 精确匹配；系统命令任务 notify_on_complete 持久化。",
+   "next": "2026-11-22 落地 e2dc2b7a3 / 87e8c29bc / 2a52ad05a 并部署（2a52ad05a / bundle index-CjgbtD6a.js / pid 5364，三处一致）。测试：前端 200 files · 1534 tests；指定 pytest + 新增套件 374 passed；ui:check exit 0；真机 403/400 与 PLUGIN_SAFE_DEFAULT_1440.png。P2 未做：真进程隔离、签名/commit pin、result_schema 扩面、路由硬超时、插件 UI iframe（见 docs/audit/2026-11-22-pluginization-risk-audit.md §10）。"
   }
  ]
 }
