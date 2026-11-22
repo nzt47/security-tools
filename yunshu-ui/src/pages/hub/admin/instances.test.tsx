@@ -17,6 +17,9 @@ vi.mock('../components/ui', async (importOriginal) => ({
 }))
 
 import InstancesPanel from './instances'
+// 跨端载荷契约的单一事实源：同一份字节也喂给后端
+// （tests/unit/test_instance_payload_contract.py）。任一侧改字段名都会立刻红。
+import payloads from '../../../lib/fixtures/instancePayload.json'
 
 afterEach(() => {
   cleanup()
@@ -60,10 +63,8 @@ describe('InstancesPanel', () => {
     fireEvent.change(screen.getByLabelText('接口端点'), { target: { value: 'http://127.0.0.1:11434/v1' } })
     expect(create.disabled).toBe(false)
     fireEvent.click(create)
-    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/llm/instances', {
-      // 字段名必须是 api_endpoint（旧写法 base_url 必被后端 400 拒绝）
-      instance: { name: 'Ollama', provider: 'ollama', model: '', api_endpoint: 'http://127.0.0.1:11434/v1', api_key: '', timeout: 30, enabled: true },
-    }))
+    // 字段名必须是 api_endpoint（旧写法 base_url 必被后端 400 拒绝）；载荷取共享契约
+    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/llm/instances', payloads.llm))
   })
 
   it('搜索实例：内置引擎不必填端点；custom 必填并随请求发 api_endpoint', async () => {
@@ -87,12 +88,7 @@ describe('InstancesPanel', () => {
     fireEvent.change(screen.getByLabelText('搜索接口端点'), { target: { value: 'https://example.com/search?q={query}' } })
     expect(create.disabled).toBe(false)
     fireEvent.click(create)
-    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/search/instances', {
-      instance: {
-        name: 'DDG', engine_type: 'custom', api_key: '',
-        api_endpoint: 'https://example.com/search?q={query}', timeout: 30, enabled: true,
-      },
-    }))
+    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/search/instances', payloads.search))
   })
 
   it('设为默认与测试连通各打对应 POST', async () => {
@@ -130,12 +126,7 @@ describe('InstancesPanel', () => {
 
     fireEvent.change(screen.getByLabelText('实例名称'), { target: { value: 'DeepSeek 主实例' } })
     fireEvent.click(save)
-    await waitFor(() => expect(api.hubPut).toHaveBeenCalledWith('/api/llm/instances/llm1', {
-      updates: {
-        name: 'DeepSeek 主实例', provider: 'deepseek', model: 'v3',
-        api_endpoint: 'https://api.deepseek.com/v1', timeout: 30,
-      },
-    }))
+    await waitFor(() => expect(api.hubPut).toHaveBeenCalledWith('/api/llm/instances/llm1', payloads.llm_update))
     expect((api.hubPut.mock.calls[0][1] as { updates: Record<string, unknown> }).updates).not.toHaveProperty('api_key')
   })
 
@@ -153,9 +144,7 @@ describe('InstancesPanel', () => {
 
     fireEvent.change(screen.getByLabelText('实例名称'), { target: { value: 'DDG 主实例' } })
     fireEvent.click(screen.getByTestId('instance-save'))
-    await waitFor(() => expect(api.hubPut).toHaveBeenCalledWith('/api/search/instances/s1', {
-      updates: { name: 'DDG 主实例', engine_type: 'duckduckgo', timeout: 30 },
-    }))
+    await waitFor(() => expect(api.hubPut).toHaveBeenCalledWith('/api/search/instances/s1', payloads.search_update))
   })
 
   it('取消编辑清空表单并回到新建模式', async () => {

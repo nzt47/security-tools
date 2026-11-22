@@ -1,0 +1,40 @@
+{
+  "_comment": "实例管理的**跨端载荷契约**（单一事实源，2026-11-22）。前端用例断言发出去的就是这几份字节；后端用例（tests/unit/test_instance_payload_contract.py）把同一份载荷喂给 NetworkConfigManager 的校验/写入路径。任一侧改字段名（如 api_endpoint -> base_url）都会让另一侧立刻红，而不是等真机点一次 400。",
+  "llm": {
+    "instance": {
+      "name": "Ollama",
+      "provider": "ollama",
+      "model": "",
+      "api_endpoint": "http://127.0.0.1:11434/v1",
+      "api_key": "",
+      "timeout": 30,
+      "enabled": true
+    }
+  },
+  "llm_update": {
+    "updates": {
+      "name": "DeepSeek 主实例",
+      "provider": "deepseek",
+      "model": "v3",
+      "api_endpoint": "https://api.deepseek.com/v1",
+      "timeout": 30
+    }
+  },
+  "search": {
+    "instance": {
+      "name": "DDG",
+      "engine_type": "custom",
+      "api_key": "",
+      "api_endpoint": "https://example.com/search?q={query}",
+      "timeout": 30,
+      "enabled": true
+    }
+  },
+  "search_update": {
+    "updates": {
+      "name": "DDG 主实例",
+      "engine_type": "duckduckgo",
+      "timeout": 30
+    }
+  }
+}
