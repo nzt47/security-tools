@@ -954,7 +954,7 @@ _c("CP_SUBAGENT_CALLBACK_ALLOW", CAT_SELF_HEALING, "",
        "使模型不再收到「成功」。注意：本开关只在代码里 "
        "agent/scheduling.ACTION_EXECUTION_IMPLEMENTED=True（action 分支真的接线）后才生效；"
        "当前该常量仍为 False，故即使置 1 也不会恢复创建。",
-       owner="agent/tools/code_tools.py",
+       owner="agent/scheduling.py",
        impact="影响面：默认 0=schedule_task 不可用（拒绝创建，返回 NOT_IMPLEMENTED）；"
               "置 1=恢复创建定时任务，但动作是否真的执行取决于 action 分支是否已实现"),
     # 【B 级理由】可调用性过滤开关：它决定"声明为不可被 LLM 调用的工具是否真的从模型
