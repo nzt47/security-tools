@@ -1,6 +1,8 @@
 # 云枢插件化 P2 剩余项：优先级与实施方案（2026-11-23）
 
-> 状态：**待 Owner 拍板**。本文只出方案与实测，不改安装器、不接沙箱、不批量补 schema。
+> 状态：**Owner 已拍板（2026-11-23 13:16）——按推荐做**：① 签名先行；D1 Owner 离线私钥；
+> D2 接受 AppContainer「默认无网络、无用户目录」；D3 Docker 仅作可选后端；
+> D4 方案 + 校验器（不接线）。本文不改安装器、不接沙箱、不批量补 schema。
 > 依据：`docs/audit/2026-11-22-pluginization-risk-audit.md` §10 的「明确未做」清单，
 > 交接条目 `plugin-security-p2-remaining`（open）。
 > 实测时间：2026-11-23 12:11 交接卡（master `69c2bd7ee`，三处一致）+ 12:2x 本机探针。
@@ -13,11 +15,11 @@
    ① 签名与发布密钥（1–1.5 天，先方案后接线）→ ② OS 级文件/网络沙箱（AppContainer 3–5 天；
    Docker 只作可选后端）→ ③ HTTP 路由硬超时（5–10 天，架构级）→ ④ result_schema L2（24 个工具，1–2 天）
    → ⑤ 插件 UI iframe（继续冻结，当前只有 demo）。
-3. **建议下一步做①的「方案 + 校验器（不接线）」**；②只做 1 天 PoC；③④⑤不动。本轮只出本文与实测，
-   理由：①是「以后要开放第三方包」的前置契约，改动面小、可默认不改变行为；
+3. **本轮已按 D4 落地①的「校验器（不接线）」**：`agent/extensions/plugin_signature.py` +
+   `tests/unit/test_plugin_signature.py`（17 passed）；安装器仍未调用它，默认路径零行为变化。
+   ②只做 1 天 PoC；③④⑤不动。理由：①是「以后要开放第三方包」的前置契约，改动面小；
    ②是真正边界但 Windows 上工程量大；③要改 226 条内置路由的调用形态，不能顺手做。
-4. **需要 Owner 拍三件事**（见 §7）：谁持有签名私钥；是否接受 AppContainer 的
-   「默认无网络、无用户目录」；是否允许 Docker 作为可选后端。
+4. **Owner 已拍板**（见 §7）：D1 Owner 离线私钥 / D2 接受 AppContainer 默认无网 / D3 Docker 可选 / D4 校验器不接线。
 
 ## 1. 现状实测（2026-11-23 12:2x）
 
@@ -155,6 +157,12 @@ not_before, not_after, revoked_at, note}]}`。默认路径写死，**不**用环
 - 私钥泄露 = 攻击者可签任意包；撤销只能靠部署新配置，不是即时。
 - 时间戳只做记录，不做可信时间（没有 TSA）。
 
+**2026-11-23 落地（未接线）**：`agent/extensions/plugin_signature.py` 实现规范化 JSON、文件树枚举、
+受信表校验、状态/过期/撤销判定、Ed25519 验签、`package_sha256` 与文件树比对；
+`tests/unit/test_plugin_signature.py` **17 passed**（合法、篡改、夹带、缺文件、未知/撤销/退役/过期 key、
+坏签名、摘要不符、非法路径、符号链接、缺字段、受信表重复/坏公钥）。安装器与加载路径**尚未调用**，
+下一步接线时再按 §3.5 加暂存目录与 `CP_PLUGIN_SIGNATURE_MODE`（同时登记 settings registry）。
+
 ## 4. 方案②：OS 级文件/网络沙箱可行性
 
 ### 4.1 两条路线
@@ -228,10 +236,12 @@ not_before, not_after, revoked_at, note}]}`。默认路径写死，**不**用环
   写类工具（`workspace_write / software_install / run_tests / set_clipboard`）放到后面，逐个人工确认。
 - 验收：每个工具一条成功样本 + 一条失败样本；`test_l3_result_schema` 的同类测试扩到 L2。
 
-## 7. 建议顺序与需要 Owner 拍板的事
+## 7. 建议顺序与 Owner 决策
 
-**建议**：Owner 拍板后先做①的「方案 + 校验器（不接线）」，②做 1 天 PoC，③④⑤保持 open。
-若 Owner 只允许做一件：选①；若 Owner 更关心「即使被签名也要限制文件/网络」：先做②的 PoC。
+**Owner 2026-11-23 13:16 已确认**：D1 = Owner 离线私钥；D2 = 接受 AppContainer 默认无网/无用户目录；
+D3 = Docker 仅可选后端；D4 = 方案 + 校验器（不接线）。本轮按此执行，未动安装器。
+
+**后续建议**：②做 1 天 PoC，③④⑤保持 open；若 Owner 更关心「即使被签名也要限制文件/网络」：先做②的 PoC。
 
 | # | 决策 | 选项 | 影响 |
 |---|---|---|---|
