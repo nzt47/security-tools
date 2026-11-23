@@ -184,6 +184,10 @@ class ReadOnlyChainError(AuditChainError):
     """只读实例调用了写入接口"""
 
 
+#: DB 兜底失败后的重试间隔（模块常量：调用参数不写裸数字）。
+_DB_FALLBACK_RETRY_SLEEP_SEC = 0.05
+
+
 class AuditEntryError(AuditChainError):
     """记录字段非法（如 seq 非正、action 为空）"""
 
@@ -1938,7 +1942,7 @@ class AuditChain:
     def _allocate_via_db(self, *, ts: str, actor: str, action: str, subject: str,
                          payload: Optional[Dict[str, Any]], src: str,
                          trace_id: str, workspace_id: str, schema_version: int,
-                         reason: str) -> AuditEntry:
+                         reason: str, _retry: bool = False) -> AuditEntry:
         """**锁不可得时的兜底分配**：DB 事务内读链头 + 直接入库
 
         【为什么这是正确的那条兜底（实测教训）】任务书给的三条 seq 分配路线是
@@ -1987,16 +1991,29 @@ class AuditChain:
                         f"INSERT INTO audit_chain ({','.join(_COLUMNS)}) "
                         f"VALUES ({placeholders})", entry.row_values())
                     conn.commit()
-        except Exception as exc:  # noqa: BLE001 双故障 → 最后兜底（显式标记）
+        except Exception as exc:  # noqa: BLE001 双故障 → 重试，仍失败则拒绝写入
             logger.error("兜底 DB 事务分配失败（跨进程锁与 DB 同时不可用）: %s", exc)
-            entry = self._allocate_and_journal(
-                prev_seq=self._next_seq - 1, prev_hash=self._last_hash, ts=ts,
-                actor=actor, action=action, subject=subject, payload=payload,
-                src=src, trace_id=trace_id, workspace_id=workspace_id,
-                schema_version=schema_version, under_lock=False)
-            self._note_degraded(
-                f"fallback_db_alloc_failed ({reason}): {exc}", key=f"seq={entry.seq}")
-            return entry
+            # 【2026-11-23 修】原实现失败后回落到**进程内存链头**
+            # `_allocate_and_journal(prev_seq=self._next_seq - 1, ...)`；
+            # 只要另一个 writer 已推进 DB，就会写出与 DB 分叉的 prev_hash
+            # （实测 seq=88008 的 lock.degraded 分叉）。
+            # 现在改为重试一次 DB 事务；仍失败则 fail-closed，绝不写内存链头。
+            if not _retry:
+                try:
+                    time.sleep(_DB_FALLBACK_RETRY_SLEEP_SEC)
+                    return self._allocate_via_db(
+                        ts=ts, actor=actor, action=action, subject=subject,
+                        payload=payload, src=src, trace_id=trace_id,
+                        workspace_id=workspace_id, schema_version=schema_version,
+                        reason=f"{reason}_retry", _retry=True)
+                except Exception as exc2:  # noqa: BLE001
+                    logger.error("兜底 DB 事务重试仍失败，拒绝写入审计链: %s", exc2)
+                    raise AuditEntryError(
+                        "审计链暂不可写：DB 事务分配失败（已拒绝写入以避免链分叉）"
+                    ) from exc2
+            raise AuditEntryError(
+                "审计链暂不可写：DB 事务分配失败（已拒绝写入以避免链分叉）"
+            ) from exc
 
         # 与主路径一致地推进内存链头 / 写日志（日志是崩溃恢复的来源）
         with self._append_lock:

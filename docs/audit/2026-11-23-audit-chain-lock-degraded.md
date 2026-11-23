@@ -20,12 +20,14 @@
    `prev_hash / payload_hash / self_hash`（payload 内容保留），同步修正 journal 三行；
 3. `verify_audit_chain.py` → **OK，88010 条，链头 62ec8d33…**。
 
-## 根因与未完成
+## 根因与修复
 
 - 根因在 `agent/audit/chain.py::_allocate_via_db` 的异常兜底：DB 事务失败后回落到
   **进程内存链头** `_allocate_and_journal(prev_seq=self._next_seq-1, prev_hash=self._last_hash)`，
   当另一个 writer 已推进 DB 时就会分叉。锁超时本身是降级，但兜底不应该再写内存链头。
-- 本轮**未改**审计 writer（核心链路，需单独并发用例 + 失败关闭语义）。已加 open 交接条目
-  `audit-lock-degraded-fork`，建议修法：兜底重试 `_allocate_via_db` / 失败即拒绝写入，
-  不再用内存链头；补 4 进程并发用例。
+- **2026-11-23 21:2x 已修**：`_allocate_via_db` 异常后重试一次（`_retry=True` 防递归），
+  仍失败则 `raise AuditEntryError`（fail-closed），不再写内存链头。
+- 新增 `tests/unit/test_audit_chain_fallback.py`：断言「重试 1 次后拒绝写入」；回归
+  `test_audit_chain` / `test_audit_chain_concurrency` / `test_audit_journal_drain`
+  **131 passed + 4 concurrency passed**。交接条目 `audit-lock-degraded-fork` 置 done。
 - 运维口径：不要让后端与多个写审计的探针/测试同时跑；验证审计链前先停后端。
