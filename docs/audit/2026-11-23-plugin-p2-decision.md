@@ -2,7 +2,7 @@
 
 > 状态：**Owner 已拍板（2026-11-23 13:16）——按推荐做**：① 签名先行；D1 Owner 离线私钥；
 > D2 接受 AppContainer「默认无网络、无用户目录」；D3 Docker 仅作可选后端；
-> D4 方案 + 校验器（不接线）。本文不改安装器、不接沙箱、不批量补 schema。
+> D4 方案 + 校验器（后按「一次做完」改为接线，见 §3.5）。本文不把沙箱接生产、不批量补 schema。
 > 依据：`docs/audit/2026-11-22-pluginization-risk-audit.md` §10 的「明确未做」清单，
 > 交接条目 `plugin-security-p2-remaining`（open）。
 > 实测时间：2026-11-23 12:11 交接卡（master `69c2bd7ee`，三处一致）+ 12:2x 本机探针。
@@ -15,11 +15,13 @@
    ① 签名与发布密钥（1–1.5 天，先方案后接线）→ ② OS 级文件/网络沙箱（AppContainer 3–5 天；
    Docker 只作可选后端）→ ③ HTTP 路由硬超时（5–10 天，架构级）→ ④ result_schema L2（24 个工具，1–2 天）
    → ⑤ 插件 UI iframe（继续冻结，当前只有 demo）。
-3. **本轮已按 D4 落地①的「校验器（不接线）」**：`agent/extensions/plugin_signature.py` +
-   `tests/unit/test_plugin_signature.py`（17 passed）；安装器仍未调用它，默认路径零行为变化。
-   ②只做 1 天 PoC；③④⑤不动。理由：①是「以后要开放第三方包」的前置契约，改动面小；
-   ②是真正边界但 Windows 上工程量大；③要改 226 条内置路由的调用形态，不能顺手做。
-4. **Owner 已拍板**（见 §7）：D1 Owner 离线私钥 / D2 接受 AppContainer 默认无网 / D3 Docker 可选 / D4 校验器不接线。
+3. **签名已完整落地**：校验器 + 离线签名工具 + 安装暂存/加载复验 + `CP_PLUGIN_SIGNATURE_MODE`；
+   受信表 `config/plugin_trusted_keys.json` 为空（fail-closed），第三方包总开关仍默认关。
+   插件相关 **101 passed**（签名 18 / 接线 7 / CLI 2）。
+4. **AppContainer 已做可行性 PoC**：文件读、外网、环境变量三层都隔住；剩余是启动器工程化
+   （3–5 天），**未接生产**。插件路由 p99 已实测（见 §5），当前没有持续慢路由。
+5. **Owner 已拍板**（见 §7）：D1 Owner 离线私钥 / D2 接受 AppContainer 默认无网 / D3 Docker 可选 /
+   D4 原先只做校验器，后按「全部做完」改为接线。
 
 ## 1. 现状实测（2026-11-23 12:2x）
 
@@ -112,28 +114,33 @@ not_before, not_after, revoked_at, note}]}`。默认路径写死，**不**用环
 **加载时复验**：`load_plugin` / `_load_plugin_isolated` 对已安装目录重算文件树（50 文件约 14 ms），
 防止安装后被替换。加载失败要写 manifest `status/load_error`，不能只 print。
 
-### 3.5 安装器接入点（现在不改）
+### 3.5 安装器接线（2026-11-23 已落地）
 
-现状：`github:` 直接 clone 到 `plugins/<repo>`，`local:` 直接 `copytree` 到最终目录，
-`url:` 先落 `temp_download`——**三条路径都没有「先暂存、验签、再改名」的阶段**。
-接线时必须统一改成：
+三条安装路径统一改成「先暂存、验签、再落最终目录」：
 
 ```text
-下载/复制 → plugins_dir/.staging/<uuid>/ → 验签 → os.replace 到 plugins/<id> → 依赖安装 → 登记
+下载/复制 → plugins_dir/.staging/<uuid>/ → 验签 → shutil.move 到 plugins/<name>
+          → 依赖装 .deps → 登记；任一步失败 _abort 清暂存 + 半装目录
 ```
 
-接入点：`agent/extensions/plugins_installer.py` 的 `install_plugin`（下载后、依赖安装前），
-以及 `load_plugin` / `_load_plugin_isolated`（加载前复验）。
-新增开关 `CP_PLUGIN_SIGNATURE_MODE=off|warn|enforce`（默认 `enforce`；开发可用 `warn` 只告警），
-**必须同时进 `agent/settings/registry.py`**，否则零缺口门禁红。
-
-错误码：`PLUGIN_SIGNATURE_MISSING / INVALID / UNKNOWN_KEY / KEY_REVOKED / TAMPERED / TOO_LARGE`。
-响应只回错误码与固定文案，不带文件路径/异常原文。
+- 接入点：`agent/extensions/plugins_installer.py` 的 `install_plugin`（下载/复制后、依赖前）
+  与 `load_plugin`（加载前复验；`retired` 只允许加载，`revoked` 全拒）。
+- 开关：`CP_PLUGIN_SIGNATURE_MODE=off|warn|enforce`，默认 **enforce**（非法值也 enforce）；
+  已登记 `agent/settings/registry.py`（B 级，`_enum`）。
+- 生成物：加载复验忽略 `.deps/`、`__pycache__/`、`*.pyc`、`.git/`；除此之外多/少文件都判篡改。
+  `github:` 的 `_merge_dir` 不再复制 `.git`，避免「签名只覆盖源码树」被 VCS 元数据破坏。
+- 受信表：`config/plugin_trusted_keys.json`（固定路径，不提供 env 改信任根）；当前 `keys: []`，
+  即启用第三方包后**任何包都验不过**，这是有意的 fail-closed 初态。
+- 错误码：`PLUGIN_SIGNATURE_MISSING / INVALID / UNKNOWN_KEY / KEY_REVOKED / KEY_RETIRED /
+  KEY_EXPIRED / TAMPERED / PACKAGE_UNSAFE_PATH / PACKAGE_TOO_LARGE`；响应只回错误码与固定文案。
+- 默认行为不变：`CP_PLUGIN_PACKAGES_ENABLED=0` 时安装/启用仍是 403，签名门不会先跑。
 
 ### 3.6 签名工具与发布流程
 
-- `scripts/sign_plugin_package.py --package <dir> --key <path> --key-id <id>`：离线运行，
-  生成/覆盖 `plugin.sig.json`；`--verify` 供维护者本地复核。**不进 CI 自动签**。
+- `scripts/sign_plugin_package.py sign --package <dir> --key <pem> --key-id <id>`：离线运行，
+  生成/覆盖 `plugin.sig.json`，输出 `public_key_b64` 供贴进受信表；
+  `verify --package <dir> --keys config/plugin_trusted_keys.json` 供维护者/CI 复核。**不进 CI 自动签**。
+  私钥口令用 `--password-env <VAR>` 传，不把口令放进命令行。
 - 发布清单：干净构建 → 生成 sig → 用公钥复核 → 打 tag（`@ref` 固定到该 tag/commit）→
   更新白名单（若有）→ 记录 `package_sha256`。
 - 私钥使用记录（谁、何时、签了哪个 sha256）写在发布记录里，不进代码库。
@@ -157,11 +164,11 @@ not_before, not_after, revoked_at, note}]}`。默认路径写死，**不**用环
 - 私钥泄露 = 攻击者可签任意包；撤销只能靠部署新配置，不是即时。
 - 时间戳只做记录，不做可信时间（没有 TSA）。
 
-**2026-11-23 落地（未接线）**：`agent/extensions/plugin_signature.py` 实现规范化 JSON、文件树枚举、
+**2026-11-23 落地（已接线）**：`agent/extensions/plugin_signature.py` 实现规范化 JSON、文件树枚举、
 受信表校验、状态/过期/撤销判定、Ed25519 验签、`package_sha256` 与文件树比对；
-`tests/unit/test_plugin_signature.py` **17 passed**（合法、篡改、夹带、缺文件、未知/撤销/退役/过期 key、
-坏签名、摘要不符、非法路径、符号链接、缺字段、受信表重复/坏公钥）。安装器与加载路径**尚未调用**，
-下一步接线时再按 §3.5 加暂存目录与 `CP_PLUGIN_SIGNATURE_MODE`（同时登记 settings registry）。
+`plugins_installer.py` 加暂存目录 + 安装/加载双验签；`scripts/sign_plugin_package.py` 提供离线
+`sign/verify`；`config/plugin_trusted_keys.json` 为空表（fail-closed）。测试：签名 **18**、接线 **7**、
+CLI **2**；插件相关套件 **101 passed**。
 
 ## 4. 方案②：OS 级文件/网络沙箱可行性
 
@@ -193,12 +200,37 @@ not_before, not_after, revoked_at, note}]}`。默认路径写死，**不**用环
 **路线 C：独立低权限用户 + ACL（不推荐单独用）**：仍是同一内核、同一用户目录可被 ACL 误配；
 只能当纵深防御的一层，不能叫沙箱。
 
-### 4.2 PoC 计划（1 天，先不接生产）
+### 4.2 PoC 结果（2026-11-23 18:1x，已跑通）
 
-1. 用 ctypes 建 AppContainer profile + SID；起一个只打印 `ok` 的 Python 子进程；
-2. 验证：读 `data/.env` 失败、连外网失败、写自己的数据目录成功、stdout 协议正常；
-3. 测启动延迟与 50 次调用稳定性；记录「哪些内置第三方包会因此不可用」；
-4. 结论写回本文；**PoC 代码放 `.local/`，不提交**，避免半成品进生产。
+环境：Windows 10 19045 / Python 3.12 / 管理员；ctypes 直调 userenv + CreateProcessW。
+PoC 代码在 `.local/_poc_appcontainer.py`（**不提交**）。
+
+| 验证项 | 结果 |
+|---|---|
+| 创建 AppContainer profile + SID | 成功（`S-1-15-2-...`） |
+| 在容器内起进程 | 成功；`CreateProcess` 约 **1.7 ms** |
+| 读仓库 `.env` | **拒绝访问**（`type` 退出码 1） |
+| 访问外网 | `curl https://example.com` 超时（rc=28），默认无网络 |
+| 写自己的数据目录 | 成功（ACL 授予 SID 后写入 `ac_write.txt`） |
+| 起 Python | 默认失败（rc=5，拒绝访问）；对解释器目录授予 SID `(OI)(CI)(RX)` 后成功 |
+| 环境变量 | 显式最小 env 块下，父进程注入的假 `FLASK_API_TOKEN` / `YUNSHU_POC_SECRET` 都**不可见** |
+| `cmd.exe` / System32 | 默认可读可执行（ALL APPLICATION PACKAGES 已有权限） |
+
+**关键工程结论（生产接线前必须处理）**：
+
+1. **env 块不是可选的**：`CreateProcessW` 传最小 env 时要包含 `USERPROFILE` / `APPDATA` /
+   `LOCALAPPDATA` / `HOMEDRIVE` / `HOMEPATH` / `USERNAME` / `PATHEXT` / `SYSTEMDRIVE` 等，
+   否则返回 **error 203（ERROR_ENVVAR_NOT_FOUND）**；现有 `plugin_process._worker_env` 需补这几项。
+2. **Python 解释器要显式 ACL**：每个插件 AppContainer SID 对 Python 安装目录 `(OI)(CI)(RX)`；
+   卸载时删 ACE。更干净的做法是复制一份只读运行时到受控目录，避免给系统 Python 加 ACE。
+3. **不要把仓库根授予容器**：仓库根有 `.env`；现有 `python -m agent.extensions.plugin_worker`
+   需要仓库在 `PYTHONPATH` ⇒ 生产要把一个最小 runner 复制到插件数据目录，或单独运行时目录。
+4. 资源限制仍用 Job Object（内存/CPU/进程数）；超时仍用现有 `PluginProcess._kill` 的硬杀。
+5. 网络默认关闭；若某插件确需联网，再单独加 `internetClient` capability，不做全局放行。
+
+**结论**：AppContainer 在本机可行，文件/网络/环境变量三层都能隔离；剩余是启动器工程化
+（约 250–350 行 ctypes + ACL 生命周期 + runner 打包），估 3–5 天，建议下一步单独一批做，
+开关默认关（`CP_PLUGIN_SANDBOX=off|appcontainer`）。
 
 ## 5. 方案③：HTTP 插件路由硬超时（为什么不能顺手做）
 
@@ -207,6 +239,28 @@ not_before, not_after, revoked_at, note}]}`。默认路径写死，**不**用环
 - Python 线程**杀不掉**：`threading` 没有安全终止；`PyThreadState_SetAsyncExc` 只能注入异常，
   遇到 C 扩展/阻塞 IO 无效。所以「在宿主里加个 timer 然后返回 504」是**软超时**，
   线程还占着，不能算硬超时。
+**2026-11-23 实测（`/metrics` 直方图，当前进程启动至今）**：指标 endpoint 标签形如
+`blueprint.view`，可按前缀聚合到插件；下表是各插件全部路由的聚合分位（桶 5ms–10s）：
+
+| 插件 | 请求数 | p50 | p95 | p99 |
+|---|---:|---:|---:|---:|
+| system_tools | 1369 | 0.010s | 0.025s | 0.500s |
+| memory | 201 | 0.025s | 0.050s | 0.075s |
+| skills | 25 | 0.050s | 0.250s | 0.500s |
+| status | 11 | 0.005s | 0.075s | 0.075s |
+| chat | 10 | 0.005s | 0.025s | 0.025s |
+| admin_api | 8 | 0.005s | 0.005s | 0.005s |
+| mcp_scheduler | 7 | 0.005s | 0.050s | 0.050s |
+| admin | 5 | 0.005s | 0.010s | 0.010s |
+| version_info | 4 | 0.010s | 2.500s | 2.500s |
+| ingestion | 2 | 0.100s | 0.250s | 0.250s |
+| safety | 2 | 0.005s | 0.005s | 0.005s |
+
+单端点看：`system_tools.api_terminal_activity` 1368 次、p50 10ms / p99 75ms；
+`version_info.api_version` 4 次里有一次冷启动落在 2.5s 桶。**结论**：当前没有持续慢路由，
+bulkhead 足够；`version_info` 的冷启动值得单独看，但不构成「必须马上做硬超时」的证据。
+下一步若要继续，先给「每 blueprint 的 p99/超时次数」加一条结构化指标，而不是直接改 226 条路由。
+
 - 可选路线与代价：
 
 | 路线 | 做法 | 代价 | 是否硬超时 |
@@ -250,10 +304,15 @@ D3 = Docker 仅可选后端；D4 = 方案 + 校验器（不接线）。本轮按
 | D3 | Docker | 不允许 / 可选后端 | 决定是否写第二条适配 |
 | D4 | 本轮范围 | 只出方案 / 方案+校验器 / 直接接线 | 决定是否动安装器 |
 
-## 8. 本轮明确不做
+## 8. 本轮边界
 
-- 不改 `plugins_installer.py` 的安装路径，不新增 env 读取点（避免半成品进 CI）；
-- 不接 AppContainer/Docker，不把 Job Object 叫沙箱；
-- 不改 226 条内置路由，不加假硬超时；
+**已做**：签名校验器 + 离线签名工具 + 安装暂存/加载复验 + `CP_PLUGIN_SIGNATURE_MODE` 登记；
+AppContainer 可行性 PoC；插件路由 p99 实测。
+
+**仍不做**：
+
+- 不把 AppContainer 接进生产 `plugin_process`（PoC 只在 `.local/`，开关未加）；
+- 不把 Job Object 叫沙箱；不改 226 条内置路由，不加假硬超时；
 - 不批量补 result_schema，不猜字段；
-- 不打开插件包默认开关，不改白名单。
+- 不打开插件包默认开关，不改白名单；
+- 不接插件 UI iframe。

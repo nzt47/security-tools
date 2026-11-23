@@ -295,4 +295,8 @@ cd yunshu-ui && npm run ui:check
 > 本报告第 10 节是本轮实际落地项；未落地项（进程隔离、签名、result_schema 扩面、路由硬超时、iframe）仍按 P2 管理。第三方插件包入口现在是「默认关闭 + 白名单」，不等于已完成隔离。
 >
 > **2026-11-23 续**：P2 剩余五项的优先级对比与四份方案（签名/密钥、AppContainer/Docker、路由硬超时、schema L2）见
-> `docs/audit/2026-11-23-plugin-p2-decision.md`；当前待 Owner 拍板，安装器与生产路径未改。
+> `docs/audit/2026-11-23-plugin-p2-decision.md`。Owner 已拍板并落地：
+> **签名已完整接线**（`plugin_signature.py` + `scripts/sign_plugin_package.py` + 安装暂存/加载复验 +
+> `CP_PLUGIN_SIGNATURE_MODE`，受信表为空，包总开关仍默认关）；**AppContainer 已做可行性 PoC**
+> （文件/网络/env 三层隔住，未接生产）；**插件路由 p99 已实测**（无持续慢路由，bulkhead 保留）。
+> 仍未做：AppContainer 启动器工程化、226 条内置路由硬超时、result_schema L2、插件 UI iframe。
