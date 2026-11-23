@@ -1415,6 +1415,14 @@
    "next": "2026-11-22/23 落地 135940d46（P0/P1）→ 549836a29（进程隔离）→ 6842e8bd8（来源 ref 固定 + 10 个 L3 result_schema）→ d1a3bd98c（契约测试改用 web_search 守 undeclared）→ 32dd5b45c（bot 看板，已补部署）。当前三处一致：32dd5b45c / bundle index-DqUsrfq5.js / pid 11768；审计 87860 / 0 断点。测试：前端 200 files · 1534 tests；指定 pytest + 新增 374 passed；进程隔离 4、来源 pin 2、L3 schema 1、capregistry 5；CI d1a3bd98c run 45044914978 全绿。P2 剩余见 open 项 plugin-security-p2-remaining 与审计 §10。"
   },
   {
+   "id": "audit-lock-degraded-fork",
+   "status": "open",
+   "priority": "P1",
+   "title": "审计链并发 writer 锁超时兜底会分叉（seq 88008 prev_hash 断裂）",
+   "criteria": "2026-11-23 19:52 实测：后端 + 多个探针/测试进程并发写审计，跨进程锁 5s 超时；_allocate_via_db 异常后回落到内存链头 _allocate_and_journal，写出的 seq=88008 prev_hash=a2d34a0c… 与 DB 中 88007 self_hash=df62f2cf… 不一致，88009/88010 前向失败。已停后端、备份 DB/journal、重算 88008–88010 链字段修复（verify 88010 OK，链头 62ec8d33…）；根因未修。详见 docs/audit/2026-11-23-audit-chain-lock-degraded.md。",
+   "next": "修 agent/audit/chain.py::_allocate_via_db 的异常兜底：DB 事务失败时重试，仍失败则拒绝写入（fail-closed），禁止再用进程内存链头；补 4 进程并发用例（锁超时 + DB busy 两种）。修前先加用例复现、备份 DB；不要在并发写审计时跑 verify_audit_chain。"
+  },
+  {
    "id": "plugin-security-p2-remaining",
    "status": "open",
    "priority": "P2",
