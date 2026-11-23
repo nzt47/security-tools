@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import os
 import re
+from pathlib import Path
 from typing import Tuple
 
 ENV_PLUGIN_PACKAGES_ENABLED = "CP_PLUGIN_PACKAGES_ENABLED"
@@ -28,12 +29,18 @@ ENV_PLUGIN_INSTALL_ALLOWLIST = "CP_PLUGIN_INSTALL_ALLOWLIST"
 ENV_PLUGIN_MAX_CONCURRENT = "CP_PLUGIN_MAX_CONCURRENT"
 ENV_PLUGIN_PROCESS_ISOLATION = "CP_PLUGIN_PROCESS_ISOLATION"
 ENV_PLUGIN_PROCESS_TIMEOUT = "CP_PLUGIN_PROCESS_TIMEOUT_SEC"
+ENV_PLUGIN_SIGNATURE_MODE = "CP_PLUGIN_SIGNATURE_MODE"
 
 _TRUTHY = frozenset({"1", "true", "yes", "on"})
 _DEFAULT_MAX_CONCURRENT = 4
 _MAX_CONCURRENT_CAP = 64
 _DEFAULT_PROCESS_TIMEOUT_SEC = 30.0
 _MAX_PROCESS_TIMEOUT_SEC = 300.0
+_SIGNATURE_MODES = ("off", "warn", "enforce")
+_DEFAULT_SIGNATURE_MODE = "enforce"
+
+#: 受信公钥表固定路径（不提供环境变量改信任根；改它必须走代码 review）。
+TRUSTED_KEYS_PATH = Path(__file__).resolve().parents[2] / "config" / "plugin_trusted_keys.json"
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
@@ -111,6 +118,17 @@ def process_timeout() -> float:
     except (TypeError, ValueError):
         value = _DEFAULT_PROCESS_TIMEOUT_SEC
     return max(1.0, min(value, _MAX_PROCESS_TIMEOUT_SEC))
+
+
+def signature_mode() -> str:
+    """插件包签名校验模式：off / warn / enforce（默认 enforce，非法值也按 enforce）。
+
+    - off：不验签（仅排障；等于放弃供应链校验）
+    - warn：验签失败只记日志，仍放行（灰度期）
+    - enforce：缺失/失败一律拒绝安装与加载
+    """
+    raw = str(os.environ.get(ENV_PLUGIN_SIGNATURE_MODE, "") or "").strip().lower()
+    return raw if raw in _SIGNATURE_MODES else _DEFAULT_SIGNATURE_MODE
 
 
 def max_concurrent() -> int:

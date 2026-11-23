@@ -92,6 +92,8 @@ def test_installer_loads_plugin_in_subprocess(plugin_dir, tmp_path, monkeypatch)
 
     monkeypatch.setattr(plugin_policy, "plugin_packages_enabled", lambda: True)
     monkeypatch.setattr(plugin_policy, "source_allowed", lambda source: True)
+    # 本用例只测进程边界；签名门由 test_plugin_signature_install 覆盖。
+    monkeypatch.setattr(plugin_policy, "signature_mode", lambda: "off")
     monkeypatch.setattr(plugin_policy, "plugin_process_isolation_enabled", lambda: True)
     monkeypatch.setattr(plugin_policy, "process_timeout", lambda: 5.0)
 

@@ -83,7 +83,21 @@ def _safe_rel_path(rel: str) -> bool:
     return all(part not in ("", ".", "..") for part in parts)
 
 
-def scan_package(root: Path) -> Dict[str, str]:
+def _is_generated(rel: str) -> bool:
+    """安装器/解释器生成物：依赖目录与字节码缓存不参与签名。
+
+    `.deps` 是 pip --target 的产物（签名不覆盖依赖供应链，见方案 §3.8）；
+    `__pycache__` / `*.pyc` 是运行时生成物。除此之外多一个文件都算篡改。
+    """
+    parts = rel.split("/")
+    if parts and parts[0] in (".deps", ".git"):
+        return True
+    if "__pycache__" in parts:
+        return True
+    return rel.endswith(".pyc")
+
+
+def scan_package(root: Path, *, ignore_generated: bool = False) -> Dict[str, str]:
     """枚举包内文件并算 sha256；拒符号链接、路径穿越与超限。"""
     root = Path(root)
     if root.is_symlink():
@@ -96,6 +110,8 @@ def scan_package(root: Path) -> Dict[str, str]:
         rel = path.relative_to(root).as_posix()
         if path.is_symlink():
             raise PluginSignatureError("PLUGIN_PACKAGE_UNSAFE_PATH", "插件包含符号链接")
+        if ignore_generated and _is_generated(rel):
+            continue
         if path.is_dir():
             continue
         if not path.is_file():
@@ -222,6 +238,7 @@ def _validate_envelope(envelope: Mapping[str, Any]) -> None:
 def verify_package(root: Path, envelope: Mapping[str, Any],
                    trusted_keys: Mapping[str, Mapping[str, Any]],
                    *, allow_retired: bool = False,
+                   ignore_generated: bool = False,
                    now: Optional[datetime] = None) -> Dict[str, Any]:
     """校验包目录；通过返回摘要信息，失败抛 PluginSignatureError。"""
     _validate_envelope(envelope)
@@ -249,7 +266,7 @@ def verify_package(root: Path, envelope: Mapping[str, Any],
     if expected != str(envelope["package_sha256"]):
         raise PluginSignatureError("PLUGIN_SIGNATURE_TAMPERED", "package_sha256 与文件清单不一致")
 
-    actual = scan_package(root)
+    actual = scan_package(root, ignore_generated=ignore_generated)
     if actual != declared:
         raise PluginSignatureError("PLUGIN_SIGNATURE_TAMPERED", "包内文件与签名清单不一致")
     return {
@@ -266,4 +283,5 @@ def verify_installed_package(root: Path, trusted_keys_path: Path,
     envelope = read_signature(root)
     keys = load_trusted_keys(trusted_keys_path)
     return verify_package(root, envelope, keys,
-                          allow_retired=allow_retired, now=now)
+                          allow_retired=allow_retired,
+                          ignore_generated=True, now=now)

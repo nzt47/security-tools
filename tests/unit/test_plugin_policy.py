@@ -46,6 +46,17 @@ def test_github_ref_split_and_validation():
     assert plugin_policy.valid_github_ref("") is False
 
 
+def test_signature_mode_defaults_to_enforce(monkeypatch):
+    monkeypatch.delenv(plugin_policy.ENV_PLUGIN_SIGNATURE_MODE, raising=False)
+    assert plugin_policy.signature_mode() == "enforce"
+    monkeypatch.setenv(plugin_policy.ENV_PLUGIN_SIGNATURE_MODE, "warn")
+    assert plugin_policy.signature_mode() == "warn"
+    monkeypatch.setenv(plugin_policy.ENV_PLUGIN_SIGNATURE_MODE, "off")
+    assert plugin_policy.signature_mode() == "off"
+    monkeypatch.setenv(plugin_policy.ENV_PLUGIN_SIGNATURE_MODE, "nonsense")
+    assert plugin_policy.signature_mode() == "enforce"
+
+
 def test_max_concurrent_clamped(monkeypatch):
     monkeypatch.setenv(plugin_policy.ENV_PLUGIN_MAX_CONCURRENT, "999")
     assert plugin_policy.max_concurrent() == 64

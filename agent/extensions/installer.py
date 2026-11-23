@@ -301,6 +301,9 @@ class InstallEngine:
     def _merge_dir(src: Path, dst: Path):
         """合并源目录到目标目录（递归复制）"""
         for item in src.iterdir():
+            if item.name == ".git":
+                # 不把 VCS 元数据装进插件包（签名只覆盖源码树）
+                continue
             s = src / item.name
             d = dst / item.name
             if s.is_dir():

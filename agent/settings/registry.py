@@ -612,6 +612,15 @@ _REGISTRY_ROWS: List[SettingSpec] = [
        "单次插件工具调用超时（秒）；超时即杀插件子进程。范围 1–300",
        owner="agent/extensions/plugin_policy.py",
        validator=_int_range(1, 300)),
+    _b("CP_PLUGIN_SIGNATURE_MODE", CAT_EXTERNAL, "enforce",
+       "第三方插件包签名校验模式：off=不验签（仅排障）/ warn=失败只记日志仍放行 / "
+       "enforce=缺失或失败一律拒绝安装与加载。默认 enforce；非法值也按 enforce（fail-closed）",
+       owner="agent/extensions/plugin_policy.py",
+       validator=_enum("off", "warn", "enforce", notes={
+           "off": "仅排障：等于放弃供应链校验，不要在生产开启",
+           "warn": "灰度：验签失败仍放行，只写日志；不阻断",
+           "enforce": "默认：缺失/篡改/未知或撤销 key 一律拒绝",
+       })),
     # 【P5 container 执行档（2026-10-09）】容器通道的开关/镜像/CLI。开启即安全姿态变更
     # （委派改在容器内执行）⇒ 用 _b；镜像与 CLI 属外部依赖端点，用 _c（只读脱敏）。
     _b("CP_SUBAGENT_CONTAINER_ENABLED", CAT_SELF_HEALING, False,

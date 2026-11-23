@@ -91,6 +91,58 @@ class PluginInstaller:
 
         return discovered
 
+    def _signature_gate(self, install_path: Path, *, phase: str) -> Tuple[bool, str]:
+        """安装/加载前的签名门（D4 接线点；模式见 plugin_policy.signature_mode）。"""
+        mode = plugin_policy.signature_mode()
+        if mode == "off":
+            return True, ""
+        if not install_path.is_dir():
+            # 单文件包无法携带 plugin.sig.json；enforce 下明确拒绝，warn 下只告警。
+            if mode == "enforce":
+                return False, "插件包必须是目录（单文件包无法携带签名文件）"
+            logger.warning(log_dict({'module_name': 'plugins_installer',
+                                     'action': 'signature.single_file',
+                                     'msg': '[插件安装器] 单文件包无法验签，warn 模式放行'}))
+            return True, ""
+        try:
+            from . import plugin_signature
+        except Exception as exc:  # noqa: BLE001 依赖缺失时不能拖垮宿主启动
+            logger.error(log_dict({'module_name': 'plugins_installer',
+                                   'action': 'signature.unavailable',
+                                   'msg': f'[插件安装器] 验签模块不可用: {type(exc).__name__}'}))
+            if mode == "warn":
+                return True, ""
+            return False, "插件签名校验不可用（PLUGIN_SIGNATURE_UNAVAILABLE）"
+        try:
+            envelope = plugin_signature.read_signature(install_path)
+            keys = plugin_signature.load_trusted_keys(plugin_policy.TRUSTED_KEYS_PATH)
+            result = plugin_signature.verify_package(
+                install_path, envelope, keys,
+                allow_retired=(phase == "load"),
+                ignore_generated=(phase == "load"),
+            )
+        except plugin_signature.PluginSignatureError as exc:
+            logger.warning(log_dict({'module_name': 'plugins_installer',
+                                     'action': 'signature.failed', 'phase': phase,
+                                     'code': exc.code,
+                                     'msg': f'[插件安装器] 签名校验失败: {exc.code}'}))
+            if mode == "warn":
+                return True, ""
+            return False, f"插件签名校验失败（{exc.code}）"
+        except Exception as exc:  # noqa: BLE001 验签器故障必须 fail-closed
+            logger.error(log_dict({'module_name': 'plugins_installer',
+                                   'action': 'signature.error', 'phase': phase,
+                                   'msg': f'[插件安装器] 签名校验器异常: {type(exc).__name__}'}))
+            if mode == "warn":
+                return True, ""
+            return False, "插件签名校验失败（PLUGIN_SIGNATURE_ERROR）"
+        logger.info(log_dict({'module_name': 'plugins_installer',
+                              'action': 'signature.ok', 'phase': phase,
+                              'key_id': str(result.get('key_id') or ''),
+                              'file_count': int(result.get('file_count') or 0),
+                              'msg': '[插件安装器] 签名校验通过'}))
+        return True, ""
+
     def install_plugin(self, source: str) -> Tuple[bool, str]:
         """安装插件
 
@@ -121,25 +173,45 @@ class PluginInstaller:
         plugins_dir = _PLUGINS_DIR
         plugins_dir.mkdir(parents=True, exist_ok=True)
 
+        # 【2026-11-23 签名】先落暂存目录，验签通过后才移动到最终目录；
+        # 失败时的半成品只留在 .staging/，由 _abort 统一清理。
+        staging_root = plugins_dir / ".staging" / uuid.uuid4().hex
+        staging_root.mkdir(parents=True, exist_ok=False)
+        final_target = None
+        moved = False
+
+        def _abort(message: str) -> Tuple[bool, str]:
+            if moved and final_target is not None:
+                if final_target.is_dir():
+                    shutil.rmtree(final_target, ignore_errors=True)
+                else:
+                    try:
+                        final_target.unlink()
+                    except OSError:
+                        pass
+            shutil.rmtree(staging_root, ignore_errors=True)
+            return False, message
+
         install_path = None
 
         if ext_type == "github":
-            # 从 GitHub 下载
-            repo_name = location.split("/")[-1]
-            target_dir = plugins_dir / repo_name
+            # 从 GitHub 下载（先到暂存目录）
+            repo_name = Path(location).name
+            if repo_name in ("", ".", ".."):
+                return _abort("插件仓库名不合法")
+            target_dir = staging_root / repo_name
             success = self._engine.download_from_github(location, subpath, target_dir, ref=ref)
             if not success:
-                return False, f"GitHub 下载失败: {location}"
+                return _abort(f"GitHub 下载失败: {location}")
             install_path = target_dir
 
         elif ext_type == "url":
-            # 从 URL 下载
-            target_dir = plugins_dir / "temp_download"
+            # 从 URL 下载（先到暂存目录）
+            target_dir = staging_root / "download"
             target_dir.mkdir(parents=True, exist_ok=True)
             success = self._engine.download_from_url(location, target_dir)
             if not success:
-                shutil.rmtree(target_dir, ignore_errors=True)
-                return False, f"URL 下载失败: {location}"
+                return _abort(f"URL 下载失败: {location}")
 
             # 如果下载的是单个文件，检查插件信息
             files = list(target_dir.iterdir())
@@ -158,20 +230,16 @@ class PluginInstaller:
                                 break
 
             if not install_path:
-                shutil.rmtree(target_dir, ignore_errors=True)
-                return False, "下载内容中未发现有效插件结构"
+                return _abort("下载内容中未发现有效插件结构")
 
         elif ext_type == "local":
-            # 从本地路径安装
+            # 从本地路径安装（先复制到暂存目录）
             src = Path(location)
             if not src.exists():
-                return False, f"路径不存在: {location}"
+                return _abort(f"路径不存在: {location}")
 
             target_name = src.name
-            target_dir = plugins_dir / target_name
-
-            if target_dir.exists():
-                return False, f"插件目录已存在: {target_name}"
+            target_dir = staging_root / target_name
 
             if src.is_file():
                 target_dir.mkdir(parents=True, exist_ok=True)
@@ -194,7 +262,12 @@ class PluginInstaller:
                 pass
 
         if install_path is None and ext_type != "pip":
-            return False, "无法确定插件安装路径"
+            return _abort("无法确定插件安装路径")
+
+        # 【2026-11-23 签名】暂存目录内先验签，再读元数据/落最终目录
+        sig_ok, sig_msg = self._signature_gate(Path(install_path), phase="install")
+        if not sig_ok:
+            return _abort(sig_msg)
 
         # 读取插件元数据
         plugin_info = {}
@@ -207,7 +280,18 @@ class PluginInstaller:
         # 检查是否已安装
         existing = self._store.get(ExtensionType.PLUGIN, plugin_id)
         if existing and existing.get("status") != ExtensionStatus.UNINSTALLED.value:
-            return False, f"插件已安装: {plugin_name}"
+            return _abort(f"插件已安装: {plugin_name}")
+
+        # 验签通过后才移动到最终目录
+        final_target = plugins_dir / Path(install_path).name
+        if final_target.exists():
+            return _abort(f"插件目录已存在: {final_target.name}")
+        try:
+            shutil.move(str(install_path), str(final_target))
+        except Exception:  # noqa: BLE001 失败时不暴露路径细节
+            return _abort("插件安装目录写入失败")
+        moved = True
+        install_path = final_target
 
         # 安装依赖
         deps = plugin_info.get("dependencies", [])
@@ -216,12 +300,12 @@ class PluginInstaller:
             # 任一依赖失败即整体失败（不再 warning 后继续登记为“已安装”）。
             deps_dir = (Path(install_path) / ".deps") if install_path and os.path.isdir(str(install_path)) else None
             if deps_dir is None:
-                return False, "单文件插件无法隔离依赖：请改为目录包，或预装依赖后再安装"
+                return _abort("单文件插件无法隔离依赖：请改为目录包，或预装依赖后再安装")
             failed = self._engine.install_dependencies(deps, target_dir=deps_dir)
             if failed:
                 logger.error(log_dict({'module_name': 'plugins_installer', 'action': 'deps_failed',
                                        'msg': f'[插件安装器] 依赖安装失败: {failed}'}))
-                return False, f"插件依赖安装失败: {', '.join(str(x) for x in failed)}"
+                return _abort(f"插件依赖安装失败: {', '.join(str(x) for x in failed)}")
 
         # 记录到扩展存储
         meta = ExtensionMetadata(
@@ -240,8 +324,12 @@ class PluginInstaller:
         )
         meta.touch()
         meta.installed_at = meta.created_at
-        self._store.add(meta)
+        try:
+            self._store.add(meta)
+        except Exception:  # noqa: BLE001 登记失败不能留下半装目录
+            return _abort("插件登记失败")
 
+        shutil.rmtree(staging_root, ignore_errors=True)
         logger.info(log_dict({'module_name': 'plugins_installer', 'action': 'plugin_id', 'msg': f'[插件安装器] 插件安装完成: {plugin_id}'}))
         return True, f"已安装插件: {plugin_name} (v{meta.version})"
 
@@ -260,6 +348,14 @@ class PluginInstaller:
             return False, "第三方插件包暂未开放（进程隔离与签名校验尚未完成）。"
         if not plugin_policy.source_allowed(plugin_data.get("source", "")):
             return False, "插件来源不在白名单内（CP_PLUGIN_INSTALL_ALLOWLIST）。"
+
+        # 【2026-11-23 签名】加载前复验：安装后被替换/篡改的包不能直接跑。
+        sig_ok, sig_msg = self._signature_gate(Path(install_path), phase="load")
+        if not sig_ok:
+            self._store.update_status(
+                ExtensionType.PLUGIN, plugin_id, ExtensionStatus.ERROR
+            )
+            return False, sig_msg
 
         # 【2026-11-22 P2】默认走独立子进程：插件代码不再进宿主进程；
         # 关掉开关才回退旧的进程内 import（仅排障用）。

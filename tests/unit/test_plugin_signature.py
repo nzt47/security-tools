@@ -189,6 +189,27 @@ def test_read_signature_and_installed_verify(pkg, key, tmp_path):
     assert ps.verify_installed_package(pkg, keys_path)["file_count"] == 2
 
 
+def test_installed_verify_ignores_deps_and_pycache(pkg, key, tmp_path):
+    envelope = _sign(pkg, key)
+    (pkg / ps.SIGNATURE_FILENAME).write_text(
+        json.dumps(envelope, ensure_ascii=False), encoding="utf-8")
+    (pkg / ".deps" / "lib").mkdir(parents=True)
+    (pkg / ".deps" / "lib" / "__init__.py").write_text("x = 1\n", encoding="utf-8")
+    (pkg / "__pycache__").mkdir()
+    (pkg / "__pycache__" / "m.pyc").write_bytes(b"bytecode")
+    (pkg / ".git").mkdir()
+    (pkg / ".git" / "config").write_text("[core]\n", encoding="utf-8")
+    keys_path = tmp_path / "plugin_trusted_keys.json"
+    keys_path.write_text(json.dumps({"schema": 1, "keys": list(_trusted(key).values())}),
+                        encoding="utf-8")
+    assert ps.verify_installed_package(pkg, keys_path)["file_count"] == 2
+    # 生成物之外多一个源文件仍然拒绝
+    (pkg / "evil.py").write_text("print(1)\n", encoding="utf-8")
+    with pytest.raises(ps.PluginSignatureError) as exc:
+        ps.verify_installed_package(pkg, keys_path)
+    assert exc.value.code == "PLUGIN_SIGNATURE_TAMPERED"
+
+
 def test_load_trusted_keys_rejects_duplicates(tmp_path, key):
     record = _trusted(key)["k1"]
     path = tmp_path / "keys.json"
