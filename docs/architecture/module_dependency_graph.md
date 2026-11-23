@@ -215,6 +215,7 @@ flowchart LR
         agent_extensions_market["agent.extensions.market"]:::crosslayer
         agent_extensions_mcp_installer["agent.extensions.mcp_installer"]
         agent_extensions_observability["agent.extensions.observability"]
+        agent_extensions_plugin_process["agent.extensions.plugin_process"]
         agent_extensions_plugins_installer["agent.extensions.plugins_installer"]
         agent_extensions_sandbox["agent.extensions.sandbox"]
         agent_extensions_security_check_skill["agent.extensions.security_check_skill"]
@@ -688,6 +689,7 @@ flowchart LR
         agent_subagent_peer_local_handler["agent.subagent.peer_local_handler"]
         agent_subagent_peers["agent.subagent.peers"]:::crosslayer
         agent_subagent_persistence["agent.subagent.persistence"]
+        agent_subagent_role_prompt_library["agent.subagent.role_prompt_library"]:::crosslayer
         agent_subagent_role_templates["agent.subagent.role_templates"]:::crosslayer
         agent_subagent_rounds["agent.subagent.rounds"]:::crosslayer
         agent_subagent_runtime_tool_decls["agent.subagent.runtime_tool_decls"]
@@ -1146,10 +1148,13 @@ flowchart LR
     agent_extensions_mcp_installer -.-> agent_utils
     agent_extensions_observability -.-> agent_logging_utils
     agent_extensions_observability -.-> agent_monitoring_business_metrics
+    agent_extensions_plugin_process -.-> agent_utils
     agent_extensions_plugins_installer --> agent_extensions_base
     agent_extensions_plugins_installer --> agent_extensions_installer
     agent_extensions_plugins_installer --> agent_extensions_store
     agent_extensions_plugins_installer -.-> agent_logging_utils
+    agent_extensions_plugins_installer --> agent_extensions_plugin_process
+    agent_extensions_plugins_installer --> agent_extensions_plugin_process
     agent_extensions_sandbox -.-> agent_monitoring_tracing
     agent_extensions_sandbox -.-> agent_logging_utils
     agent_extensions_sandbox -.-> agent_utils
@@ -2367,7 +2372,7 @@ flowchart LR
     agent_server_routes_routes_subagent -.-> agent_tools_subagent_tools
     agent_server_routes_routes_subagent -.-> agent_subagent_llm_factory
     agent_server_routes_routes_subagent -.-> agent_subagent_llm_factory
-    agent_server_routes_routes_subagent -.-> agent_subagent_role_templates
+    agent_server_routes_routes_subagent -.-> agent_subagent_role_prompt_library
     agent_server_routes_routes_subagent -.-> agent_subagent_role_templates
     agent_server_routes_routes_subagent -.-> agent_tools_subagent_tools
     agent_server_routes_routes_subagent -.-> agent_subagent_bundle
@@ -2714,6 +2719,7 @@ flowchart LR
     agent_subagent_peers --> agent_subagent_callback_channel
     agent_subagent_peers -.-> agent_task_scheduler
     agent_subagent_persistence --> agent_subagent_container
+    agent_subagent_role_prompt_library --> agent_subagent_role_templates
     agent_subagent_role_templates -.-> agent_prompt_manager_roles
     agent_subagent_runtime_tool_decls -.-> agent_lines_models
     agent_subagent_runtime_tool_decls -.-> agent_lines_models
@@ -2869,6 +2875,7 @@ flowchart LR
     agent_tools_code_tools -.-> agent_data_process_tools
     agent_tools_code_tools -.-> agent_async_executor
     agent_tools_code_tools -.-> agent_code_review
+    agent_tools_code_tools -.-> agent_scheduling
     agent_tools_code_tools -.-> agent_scheduling
     agent_tools_code_tools -.-> agent_scheduling
     agent_tools_code_tools -.-> agent_scheduling
@@ -3078,9 +3085,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 777
-- 模块节点数: 675
-- 依赖边数: 2273
-- 跨层调用数: 1447
+- 扫描文件数: 784
+- 模块节点数: 677
+- 依赖边数: 2278
+- 跨层调用数: 1449
 - 违规调用数: 0
 - 动态 import 数: 1
