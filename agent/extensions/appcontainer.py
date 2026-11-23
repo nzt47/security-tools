@@ -28,12 +28,7 @@ _IS_WINDOWS = sys.platform == "win32"
 _SANDBOX_ROOT = Path(__file__).resolve().parents[2] / "agent" / "data" / "extensions_packages" / ".sandbox"
 
 #: AppContainer 下 CreateProcessW 需要的最小 env（缺 USERPROFILE 等会返回 error 203）。
-_REQUIRED_ENV_KEYS = (
-    "PATH", "SYSTEMROOT", "SYSTEMDRIVE", "WINDIR", "TEMP", "TMP", "COMSPEC",
-    "USERPROFILE", "APPDATA", "LOCALAPPDATA", "HOMEDRIVE", "HOMEPATH",
-    "USERNAME", "USERDOMAIN", "PATHEXT", "OS", "NUMBER_OF_PROCESSORS",
-    "PROCESSOR_ARCHITECTURE",
-)
+#: 逐条字面量读取：扫描器不允许 for key in tuple + os.environ.get(key) 的动态家族。
 
 CREATE_UNICODE_ENVIRONMENT = 0x00000400
 EXTENDED_STARTUPINFO_PRESENT = 0x00080000
@@ -76,11 +71,27 @@ def build_environment(data_dir: Path, deps_dir: Optional[Path] = None,
                       extra: Optional[Mapping[str, str]] = None) -> Dict[str, str]:
     """构造最小环境变量：不复制 .env 密钥；TEMP/HOME 指向插件自己的数据目录。"""
     data = str(data_dir)
-    env: Dict[str, str] = {}
-    for key in _REQUIRED_ENV_KEYS:
-        value = os.environ.get(key)
-        if value is not None:
-            env[key] = value
+    candidates = (
+        ("PATH", os.environ.get("PATH")),
+        ("SYSTEMROOT", os.environ.get("SYSTEMROOT")),
+        ("SYSTEMDRIVE", os.environ.get("SYSTEMDRIVE")),
+        ("WINDIR", os.environ.get("WINDIR")),
+        ("TEMP", os.environ.get("TEMP")),
+        ("TMP", os.environ.get("TMP")),
+        ("COMSPEC", os.environ.get("COMSPEC")),
+        ("USERPROFILE", os.environ.get("USERPROFILE")),
+        ("APPDATA", os.environ.get("APPDATA")),
+        ("LOCALAPPDATA", os.environ.get("LOCALAPPDATA")),
+        ("HOMEDRIVE", os.environ.get("HOMEDRIVE")),
+        ("HOMEPATH", os.environ.get("HOMEPATH")),
+        ("USERNAME", os.environ.get("USERNAME")),
+        ("USERDOMAIN", os.environ.get("USERDOMAIN")),
+        ("PATHEXT", os.environ.get("PATHEXT")),
+        ("OS", os.environ.get("OS")),
+        ("NUMBER_OF_PROCESSORS", os.environ.get("NUMBER_OF_PROCESSORS")),
+        ("PROCESSOR_ARCHITECTURE", os.environ.get("PROCESSOR_ARCHITECTURE")),
+    )
+    env: Dict[str, str] = {k: v for k, v in candidates if v is not None}
     env["TEMP"] = data
     env["TMP"] = data
     env["HOME"] = data

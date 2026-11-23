@@ -254,6 +254,13 @@ PROCESS_ENV_DENYLIST: Dict[str, str] = {
     "SystemDrive": "OS 系统盘符（sensor 文件蓝图读取，用于报告），非开关",
     "SystemRoot": "OS 系统目录（崩溃转储/系统蓝图探测读取，用于报告），非开关",
     "NUMBER_OF_PROCESSORS": "OS 处理器核数（sensor 环境探测读取，用于报告），非开关",
+    "SYSTEMDRIVE": "OS 系统盘符（AppContainer 子进程最小 env），非开关",
+    "HOMEDRIVE": "OS 用户主目录盘符（AppContainer 子进程最小 env），非开关",
+    "HOMEPATH": "OS 用户主目录路径（AppContainer 子进程最小 env），非开关",
+    "USERDOMAIN": "OS 用户域（AppContainer 子进程最小 env），非开关",
+    "PATHEXT": "OS 可执行扩展名列表（AppContainer 子进程最小 env），非开关",
+    "OS": "OS 名称（AppContainer 子进程最小 env），非开关",
+    "PROCESSOR_ARCHITECTURE": "OS 处理器架构（AppContainer 子进程最小 env），非开关",
 }
 
 # ════════════════════════════════════════════════════════════
