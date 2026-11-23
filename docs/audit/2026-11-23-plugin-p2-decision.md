@@ -243,11 +243,16 @@ PoC 代码在 `.local/_poc_appcontainer.py`（**不提交**）。
 - Python 运行目录用 `ALL APPLICATION PACKAGES` 一次性授权（`(OI)(CI)(RX)`，本机首次约 20–60s，
   写 marker 后跳过）；插件包/数据目录按各自 SID 授权，互不可读。
 - 环境变量用最小白名单，`TEMP/HOME/APPDATA` 指向插件数据目录。
+- **Job Object 资源上限**：`CP_PLUGIN_SANDBOX_MEMORY_MB`（默认 512，64–8192）、
+  `CP_PLUGIN_SANDBOX_MAX_PROCESSES`（默认 8，1–64）；进程以 `CREATE_SUSPENDED` 启动，
+  先 `AssignProcessToJobObject` 再 `ResumeThread`；`KILL_ON_JOB_CLOSE` 保证关闭时连子进程一起杀。
+- 卸载插件时 `cleanup_plugin_sandbox` 删除数据目录并删 profile（幂等）。
 - 真机验证：`probe_echo` 正常；插件内 `FLASK_API_TOKEN`/`YUNSHU_POC_SECRET` 均为 `None`；
-  读仓库 `.env` 为 `PermissionError`；连 `example.com:80` 为 `gaierror`（默认无网络）。
+  读仓库 `.env` 为 `PermissionError`；连 `example.com:80` 为 `gaierror`（默认无网络）；
+  把内存上限压到 128MB 后，插件分配 512MB 得到 `MemoryError`（Job Object 生效）。
 
-**剩余（未做，不假装）**：Job Object 内存/CPU/进程数上限；卸载时清理 profile/数据目录；
-需要联网的插件要显式加 `internetClient` capability（当前一律无网）；首次运行 ACL 授权有一次性延迟。
+**剩余（未做，不假装）**：CPU 速率限制（当前只有内存/进程数）；需要联网的插件要显式加
+`internetClient` capability（当前一律无网）；首次运行 ACL 授权有一次性延迟。
 
 ## 5. 方案③：HTTP 插件路由硬超时（为什么不能顺手做）
 

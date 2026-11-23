@@ -554,6 +554,12 @@ class PluginInstaller:
                 logger.warning(log_dict({'module_name': 'plugins_installer', 'action': 'log', 'msg': f'[插件安装器] 删除插件文件失败: {e}'}))
 
         self._store.remove(ExtensionType.PLUGIN, plugin_id)
+        # 【2026-11-23 沙箱】卸载时清理 AppContainer profile 与插件数据目录（幂等）
+        try:
+            from . import appcontainer
+            appcontainer.cleanup_plugin_sandbox(plugin_id)
+        except Exception:
+            pass
         logger.info(log_dict({'module_name': 'plugins_installer', 'action': 'plugin_id', 'msg': f'[插件安装器] 插件已完全卸载: {plugin_id}'}))
         return True, f"插件已完全卸载: {plugin_id}"
 

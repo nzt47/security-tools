@@ -31,6 +31,8 @@ ENV_PLUGIN_PROCESS_ISOLATION = "CP_PLUGIN_PROCESS_ISOLATION"
 ENV_PLUGIN_PROCESS_TIMEOUT = "CP_PLUGIN_PROCESS_TIMEOUT_SEC"
 ENV_PLUGIN_SIGNATURE_MODE = "CP_PLUGIN_SIGNATURE_MODE"
 ENV_PLUGIN_SANDBOX = "CP_PLUGIN_SANDBOX"
+ENV_PLUGIN_SANDBOX_MEMORY_MB = "CP_PLUGIN_SANDBOX_MEMORY_MB"
+ENV_PLUGIN_SANDBOX_MAX_PROCESSES = "CP_PLUGIN_SANDBOX_MAX_PROCESSES"
 
 _TRUTHY = frozenset({"1", "true", "yes", "on"})
 _DEFAULT_MAX_CONCURRENT = 4
@@ -40,6 +42,11 @@ _MAX_PROCESS_TIMEOUT_SEC = 300.0
 _SIGNATURE_MODES = ("off", "warn", "enforce")
 _DEFAULT_SIGNATURE_MODE = "enforce"
 _SANDBOX_MODES = ("off", "appcontainer")
+_DEFAULT_SANDBOX_MEMORY_MB = 512
+_MIN_SANDBOX_MEMORY_MB = 64
+_MAX_SANDBOX_MEMORY_MB = 8192
+_DEFAULT_SANDBOX_MAX_PROCESSES = 8
+_MAX_SANDBOX_PROCESSES_CAP = 64
 
 #: 受信公钥表固定路径（不提供环境变量改信任根；改它必须走代码 review）。
 TRUSTED_KEYS_PATH = Path(__file__).resolve().parents[2] / "config" / "plugin_trusted_keys.json"
@@ -141,6 +148,27 @@ def sandbox_mode() -> str:
     """
     raw = str(os.environ.get(ENV_PLUGIN_SANDBOX, "") or "").strip().lower()
     return raw if raw in _SANDBOX_MODES else "off"
+
+
+def _env_int(name: str, default: int, low: int, high: int) -> int:
+    raw = str(os.environ.get(name, "") or "").strip()
+    try:
+        value = int(raw) if raw else int(default)
+    except (TypeError, ValueError):
+        value = int(default)
+    return max(int(low), min(int(value), int(high)))
+
+
+def sandbox_memory_mb() -> int:
+    """每个 AppContainer 插件子进程的内存上限（MB）；默认 512，范围 64–8192。"""
+    return _env_int(ENV_PLUGIN_SANDBOX_MEMORY_MB, _DEFAULT_SANDBOX_MEMORY_MB,
+                    _MIN_SANDBOX_MEMORY_MB, _MAX_SANDBOX_MEMORY_MB)
+
+
+def sandbox_max_processes() -> int:
+    """每个 AppContainer 插件子进程可派生的进程数上限；默认 8，范围 1–64。"""
+    return _env_int(ENV_PLUGIN_SANDBOX_MAX_PROCESSES,
+                    _DEFAULT_SANDBOX_MAX_PROCESSES, 1, _MAX_SANDBOX_PROCESSES_CAP)
 
 
 def max_concurrent() -> int:

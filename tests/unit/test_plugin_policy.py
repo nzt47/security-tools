@@ -57,6 +57,22 @@ def test_signature_mode_defaults_to_enforce(monkeypatch):
     assert plugin_policy.signature_mode() == "enforce"
 
 
+def test_sandbox_limits_defaults_and_clamps(monkeypatch):
+    for key in (plugin_policy.ENV_PLUGIN_SANDBOX_MEMORY_MB,
+                plugin_policy.ENV_PLUGIN_SANDBOX_MAX_PROCESSES):
+        monkeypatch.delenv(key, raising=False)
+    assert plugin_policy.sandbox_memory_mb() == 512
+    assert plugin_policy.sandbox_max_processes() == 8
+    monkeypatch.setenv(plugin_policy.ENV_PLUGIN_SANDBOX_MEMORY_MB, "99999")
+    monkeypatch.setenv(plugin_policy.ENV_PLUGIN_SANDBOX_MAX_PROCESSES, "999")
+    assert plugin_policy.sandbox_memory_mb() == 8192
+    assert plugin_policy.sandbox_max_processes() == 64
+    monkeypatch.setenv(plugin_policy.ENV_PLUGIN_SANDBOX_MEMORY_MB, "1")
+    monkeypatch.setenv(plugin_policy.ENV_PLUGIN_SANDBOX_MAX_PROCESSES, "0")
+    assert plugin_policy.sandbox_memory_mb() == 64
+    assert plugin_policy.sandbox_max_processes() == 1
+
+
 def test_max_concurrent_clamped(monkeypatch):
     monkeypatch.setenv(plugin_policy.ENV_PLUGIN_MAX_CONCURRENT, "999")
     assert plugin_policy.max_concurrent() == 64

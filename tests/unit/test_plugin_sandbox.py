@@ -74,6 +74,14 @@ def test_sandbox_mode_fail_closed_when_unavailable(tmp_path, monkeypatch):
     proc.close()
 
 
+def test_cleanup_plugin_sandbox_removes_data_dir():
+    data = appcontainer.sandbox_data_dir("cleanup-demo")
+    data.mkdir(parents=True, exist_ok=True)
+    (data / "x.txt").write_text("x", encoding="utf-8")
+    appcontainer.cleanup_plugin_sandbox("cleanup-demo")
+    assert data.parent.exists() is False
+
+
 def test_appcontainer_unavailable_on_current_platform():
     if sys.platform == "win32":
         pytest.skip("Windows 上可加载 Win32 API")

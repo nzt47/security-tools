@@ -19,6 +19,7 @@ import ctypes
 import hashlib
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -41,6 +42,12 @@ WAIT_TIMEOUT = 258
 STILL_ACTIVE = 259
 INFINITE = 0xFFFFFFFF
 ERROR_ALREADY_EXISTS_HR = 0x800700B7
+CREATE_SUSPENDED = 0x00000004
+JOB_OBJECT_EXTENDED_LIMIT_INFORMATION_CLASS = 9
+JOB_OBJECT_LIMIT_PROCESS_MEMORY = 0x00000100
+JOB_OBJECT_LIMIT_ACTIVE_PROCESS = 0x00000008
+JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000
+_BYTES_PER_MB = 1024 * 1024
 
 #: icacls 首次给 Python 目录授权会递归现有子文件，给足时间；调用参数不写裸数字。
 _ICACLS_TIMEOUT_SEC = 120.0
@@ -142,6 +149,19 @@ def ensure_runtime_access() -> None:
                       encoding="utf-8")
 
 
+def cleanup_plugin_sandbox(plugin_id: str) -> None:
+    """卸载插件时清理沙箱数据目录与 AppContainer profile（幂等、best-effort）。"""
+    root = sandbox_data_dir(plugin_id).parent
+    shutil.rmtree(root, ignore_errors=True)
+    if not _IS_WINDOWS:
+        return
+    try:
+        libs = _load_libraries()
+        libs["userenv"].DeleteAppContainerProfile(profile_name(plugin_id))
+    except Exception:
+        pass
+
+
 def is_available() -> bool:
     if not _IS_WINDOWS:
         return False
@@ -201,6 +221,39 @@ if _IS_WINDOWS:
         _fields_ = [("hProcess", HANDLE), ("hThread", HANDLE),
                     ("dwProcessId", DWORD), ("dwThreadId", DWORD)]
 
+    class _IO_COUNTERS(ctypes.Structure):
+        _fields_ = [
+            ("ReadOperationCount", ctypes.c_ulonglong),
+            ("WriteOperationCount", ctypes.c_ulonglong),
+            ("OtherOperationCount", ctypes.c_ulonglong),
+            ("ReadTransferCount", ctypes.c_ulonglong),
+            ("WriteTransferCount", ctypes.c_ulonglong),
+            ("OtherTransferCount", ctypes.c_ulonglong),
+        ]
+
+    class _JOBOBJECT_BASIC_LIMIT_INFORMATION(ctypes.Structure):
+        _fields_ = [
+            ("PerProcessUserTimeLimit", ctypes.c_longlong),
+            ("PerJobUserTimeLimit", ctypes.c_longlong),
+            ("LimitFlags", DWORD),
+            ("MinimumWorkingSetSize", ctypes.c_size_t),
+            ("MaximumWorkingSetSize", ctypes.c_size_t),
+            ("ActiveProcessLimit", DWORD),
+            ("Affinity", ctypes.c_size_t),
+            ("PriorityClass", DWORD),
+            ("SchedulingClass", DWORD),
+        ]
+
+    class _JOBOBJECT_EXTENDED_LIMIT_INFORMATION(ctypes.Structure):
+        _fields_ = [
+            ("BasicLimitInformation", _JOBOBJECT_BASIC_LIMIT_INFORMATION),
+            ("IoInfo", _IO_COUNTERS),
+            ("ProcessMemoryLimit", ctypes.c_size_t),
+            ("JobMemoryLimit", ctypes.c_size_t),
+            ("PeakProcessMemoryUsed", ctypes.c_size_t),
+            ("PeakJobMemoryUsed", ctypes.c_size_t),
+        ]
+
     _libs: Optional[Dict[str, Any]] = None
 
     def _load_libraries() -> Dict[str, Any]:
@@ -246,6 +299,16 @@ if _IS_WINDOWS:
                                             LPVOID, LPWSTR, LPVOID,
                                             ctypes.POINTER(_PROCESS_INFORMATION)]
         kernel32.CreateProcessW.restype = BOOL
+        kernel32.CreateJobObjectW.argtypes = [LPVOID, LPWSTR]
+        kernel32.CreateJobObjectW.restype = HANDLE
+        kernel32.SetInformationJobObject.argtypes = [HANDLE, ctypes.c_int, LPVOID, DWORD]
+        kernel32.SetInformationJobObject.restype = BOOL
+        kernel32.AssignProcessToJobObject.argtypes = [HANDLE, HANDLE]
+        kernel32.AssignProcessToJobObject.restype = BOOL
+        kernel32.TerminateJobObject.argtypes = [HANDLE, ctypes.c_uint]
+        kernel32.TerminateJobObject.restype = BOOL
+        kernel32.ResumeThread.argtypes = [HANDLE]
+        kernel32.ResumeThread.restype = DWORD
         _libs = {"userenv": userenv, "kernel32": kernel32, "advapi32": advapi32}
         return _libs
 
@@ -278,11 +341,33 @@ if _IS_WINDOWS:
         except Exception:  # noqa: BLE001
             return 1
 
+    def _create_sandbox_job(memory_mb: int, max_processes: int):
+        libs = _load_libraries()
+        kernel32 = libs["kernel32"]
+        job = kernel32.CreateJobObjectW(None, None)
+        if not _hval(job):
+            raise AppContainerLaunchError("CreateJobObjectW failed")
+        info = _JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
+        info.BasicLimitInformation.LimitFlags = (
+            JOB_OBJECT_LIMIT_PROCESS_MEMORY
+            | JOB_OBJECT_LIMIT_ACTIVE_PROCESS
+            | JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE)
+        info.BasicLimitInformation.ActiveProcessLimit = int(max_processes)
+        info.ProcessMemoryLimit = int(memory_mb) * _BYTES_PER_MB
+        ok = kernel32.SetInformationJobObject(
+            job, JOB_OBJECT_EXTENDED_LIMIT_INFORMATION_CLASS,
+            ctypes.byref(info), ctypes.sizeof(info))
+        if not ok:
+            kernel32.CloseHandle(job)
+            raise AppContainerLaunchError("SetInformationJobObject failed")
+        return job
+
     class SandboxProcess:
         """Popen 兼容的最小适配：stdin/stdout/stderr、poll/wait/terminate/kill。"""
 
         def __init__(self, args: Sequence[str], pid: int, handle: Any,
-                     stdin: Any, stdout: Any, stderr: Any, sandbox: "AppContainerSandbox"):
+                     stdin: Any, stdout: Any, stderr: Any, sandbox: "AppContainerSandbox",
+                     job: Any = None):
             self.args = list(args)
             self.pid = int(pid)
             self.stdin = stdin
@@ -291,6 +376,7 @@ if _IS_WINDOWS:
             self.returncode: Optional[int] = None
             self._handle = handle
             self._sandbox = sandbox
+            self._job = job
 
         def poll(self) -> Optional[int]:
             libs = _load_libraries()
@@ -315,7 +401,9 @@ if _IS_WINDOWS:
 
         def terminate(self) -> None:
             libs = _load_libraries()
-            if self.poll() is None:
+            if self._job is not None and _hval(self._job):
+                libs["kernel32"].TerminateJobObject(self._job, 1)
+            elif self.poll() is None:
                 libs["kernel32"].TerminateProcess(self._handle, 1)
 
         def kill(self) -> None:
@@ -333,6 +421,11 @@ if _IS_WINDOWS:
                 libs["kernel32"].CloseHandle(self._handle)
             except Exception:
                 pass
+            if self._job is not None and _hval(self._job):
+                try:
+                    libs["kernel32"].CloseHandle(self._job)
+                except Exception:
+                    pass
 
     class AppContainerSandbox:
         """一个插件一个 profile；grant_paths 是 (path, "RX"|"F", inherit) 列表。"""
@@ -434,14 +527,19 @@ if _IS_WINDOWS:
 
             env_buf = ctypes.create_string_buffer(build_env_block(env))
             cmd_buf = ctypes.create_unicode_buffer(subprocess.list2cmdline(list(cmd)))
+            from . import plugin_policy
+            job = _create_sandbox_job(plugin_policy.sandbox_memory_mb(),
+                                      plugin_policy.sandbox_max_processes())
             pi = _PROCESS_INFORMATION()
             ok = kernel32.CreateProcessW(
                 None, cmd_buf, None, None, True,
-                EXTENDED_STARTUPINFO_PRESENT | CREATE_NO_WINDOW | CREATE_UNICODE_ENVIRONMENT,
+                EXTENDED_STARTUPINFO_PRESENT | CREATE_NO_WINDOW
+                | CREATE_UNICODE_ENVIRONMENT | CREATE_SUSPENDED,
                 ctypes.cast(env_buf, LPVOID), str(cwd),
                 ctypes.byref(si), ctypes.byref(pi))
             kernel32.DeleteProcThreadAttributeList(attr_list)
             if not ok:
+                kernel32.CloseHandle(job)
                 for h in (stdin_r, stdin_w, stdout_r, stdout_w, stderr_r, stderr_w):
                     try:
                         kernel32.CloseHandle(h)
@@ -449,6 +547,17 @@ if _IS_WINDOWS:
                         pass
                 raise AppContainerLaunchError(
                     "CreateProcessW failed err=%s" % ctypes.get_last_error())
+            if not kernel32.AssignProcessToJobObject(job, pi.hProcess):
+                kernel32.TerminateProcess(pi.hProcess, 1)
+                for h in (pi.hProcess, pi.hThread, job,
+                          stdin_r, stdin_w, stdout_r, stdout_w, stderr_r, stderr_w):
+                    try:
+                        kernel32.CloseHandle(h)
+                    except Exception:
+                        pass
+                raise AppContainerLaunchError("AssignProcessToJobObject failed")
+            kernel32.ResumeThread(pi.hThread)
+            kernel32.CloseHandle(pi.hThread)
 
             # 父进程只留 stdin_w / stdout_r / stderr_r；关掉子进程端
             for h in (stdin_r, stdout_w, stderr_w):
@@ -461,7 +570,7 @@ if _IS_WINDOWS:
             stdout_file = os.fdopen(stdout_fd, "r", encoding="utf-8", errors="replace", newline="")
             stderr_file = os.fdopen(stderr_fd, "r", encoding="utf-8", errors="replace", newline="")
             return SandboxProcess(cmd, int(pi.dwProcessId), pi.hProcess,
-                                  stdin_file, stdout_file, stderr_file, self)
+                                  stdin_file, stdout_file, stderr_file, self, job=job)
 
 else:
     class AppContainerSandbox:  # type: ignore[no-redef]
