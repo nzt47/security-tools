@@ -31,4 +31,46 @@ schema:
       - all
       - ''
       description: 按类型筛选（可选）：skill/mcp/channel/plugin/tool/all；tool 为工具类扩展（市场中以 plugin 分发），all 或留空表示不筛选
+# 【result_schema（2026-11-24，L2 扩面·按真实返回逐字段核对）】
+#   实调两条分支：① 无 query → ok + builtin_skills/installed_skills/builtin_mcp/
+#   installed_mcp/builtin_channels/installed_channels/resolved_channels/local_plugins（8 个数组）；
+#   ② 有 query → ok/query/count/results[扁平项，带 _market_source]/builtin{上述列表}/market{builtin,community,github}；
+#   ③ 市场/注册表抛异常 → {ok:false,error}。required 只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    query:
+      type: string
+    count:
+      type: integer
+    results:
+      type: array
+      items:
+        type: object
+    builtin:
+      type: object
+    market:
+      type: object
+    builtin_skills:
+      type: array
+    installed_skills:
+      type: array
+    builtin_mcp:
+      type: array
+    installed_mcp:
+      type: array
+    builtin_channels:
+      type: array
+    installed_channels:
+      type: array
+    resolved_channels:
+      type: array
+    local_plugins:
+      type: array
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

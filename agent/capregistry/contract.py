@@ -58,14 +58,25 @@ __all__ = [
 #: 【为什么不一次补 91 个】result_schema 必须**逐工具核对其真实返回形状**，
 #: 批量生成只会产出「看起来有、其实错」的 schema，那比没有更坏（假契约）。
 #: 扩充纪律：本元组**只许增长**，由 test_capregistry_core.py 锁定。
-#: 回退：删掉本元组里新增的 7 个名字 → 同步删掉对应 YAML 的 `result_schema:` 段
+#: 【2026-11-24 扩充 12 → 18（plugin-security-p2-remaining · result_schema L2 第一批）】
+#: 只挑**只读或低副作用**的 6 个：web_get / web_extract / web_batch / ext_discover /
+#: kb_discuss / look_at_screen。每一个都**先实跑一次真实返回**再按真实键写 schema
+#: （证据逐条写在 data/tool_definitions/<name>.yaml 的 result_schema 注释里）：
+#:   · web_get / web_batch 的成功返回含 bytes(content) ⇒ 不声明该键，交给 additionalProperties；
+#:   · web_extract 的 results 元素随 kind 变（字符串/对象）⇒ 只声明 array，不锁 items 类型；
+#:   · ext_discover 两个分支的键集合不同（无 query / 有 query）⇒ 除 ok 外全部可选；
+#:   · kb_discuss 的 effect=write（落讨论记录）但无外部副作用，schema 只描述返回、不改语义；
+#:   · look_at_screen 成功分支当前**不可达**（voice_vision 缺 Any 导入 + OcrSensor 无
+#:     capture_and_ocr，已登记独立缺陷）⇒ schema 按修好后的契约声明，失败分支实测可校验。
+#: 回退：从元组删掉这 6 个名字 → 删对应 YAML 的 `result_schema:` 段
 #:   → 把 tests/unit/test_refactor_call_identity_and_recovery.py 的
-#:   `TestResultSchemaCoverage.FLOOR` 调回 5。
+#:   `TestResultSchemaCoverage.FLOOR` 调回 24。
 RESULT_SCHEMA_REQUIRED_TOOLS: Tuple[str, ...] = (
     "data_format_detect", "json_query", "get_file_info",
     "read_file", "search_files",
     "list_directory", "diff_files", "get_clipboard", "list_processes",
-    "get_pdf_info", "data_convert", "humanize_zh")
+    "get_pdf_info", "data_convert", "humanize_zh",
+    "web_get", "web_extract", "web_batch", "ext_discover", "kb_discuss", "look_at_screen")
 
 
 def _builtin_check(value: Any, schema: Dict[str, Any], path: str,

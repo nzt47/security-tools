@@ -50,4 +50,31 @@ schema:
       description: kind='clean' 时的数据项列表，走去重、评分、清洗管线
   required:
   - kind
+# 【result_schema（2026-11-24，L2 扩面·按真实返回逐字段核对）】
+#   实调三条分支：kind='clean'（html 文本）→ ok/results[string]/count/text；
+#   kind='css'（html + selector + attr）→ ok/results[string]/count；
+#   kind='clean' + items → ok/results/count/original_count/processed_count；
+#   kind='nope' 或取页失败 → {ok:false,error}。results 的元素类型随 kind 变（字符串或对象）
+#   ⇒ 只声明 array、不锁 items 类型；required 只锁 ok（失败分支只有 ok/error）。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    results:
+      type: array
+    count:
+      type: integer
+    text:
+      type: string
+    original_count:
+      type: integer
+    processed_count:
+      type: integer
+    url:
+      type: string
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

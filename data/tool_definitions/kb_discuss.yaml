@@ -23,4 +23,22 @@ schema:
     question:
       type: string
       description: 讨论问题
+# 【result_schema（2026-11-24，L2 扩面·按真实返回逐字段核对）】
+#   实调（临时知识库 + 假 LLM，走真实 WorkflowRunner）：kb_discuss(note_slug=..., question=...)
+#   → ok/discussion_path/hint；缺 note_slug → {ok:false,error:"须提供 note_slug"}；
+#   note 不存在 → {ok:false,error:"笔记不存在: ..."}。required 只锁 ok。
+#   注意：本工具 effect=write（落讨论记录），扩面只写契约、不改其副作用语义。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    discussion_path:
+      type: string
+    hint:
+      type: string
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

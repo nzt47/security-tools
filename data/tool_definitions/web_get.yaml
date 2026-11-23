@@ -29,4 +29,55 @@ schema:
       description: 自定义请求头
   required:
   - url
+# 【result_schema（2026-11-24，L2 扩面·按真实返回逐字段核对）】
+#   实调（真实网络）：web_get(https://example.com) 返回 ok/status_code/reason/headers/
+#   content_length/content(bytes)/text/encoding/url/elapsed/cookies/redirect_history/
+#   parsed{title,text,links,images,meta,headings}；失败：web_get(url="") → {ok:false,error}。
+#   · content 是**原始 bytes**（不可 JSON 序列化）⇒ 故意不声明，由 additionalProperties 兜住；
+#   · required 只锁 ok：失败分支只有 ok/error，把 status_code 等写成必填会让**正常失败**被判违约。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    status_code:
+      type: integer
+    reason:
+      type: string
+    headers:
+      type: object
+    content_length:
+      type: integer
+    text:
+      type: string
+    encoding:
+      type: string
+    url:
+      type: string
+    elapsed:
+      type: number
+    cookies:
+      type: object
+    redirect_history:
+      type: array
+    parsed:
+      type: object
+      properties:
+        title:
+          type: string
+        text:
+          type: string
+        links:
+          type: array
+        images:
+          type: array
+        meta:
+          type: object
+        headings:
+          type: object
+      additionalProperties: true
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

@@ -27,4 +27,23 @@ schema:
       description: 最大并发数，默认 5
   required:
   - urls
+# 【result_schema（2026-11-24，L2 扩面·按真实返回逐字段核对）】
+#   实调（真实网络，2 个 URL）：web_batch(urls=[...]) → ok/total/results[每个元素与 web_get
+#   成功分支同形，失败时元素只有 ok/error]；web_batch(urls=[]) → {ok:false,error}。
+#   required 只锁 ok；results 内层不强约束（成功/失败元素同数组混存）。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    total:
+      type: integer
+    results:
+      type: array
+      items:
+        type: object
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

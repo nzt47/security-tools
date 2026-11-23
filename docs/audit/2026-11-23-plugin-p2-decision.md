@@ -314,6 +314,35 @@ bulkhead 足够；`version_info` 的冷启动值得单独看，但不构成「�
   写类工具（`workspace_write / software_install / run_tests / set_clipboard`）放到后面，逐个人工确认。
 - 验收：每个工具一条成功样本 + 一条失败样本；`test_l3_result_schema` 的同类测试扩到 L2。
 
+### 6.1 第一批已落地（2026-11-24，只读 6 个，逐工具真调）
+
+| 工具 | 真调证据（真实返回键，非按名猜） | 分支 |
+|---|---|---|
+| `web_get` | `ok/status_code/reason/headers/content_length/content(bytes)/text/encoding/url/elapsed/cookies/redirect_history/parsed{title,text,links,images,meta,headings}` | 成功（真实网络 example.com）+ 失败（`url=""`） |
+| `web_extract` | `ok/results/count/text`（clean）、`ok/results/count`（css）、`original_count/processed_count`（items） | 三条成功分支 + 失败（`kind="nope"`） |
+| `web_batch` | `ok/total/results[]`（元素与 web_get 同形，失败元素只有 ok/error） | 成功（2 个真实 URL）+ 失败（`urls=[]`） |
+| `ext_discover` | 无 query → 8 个清单数组；有 query → `ok/query/count/results[]/builtin/market{builtin,community,github}` | 两条成功分支 |
+| `kb_discuss` | `ok/discussion_path/hint` | 成功（临时知识库 + 假 LLM，真实 WorkflowRunner）+ 失败（缺参/笔记不存在） |
+| `look_at_screen` | 失败 `{ok:false,error}`；成功形状按包装层 + VoiceVision 声明 | 失败实跑；**成功分支当前不可达**，见下 |
+
+写法三条（与既有 L2/L3 口径一致）：`required` 只锁 `ok`（失败分支只有 ok/error，把
+status_code 等写成必填会把正常失败判成违约）；`additionalProperties: true`（bytes 的
+`content`、历史字段都靠它兜住）；每个 YAML 的 `result_schema` 上方都写清真调证据与回退方式。
+覆盖：24 → **30/101**；`contract.py::RESULT_SCHEMA_REQUIRED_TOOLS` 12 → 18；
+`TestResultSchemaCoverage.FLOOR` 12 → 30；新增 `tests/unit/test_l2_result_schema.py`
+（26 条：声明/清单/成功样本/失败样本/bytes 容忍/json 可序列化）。
+干净 worktree：`sync_tool_index / sync_capability_manifest / backfill_tool_planes /
+backfill_tool_callability / backfill_capability_spec` 五项 `--check` 全 0；
+相关 6 个测试文件 **284 passed / 1 skipped**（`descriptors.json` 缺失是干净 checkout 的预期）。
+
+**本批发现的独立缺陷（未修，已登记）**：`look_at_screen` 的成功分支今天**走不到** ——
+① `agent/orchestrator/voice_vision.py` 顶部只 `from typing import Optional`，却在
+`__init__(self, orchestrator: Any)` 用了 `Any` ⇒ **import 即 NameError**（`dl.voice` 属性
+懒加载时直接抛）；② 即便补上导入，`VoiceVision.look_at_screen` 调用的
+`OcrSensor.capture_and_ocr` 在 `sensor/ocr_sensor.py` **不存在**（同类方法是
+`capture_and_recognize`，返回 dict 而非带 `.data` 的 reading）。修它要同时改包装层与
+`reading.to_dict()` 的形状，属行为修复，不在「只写契约」的本批范围内。
+
 ## 7. 建议顺序与 Owner 决策
 
 **Owner 2026-11-23 13:16 已确认**：D1 = Owner 离线私钥；D2 = 接受 AppContainer 默认无网/无用户目录；

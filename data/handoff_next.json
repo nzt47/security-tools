@@ -1427,8 +1427,16 @@
    "status": "open",
    "priority": "P2",
    "title": "插件安全 P2 剩余：签名/发布密钥、OS 级 FS/net 沙箱、HTTP 路由硬超时、插件 UI iframe、result_schema L2 扩面",
-   "criteria": "2026-11-23 18:25 状态：① 签名/发布密钥与允许列表签名校验已接线（plugin_signature + scripts/sign_plugin_package.py + 安装暂存/加载复验 + CP_PLUGIN_SIGNATURE_MODE；受信表 config/plugin_trusted_keys.json 为空，包总开关仍默认关）；② 进程边界已做；OS 级沙箱已做 AppContainer 生产适配（CP_PLUGIN_SANDBOX=appcontainer，默认 off；真机 .env PermissionError / 网络 gaierror / env 密钥 None；Job Object 内存/进程数/累计 CPU 上限与卸载清理已补；仅剩联网 capability）；③ HTTP 路由仍只有 bulkhead，p99 已实测（无持续慢路由）；④ 插件 UI iframe 未做（client_slot 默认关）；⑤ result_schema L2 未扩（medium 24 缺，禁止猜）。",
-   "next": "Owner 已拍板（D1 Owner 离线私钥 / D2 接受 AppContainer 默认无网 / D3 Docker 仅可选）。2026-11-23 18:25 已完成：签名校验器 + 离线签名工具 + 安装暂存/加载复验 + CP_PLUGIN_SIGNATURE_MODE（registry 已登记，提交 23d03e28c）；AppContainer 可行性 PoC（文件/网络/env 三层隔住，未接生产）；插件 p99 实测（无持续慢路由）；文档 7ae38db32。2026-11-23 20:0x 完成 AppContainer 生产适配；22:xx 补 Job Object（MEMORY_MB=512 / MAX_PROCESSES=8 / CPU_SEC=60；128MB 限制下分配 512MB 得 MemoryError，CPU=1s 死循环约 4.7s 被终止）与卸载清理。下一步优先级：⑤ result_schema L2 逐工具（先只读 6 个，禁止猜）→ ③ 若 p99 恶化再考虑路由出进程/硬超时 → ④ iframe（继续冻结）。方案见 docs/audit/2026-11-23-plugin-p2-decision.md。"
+   "criteria": "2026-11-23 18:25 状态：① 签名/发布密钥与允许列表签名校验已接线（plugin_signature + scripts/sign_plugin_package.py + 安装暂存/加载复验 + CP_PLUGIN_SIGNATURE_MODE；受信表 config/plugin_trusted_keys.json 为空，包总开关仍默认关）；② 进程边界已做；OS 级沙箱已做 AppContainer 生产适配（CP_PLUGIN_SANDBOX=appcontainer，默认 off；真机 .env PermissionError / 网络 gaierror / env 密钥 None；Job Object 内存/进程数/累计 CPU 上限与卸载清理已补；仅剩联网 capability）；③ HTTP 路由仍只有 bulkhead，p99 已实测（无持续慢路由）；④ 插件 UI iframe 未做（client_slot 默认关）；⑤ result_schema L2 已扩第一批 6 个只读工具（web_get / web_extract / web_batch / ext_discover / kb_discuss / look_at_screen；覆盖 24→30/101；干净 worktree 五项派生 --check 全 0、相关 6 文件 284 passed）；剩余 medium 18 + high 11 + critical 3 未扩。",
+   "next": "Owner 已拍板（D1 Owner 离线私钥 / D2 接受 AppContainer 默认无网 / D3 Docker 仅可选）。2026-11-23 18:25 已完成：签名校验器 + 离线签名工具 + 安装暂存/加载复验 + CP_PLUGIN_SIGNATURE_MODE（registry 已登记，提交 23d03e28c）；AppContainer 可行性 PoC（文件/网络/env 三层隔住，未接生产）；插件 p99 实测（无持续慢路由）；文档 7ae38db32。2026-11-23 20:0x 完成 AppContainer 生产适配；22:xx 补 Job Object（MEMORY_MB=512 / MAX_PROCESSES=8 / CPU_SEC=60；128MB 限制下分配 512MB 得 MemoryError，CPU=1s 死循环约 4.7s 被终止）与卸载清理。下一步优先级：⑤ result_schema L2 逐工具（先只读 6 个，禁止猜）→ ③ 若 p99 恶化再考虑路由出进程/硬超时 → ④ iframe（继续冻结）。方案见 docs/audit/2026-11-23-plugin-p2-decision.md。2026-11-24 00:5x–02:0x 完成⑤第一批：6 个只读工具逐个真调后写 result_schema（证据写在各自 YAML 注释；test_l2_result_schema 26 条；FLOOR 12→30）。本批发现 look_at_screen 成功分支不可达（已单列 look-at-screen-success-unreachable）。下一步：⑤ 剩余 18 个 medium 仍须逐工具真调（优先只读/低副作用），或按 Owner 指定项；③/④ 继续不动。"
+  },
+  {
+   "id": "look-at-screen-success-unreachable",
+   "status": "open",
+   "priority": "P2",
+   "title": "look_at_screen 成功分支不可达：voice_vision 缺 Any 导入 + OcrSensor 无 capture_and_ocr",
+   "criteria": "2026-11-24 做 result_schema L2 时实调发现：① agent/orchestrator/voice_vision.py 只 from typing import Optional，却在 __init__(self, orchestrator: Any) 用 Any ⇒ import 即 NameError，dl.voice 懒加载直接抛；② VoiceVision.look_at_screen 调 OcrSensor.capture_and_ocr，而 sensor/ocr_sensor.py 只有 capture_and_recognize（返回 dict，无 .data）⇒ 即使补导入也会 AttributeError，被工具包装层吞成 {ok:false,error}。工具层 agent/tools/extra_tools.py:_look_at_screen 只透传。",
+   "next": "修法（属行为修复，需 Owner 点头）：voice_vision 补 Any 导入；look_at_screen 改调 capture_and_recognize 并按真实返回 {timestamp,text,word_count,has_content,char_count} 组 reading；补 1 条成功路径（假 sensor）+ 1 条失败路径用例，并回看 tests/unit/test_l2_result_schema.py 的成功样本形状。未修前 result_schema 按修好后的契约声明，失败分支照实可校验。"
   }
  ]
 }
