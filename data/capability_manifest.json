@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-11-23T20:26:36",
+  "generated_at": "2026-11-23T22:34:27",
   "scope": "仓库可复现口径：data/tool_definitions/*.yaml + data/skill_callability.yaml + data/skills_repo/*/skill.md + data/permission_policies.json + 注册点静态扫描（不含 .gitignore 里的运行时技能目录/台账）",
   "runtime_only_declarations": [
     "global-core-principles",
@@ -3737,6 +3737,7 @@
         "entry.startswith",
         "exec",
         "f.write",
+        "hasattr",
         "host.endswith",
         "int",
         "ipaddress.IPv4Address",
@@ -9410,7 +9411,7 @@
       "location_source": "declaration",
       "location_derived_source": "executor_boundary",
       "location_evidence": [
-        "调用链（agent.tools.system_tools:_stop_process）在 6 跳内未命中任何跨边界原语；另有 50 个调用点静态无法解析（见 unresolved）",
+        "调用链（agent.tools.system_tools:_stop_process）在 6 跳内未命中任何跨边界原语；另有 51 个调用点静态无法解析（见 unresolved）",
         "声明钉住 location=local，与事实判定一致"
       ],
       "location_declared": "local",
@@ -9434,6 +9435,7 @@
         "data.get",
         "datetime.now",
         "entry.startswith",
+        "hasattr",
         "host.endswith",
         "int",
         "ipaddress.ip_address",
@@ -18162,6 +18164,7 @@
         "entry.startswith",
         "exec",
         "f.write",
+        "hasattr",
         "host.endswith",
         "int",
         "ipaddress.IPv4Address",
@@ -23835,7 +23838,7 @@
       "location_source": "declaration",
       "location_derived_source": "executor_boundary",
       "location_evidence": [
-        "调用链（agent.tools.system_tools:_stop_process）在 6 跳内未命中任何跨边界原语；另有 50 个调用点静态无法解析（见 unresolved）",
+        "调用链（agent.tools.system_tools:_stop_process）在 6 跳内未命中任何跨边界原语；另有 51 个调用点静态无法解析（见 unresolved）",
         "声明钉住 location=local，与事实判定一致"
       ],
       "location_declared": "local",
@@ -23859,6 +23862,7 @@
         "data.get",
         "datetime.now",
         "entry.startswith",
+        "hasattr",
         "host.endswith",
         "int",
         "ipaddress.ip_address",
