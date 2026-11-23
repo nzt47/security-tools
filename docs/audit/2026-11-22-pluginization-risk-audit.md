@@ -293,3 +293,6 @@ cd yunshu-ui && npm run ui:check
 - **插件 UI iframe**：本轮默认关闭；iframe 隔离与 postMessage 契约放 P2。
 
 > 本报告第 10 节是本轮实际落地项；未落地项（进程隔离、签名、result_schema 扩面、路由硬超时、iframe）仍按 P2 管理。第三方插件包入口现在是「默认关闭 + 白名单」，不等于已完成隔离。
+>
+> **2026-11-23 续**：P2 剩余五项的优先级对比与四份方案（签名/密钥、AppContainer/Docker、路由硬超时、schema L2）见
+> `docs/audit/2026-11-23-plugin-p2-decision.md`；当前待 Owner 拍板，安装器与生产路径未改。
