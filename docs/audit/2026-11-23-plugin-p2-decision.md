@@ -17,7 +17,7 @@
    → ⑤ 插件 UI iframe（继续冻结，当前只有 demo）。
 3. **签名已完整落地**：校验器 + 离线签名工具 + 安装暂存/加载复验 + `CP_PLUGIN_SIGNATURE_MODE`；
    受信表 `config/plugin_trusted_keys.json` 为空（fail-closed），第三方包总开关仍默认关。
-   插件相关 **101 passed**（签名 18 / 接线 7 / CLI 2）。
+   插件相关 **102 passed**（签名 18 / 接线 8 / CLI 2）。
 4. **AppContainer 已做可行性 PoC**：文件读、外网、环境变量三层都隔住；剩余是启动器工程化
    （3–5 天），**未接生产**。插件路由 p99 已实测（见 §5），当前没有持续慢路由。
 5. **Owner 已拍板**（见 §7）：D1 Owner 离线私钥 / D2 接受 AppContainer 默认无网 / D3 Docker 可选 /
@@ -167,8 +167,8 @@ not_before, not_after, revoked_at, note}]}`。默认路径写死，**不**用环
 **2026-11-23 落地（已接线）**：`agent/extensions/plugin_signature.py` 实现规范化 JSON、文件树枚举、
 受信表校验、状态/过期/撤销判定、Ed25519 验签、`package_sha256` 与文件树比对；
 `plugins_installer.py` 加暂存目录 + 安装/加载双验签；`scripts/sign_plugin_package.py` 提供离线
-`sign/verify`；`config/plugin_trusted_keys.json` 为空表（fail-closed）。测试：签名 **18**、接线 **7**、
-CLI **2**；插件相关套件 **101 passed**。
+`sign/verify`；`config/plugin_trusted_keys.json` 为空表（fail-closed）。测试：签名 **18**、接线 **8**、
+CLI **2**；插件相关套件 **102 passed**。CI：`f981f6537` 的 ci.yml（run 45158672288）全绿。
 
 ## 4. 方案②：OS 级文件/网络沙箱可行性
 
