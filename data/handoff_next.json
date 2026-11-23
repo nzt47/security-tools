@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-23T12:06:00+08:00",
+ "updated_at": "2026-11-24T01:35:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1437,6 +1437,14 @@
    "title": "look_at_screen 成功分支不可达：voice_vision 缺 Any 导入 + OcrSensor 无 capture_and_ocr",
    "criteria": "2026-11-24 做 result_schema L2 时实调发现：① agent/orchestrator/voice_vision.py 只 from typing import Optional，却在 __init__(self, orchestrator: Any) 用 Any ⇒ import 即 NameError，dl.voice 懒加载直接抛；② VoiceVision.look_at_screen 调 OcrSensor.capture_and_ocr，而 sensor/ocr_sensor.py 只有 capture_and_recognize（返回 dict，无 .data）⇒ 即使补导入也会 AttributeError，被工具包装层吞成 {ok:false,error}。工具层 agent/tools/extra_tools.py:_look_at_screen 只透传。",
    "next": "修法（属行为修复，需 Owner 点头）：voice_vision 补 Any 导入；look_at_screen 改调 capture_and_recognize 并按真实返回 {timestamp,text,word_count,has_content,char_count} 组 reading；补 1 条成功路径（假 sensor）+ 1 条失败路径用例，并回看 tests/unit/test_l2_result_schema.py 的成功样本形状。未修前 result_schema 按修好后的契约声明，失败分支照实可校验。"
+  },
+  {
+   "id": "arch-rules-circular-role-prompt",
+   "status": "open",
+   "priority": "P2",
+   "title": "架构规则校验在 master 上持续红：role_prompt_library ↔ role_templates 被判循环依赖（高）",
+   "criteria": "2026-11-24 01:1x 发现（非本轮引入）：GitHub workflow「架构规则校验」在 c00e1e2bd / 51f437fc0 / a7323149d / f981f6537 等提交上全部 failure，报告每次只有 1 条高严重度：no_circular_dependency agent.subagent.role_prompt_library ↔ agent.subagent.role_templates（role_prompt_library.py:25 顶层 import；role_templates.py:287 为构建 role_catalog 的 prompt_sets 在函数内反向 import）。arch_rules.py 的规则说明明写「把 import 挪进函数体 / importlib / lazy_loader 都不会消除本项违规」——2026-11-24 实测把顶层 import 改到函数内，仍报 line 211 ⇒ 延迟加载不是修法，已回退。",
+   "next": "两条可行修法（都要 Owner 点头；属结构调整，本轮未动）：①依赖倒置：把共享符号（RoleTemplate / ROLE_TEMPLATES / ROLE_TEMPLATE_IDS / ROLE_TEXT_MAX_CHARS）下沉到无依赖叶子模块 agent/subagent/role_vocab.py，role_templates 与 role_prompt_library 都只依赖叶子（role_templates 保留 re-export 兼容）；②组合上移：role_catalog 不再内置 prompt_sets，由 routes_subagent._role_view 组合 role_catalog() + prompt_sets_catalog()，role_templates 删掉对 role_prompt_library 的反向 import。验收：python scripts/ci_run_module.py agent.observability.arch_rules --check --root agent --exemptions docs/architecture/legacy_exemptions.json --config config.yaml 退出 0（本机先设 PYTHONIOENCODING=utf-8，否则 GBK 控制台会 UnicodeEncodeError 假红）；tests/unit/test_role_prompt_library.py test_subagent_role_templates.py test_subagent_role_wiring.py 全绿；不要往 legacy_exemptions.json 加豁免放水。"
   }
  ]
 }
