@@ -10040,7 +10040,7 @@
       "source_layer": "extensions",
       "target_layer": "extensions",
       "import_type": "from_import",
-      "line": 513,
+      "line": 516,
       "source_file": "agent/extensions/plugins_installer.py",
       "is_cross_layer": false,
       "is_violation": false,
