@@ -612,6 +612,14 @@ _REGISTRY_ROWS: List[SettingSpec] = [
        "单次插件工具调用超时（秒）；超时即杀插件子进程。范围 1–300",
        owner="agent/extensions/plugin_policy.py",
        validator=_int_range(1, 300)),
+    _b("CP_PLUGIN_SANDBOX", CAT_EXTERNAL, "off",
+       "第三方插件包子进程的 OS 级沙箱：off=仅进程边界（默认）/ appcontainer=Windows AppContainer"
+       "（默认无网络、无用户目录；不可用即拒绝启动，不回退无沙箱）",
+       owner="agent/extensions/plugin_policy.py",
+       validator=_enum("off", "appcontainer", notes={
+           "off": "仅进程边界：隔离崩溃/超时/环境变量，不隔离文件与网络",
+           "appcontainer": "Windows AppContainer：默认无网络、读不到用户目录；需 ACL 授权",
+       })),
     _b("CP_PLUGIN_SIGNATURE_MODE", CAT_EXTERNAL, "enforce",
        "第三方插件包签名校验模式：off=不验签（仅排障）/ warn=失败只记日志仍放行 / "
        "enforce=缺失或失败一律拒绝安装与加载。默认 enforce；非法值也按 enforce（fail-closed）",

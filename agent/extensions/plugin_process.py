@@ -6,8 +6,10 @@
 - 子进程只拿到最小环境变量白名单；FLASK_API_TOKEN / DEEPSEEK_API_KEY 等不进环境。
 
 【它不解决什么（如实声明）】
-- 不是文件系统/网络沙箱：子进程仍以当前用户身份运行，能读当前用户能读的文件。
-  真正的 OS 级隔离（AppContainer / seccomp / 容器）是 P3。
+- 默认（CP_PLUGIN_SANDBOX=off）仍只是进程边界：子进程以当前用户身份运行，
+  能读当前用户能读的文件；不隔离文件/网络。
+- CP_PLUGIN_SANDBOX=appcontainer 时走 Windows AppContainer：默认无网络、
+  读不到用户目录，只能访问显式 ACL 授权的插件目录/数据目录（见 appcontainer.py）。
 - 插件工具调用是**串行**的（一把锁；协议是单行请求/响应）。并发由上层
   CP_PLUGIN_MAX_CONCURRENT 限制；插件内部并发需自己处理。
 
@@ -27,6 +29,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from agent.utils import proc as _proc
+from . import appcontainer, plugin_policy
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _STDERR_TAIL_LINES = 40
@@ -95,6 +98,7 @@ class PluginProcess:
         self._reader: Optional[threading.Thread] = None
         self._err_reader: Optional[threading.Thread] = None
         self._tools: List[Dict[str, Any]] = []
+        self._sandbox: Optional[Any] = None
 
     # ── 生命周期 ──────────────────────────────────────────────
 
@@ -104,24 +108,27 @@ class PluginProcess:
             raise PluginProcessError("插件路径不存在")
         plugin_dir = p.parent if p.is_file() else p
         deps = (p / ".deps") if p.is_dir() else None
-        cmd = [sys.executable, "-m", "agent.extensions.plugin_worker",
-               str(p), self.plugin_id]
-        try:
-            self._proc = subprocess.Popen(
-                cmd,
-                cwd=str(plugin_dir),
-                env=_worker_env(deps),
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                bufsize=1,
-                **_proc.hidden_kwargs(),
-            )
-        except Exception as exc:  # noqa: BLE001
-            raise PluginProcessError("插件子进程启动失败（%s）" % type(exc).__name__) from None
+        if plugin_policy.sandbox_mode() == "appcontainer":
+            self._proc = self._spawn_sandboxed(p, plugin_dir, deps)
+        else:
+            cmd = [sys.executable, "-m", "agent.extensions.plugin_worker",
+                   str(p), self.plugin_id]
+            try:
+                self._proc = subprocess.Popen(
+                    cmd,
+                    cwd=str(plugin_dir),
+                    env=_worker_env(deps),
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    bufsize=1,
+                    **_proc.hidden_kwargs(),
+                )
+            except Exception as exc:  # noqa: BLE001
+                raise PluginProcessError("插件子进程启动失败（%s）" % type(exc).__name__) from None
         self._reader = threading.Thread(
             target=self._read_stdout, name="plugin-worker-out-" + self.plugin_id,
             daemon=True)
@@ -143,6 +150,48 @@ class PluginProcess:
         self._tools = [t for t in (tools or []) if isinstance(t, dict)]
         return list(self._tools)
 
+    def _spawn_sandboxed(self, p: Path, plugin_dir: Path, deps: Optional[Path]):
+        """在 AppContainer 里启动 worker；runner 复制到插件数据目录，避免授予仓库读权限。"""
+        if not appcontainer.is_available():
+            raise PluginProcessError(
+                "AppContainer 不可用（%s）" % (appcontainer.unavailable_reason() or "unknown"),
+                "PLUGIN_SANDBOX_UNAVAILABLE")
+        data_dir = appcontainer.sandbox_data_dir(self.plugin_id)
+        data_dir.mkdir(parents=True, exist_ok=True)
+        runner = data_dir / "plugin_worker.py"
+        try:
+            runner.write_bytes(Path(__file__).with_name("plugin_worker.py").read_bytes())
+        except OSError:
+            raise PluginProcessError("沙箱 runner 写入失败", "PLUGIN_SANDBOX_LAUNCH_FAILED") from None
+        grants = [
+            (p.parent, "RX", False),
+            (p, "RX", p.is_dir()),
+        ]
+        sandbox = None
+        try:
+            appcontainer.ensure_runtime_access()
+            sandbox = appcontainer.AppContainerSandbox(self.plugin_id, data_dir, grants)
+            env = appcontainer.build_environment(data_dir, deps)
+            cmd = [sys.executable, str(runner), str(p), self.plugin_id]
+            proc = sandbox.spawn(cmd, data_dir, env)
+        except Exception as exc:  # noqa: BLE001 不可用/启动失败都 fail-closed
+            if sandbox is not None:
+                sandbox.close()
+            raise PluginProcessError(
+                "AppContainer 启动失败（%s）" % type(exc).__name__,
+                "PLUGIN_SANDBOX_LAUNCH_FAILED") from None
+        self._sandbox = sandbox
+        return proc
+
+    def _close_sandbox(self) -> None:
+        sandbox = self._sandbox
+        self._sandbox = None
+        if sandbox is not None:
+            try:
+                sandbox.close()
+            except Exception:
+                pass
+
     def call(self, tool: str, args: Optional[Dict[str, Any]] = None) -> Any:
         if not self.alive:
             raise PluginProcessError("插件子进程已退出")
@@ -157,6 +206,7 @@ class PluginProcess:
     def close(self) -> None:
         proc = self._proc
         if proc is None:
+            self._close_sandbox()
             return
         try:
             if proc.poll() is None:
@@ -176,6 +226,7 @@ class PluginProcess:
                         stream.close()
                 except Exception:
                     pass
+            self._close_sandbox()
 
     def _kill(self) -> None:
         proc = self._proc

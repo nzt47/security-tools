@@ -30,6 +30,7 @@ ENV_PLUGIN_MAX_CONCURRENT = "CP_PLUGIN_MAX_CONCURRENT"
 ENV_PLUGIN_PROCESS_ISOLATION = "CP_PLUGIN_PROCESS_ISOLATION"
 ENV_PLUGIN_PROCESS_TIMEOUT = "CP_PLUGIN_PROCESS_TIMEOUT_SEC"
 ENV_PLUGIN_SIGNATURE_MODE = "CP_PLUGIN_SIGNATURE_MODE"
+ENV_PLUGIN_SANDBOX = "CP_PLUGIN_SANDBOX"
 
 _TRUTHY = frozenset({"1", "true", "yes", "on"})
 _DEFAULT_MAX_CONCURRENT = 4
@@ -38,6 +39,7 @@ _DEFAULT_PROCESS_TIMEOUT_SEC = 30.0
 _MAX_PROCESS_TIMEOUT_SEC = 300.0
 _SIGNATURE_MODES = ("off", "warn", "enforce")
 _DEFAULT_SIGNATURE_MODE = "enforce"
+_SANDBOX_MODES = ("off", "appcontainer")
 
 #: 受信公钥表固定路径（不提供环境变量改信任根；改它必须走代码 review）。
 TRUSTED_KEYS_PATH = Path(__file__).resolve().parents[2] / "config" / "plugin_trusted_keys.json"
@@ -129,6 +131,16 @@ def signature_mode() -> str:
     """
     raw = str(os.environ.get(ENV_PLUGIN_SIGNATURE_MODE, "") or "").strip().lower()
     return raw if raw in _SIGNATURE_MODES else _DEFAULT_SIGNATURE_MODE
+
+
+def sandbox_mode() -> str:
+    """插件包子进程的 OS 级沙箱：off（默认，仅进程边界）/ appcontainer（Windows）。
+
+    appcontainer 需要 Windows 10+ 与管理员首次建 profile；不可用时 fail-closed，
+    绝不悄悄回退到无沙箱进程。
+    """
+    raw = str(os.environ.get(ENV_PLUGIN_SANDBOX, "") or "").strip().lower()
+    return raw if raw in _SANDBOX_MODES else "off"
 
 
 def max_concurrent() -> int:
