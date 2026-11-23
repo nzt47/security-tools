@@ -33,6 +33,7 @@ ENV_PLUGIN_SIGNATURE_MODE = "CP_PLUGIN_SIGNATURE_MODE"
 ENV_PLUGIN_SANDBOX = "CP_PLUGIN_SANDBOX"
 ENV_PLUGIN_SANDBOX_MEMORY_MB = "CP_PLUGIN_SANDBOX_MEMORY_MB"
 ENV_PLUGIN_SANDBOX_MAX_PROCESSES = "CP_PLUGIN_SANDBOX_MAX_PROCESSES"
+ENV_PLUGIN_SANDBOX_CPU_SEC = "CP_PLUGIN_SANDBOX_CPU_SEC"
 
 _TRUTHY = frozenset({"1", "true", "yes", "on"})
 _DEFAULT_MAX_CONCURRENT = 4
@@ -47,6 +48,9 @@ _MIN_SANDBOX_MEMORY_MB = 64
 _MAX_SANDBOX_MEMORY_MB = 8192
 _DEFAULT_SANDBOX_MAX_PROCESSES = 8
 _MAX_SANDBOX_PROCESSES_CAP = 64
+_DEFAULT_SANDBOX_CPU_SEC = 60
+_MIN_SANDBOX_CPU_SEC = 1
+_MAX_SANDBOX_CPU_SEC = 3600
 
 #: 受信公钥表固定路径（不提供环境变量改信任根；改它必须走代码 review）。
 TRUSTED_KEYS_PATH = Path(__file__).resolve().parents[2] / "config" / "plugin_trusted_keys.json"
@@ -169,6 +173,12 @@ def sandbox_max_processes() -> int:
     """每个 AppContainer 插件子进程可派生的进程数上限；默认 8，范围 1–64。"""
     return _env_int(ENV_PLUGIN_SANDBOX_MAX_PROCESSES,
                     _DEFAULT_SANDBOX_MAX_PROCESSES, 1, _MAX_SANDBOX_PROCESSES_CAP)
+
+
+def sandbox_cpu_seconds() -> int:
+    """每个 AppContainer 插件 Job 的累计 CPU 时间上限（秒）；默认 60，范围 1–3600。"""
+    return _env_int(ENV_PLUGIN_SANDBOX_CPU_SEC, _DEFAULT_SANDBOX_CPU_SEC,
+                    _MIN_SANDBOX_CPU_SEC, _MAX_SANDBOX_CPU_SEC)
 
 
 def max_concurrent() -> int:

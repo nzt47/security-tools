@@ -61,16 +61,22 @@ def test_sandbox_limits_defaults_and_clamps(monkeypatch):
     for key in (plugin_policy.ENV_PLUGIN_SANDBOX_MEMORY_MB,
                 plugin_policy.ENV_PLUGIN_SANDBOX_MAX_PROCESSES):
         monkeypatch.delenv(key, raising=False)
+    monkeypatch.delenv(plugin_policy.ENV_PLUGIN_SANDBOX_CPU_SEC, raising=False)
     assert plugin_policy.sandbox_memory_mb() == 512
     assert plugin_policy.sandbox_max_processes() == 8
+    assert plugin_policy.sandbox_cpu_seconds() == 60
     monkeypatch.setenv(plugin_policy.ENV_PLUGIN_SANDBOX_MEMORY_MB, "99999")
     monkeypatch.setenv(plugin_policy.ENV_PLUGIN_SANDBOX_MAX_PROCESSES, "999")
+    monkeypatch.setenv(plugin_policy.ENV_PLUGIN_SANDBOX_CPU_SEC, "99999")
     assert plugin_policy.sandbox_memory_mb() == 8192
     assert plugin_policy.sandbox_max_processes() == 64
+    assert plugin_policy.sandbox_cpu_seconds() == 3600
     monkeypatch.setenv(plugin_policy.ENV_PLUGIN_SANDBOX_MEMORY_MB, "1")
     monkeypatch.setenv(plugin_policy.ENV_PLUGIN_SANDBOX_MAX_PROCESSES, "0")
+    monkeypatch.setenv(plugin_policy.ENV_PLUGIN_SANDBOX_CPU_SEC, "0")
     assert plugin_policy.sandbox_memory_mb() == 64
     assert plugin_policy.sandbox_max_processes() == 1
+    assert plugin_policy.sandbox_cpu_seconds() == 1
 
 
 def test_max_concurrent_clamped(monkeypatch):

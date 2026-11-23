@@ -44,10 +44,12 @@ INFINITE = 0xFFFFFFFF
 ERROR_ALREADY_EXISTS_HR = 0x800700B7
 CREATE_SUSPENDED = 0x00000004
 JOB_OBJECT_EXTENDED_LIMIT_INFORMATION_CLASS = 9
+JOB_OBJECT_LIMIT_JOB_TIME = 0x00000004
 JOB_OBJECT_LIMIT_PROCESS_MEMORY = 0x00000100
 JOB_OBJECT_LIMIT_ACTIVE_PROCESS = 0x00000008
 JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000
 _BYTES_PER_MB = 1024 * 1024
+_HUNDRED_NS_PER_SEC = 10_000_000
 
 #: icacls 首次给 Python 目录授权会递归现有子文件，给足时间；调用参数不写裸数字。
 _ICACLS_TIMEOUT_SEC = 120.0
@@ -341,7 +343,7 @@ if _IS_WINDOWS:
         except Exception:  # noqa: BLE001
             return 1
 
-    def _create_sandbox_job(memory_mb: int, max_processes: int):
+    def _create_sandbox_job(memory_mb: int, max_processes: int, cpu_seconds: int):
         libs = _load_libraries()
         kernel32 = libs["kernel32"]
         job = kernel32.CreateJobObjectW(None, None)
@@ -349,10 +351,13 @@ if _IS_WINDOWS:
             raise AppContainerLaunchError("CreateJobObjectW failed")
         info = _JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
         info.BasicLimitInformation.LimitFlags = (
-            JOB_OBJECT_LIMIT_PROCESS_MEMORY
+            JOB_OBJECT_LIMIT_JOB_TIME
+            | JOB_OBJECT_LIMIT_PROCESS_MEMORY
             | JOB_OBJECT_LIMIT_ACTIVE_PROCESS
             | JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE)
         info.BasicLimitInformation.ActiveProcessLimit = int(max_processes)
+        info.BasicLimitInformation.PerJobUserTimeLimit = (
+            int(cpu_seconds) * _HUNDRED_NS_PER_SEC)
         info.ProcessMemoryLimit = int(memory_mb) * _BYTES_PER_MB
         ok = kernel32.SetInformationJobObject(
             job, JOB_OBJECT_EXTENDED_LIMIT_INFORMATION_CLASS,
@@ -529,7 +534,8 @@ if _IS_WINDOWS:
             cmd_buf = ctypes.create_unicode_buffer(subprocess.list2cmdline(list(cmd)))
             from . import plugin_policy
             job = _create_sandbox_job(plugin_policy.sandbox_memory_mb(),
-                                      plugin_policy.sandbox_max_processes())
+                                      plugin_policy.sandbox_max_processes(),
+                                      plugin_policy.sandbox_cpu_seconds())
             pi = _PROCESS_INFORMATION()
             ok = kernel32.CreateProcessW(
                 None, cmd_buf, None, None, True,

@@ -628,6 +628,10 @@ _REGISTRY_ROWS: List[SettingSpec] = [
        "AppContainer 插件子进程可派生进程数上限；默认 8，范围 1–64。仅 CP_PLUGIN_SANDBOX=appcontainer 时生效",
        owner="agent/extensions/plugin_policy.py",
        validator=_int_range(1, 64)),
+    _b("CP_PLUGIN_SANDBOX_CPU_SEC", CAT_EXTERNAL, 60,
+       "AppContainer 插件 Job 累计 CPU 时间上限（秒）；默认 60，范围 1–3600。仅 CP_PLUGIN_SANDBOX=appcontainer 时生效",
+       owner="agent/extensions/plugin_policy.py",
+       validator=_int_range(1, 3600)),
     _b("CP_PLUGIN_SIGNATURE_MODE", CAT_EXTERNAL, "enforce",
        "第三方插件包签名校验模式：off=不验签（仅排障）/ warn=失败只记日志仍放行 / "
        "enforce=缺失或失败一律拒绝安装与加载。默认 enforce；非法值也按 enforce（fail-closed）",
