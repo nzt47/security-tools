@@ -22,4 +22,23 @@ schema:
       description: 进程 PID
   required:
   - pid
+# 【result_schema（2026-11-24，L2 扩面·medium 批次）】
+#   实调失败分支：缺 pid → {ok:false,error:"请提供进程 PID"}；不存在的 pid →
+#   {ok:false,error:"进程不存在"}。成功分支键取自 agent/tools/process_tools.py::stop_process：
+#   {ok,pid,name}；权限拒绝时工具层返回 {ok:false,error,blocked:true}。required 只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    pid:
+      type: integer
+    name:
+      type: string
+    blocked:
+      type: boolean
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

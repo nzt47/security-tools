@@ -20,4 +20,25 @@ schema:
     source_path:
       type: string
       description: inbox/raw 下素材路径
+# 【result_schema（2026-11-24，L2 扩面·medium 批次）】
+#   实调（临时知识库 + 假 LLM，真实 WorkflowRunner）：
+#   kb_distill(source_path) → {ok,slug,distilled,reason,hint}；无 source_path →
+#   {ok:false,error:"须提供 source_path（inbox/raw 下素材路径）"}。required 只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    slug:
+      type: string
+    distilled:
+      type: boolean
+    reason:
+      type: string
+    hint:
+      type: string
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

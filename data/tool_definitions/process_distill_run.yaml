@@ -40,4 +40,32 @@ schema:
     max_workers:
       type: integer
       description: 并行子代理数，默认 4
+# 【result_schema（2026-11-24，L2 扩面·medium 批次）】
+#   实调失败分支：无 query/paths → {ok:false,error}。成功/空素材分支与
+#   distill_process_from_knowledge 同源（agent/process_distill/service.py::distill），
+#   但本工具是内部执行体（internal/manual），不做 materials 瘦身：
+#   {ok,query,paths,llm_used,materials,process,artifacts}。required 只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    query:
+      type: string
+    paths:
+      type: array
+      items:
+        type: string
+    llm_used:
+      type: boolean
+    materials:
+      type: array
+    process:
+      type: object
+    artifacts:
+      type: object
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

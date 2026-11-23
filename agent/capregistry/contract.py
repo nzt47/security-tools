@@ -68,7 +68,18 @@ __all__ = [
 #:   · kb_discuss 的 effect=write（落讨论记录）但无外部副作用，schema 只描述返回、不改语义；
 #:   · look_at_screen 成功分支当前**不可达**（voice_vision 缺 Any 导入 + OcrSensor 无
 #:     capture_and_ocr，已登记独立缺陷）⇒ schema 按修好后的契约声明，失败分支实测可校验。
-#: 回退：从元组删掉这 6 个名字 → 删对应 YAML 的 `result_schema:` 段
+#: 【2026-11-24 第二批 18 → 34（medium 16 个，同一轮补完）】
+#: browser_navigate / browser_screenshot / cancel_scheduled_task / compress / delegate /
+#: distill_process_from_knowledge / kb_distill / process_distill_run / run_tests /
+#: set_clipboard / software_install / stop_process / submit_task / web_download /
+#: web_post / workspace_write。证据同样写在各 YAML 注释里，分两类并如实标注：
+#:   · **实调**：失败分支或安全成功分支（临时目录/临时知识库/真实下载/真实剪贴板写入后还原）；
+#:   · **按实现 return 字面量核对**：成功分支受副作用/外部依赖限制的（delegate / run_tests /
+#:     submit_task / distill* / software_install 成功态 / web_post），键取自函数体 return，
+#:     不按工具名猜。
+#: 三个 critical 工具（adaptive_skill_stack / byted_bp_cdn_pagesdeploy /
+#: byted_seedream_image_generate）是**本机运行时登记**（YAML 不入仓），不在本清单内。
+#: 回退：从元组删掉这 6+16 个名字 → 删对应 YAML 的 `result_schema:` 段
 #:   → 把 tests/unit/test_refactor_call_identity_and_recovery.py 的
 #:   `TestResultSchemaCoverage.FLOOR` 调回 24。
 RESULT_SCHEMA_REQUIRED_TOOLS: Tuple[str, ...] = (
@@ -76,7 +87,11 @@ RESULT_SCHEMA_REQUIRED_TOOLS: Tuple[str, ...] = (
     "read_file", "search_files",
     "list_directory", "diff_files", "get_clipboard", "list_processes",
     "get_pdf_info", "data_convert", "humanize_zh",
-    "web_get", "web_extract", "web_batch", "ext_discover", "kb_discuss", "look_at_screen")
+    "web_get", "web_extract", "web_batch", "ext_discover", "kb_discuss", "look_at_screen",
+    "browser_navigate", "browser_screenshot", "cancel_scheduled_task", "compress",
+    "delegate", "distill_process_from_knowledge", "kb_distill", "process_distill_run",
+    "run_tests", "set_clipboard", "software_install", "stop_process", "submit_task",
+    "web_download", "web_post", "workspace_write")
 
 
 def _builtin_check(value: Any, schema: Dict[str, Any], path: str,

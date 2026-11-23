@@ -446,6 +446,9 @@ class PluginInstaller:
             return False, "插件进程隔离模块不可用"
 
         config = plugin_data.get("config")
+        # 【联网 opt-in】由 PluginProcess 在自己启动沙箱时读插件包 manifest
+        # （appcontainer.plugin_wants_internet）——不在这里 import appcontainer，
+        # 否则 plugins_installer → agent.extensions 包会与包 __init__ 成环（架构规则会红）。
         proc = PluginProcess(
             plugin_id, install_path,
             config=config if isinstance(config, dict) else {},

@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import ctypes
 import hashlib
+import json
 import os
 import re
 import shutil
@@ -43,6 +44,12 @@ STILL_ACTIVE = 259
 INFINITE = 0xFFFFFFFF
 ERROR_ALREADY_EXISTS_HR = 0x800700B7
 CREATE_SUSPENDED = 0x00000004
+
+#: Internet（客户端）能力 SID：AppContainer 默认无网，只有把这条 capability 放进
+#: SECURITY_CAPABILITIES 才允许出站连接（入站仍不允许）。**按插件 opt-in**，
+#: 不做全局放行（Owner 2026-11-23 D2：默认无网是默认语义）。
+INTERNET_CLIENT_SID = "S-1-15-3-1"
+SE_GROUP_ENABLED = 0x00000004
 JOB_OBJECT_EXTENDED_LIMIT_INFORMATION_CLASS = 9
 JOB_OBJECT_LIMIT_JOB_TIME = 0x00000004
 JOB_OBJECT_LIMIT_PROCESS_MEMORY = 0x00000100
@@ -74,6 +81,34 @@ def profile_name(plugin_id: str) -> str:
     safe = re.sub(r"[^A-Za-z0-9._-]+", "_", raw).strip("._-")[:40] or "plugin"
     digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:8]
     return ("YunshuPlugin-" + safe + "-" + digest)[:64]
+
+
+def plugin_wants_internet(plugin_dir: Path) -> bool:
+    """插件是否显式声明需要联网（manifest 的 `sandbox.internet` 必须**字面量 true**）。
+
+    读 `plugin.json` / `manifest.json`（与 `_read_manifest` 同一优先级）。只认
+    `{"sandbox": {"internet": true}}`（也兼容顶层 `"network": true`）；缺字段、解析失败、
+    非 True 一律 False —— **fail-closed**，默认无网（Owner D2）。
+    这是**按插件**的 opt-in：没有全局开关，也不因为一个插件要联网就放开其它插件。
+    """
+    root = Path(plugin_dir)
+    for name in ("plugin.json", "manifest.json"):
+        path = root / name
+        if not path.is_file():
+            continue
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return False
+        if not isinstance(data, dict):
+            return False
+        sandbox = data.get("sandbox")
+        if isinstance(sandbox, dict) and sandbox.get("internet") is True:
+            return True
+        if data.get("network") is True:
+            return True
+        return False
+    return False
 
 
 def build_environment(data_dir: Path, deps_dir: Optional[Path] = None,
@@ -275,6 +310,8 @@ if _IS_WINDOWS:
         userenv.DeleteAppContainerProfile.restype = ctypes.c_long
         advapi32.ConvertSidToStringSidW.argtypes = [LPVOID, ctypes.POINTER(LPWSTR)]
         advapi32.ConvertSidToStringSidW.restype = BOOL
+        advapi32.ConvertStringSidToSidW.argtypes = [LPWSTR, ctypes.POINTER(LPVOID)]
+        advapi32.ConvertStringSidToSidW.restype = BOOL
 
         kernel32.CreatePipe.argtypes = [ctypes.POINTER(HANDLE), ctypes.POINTER(HANDLE),
                                         ctypes.POINTER(_SECURITY_ATTRIBUTES), DWORD]
@@ -331,6 +368,15 @@ if _IS_WINDOWS:
         value = out.value or ""
         libs["kernel32"].LocalFree(out)
         return value
+
+    def _capability_sid(sid_string: str) -> Any:
+        """把 well-known capability 字符串 SID 转成 SID 指针（调用方负责 LocalFree）。"""
+        libs = _load_libraries()
+        sid = LPVOID()
+        if not libs["advapi32"].ConvertStringSidToSidW(sid_string, ctypes.byref(sid)):
+            raise AppContainerLaunchError(
+                "ConvertStringSidToSidW failed err=%s" % ctypes.get_last_error())
+        return sid
 
     def _icacls(path: Path, args: Sequence[str]) -> int:
         cmd = ["icacls", str(path), *args]
@@ -436,11 +482,15 @@ if _IS_WINDOWS:
         """一个插件一个 profile；grant_paths 是 (path, "RX"|"F", inherit) 列表。"""
 
         def __init__(self, plugin_id: str, data_dir: Path,
-                     grant_paths: Iterable[Tuple[Path, str, bool]] = ()):
+                     grant_paths: Iterable[Tuple[Path, str, bool]] = (),
+                     allow_internet: bool = False):
             if not is_available():
                 raise AppContainerUnavailable(
                     "AppContainer 不可用（%s）" % (unavailable_reason() or "unknown"))
             self.plugin_id = str(plugin_id)
+            # 按插件 opt-in：默认 False（无网）。调用方只能从 manifest 的
+            # sandbox.internet=true 得到 True（见 plugin_wants_internet）。
+            self.allow_internet = bool(allow_internet)
             self.name = profile_name(plugin_id)
             self.data_dir = Path(data_dir)
             self._granted: list[Tuple[Path, str]] = []
@@ -524,6 +574,17 @@ if _IS_WINDOWS:
                                                               ctypes.byref(size)):
                 raise AppContainerLaunchError("InitializeProcThreadAttributeList failed")
             caps = _SECURITY_CAPABILITIES(ctypes.cast(self.sid, LPVOID), None, 0, 0)
+            _cap_keepalive = None
+            if self.allow_internet:
+                cap_sid = _capability_sid(INTERNET_CLIENT_SID)
+                cap_array = (_SID_AND_ATTRIBUTES * 1)()
+                cap_array[0].Sid = cap_sid
+                cap_array[0].Attributes = SE_GROUP_ENABLED
+                caps.Capabilities = ctypes.cast(
+                    cap_array, ctypes.POINTER(_SID_AND_ATTRIBUTES))
+                caps.CapabilityCount = 1
+                # 必须活到 CreateProcessW 返回（SECURITY_CAPABILITIES 只存指针）
+                _cap_keepalive = (cap_array, cap_sid)
             if not kernel32.UpdateProcThreadAttribute(
                     attr_list, 0, PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES,
                     ctypes.byref(caps), ctypes.sizeof(caps), None, None):
@@ -544,6 +605,12 @@ if _IS_WINDOWS:
                 ctypes.cast(env_buf, LPVOID), str(cwd),
                 ctypes.byref(si), ctypes.byref(pi))
             kernel32.DeleteProcThreadAttributeList(attr_list)
+            if _cap_keepalive is not None:
+                try:
+                    kernel32.LocalFree(_cap_keepalive[1])
+                except Exception:
+                    pass
+                _cap_keepalive = None
             if not ok:
                 kernel32.CloseHandle(job)
                 for h in (stdin_r, stdin_w, stdout_r, stdout_w, stderr_r, stderr_w):

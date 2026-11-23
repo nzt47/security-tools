@@ -85,8 +85,13 @@ class PluginProcess:
     def __init__(self, plugin_id: str, install_path: str,
                  config: Optional[Dict[str, Any]] = None,
                  timeout: float = 30.0,
-                 handshake_timeout: float = 30.0):
+                 handshake_timeout: float = 30.0,
+                 allow_internet: Optional[bool] = None):
         self.plugin_id = str(plugin_id)
+        # AppContainer 联网是**按插件 opt-in**（manifest sandbox.internet=true）：
+        # None = 启动沙箱时读插件包 manifest 决定（默认无网）；True/False = 显式覆盖
+        # （测试/运维用）。非沙箱路径不使用该值。
+        self._allow_internet = allow_internet
         self.install_path = str(install_path)
         self._config = dict(config or {})
         self._timeout = max(1.0, float(timeout))
@@ -170,7 +175,14 @@ class PluginProcess:
         sandbox = None
         try:
             appcontainer.ensure_runtime_access()
-            sandbox = appcontainer.AppContainerSandbox(self.plugin_id, data_dir, grants)
+            if self._allow_internet is None:
+                allow_internet = appcontainer.plugin_wants_internet(p if p.is_dir() else plugin_dir)
+            else:
+                allow_internet = bool(self._allow_internet)
+            if allow_internet:
+                logger.info("[插件进程] %s 显式声明需要联网（加 internetClient）", self.plugin_id)
+            sandbox = appcontainer.AppContainerSandbox(
+                self.plugin_id, data_dir, grants, allow_internet=allow_internet)
             env = appcontainer.build_environment(data_dir, deps)
             cmd = [sys.executable, str(runner), str(p), self.plugin_id]
             proc = sandbox.spawn(cmd, data_dir, env)

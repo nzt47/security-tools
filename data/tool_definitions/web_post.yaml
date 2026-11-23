@@ -31,4 +31,39 @@ schema:
       description: 超时秒数，默认 30
   required:
   - url
+# 【result_schema（2026-11-24，L2 扩面·medium 批次）】
+#   与 web_get 同一条 HttpClient 返回（web_post 直接透传 request()）：
+#   ok/status_code/reason/headers/content_length/content(bytes)/text/encoding/url/elapsed/
+#   cookies/redirect_history；失败时 ok=false + error。本轮实调因外部 POST 端点不可达，
+#   键取自 agent/web/http_client.py::request 的 return 字面量；content 是 bytes ⇒ 不声明。
+#   required 只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    status_code:
+      type: integer
+    reason:
+      type: string
+    headers:
+      type: object
+    content_length:
+      type: integer
+    text:
+      type: string
+    encoding:
+      type: string
+    url:
+      type: string
+    elapsed:
+      type: number
+    cookies:
+      type: object
+    redirect_history:
+      type: array
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

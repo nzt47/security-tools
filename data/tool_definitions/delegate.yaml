@@ -61,4 +61,44 @@ schema:
   - budget_tokens
   - timeout_seconds
   - callback_url
+# 【result_schema（2026-11-24，L2 扩面·medium 批次）】
+#   实调失败分支（八要素全缺）→ {ok:false,error_code,error,missing{8 项}}；
+#   成功/异常分支的键取自 agent/tools/subagent_tools.py::_result_from_outcome 的逐字段映射：
+#   {ok,delegation_id,tier,duration_ms[,trace_id,role_audit,memory,artifact_count,artifacts,
+#   result]}；失败再加 error_code/error/sub_reason/error_detail。required 只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    delegation_id:
+      type: string
+    tier:
+      type: string
+    duration_ms:
+      type: number
+    trace_id:
+      type: string
+    role_audit:
+      type: object
+    memory:
+      type: object
+    artifact_count:
+      type: integer
+    artifacts:
+      type: array
+    result:
+      type: string
+    error_code:
+      type: string
+    error:
+      type: string
+    sub_reason:
+      type: string
+    error_detail:
+      type: object
+    missing:
+      type: object
+  required: [ok]
+  additionalProperties: true
 examples: []

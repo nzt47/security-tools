@@ -31,4 +31,24 @@ schema:
       description: 压缩格式：zip（通用兼容性好）或 tar.gz（Linux 常用，压缩率稍高）。默认 zip
   required:
   - source_path
+# 【result_schema（2026-11-24，L2 扩面·medium 批次）】
+#   实调（临时目录）：compress(dir, out.zip) → {ok,output_path,compressed_size,file_count,format}；
+#   不存在的源 → {ok:false,error:"源路径不存在: ..."}。required 只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    output_path:
+      type: string
+    compressed_size:
+      type: integer
+    file_count:
+      type: integer
+    format:
+      type: string
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

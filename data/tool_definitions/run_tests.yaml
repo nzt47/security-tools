@@ -30,4 +30,46 @@ schema:
     max_output_chars:
       type: integer
       description: 输出尾部保留的字符数，默认 8000
+# 【result_schema（2026-11-24，L2 扩面·medium 批次）】
+#   实调失败分支：不存在的测试路径 → {ok:false,error:"测试路径不存在: ..."}；
+#   pytest 缺失时还会带 pytest_available:false。成功分支键取自
+#   agent/tools/test_tools.py::_run_tests 的 return 字面量：
+#   {ok,returncode,passed,failed,errors,skipped,duration_sec,summary,output_tail,
+#   command,cwd,timeout_sec}；超时分支另有 timeout_sec/duration_sec/output_tail。
+#   required 只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    returncode:
+      type: integer
+    passed:
+      type: integer
+    failed:
+      type: integer
+    errors:
+      type: integer
+    skipped:
+      type: integer
+    duration_sec:
+      type: number
+    summary:
+      type: string
+    output_tail:
+      type: string
+    command:
+      type: array
+      items:
+        type: string
+    cwd:
+      type: string
+    timeout_sec:
+      type: integer
+    pytest_available:
+      type: boolean
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

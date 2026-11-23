@@ -253,8 +253,21 @@ PoC 代码在 `.local/_poc_appcontainer.py`（**不提交**）。
   把内存上限压到 128MB 后，插件分配 512MB 得到 `MemoryError`；CPU 上限 1s 时死循环插件在约 4.7s
   内被 Job 终止（含启动/ACL 时间）。
 
-**剩余（未做，不假装）**：需要联网的插件要显式加 `internetClient` capability（当前一律无网）；
-CPU 是累计时间上限，不是速率整形；首次运行 ACL 授权有一次性延迟。
+**联网 capability（2026-11-24 已做，按插件 opt-in，默认仍无网）**：
+- 开关在**插件自己的 manifest** `plugin.json`（或 `manifest.json`）：
+  `{"sandbox": {"internet": true}}`（兼容顶层 `"network": true`）。只认**字面量 true**；
+  缺字段 / 非 true / JSON 坏 / 没有 manifest 一律 False（fail-closed）。
+- 代码链：`appcontainer.plugin_wants_internet(plugin_dir)` → `PluginProcess(allow_internet=)`
+  → `AppContainerSandbox(..., allow_internet=True)` → `spawn()` 在 SECURITY_CAPABILITIES
+  里加 `internetClient`（well-known SID `S-1-15-3-1`，attributes=SE_GROUP_ENABLED）。
+  **没有全局开关**：一个插件要联网不会放开其它插件（Owner D2：默认无网是默认语义）。
+- 真机 e2e（`.local/_test_ac_internet.py`，同一插件包、同一 AppContainer 启动路径）：
+  `allow_internet=False` → 插件内 `socket.create_connection(("example.com", 80))` 得
+  **`gaierror`**；`allow_internet=True` → **`ok`**。两条都走 `PluginProcess.start()`，
+  不是单独调用 API。
+
+**仍未做（不假装）**：CPU 是累计时间上限，不是速率整形；首次运行 ACL 授权有一次性延迟；
+入站连接仍不允许（internetClient 只放行出站）。
 
 ## 5. 方案③：HTTP 插件路由硬超时（为什么不能顺手做）
 
@@ -323,7 +336,7 @@ bulkhead 足够；`version_info` 的冷启动值得单独看，但不构成「�
 | `web_batch` | `ok/total/results[]`（元素与 web_get 同形，失败元素只有 ok/error） | 成功（2 个真实 URL）+ 失败（`urls=[]`） |
 | `ext_discover` | 无 query → 8 个清单数组；有 query → `ok/query/count/results[]/builtin/market{builtin,community,github}` | 两条成功分支 |
 | `kb_discuss` | `ok/discussion_path/hint` | 成功（临时知识库 + 假 LLM，真实 WorkflowRunner）+ 失败（缺参/笔记不存在） |
-| `look_at_screen` | 失败 `{ok:false,error}`；成功形状按包装层 + VoiceVision 声明 | 失败实跑；**成功分支当前不可达**，见下 |
+| `look_at_screen` | 成功 `ok/reading{timestamp,text,word_count,has_content,char_count}/text`；失败 `{ok:false,error}` | 修复后成功路径实跑（假 sensor）+ 失败实跑；见下 |
 
 写法三条（与既有 L2/L3 口径一致）：`required` 只锁 `ok`（失败分支只有 ok/error，把
 status_code 等写成必填会把正常失败判成违约）；`additionalProperties: true`（bytes 的
@@ -335,13 +348,49 @@ status_code 等写成必填会把正常失败判成违约）；`additionalProper
 backfill_tool_callability / backfill_capability_spec` 五项 `--check` 全 0；
 相关 6 个测试文件 **284 passed / 1 skipped**（`descriptors.json` 缺失是干净 checkout 的预期）。
 
-**本批发现的独立缺陷（未修，已登记）**：`look_at_screen` 的成功分支今天**走不到** ——
+**本批发现的独立缺陷（2026-11-24 已修）**：`look_at_screen` 的成功分支此前**走不到** ——
 ① `agent/orchestrator/voice_vision.py` 顶部只 `from typing import Optional`，却在
 `__init__(self, orchestrator: Any)` 用了 `Any` ⇒ **import 即 NameError**（`dl.voice` 属性
-懒加载时直接抛）；② 即便补上导入，`VoiceVision.look_at_screen` 调用的
-`OcrSensor.capture_and_ocr` 在 `sensor/ocr_sensor.py` **不存在**（同类方法是
-`capture_and_recognize`，返回 dict 而非带 `.data` 的 reading）。修它要同时改包装层与
-`reading.to_dict()` 的形状，属行为修复，不在「只写契约」的本批范围内。
+懒加载时直接抛）；② `VoiceVision.look_at_screen` 调用的 `OcrSensor.capture_and_ocr` 在
+`sensor/ocr_sensor.py` **不存在**（真实方法是 `capture_and_recognize`，返回
+`{timestamp,text,word_count,has_content,char_count[,error]}`，不是带 `.data` 的 reading）。
+修法：补 `Any` 导入；改调 `capture_and_recognize`，按真实 dict 组 `{ok,reading,text}`；
+`text` 截断 5000；`error` 且无 text 时 fail-closed。守卫 `tests/unit/test_look_at_screen.py`
+（6 条：成功形状/截断/传感器报错/未启用/抛异常/schema 可校验）。
+
+### 6.2 第二批已落地（2026-11-24，medium 16 个）
+
+覆盖 **30 → 46/101**；`RESULT_SCHEMA_REQUIRED_TOOLS` 18 → 34；
+`TestResultSchemaCoverage.FLOOR` 30 → 46；新增
+`tests/unit/test_l2_result_schema_medium.py`（65 条）。
+
+| 工具 | 证据类型 | 关键返回键 |
+|---|---|---|
+| `browser_navigate` | 失败实调 | ok/title/url/text/blocked/blocked_by/ssrf_category/ssrf_stage/requested_url/landed_host/error |
+| `browser_screenshot` | 失败实调 | ok/screenshot_base64/error |
+| `cancel_scheduled_task` | 失败实调 | ok/cancelled/error |
+| `compress` | 成功+失败实调（临时目录） | ok/output_path/compressed_size/file_count/format/error |
+| `delegate` | 失败实调 + return 字面量 | ok/delegation_id/tier/duration_ms/trace_id/role_audit/memory/artifact_count/artifacts/result/error_code/error/sub_reason/error_detail/missing |
+| `distill_process_from_knowledge` | 失败实调 + service return | ok/query/paths/llm_used/materials/process/artifacts/error |
+| `kb_distill` | 成功+失败实调（临时知识库） | ok/slug/distilled/reason/hint/error |
+| `process_distill_run` | 失败实调 + service return | 同 distill（内部体不做 materials 瘦身） |
+| `run_tests` | 失败实调 + return 字面量 | ok/returncode/passed/failed/errors/skipped/duration_sec/summary/output_tail/command/cwd/timeout_sec/pytest_available/error |
+| `set_clipboard` | 成功+失败实调（写入后还原） | ok/error |
+| `software_install` | 失败实调（not-in-allowlist）+ return 字面量 | ok/package_id/installer/exit_code/installed_*/version_*/changed/verified/elapsed_ms/log_tail/denied_reason/allowlist_size/plan |
+| `stop_process` | 失败实调（缺 pid / 不存在） | ok/pid/name/blocked/error |
+| `submit_task` | 失败实调 + executor return | ok/task_id/status/error |
+| `web_download` | 成功+失败实调（真实下载到临时目录） | ok/filepath/size/elapsed/error |
+| `web_post` | return 字面量（同一 HttpClient 路径） | ok/status_code/reason/headers/content_length/text/encoding/url/elapsed/cookies/redirect_history/error |
+| `workspace_write` | 成功+失败实调（写后删除） | ok/path/size/error |
+
+**口径**：成功分支受副作用/外部依赖限制的（delegate / run_tests / submit_task / distill* /
+software_install 成功态 / web_post）不硬跑生产副作用，而是**按实现 `return {...}` 字面量**
+逐键核对——仍属"读实现"，不是按工具名猜；其余分支全部真调。
+
+**三个 critical 工具**（`adaptive_skill_stack` / `byted_bp_cdn_pagesdeploy` /
+`byted_seedream_image_generate`）是本机**运行时登记**（YAML 不入仓），不在清单内；
+要入仓须走"新增工具 5 处连锁"。
+
 
 ## 7. 建议顺序与 Owner 决策
 

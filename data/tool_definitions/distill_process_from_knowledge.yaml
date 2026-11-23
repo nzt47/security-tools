@@ -43,4 +43,33 @@ schema:
     name:
       type: string
       description: 任务名称（可选，仅 async_=true 时使用）
+# 【result_schema（2026-11-24，L2 扩面·medium 批次）】
+#   实调失败分支：无 query/paths → {ok:false,error:"query 与 paths 至少提供一个..."}；
+#   成功/素材为空分支的键取自 agent/process_distill/service.py::distill 的 return 字面量：
+#   {ok,query,paths,llm_used,materials,process,artifacts}；未检索到素材时
+#   {ok:false,error,query,paths}。工具层还会把 materials 瘦身为 {id,title,source_ref}。
+#   required 只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    query:
+      type: string
+    paths:
+      type: array
+      items:
+        type: string
+    llm_used:
+      type: boolean
+    materials:
+      type: array
+    process:
+      type: object
+    artifacts:
+      type: object
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

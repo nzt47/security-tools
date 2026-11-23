@@ -88,3 +88,49 @@ def test_appcontainer_unavailable_on_current_platform():
     assert appcontainer.is_available() is False
     with pytest.raises(appcontainer.AppContainerUnavailable):
         appcontainer.AppContainerSandbox("x", appcontainer.sandbox_data_dir("x"), [])
+
+
+# ════════════════════════════════════════════════════════════
+#  联网 opt-in：只认 manifest 的字面量 true，缺省一律无网
+# ════════════════════════════════════════════════════════════
+
+
+class TestInternetOptIn:
+    def test_plugin_json_声明_sandbox_internet_true(self, tmp_path):
+        (tmp_path / "plugin.json").write_text(
+            '{"id": "p", "sandbox": {"internet": true}}', encoding="utf-8")
+        assert appcontainer.plugin_wants_internet(tmp_path) is True
+
+    def test_manifest_json_同样生效(self, tmp_path):
+        (tmp_path / "manifest.json").write_text(
+            '{"sandbox": {"internet": true}}', encoding="utf-8")
+        assert appcontainer.plugin_wants_internet(tmp_path) is True
+
+    def test_顶层_network_true_兼容(self, tmp_path):
+        (tmp_path / "plugin.json").write_text('{"network": true}', encoding="utf-8")
+        assert appcontainer.plugin_wants_internet(tmp_path) is True
+
+    def test_缺字段_为_false(self, tmp_path):
+        (tmp_path / "plugin.json").write_text('{"id": "p"}', encoding="utf-8")
+        assert appcontainer.plugin_wants_internet(tmp_path) is False
+
+    def test_非字面量_true_一律_false(self, tmp_path):
+        for value in ('"true"', "1", "null", "[]"):
+            (tmp_path / "plugin.json").write_text(
+                '{"sandbox": {"internet": ' + value + "}}", encoding="utf-8")
+            assert appcontainer.plugin_wants_internet(tmp_path) is False, value
+
+    def test_坏_json_为_false(self, tmp_path):
+        (tmp_path / "plugin.json").write_text("{not json", encoding="utf-8")
+        assert appcontainer.plugin_wants_internet(tmp_path) is False
+
+    def test_没有_manifest_为_false(self, tmp_path):
+        assert appcontainer.plugin_wants_internet(tmp_path) is False
+
+    def test_plugin_process_默认跟随_manifest_可显式覆盖(self, tmp_path):
+        from agent.extensions.plugin_process import PluginProcess
+
+        # None = 启动沙箱时读插件包 manifest（默认无网）；True/False = 显式覆盖
+        assert PluginProcess("p1", str(tmp_path))._allow_internet is None
+        assert PluginProcess("p1", str(tmp_path), allow_internet=True)._allow_internet is True
+        assert PluginProcess("p1", str(tmp_path), allow_internet=False)._allow_internet is False

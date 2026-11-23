@@ -22,4 +22,19 @@ schema:
       description: 任务 ID
   required:
   - task_id
+# 【result_schema（2026-11-24，L2 扩面·medium 批次）】
+#   实调失败分支：缺 task_id → {ok:false,error:"请提供 task_id"}；不存在的 id →
+#   {ok:false,error:"任务不存在: ..."}。成功分支键取自 agent/scheduling.py::remove_task
+#   的 docstring/return：{ok:true, cancelled:true}。required 只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    cancelled:
+      type: boolean
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

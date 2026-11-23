@@ -26,4 +26,46 @@ schema:
       description: 必须显式传 true 才会执行；缺省只返回将要执行的命令
   required:
   - package_id
+# 【result_schema（2026-11-24，L2 扩面·medium 批次）】
+#   实调失败分支：不在白名单 → 完整回执（ok/package_id/installer/exit_code/
+#   installed_before/installed_after/version_before/version_after/changed/verified/
+#   elapsed_ms/log_tail/denied_reason/allowlist_size）。成功分支键同形（denied_reason 为空），
+#   confirm 缺省时另有 plan{installer,package_id,command}。required 只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    package_id:
+      type: string
+    installer:
+      type: string
+    exit_code:
+      type: integer
+    installed_before:
+      type: boolean
+    installed_after:
+      type: boolean
+    version_before:
+      type: string
+    version_after:
+      type: string
+    changed:
+      type: boolean
+    verified:
+      type: boolean
+    elapsed_ms:
+      type: integer
+    log_tail:
+      type: string
+    denied_reason:
+      type: string
+    allowlist_size:
+      type: integer
+    plan:
+      type: object
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

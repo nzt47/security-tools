@@ -9,8 +9,8 @@
 - `web_extract`：三条分支（clean / css / clean+items）在本地 HTML 上实跑；
 - `ext_discover`：无 query（内置/已装清单）与有 query（市场扁平结果）两条分支实跑；
 - `kb_discuss`：临时知识库 + 假 LLM 走真实 WorkflowRunner；
-- `look_at_screen`：失败分支实跑；成功分支当前不可达（见该 YAML 注释），
-  样本取自包装层 + VoiceVision 的返回声明。
+- `look_at_screen`：失败分支实跑；成功分支在 2026-11-24 修复 (`voice_vision` 改调
+  `capture_and_recognize`）后由真实返回给出，样本取该形状（接线守卫见 test_look_at_screen.py）。
 
 这里的断言只做两件事：① 声明还在（别被删）；② 真实形状能通过**生产同一条**
 校验路径（`agent.capregistry.contract.validate_against_schema`，优先 jsonschema）。
@@ -87,10 +87,11 @@ SUCCESS_SAMPLES = {
         "discussion_path": "data/knowledge/discussions/disc-20261124.md",
         "hint": "讨论记录已生成，可 kb_card（discussion_path）产卡",
     },
-    "look_at_screen": {   # 成功分支当前不可达；形状取自包装层 + VoiceVision 声明
+    "look_at_screen": {   # capture_and_recognize 的真实形状（2026-11-24 修）
         "ok": True,
-        "reading": {"timestamp": "2026-11-24 01:05:00", "data": [], "meta": {}},
-        "text": "[10,20] Hello",
+        "reading": {"timestamp": "2026-11-24 01:05:00", "text": "Hello",
+                    "word_count": 1, "has_content": True, "char_count": 5},
+        "text": "Hello",
     },
 }
 

@@ -26,4 +26,23 @@ schema:
   required:
   - url
   - filepath
+# 【result_schema（2026-11-24，L2 扩面·medium 批次）】
+#   实调（真实下载 example.com 到临时目录）→ {ok,filepath,size,elapsed}；
+#   缺 url → {ok:false,error:"请提供 URL"}。实现见 agent/web/http_client.py::download。
+#   required 只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    filepath:
+      type: string
+    size:
+      type: integer
+    elapsed:
+      type: number
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

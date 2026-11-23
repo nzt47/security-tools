@@ -27,4 +27,21 @@ schema:
   required:
   - path
   - content
+# 【result_schema（2026-11-24，L2 扩面·medium 批次）】
+#   实调：workspace_write(path, content) → {ok,path,size}（写入后已删除探针文件）；
+#   缺 path/content → {ok:false,error}。实现见 agent/tools/workspace_tools.py::write_workspace。
+#   required 只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    path:
+      type: string
+    size:
+      type: integer
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

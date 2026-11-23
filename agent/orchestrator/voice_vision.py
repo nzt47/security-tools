@@ -4,7 +4,7 @@
 """
 
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -126,16 +126,17 @@ class VoiceVision:
             return {"ok": False, "error": "OCR功能未启用"}
 
         try:
-            reading = self._o._ocr_sensor.capture_and_ocr(region)
-            ocr_text = "\n".join(
-                "[%s] %s" % (r.data.get('position', '?'), r.data.get('text', ''))
-                for r in reading.data
-            )
-            return {
-                "ok": True,
-                "reading": reading.to_dict() if hasattr(reading, 'to_dict') else {},
-                "text": ocr_text[:5000],
-            }
+            # 【2026-11-24 修】旧实现调用 `capture_and_ocr` 并解包 `reading.data` / `to_dict()`，
+            # 但 `sensor/ocr_sensor.OcrSensor` 只有 `capture_and_recognize(region)`，返回普通 dict
+            # `{timestamp,text,word_count,has_content,char_count[,error]}` ⇒ 成功分支永远走不到
+            # （AttributeError 被本函数 catch 成 ok=False）。现按真实方法/返回值接线。
+            reading = self._o._ocr_sensor.capture_and_recognize(region)
+            if not isinstance(reading, dict):
+                reading = {"text": str(reading)}
+            if reading.get("error") and not reading.get("text"):
+                return {"ok": False, "error": str(reading["error"])}
+            ocr_text = str(reading.get("text") or "")[:5000]
+            return {"ok": True, "reading": reading, "text": ocr_text}
         except Exception as e:
             logger.error("[FAIL] OCR失败: %s", e)
             return {"ok": False, "error": str(e)}

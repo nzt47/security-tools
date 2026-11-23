@@ -26,11 +26,10 @@ schema:
 # 【result_schema（2026-11-24，L2 扩面·按真实返回逐字段核对）】
 #   实调失败分支：本机 dl.voice 不可用 → {ok:false,error:"语音/视觉模块不可用（dl.voice 未就绪）"}；
 #   region 形状错 → {ok:false,error:"region 必须是 4 个整数的数组 [left, top, width, height]"}。
-#   成功分支形状取自包装层 + VoiceVision.look_at_screen 的返回声明：{ok,reading,text}。
-#   ！实测成功分支当前**不可达**（不是 schema 的错）：agent/orchestrator/voice_vision.py 只
-#   "from typing import Optional" 却注解 Any ⇒ import 即 NameError；且它调用的
-#   OcrSensor.capture_and_ocr 并不存在（sensor/ocr_sensor.py 只有 capture_and_recognize）。
-#   两处断链已登记为独立缺陷，schema 按「修好后的契约」声明，失败分支照实可校验。
+#   成功分支形状（2026-11-24 修复后实测）：{ok,reading:{timestamp,text,word_count,has_content,
+#   char_count},text}。修复前该分支**不可达**（voice_vision 缺 Any 导入、且调了并不存在的
+#   OcrSensor.capture_and_ocr）—— 现已改调 capture_and_recognize，接线守卫见
+#   tests/unit/test_look_at_screen.py。
 result_schema:
   type: object
   properties:

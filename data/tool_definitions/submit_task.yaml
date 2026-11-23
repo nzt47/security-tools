@@ -34,4 +34,21 @@ schema:
   - name
   - tool_name
   - params
+# 【result_schema（2026-11-24，L2 扩面·medium 批次）】
+#   实调失败分支：缺 name → {ok:false,error:"请提供任务名称（name）"}。
+#   成功分支键取自 agent/async_executor.py::submit 的 return：{ok,task_id,status:"pending"}。
+#   required 只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    task_id:
+      type: string
+    status:
+      type: string
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

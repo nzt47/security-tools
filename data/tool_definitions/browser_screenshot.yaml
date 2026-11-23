@@ -18,4 +18,19 @@ tags: [web, browser]
 schema:
   type: object
   properties: {}
+# 【result_schema（2026-11-24，L2 扩面·medium 批次）】
+#   失败分支实调（无页面/浏览器不可用 → {ok:false,error}）；成功分支键取自
+#   agent/tools/browser_tools.py::browser_screenshot 的 return 字面量：
+#   {ok, screenshot_base64}（base64 PNG，截断到 500000 字符）。required 只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    screenshot_base64:
+      type: string
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []
