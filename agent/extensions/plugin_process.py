@@ -226,6 +226,12 @@ class PluginProcess:
                         stream.close()
                 except Exception:
                     pass
+            close_fn = getattr(proc, "close", None)
+            if callable(close_fn):
+                try:
+                    close_fn()  # SandboxProcess：关闭 hProcess 句柄
+                except Exception:
+                    pass
             self._close_sandbox()
 
     def _kill(self) -> None:
