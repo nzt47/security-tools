@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-22T22:24:00+08:00",
+ "updated_at": "2026-11-23T12:06:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1412,7 +1412,15 @@
    "priority": "P1",
    "title": "插件化安全收口 P0/P1：第三方插件包默认关闭 + 依赖隔离 + API版本/健康 + bulkhead + 调度诚实度",
    "criteria": "P0：CP_PLUGIN_PACKAGES_ENABLED 默认 0（install/toggle 403）；依赖装 .deps 且 pip returncode 失败即安装失败；PluginSandbox 标注未接线并加生产 import 守卫；插件 UI 默认关。P1：Plugin.api_version=1；manifest status/load_error/load_ms/load_failures；CP_PLUGIN_MAX_CONCURRENT 每插件 bulkhead；/api/schedules action 未实现返回 400 NOT_IMPLEMENTED 并加 executed 字段；CP_PLUGIN_INSTALL_ALLOWLIST 精确匹配；系统命令任务 notify_on_complete 持久化。",
-   "next": "2026-11-22 落地 e2dc2b7a3 / 87e8c29bc / 2a52ad05a 并部署（2a52ad05a / bundle index-CjgbtD6a.js / pid 5364，三处一致）。测试：前端 200 files · 1534 tests；指定 pytest + 新增套件 374 passed；ui:check exit 0；真机 403/400 与 PLUGIN_SAFE_DEFAULT_1440.png。P2：进程隔离第一批已落地（plugin_process/plugin_worker：子进程 + 超时硬杀 + 最小 env）；OS 级 FS/net 沙箱、签名/commit pin、result_schema 扩面、路由硬超时、插件 UI iframe 仍待（见 docs/audit/2026-11-22-pluginization-risk-audit.md §10）。"
+   "next": "2026-11-22/23 落地 135940d46（P0/P1）→ 549836a29（进程隔离）→ 6842e8bd8（来源 ref 固定 + 10 个 L3 result_schema）→ d1a3bd98c（契约测试改用 web_search 守 undeclared）→ 32dd5b45c（bot 看板，已补部署）。当前三处一致：32dd5b45c / bundle index-DqUsrfq5.js / pid 11768；审计 87860 / 0 断点。测试：前端 200 files · 1534 tests；指定 pytest + 新增 374 passed；进程隔离 4、来源 pin 2、L3 schema 1、capregistry 5；CI d1a3bd98c run 45044914978 全绿。P2 剩余见 open 项 plugin-security-p2-remaining 与审计 §10。"
+  },
+  {
+   "id": "plugin-security-p2-remaining",
+   "status": "open",
+   "priority": "P2",
+   "title": "插件安全 P2 剩余：签名/发布密钥、OS 级 FS/net 沙箱、HTTP 路由硬超时、插件 UI iframe、result_schema L2 扩面",
+   "criteria": "2026-11-23 交接：进程边界（子进程 + 超时硬杀 + 最小 env）与 GitHub ref 固定、10 个 L3 result_schema 已落地。仍未做：① 插件包签名/发布密钥/允许列表签名校验（当前只有来源白名单）；② OS 级文件/网络沙箱（子进程仍是当前用户身份，能读当前用户能读的文件；AppContainer/seccomp/容器）；③ HTTP 插件路由（14 个内置插件）硬超时/子进程化（当前只有每插件并发 bulkhead）；④ 插件 UI iframe 隔离（当前 client_slot 默认关闭）；⑤ result_schema 从 tracked L3 扩到 L2/运行时 byted/adaptive（必须逐工具核对真实输出，禁止批量猜）。",
+   "next": "先和 Owner 确认优先级；建议顺序：签名/发布密钥流程（需要 Owner 定密钥管理与发布主体）→ OS 级 FS/net 沙箱（需要 Windows AppContainer 或容器方案）→ HTTP 路由硬超时/进程化 → 插件 UI iframe → result_schema 逐工具扩面。不要用假实现凑：来源白名单不是签名，进程边界不是 FS 沙箱，bulkhead 不是硬超时。"
   }
  ]
 }
