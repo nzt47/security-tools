@@ -1419,8 +1419,8 @@
    "status": "open",
    "priority": "P2",
    "title": "插件安全 P2 剩余：签名/发布密钥、OS 级 FS/net 沙箱、HTTP 路由硬超时、插件 UI iframe、result_schema L2 扩面",
-   "criteria": "2026-11-23 交接：进程边界（子进程 + 超时硬杀 + 最小 env）与 GitHub ref 固定、10 个 L3 result_schema 已落地。仍未做：① 插件包签名/发布密钥/允许列表签名校验（当前只有来源白名单）；② OS 级文件/网络沙箱（子进程仍是当前用户身份，能读当前用户能读的文件；AppContainer/seccomp/容器）；③ HTTP 插件路由（14 个内置插件）硬超时/子进程化（当前只有每插件并发 bulkhead）；④ 插件 UI iframe 隔离（当前 client_slot 默认关闭）；⑤ result_schema 从 tracked L3 扩到 L2/运行时 byted/adaptive（必须逐工具核对真实输出，禁止批量猜）。",
-   "next": "先和 Owner 确认优先级；建议顺序：签名/发布密钥流程（需要 Owner 定密钥管理与发布主体）→ OS 级 FS/net 沙箱（需要 Windows AppContainer 或容器方案）→ HTTP 路由硬超时/进程化 → 插件 UI iframe → result_schema 逐工具扩面。不要用假实现凑：来源白名单不是签名，进程边界不是 FS 沙箱，bulkhead 不是硬超时。2026-11-23 已出方案与实测：docs/audit/2026-11-23-plugin-p2-decision.md（含五项矩阵、密钥生命周期、AppContainer/Docker 可行性、24 个 L2 工具清单）。Owner 已拍板：D1 Owner 离线私钥 / D2 接受 AppContainer 默认无网 / D3 Docker 仅可选 / D4 校验器不接线。2026-11-23 13:18 已落地校验器 agent/extensions/plugin_signature.py + tests/unit/test_plugin_signature.py（17 passed，提交 5333015fe）；安装器与加载路径仍未接线。下一步：签名工具 scripts/sign_plugin_package.py + 安装暂存验签接线（CP_PLUGIN_SIGNATURE_MODE 需同时进 agent/settings/registry.py），或先做 AppContainer 1 天 PoC。"
+   "criteria": "2026-11-23 18:25 状态：① 签名/发布密钥与允许列表签名校验已接线（plugin_signature + scripts/sign_plugin_package.py + 安装暂存/加载复验 + CP_PLUGIN_SIGNATURE_MODE；受信表 config/plugin_trusted_keys.json 为空，包总开关仍默认关）；② 进程边界已做；OS 级沙箱已做 AppContainer 可行性 PoC（文件/网络/env 三层隔住，未接生产）；③ HTTP 路由仍只有 bulkhead，p99 已实测（无持续慢路由）；④ 插件 UI iframe 未做（client_slot 默认关）；⑤ result_schema L2 未扩（medium 24 缺，禁止猜）。",
+   "next": "Owner 已拍板（D1 Owner 离线私钥 / D2 接受 AppContainer 默认无网 / D3 Docker 仅可选）。2026-11-23 18:25 已完成：签名校验器 + 离线签名工具 + 安装暂存/加载复验 + CP_PLUGIN_SIGNATURE_MODE（registry 已登记，提交 23d03e28c）；AppContainer 可行性 PoC（文件/网络/env 三层隔住，未接生产）；插件 p99 实测（无持续慢路由）；文档 7ae38db32。下一步优先级：② AppContainer 启动器工程化（约 250–350 行 ctypes + ACL 生命周期 + runner 打包，3–5 天，开关默认关）→ ⑤ result_schema 逐工具（先只读 6 个，禁止猜）→ ③ 若 p99 恶化再考虑路由出进程/硬超时 → ④ iframe（继续冻结）。方案见 docs/audit/2026-11-23-plugin-p2-decision.md。"
   }
  ]
 }
