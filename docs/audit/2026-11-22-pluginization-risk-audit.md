@@ -299,4 +299,6 @@ cd yunshu-ui && npm run ui:check
 > **签名已完整接线**（`plugin_signature.py` + `scripts/sign_plugin_package.py` + 安装暂存/加载复验 +
 > `CP_PLUGIN_SIGNATURE_MODE`，受信表为空，包总开关仍默认关）；**AppContainer 已做可行性 PoC**
 > （文件/网络/env 三层隔住，未接生产）；**插件路由 p99 已实测**（无持续慢路由，bulkhead 保留）。
-> 仍未做：AppContainer 启动器工程化、226 条内置路由硬超时、result_schema L2、插件 UI iframe。
+> AppContainer 生产适配已做（`appcontainer.py` + `CP_PLUGIN_SANDBOX=appcontainer`，默认 off；
+> 不可用 fail-closed）。仍未做：Job Object 资源上限/卸载清理、226 条内置路由硬超时、
+> result_schema L2、插件 UI iframe。

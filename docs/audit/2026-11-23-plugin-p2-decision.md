@@ -18,8 +18,9 @@
 3. **签名已完整落地**：校验器 + 离线签名工具 + 安装暂存/加载复验 + `CP_PLUGIN_SIGNATURE_MODE`；
    受信表 `config/plugin_trusted_keys.json` 为空（fail-closed），第三方包总开关仍默认关。
    插件相关 **102 passed**（签名 18 / 接线 8 / CLI 2）。
-4. **AppContainer 已做可行性 PoC**：文件读、外网、环境变量三层都隔住；剩余是启动器工程化
-   （3–5 天），**未接生产**。插件路由 p99 已实测（见 §5），当前没有持续慢路由。
+4. **AppContainer 已做生产适配（开关默认 off）**：`appcontainer.py` + `CP_PLUGIN_SANDBOX`；
+   真机验证文件/网络/env 三层都隔住，不可用即 fail-closed。剩余 Job Object 资源上限、卸载清理、
+   联网 capability。插件路由 p99 已实测（见 §5），当前没有持续慢路由。
 5. **Owner 已拍板**（见 §7）：D1 Owner 离线私钥 / D2 接受 AppContainer 默认无网 / D3 Docker 可选 /
    D4 原先只做校验器，后按「全部做完」改为接线。
 
@@ -228,9 +229,25 @@ PoC 代码在 `.local/_poc_appcontainer.py`（**不提交**）。
 4. 资源限制仍用 Job Object（内存/CPU/进程数）；超时仍用现有 `PluginProcess._kill` 的硬杀。
 5. 网络默认关闭；若某插件确需联网，再单独加 `internetClient` capability，不做全局放行。
 
-**结论**：AppContainer 在本机可行，文件/网络/环境变量三层都能隔离；剩余是启动器工程化
-（约 250–350 行 ctypes + ACL 生命周期 + runner 打包），估 3–5 天，建议下一步单独一批做，
-开关默认关（`CP_PLUGIN_SANDBOX=off|appcontainer`）。
+**结论**：AppContainer 在本机可行，文件/网络/环境变量三层都能隔离；启动器工程化已做
+（见 §4.3），开关默认关（`CP_PLUGIN_SANDBOX=off|appcontainer`）。
+
+### 4.3 生产适配（2026-11-23，开关默认 off）
+
+新增 `agent/extensions/appcontainer.py`，并接进 `PluginProcess.start()`：
+
+- `CP_PLUGIN_SANDBOX=appcontainer` 时用 `AppContainerSandbox` 启动 worker；不可用即
+  `PLUGIN_SANDBOX_UNAVAILABLE` **fail-closed**，绝不静默回退无沙箱。
+- 每插件一个 profile（`YunshuPlugin-<id>-<hash8>`）+ 独立数据目录；runner 复制到数据目录，
+  **不把仓库根授予容器**（仓库根有 `.env`）。
+- Python 运行目录用 `ALL APPLICATION PACKAGES` 一次性授权（`(OI)(CI)(RX)`，本机首次约 20–60s，
+  写 marker 后跳过）；插件包/数据目录按各自 SID 授权，互不可读。
+- 环境变量用最小白名单，`TEMP/HOME/APPDATA` 指向插件数据目录。
+- 真机验证：`probe_echo` 正常；插件内 `FLASK_API_TOKEN`/`YUNSHU_POC_SECRET` 均为 `None`；
+  读仓库 `.env` 为 `PermissionError`；连 `example.com:80` 为 `gaierror`（默认无网络）。
+
+**剩余（未做，不假装）**：Job Object 内存/CPU/进程数上限；卸载时清理 profile/数据目录；
+需要联网的插件要显式加 `internetClient` capability（当前一律无网）；首次运行 ACL 授权有一次性延迟。
 
 ## 5. 方案③：HTTP 插件路由硬超时（为什么不能顺手做）
 
@@ -295,7 +312,8 @@ bulkhead 足够；`version_info` 的冷启动值得单独看，但不构成「�
 **Owner 2026-11-23 13:16 已确认**：D1 = Owner 离线私钥；D2 = 接受 AppContainer 默认无网/无用户目录；
 D3 = Docker 仅可选后端；D4 = 方案 + 校验器（不接线）。本轮按此执行，未动安装器。
 
-**后续建议**：②做 1 天 PoC，③④⑤保持 open；若 Owner 更关心「即使被签名也要限制文件/网络」：先做②的 PoC。
+**后续建议**：②的生产适配已完成（默认 off），下一步先做 ⑤ result_schema L2 的只读工具子集，
+③ 等 p99 恶化再做，④ 继续冻结。
 
 | # | 决策 | 选项 | 影响 |
 |---|---|---|---|
@@ -311,7 +329,7 @@ AppContainer 可行性 PoC；插件路由 p99 实测。
 
 **仍不做**：
 
-- 不把 AppContainer 接进生产 `plugin_process`（PoC 只在 `.local/`，开关未加）；
+- 不默认打开 `CP_PLUGIN_SANDBOX`（默认 off；打开需显式运维决策）；
 - 不把 Job Object 叫沙箱；不改 226 条内置路由，不加假硬超时；
 - 不批量补 result_schema，不猜字段；
 - 不打开插件包默认开关，不改白名单；
