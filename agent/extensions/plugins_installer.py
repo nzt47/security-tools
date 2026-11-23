@@ -84,6 +84,9 @@ class PluginInstaller:
 
         discovered = []
         for item in plugins_dir.iterdir():
+            if item.name.startswith("."):
+                # .staging / .deps 等内部目录不是可安装插件
+                continue
             if item.is_dir():
                 info = self._read_plugin_info(item)
                 if info:

@@ -132,6 +132,18 @@ def test_load_rechecks_signature_and_marks_error(setup):
     assert ctx["store"].get(ExtensionType.PLUGIN, "demo")["status"] == ExtensionStatus.ERROR.value
 
 
+def test_discover_skips_staging_dirs(setup):
+    ctx = setup
+    staging = ctx["plugins_dir"] / ".staging" / "half"
+    staging.mkdir(parents=True)
+    real = ctx["plugins_dir"] / "real_plugin"
+    real.mkdir()
+    _write_plugin(real)
+    ids = {item.get("id") for item in ctx["installer"].discover_local_plugins()}
+    assert ".staging" not in ids
+    assert "demo" in ids
+
+
 def test_enforced_install_rejects_single_file(setup, monkeypatch):
     ctx = setup
     single = ctx["src"].parent / "single_plugin.py"
