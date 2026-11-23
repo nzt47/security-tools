@@ -15,6 +15,7 @@ import pytest
 from agent.subagent.role_prompt_library import (
     ROLE_PROMPT_SETS,
     prompt_sets_catalog,
+    role_catalog_with_prompt_sets,
     validate_library,
 )
 from agent.subagent.role_templates import (
@@ -75,9 +76,23 @@ class Test投影:
             assert g["role_note"] == ROLE_TEMPLATES[g["role_id"]].note
 
     def test_角色视图带上方案库(self):
-        cat = role_catalog()
+        cat = role_catalog_with_prompt_sets()
         assert cat.get("prompt_sets") == prompt_sets_catalog(), (
-            "role_catalog() 里的 prompt_sets 必须就是方案库投影（GET /api/subagent/list 的 role 段）"
+            "role_catalog_with_prompt_sets() 里的 prompt_sets 必须就是方案库投影"
+            "（GET /api/subagent/list 的 role 段）"
+        )
+        assert cat["templates"] == role_catalog()["templates"]
+
+    def test_基础词表不反向依赖方案库(self):
+        """依赖方向单向：prompt_library → role_templates。
+
+        反向（role_templates 顶层或函数内 import 本模块）会被架构规则判成
+        no_circular_dependency 违规 —— 2026-11-24 之前 workflow「架构规则校验」就是因此长期红。
+        故基础词表视图**不得**再带 prompt_sets；组合只允许出现在
+        role_catalog_with_prompt_sets()（本模块）与路由层。
+        """
+        assert "prompt_sets" not in role_catalog(), (
+            "role_catalog() 又带上了 prompt_sets ⇒ role_templates 反向依赖方案库，架构规则会红"
         )
 
     def test_每套都带_chars_字段(self):

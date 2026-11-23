@@ -314,9 +314,11 @@ def _role_view() -> Dict[str, Any]:
     与 `_llm_view` 同款：前端不自己维护第二份模板清单（那会与后端分叉）。
     """
     try:
-        from agent.subagent.role_templates import role_catalog
+        # 【组合上移（2026-11-24）】词表事实在 role_templates；prompt_sets 要读词表，
+        # 由 role_prompt_library 组合（单向依赖），避免 role_templates 反向 import 成环。
+        from agent.subagent.role_prompt_library import role_catalog_with_prompt_sets
 
-        return role_catalog()
+        return role_catalog_with_prompt_sets()
     except Exception as e:  # noqa: BLE001 提示性载荷不可用不得让列表挂掉
         logger.warning("[SubagentAPI] 角色视图不可用（列表照常返回）: %s", e)
         return {"templates": [], "tiers": [], "default_tier": "template",

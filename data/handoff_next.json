@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-24T01:35:00+08:00",
+ "updated_at": "2026-11-24T01:56:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1440,11 +1440,11 @@
   },
   {
    "id": "arch-rules-circular-role-prompt",
-   "status": "open",
+   "status": "done",
    "priority": "P2",
-   "title": "架构规则校验在 master 上持续红：role_prompt_library ↔ role_templates 被判循环依赖（高）",
-   "criteria": "2026-11-24 01:1x 发现（非本轮引入）：GitHub workflow「架构规则校验」在 c00e1e2bd / 51f437fc0 / a7323149d / f981f6537 等提交上全部 failure，报告每次只有 1 条高严重度：no_circular_dependency agent.subagent.role_prompt_library ↔ agent.subagent.role_templates（role_prompt_library.py:25 顶层 import；role_templates.py:287 为构建 role_catalog 的 prompt_sets 在函数内反向 import）。arch_rules.py 的规则说明明写「把 import 挪进函数体 / importlib / lazy_loader 都不会消除本项违规」——2026-11-24 实测把顶层 import 改到函数内，仍报 line 211 ⇒ 延迟加载不是修法，已回退。",
-   "next": "两条可行修法（都要 Owner 点头；属结构调整，本轮未动）：①依赖倒置：把共享符号（RoleTemplate / ROLE_TEMPLATES / ROLE_TEMPLATE_IDS / ROLE_TEXT_MAX_CHARS）下沉到无依赖叶子模块 agent/subagent/role_vocab.py，role_templates 与 role_prompt_library 都只依赖叶子（role_templates 保留 re-export 兼容）；②组合上移：role_catalog 不再内置 prompt_sets，由 routes_subagent._role_view 组合 role_catalog() + prompt_sets_catalog()，role_templates 删掉对 role_prompt_library 的反向 import。验收：python scripts/ci_run_module.py agent.observability.arch_rules --check --root agent --exemptions docs/architecture/legacy_exemptions.json --config config.yaml 退出 0（本机先设 PYTHONIOENCODING=utf-8，否则 GBK 控制台会 UnicodeEncodeError 假红）；tests/unit/test_role_prompt_library.py test_subagent_role_templates.py test_subagent_role_wiring.py 全绿；不要往 legacy_exemptions.json 加豁免放水。"
+   "title": "架构规则校验长期红：role_prompt_library ↔ role_templates 循环依赖 —— 已用组合上移解耦（违规 0）",
+   "criteria": "2026-11-24 01:1x 发现（非本轮 result_schema 引入）：GitHub workflow「架构规则校验」在 c00e1e2bd / 51f437fc0 / a7323149d / f981f6537 等提交上全部 failure，报告每次只有 1 条高严重度 no_circular_dependency：role_prompt_library.py 顶层 import role_templates，而 role_templates.py 为构建 role_catalog 的 prompt_sets 在函数内反向 import role_prompt_library。arch_rules.py 明写函数内/动态 import 同样计边 ⇒ 延迟加载无效（实测挪进函数体仍报 line 211，已回退）。",
+   "next": "2026-11-24 01:5x 已修（组合上移，方案②）：① role_templates.role_catalog() 只回词表事实（templates/tiers/default_tier/role_text_max_chars），删除 _prompt_sets_catalog；② role_prompt_library 顶层单向 import role_templates，新增 role_catalog_with_prompt_sets() 组合 prompt_sets（失败降级为 []，角色视图不因方案库挂掉而 500）；③ routes_subagent._role_view 改调组合函数，GET /api/subagent/list 的 role 段形状不变；④ 新增守卫 test_基础词表不反向依赖方案库（role_catalog 不许再带 prompt_sets）。干净 worktree：arch_rules --check 7 规则 / 违规 0 / 未豁免 0；role/import smoke/instance payload 141 passed。回滚：把 prompt_sets 拼回 role_templates 会重新成环，不要这么做。"
   }
  ]
 }

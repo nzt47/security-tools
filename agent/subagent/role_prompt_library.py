@@ -22,9 +22,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, List, Mapping, Tuple
 
-from agent.subagent.role_templates import ROLE_TEMPLATES, ROLE_TEMPLATE_IDS, ROLE_TEXT_MAX_CHARS
+from agent.subagent.role_templates import (
+    ROLE_TEMPLATES,
+    ROLE_TEMPLATE_IDS,
+    ROLE_TEXT_MAX_CHARS,
+    role_catalog,
+)
 
-__all__ = ["PromptSet", "ROLE_PROMPT_SETS", "prompt_sets_catalog", "validate_library"]
+__all__ = ["PromptSet", "ROLE_PROMPT_SETS", "prompt_sets_catalog", "validate_library",
+           "role_catalog_with_prompt_sets"]
 
 
 @dataclass(frozen=True)
@@ -245,3 +251,32 @@ def validate_library() -> List[str]:
             if "{" in s.body or "}" in s.body:
                 problems.append(s.id + " 含 {} 占位符（role_text 不做插值）")
     return problems
+
+def role_catalog_with_prompt_sets() -> Dict[str, Any]:
+    """角色视图 + 方案库投影（`GET /api/subagent/list` 的 role 段；**组合层**）
+
+    【为什么组合放在这里，而不是 role_templates 里】方案库要读 role_templates 的词表取
+    角色 id/标题；反过来 role_templates 再 import 本模块就会成环。旧实现用"函数内反向
+    import"绕过运行时环，但架构规则（no_circular_dependency）按 AST 计边、对函数内 import
+    同样计边 ⇒ 「架构规则校验」workflow 长期红。现改为单向依赖：
+        role_prompt_library → role_templates
+    由本函数组合两份事实；路由 `routes_subagent._role_view` 调它，响应形状不变。
+
+    Args:
+        无（两份事实都从本仓单一来源取）
+
+    Returns:
+        role_catalog() 的同一形状 + `prompt_sets`（方案库投影；失败降级为 []，
+        角色视图本身不可因方案库挂掉而 500 —— 与 2026-11-21 的口径一致）。
+    """
+    catalog: Dict[str, Any] = dict(role_catalog())
+    try:
+        catalog["prompt_sets"] = prompt_sets_catalog()
+    except Exception as e:  # noqa: BLE001 提示性载荷不可用不得让角色视图挂掉
+        import logging
+
+        logging.getLogger(__name__).warning(
+            "[SubagentRole] 身份提示词方案库不可用（角色视图照常返回）: %s", e)
+        catalog["prompt_sets"] = []
+    return catalog
+

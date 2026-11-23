@@ -268,6 +268,11 @@ def role_catalog() -> Dict[str, Any]:
 
     与 `llm_factory.llm_options` 同款形状：只回"有出处"的候选项 + 档位词表，
     前端不自己维护第二份清单（那会与后端分叉）。
+
+    **本函数只回词表事实**（templates / tiers / default_tier / role_text_max_chars）：
+    `prompt_sets` 需要方案库，而方案库要读本模块词表 ⇒ 由上层
+    `role_prompt_library.role_catalog_with_prompt_sets()` 组合（见上方注释），
+    本模块不再反向依赖方案库（避免 no_circular_dependency 成环）。
     """
     return {
         "templates": list_role_templates(),
@@ -275,21 +280,15 @@ def role_catalog() -> Dict[str, Any]:
                    "red": is_red_tier(t), "audit": requires_audit(t)} for t in ROLE_TIERS],
         "default_tier": DEFAULT_ROLE_TIER,
         "role_text_max_chars": ROLE_TEXT_MAX_CHARS,
-        # 分身身份提示词方案库（按角色类型多套；正文见 role_prompt_library.py）。
-        # 【惰性导入】方案库要读本模块的词表取角色标题，顶层 import 会成环。
-        "prompt_sets": _prompt_sets_catalog(),
     }
 
-
-def _prompt_sets_catalog() -> List[Dict[str, Any]]:
-    """方案库投影（失败一律降级为空列表：角色视图不可因方案库挂掉而 500）"""
-    try:
-        from agent.subagent.role_prompt_library import prompt_sets_catalog
-
-        return prompt_sets_catalog()
-    except Exception as e:  # noqa: BLE001
-        logger.warning("[SubagentRole] 身份提示词方案库不可用（角色视图照常返回）: %s", e)
-        return []
+# 【为什么不再在这里拼 prompt_sets（2026-11-24）】方案库要读本模块的词表取角色标题；
+#   旧实现是在本模块里函数内反向 import role_prompt_library —— 运行时安全，但架构规则
+#   （no_circular_dependency）按 AST 计边、**对函数内/动态 import 同样计边**，于是
+#   role_prompt_library ↔ role_templates 一直判成环（workflow「架构规则校验」因此长期红）。
+#   修法=组合上移：role_prompt_library 提供 role_catalog_with_prompt_sets()（它单向依赖本模块），
+#   路由 routes_subagent._role_view 调它。依赖方向单向：prompt_library → role_templates。
+#   完整角色视图的形状不变（GET /api/subagent/list 的 role 段仍有 prompt_sets）。
 
 
 # ======================================================================
