@@ -114,7 +114,9 @@ RESULT_SCHEMA_REQUIRED_TOOLS: Tuple[str, ...] = (
     "pause_scheduled_task", "read_pdf", "read_pdf_tables", "remember", "resume_scheduled_task",
     "run_lint", "search_lifetrace", "search_memory", "software_probe", "split_pdf",
     "sqlite_query", "todo_write", "trigger_distillation", "web_search", "weekly_report",
-    "workspace_init", "workspace_list", "get_status", "get_sensor_summary")
+    "workspace_init", "workspace_list", "get_status", "get_sensor_summary",
+    # 【2026-11-24 E0-2】read_spill（大输出落盘后的分段读取；按实现 return 字面量声明）
+    "read_spill")
 
 
 def _builtin_check(value: Any, schema: Dict[str, Any], path: str,
@@ -222,3 +224,4 @@ def result_status(spec: Any, data: Any) -> Dict[str, Any]:
         "contract": "declared" if has_schema else "undeclared",
         "contract_errors": errors[:20],
     }
+

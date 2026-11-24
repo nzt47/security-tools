@@ -746,6 +746,20 @@ def call(*args, **params) -> Any:
             # 详见 `agent/guardrails/untrusted_ingest.py`。
             mark_result_foreign(name, result)
 
+            # ── E0-2 大输出 spill（唯一汇聚点，覆盖所有调用方）─────────────────
+            # 位置：handler 返回之后、交给调用方之前。超阈值的结果落盘为
+            # `agent/data/spill/<id>.txt`，这里只回 {spilled, locator, preview}；
+            # 模型需要细节时调 read_spill(locator=..., offset=..., limit=...) 分段取。
+            # 失败姿态：spill 自身异常只记 debug、**原样返回结果**（内容保全机制不能反过来
+            # 让工具调用失败）；`read_spill` 自身不 spill（防递归）。
+            try:
+                from agent.context.spill import spill_result as _spill_result
+                _spilled_result = _spill_result(name, result)
+                if _spilled_result is not None:
+                    result = _spilled_result
+            except Exception as _spill_err:  # noqa: BLE001
+                logger.debug("[%s] spill 跳过: %s", trace_id, type(_spill_err).__name__)
+
             return result
         except Exception as e:
             duration = time.time() - start

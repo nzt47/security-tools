@@ -68,6 +68,21 @@ def register_all(dl):
             note_file_read(path)  # 登记"已读"：edit 工具要求先读后改
         return result
 
+    @_tools.register("read_spill", "按 locator 分段读取被落盘的大结果（工具结果超过阈值时会回 spilled=true 与 locator；offset/limit 以字符计）。Read a spilled tool result by locator in segments", schema={
+        "type": "object",
+        "properties": {
+            "locator": {"type": "string", "description": "spill 信封里的 locator，形如 spill:0123456789abcdef"},
+            "offset": {"type": "integer", "description": "起始字符偏移，默认 0"},
+            "limit": {"type": "integer", "description": "本次最多返回的字符数，默认 20000，上限 200000"},
+        },
+        "required": ["locator"],
+    })
+    def _read_spill(**kwargs):
+        from agent.context.spill import read_locator
+        return read_locator(kwargs.get("locator") or "",
+                            offset=kwargs.get("offset", 0),
+                            limit=kwargs.get("limit", 20000))
+
     @_tools.register("write_file", "将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数", schema={
         "type": "object",
         "properties": {

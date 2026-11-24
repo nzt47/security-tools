@@ -28,6 +28,8 @@ logger = logging.getLogger(__name__)
 #: 受限子进程环境变量的白名单说明（**逐条字面量读取**，扫描器不接受动态家族——
 #: `for key in TUPLE: os.environ.get(key)` 会被 settings 零缺口门禁判成未声明家族）
 _RUN_DIR_PREFIX = "run-"
+#: 与 win_token._MAX_OUTPUT_BYTES 对齐（这里不 import 那个私有常量）
+_DEFAULT_MAX_OUTPUT = 102400
 
 #: 小目录（私有 temp）授权的超时：空目录递归 <1s，给 60s 足够
 _FAST_GRANT_TIMEOUT = 60.0
@@ -102,6 +104,15 @@ def _run_dir() -> Path:
     return run_dir
 
 
+def _capture_limit() -> int:
+    """受限子进程的输出上限：spill 打开时抬到 1 MiB（与 shell_tools 同源）。"""
+    try:
+        import agent.context.spill as spill
+        return spill.capture_limit(_DEFAULT_MAX_OUTPUT)
+    except Exception:  # noqa: BLE001
+        return _DEFAULT_MAX_OUTPUT
+
+
 def _cleanup(run_dir: Optional[Path]) -> None:
     if run_dir is None:
         return
@@ -137,7 +148,8 @@ def run_captured(argv: Sequence[str], cwd: str, timeout: float, *,
         with win_token.RestrictedToken(write_sid) as token:
             result = win_token.spawn_captured(
                 token, list(argv), str(Path(cwd).resolve()), env_block(env),
-                timeout=float(timeout), work_dir=run_dir)
+                timeout=float(timeout), work_dir=run_dir,
+                max_output_bytes=_capture_limit())
     finally:
         _cleanup(run_dir)
 
@@ -198,6 +210,7 @@ def spawn_detached(argv: Sequence[str], cwd: str, *,
 
 
 __all__ = ["build_env", "env_block", "ready", "run_captured", "spawn_detached"]
+
 
 
 

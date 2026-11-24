@@ -579,6 +579,21 @@ _REGISTRY_ROWS: List[SettingSpec] = [
     _c("CP_PERMISSION_SANDBOX_ROOT", CAT_SELF_HEALING, None,
        "沙箱工作区根（默认空 = 仓库根）；仅影响权限预设的写边界与 ACL 授权范围",
        owner="agent/sandbox/preset.py", validator=Validator("path")),
+    # ── E0-2 上下文工程：大输出 spill（2026-11-24）────────────────────────
+    # 【为什么不设 B 级】这三条不改变"谁能做什么"，只改变"大结果以什么形态进上下文"；
+    # 关掉 = 回到硬截断。阈值/预览有硬区间（Validator），写错也会被服务层拒。
+    _mk("CP_SPILL_ENABLED", CAT_ORCHESTRATION, True,
+        "工具结果超过阈值时落盘并回 {spilled, locator, preview}（可用 read_spill 分段取回）；"
+        "关闭即回到原来的硬截断",
+        owner="agent/context/spill.py"),
+    _mk("CP_SPILL_THRESHOLD_BYTES", CAT_ORCHESTRATION, 100000,
+        "触发 spill 的结果字节阈值（4KB–1MB）；过小会把正常结果也落盘",
+        owner="agent/context/spill.py",
+        validator=_range_validator(4096, 1048576, kind="int")),
+    _mk("CP_SPILL_PREVIEW_BYTES", CAT_ORCHESTRATION, 8000,
+        "spill 信封里的预览字符预算（头 4/5 + 尾 1/5）",
+        owner="agent/context/spill.py",
+        validator=_range_validator(512, 65536, kind="int")),
     _b("CP_TOOL_SANDBOX_ALLOWED_ENFORCE", CAT_SELF_HEALING, True,
        "受限会话内是否消费 YAML 的 sandbox_allowed=false（拒绝该能力）",
        owner="agent/tool_gate.py"),

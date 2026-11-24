@@ -1,0 +1,56 @@
+name: read_spill
+category: file
+description: 按 locator 分段读取被落盘的大结果（工具结果超过阈值时会回 spilled=true 与 locator；offset/limit 以字符计）。Read a spilled tool result by locator in segments
+deprecated: false
+version: 1.0.0
+location: local
+plane: perceive
+effect: read
+risk: low
+tool_type: tool
+llm_callable: true
+callable_mode: auto
+permission_level: public
+sandbox_allowed: true
+tags: [code]
+schema:
+  type: object
+  properties:
+    locator:
+      type: string
+      description: spill 信封里的 locator，形如 spill:0123456789abcdef
+    offset:
+      type: integer
+      description: 起始字符偏移，默认 0
+    limit:
+      type: integer
+      description: 本次最多返回的字符数，默认 20000，上限 200000
+  required:
+  - locator
+# 【result_schema】按实现 return 字面量声明（agent/context/spill.py::read_locator）：
+#   成功 {ok,locator,offset,limit,chars_total,returned_chars,next_offset,content}；
+#   失败 {ok:false, locator?, error}。required 只锁 ok（与仓内口径一致，避免误报）。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    locator:
+      type: string
+    offset:
+      type: integer
+    limit:
+      type: integer
+    chars_total:
+      type: integer
+    returned_chars:
+      type: integer
+    next_offset:
+      type: integer
+    content:
+      type: string
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
+examples: []

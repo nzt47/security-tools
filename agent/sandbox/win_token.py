@@ -422,16 +422,18 @@ def _create_nul_handle() -> Any:
     return handle
 
 
-def _read_capture(path: Path) -> str:
+def _read_capture(path: Path, max_bytes: int = 0) -> str:
     try:
+        limit = int(max_bytes) if max_bytes else _MAX_OUTPUT_BYTES
         with open(path, "rb") as fh:
-            raw = fh.read(_READ_LIMIT_BYTES)
+            raw = fh.read(max(limit * 4, _READ_LIMIT_BYTES))
     except OSError:
         return ""
     text = raw.decode("utf-8", errors="replace")
+    limit = int(max_bytes) if max_bytes else _MAX_OUTPUT_BYTES
     encoded = text.encode("utf-8", errors="replace")
-    if len(encoded) > _MAX_OUTPUT_BYTES:
-        text = encoded[:_MAX_OUTPUT_BYTES].decode("utf-8", errors="replace")
+    if len(encoded) > limit:
+        text = encoded[:limit].decode("utf-8", errors="replace")
         return text + f"\n...（输出已截断，共 {len(encoded)} 字节）"
     return text
 
@@ -457,7 +459,8 @@ def _create_process(token: RestrictedToken, cmd: Sequence[str], cwd: str,
 
 
 def spawn_captured(token: RestrictedToken, cmd: Sequence[str], cwd: str, env_block: bytes,
-                   *, timeout: float, work_dir: Path) -> Dict[str, Any]:
+                   *, timeout: float, work_dir: Path,
+                   max_output_bytes: int = 0) -> Dict[str, Any]:
     """起一个受限子进程并等待结果（stdout/stderr 走继承文件句柄）。
 
     Returns:
@@ -501,8 +504,8 @@ def spawn_captured(token: RestrictedToken, cmd: Sequence[str], cwd: str, env_blo
                 _kernel32.CloseHandle(handle)
 
     # 句柄都关了再读文件（否则读到的是缓冲中的半截内容）
-    stdout = _read_capture(out_path)
-    stderr = _read_capture(err_path)
+    stdout = _read_capture(out_path, max_output_bytes)
+    stderr = _read_capture(err_path, max_output_bytes)
     for path in (out_path, err_path):
         try:
             path.unlink()
@@ -538,4 +541,5 @@ __all__ = [
     "SandboxError", "SandboxUnavailable", "RestrictedToken", "spawn_captured",
     "spawn_detached", "is_windows", "is_available", "unavailable_reason",
 ]
+
 

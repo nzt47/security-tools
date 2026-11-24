@@ -138,18 +138,29 @@ def _detect_shell(command: str) -> str:
     return "bash"
 
 
-def _truncate_output(text: str, max_bytes: int = 102400) -> str:
+def _capture_limit() -> int:
+    """结果捕获上限：spill 打开时抬到 1 MiB（否则大输出落盘前就被截断了）。"""
+    try:
+        from agent.context.spill import capture_limit
+        return capture_limit(_MAX_OUTPUT_BYTES)
+    except Exception:  # noqa: BLE001  spill 不可用 ⇒ 维持原上限
+        return _MAX_OUTPUT_BYTES
+
+
+def _truncate_output(text: str, max_bytes: int = 0) -> str:
     """截断过长输出，防止爆内存
 
     Args:
         text: 原始输出文本
-        max_bytes: 最大字节数，默认 100KB
+        max_bytes: 最大字节数；0 = 取 `_capture_limit()`（spill 开 = 1 MiB，否则 100KB）
 
     Returns:
         str: 截断后的文本（可能附加 truncated 标注）
     """
     if not text:
         return text
+    if not max_bytes:
+        max_bytes = _capture_limit()
     encoded = text.encode("utf-8", errors="replace")
     if len(encoded) <= max_bytes:
         return text
@@ -284,7 +295,7 @@ def _sandboxed_execute(cmd: list, work_dir: str, timeout: int, shell: str) -> di
     """
     from agent.subagent.sandbox import (SandboxResourceLimits, get_tool_sandbox)
     limits = SandboxResourceLimits(timeout_s=float(timeout),
-                                   max_output_bytes=_MAX_OUTPUT_BYTES)
+                                   max_output_bytes=_capture_limit())
     result = get_tool_sandbox().run_sandboxed(
         cmd, limits=limits,
         # 【关于 allowed_paths】工具层没有"工作区根"概念（那是 file_tools/
@@ -476,3 +487,4 @@ __all__ = [
     "execute_shell", "_detect_shell", "_truncate_output", "sandbox_mode",
     "SANDBOX_MODE_ENV",
 ]
+

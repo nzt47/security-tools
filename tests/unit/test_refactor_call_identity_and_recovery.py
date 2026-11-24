@@ -761,6 +761,7 @@ class TestResultSchemaCoverage:
     →（2026-11-24 第二批：16 个 medium 工具，实调 + 按 return 字面量核对）**46/101**
     →（2026-11-24 第三批：11 个 high 工具）**57/101**
     →（2026-11-24 第四批：39 个 low 工具，tracked 全量收口）**96/101**
+    →（2026-11-24 E0-2 新增 read_spill，按实现 return 字面量声明）**97/102**
     （余 5 个是本机运行时登记、YAML 不入仓的工具）。
     机制本身早已存在并接线（contract.py + invoke.py 步骤⑦，违约只报告不改 status），
     缺的是声明覆盖 —— 所以这里锁的是「别退回去」。
@@ -773,7 +774,7 @@ class TestResultSchemaCoverage:
     与对应 YAML（删除两批新增的 22 个名字）。
     """
 
-    FLOOR = 96
+    FLOOR = 97
 
     def _count(self):
         import glob
@@ -872,3 +873,4 @@ class TestMonitoringConfigConsistency:
         assert problems == {}, (
             "以下 compose 的 rule_files 在容器内不存在 ⇒ Prometheus 会加载失败，",
             "必须同时在 volumes 里补齐（两份 compose 要保持一致）: %r" % (problems,))
+

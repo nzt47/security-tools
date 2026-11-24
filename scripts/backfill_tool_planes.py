@@ -60,7 +60,7 @@ PLANE_MAP: dict[str, tuple[str, str, str, list[str]]] = {
     "search_lifetrace": ("perceive", "read", "low", ["memory", "lifetrace"]),
     "trigger_distillation": ("act", "write", "low", ["persona", "evolution"]),
 
-    # ── file_tools_reg.py（8）────────────────────────────────
+    # ── file_tools_reg.py（9）────────────────────────────────
     "read_file": ("perceive", "read", "low", ["code"]),
     "list_directory": ("perceive", "read", "low", ["code"]),
     "get_file_info": ("perceive", "read", "low", ["code"]),
@@ -69,6 +69,7 @@ PLANE_MAP: dict[str, tuple[str, str, str, list[str]]] = {
     "write_file": ("act", "write", "high", ["code"]),
     "compress": ("act", "write", "medium", ["code"]),
     "decompress": ("act", "write", "high", ["code"]),
+    "read_spill": ("perceive", "read", "low", ["code"]),
 
     # ── web_tools.py（9）────────────────────────────────────
     "web_search": ("perceive", "read", "low", ["web"]),
@@ -301,3 +302,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
