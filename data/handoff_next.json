@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-24T22:30:00+08:00",
+ "updated_at": "2026-11-25T00:00:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1468,7 +1468,7 @@
    "priority": "P1",
    "title": "DSH 能力对齐总程序：DSH 有而云枢缺/弱的全部补齐，云枢更强的保留",
    "criteria": "Owner 2026-11-24 决定：所有欠缺与不如 DSH 的能力都要做；强项（审计链/知识库/摄入/单位看板/UI 守卫/插件签名+AppContainer/中文多引擎/角色审批/技能双轨/调度）保留。总规划见 docs/plan/2026-11-24-dsh-parity-roadmap.md（19 项差距、6 个 Phase、E0-1 到 E5-2 共 20 个 Epic）。",
-   "next": "E0-1 / E0-2（spill+read_spill）已交付（2026-11-24，80360b2e3）；继续 E0-3（检查点/快照）→ E0-4（治理小件）→ E0-2 余项（pruner/token-meter/image offload）。每个 Epic 单独提交/部署/CI；设计页 docs/plan/2026-11-24-e0-1-permission-preset-design.md 与 docs/plan/2026-11-24-e0-2-context-spill-design.md。"
+   "next": "E0-1 / E0-2（spill）/ E0-4（重复提醒）已交付（2026-11-24，b0de31b43）；继续 E0-3（检查点/快照）→ 余项（pruner/token-meter/image offload、每步时钟、协作式取消）。每个 Epic 单独提交/部署/CI；设计页 docs/plan/2026-11-24-e0-{1,2,4}-*.md。"
   },
   {
    "id": "dsh-parity-p0-foundation",
@@ -1476,7 +1476,7 @@
    "priority": "P0",
    "title": "Phase 0 地基：权限预设+OS 级沙箱、上下文工程（spill/pruner/image offload）、会话检查点+变更快照、工具治理小件",
    "criteria": "E0-1 权限预设+OS 级沙箱（Windows 受限令牌/ACL 写限制，fail-closed；非 Windows 探测 bwrap/seatbelt）；E0-2 token-meter 驱动压缩 + 大输出 spill+locator（新增 read_spill 工具）+ tool-result pruner + 图片 offload；E0-3 会话检查点 + 每轮 workspace 变更快照（供变更文件卡）；E0-4 repeat-tool 提醒/通用工具超时/time-context。",
-   "next": "E0-1 已交付（896d9f016 + 769a1217a + 877efffe3，探针 16/16）；E0-2 的①大输出 spill + read_spill 已交付（2026-11-24，80360b2e3，探针 8/8；余项见 dsh-parity-e0-2-remaining）。下一步 E0-3（会话检查点 + 每轮 workspace 变更快照），E0-4（repeat-tool 提醒/通用工具超时/time-context）可并行。"
+   "next": "E0-1 已交付（896d9f016 + 769a1217a + 877efffe3，探针 16/16）；E0-2 ①spill+read_spill 已交付（80360b2e3，探针 8/8）；E0-4 ①重复调用提醒已交付（2026-11-24，b0de31b43，探针 7/7）；余项见 dsh-parity-e0-2-remaining / dsh-parity-e0-4-remaining。下一步 E0-3（会话检查点 + 每轮 workspace 变更快照；M 级，含新表/路由/派生面）。"
   },
   {
    "id": "dsh-parity-p1-workmode",
@@ -1533,6 +1533,14 @@
    "title": "E0-2 余项：工具结果裁剪策略、图片/截图 offload、token-meter 驱动压缩",
    "criteria": "① 大输出 spill + read_spill 已交付（2026-11-24，80360b2e3）：阈值 CP_SPILL_THRESHOLD_BYTES（默认 100KB）、预览头 4/5 + 尾 1/5、字符 offset/limit、常量目录 + 校验过的 16 hex locator；shell/受限子进程捕获上限抬到 1MiB；CP_SPILL_ENABLED=0 回到硬截断。② tool-result pruner（头/中/尾保留 + 可回放）未做；③ 图片/截图类结果 offload 为占位 + 可再读未做；④ token-meter 驱动压缩（按真实 token 而非消息条数）未做——与会话压缩水位/口径 §7 强耦合，需先出方案。",
    "next": "顺序 ②→④→③。② 先量现有工具结果长度分布（近 7 天 usage_log/审计），只裁真正常见的超长项；④ 先读 MemoryManager.compress_now 与 /api/context/status 的同源口径（口径 §7），不要另起一套 token 统计；③ 先确认 look_at_screen / browser_screenshot 的返回形状与可再读路径，再决定占位文案。"
+  },
+  {
+   "id": "dsh-parity-e0-4-remaining",
+   "status": "open",
+   "priority": "P2",
+   "title": "E0-4 余项：每步时钟（time-context）与工具超时的协作式取消",
+   "criteria": "① time-context（每步时钟）未做：把 `_meta.at/duration_ms` 塞进每个工具结果会被「结果整字典相等」的既有契约断言拦住（实测 7 处 unit 失败：capregistry_loader / injection_end_to_end / backpressure），正确做法是在 chat SSE 消息通道或 orchestrator 易变尾簇里选**一个**正式注入点（不能两处各写一套）。② 通用工具超时已有（agent/timeout_budget.py 的分层上界 + run 级 deadline）；缺的是协作式取消——Python handler 无法被中断，超时只能「回错误、线程继续跑」，与 DSH 的 exec.signal 语义有差距。",
+   "next": "① 先定注入点口径（建议：复用 volatile tail 机制，一处 helper 两处调用），再用 `CP_TIME_CONTEXT` 默认关上线观察；② 只在能真正取消的工具（子进程类）上做 hard deadline，线程内工具维持现有上界并在文档里写明「不会中断」。"
   }
  ]
 }

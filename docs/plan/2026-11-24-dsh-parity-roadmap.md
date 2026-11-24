@@ -104,6 +104,11 @@
 #### E0-4 工具治理小件（P0，可并行）
 - repeat-tool 提醒（同一工具同参重复 N 次告警）、通用工具超时（`exec.signal` 式）、
   time-context（每步时间/耗时）。均为 S 级，独立测试。
+- **交付状态（2026-11-24，部分）**：① repeat-tool 提醒 ✅（b0de31b43；
+  设计见 `docs/plan/2026-11-24-e0-4-tool-governance-design.md`；探针 7/7，单测 17）。
+  ② 通用工具超时**本仓早已存在**（`agent/timeout_budget.py` 分层上界 + run 级 deadline），
+  缺的是协作式取消；③ time-context **未做**（塞进工具结果会打破整字典相等断言，实测 7 处红，
+  需先定消息通道注入点）。②③ 均登记在 `data/handoff_next.json::dsh-parity-e0-4-remaining`。
 
 ### Phase 1 — Agent 工作方式（建议第 4–6 周）
 
