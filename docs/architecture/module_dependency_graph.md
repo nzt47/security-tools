@@ -729,6 +729,7 @@ flowchart LR
         agent_tools_file_tools["agent.tools.file_tools"]:::crosslayer
         agent_tools_file_tools_reg["agent.tools.file_tools_reg"]:::crosslayer
         agent_tools_git_tools["agent.tools.git_tools"]:::crosslayer
+        agent_tools_governance["agent.tools.governance"]
         agent_tools_lint_tools["agent.tools.lint_tools"]:::crosslayer
         agent_tools_mcp_connector["agent.tools.mcp_connector"]
         agent_tools_notify_tools["agent.tools.notify_tools"]:::crosslayer
@@ -2891,6 +2892,7 @@ flowchart LR
     agent_tools -.-> agent_descriptors_registry
     agent_tools -.-> agent_lines_callability
     agent_tools -.-> agent_timeout_budget
+    agent_tools --> agent_tools_governance
     agent_tools -.-> agent_context_spill
     agent_tools_browser_tools -.-> agent_guardrails_ssrf_guard
     agent_tools_browser_tools -.-> agent_guardrails_ssrf_guard
@@ -2965,6 +2967,7 @@ flowchart LR
     agent_tools_file_tools_reg -.-> agent_context_spill
     agent_tools_git_tools --> agent
     agent_tools_git_tools -.-> agent_utils
+    agent_tools_governance -.-> agent_audit_facade
     agent_tools_lint_tools --> agent
     agent_tools_lint_tools -.-> agent_utils
     agent_tools_mcp_connector --> agent
@@ -3123,9 +3126,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 791
-- 模块节点数: 684
-- 依赖边数: 2307
-- 跨层调用数: 1465
+- 扫描文件数: 792
+- 模块节点数: 685
+- 依赖边数: 2309
+- 跨层调用数: 1466
 - 违规调用数: 0
 - 动态 import 数: 1
