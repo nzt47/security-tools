@@ -612,6 +612,17 @@ def _reset_llm_monitor_snapshot(_isolate_llm_monitor_snapshot):
 
 
 @pytest.fixture(autouse=True)
+def _disable_checkpoint_snapshots(monkeypatch):
+    """单测里关闭 E0-3 的 workspace 变更快照（autouse）
+
+    Why：`tools.call` 在**会改工作区**的工具成功后会在后台线程跑 `git status/diff` 并往
+    `agent/data/checkpoints/` 写检查点。单测里这既慢（本机大仓）又会在用例之间留下状态；
+    需要测快照本身的用例（tests/unit/test_checkpoint.py）在自己的 fixture 里删掉这个开关。
+    """
+    monkeypatch.setenv("CP_CHECKPOINT_ENABLED", "0")
+
+
+@pytest.fixture(autouse=True)
 def _reset_tool_governance_repeat_state():
     """逐用例清空「重复调用提醒」的线程内计数（E0-4）
 

@@ -30,6 +30,8 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
+from agent.utils import proc as _proc
+
 logger = logging.getLogger(__name__)
 
 CHECKPOINT_ENABLED_ENV = "CP_CHECKPOINT_ENABLED"
@@ -123,7 +125,7 @@ def checkpoint_dir() -> Path:
 def _git(root: Path, args: Iterable[str], *, timeout: float = _GIT_TIMEOUT_SEC) -> Tuple[int, bytes]:
     try:
         proc = subprocess.run(["git", *args], cwd=str(root), capture_output=True,
-                              timeout=timeout)
+                              timeout=timeout, **_proc.hidden_kwargs())
         return int(proc.returncode), proc.stdout or b""
     except (OSError, subprocess.SubprocessError) as exc:
         logger.debug("[checkpoint] git %s 失败: %s", list(args), type(exc).__name__)
@@ -473,6 +475,7 @@ __all__ = [
     "workspace_root", "checkpoint_dir", "snapshot", "maybe_snapshot", "reset_state",
     "list_checkpoints", "load_manifest", "read_file", "compare", "status", "purge",
 ]
+
 
 
 
