@@ -18,6 +18,9 @@ import { ChatStyleMenu } from '../chat/ChatStyleMenu';
 import { ChatModeMenu } from '../chat/ChatModeMenu';
 import { PermissionModeMenu } from '../chat/PermissionModeMenu';
 import { ApprovalPrompt } from '../chat/ApprovalPrompt';
+// E1-1 计划模式：卡片只嵌在会话页（不新增页面/叶子 ⇒ 深链不变）
+import { PlanCard } from '../chat/PlanCard';
+import { getPlan, setPlanMode } from '@/lib/planApi';
 import { authHeader } from '@/lib/apiToken';
 
 import {
@@ -39,6 +42,36 @@ export function ChatPanel() {
   const highlightMsgId = useLayoutStore((s) => s.highlightMsgId);
   const sendMessage = useLayoutStore((s) => s.sendMessage);
   const stopStreaming = useLayoutStore((s) => s.stopStreaming);
+  // ── E1-1 计划模式 ───────────────────────────────────────────────
+  const activeSessionId = useLayoutStore((s) => s.activeSessionId);
+  const plan = useLayoutStore((s) => s.plan);
+  const setPlan = useLayoutStore((s) => s.setPlan);
+  const [planBusy, setPlanBusy] = useState(false);
+
+  // 切会话 / 刷新页面时回填计划状态（状态在磁盘上，会话恢复后仍在）
+  useEffect(() => {
+    if (!activeSessionId) {
+      setPlan(null);
+      return;
+    }
+    let cancelled = false;
+    getPlan(activeSessionId)
+      .then((p) => { if (!cancelled) setPlan(p); })
+      .catch(() => { /* 计划端点不可用不影响对话 */ });
+    return () => { cancelled = true; };
+  }, [activeSessionId, setPlan]);
+
+  const togglePlanMode = async () => {
+    if (!activeSessionId || planBusy) return;
+    setPlanBusy(true);
+    try {
+      setPlan(await setPlanMode(activeSessionId, !plan?.plan_mode));
+    } catch {
+      /* 令牌/网络失败时保持原状，用户可从计划卡错误区看到具体原因 */
+    } finally {
+      setPlanBusy(false);
+    }
+  };
 
   // 对话显示与风格偏好（思考/工具开关 + 输出格式 + 主题/气泡/字号）
   const showThinking = useChatPrefsStore((s) => s.showThinking);
@@ -282,6 +315,27 @@ export function ChatPanel() {
         {/* 权限档位（工具要不要逐条审批）—— 紧邻对话模式：一个管"怎么跑"，一个管"授权多大" */}
         <PermissionModeMenu />
 
+        {/* 计划模式（E1-1）：管"先规划还是直接做"；与权限档位正交，不改变审批边界 */}
+        <Button
+          data-testid="plan-mode-toggle"
+          onClick={togglePlanMode}
+          aria-pressed={!!plan?.plan_mode}
+          disabled={!activeSessionId || planBusy}
+          title={
+            plan?.plan_mode
+              ? '退出计划模式（计划文件与历史保留）'
+              : '进入计划模式：只做只读调研并产出一份计划，批准后才执行'
+          }
+          size="xs"
+          variant="default"
+          active={!!plan?.plan_mode}
+        >
+          🧭 计划
+          {plan?.plan_mode && plan.status === 'pending_approval' && (
+            <Badge tone="warning" size="sm" data-testid="plan-pending-badge">待批</Badge>
+          )}
+        </Button>
+
         {/* 内联审批弹窗：SSE approval 事件 ⇒ 点头即批并自动续跑（不必去审批面板/手打继续） */}
         <ApprovalPrompt />
 
@@ -336,6 +390,13 @@ export function ChatPanel() {
           </div>
         )}
       </div>
+
+      {/* 计划卡（E1-1）：只在计划模式开启时占位；已批准后自动消失（plan_mode=false） */}
+      {plan?.plan_mode && (
+        <div className="shrink-0 border-t border-amber-900/30 bg-slate-950/40 px-4 pt-2">
+          <PlanCard plan={plan} />
+        </div>
+      )}
 
       {/* 输入区 */}
       <div className="wb-input-pad border-t border-slate-800/60 px-4 py-3" onKeyDownCapture={onSlashKey}>

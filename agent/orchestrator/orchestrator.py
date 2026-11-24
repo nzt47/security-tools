@@ -4482,6 +4482,15 @@ class Orchestrator:
         if _tail:
             system_prompt = system_prompt + "\n\n" + _tail
 
+        # ── E1-1 计划模式：稳定块追加（与工作台 /api/chat/stream 同一口径）──
+        try:
+            from agent.context.plan_mode import system_directive as _plan_directive
+            _plan_block = _plan_directive(session_id or getattr(self, "_session_id", None))
+            if _plan_block:
+                system_prompt = append_to_stable_block(system_prompt, _plan_block)
+        except Exception:  # noqa: BLE001 计划提示注入失败不影响本轮
+            pass
+
         messages = []
         try:
             context = self._memory.get_context(token_limit=self._memory_token_limit)

@@ -2347,6 +2347,16 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
     except Exception as _ge:  # noqa: BLE001 守卫异常不得弄坏工作台
         logger.debug("[workbench][SSE] 工具一致性守卫异常（按原样继续）: %s", _ge)
 
+    # ── E1-1 计划模式：稳定块前置（跨轮不变，不进易变尾簇）──
+    # 只追加"只读调研、先出计划"的工作方式约束；权限/审批/沙箱**不因它改变**。
+    try:
+        from agent.context.plan_mode import system_directive as _plan_directive
+        _plan_block = _plan_directive(session_id)
+        if _plan_block:
+            SYSTEM_PROMPT = _plan_block + "\n\n" + SYSTEM_PROMPT
+    except Exception as _pe2:  # noqa: BLE001 计划提示注入失败不影响对话
+        logger.debug("[workbench][SSE] 计划模式提示注入失败: %s", _pe2)
+
     # ══════════════════════════════════════════════════════════════════════
     #  上下文预算与单次回复上限（2026-10-02：让工作台真正吃到面板上的旋钮）
     # ══════════════════════════════════════════════════════════════════════
@@ -2912,6 +2922,101 @@ def api_prompt_lab_llm_preview():
         return _ok({"text": ""}, message=f"{type(_e).__name__}（详见服务日志）", status=502)
 
 
+def _plan_payload(session_id: str) -> dict:
+    """计划模式状态 → SSE ``plan`` 事件载荷（与 /api/plan-mode/* 同一口径）"""
+    try:
+        from agent.context.plan_mode import get_state
+        st = get_state(session_id)
+    except Exception:  # noqa: BLE001 计划状态读失败不阻断对话
+        st = {}
+    return {
+        "session_id": st.get("session_id", session_id),
+        "plan_mode": bool(st.get("plan_mode")),
+        "status": st.get("status", "idle"),
+        "version": int(st.get("version") or 0),
+        "plan": st.get("plan", ""),
+        "revisions": st.get("revisions", []),
+        "feedback": st.get("feedback", []),
+    }
+
+
+def _parse_plan_command(question: str):
+    """解析 ``/plan`` 命令族；不是命令返回 ``None``，是命令返回 ``(action, arg)``
+
+    命令刻意**不新增模型工具**（详见设计页 §2）：进入/退出/批准/拒绝/反馈都是
+    确定性状态操作，走命令不会出现"模型忘了调用工具"的失败模式。
+    """
+    text = (question or "").strip()
+    m = re.match(r"^/plan(?:\s+([\s\S]*))?$", text, re.IGNORECASE)
+    if not m:
+        return None
+    rest = (m.group(1) or "").strip()
+    if not rest:
+        return ("enter", "")
+    parts = rest.split(None, 1)
+    sub = parts[0].lower()
+    arg = parts[1].strip() if len(parts) > 1 else ""
+    if sub in ("exit", "off", "quit", "leave"):
+        return ("exit", arg)
+    if sub in ("approve", "ok", "yes", "y"):
+        return ("approve", arg)
+    if sub in ("reject", "no", "n"):
+        return ("reject", arg)
+    if sub in ("feedback", "note", "revise"):
+        return ("feedback", arg)
+    if sub in ("submit", "save"):
+        return ("submit", arg)
+    if sub in ("status", "state"):
+        return ("status", arg)
+    return ("unknown", rest)
+
+
+def _last_assistant_text(session_id: str) -> str:
+    """当前会话最后一条**有正文**的助手消息（``/plan submit`` 兜底路径用）"""
+    try:
+        from app_server import _session_mgr
+        for msg in reversed(_session_mgr.get_messages(session_id, limit=0) or []):
+            if msg.get("role") == "assistant" and str(msg.get("content") or "").strip():
+                return str(msg["content"]).strip()
+    except Exception:  # noqa: BLE001
+        pass
+    return ""
+
+
+def _plan_reply_response(session_id: str, question: str, reply: str):
+    """纯状态命令的 SSE 响应：落盘一轮问答 + 回复正文 + ``plan`` 事件 + ``done``"""
+    from flask import Response, stream_with_context
+    try:
+        from app_server import _session_mgr as _sm
+        _sm.add_message(session_id, "user", question)
+        _sm.add_message(session_id, "assistant", reply)
+    except Exception:  # noqa: BLE001 落盘失败不影响命令结果
+        pass
+
+    def _gen():
+        for i in range(0, len(reply), 8):
+            yield _sse_event({"type": "chunk", "text": reply[i:i + 8]})
+        yield _sse_event({"type": "plan", "plan": _plan_payload(session_id)})
+        yield _sse_event({"type": "done"})
+
+    resp = Response(stream_with_context(_gen()), mimetype="text/event-stream")
+    resp.headers["Cache-Control"] = "no-cache"
+    resp.headers["X-Accel-Buffering"] = "no"
+    return resp
+
+
+def _record_plan_turn(session_id: str, text: str):
+    """计划模式下把本轮助手回复记为一个计划版本；返回可外发的 plan 载荷或 None"""
+    try:
+        from agent.context.plan_mode import get_state, record_turn_plan
+        if not get_state(session_id).get("plan_mode"):
+            return None
+        record_turn_plan(session_id, text)
+        return _plan_payload(session_id)
+    except Exception:  # noqa: BLE001 计划记录失败不阻断本轮回复
+        return None
+
+
 @bp.route("/api/chat/stream", methods=["POST"])
 @_require_token
 def api_chat_stream():
@@ -2974,6 +3079,57 @@ def api_chat_stream():
     except Exception as _ce:  # noqa: BLE001 指针失败不影响对话
         logger.debug("[workbench][SSE] 更新当前会话失败: %s", _ce)
 
+    # ── 计划模式命令（E1-1）──────────────────────────────────────────
+    # 纯状态命令（/plan、/plan exit、/plan status、/plan submit）不进 LLM；
+    # 批准/拒绝/反馈把命令参数翻译成普通用户消息后继续走**同一条**对话链路
+    # （不造"服务端自己发起模型轮"的第二条通道）。
+    _plan_prefix = None
+    _plan_cmd = _parse_plan_command(question)
+    if _plan_cmd is not None:
+        from agent.context import plan_mode as _pm
+        _action, _arg = _plan_cmd
+        _plan_reply = None
+        try:
+            if _action == "enter":
+                _pm.enter(session_id)
+                _plan_reply = ("已进入计划模式：接下来的回复只做只读调研，并产出一份计划；"
+                               "计划批准后才执行。发送 /plan exit 可退出。")
+            elif _action == "exit":
+                _pm.exit(session_id)
+                _plan_reply = "已退出计划模式（计划文件与历史保留）。"
+            elif _action == "status":
+                _st = _pm.get_state(session_id)
+                _plan_reply = "计划模式：%s；状态：%s；版本：v%d" % (
+                    "开" if _st.get("plan_mode") else "关",
+                    _st.get("status"), int(_st.get("version") or 0))
+            elif _action == "submit":
+                _last = _last_assistant_text(session_id)
+                if not _last:
+                    _plan_reply = "当前会话还没有助手回复，无法提交为计划。"
+                else:
+                    _pm.enter(session_id)
+                    _st = _pm.record_turn_plan(session_id, _last)
+                    _plan_reply = ("已把上一条回复提交为计划 v%d，等待批准。"
+                                   % int((_st or {}).get("version") or 0))
+            elif _action in ("approve", "reject", "feedback"):
+                if _action == "feedback" and not _arg:
+                    _plan_reply = "反馈内容不能为空：/plan feedback <意见>"
+                else:
+                    _pm.decide(session_id, _action, feedback=_arg or None)
+                    if _action == "approve":
+                        question = "计划已批准，开始按计划执行。"
+                    else:
+                        question = ("计划未通过。请根据以下意见继续规划：\n" + _arg) if _arg \
+                            else "计划未通过，请重新规划。"
+            else:
+                _plan_reply = ("未知计划命令。可用：/plan、/plan exit、/plan status、/plan submit、"
+                               "/plan approve、/plan reject [意见]、/plan feedback <意见>")
+        except _pm.PlanModeError as _pe:
+            _plan_reply = "命令未生效：%s" % _pe.message
+        if _plan_reply is not None:
+            return _plan_reply_response(session_id, question, _plan_reply)
+        _plan_prefix = _plan_payload(session_id)
+
     def gen():
         # 【2026-11-20】LLM 禁用时段：在开流前直接回一条 error + done，
         # 避免把整个对话链路（含 LLM 调用）跑起来后才在 SDK 层抛错。
@@ -3007,6 +3163,9 @@ def api_chat_stream():
                 _perm_token = _set_perm(raw_perm)
             except Exception as _pe:  # noqa: BLE001 档位设置失败 ⇒ 回落默认，不阻断对话
                 logger.debug("[workbench][SSE] 设置权限档位失败（按默认 auto）: %s", _pe)
+        # 计划模式命令的即时状态（如 /plan approve）：先让卡片更新，再跑本轮。
+        if _plan_prefix:
+            yield _sse_event({"type": "plan", "plan": _plan_prefix})
         try:
             for _evt in _workbench_real_stream(question, session_id, mode):
                 _payload = _evt[len("data:"):].strip() if _evt.startswith("data:") else ""
@@ -3019,6 +3178,13 @@ def api_chat_stream():
                                 acc_real_parts.append(str(_obj.get("text") or ""))
                         elif isinstance(_obj, dict) and _obj.get("type") == "thinking":
                             merge_thinking_step(acc_steps, _obj)
+                        if isinstance(_obj, dict) and _obj.get("type") == "done":
+                            # 【顺序不能反】前端收到 done 即 break；plan 事件必须**先**发。
+                            # 计划模式下本轮回复 = 一个计划版本，收尾时入卡待批准。
+                            _plan_state = _record_plan_turn(
+                                session_id, "".join(acc_real_parts))
+                            if _plan_state:
+                                yield _sse_event({"type": "plan", "plan": _plan_state})
                     except Exception:
                         pass
                 yield _evt

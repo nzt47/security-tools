@@ -293,6 +293,11 @@
       "area": "会话管理",
       "note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。"
     },
+    "/api/plan-mode/*": {
+      "intent": "should_be_in_ui",
+      "area": "会话管理/计划模式",
+      "note": "E1-1 计划模式：状态读取（GET /state）+ 进入/退出（POST /mode）+ 批准/拒绝/反馈/回滚（POST /decision）。消费方是会话页对话区的计划卡（yunshu-ui/src/components/workbench/chat/PlanCard.tsx）。"
+    },
     "/api/diagnostics": {
       "intent": "should_be_in_ui",
       "area": "诊断面板",

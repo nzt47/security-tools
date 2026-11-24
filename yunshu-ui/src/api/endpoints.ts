@@ -210,6 +210,18 @@ export const sessionProject = (id: string) => `/api/sessions/${encodeURIComponen
 export const sessionAgent = (id: string) => `/api/sessions/${encodeURIComponent(id)}/agent`;
 
 // ═══════════════════════════════════════════════════════════════
+//  计划模式（/api/plan-mode/*，E1-1）
+//  【为什么不是 /api/plan】`/api/planning/*` 属于既有 planning 引擎；这里是
+//  DSH 对齐的会话工作方式开关（只调研、先出计划），语义不同。
+// ═══════════════════════════════════════════════════════════════
+/** 状态 + 最新计划全文 + 版本列表（?session_id=，只读） */
+export const PLAN_MODE_STATE = '/api/plan-mode/state';
+/** 进入 / 退出计划模式（POST {session_id, enabled}，需令牌） */
+export const PLAN_MODE_SET = '/api/plan-mode/mode';
+/** 批准 / 拒绝 / 反馈 / 回滚（POST {session_id, action, feedback?, version?}，需令牌） */
+export const PLAN_MODE_DECISION = '/api/plan-mode/decision';
+
+// ═══════════════════════════════════════════════════════════════
 //  知识库（/api/knowledge）
 // ═══════════════════════════════════════════════════════════════
 // 新增知识文档（legacy 记忆/向量域端点；content 必填）

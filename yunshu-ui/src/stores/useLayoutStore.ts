@@ -25,7 +25,7 @@ import {
   stripPanels,
   type PanelId,
 } from '../lib/mosaic';
-import { createChatStream, type ThinkingStatus } from '../lib/sse';
+import { createChatStream, type PlanState, type ThinkingStatus } from '../lib/sse';
 import { useChatPrefsStore } from './useChatPrefsStore';
 import { authHeader } from '@/lib/apiToken';
 
@@ -114,6 +114,13 @@ interface LayoutStore {
   /** 当前待人工审批（SSE approval 事件驱动；弹窗消费，点头即批并自动续跑） */
   pendingApproval: PendingApproval | null;
   setPendingApproval: (v: PendingApproval | null) => void;
+  /**
+   * 当前会话的计划模式状态（E1-1）。
+   * 来源有三：`GET /api/plan-mode/state` 回填（切会话/刷新）、SSE plan 事件、
+   * 计划卡按钮操作后的响应。只存"当前会话"这一份，切会话即清空重取。
+   */
+  plan: PlanState | null;
+  setPlan: (v: PlanState | null) => void;
 }
 
 // 仅暴露给 persist 的字段（layout 之外的动态数据不做本地持久化）
@@ -213,6 +220,7 @@ export const useLayoutStore = create<LayoutStore>()(
       highlightMsgId: null,
       activeSessionId: null,
       pendingApproval: null,
+      plan: null,
 
       setLayout: (next) => set({ layout: next }),
 
@@ -377,6 +385,10 @@ export const useLayoutStore = create<LayoutStore>()(
                     }
                   : null,
               });
+            } else if (event.type === 'plan') {
+              // 计划模式状态（E1-1）：不是消息、不进正文，只驱动计划卡。
+              // 后端保证它先于 done 到达（先 break 就收不到）。
+              set({ plan: event.plan });
             } else if (event.type === 'error') {
               // 服务端显式报错：在正文里留下证据，并把该条回复标为 error（不再假装正常结束）
               const msg = event.message || '服务端异常，本轮回复中断';
@@ -515,11 +527,14 @@ export const useLayoutStore = create<LayoutStore>()(
 
       setHighlightMsg: (id) => set({ highlightMsgId: id }),
       setPendingApproval: (v) => set({ pendingApproval: v }),
+      setPlan: (v) => set({ plan: v }),
 
       setActiveSession: (id) => {
         // 会话切换/新建/删除后由页面调用；只更新归属标记，不清空消息流
         // （消息流的清空由页面 clearConversation + loadSessionHistory 负责）
-        set({ activeSessionId: id });
+        // 计划状态跟着会话走：换会话先清空，由 ChatPanel 重新 GET 回填
+        // （不清会让新会话短暂显示上一个会话的计划卡）。
+        set((s) => ({ activeSessionId: id, plan: s.activeSessionId === id ? s.plan : null }));
       },
     }),
     {

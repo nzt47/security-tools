@@ -14,6 +14,7 @@
         "/api/handoff",
         "/api/history",
         "/api/news",
+        "/api/plan-mode",
         "/api/projects",
         "/api/session-groups",
         "/api/sessions"

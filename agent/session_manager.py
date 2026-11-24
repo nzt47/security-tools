@@ -310,6 +310,14 @@ class SessionManager:
                 return False
             self._write_index(new_index)
 
+        # 【E1-1 计划模式】计划文件独立落 data/plan_mode/<key>/，会话删除时一并清理；
+        # 失败不阻断删除（残留文件不影响新会话：键由会话 ID 决定）。
+        try:
+            from agent.context.plan_mode import delete_plan
+            delete_plan(session_id)
+        except Exception as e:  # noqa: BLE001 计划存储故障不阻断会话删除
+            logger.debug("清理会话计划失败: %s", e)
+
         import shutil
         session_dir = self._sessions_dir / session_id
         if session_dir.exists():

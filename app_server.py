@@ -1556,6 +1556,16 @@ try:
 except Exception as e:
     _record_route_failure("功能单位监控路由", e)
 
+# ════════════════════════════════════════════════════════════
+#  E1-1 计划模式路由（/api/plan-mode/*）
+# ════════════════════════════════════════════════════════════
+try:
+    from agent.server_routes.routes_plan_mode import register_routes as reg_plan_mode
+    reg_plan_mode(app, lambda: None)
+    logger.info("计划模式路由已注册 (/api/plan-mode/*)")
+except Exception as e:
+    _record_route_failure("计划模式路由", e)
+
 
 # ════════════════════════════════════════════════════════════
 #  工作流学习系统路由（/api/workflow-learning/*）

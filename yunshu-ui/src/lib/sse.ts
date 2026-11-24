@@ -15,6 +15,30 @@ import { authHeader } from './apiToken';
 
 export type ThinkingStatus = 'pending' | 'running' | 'done' | 'error';
 
+/** 计划模式状态（与后端 /api/plan-mode/* 扁平口径一致，E1-1） */
+export type PlanStatus = 'idle' | 'planning' | 'pending_approval' | 'approved' | 'rejected';
+
+export interface PlanRevision {
+  version: number;
+  at: string;
+  status: string;
+  chars?: number;
+  rollback_of?: number;
+}
+
+export interface PlanState {
+  session_id: string;
+  plan_mode: boolean;
+  status: PlanStatus;
+  version: number;
+  /** 最新计划全文（Markdown） */
+  plan: string;
+  revisions: PlanRevision[];
+  feedback?: { at: string; text: string; kind: string }[];
+  created_at?: string;
+  updated_at?: string;
+}
+
 export type StreamEvent =
   | {
       type: 'thinking'
@@ -49,6 +73,14 @@ export type StreamEvent =
       approvalId?: string;
       message?: string;
     }
+  /**
+   * 计划模式状态变化（E1-1）。
+   *
+   * 后端在两处发：① `/plan` 命令的即时结果（进入/退出/批准/拒绝/反馈）；
+   * ② 计划模式下每轮回复收尾时（**必须先于 done**，否则前端 break 后收不到）。
+   * 客户端只把它写进 store，由 PlanCard 渲染——不是消息，不进对话正文。
+   */
+  | { type: 'plan'; plan: PlanState }
   | { type: 'done' };
 
 /**
