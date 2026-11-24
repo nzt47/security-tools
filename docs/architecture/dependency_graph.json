@@ -302,7 +302,7 @@
       "name": "facade",
       "layer": "audit",
       "file_path": "agent/audit/facade.py",
-      "in_degree": 60,
+      "in_degree": 61,
       "out_degree": 2
     },
     {
@@ -1047,7 +1047,7 @@
       "layer": "tools",
       "file_path": "",
       "in_degree": 3,
-      "out_degree": 1
+      "out_degree": 2
     },
     {
       "path": "agent.tools.shell_tools",
@@ -1055,7 +1055,7 @@
       "layer": "tools",
       "file_path": "",
       "in_degree": 3,
-      "out_degree": 3
+      "out_degree": 7
     },
     {
       "path": "agent.digestion.resolutions",
@@ -3207,7 +3207,7 @@
       "layer": "tools",
       "file_path": "",
       "in_degree": 2,
-      "out_degree": 1
+      "out_degree": 2
     },
     {
       "path": "agent.tools.subagent_tools",
@@ -3255,7 +3255,7 @@
       "layer": "tools",
       "file_path": "",
       "in_degree": 1,
-      "out_degree": 2
+      "out_degree": 3
     },
     {
       "path": "agent.tools.notify_tools",
@@ -3991,6 +3991,54 @@
       "layer": "core",
       "file_path": "agent/safety_guard.py",
       "in_degree": 0,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.sandbox",
+      "name": "sandbox",
+      "layer": "sandbox",
+      "file_path": "agent/sandbox/__init__.py",
+      "in_degree": 4,
+      "out_degree": 7
+    },
+    {
+      "path": "agent.sandbox.fs_fence",
+      "name": "fs_fence",
+      "layer": "sandbox",
+      "file_path": "",
+      "in_degree": 6,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.sandbox.preset",
+      "name": "preset",
+      "layer": "sandbox",
+      "file_path": "",
+      "in_degree": 4,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.sandbox.shell_run",
+      "name": "shell_run",
+      "layer": "sandbox",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 4
+    },
+    {
+      "path": "agent.sandbox.win_acl",
+      "name": "win_acl",
+      "layer": "sandbox",
+      "file_path": "",
+      "in_degree": 7,
+      "out_degree": 0
+    },
+    {
+      "path": "agent.sandbox.win_token",
+      "name": "win_token",
+      "layer": "sandbox",
+      "file_path": "",
+      "in_degree": 2,
       "out_degree": 1
     },
     {
@@ -5135,7 +5183,7 @@
       "layer": "tools",
       "file_path": "",
       "in_degree": 5,
-      "out_degree": 0
+      "out_degree": 2
     },
     {
       "path": "agent.tools.browser_tools",
@@ -5151,7 +5199,7 @@
       "layer": "tools",
       "file_path": "",
       "in_degree": 1,
-      "out_degree": 0
+      "out_degree": 2
     },
     {
       "path": "agent.tools.task_tools",
@@ -22476,6 +22524,188 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.sandbox",
+      "target": "agent.sandbox.fs_fence",
+      "source_layer": "sandbox",
+      "target_layer": "sandbox",
+      "import_type": "from_import",
+      "line": 16,
+      "source_file": "agent/sandbox/__init__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.sandbox",
+      "target": "agent.sandbox.preset",
+      "source_layer": "sandbox",
+      "target_layer": "sandbox",
+      "import_type": "from_import",
+      "line": 17,
+      "source_file": "agent/sandbox/__init__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.sandbox",
+      "target": "agent.sandbox.shell_run",
+      "source_layer": "sandbox",
+      "target_layer": "sandbox",
+      "import_type": "from_import",
+      "line": 21,
+      "source_file": "agent/sandbox/__init__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.sandbox",
+      "target": "agent.sandbox.win_acl",
+      "source_layer": "sandbox",
+      "target_layer": "sandbox",
+      "import_type": "from_import",
+      "line": 22,
+      "source_file": "agent/sandbox/__init__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.sandbox",
+      "target": "agent.sandbox.preset",
+      "source_layer": "sandbox",
+      "target_layer": "sandbox",
+      "import_type": "import",
+      "line": 27,
+      "source_file": "agent/sandbox/__init__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.sandbox",
+      "target": "agent.sandbox.win_acl",
+      "source_layer": "sandbox",
+      "target_layer": "sandbox",
+      "import_type": "import",
+      "line": 28,
+      "source_file": "agent/sandbox/__init__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.sandbox",
+      "target": "agent.sandbox.win_token",
+      "source_layer": "sandbox",
+      "target_layer": "sandbox",
+      "import_type": "import",
+      "line": 29,
+      "source_file": "agent/sandbox/__init__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.sandbox.fs_fence",
+      "target": "agent.sandbox.preset",
+      "source_layer": "sandbox",
+      "target_layer": "sandbox",
+      "import_type": "import",
+      "line": 21,
+      "source_file": "agent/sandbox/fs_fence.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.sandbox.preset",
+      "target": "agent.audit.facade",
+      "source_layer": "sandbox",
+      "target_layer": "audit",
+      "import_type": "from_import",
+      "line": 133,
+      "source_file": "agent/sandbox/preset.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.sandbox.shell_run",
+      "target": "agent.sandbox.preset",
+      "source_layer": "sandbox",
+      "target_layer": "sandbox",
+      "import_type": "import",
+      "line": 21,
+      "source_file": "agent/sandbox/shell_run.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.sandbox.shell_run",
+      "target": "agent.sandbox.win_acl",
+      "source_layer": "sandbox",
+      "target_layer": "sandbox",
+      "import_type": "import",
+      "line": 22,
+      "source_file": "agent/sandbox/shell_run.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.sandbox.shell_run",
+      "target": "agent.sandbox.win_token",
+      "source_layer": "sandbox",
+      "target_layer": "sandbox",
+      "import_type": "import",
+      "line": 23,
+      "source_file": "agent/sandbox/shell_run.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.sandbox.shell_run",
+      "target": "agent.sandbox.win_acl",
+      "source_layer": "sandbox",
+      "target_layer": "sandbox",
+      "import_type": "from_import",
+      "line": 24,
+      "source_file": "agent/sandbox/shell_run.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.sandbox.win_token",
+      "target": "agent.sandbox.win_acl",
+      "source_layer": "sandbox",
+      "target_layer": "sandbox",
+      "import_type": "from_import",
+      "line": 30,
+      "source_file": "agent/sandbox/win_token.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.scheduling",
       "target": "agent.logging_utils",
       "source_layer": "core",
@@ -26927,7 +27157,7 @@
       "source_layer": "settings",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 3472,
+      "line": 3492,
       "source_file": "agent/settings/registry.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -26940,7 +27170,7 @@
       "source_layer": "settings",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 3592,
+      "line": 3612,
       "source_file": "agent/settings/registry.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -33123,6 +33353,19 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.tools.file_tools",
+      "target": "agent.sandbox.fs_fence",
+      "source_layer": "tools",
+      "target_layer": "sandbox",
+      "import_type": "from_import",
+      "line": 515,
+      "source_file": "agent/tools/file_tools.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.tools.file_tools_reg",
       "target": "agent",
       "source_layer": "tools",
@@ -33435,6 +33678,32 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.tools.process_tools",
+      "target": "agent.sandbox",
+      "source_layer": "tools",
+      "target_layer": "sandbox",
+      "import_type": "from_import",
+      "line": 148,
+      "source_file": "agent/tools/process_tools.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.tools.process_tools",
+      "target": "agent.sandbox.win_acl",
+      "source_layer": "tools",
+      "target_layer": "sandbox",
+      "import_type": "from_import",
+      "line": 153,
+      "source_file": "agent/tools/process_tools.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.tools.search_tools",
       "target": "agent",
       "source_layer": "tools",
@@ -33448,12 +33717,64 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.tools.search_tools",
+      "target": "agent.sandbox.fs_fence",
+      "source_layer": "tools",
+      "target_layer": "sandbox",
+      "import_type": "from_import",
+      "line": 376,
+      "source_file": "agent/tools/search_tools.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.tools.shell_tools",
       "target": "agent.subagent.sandbox",
       "source_layer": "tools",
       "target_layer": "subagent",
       "import_type": "from_import",
-      "line": 265,
+      "line": 285,
+      "source_file": "agent/tools/shell_tools.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.tools.shell_tools",
+      "target": "agent.sandbox",
+      "source_layer": "tools",
+      "target_layer": "sandbox",
+      "import_type": "from_import",
+      "line": 328,
+      "source_file": "agent/tools/shell_tools.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.tools.shell_tools",
+      "target": "agent.sandbox.win_acl",
+      "source_layer": "tools",
+      "target_layer": "sandbox",
+      "import_type": "from_import",
+      "line": 329,
+      "source_file": "agent/tools/shell_tools.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.tools.shell_tools",
+      "target": "agent.sandbox",
+      "source_layer": "tools",
+      "target_layer": "sandbox",
+      "import_type": "from_import",
+      "line": 133,
       "source_file": "agent/tools/shell_tools.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -33466,7 +33787,20 @@
       "source_layer": "tools",
       "target_layer": "audit",
       "import_type": "from_import",
-      "line": 187,
+      "line": 207,
+      "source_file": "agent/tools/shell_tools.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.tools.shell_tools",
+      "target": "agent.sandbox",
+      "source_layer": "tools",
+      "target_layer": "sandbox",
+      "import_type": "from_import",
+      "line": 382,
       "source_file": "agent/tools/shell_tools.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -33479,7 +33813,7 @@
       "source_layer": "tools",
       "target_layer": "subagent",
       "import_type": "from_import",
-      "line": 350,
+      "line": 441,
       "source_file": "agent/tools/shell_tools.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -33812,6 +34146,19 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.tools.test_tools",
+      "target": "agent.sandbox.fs_fence",
+      "source_layer": "tools",
+      "target_layer": "sandbox",
+      "import_type": "from_import",
+      "line": 618,
+      "source_file": "agent/tools/test_tools.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.tools.tool_generator",
       "target": "agent",
       "source_layer": "tools",
@@ -33936,6 +34283,32 @@
       "import_type": "from_import",
       "line": 38,
       "source_file": "agent/tools/win_bash.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.tools.workspace_tools",
+      "target": "agent.sandbox.fs_fence",
+      "source_layer": "tools",
+      "target_layer": "sandbox",
+      "import_type": "from_import",
+      "line": 58,
+      "source_file": "agent/tools/workspace_tools.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.tools.workspace_tools",
+      "target": "agent.sandbox.fs_fence",
+      "source_layer": "tools",
+      "target_layer": "sandbox",
+      "import_type": "from_import",
+      "line": 75,
+      "source_file": "agent/tools/workspace_tools.py",
       "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
@@ -35035,10 +35408,10 @@
     }
   ],
   "stats": {
-    "total_files": 784,
-    "total_nodes": 677,
-    "total_edges": 2278,
-    "cross_layer_edges": 1449,
+    "total_files": 790,
+    "total_nodes": 683,
+    "total_edges": 2303,
+    "cross_layer_edges": 1461,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -35096,6 +35469,7 @@
       "quality": 1,
       "repair": 14,
       "retention": 9,
+      "sandbox": 6,
       "settings": 8,
       "ui_panels": 3,
       "ui_guard": 4,

@@ -534,6 +534,14 @@ flowchart LR
         agent_retention_scan["agent.retention.scan"]
         agent_retention_scheduler["agent.retention.scheduler"]
     end
+    subgraph sandbox [sandbox]
+        agent_sandbox["agent.sandbox"]:::crosslayer
+        agent_sandbox_fs_fence["agent.sandbox.fs_fence"]:::crosslayer
+        agent_sandbox_preset["agent.sandbox.preset"]
+        agent_sandbox_shell_run["agent.sandbox.shell_run"]
+        agent_sandbox_win_acl["agent.sandbox.win_acl"]:::crosslayer
+        agent_sandbox_win_token["agent.sandbox.win_token"]
+    end
     subgraph security [security]
         agent_security["agent.security"]:::crosslayer
         agent_security_actor_matrix["agent.security.actor_matrix"]:::crosslayer
@@ -2111,6 +2119,20 @@ flowchart LR
     agent_retention_scheduler --> agent_retention_policy
     agent_retention_scheduler -.-> agent_task_scheduler
     agent_safety_guard -.-> agent_utils_singleton_manager
+    agent_sandbox --> agent_sandbox_fs_fence
+    agent_sandbox --> agent_sandbox_preset
+    agent_sandbox --> agent_sandbox_shell_run
+    agent_sandbox --> agent_sandbox_win_acl
+    agent_sandbox --> agent_sandbox_preset
+    agent_sandbox --> agent_sandbox_win_acl
+    agent_sandbox --> agent_sandbox_win_token
+    agent_sandbox_fs_fence --> agent_sandbox_preset
+    agent_sandbox_preset -.-> agent_audit_facade
+    agent_sandbox_shell_run --> agent_sandbox_preset
+    agent_sandbox_shell_run --> agent_sandbox_win_acl
+    agent_sandbox_shell_run --> agent_sandbox_win_token
+    agent_sandbox_shell_run --> agent_sandbox_win_acl
+    agent_sandbox_win_token --> agent_sandbox_win_acl
     agent_scheduling --> agent_logging_utils
     agent_scheduling -.-> agent_utils_singleton_manager
     agent_search_aggregator --> agent_logging_utils
@@ -2930,6 +2952,7 @@ flowchart LR
     agent_tools_fan_out_tools -.-> agent_subagent_lifecycle
     agent_tools_fan_out_tools -.-> agent_subagent_rounds
     agent_tools_file_tools -.-> agent_logging_utils
+    agent_tools_file_tools -.-> agent_sandbox_fs_fence
     agent_tools_file_tools_reg --> agent
     agent_tools_file_tools_reg --> agent_tools_search_tools
     agent_tools_file_tools_reg -.-> agent_system_tools
@@ -2954,9 +2977,16 @@ flowchart LR
     agent_tools_persistence --> agent
     agent_tools_plan_tools --> agent
     agent_tools_plan_tools -.-> agent_observability_trace_v2
+    agent_tools_process_tools -.-> agent_sandbox
+    agent_tools_process_tools -.-> agent_sandbox_win_acl
     agent_tools_search_tools --> agent
+    agent_tools_search_tools -.-> agent_sandbox_fs_fence
     agent_tools_shell_tools -.-> agent_subagent_sandbox
+    agent_tools_shell_tools -.-> agent_sandbox
+    agent_tools_shell_tools -.-> agent_sandbox_win_acl
+    agent_tools_shell_tools -.-> agent_sandbox
     agent_tools_shell_tools -.-> agent_audit_facade
+    agent_tools_shell_tools -.-> agent_sandbox
     agent_tools_shell_tools -.-> agent_subagent_sandbox
     agent_tools_skill_tools --> agent
     agent_tools_skill_tools -.-> agent_state_manager
@@ -2983,6 +3013,7 @@ flowchart LR
     agent_tools_task_tools -.-> agent_task_scheduler
     agent_tools_test_tools --> agent
     agent_tools_test_tools -.-> agent_utils
+    agent_tools_test_tools -.-> agent_sandbox_fs_fence
     agent_tools_tool_generator --> agent
     agent_tools_tool_generator -.-> agent_logging_utils
     agent_tools_ui_guard_tools --> agent
@@ -2993,6 +3024,8 @@ flowchart LR
     agent_tools_web_tools -.-> agent_network_config
     agent_tools_web_tools -.-> agent_search_aggregator
     agent_tools_win_bash -.-> agent_utils
+    agent_tools_workspace_tools -.-> agent_sandbox_fs_fence
+    agent_tools_workspace_tools -.-> agent_sandbox_fs_fence
     agent_tools_prompt_guard --> agent
     agent_tools_prompt_guard -.-> agent_lines
     agent_ui_guard --> agent_ui_guard_models
@@ -3085,9 +3118,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 784
-- 模块节点数: 677
-- 依赖边数: 2278
-- 跨层调用数: 1449
+- 扫描文件数: 790
+- 模块节点数: 683
+- 依赖边数: 2303
+- 跨层调用数: 1461
 - 违规调用数: 0
 - 动态 import 数: 1
