@@ -51,28 +51,32 @@ def spill_dir() -> Path:
 
 
 def enabled() -> bool:
-    raw = str(os.environ.get(SPILL_ENABLED_ENV, "1") or "").strip().lower()
+    raw = str(os.environ.get("CP_SPILL_ENABLED", "1") or "").strip().lower()
     return raw not in ("0", "false", "no", "off")
 
 
-def _int_env(name: str, default: int, lo: int, hi: int) -> int:
-    raw = str(os.environ.get(name, "") or "").strip()
-    if not raw:
+def _clamp_int(raw: Any, default: int, lo: int, hi: int, name: str) -> int:
+    """把环境变量原文钳到区间；空/非法回落默认（**调用方必须字面量传入**）。"""
+    text = str(raw or "").strip()
+    if not text:
         return default
     try:
-        value = int(float(raw))
+        value = int(float(text))
     except (TypeError, ValueError):
-        logger.warning("[spill] %s=%r 不是整数，回落到 %s", name, raw, default)
+        logger.warning("[spill] %s=%r 不是整数，回落到 %s", name, text, default)
         return default
     return max(lo, min(hi, value))
 
 
 def threshold_bytes() -> int:
-    return _int_env(SPILL_THRESHOLD_ENV, _THRESHOLD_DEFAULT, _THRESHOLD_MIN, _THRESHOLD_MAX)
+    # 逐条字面量读取（settings 零缺口门禁不接受动态家族）
+    return _clamp_int(os.environ.get("CP_SPILL_THRESHOLD_BYTES"), _THRESHOLD_DEFAULT,
+                      _THRESHOLD_MIN, _THRESHOLD_MAX, "CP_SPILL_THRESHOLD_BYTES")
 
 
 def preview_bytes() -> int:
-    return _int_env(SPILL_PREVIEW_ENV, _PREVIEW_DEFAULT, _PREVIEW_MIN, _PREVIEW_MAX)
+    return _clamp_int(os.environ.get("CP_SPILL_PREVIEW_BYTES"), _PREVIEW_DEFAULT,
+                      _PREVIEW_MIN, _PREVIEW_MAX, "CP_SPILL_PREVIEW_BYTES")
 
 
 def capture_limit(default: int) -> int:
@@ -224,3 +228,4 @@ def status() -> Dict[str, Any]:
 __all__ = ["SPILL_ENABLED_ENV", "SPILL_THRESHOLD_ENV", "SPILL_PREVIEW_ENV", "spill_dir",
            "enabled", "threshold_bytes", "preview_bytes", "capture_limit", "spill_text",
            "spill_result", "read_locator", "status"]
+

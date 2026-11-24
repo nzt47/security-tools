@@ -112,10 +112,11 @@ class TestFixtureShapeMatchesProduction:
         # 【2026-11-09】92 → 93：新增 skill_script_run（llm_callable=true、未弃用）
         # 【2026-11-19】93 → 94：新增 ui_guard_check（llm_callable=true、未弃用）
         # 【2026-11-20】94 → 95：新增 ui_guard_fix（llm_callable=true、默认停用但仍入索引）
-        assert len(real_tools) == 95, f"真实工具数应为 95，实际 {len(real_tools)}"
+        # 【2026-11-24】95 → 96：新增 read_spill（E0-2；llm_callable=true 入索引）
+        assert len(real_tools) == 96, f"真实工具数应为 96，实际 {len(real_tools)}"
 
     def test_index_is_not_a_toy_fixture(self, real_retriever, real_tools):
-        assert real_retriever._bm25.size == len(real_tools) == 95
+        assert real_retriever._bm25.size == len(real_tools) == 96
 
 
 # ════════════════════════════════════════════════════════════
@@ -440,3 +441,4 @@ class TestBaselineCasesDoNotRegress:
         assert c["gold"] in raw and raw.index(c["gold"]) + 1 == 4, (
             "TOOL-010 gold 的 BM25 名次漂移：%s（2026-11-09 基线=4）；top5=%s"
             % ((raw.index(c["gold"]) + 1) if c["gold"] in raw else None, raw[:8]))
+

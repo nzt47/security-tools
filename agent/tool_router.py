@@ -102,6 +102,8 @@ _DEFAULT_TOOL_CATEGORIES = {
         "tools": [
             "read_file", "write_file", "list_directory", "get_file_info",
             "search_files", "compress", "decompress", "diff_files",
+            # E0-2：大输出落盘后的分段读取（与 read_file 同属文件系统读原语）
+            "read_spill",
             # grep / edit 已改归 code 分类（评估报告 §6.5）：
             # 它们是代码工程原语，不是文件系统原语。留在 file 类会导致
             # 「写代码并运行测试」这类输入命中 code 却拿不到 edit/grep（实测缺失）。
