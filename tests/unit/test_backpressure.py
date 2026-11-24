@@ -407,7 +407,7 @@ class TestToolLayerConcurrency:
             with pytest.raises(tools.ToolError):
                 tools.call("c2_probe_not_registered")
             assert lim.get_status()["current_concurrent"] == 0
-            assert tools.call("c2_probe_ok") == {"ok": True}
+            assert tools.call("c2_probe_ok").get("ok") is True
             assert lim.get_status()["current_concurrent"] == 0
 
         # 额度回到初值 ⇒ 还能整批占满

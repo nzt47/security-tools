@@ -594,6 +594,19 @@ _REGISTRY_ROWS: List[SettingSpec] = [
         "spill 信封里的预览字符预算（头 4/5 + 尾 1/5）",
         owner="agent/context/spill.py",
         validator=_range_validator(512, 65536, kind="int")),
+    # ── E0-4 工具治理小件（2026-11-24）────────────────────────────────────
+    # 【为什么是 A 级】只影响模型看到的提示与元数据，不改变工具可执行性与权限；
+    # 关掉即回到逐字旧行为。通用工具超时另有机制（agent/timeout_budget.py），不在此重复登记。
+    _mk("CP_TOOL_REPEAT_REMINDER", CAT_ORCHESTRATION, True,
+        "同一工具 + 完全相同的参数重复调用时，在结果里附 `_repeat` 提醒并记审计（不阻断）",
+        owner="agent/tools/governance.py"),
+    _mk("CP_TOOL_REPEAT_THRESHOLDS", CAT_ORCHESTRATION, "3,5,8",
+        "重复提醒的触发次数（逗号分隔，升序去重；至少两个且 ≥2，非法回落 3,5,8）",
+        owner="agent/tools/governance.py", validator=Validator("str")),
+    _mk("CP_TOOL_REPEAT_WINDOW_SECONDS", CAT_ORCHESTRATION, 300,
+        "重复计数的滑动窗口（秒，10–3600）；窗口外重新计数",
+        owner="agent/tools/governance.py",
+        validator=_range_validator(10, 3600, kind="int")),
     _b("CP_TOOL_SANDBOX_ALLOWED_ENFORCE", CAT_SELF_HEALING, True,
        "受限会话内是否消费 YAML 的 sandbox_allowed=false（拒绝该能力）",
        owner="agent/tool_gate.py"),
@@ -3644,3 +3657,4 @@ __all__ = [
     "dynamic_prefixes", "categories", "counts_by_risk",
     "observability_rule_paths", "BOOL_V",
 ]
+

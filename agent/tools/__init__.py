@@ -703,6 +703,15 @@ def call(*args, **params) -> Any:
                 return timeout_error_payload(name, _handler_timeout)
             result = _outcome
 
+            # ── E0-4 治理小件：重复调用提醒 `_repeat`（命中提醒点才加字段）────────
+            # 放在 handler 返回之后、污点打标/spill 之前：提醒也是模型要读的结果内容，
+            # 应一起进 spill 的落盘文本。治理旁路失败只记 debug（不改工具可用性）。
+            try:
+                from agent.tools.governance import annotate_result as _annotate
+                _annotate(name, params, result)
+            except Exception as _gov_err:  # noqa: BLE001
+                logger.debug("[%s] governance 跳过: %s", trace_id, type(_gov_err).__name__)
+
             if _saga is not None:
                 try:
                     _saga.confirm(result=result)

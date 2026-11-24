@@ -611,6 +611,28 @@ def _reset_llm_monitor_snapshot(_isolate_llm_monitor_snapshot):
     yield
 
 
+@pytest.fixture(autouse=True)
+def _reset_tool_governance_repeat_state():
+    """逐用例清空「重复调用提醒」的线程内计数（E0-4）
+
+    Why：`agent/tools/governance.py` 的重复计数是**进程级/线程内**的（生产语义：同一会话
+    内连续同参调用才提醒）。用例之间若共用计数，前一个用例调过两次同一工具，后一个
+    用例第 1 次就会拿到 `_repeat` ⇒ 断言「结果整字典相等」的用例随机红（实测）。
+    这里只清测试进程内的状态，不改生产口径（口径 §10：测试隔离用 autouse fixture）。
+    """
+    try:
+        from agent.tools.governance import reset_state as _reset_repeat_state
+        _reset_repeat_state()
+    except Exception:  # noqa: BLE001  模块不可导入时保持安静
+        pass
+    yield
+    try:
+        from agent.tools.governance import reset_state as _reset_repeat_state
+        _reset_repeat_state()
+    except Exception:  # noqa: BLE001
+        pass
+
+
 @pytest.fixture(autouse=True, scope="session")
 def _isolate_approval_stores(tmp_path_factory):
     """把审批记录 / 消费台账 / 事件流 / 链式审计指向会话级临时目录（绝不写 data/**）"""
