@@ -63,6 +63,7 @@ flowchart LR
     end
     subgraph context [context]
         agent_context_assembler["agent.context.assembler"]:::crosslayer
+        agent_context_spill["agent.context.spill"]:::crosslayer
     end
     subgraph core [core]
         agent_ab_testing["agent.ab_testing"]
@@ -2132,6 +2133,7 @@ flowchart LR
     agent_sandbox_shell_run --> agent_sandbox_win_acl
     agent_sandbox_shell_run --> agent_sandbox_win_token
     agent_sandbox_shell_run --> agent_sandbox_win_acl
+    agent_sandbox_shell_run -.-> agent_context_spill
     agent_sandbox_win_token --> agent_sandbox_win_acl
     agent_scheduling --> agent_logging_utils
     agent_scheduling -.-> agent_utils_singleton_manager
@@ -2889,6 +2891,7 @@ flowchart LR
     agent_tools -.-> agent_descriptors_registry
     agent_tools -.-> agent_lines_callability
     agent_tools -.-> agent_timeout_budget
+    agent_tools -.-> agent_context_spill
     agent_tools_browser_tools -.-> agent_guardrails_ssrf_guard
     agent_tools_browser_tools -.-> agent_guardrails_ssrf_guard
     agent_tools_code_tools --> agent
@@ -2959,6 +2962,7 @@ flowchart LR
     agent_tools_file_tools_reg -.-> agent_compression_tools
     agent_tools_file_tools_reg -.-> agent_diff_tools
     agent_tools_file_tools_reg -.-> agent_policy_taint
+    agent_tools_file_tools_reg -.-> agent_context_spill
     agent_tools_git_tools --> agent
     agent_tools_git_tools -.-> agent_utils
     agent_tools_lint_tools --> agent
@@ -2985,6 +2989,7 @@ flowchart LR
     agent_tools_shell_tools -.-> agent_sandbox
     agent_tools_shell_tools -.-> agent_sandbox_win_acl
     agent_tools_shell_tools -.-> agent_sandbox
+    agent_tools_shell_tools -.-> agent_context_spill
     agent_tools_shell_tools -.-> agent_audit_facade
     agent_tools_shell_tools -.-> agent_sandbox
     agent_tools_shell_tools -.-> agent_subagent_sandbox
@@ -3118,9 +3123,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 790
-- 模块节点数: 683
-- 依赖边数: 2303
-- 跨层调用数: 1461
+- 扫描文件数: 791
+- 模块节点数: 684
+- 依赖边数: 2307
+- 跨层调用数: 1465
 - 违规调用数: 0
 - 动态 import 数: 1
