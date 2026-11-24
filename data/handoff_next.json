@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-25T00:00:00+08:00",
+ "updated_at": "2026-11-25T02:30:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1468,7 +1468,7 @@
    "priority": "P1",
    "title": "DSH 能力对齐总程序：DSH 有而云枢缺/弱的全部补齐，云枢更强的保留",
    "criteria": "Owner 2026-11-24 决定：所有欠缺与不如 DSH 的能力都要做；强项（审计链/知识库/摄入/单位看板/UI 守卫/插件签名+AppContainer/中文多引擎/角色审批/技能双轨/调度）保留。总规划见 docs/plan/2026-11-24-dsh-parity-roadmap.md（19 项差距、6 个 Phase、E0-1 到 E5-2 共 20 个 Epic）。",
-   "next": "E0-1 / E0-2（spill）/ E0-4（重复提醒）已交付（2026-11-24，b0de31b43）；继续 E0-3（检查点/快照）→ 余项（pruner/token-meter/image offload、每步时钟、协作式取消）。每个 Epic 单独提交/部署/CI；设计页 docs/plan/2026-11-24-e0-{1,2,4}-*.md。"
+   "next": "Phase 0 四项已交付（E0-1 / E0-2① / E0-3 / E0-4①，2026-11-25，3e5f4f887）；下一步 Phase 1：E1-1 计划模式 → E1-2 Goal → E1-3 提问/交付卡（对接 E0-3 检查点）→ E1-4 会话智能。每个 Epic 单独提交/部署/CI；设计页 docs/plan/2026-11-2{4,5}-e0-*.md。"
   },
   {
    "id": "dsh-parity-p0-foundation",
@@ -1476,7 +1476,7 @@
    "priority": "P0",
    "title": "Phase 0 地基：权限预设+OS 级沙箱、上下文工程（spill/pruner/image offload）、会话检查点+变更快照、工具治理小件",
    "criteria": "E0-1 权限预设+OS 级沙箱（Windows 受限令牌/ACL 写限制，fail-closed；非 Windows 探测 bwrap/seatbelt）；E0-2 token-meter 驱动压缩 + 大输出 spill+locator（新增 read_spill 工具）+ tool-result pruner + 图片 offload；E0-3 会话检查点 + 每轮 workspace 变更快照（供变更文件卡）；E0-4 repeat-tool 提醒/通用工具超时/time-context。",
-   "next": "E0-1 已交付（896d9f016 + 769a1217a + 877efffe3，探针 16/16）；E0-2 ①spill+read_spill 已交付（80360b2e3，探针 8/8）；E0-4 ①重复调用提醒已交付（2026-11-24，b0de31b43，探针 7/7）；余项见 dsh-parity-e0-2-remaining / dsh-parity-e0-4-remaining。下一步 E0-3（会话检查点 + 每轮 workspace 变更快照；M 级，含新表/路由/派生面）。"
+   "next": "Phase 0 已交付：E0-1（权限预设 + Windows 受限令牌，896d9f016/769a1217a/877efffe3）、E0-2①（大输出 spill + read_spill，80360b2e3）、E0-4①（重复调用提醒，b0de31b43）、E0-3（会话检查点 + workspace 变更快照，3e5f4f887：每轮/每次写工具成功后后台抓 git status/diff + 整文件捕获，可 list/show/diff；本轮**有意不加 HTTP/UI**，变更文件卡属 E1-3）。剩余：E0-2 余项（pruner/token-meter/image offload）、E0-4 余项（每步时钟/协作式取消），见对应 remaining 条目。下一步可进 Phase 1（E1-1 计划模式）。"
   },
   {
    "id": "dsh-parity-p1-workmode",
