@@ -749,6 +749,16 @@ def call(*args, **params) -> Any:
                     access_type = "sensor"
                 _action_tracker.log_access(access_type, target or name, name, "allowed")
 
+            # ── E0-3 每轮 workspace 变更快照（只对会改工作区的工具，成功后后台抓）──
+            # 去抖/单飞都在 checkpoint 模块内；这里只做「是否排入」的判定，
+            # 快照异常只记 debug（旁路，绝不影响工具返回）。
+            try:
+                from agent.context.checkpoint import maybe_snapshot as _maybe_snapshot
+                if isinstance(result, dict) and result.get("ok"):
+                    _maybe_snapshot(name)
+            except Exception as _cp_err:  # noqa: BLE001
+                logger.debug("[%s] checkpoint 跳过: %s", trace_id, type(_cp_err).__name__)
+
             # ── 外来文本污点标记（TASK-07 机制 1 的结果侧接线）────────────────
             # 位置：**handler 返回之后、结果交给调用方之前** —— 这是"数据进入上下文
             # 之前"的唯一可靠时点（调用方拿到结果后会立刻拼进消息）。
