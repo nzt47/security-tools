@@ -63,6 +63,7 @@ flowchart LR
     end
     subgraph context [context]
         agent_context_assembler["agent.context.assembler"]:::crosslayer
+        agent_context_checkpoint["agent.context.checkpoint"]:::crosslayer
         agent_context_spill["agent.context.spill"]:::crosslayer
     end
     subgraph core [core]
@@ -2893,6 +2894,7 @@ flowchart LR
     agent_tools -.-> agent_lines_callability
     agent_tools -.-> agent_timeout_budget
     agent_tools --> agent_tools_governance
+    agent_tools -.-> agent_context_checkpoint
     agent_tools -.-> agent_context_spill
     agent_tools_browser_tools -.-> agent_guardrails_ssrf_guard
     agent_tools_browser_tools -.-> agent_guardrails_ssrf_guard
@@ -3126,9 +3128,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 792
-- 模块节点数: 685
-- 依赖边数: 2309
-- 跨层调用数: 1466
+- 扫描文件数: 793
+- 模块节点数: 686
+- 依赖边数: 2310
+- 跨层调用数: 1467
 - 违规调用数: 0
 - 动态 import 数: 1
