@@ -963,6 +963,7 @@ flowchart LR
     agent_context_assembler -.-> agent_guardrails_foreign_taint
     agent_context_assembler -.-> agent_guardrails_instruction_data
     agent_context_assembler -.-> agent_guardrails_foreign_taint
+    agent_context_checkpoint -.-> agent_utils
     agent_data_observability -.-> agent_logging_utils
     agent_data_observability -.-> agent_monitoring_business_metrics
     agent_data_analytics --> agent_logging_utils
@@ -3130,7 +3131,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 793
 - 模块节点数: 686
-- 依赖边数: 2310
-- 跨层调用数: 1467
+- 依赖边数: 2311
+- 跨层调用数: 1468
 - 违规调用数: 0
 - 动态 import 数: 1

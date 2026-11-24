@@ -430,7 +430,7 @@
       "name": "utils",
       "layer": "utils",
       "file_path": "",
-      "in_degree": 28,
+      "in_degree": 29,
       "out_degree": 0
     },
     {
@@ -760,6 +760,14 @@
       "file_path": "",
       "in_degree": 5,
       "out_degree": 4
+    },
+    {
+      "path": "agent.context.checkpoint",
+      "name": "checkpoint",
+      "layer": "context",
+      "file_path": "agent/context/checkpoint.py",
+      "in_degree": 1,
+      "out_degree": 1
     },
     {
       "path": "agent.data.observability",
@@ -5314,14 +5322,6 @@
       "out_degree": 1
     },
     {
-      "path": "agent.context.checkpoint",
-      "name": "checkpoint",
-      "layer": "context",
-      "file_path": "",
-      "in_degree": 1,
-      "out_degree": 0
-    },
-    {
       "path": "agent.diagram_tools",
       "name": "diagram_tools",
       "layer": "core",
@@ -7475,6 +7475,19 @@
       "import_type": "from_import",
       "line": 336,
       "source_file": "agent/context/assembler.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.context.checkpoint",
+      "target": "agent.utils",
+      "source_layer": "context",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 33,
+      "source_file": "agent/context/checkpoint.py",
       "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
@@ -35525,8 +35538,8 @@
   "stats": {
     "total_files": 793,
     "total_nodes": 686,
-    "total_edges": 2310,
-    "cross_layer_edges": 1467,
+    "total_edges": 2311,
+    "cross_layer_edges": 1468,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
