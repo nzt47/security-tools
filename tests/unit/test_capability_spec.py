@@ -4,7 +4,7 @@
     TASK-04 把能力从"隐式约定"变成"显式规格"，它守的每一条不变量都是**回归风险点**：
 
       1. `CapabilitySpec` 只在 `agent/lines/models.py` 单点定义（E1）——多一个类就是第二真相源；
-      2. 127 条能力全部有 `location`/`kind`/`owner`/`version`/`capability_id`（E2）；
+      2. 147 条能力全部有 `location`/`kind`/`owner`/`version`/`capability_id`（E2）；
          【G1-C 2026-09-26】114 → 119：H-3 把 5 条主轨独有技能迁移成 skill.md 实体
          ⇒ 它们从「runtime_only 声明」进入清单（能力面 +5）。断言强度不变，只是基线数刷新。
       3. 4 个 MCP 管理面工具的 `location` 判定依据是**事实**（E3）；
@@ -154,7 +154,8 @@ class TestCapabilitySpecFields:
         committed = {n: m for n, m in metas.items() if n not in runtime_only}
         # 【2026-11-19】94 → 95：ui_guard_check（UI 规范守卫，只读）
         # 【2026-11-20】95 → 96：ui_guard_fix（受控修复，默认停用但仍登记）
-        assert len(committed) == 96, f"入库工具 YAML 数量变了（实测应为 96）：{len(committed)}"
+        # 【2026-11-24】96 → 97：read_spill（E0-2 大输出落盘后的分段读取）
+        assert len(committed) == 97, f"入库工具 YAML 数量变了（实测应为 97）：{len(committed)}"
         for name, meta in committed.items():
             d = meta.to_dict()          # 不抛异常即通过
             assert d["capability_id"], f"{name}: capability_id 为空"
@@ -173,7 +174,8 @@ class TestLocationCoverage:
         # 【2026-10-31】133 -> 135：autoresearch / pdf 入文件轨（§11.32 C · N5）。
         # 【2026-11-07】139 -> 140：chart-visualization 入文件轨（§11.57 ①）。
         # 【2026-11-20】145 → 146：ui_guard_fix（工具 +1）
-        assert len(manifest["entries"]) == 146
+        # 【2026-11-24】146 → 147：read_spill（工具 +1）
+        assert len(manifest["entries"]) == 147
         for e in manifest["entries"]:
             assert e.get("location") in ("local", "remote"), \
                 f"{e['tool_name']}: location 缺失或非法"
@@ -546,3 +548,4 @@ class TestHasCaller:
         """判定必须排除 tests/（否则"只有测试在调"的孤儿会被误判成有调用方）"""
         res = C.has_caller("register_knowledge_audit_job")
         assert all(not c.startswith("tests/") for c in res["callers"])
+

@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-11-24T20:31:13",
+  "generated_at": "2026-11-24T22:08:33",
   "scope": "仓库可复现口径：data/tool_definitions/*.yaml + data/skill_callability.yaml + data/skills_repo/*/skill.md + data/permission_policies.json + 注册点静态扫描（不含 .gitignore 里的运行时技能目录/台账）",
   "runtime_only_declarations": [
     "global-core-principles",
@@ -339,9 +339,9 @@
       "decompress",
       "fan_out",
       "git",
+      "read_spill",
       "run_lint",
-      "run_sandbox",
-      "run_tests"
+      "run_sandbox"
     ],
     "muted": [
       "web_batch",
@@ -375,25 +375,25 @@
   },
   "performance_note": "性能列（avg_ms / p99_ms / dpm）**一律未采集**：仓库现有实测只有一次 HTTP 压测（p50=15.84s），且进程内计时冒充压测的产物已确认不可引用（见 TASK-00 §0.2b）。清单**不提供估算值**；采集方案与 TASK-08 对接。",
   "counts": {
-    "total": 146,
-    "callable": 73,
+    "total": 147,
+    "callable": 74,
     "conditional": 68,
     "blocked": 5,
-    "model_callable": 94,
+    "model_callable": 95,
     "by_trigger": {
-      "model": 94,
+      "model": 95,
       "system": 47,
       "human": 0,
       "none": 5
     },
     "by_type": {
-      "tool": 96,
+      "tool": 97,
       "skill": 50,
       "api": 0,
       "script": 0
     },
     "by_permission_level": {
-      "public": 82,
+      "public": 83,
       "internal": 38,
       "restricted": 26
     },
@@ -412,45 +412,45 @@
       "空实现": 1
     },
     "by_kind": {
-      "tool": 96,
+      "tool": 97,
       "skill": 50
     },
     "by_location": {
-      "local": 123,
+      "local": 124,
       "remote": 23
     },
     "by_location_source": {
-      "declaration": 96,
+      "declaration": 97,
       "skill_chain": 50
     },
     "by_location_derived_source": {
-      "executor_boundary": 96,
+      "executor_boundary": 97,
       "skill_chain": 50
     },
     "by_isolation_level": {
       "none": 0,
-      "process": 146,
+      "process": 147,
       "container": 0
     },
     "by_owner": {
-      "builtin": 146,
+      "builtin": 147,
       "local-installed": 0,
       "tenant-installed": 0,
       "marketplace": 0
     },
     "by_registry_source": {
-      "global": 146,
+      "global": 147,
       "planning": 0
     },
     "by_main_line_status": {
-      "not_assembled": 58,
+      "not_assembled": 59,
       "n/a": 50,
       "visible": 27,
       "denied_by_effect": 8,
       "muted": 3
     },
     "location_confidence": {
-      "low": 74,
+      "low": 75,
       "high": 72
     },
     "declared_location_mismatch": 0
@@ -7249,6 +7249,85 @@
       "main_line_status": "not_assembled"
     },
     {
+      "tool_name": "read_spill",
+      "tool_type": "tool",
+      "scope": "repo",
+      "llm_callable": true,
+      "callable_mode": "auto",
+      "schema_registered": true,
+      "host_executor": "agent.tools.file_tools_reg:_read_spill",
+      "permission_level": "public",
+      "sandbox_allowed": true,
+      "isolation_level": "process",
+      "reason": "",
+      "description": "按 locator 分段读取被落盘的大结果（工具结果超过阈值时会回 spilled=true 与 locator；offset/limit 以字符计）。Read a spilled tool result by locator in segments",
+      "capability_id": "default:yunshu:read_spill@1.0.0",
+      "kind": "tool",
+      "location": "local",
+      "location_source": "declaration",
+      "location_derived_source": "executor_boundary",
+      "location_evidence": [
+        "调用链（agent.tools.file_tools_reg:_read_spill）在 6 跳内未命中任何跨边界原语；另有 15 个调用点静态无法解析（见 unresolved）",
+        "声明钉住 location=local，与事实判定一致"
+      ],
+      "location_declared": "local",
+      "location_consistent": true,
+      "location_confidence": "low",
+      "location_unresolved": [
+        "Path",
+        "SandboxEscapeError",
+        "_LOCATOR_RE.match",
+        "_name_conflicts.append",
+        "candidate.startswith",
+        "int",
+        "kwargs.get",
+        "len",
+        "logger.info",
+        "logger.warning",
+        "match.group",
+        "max",
+        "min",
+        "self.files.get",
+        "str"
+      ],
+      "location_ffi": [],
+      "owner": "builtin",
+      "version": "1.0.0",
+      "namespace": "yunshu",
+      "tenant_id": "default",
+      "registry_source": "global",
+      "aliases": [],
+      "deprecated": false,
+      "entity_versioned": true,
+      "mark": "✅ 可调用",
+      "reachable": true,
+      "trigger": "model",
+      "reason_kind": "",
+      "blockers": [],
+      "blocker_codes": [],
+      "soft_blockers": [],
+      "soft_codes": [],
+      "conditions": [],
+      "notes": [],
+      "declared_llm_callable": true,
+      "declared_permission_level": "public",
+      "derived_permission_level": "public",
+      "declared_in": "data/tool_definitions/read_spill.yaml",
+      "category": "file",
+      "plane": "perceive",
+      "effect": "read",
+      "risk": "low",
+      "needs_approval": false,
+      "confirm_level": "L0",
+      "confirm_level_derived": "L0",
+      "confirm_level_declared": "",
+      "confirm_level_overridden": false,
+      "confirm_level_reason": "",
+      "internal": false,
+      "enabled": true,
+      "main_line_status": "visible"
+    },
+    {
       "tool_name": "remember",
       "tool_type": "tool",
       "scope": "repo",
@@ -7947,7 +8026,7 @@
       "confirm_level_reason": "",
       "internal": false,
       "enabled": true,
-      "main_line_status": "visible"
+      "main_line_status": "not_assembled"
     },
     {
       "tool_name": "scan_mcp",
@@ -21709,6 +21788,85 @@
       "main_line_status": "not_assembled"
     },
     {
+      "tool_name": "read_spill",
+      "tool_type": "tool",
+      "scope": "repo",
+      "llm_callable": true,
+      "callable_mode": "auto",
+      "schema_registered": true,
+      "host_executor": "agent.tools.file_tools_reg:_read_spill",
+      "permission_level": "public",
+      "sandbox_allowed": true,
+      "isolation_level": "process",
+      "reason": "",
+      "description": "按 locator 分段读取被落盘的大结果（工具结果超过阈值时会回 spilled=true 与 locator；offset/limit 以字符计）。Read a spilled tool result by locator in segments",
+      "capability_id": "default:yunshu:read_spill@1.0.0",
+      "kind": "tool",
+      "location": "local",
+      "location_source": "declaration",
+      "location_derived_source": "executor_boundary",
+      "location_evidence": [
+        "调用链（agent.tools.file_tools_reg:_read_spill）在 6 跳内未命中任何跨边界原语；另有 15 个调用点静态无法解析（见 unresolved）",
+        "声明钉住 location=local，与事实判定一致"
+      ],
+      "location_declared": "local",
+      "location_consistent": true,
+      "location_confidence": "low",
+      "location_unresolved": [
+        "Path",
+        "SandboxEscapeError",
+        "_LOCATOR_RE.match",
+        "_name_conflicts.append",
+        "candidate.startswith",
+        "int",
+        "kwargs.get",
+        "len",
+        "logger.info",
+        "logger.warning",
+        "match.group",
+        "max",
+        "min",
+        "self.files.get",
+        "str"
+      ],
+      "location_ffi": [],
+      "owner": "builtin",
+      "version": "1.0.0",
+      "namespace": "yunshu",
+      "tenant_id": "default",
+      "registry_source": "global",
+      "aliases": [],
+      "deprecated": false,
+      "entity_versioned": true,
+      "mark": "✅ 可调用",
+      "reachable": true,
+      "trigger": "model",
+      "reason_kind": "",
+      "blockers": [],
+      "blocker_codes": [],
+      "soft_blockers": [],
+      "soft_codes": [],
+      "conditions": [],
+      "notes": [],
+      "declared_llm_callable": true,
+      "declared_permission_level": "public",
+      "derived_permission_level": "public",
+      "declared_in": "data/tool_definitions/read_spill.yaml",
+      "category": "file",
+      "plane": "perceive",
+      "effect": "read",
+      "risk": "low",
+      "needs_approval": false,
+      "confirm_level": "L0",
+      "confirm_level_derived": "L0",
+      "confirm_level_declared": "",
+      "confirm_level_overridden": false,
+      "confirm_level_reason": "",
+      "internal": false,
+      "enabled": true,
+      "main_line_status": "visible"
+    },
+    {
       "tool_name": "remember",
       "tool_type": "tool",
       "scope": "repo",
@@ -22407,7 +22565,7 @@
       "confirm_level_reason": "",
       "internal": false,
       "enabled": true,
-      "main_line_status": "visible"
+      "main_line_status": "not_assembled"
     },
     {
       "tool_name": "scan_mcp",
@@ -29420,6 +29578,7 @@
     "read_file",
     "read_pdf",
     "read_pdf_tables",
+    "read_spill",
     "remember",
     "resume_scheduled_task",
     "run_lint",
