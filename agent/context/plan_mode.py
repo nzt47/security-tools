@@ -44,8 +44,8 @@ _LOCK = threading.RLock()
 #: 历史版本最多保留个数（超出删除最老的 v*.md，避免无限增长）
 MAX_VERSIONS = 20
 
-#: 会话键白名单：SessionManager 生成的 id 天然满足；外部传入的非法 id 走哈希。
-_SAFE_KEY_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+#: 派生键的形态（全 hex；与 spill.py 的 locator 同一写法：正则捕获后再进路径表达式）
+_KEY_RE = re.compile(r"^(?P<key>[0-9a-f]{32})$")
 
 #: 合法状态
 STATUSES = ("idle", "planning", "pending_approval", "approved", "rejected")
@@ -94,33 +94,38 @@ def get_root() -> str:
 
 
 def session_key(session_id: str) -> str:
-    """会话键 → 安全目录名
+    """会话 ID → 目录名（**sha256 派生，用户串不进路径表达式**）
 
-    【不易】非法 id 必须哈希而不是替换字符：``a/b`` 与 ``a_b`` 会被替换成同一个
-    目录 ⇒ 两个会话的计划串台。哈希保证一一对应，且不含路径分隔符。
+    【为什么全部哈希、且用 sha256】CodeQL ``py/path-injection`` 认的是"用户串有没有
+    进路径表达式"，白名单正则不算消毒（口径 §4 三铁律之一：常量键→常量值 / 列目录
+    等值 / sha256）。这里统一 sha256 前 32 位：一一对应、不含路径分隔符，也顺带
+    避免 ``py/weak-sensitive-data-hashing``（sha1 会被判弱哈希）。
     """
     sid = str(session_id or "").strip()
     if not sid:
         raise PlanModeError("invalid_session", "session_id 不能为空")
-    if _SAFE_KEY_RE.match(sid):
-        return sid
-    return "h-" + hashlib.sha1(sid.encode("utf-8")).hexdigest()[:24]
+    digest = hashlib.sha256(sid.encode("utf-8")).hexdigest()[:32]
+    match = _KEY_RE.match(digest)
+    if not match:  # pragma: no cover 纯 static 兜底：sha256 hexdigest 必然满足
+        raise PlanModeError("invalid_key", "会话键派生失败")
+    return match.group("key")
 
 
-def _dir(session_id: str) -> str:
-    return os.path.join(get_root(), session_key(session_id))
+def _dir(key: str) -> str:
+    """目录 = 根 + **已派生的键**（不要在这里再调 session_key，否则会二次哈希）"""
+    return os.path.join(get_root(), key)
 
 
-def _state_path(session_id: str) -> str:
-    return os.path.join(_dir(session_id), "state.json")
+def _state_path(key: str) -> str:
+    return os.path.join(_dir(key), "state.json")
 
 
-def _plan_path(session_id: str) -> str:
-    return os.path.join(_dir(session_id), "plan.md")
+def _plan_path(key: str) -> str:
+    return os.path.join(_dir(key), "plan.md")
 
 
-def _version_path(session_id: str, version: int) -> str:
-    return os.path.join(_dir(session_id), "v%d.md" % int(version))
+def _version_path(key: str, version: int) -> str:
+    return os.path.join(_dir(key), "v%d.md" % int(version))
 
 
 def _now() -> str:
@@ -157,9 +162,9 @@ def _default_state() -> dict:
     }
 
 
-def _load_raw(session_id: str) -> dict:
+def _load_raw(key: str) -> dict:
     """读 state.json；不存在/损坏一律按默认态（绝不抛异常给调用方）"""
-    path = _state_path(session_id)
+    path = _state_path(key)
     if not os.path.isfile(path):
         return _default_state()
     try:
@@ -185,13 +190,13 @@ def _load_raw(session_id: str) -> dict:
     return state
 
 
-def _save_raw(session_id: str, state: dict) -> None:
+def _save_raw(key: str, state: dict) -> None:
     state["updated_at"] = _now()
-    _atomic_write(_state_path(session_id), json.dumps(state, ensure_ascii=False, indent=2))
+    _atomic_write(_state_path(key), json.dumps(state, ensure_ascii=False, indent=2))
 
 
-def _read_plan(session_id: str) -> str:
-    path = _plan_path(session_id)
+def _read_plan(key: str) -> str:
+    path = _plan_path(key)
     try:
         with open(path, "r", encoding="utf-8") as f:
             return f.read()
@@ -199,13 +204,13 @@ def _read_plan(session_id: str) -> str:
         return ""
 
 
-def _trim_versions(session_id: str, state: dict) -> None:
+def _trim_versions(key: str, state: dict) -> None:
     """只保留最近 ``MAX_VERSIONS`` 个版本文件（版本号只增不减）"""
     revisions = [r for r in state.get("revisions", []) if isinstance(r, dict)]
     revisions.sort(key=lambda r: int(r.get("version") or 0))
     for old in revisions[:-MAX_VERSIONS]:
         try:
-            os.remove(_version_path(session_id, int(old.get("version") or 0)))
+            os.remove(_version_path(key, int(old.get("version") or 0)))
         except OSError:
             pass
     state["revisions"] = revisions[-MAX_VERSIONS:]
@@ -373,15 +378,23 @@ def delete_plan(session_id: str) -> bool:
     if not os.path.isdir(path):
         return False
     with _LOCK:
+        # 【不易】不用 os.listdir 拼路径（CodeQL 会把"目录项 → 路径"判成注入）：
+        # 只删**我们自己按常量命名**的文件，版本号由 state 里的 int 决定。
+        state = _load_raw(key)
+        names = ["state.json", "state.json.tmp", "plan.md", "plan.md.tmp"]
+        for version in range(1, int(state.get("version") or 0) + 1):
+            names.append("v%d.md" % version)
+            names.append("v%d.md.tmp" % version)
         try:
-            for name in os.listdir(path):
-                if name.startswith(("state.json", "plan.md", "v")) and (
-                        name.endswith((".json", ".md", ".tmp"))):
+            for name in names:
+                try:
                     os.remove(os.path.join(path, name))
+                except OSError:
+                    pass  # 单个文件不存在不影响清理其余文件
             try:
                 os.rmdir(path)
             except OSError:
-                pass  # 目录非空（未知文件）时保留，删掉我们自己写的文件即可
+                pass  # 目录里还有未知文件时保留目录；我们自己写的已删
             return True
         except OSError:
             return False

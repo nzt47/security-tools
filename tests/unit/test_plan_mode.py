@@ -36,13 +36,13 @@ class TestStateMachine:
         assert st["status"] == "idle"
         assert st["version"] == 0
         assert st["plan"] == ""
-        assert not os.path.exists(os.path.join(plan_mode.get_root(), session_id))
+        assert not os.path.exists(os.path.join(plan_mode.get_root(), plan_mode.session_key(session_id)))
 
     def test_进入计划模式_落_markdown_占位(self, session_id):
         st = plan_mode.enter(session_id)
         assert st["plan_mode"] is True
         assert st["status"] == "planning"
-        plan_file = os.path.join(plan_mode.get_root(), session_id, "plan.md")
+        plan_file = os.path.join(plan_mode.get_root(), plan_mode.session_key(session_id), "plan.md")
         assert os.path.isfile(plan_file)
         assert "计划模式" in open(plan_file, encoding="utf-8").read()
 
@@ -58,7 +58,7 @@ class TestStateMachine:
         assert st["status"] == "pending_approval"
         assert "读代码" in st["plan"]
         # plan.md 与 v1.md 同内容
-        root = os.path.join(plan_mode.get_root(), session_id)
+        root = os.path.join(plan_mode.get_root(), plan_mode.session_key(session_id))
         assert open(os.path.join(root, "v1.md"), encoding="utf-8").read() == st["plan"]
         assert open(os.path.join(root, "plan.md"), encoding="utf-8").read() == st["plan"]
         # state.json 是合法 JSON（原子写没有留下半截文件）
@@ -121,7 +121,7 @@ class TestStateMachine:
         assert st["plan_mode"] is True
         assert st["revisions"][-1]["rollback_of"] == 1
         # 旧版本文件仍在（回滚不删历史）
-        root = os.path.join(plan_mode.get_root(), session_id)
+        root = os.path.join(plan_mode.get_root(), plan_mode.session_key(session_id))
         assert os.path.isfile(os.path.join(root, "v1.md"))
         assert os.path.isfile(os.path.join(root, "v2.md"))
 
@@ -156,13 +156,16 @@ class TestSessionKey:
     def test_非法会话_id_哈希且不穿透目录(self):
         key = plan_mode.session_key("../../etc/passwd")
         assert "/" not in key and "\\" not in key and ".." not in key
-        assert key.startswith("h-")
+        assert len(key) == 32 and all(c in "0123456789abcdef" for c in key)
 
     def test_不同非法_id_不会撞同一目录(self):
         assert plan_mode.session_key("a/b") != plan_mode.session_key("a_b")
 
-    def test_合法_id_原样使用(self):
-        assert plan_mode.session_key("sess-abc_123") == "sess-abc_123"
+    def test_合法_id_也哈希且稳定(self):
+        # 【CodeQL 三铁律】用户串不进路径表达式：合法 id 同样 sha256 派生（32 hex）
+        key = plan_mode.session_key("sess-abc_123")
+        assert key == plan_mode.session_key("sess-abc_123")
+        assert len(key) == 32 and all(c in "0123456789abcdef" for c in key)
 
     def test_空_id_报错(self):
         with pytest.raises(plan_mode.PlanModeError):
