@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-24T18:3x:00+08:00",
+ "updated_at": "2026-11-24T20:0x:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1461,6 +1461,62 @@
    "title": "HTTP 插件路由硬超时：p99 未恶化，主动不做（要做得路由出进程）",
    "criteria": "2026-11-23 p99 实测：14 个内置插件/226 条路由都在宿主进程，无持续慢路由；bulkhead 限并发不是硬超时；Python 线程杀不掉 ⇒ 宿主内 timer 只能软超时。硬超时须把路由出进程/独立服务（5–10 天，改 226 条路由调用形态）。",
    "next": "重新评估的触发条件：某个 blueprint 的 p99 持续恶化或出现超时堆积（先补每 blueprint 的 p99/超时计数结构化指标再决定）。不要加假 504。"
+  },
+  {
+   "id": "dsh-parity-program",
+   "status": "open",
+   "priority": "P1",
+   "title": "DSH 能力对齐总程序：DSH 有而云枢缺/弱的全部补齐，云枢更强的保留",
+   "criteria": "Owner 2026-11-24 决定：所有欠缺与不如 DSH 的能力都要做；强项（审计链/知识库/摄入/单位看板/UI 守卫/插件签名+AppContainer/中文多引擎/角色审批/技能双轨/调度）保留。总规划见 docs/plan/2026-11-24-dsh-parity-roadmap.md（19 项差距、6 个 Phase、E0-1 到 E5-2 共 20 个 Epic）。",
+   "next": "新会话先读 §11.219 与路线图，与 Owner 确认从 E0-1（权限预设+OS 级沙箱）开始；每个 Epic 单独提交/部署/CI，按路线图第 5 节 DoD 执行。禁止大爆炸式合并。"
+  },
+  {
+   "id": "dsh-parity-p0-foundation",
+   "status": "open",
+   "priority": "P0",
+   "title": "Phase 0 地基：权限预设+OS 级沙箱、上下文工程（spill/pruner/image offload）、会话检查点+变更快照、工具治理小件",
+   "criteria": "E0-1 权限预设+OS 级沙箱（Windows 受限令牌/ACL 写限制，fail-closed；非 Windows 探测 bwrap/seatbelt）；E0-2 token-meter 驱动压缩 + 大输出 spill+locator（新增 read_spill 工具）+ tool-result pruner + 图片 offload；E0-3 会话检查点 + 每轮 workspace 变更快照（供变更文件卡）；E0-4 repeat-tool 提醒/通用工具超时/time-context。",
+   "next": "按 E0-1 → E0-2 → E0-3 顺序做（E0-4 可并行）。E0-1 先出设计页（预设枚举、ACL 允许路径、回滚），再动代码；新增 env 进 registry；新增工具走 5 处连锁；验收含“只读档写出界被 OS 拒绝”的探针。"
+  },
+  {
+   "id": "dsh-parity-p1-workmode",
+   "status": "open",
+   "priority": "P1",
+   "title": "Phase 1 工作方式：计划模式、Goal + 自动续跑、ask_user_question + present/变更文件卡、会话智能（标题/FTS/outline/stats/导出）",
+   "criteria": "E1-1 /plan + exit_plan_mode + 计划卡；E1-2 goal 服务+工具+round driver+GoalBar（每会话单目标，Round 上限）；E1-3 结构化提问工具 + UI 接管 + present 交付卡（对接 E0-3 快照）；E1-4 LLM 标题、FTS5 搜索、turn outline、per-turn stats、会话导出（ZIP/MD）、模型工具 session_search/session_trace。",
+   "next": "依赖 Phase 0 的检查点与快照。每个 Epic 独立提交；UI 按封装规范（PageTabsHeader/SectionTitle/text-*），新增路由同步 config/route_ui_intent.json + triage 并重派生两份 reports。"
+  },
+  {
+   "id": "dsh-parity-p2-multiagent",
+   "status": "open",
+   "priority": "P2",
+   "title": "Phase 2 多代理：子代理控制（发消息/打断/发现）、Agent Team 任务板、fork 子代理、Ralph 循环",
+   "criteria": "E2-1 send_message/interrupt_agent/list_agents 复用现有生命周期管理器；E2-2 Team 模式（默认关）+ 共享任务 DAG + 任务板页；E2-3 fork 子代理（父日志前缀，不复制密钥）；E2-4 ralph（不可变目标、每轮全新子代理、maxRounds、终态 complete/blocked/budget-limited）。",
+   "next": "先做 E2-1（最小、复用现有 delegate 链路），再做 E2-3/E2-2，最后 E2-4。所有新工具走 5 处连锁；Team 默认关闭，关时零行为。"
+  },
+  {
+   "id": "dsh-parity-p3-execution",
+   "status": "open",
+   "priority": "P1",
+   "title": "Phase 3 执行与内容：持久终端 PTY、Office 三件套、附件/@引用/逐条反馈、语音输入/CoT 翻译（按需）",
+   "criteria": "E3-1 terminal_open/send/read/signal/close/list + 侧栏终端（ConPTY；多会话隔离）；E3-2 office_render/convert/recalculate + Office 技能（LibreOfficeKit 或本机 LibreOffice；不改输入、不写工作区）；E3-3 聊天附件/图片上传与粘贴、@file/@session 引用、消息引用、逐条 like/dislike；E3-4 STT 语音输入与 CoT 翻译（默认关）。",
+   "next": "PTY 与 Office 是最高价值，建议先做这两个（可并行两条工作流）；都属新增能力面，必须按 5 处连锁与干净 worktree 派生。"
+  },
+  {
+   "id": "dsh-parity-p4-orchestration",
+   "status": "open",
+   "priority": "P2",
+   "title": "Phase 4 编排与生态：Workflow JS、PTC、MCP resources/prompts、插件市场索引/推荐、平台集成（ACP/SDK/LiveShare/Inspector/worktree/forge/导入）",
+   "criteria": "E4-1 脚本编排（沙箱 JS 扇出 subagent，保留模板路径）；E4-2 PTC（程序化调工具、状态保留、资源上限）；E4-3 MCP resources/prompts；E4-4 市场索引 + Discover + 推荐 + 组合安装（不绕过签名/白名单）；E4-5 ACP/SDK/headless/LiveShare/Inspector/worktree/forge/DeepSeek 会话导入（每项独立、默认关）。",
+   "next": "E4-1/E4-2 先做安全设计（独立进程 + 工具白名单 + 超时/内存/输出上限）再实现；E4-4 复用现有 ext_discover/ext_install 与签名链；平台集成按真实需求排序。"
+  },
+  {
+   "id": "dsh-parity-p5-longterm",
+   "status": "open",
+   "priority": "P3",
+   "title": "Phase 5 长期质量：事件溯源会话与格式迁移、工作目录/依赖工具",
+   "criteria": "E5-1 会话事件溯源 + 版本化格式迁移（与 JSONL/审计并存，先只读投影）；E5-2 working_directory（会话级 cwd）与 load_workspace_dependencies（内置 Python/Node 路径）。",
+   "next": "在 Phase 0-4 稳定后做；E5-1 先出迁移/回滚方案，禁止一次性重写历史会话。"
   }
  ]
 }
