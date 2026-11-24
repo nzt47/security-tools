@@ -17,4 +17,15 @@ tags: [web, browser]
 schema:
   type: object
   properties: {}
+# 【result_schema（2026-11-24，L2 low 批次）】
+#   实调：{ok,closed:true}（幂等）。 required 只锁 ok（get_status / get_sensor_summary 例外，见各自文件）。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    closed:
+      type: boolean
+  required: [ok]
+  additionalProperties: true
 examples: []

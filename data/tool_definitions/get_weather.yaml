@@ -28,4 +28,21 @@ schema:
       - json
       - full
       description: 返回格式：text=简洁文本, json=完整JSON数据, full=完整文本预报
+# 【result_schema（2026-11-24，L2 low 批次）】
+#   成功/失败键取自 agent/system_tools.py::get_weather（ok/data/format/city/error）。 required 只锁 ok（get_status / get_sensor_summary 例外，见各自文件）。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    data:
+      type: string
+    format:
+      type: string
+    city:
+      type: string
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

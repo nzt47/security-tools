@@ -42,4 +42,19 @@ schema:
   required:
   - title
   - message
+# 【result_schema（2026-11-24，L2 low 批次）】
+#   实调缺参；成功键取自 agent/tools/notify_tools.py::notify（ok/delivered/failed，全失败带 error）。 required 只锁 ok（get_status / get_sensor_summary 例外，见各自文件）。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    delivered:
+      type: array
+    failed:
+      type: array
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

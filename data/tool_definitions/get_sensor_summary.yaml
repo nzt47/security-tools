@@ -17,4 +17,25 @@ tags: [sensor]
 schema:
   type: object
   properties: {}
+# 【result_schema（2026-11-24，L2 low 批次）】
+#   本工具**直接返回 dl.body.get_sensor_summary()** 的原始摘要字典
+#   （total_sensors/enabled_sensors/disabled_sensors/sensors/health[+error]，
+#   见 sensor/body_sensor.py::get_sensor_summary），**没有 ok 键**。
+#   故 required 为空数组（不伪造 ok）；只锁"是对象"。
+result_schema:
+  type: object
+  properties:
+    total_sensors:
+      type: integer
+    enabled_sensors:
+      type: integer
+    disabled_sensors:
+      type: integer
+    sensors:
+      type: array
+    health:
+      type: object
+    error:
+      type: string
+  additionalProperties: true
 examples: []

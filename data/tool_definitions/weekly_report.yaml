@@ -30,4 +30,21 @@ schema:
         - html
         - text
       description: 保存格式列表，默认 ["json", "html", "text"]
+# 【result_schema（2026-11-24，L2 low 批次）】
+#   成功键取自 agent/tools/extra_tools.py::_weekly_report（ok/output_dir/files/report）；失败 _fail 收口 {ok:false,error}。 required 只锁 ok（get_status / get_sensor_summary 例外，见各自文件）。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    output_dir:
+      type: string
+    files:
+      type: array
+    report:
+      type: object
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

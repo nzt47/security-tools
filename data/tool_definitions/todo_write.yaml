@@ -40,4 +40,25 @@ schema:
         - status
   required:
   - todos
+# 【result_schema（2026-11-24，L2 low 批次）】
+#   实调非法清单失败；成功键取自 agent/tools/plan_tools.py::write_todos（ok/todos/counts/rendered/persisted，warning 可选）。 required 只锁 ok（get_status / get_sensor_summary 例外，见各自文件）。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    todos:
+      type: array
+    counts:
+      type: object
+    rendered:
+      type: string
+    persisted:
+      type: boolean
+    warning:
+      type: string
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

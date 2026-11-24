@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-24T12:2x:00+08:00",
+ "updated_at": "2026-11-24T18:3x:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1424,11 +1424,11 @@
   },
   {
    "id": "plugin-security-p2-remaining",
-   "status": "open",
+   "status": "done",
    "priority": "P2",
    "title": "插件安全 P2 剩余：签名/发布密钥、OS 级 FS/net 沙箱、HTTP 路由硬超时、插件 UI iframe、result_schema L2 扩面",
-   "criteria": "2026-11-23 18:25 状态：① 签名/发布密钥与允许列表签名校验已接线（plugin_signature + scripts/sign_plugin_package.py + 安装暂存/加载复验 + CP_PLUGIN_SIGNATURE_MODE；受信表 config/plugin_trusted_keys.json 为空，包总开关仍默认关）；② 进程边界已做；OS 级沙箱已做 AppContainer 生产适配（CP_PLUGIN_SANDBOX=appcontainer，默认 off；真机 .env PermissionError / 网络 gaierror / env 密钥 None；Job Object 内存/进程数/累计 CPU 上限与卸载清理已补；仅剩联网 capability）；③ HTTP 路由仍只有 bulkhead，p99 已实测（无持续慢路由）；④ 插件 UI iframe 未做（client_slot 默认关）；⑤ result_schema 三批共 33 个已扩（6 只读 + 16 medium + 11 high），覆盖 24→57/101，必填清单 45、FLOOR 57；剩余 low 39 / critical 3 未扩（critical 3 是本机运行时登记、YAML 不入仓）；② AppContainer 联网 capability 已做按插件 opt-in（manifest sandbox.internet=true，默认仍无网，真机 off=gaierror / on=ok）",
-   "next": "Owner 已拍板（D1 Owner 离线私钥 / D2 接受 AppContainer 默认无网 / D3 Docker 仅可选）。2026-11-23 18:25 已完成：签名校验器 + 离线签名工具 + 安装暂存/加载复验 + CP_PLUGIN_SIGNATURE_MODE（registry 已登记，提交 23d03e28c）；AppContainer 可行性 PoC（文件/网络/env 三层隔住，未接生产）；插件 p99 实测（无持续慢路由）；文档 7ae38db32。2026-11-23 20:0x 完成 AppContainer 生产适配；22:xx 补 Job Object（MEMORY_MB=512 / MAX_PROCESSES=8 / CPU_SEC=60；128MB 限制下分配 512MB 得 MemoryError，CPU=1s 死循环约 4.7s 被终止）与卸载清理。下一步优先级：⑤ result_schema L2 逐工具（先只读 6 个，禁止猜）→ ③ 若 p99 恶化再考虑路由出进程/硬超时 → ④ iframe（继续冻结）。方案见 docs/audit/2026-11-23-plugin-p2-decision.md。2026-11-24 00:5x–02:0x 完成⑤第一批：6 个只读工具逐个真调后写 result_schema（证据写在各自 YAML 注释；test_l2_result_schema 26 条；FLOOR 12→30）。本批发现 look_at_screen 成功分支不可达（已单列 look-at-screen-success-unreachable）。下一步：⑤ 剩余 18 个 medium 仍须逐工具真调（优先只读/低副作用），或按 Owner 指定项；③/④ 继续不动。2026-11-24：⑤ 第二批 16 个 medium + 第三批 11 个 high 补齐（57/101）；② 联网 capability 按插件 opt-in 落地并真机验证；look_at_screen 缺陷已修（独立条目 done）。剩余真正未做的只有 high/critical/low 的契约扩面（按需）与 ④ 插件 UI iframe（继续冻结）、③ 硬超时（p99 未恶化，不做）。"
+   "criteria": "2026-11-23 18:25 状态：① 签名/发布密钥与允许列表签名校验已接线（plugin_signature + scripts/sign_plugin_package.py + 安装暂存/加载复验 + CP_PLUGIN_SIGNATURE_MODE；受信表 config/plugin_trusted_keys.json 为空，包总开关仍默认关）；② 进程边界已做；OS 级沙箱已做 AppContainer 生产适配（CP_PLUGIN_SANDBOX=appcontainer，默认 off；真机 .env PermissionError / 网络 gaierror / env 密钥 None；Job Object 内存/进程数/累计 CPU 上限与卸载清理已补；仅剩联网 capability）；③ HTTP 路由仍只有 bulkhead，p99 已实测（无持续慢路由）；④ 插件 UI iframe 未做（client_slot 默认关）；⑤ result_schema 三批共 33 个已扩（6 只读 + 16 medium + 11 high），覆盖 24→57/101，必填清单 45、FLOOR 57；low 39 已于 2026-11-24 第四批补齐（覆盖 96/101，必填清单 84、FLOOR 96；余 5 个是本机运行时登记工具、YAML 不入仓）；② AppContainer 联网 capability 已做按插件 opt-in（manifest sandbox.internet=true，默认仍无网，真机 off=gaierror / on=ok）",
+   "next": "Owner 已拍板（D1 Owner 离线私钥 / D2 接受 AppContainer 默认无网 / D3 Docker 仅可选）。2026-11-23 18:25 已完成：签名校验器 + 离线签名工具 + 安装暂存/加载复验 + CP_PLUGIN_SIGNATURE_MODE（registry 已登记，提交 23d03e28c）；AppContainer 可行性 PoC（文件/网络/env 三层隔住，未接生产）；插件 p99 实测（无持续慢路由）；文档 7ae38db32。2026-11-23 20:0x 完成 AppContainer 生产适配；22:xx 补 Job Object（MEMORY_MB=512 / MAX_PROCESSES=8 / CPU_SEC=60；128MB 限制下分配 512MB 得 MemoryError，CPU=1s 死循环约 4.7s 被终止）与卸载清理。下一步优先级：⑤ result_schema L2 逐工具（先只读 6 个，禁止猜）→ ③ 若 p99 恶化再考虑路由出进程/硬超时 → ④ iframe（继续冻结）。方案见 docs/audit/2026-11-23-plugin-p2-decision.md。2026-11-24 00:5x–02:0x 完成⑤第一批：6 个只读工具逐个真调后写 result_schema（证据写在各自 YAML 注释；test_l2_result_schema 26 条；FLOOR 12→30）。本批发现 look_at_screen 成功分支不可达（已单列 look-at-screen-success-unreachable）。下一步：⑤ 剩余 18 个 medium 仍须逐工具真调（优先只读/低副作用），或按 Owner 指定项；③/④ 继续不动。2026-11-24：⑤ 第二批 16 个 medium + 第三批 11 个 high 补齐（57/101）；② 联网 capability 按插件 opt-in 落地并真机验证；look_at_screen 缺陷已修（独立条目 done）。2026-11-24 12:xx 第四批 low 39 补齐：覆盖 96/101、FLOOR 96、新增 test_l2_result_schema_low.py（157 条）；tracked 工具至此全量声明输出契约。本条目可关闭：actionable 范围（签名/沙箱/联网/契约）已全部落地；剩余两项不是没做完而是主动冻结的决定，已单列为 plugin-ui-iframe-frozen / plugin-route-hard-timeout-deferred。"
   },
   {
    "id": "look-at-screen-success-unreachable",
@@ -1445,6 +1445,22 @@
    "title": "架构规则校验长期红：role_prompt_library ↔ role_templates 循环依赖 —— 已用组合上移解耦（违规 0）",
    "criteria": "2026-11-24 01:1x 发现（非本轮 result_schema 引入）：GitHub workflow「架构规则校验」在 c00e1e2bd / 51f437fc0 / a7323149d / f981f6537 等提交上全部 failure，报告每次只有 1 条高严重度 no_circular_dependency：role_prompt_library.py 顶层 import role_templates，而 role_templates.py 为构建 role_catalog 的 prompt_sets 在函数内反向 import role_prompt_library。arch_rules.py 明写函数内/动态 import 同样计边 ⇒ 延迟加载无效（实测挪进函数体仍报 line 211，已回退）。",
    "next": "2026-11-24 01:5x 已修（组合上移，方案②）：① role_templates.role_catalog() 只回词表事实（templates/tiers/default_tier/role_text_max_chars），删除 _prompt_sets_catalog；② role_prompt_library 顶层单向 import role_templates，新增 role_catalog_with_prompt_sets() 组合 prompt_sets（失败降级为 []，角色视图不因方案库挂掉而 500）；③ routes_subagent._role_view 改调组合函数，GET /api/subagent/list 的 role 段形状不变；④ 新增守卫 test_基础词表不反向依赖方案库（role_catalog 不许再带 prompt_sets）。干净 worktree：arch_rules --check 7 规则 / 违规 0 / 未豁免 0；role/import smoke/instance payload 141 passed。回滚：把 prompt_sets 拼回 role_templates 会重新成环，不要这么做。"
+  },
+  {
+   "id": "plugin-ui-iframe-frozen",
+   "status": "frozen",
+   "priority": "P3",
+   "title": "插件 UI iframe（client_slot）继续冻结：2–3 天 + 安全评审，当前只有 demo",
+   "criteria": "client_slot 默认关；插件 UI 走 iframe 需要同源隔离、令牌不可读、CSP/postMessage 审计。2026-11-24 复核仍无真实需求方，冻结不动。",
+   "next": "解冻条件：出现真实插件 UI 需求 + Owner 点头。实施按 docs/audit/2026-11-22-pluginization-risk-audit.md 的 iframe 边界做（sandbox 属性、postMessage 白名单、不注入宿主 token），并补越权用例。"
+  },
+  {
+   "id": "plugin-route-hard-timeout-deferred",
+   "status": "frozen",
+   "priority": "P3",
+   "title": "HTTP 插件路由硬超时：p99 未恶化，主动不做（要做得路由出进程）",
+   "criteria": "2026-11-23 p99 实测：14 个内置插件/226 条路由都在宿主进程，无持续慢路由；bulkhead 限并发不是硬超时；Python 线程杀不掉 ⇒ 宿主内 timer 只能软超时。硬超时须把路由出进程/独立服务（5–10 天，改 226 条路由调用形态）。",
+   "next": "重新评估的触发条件：某个 blueprint 的 p99 持续恶化或出现超时堆积（先补每 blueprint 的 p99/超时计数结构化指标再决定）。不要加假 504。"
   }
  ]
 }

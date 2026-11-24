@@ -16,4 +16,11 @@ sandbox_allowed: true
 schema:
   type: object
   properties: {}
+# 【result_schema（2026-11-24，L2 low 批次）】
+#   注意：本工具**直接返回 dl.get_status()** 的原始状态字典（中文键：云枢/行为模式/身体状态/
+#   系统…，见 agent/orchestrator/status_reporter.py::get_status），**没有 ok 键**。
+#   故 required 为空数组（不伪造 ok）；只锁"是对象"，其余交给 additionalProperties。
+result_schema:
+  type: object
+  additionalProperties: true
 examples: []

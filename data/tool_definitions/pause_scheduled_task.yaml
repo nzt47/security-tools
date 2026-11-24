@@ -22,4 +22,17 @@ schema:
       description: 任务 ID
   required:
   - task_id
+# 【result_schema（2026-11-24，L2 low 批次）】
+#   实调缺 task_id；成功 {ok,paused:true}。 required 只锁 ok（get_status / get_sensor_summary 例外，见各自文件）。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    paused:
+      type: boolean
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

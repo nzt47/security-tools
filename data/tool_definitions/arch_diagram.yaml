@@ -46,4 +46,19 @@ schema:
   - title
   - components
   - output_path
+# 【result_schema（2026-11-24，L2 low 批次）】
+#   实调缺参失败；成功/blocked 键取自 agent/diagram_tools.py::generate_architecture_diagram 的 return 字面量（ok/path/error）。 required 只锁 ok（get_status / get_sensor_summary 例外，见各自文件）。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    path:
+      type: string
+    blocked:
+      type: boolean
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

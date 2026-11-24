@@ -38,4 +38,25 @@ schema:
       description: 检索预设。default=常规网页搜索（默认）；news=新闻模式，用多条英文查询检索国际新闻并按来源（BBC、CNN、Reuters、AP 等）优先排序，query 作为新闻主题（留空取综合新闻）
   required:
   - query
+# 【result_schema（2026-11-24，L2 low 批次）】
+#   实调路径同 web_search 单引擎/聚合：{ok,results[],total_found,summary,_was_truncated}，失败 {ok,error}。 required 只锁 ok（get_status / get_sensor_summary 例外，见各自文件）。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    results:
+      type: array
+    total_found:
+      type: integer
+    summary:
+      type: string
+    _was_truncated:
+      type: boolean
+    query:
+      type: string
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

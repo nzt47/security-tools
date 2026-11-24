@@ -36,4 +36,39 @@ schema:
     max_output_chars:
       type: integer
       description: 输出尾部保留的字符数，默认 8000
+# 【result_schema（2026-11-24，L2 low 批次）】
+#   实调（空 path 跑默认 lint）：完整字段见实现 return（tool/clean/error_count/warning_count/summary/returncode/duration_sec/command/cwd/timeout_sec/output_tail/output_truncated）。 required 只锁 ok（get_status / get_sensor_summary 例外，见各自文件）。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    tool:
+      type: string
+    clean:
+      type: boolean
+    error_count:
+      type: integer
+    warning_count:
+      type: integer
+    summary:
+      type: string
+    returncode:
+      type: integer
+    duration_sec:
+      type: number
+    command:
+      type: array
+    cwd:
+      type: string
+    timeout_sec:
+      type: integer
+    output_tail:
+      type: string
+    output_truncated:
+      type: boolean
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

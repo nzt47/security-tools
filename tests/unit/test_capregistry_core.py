@@ -521,11 +521,15 @@ class TestResultSchema:
         good = result_status(spec, {"ok": True, "data": [1], "count": 1})
         assert good["status"] == "ok"
 
-    def test_未声明契约时如实披露而不是谎报通过(self, real_registry):
+    def test_未声明契约时如实披露而不是谎报通过(self):
+        from types import SimpleNamespace
+
         from agent.capregistry.contract import result_status
-        # 2026-11-23：shell_execute 已补 result_schema（P2 L3 扩面），
-        # 用一个仍**未声明**契约的高频工具守住“如实披露 undeclared”这条语义。
-        spec = real_registry.get("web_search")
+        # 【2026-11-24】tracked 工具已**全量**声明 result_schema（96/101；余 5 个是
+        # 本机运行时登记、YAML 不入仓）。继续拿某个真实工具当 "undeclared 样本"
+        # 会随契约扩面失效（shell_execute、web_search 都被补过）⇒ 改为显式构造
+        # 一个没有 result_schema 的 spec，只守语义本身。
+        spec = SimpleNamespace(result_schema=None)
         out = result_status(spec, {"anything": 1})
         assert out["contract"] == "undeclared"
         assert out["status"] == "ok"      # 不制造假红

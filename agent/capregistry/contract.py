@@ -97,7 +97,24 @@ RESULT_SCHEMA_REQUIRED_TOOLS: Tuple[str, ...] = (
     # workspace_delete / write_file。实调证据写在各 YAML 注释；成功分支受副作用限制的
     # 按实现 return 字面量核对。low 39 条不在本轮（收益递减，按需再做）。
     "apply_patch", "decompress", "edit", "ext_send_channel", "fan_out", "git",
-    "run_program", "schedule_task", "skill_script_run", "workspace_delete", "write_file")
+    "run_program", "schedule_task", "skill_script_run", "workspace_delete", "write_file",
+    # 【2026-11-24 第四批 45 → 84（low 39 个，tracked 全量收口）】arch_diagram / browser_close /
+    # cancel_task / code_review / ext_list / get_persona_info / get_preferences / get_task_result /
+    # get_task_status / get_weather / grep / kb_capture / kb_card / kb_lint / kb_search /
+    # list_async_tasks / list_mcp_connections / list_scheduled_tasks / merge_pdf / notify /
+    # pause_scheduled_task / read_pdf / read_pdf_tables / remember / resume_scheduled_task /
+    # run_lint / search_lifetrace / search_memory / software_probe / split_pdf / sqlite_query /
+    # todo_write / trigger_distillation / web_search / weekly_report / workspace_init /
+    # workspace_list / get_status / get_sensor_summary。
+    # 注意：get_status / get_sensor_summary 返回宿主原始字典（无 ok 键）⇒ required 为空数组。
+    "arch_diagram", "browser_close", "cancel_task", "code_review", "ext_list",
+    "get_persona_info", "get_preferences", "get_task_result", "get_task_status", "get_weather",
+    "grep", "kb_capture", "kb_card", "kb_lint", "kb_search", "list_async_tasks",
+    "list_mcp_connections", "list_scheduled_tasks", "merge_pdf", "notify",
+    "pause_scheduled_task", "read_pdf", "read_pdf_tables", "remember", "resume_scheduled_task",
+    "run_lint", "search_lifetrace", "search_memory", "software_probe", "split_pdf",
+    "sqlite_query", "todo_write", "trigger_distillation", "web_search", "weekly_report",
+    "workspace_init", "workspace_list", "get_status", "get_sensor_summary")
 
 
 def _builtin_check(value: Any, schema: Dict[str, Any], path: str,

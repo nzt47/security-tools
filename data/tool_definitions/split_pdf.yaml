@@ -36,4 +36,21 @@ schema:
   required:
   - path
   - output_dir
+# 【result_schema（2026-11-24，L2 low 批次）】
+#   实调缺参；成功/失败键取自 agent/pdf_tools.py::split_pdf（ok/output_dir/files/total_outputs/error）。 required 只锁 ok（get_status / get_sensor_summary 例外，见各自文件）。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    output_dir:
+      type: string
+    files:
+      type: array
+    total_outputs:
+      type: integer
+    error:
+      type: [string, "null"]
+  required: [ok]
+  additionalProperties: true
 examples: []

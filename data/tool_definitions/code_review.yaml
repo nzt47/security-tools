@@ -35,4 +35,23 @@ schema:
         - API兼容性
         - 测试
       description: 审查维度列表，默认全部。安全(SQL注入/XSS/密钥泄露)、性能(N+1查询/算法复杂度)、可维护性(死代码/魔法数字)、API兼容性(破坏性变更)、测试(边界值/负路径)
+# 【result_schema（2026-11-24，L2 low 批次）】
+#   实调不存在的文件；成功/汇总键取自 agent/code_review.py::code_review 的返回声明（ok/findings/summary），无内容时 {ok,message}。 required 只锁 ok（get_status / get_sensor_summary 例外，见各自文件）。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    findings:
+      type: array
+    summary:
+      type: object
+    message:
+      type: string
+    available_dimensions:
+      type: array
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

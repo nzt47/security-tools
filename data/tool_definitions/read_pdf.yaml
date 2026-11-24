@@ -27,4 +27,21 @@ schema:
       description: 要读取的页码列表（1-based），如 [1, 3, 5]，不传则读取全部页面
   required:
   - path
+# 【result_schema（2026-11-24，L2 low 批次）】
+#   实调不存在的文件：{ok,text,pages,extracted_pages,error}（失败也回这些键）。 required 只锁 ok（get_status / get_sensor_summary 例外，见各自文件）。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    text:
+      type: string
+    pages:
+      type: integer
+    extracted_pages:
+      type: integer
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

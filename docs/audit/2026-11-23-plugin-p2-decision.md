@@ -400,7 +400,31 @@ git status 与 git add 无 confirm、run_program 非白名单、schedule_task（
 ext_send_channel 不存在通道、workspace_delete、fan_out 空 tasks 均实调；
 skill_script_run 成功态、fan_out 汇总 envelope、schedule_task 实现后的 task 段按实现 return 核对。
 
-**仍未扩**：low 39 条（收益递减，按需再做）；critical 3 条是本机运行时登记（YAML 不入仓）。
+### 6.4 第四批已落地（2026-11-24，low 39 个，tracked 全量收口）
+
+覆盖 **57 → 96/101**；`RESULT_SCHEMA_REQUIRED_TOOLS` 45 → 84；`FLOOR` 57 → 96；
+新增 `tests/unit/test_l2_result_schema_low.py`（157 条）。
+
+工具：arch_diagram / browser_close / cancel_task / code_review / ext_list / get_persona_info /
+get_preferences / get_task_result / get_task_status / get_weather / grep / kb_capture / kb_card /
+kb_lint / kb_search / list_async_tasks / list_mcp_connections / list_scheduled_tasks / merge_pdf /
+notify / pause_scheduled_task / read_pdf / read_pdf_tables / remember / resume_scheduled_task /
+run_lint / search_lifetrace / search_memory / software_probe / split_pdf / sqlite_query /
+todo_write / trigger_distillation / web_search / weekly_report / workspace_init / workspace_list /
+get_status / get_sensor_summary。
+
+两个**例外**（不伪造 ok）：`get_status` / `get_sensor_summary` 直接返回宿主原始状态字典
+（无 `ok` 键）⇒ 其 schema 的 `required` 为空数组，只锁"是对象"；其余 37 个仍只锁 `ok`。
+`merge_pdf` / `split_pdf` 的 `error` 在成功分支是 `null` ⇒ 声明为 `[string, "null"]`
+（否则一次成功会被判违约——与 get_pdf_info 同一类假契约陷阱）。
+
+**联动修正**：`test_capregistry_core::test_未声明契约时如实披露` 原先拿真实工具
+`web_search` 当 undeclared 样本；tracked 工具全量声明后该样本必然失效 ⇒ 改为显式构造
+`SimpleNamespace(result_schema=None)`，只守语义本身（不是放宽）。
+
+**仍未扩**：只剩 5 个本机运行时登记工具（`adaptive_skill_stack` / `api_multi_search_engine` /
+`byted_bp_cdn_pagesdeploy` / `byted_seedance_video_generate` / `byted_seedream_image_generate`），
+YAML 不入仓；要入仓须走"新增工具 5 处连锁"。
 
 **三个 critical 工具**（`adaptive_skill_stack` / `byted_bp_cdn_pagesdeploy` /
 `byted_seedream_image_generate`）是本机**运行时登记**（YAML 不入仓），不在清单内；

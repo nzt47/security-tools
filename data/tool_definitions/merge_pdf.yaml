@@ -29,4 +29,21 @@ schema:
   required:
   - paths
   - output_path
+# 【result_schema（2026-11-24，L2 low 批次）】
+#   实调缺参；成功/失败键取自 agent/pdf_tools.py::merge_pdfs（ok/output_path/total_pages/merged_files/error）。 required 只锁 ok（get_status / get_sensor_summary 例外，见各自文件）。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    output_path:
+      type: string
+    total_pages:
+      type: integer
+    merged_files:
+      type: integer
+    error:
+      type: [string, "null"]
+  required: [ok]
+  additionalProperties: true
 examples: []

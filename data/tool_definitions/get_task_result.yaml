@@ -23,4 +23,25 @@ schema:
       description: 任务 ID（由 submit_task 返回）
   required:
   - task_id
+# 【result_schema（2026-11-24，L2 low 批次）】
+#   实调缺 id；成功键取自 agent/async_executor.py::get_result（task_id/status/result/completed_at，未完成有 message）。 required 只锁 ok（get_status / get_sensor_summary 例外，见各自文件）。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    task_id:
+      type: string
+    status:
+      type: string
+    result:
+      type: object
+    completed_at:
+      type: string
+    message:
+      type: string
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

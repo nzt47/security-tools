@@ -17,4 +17,21 @@ tags: [schedule]
 schema:
   type: object
   properties: {}
+# 【result_schema（2026-11-24，L2 low 批次）】
+#   实调：{ok,tasks[],total,count,counts_by_engine{scheduler,system_command}}。 required 只锁 ok（get_status / get_sensor_summary 例外，见各自文件）。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    tasks:
+      type: array
+    total:
+      type: integer
+    count:
+      type: integer
+    counts_by_engine:
+      type: object
+  required: [ok]
+  additionalProperties: true
 examples: []

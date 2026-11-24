@@ -28,4 +28,21 @@ schema:
       description: 要提取的页码列表（1-based），如 [1, 3]，不传则提取全部页面
   required:
   - path
+# 【result_schema（2026-11-24，L2 low 批次）】
+#   实调不存在的文件：{ok,tables,pages,extracted_pages,error}。 required 只锁 ok（get_status / get_sensor_summary 例外，见各自文件）。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    tables:
+      type: array
+    pages:
+      type: integer
+    extracted_pages:
+      type: integer
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

@@ -22,4 +22,27 @@ schema:
       description: 软件显示名（如 Git、Python、Node.js）
   required:
   - name
+# 【result_schema（2026-11-24，L2 low 批次）】
+#   实调（Git）：{ok,installed,version,path,source,matched_display_name,match}。 required 只锁 ok（get_status / get_sensor_summary 例外，见各自文件）。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    installed:
+      type: boolean
+    version:
+      type: string
+    path:
+      type: string
+    source:
+      type: string
+    matched_display_name:
+      type: string
+    match:
+      type: string
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []
