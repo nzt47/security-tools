@@ -123,6 +123,14 @@
   计划以 Markdown 落 `data/plans/<session>.md`；UI 计划卡 + 批准/反馈按钮；
   计划模式下仍可用全部工具（与 DSH 一致），靠权限预设约束。
 - **验收**：进入计划模式→产出计划→用户批准→执行；拒绝后继续规划；会话恢复后状态保留。
+- **交付状态（2026-11-25）**：✅ 已交付（c1d1eb451）。设计/边界/实测偏差见
+  `docs/plan/2026-11-25-e1-1-plan-mode-design.md`；实现为**命令 + 计划模式回复即计划版本**
+  （不新增模型工具，避免 5 处连锁与"模型漏调用工具"）；计划落
+  `data/plan_mode/<session>/state.json + plan.md + vN.md`（**偏差**：路线图写的 `data/plans/`
+  是 planning 引擎的领域，混放会污染）；计划卡嵌会话页（不新增叶子，深链不变）；
+  `/api/plan-mode/{state,mode,decision}` 三条路由已登记 route_ui_intent + route_domains。
+  真机探针 `.local/verify_e1_1_plan_mode.py` 13/13；单测 29+10；前端 202 files / 1546 tests；
+  ui:check 全绿；0 新增 raw 控件。
 
 #### E1-2 Goal（P1）
 - **DSH 参照**：`goal` + `goal-round-driver` + `tool-goal`（create/edit/pause/resume/
