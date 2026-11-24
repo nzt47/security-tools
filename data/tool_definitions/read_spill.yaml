@@ -8,6 +8,8 @@ plane: perceive
 effect: read
 risk: low
 tool_type: tool
+# E0-2：随 spill 一起上线（只读工具；停用它会让 spill 信封里的 locator 无法取回）
+enabled: true
 llm_callable: true
 callable_mode: auto
 permission_level: public
