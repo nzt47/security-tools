@@ -29,6 +29,9 @@ logger = logging.getLogger(__name__)
 #: `for key in TUPLE: os.environ.get(key)` 会被 settings 零缺口门禁判成未声明家族）
 _RUN_DIR_PREFIX = "run-"
 
+#: 小目录（私有 temp）授权的超时：空目录递归 <1s，给 60s 足够
+_FAST_GRANT_TIMEOUT = 60.0
+
 _ENV_KEYS_NOTE = "PATH/SYSTEMROOT/... 为系统与工具链必需项；不复制宿主 .env 密钥"
 
 
@@ -167,7 +170,12 @@ def _ready_for(mode: str) -> tuple:
 
 def spawn_detached(argv: Sequence[str], cwd: str, *,
                    preset: Optional[str] = None) -> int:
-    """起一个受限的独立进程，返回 pid（run_program 用）。异常即 fail-closed。"""
+    """起一个受限的独立进程，返回 pid（run_program 用）。异常即 fail-closed。
+
+    【临时目录为什么不像 `run_captured` 那样 per-run】独立进程活过本次调用，删掉它的
+    TEMP 会让它后续写临时文件失败。这里用固定的 `tmp/detached`（首次创建即 standing 授权），
+    代价是多次 run_program 共享同一个临时目录（这些进程本来就是同一个宿主发起的白名单程序）。
+    """
     mode = preset or _preset.permission_preset()
     if mode == _preset.FULL_ACCESS:
         raise SandboxUnavailable("full-access 不应走受限执行器")
@@ -176,29 +184,20 @@ def spawn_detached(argv: Sequence[str], cwd: str, *,
         raise SandboxNotReady(f"沙箱不可用：{reason}")
     write_sid = win_acl.ensure_grant(_preset.sandbox_root()) \
         if mode == _preset.WORKSPACE_WRITE else None
-    run_dir = _run_dir()
-    try:
-        temp_dir = run_dir / "tmp"
-        temp_dir.mkdir(parents=True, exist_ok=True)
-        if mode == _preset.WORKSPACE_WRITE:
-            win_acl.grant(temp_dir, standing=False, timeout=_FAST_GRANT_TIMEOUT)
-        env = build_env(temp_dir)
-        with win_token.RestrictedToken(write_sid) as token:
-            pid = win_token.spawn_detached(
-                token, list(argv), str(Path(cwd).resolve()), env_block(env))
-    finally:
-        # 独立进程不再依赖这个目录；TEMP 已被清理时它后续写临时文件会失败——
-        # 这是刻意的（run_program 是一次性白名单程序，不承诺临时目录长期存在）
-        _cleanup(run_dir)
+    temp_dir = _preset.temp_root() / "detached"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    if mode == _preset.WORKSPACE_WRITE and not win_acl.is_granted(temp_dir, sid=write_sid):
+        win_acl.grant(temp_dir, sid=write_sid, standing=True, timeout=_FAST_GRANT_TIMEOUT)
+    env = build_env(temp_dir)
+    with win_token.RestrictedToken(write_sid) as token:
+        pid = win_token.spawn_detached(
+            token, list(argv), str(Path(cwd).resolve()), env_block(env))
     _preset.audit("sandbox_shell_confined", subject="run_program", payload={
         "mode": mode, "pid": pid, "write_sid": bool(write_sid)})
     return pid
 
 
-#: 小目录（私有 temp）授权的超时：空目录递归 <1s，给 60s 足够
-_FAST_GRANT_TIMEOUT = 60.0
-
-
 __all__ = ["build_env", "env_block", "ready", "run_captured", "spawn_detached"]
+
 
 

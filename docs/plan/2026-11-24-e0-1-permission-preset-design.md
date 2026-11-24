@@ -76,7 +76,8 @@ DSH 的答案（实测源码/README）：
 - **fail-closed**：令牌/组/授权/启动任一失败 → 不执行命令，返回结构化错误 + 审计
   `sandbox_unavailable` / `sandbox_shell_denied`；非 Windows 或组创建失败同样 fail-closed（不静默降级）。
 - 覆盖面：`shell_execute`（含 background 分支，走同一 executor）+ `run_program`（受限令牌 spawn，
-  返回 pid 后不阻塞）。`decompress` 等宿主内写不在此列（2.2 已记）。
+  返回 pid 后不阻塞；它的临时目录用固定的 `tmp/detached`，因为进程活过本次调用）。
+  `decompress` 等宿主内写不在此列（2.2 已记）。
 
 ### 2.4 安全边界（如实写）
 
@@ -135,7 +136,8 @@ DSH 的答案（实测源码/README）：
    未预热时受限执行 **fail-closed** 并提示运行该脚本。**默认 full-access，生产切档前先预热。**
 6. **读数与观测面**：`agent.sandbox.status()`（聚合预设/可写根/身份/ready）、
    `scripts/sandbox_grant.py --status`、审计事件 `sandbox_fs_denied` / `sandbox_shell_confined` /
-   `sandbox_unavailable`。探针 `.local/verify_e0_1_permission_preset.py` 14 项全过（真机）。
+   `sandbox_unavailable`。探针 `.local/verify_e0_1_permission_preset.py` 16 项全过（真机；含 run_program 两条）。
 7. **本次没做（不要当成已做）**：Low integrity 标签（见 2.4）、`decompress`/`compress` 的
    输出路径围栏、审批策略真正接线（2.1）、非 Windows 的 bwrap/seatbelt（当前直接 fail-closed）。
+
 
