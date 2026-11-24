@@ -62,8 +62,10 @@ flowchart LR
         agent_config_etcd_config_client["agent.config.etcd_config_client"]
     end
     subgraph context [context]
+        agent_context["agent.context"]:::crosslayer
         agent_context_assembler["agent.context.assembler"]:::crosslayer
         agent_context_checkpoint["agent.context.checkpoint"]:::crosslayer
+        agent_context_plan_mode["agent.context.plan_mode"]:::crosslayer
         agent_context_spill["agent.context.spill"]:::crosslayer
     end
     subgraph core [core]
@@ -583,6 +585,7 @@ flowchart LR
         agent_server_routes_routes_logging["agent.server_routes.routes_logging"]
         agent_server_routes_routes_memory_import["agent.server_routes.routes_memory_import"]
         agent_server_routes_routes_memory_sessions["agent.server_routes.routes_memory_sessions"]
+        agent_server_routes_routes_plan_mode["agent.server_routes.routes_plan_mode"]
         agent_server_routes_routes_process_distill["agent.server_routes.routes_process_distill"]
         agent_server_routes_routes_replay["agent.server_routes.routes_replay"]
         agent_server_routes_routes_semantic_config["agent.server_routes.routes_semantic_config"]
@@ -1873,6 +1876,7 @@ flowchart LR
     agent_orchestrator_orchestrator -.-> agent_memory_topic_policy
     agent_orchestrator_orchestrator -.-> agent_monitoring_prometheus
     agent_orchestrator_orchestrator -.-> agent_context_assembler
+    agent_orchestrator_orchestrator -.-> agent_context_plan_mode
     agent_orchestrator_orchestrator -.-> agent_system_prompt_manager
     agent_orchestrator_orchestrator -.-> agent_state_manager
     agent_orchestrator_orchestrator -.-> agent_cognitive_reflection
@@ -2313,6 +2317,10 @@ flowchart LR
     agent_server_routes_routes_memory_sessions -.-> agent_memory_import_models
     agent_server_routes_routes_memory_sessions -.-> agent_server_auth
     agent_server_routes_routes_memory_sessions --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_plan_mode -.-> agent_server_auth
+    agent_server_routes_routes_plan_mode --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_plan_mode --> agent_server_routes__errors
+    agent_server_routes_routes_plan_mode -.-> agent_context
     agent_server_routes_routes_process_distill -.-> agent_server_auth
     agent_server_routes_routes_process_distill --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_process_distill --> agent_server_routes__errors
@@ -2468,6 +2476,7 @@ flowchart LR
     agent_server_routes_tracing_decorator -.-> agent_monitoring_tracing
     agent_server_routes_tracing_decorator -.-> agent_logging_utils
     agent_server_routes_tracing_middleware -.-> agent_monitoring_tracing
+    agent_session_manager -.-> agent_context_plan_mode
     agent_session_manager --> agent
     agent_session_manager -.-> agent_observability_trace_v2
     agent_settings --> agent_settings_masking
@@ -3129,9 +3138,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 793
-- 模块节点数: 686
-- 依赖边数: 2311
-- 跨层调用数: 1468
+- 扫描文件数: 795
+- 模块节点数: 689
+- 依赖边数: 2317
+- 跨层调用数: 1472
 - 违规调用数: 0
 - 动态 import 数: 1

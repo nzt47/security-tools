@@ -70,7 +70,7 @@
       "name": "server_auth",
       "layer": "core",
       "file_path": "",
-      "in_degree": 28,
+      "in_degree": 29,
       "out_degree": 4
     },
     {
@@ -719,7 +719,7 @@
       "layer": "orchestrator",
       "file_path": "",
       "in_degree": 6,
-      "out_degree": 62
+      "out_degree": 63
     },
     {
       "path": "agent.monitoring.metrics",
@@ -2750,7 +2750,7 @@
       "name": "_errors",
       "layer": "server_routes",
       "file_path": "",
-      "in_degree": 16,
+      "in_degree": 17,
       "out_degree": 0
     },
     {
@@ -3458,12 +3458,20 @@
       "out_degree": 3
     },
     {
+      "path": "agent.context.plan_mode",
+      "name": "plan_mode",
+      "layer": "context",
+      "file_path": "",
+      "in_degree": 2,
+      "out_degree": 0
+    },
+    {
       "path": "agent.session_manager",
       "name": "session_manager",
       "layer": "core",
       "file_path": "",
       "in_degree": 1,
-      "out_degree": 2
+      "out_degree": 3
     },
     {
       "path": "agent.tool_schema_pruner",
@@ -4190,7 +4198,7 @@
       "name": "tracing_decorator",
       "layer": "server_routes",
       "file_path": "",
-      "in_degree": 20,
+      "in_degree": 21,
       "out_degree": 2
     },
     {
@@ -4376,6 +4384,22 @@
       "file_path": "agent/server_routes/routes_memory_sessions.py",
       "in_degree": 0,
       "out_degree": 5
+    },
+    {
+      "path": "agent.server_routes.routes_plan_mode",
+      "name": "routes_plan_mode",
+      "layer": "server_routes",
+      "file_path": "agent/server_routes/routes_plan_mode.py",
+      "in_degree": 0,
+      "out_degree": 4
+    },
+    {
+      "path": "agent.context",
+      "name": "context",
+      "layer": "context",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 0
     },
     {
       "path": "agent.server_routes.routes_process_distill",
@@ -19043,7 +19067,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 5083,
+      "line": 5092,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -19312,11 +19336,24 @@
     },
     {
       "source": "agent.orchestrator.orchestrator",
+      "target": "agent.context.plan_mode",
+      "source_layer": "orchestrator",
+      "target_layer": "context",
+      "import_type": "from_import",
+      "line": 4487,
+      "source_file": "agent/orchestrator/orchestrator.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.orchestrator.orchestrator",
       "target": "agent.system_prompt_manager",
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 4503,
+      "line": 4512,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -19329,7 +19366,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 4660,
+      "line": 4669,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -19342,7 +19379,7 @@
       "source_layer": "orchestrator",
       "target_layer": "cognitive",
       "import_type": "from_import",
-      "line": 4803,
+      "line": 4812,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -19355,7 +19392,7 @@
       "source_layer": "orchestrator",
       "target_layer": "memory",
       "import_type": "from_import",
-      "line": 4848,
+      "line": 4857,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -19368,7 +19405,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 4955,
+      "line": 4964,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -19381,7 +19418,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 4956,
+      "line": 4965,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -19589,7 +19626,7 @@
       "source_layer": "orchestrator",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 4620,
+      "line": 4629,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -25031,6 +25068,58 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.server_routes.routes_plan_mode",
+      "target": "agent.server_auth",
+      "source_layer": "server_routes",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 18,
+      "source_file": "agent/server_routes/routes_plan_mode.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_plan_mode",
+      "target": "agent.server_routes.tracing_decorator",
+      "source_layer": "server_routes",
+      "target_layer": "server_routes",
+      "import_type": "from_import",
+      "line": 19,
+      "source_file": "agent/server_routes/routes_plan_mode.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_plan_mode",
+      "target": "agent.server_routes._errors",
+      "source_layer": "server_routes",
+      "target_layer": "server_routes",
+      "import_type": "from_import",
+      "line": 20,
+      "source_file": "agent/server_routes/routes_plan_mode.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_plan_mode",
+      "target": "agent.context",
+      "source_layer": "server_routes",
+      "target_layer": "context",
+      "import_type": "from_import",
+      "line": 66,
+      "source_file": "agent/server_routes/routes_plan_mode.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.server_routes.routes_process_distill",
       "target": "agent.server_auth",
       "source_layer": "server_routes",
@@ -27047,11 +27136,24 @@
     },
     {
       "source": "agent.session_manager",
+      "target": "agent.context.plan_mode",
+      "source_layer": "core",
+      "target_layer": "context",
+      "import_type": "from_import",
+      "line": 316,
+      "source_file": "agent/session_manager.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.session_manager",
       "target": "agent",
       "source_layer": "core",
       "target_layer": "unknown",
       "import_type": "from_import",
-      "line": 428,
+      "line": 436,
       "source_file": "agent/session_manager.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -27064,7 +27166,7 @@
       "source_layer": "core",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 605,
+      "line": 613,
       "source_file": "agent/session_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -35536,10 +35638,10 @@
     }
   ],
   "stats": {
-    "total_files": 793,
-    "total_nodes": 686,
-    "total_edges": 2311,
-    "cross_layer_edges": 1468,
+    "total_files": 795,
+    "total_nodes": 689,
+    "total_edges": 2317,
+    "cross_layer_edges": 1472,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -35565,7 +35667,7 @@
       "cognitive": 13,
       "config": 2,
       "orchestrator": 13,
-      "context": 3,
+      "context": 5,
       "dao": 1,
       "descriptors": 4,
       "digestion": 18,
@@ -35587,7 +35689,7 @@
       "common": 1,
       "maintenance": 1,
       "memory_import": 9,
-      "server_routes": 32,
+      "server_routes": 33,
       "network": 3,
       "workflow_engine": 5,
       "verification": 1,
