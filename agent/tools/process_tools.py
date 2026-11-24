@@ -142,6 +142,22 @@ def start_process(program, args=None, cwd=None):
 
     try:
         cmd = [resolved, *argv]
+        # E0-1 权限预设围栏：read-only / workspace-write 档下，白名单程序也必须是受限进程，
+        # 否则 `run_program(python.exe, ["-c", ...])` 就是一条绕过写边界的现成通道。
+        try:
+            from agent.sandbox import is_confined, spawn_detached
+            confined = is_confined()
+        except Exception:  # noqa: BLE001  沙箱包异常时保持原路径（预设也读不到）
+            confined = False
+        if confined:
+            from agent.sandbox.win_acl import SandboxError
+            try:
+                pid = spawn_detached(cmd, cwd or WORKSPACE_DIR)
+            except SandboxError as exc:
+                return {"ok": False, "error": f"沙箱拒绝执行: {exc.message}", "blocked": True}
+            except Exception:  # noqa: BLE001  未知异常不回异常原文
+                return {"ok": False, "error": "沙箱执行失败（详见服务日志）", "blocked": True}
+            return {"ok": True, "pid": pid, "program": program, "sandboxed": True}
         proc = subprocess.Popen(
             cmd, cwd=cwd or WORKSPACE_DIR,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,

@@ -373,6 +373,10 @@ def edit_content(path, old_string, new_string, replace_all=False, dl=None) -> di
     else:
         new_content = content.replace(old_string, new_string, 1)
     try:
+        from agent.sandbox.fs_fence import check_write as _sandbox_check
+        denied_write = _sandbox_check(path, "edit")
+        if denied_write:
+            return denied_write
         written = _write_source(path, new_content, encoding)
     except (OSError, UnicodeEncodeError) as e:
         return {"ok": False, "error": f"写入文件失败: {e}"}

@@ -55,6 +55,10 @@ def write_workspace(path, content):
     full_path = os.path.normpath(os.path.join(WORKSPACE_DIR, path))
     if not full_path.startswith(os.path.normpath(WORKSPACE_DIR)):
         raise ValueError("路径超出工作区范围")
+    from agent.sandbox.fs_fence import check_write as _sandbox_check
+    denied = _sandbox_check(full_path, "workspace_write")
+    if denied:
+        return denied
     os.makedirs(os.path.dirname(full_path), exist_ok=True)
     with open(full_path, "w", encoding="utf-8") as f:
         f.write(content)
@@ -68,6 +72,10 @@ def delete_workspace(path):
         raise ValueError("路径超出工作区范围")
     if path in ("", ".", "/"):
         raise ValueError("不能删除工作区根目录")
+    from agent.sandbox.fs_fence import check_write as _sandbox_check
+    denied = _sandbox_check(full_path, "workspace_delete")
+    if denied:
+        return denied
     if os.path.isdir(full_path):
         shutil.rmtree(full_path)
     else:

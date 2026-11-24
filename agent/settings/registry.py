@@ -559,6 +559,26 @@ _REGISTRY_ROWS: List[SettingSpec] = [
     _b("CP_SANDBOX_SHELL_MODE", CAT_SELF_HEALING, "shadow",
        "shell_execute 的沙箱档位：off（不接线）/ shadow（只告警）/ enforce（命中即拒绝）",
        owner="agent/tools/shell_tools.py"),
+    # ── E0-1 权限预设 + OS 级沙箱（2026-11-24）────────────────────────────
+    # 【为什么是 B 级】改档等于改「模型能写哪里」这条安全边界：full-access 回到无围栏，
+    # read-only 连工作区都不可写。二次认证 + 审计与其它"降低防护姿态"的开关同档。
+    # 【默认 full-access】机制落地不改变现网/CI 行为；生产切 workspace-write 由 Owner 拍板
+    # （hot 生效，reset 即回滚）。设计与边界见 docs/plan/2026-11-24-e0-1-permission-preset-design.md。
+    _b("CP_PERMISSION_PRESET", CAT_SELF_HEALING, "full-access",
+       "权限预设：read-only（只读，文件/命令都不可写）/ workspace-write（只可写工作区与私有临时目录，"
+       "Windows 用受限令牌 + 写身份 ACL 强制）/ full-access（不围栏，现状）",
+       owner="agent/sandbox/preset.py",
+       validator=_enum("read-only", "workspace-write", "full-access", notes={
+           "read-only": "文件工具拒绝一切写；受限子进程不携带写身份，工作区/临时目录都写不进。",
+           "workspace-write": "文件写只允许工作区根与私有临时目录；shell 用 Windows 受限令牌强制，"
+                              "越界写被 OS 拒绝（fail-closed）。",
+           "full-access": "不加围栏（仅保留既有的保护目录/凭据边界与危险命令模式匹配）。",
+       }),
+       impact="影响面：write_file/edit/apply_patch/workspace_delete 的可写边界、shell_execute 与 "
+              "run_program 子进程的写权限；读取与网络不受影响"),
+    _c("CP_PERMISSION_SANDBOX_ROOT", CAT_SELF_HEALING, None,
+       "沙箱工作区根（默认空 = 仓库根）；仅影响权限预设的写边界与 ACL 授权范围",
+       owner="agent/sandbox/preset.py", validator=Validator("path")),
     _b("CP_TOOL_SANDBOX_ALLOWED_ENFORCE", CAT_SELF_HEALING, True,
        "受限会话内是否消费 YAML 的 sandbox_allowed=false（拒绝该能力）",
        owner="agent/tool_gate.py"),

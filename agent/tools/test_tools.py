@@ -613,6 +613,14 @@ def register_all(dl):
                     "message": "dry_run=true：全部 hunk 校验通过，未写入任何文件",
                 }
 
+            # E0-1 权限预设围栏：先把所有目标整体预检一遍，任一被拒则整单不写（不留半截改动）
+            for item in staged:
+                from agent.sandbox.fs_fence import check_write as _sandbox_check
+                fence = _sandbox_check(item["full"], "apply_patch")
+                if fence:
+                    fence["error"] = f"{fence['error']}（未写入任何改动）"
+                    return fence
+
             written = []
             for item in staged:
                 parent = os.path.dirname(item["full"])

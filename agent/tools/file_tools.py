@@ -511,6 +511,12 @@ def write_file(path: str, content: str, encoding: str = "utf-8") -> dict:
         logger.warning(log_dict({'module_name': 'file_tools', 'action': 'path.path.error', 'msg': f'[write_file] 路径解析失败: path={path}, error={e}'}))
         return {"ok": False, "error": _PATH_DENIED}
 
+    # E0-1 权限预设围栏（只读 / 工作区写档）：越界写在这里拒绝，且不再产生备份与目录创建
+    from agent.sandbox.fs_fence import check_write as _sandbox_check
+    denied = _sandbox_check(safe_path, "write_file")
+    if denied:
+        return denied
+
     # 禁止写入可执行文件类型
     if is_executable_extension(safe_path):
         ext = os.path.splitext(safe_path)[1]

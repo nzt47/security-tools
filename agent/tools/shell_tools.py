@@ -28,6 +28,13 @@
     `validate_command`，故保留 shell 语义但**标注为高风险**（见下方审计字段
     `shell_semantics: true`），并把"白名单 + argv"列为遗留待办（`process_whitelist_custom.json`
     已有设施，但覆盖 LLM 的自由 shell 用法需要产品决策，不在本任务单方面收紧）。
+
+【E0-1（2026-11-24）权限预设围栏】在上面三层之外再加**执行器选择**这一维：
+`CP_PERMISSION_PRESET=read-only|workspace-write` 时，真实执行走
+`agent/sandbox/shell_run.run_captured()`（Windows 受限令牌 `WRITE_RESTRICTED` + 写身份 ACL），
+失败即 fail-closed（不降级到无围栏 subprocess）。`CP_SANDBOX_SHELL_MODE` 的 off/shadow/enforce
+仍然只管"危险命令模式匹配"，两者正交。受限档下 bash 不可用（WSL/Git Bash 需要宿主服务），
+无特征命令的默认 shell 改为 cmd —— 详见 `docs/plan/2026-11-24-e0-1-permission-preset-design.md` §6。
 """
 import hashlib
 import os
@@ -115,6 +122,19 @@ def _detect_shell(command: str) -> str:
                 return "cmd"
 
     # 默认使用 bash（云枢运行在 Git Bash 环境）
+    #
+    # 【E0-1 受限档的例外】Windows 受限令牌（WRITE_RESTRICTED）下 WSL 的 `bash.exe`
+    # 走 LxssManager 服务、Git Bash 的 MSYS2 运行时要建共享内存段，两者都被 pass-2
+    # 拒绝（实测 Bash/Service/CreateInstance/E_ACCESSDENIED 与 "couldn't create
+    # shared memory"）。因此**仅当权限预设需要围栏时**，无特征命令的默认 shell 改为
+    # cmd（命令本身在 cmd 里行为一致；带 unix 特征的命令仍走 bash，并由调用方收到
+    # 可执行的错误提示）。full-access（默认）行为逐字不变。
+    try:
+        from agent.sandbox import is_confined as _is_confined
+        if _is_confined():
+            return "cmd"
+    except Exception:  # noqa: BLE001  沙箱包不可用 ⇒ 保持原默认
+        pass
     return "bash"
 
 
@@ -299,6 +319,77 @@ def _sandboxed_execute(cmd: list, work_dir: str, timeout: int, shell: str) -> di
     }
 
 
+def _confined_execute(cmd: list, work_dir: str, timeout: int, shell: str) -> dict:
+    """E0-1 权限预设围栏执行器（Windows 受限令牌）。
+
+    【为什么失败也必须 fail-closed】预设是安全边界：令牌/授权/启动任一失败时**不能**
+    退回普通 subprocess（那等于静默降级成无沙箱），只能把结构化错误回给模型。
+    """
+    from agent.sandbox import permission_preset, run_captured
+    from agent.sandbox.win_acl import SandboxError
+
+    mode = permission_preset()
+    try:
+        result = run_captured(cmd, work_dir, timeout)
+    except SandboxError as exc:
+        _audit_sandbox("sandbox_unavailable", command=" ".join(cmd),
+                       reason=str(exc)[:300], mode=mode)
+        return {
+            "ok": False,
+            "error": f"沙箱拒绝执行: {exc.message}",
+            "exit_code": -1,
+            "shell": shell,
+            "cwd": work_dir,
+            "blocked": True,
+            "blocked_by": "sandbox.preset",
+            "sandbox_preset": mode,
+        }
+    except Exception as exc:  # noqa: BLE001  未知异常只回固定文案（不落异常原文）
+        logger.warning("[shell] 受限执行器异常: %s", type(exc).__name__)
+        _audit_sandbox("sandbox_unavailable", command=" ".join(cmd),
+                       reason=type(exc).__name__, mode=mode)
+        return {
+            "ok": False,
+            "error": "沙箱执行失败（详见服务日志）",
+            "exit_code": -1,
+            "shell": shell,
+            "cwd": work_dir,
+            "blocked": True,
+            "blocked_by": "sandbox.preset",
+            "sandbox_preset": mode,
+        }
+    result.setdefault("shell", shell)
+    result["cwd"] = work_dir
+    result["sandbox_preset"] = mode
+    if not result.get("ok") and shell == "bash":
+        # 把「受限档 bash 不可用」这条环境事实说清楚，否则模型只会看到一句拒绝访问
+        result["error"] = (
+            "受限模式下 bash 不可用（WSL/Git Bash 需要宿主服务，写受限令牌会切断）："
+            "请改用 shell=cmd 或 shell=powershell，或把 CP_PERMISSION_PRESET 切回 full-access"
+        )
+        result["bash_unavailable"] = True
+    return result
+
+
+def _dispatch_execute(cmd: list, work_dir: str, timeout: int, shell: str, *,
+                      legacy: bool) -> dict:
+    """执行器选择：**权限预设优先**（OS 围栏）→ 旧执行器 / 沙箱执行器。
+
+    `CP_SANDBOX_SHELL_MODE` 仍是「危险命令模式」那一维；预设是「写边界」这一维，
+    两者正交：预设为 read-only/workspace-write 时，无论模式档位如何都走受限执行器。
+    """
+    try:
+        from agent.sandbox import is_confined
+        confined = is_confined()
+    except Exception:  # noqa: BLE001  沙箱包不可用 ⇒ 保持原行为（此时预设也读不到）
+        confined = False
+    if confined:
+        return _confined_execute(cmd, work_dir, timeout, shell)
+    if legacy:
+        return _legacy_execute(cmd, work_dir, timeout, shell)
+    return _sandboxed_execute(cmd, work_dir, timeout, shell)
+
+
 def execute_shell(command: str, shell: str = "auto", cwd: str = None, timeout: int = 30) -> dict:
     """在 shell 中执行命令并返回结果
 
@@ -342,7 +433,7 @@ def execute_shell(command: str, shell: str = "auto", cwd: str = None, timeout: i
     # 5. 沙箱判定 + 沙箱执行（TASK-07 第 4 步）
     mode = sandbox_mode()
     if mode == "off":
-        return _legacy_execute(cmd, work_dir, timeout, shell)
+        return _dispatch_execute(cmd, work_dir, timeout, shell, legacy=True)
 
     sandbox = None
     verdict = None
@@ -376,9 +467,9 @@ def execute_shell(command: str, shell: str = "auto", cwd: str = None, timeout: i
         # 影子模式：只记不拦（TASK-07 §6 规定的灰度期语义）
         _audit_sandbox("sandbox_would_deny", command=command, reason=verdict.reason,
                        matched_pattern=verdict.matched_pattern or "", mode=mode)
-        return _legacy_execute(cmd, work_dir, timeout, shell)
+        return _dispatch_execute(cmd, work_dir, timeout, shell, legacy=True)
 
-    return _sandboxed_execute(cmd, work_dir, timeout, shell)
+    return _dispatch_execute(cmd, work_dir, timeout, shell, legacy=False)
 
 
 __all__ = [
