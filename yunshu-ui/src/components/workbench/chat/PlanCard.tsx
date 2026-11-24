@@ -77,7 +77,11 @@ export function PlanCard({ plan }: { plan: PlanState }) {
     }
   };
 
-  const versions = [...plan.revisions].slice(-VISIBLE_VERSIONS).reverse();
+  // 当前版本不列进"回滚"（回滚到当前版只会产生一个内容相同的版本）；历史版本仍全保留
+  const versions = plan.revisions
+    .filter((rev) => rev.version !== plan.version)
+    .slice(-VISIBLE_VERSIONS)
+    .reverse();
 
   return (
     <Card
@@ -177,7 +181,7 @@ export function PlanCard({ plan }: { plan: PlanState }) {
         >
           拒绝
         </Button>
-        {versions.length > 1 && (
+        {versions.length > 0 && (
           <span className="ml-auto flex items-center gap-1 text-micro text-slate-500">
             <Undo2 size={11} /> 回滚：
             {versions.map((rev) => (

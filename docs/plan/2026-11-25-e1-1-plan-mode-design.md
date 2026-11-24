@@ -49,7 +49,9 @@ approved ──rollback(vN)──> pending_approval（plan_mode=true）
   - `POST /api/plan/mode` `{session_id, enabled}` → 进入/退出（`@require_token`）。
   - `POST /api/plan/decision` `{session_id, action, feedback?, version?}` → 决策 + `next_message`。
 - `plugins/chat.py`（主 UI 链路 `/api/chat/stream`）：
-  1. 解析 `/plan*` 命令：不进 LLM，直接 `plan` SSE 事件 + 文本确认 + `done`；
+  1. 解析 `/plan*` 命令族：`/plan`（进入）、`/plan exit`、`/plan status`、`/plan submit`
+     （把上一条助手回复提交为计划）、`/plan rollback <版本号>`、`/plan approve`、
+     `/plan reject [意见]`、`/plan feedback <意见>`；纯状态命令不进 LLM；
   2. `_workbench_real_stream`：计划模式激活时向 SYSTEM_PROMPT 追加只读/出计划指令；
   3. 助手回复收尾时（`done` 之前）：`record_turn_plan()`，**先发 `plan` 事件再发 `done`**
      （前端收到 done 即 break，顺序错了卡片不出现）。

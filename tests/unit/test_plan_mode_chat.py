@@ -166,6 +166,26 @@ class TestPlanCommand:
         text = "".join(e.get("text", "") for e in events if e["type"] == "chunk")
         assert "未知计划命令" in text
 
+    def test_回滚命令生成新版本且保留计划模式(self, env):
+        client, _fake = env
+        plan_mode.enter("s1")
+        plan_mode.record_turn_plan("s1", "第一版内容")
+        plan_mode.record_turn_plan("s1", "第二版内容")
+        events = _events(_post(client, "/plan rollback 1"))
+        assert FakeLLM.instances == [], "回滚是纯状态操作，不应调用模型"
+        plan = [e for e in events if e["type"] == "plan"][-1]["plan"]
+        assert plan["version"] == 3
+        assert "第一版内容" in plan["plan"]
+        assert plan["plan_mode"] is True and plan["status"] == "pending_approval"
+
+    def test_回滚缺版本号只回用法提示(self, env):
+        client, _fake = env
+        plan_mode.enter("s1")
+        events = _events(_post(client, "/plan rollback"))
+        text = "".join(e.get("text", "") for e in events if e["type"] == "chunk")
+        assert "用法" in text and "rollback" in text
+        assert FakeLLM.instances == []
+
 
 class TestPlanTurn:
     def test_计划模式下回复收尾产生计划事件_且事件先于_done(self, env):

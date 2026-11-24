@@ -2966,6 +2966,8 @@ def _parse_plan_command(question: str):
         return ("feedback", arg)
     if sub in ("submit", "save"):
         return ("submit", arg)
+    if sub in ("rollback", "revert"):
+        return ("rollback", arg)
     if sub in ("status", "state"):
         return ("status", arg)
     return ("unknown", rest)
@@ -3111,6 +3113,17 @@ def api_chat_stream():
                     _st = _pm.record_turn_plan(session_id, _last)
                     _plan_reply = ("已把上一条回复提交为计划 v%d，等待批准。"
                                    % int((_st or {}).get("version") or 0))
+            elif _action == "rollback":
+                try:
+                    _ver = int(_arg)
+                except (TypeError, ValueError):
+                    _ver = 0
+                if _ver <= 0:
+                    _plan_reply = "用法：/plan rollback <版本号>（版本号见计划卡）"
+                else:
+                    _st = _pm.decide(session_id, "rollback", version=_ver)
+                    _plan_reply = ("已回滚到 v%d，生成新版本 v%d，等待批准。"
+                                   % (_ver, int(_st.get("version") or 0)))
             elif _action in ("approve", "reject", "feedback"):
                 if _action == "feedback" and not _arg:
                     _plan_reply = "反馈内容不能为空：/plan feedback <意见>"
@@ -3123,7 +3136,8 @@ def api_chat_stream():
                             else "计划未通过，请重新规划。"
             else:
                 _plan_reply = ("未知计划命令。可用：/plan、/plan exit、/plan status、/plan submit、"
-                               "/plan approve、/plan reject [意见]、/plan feedback <意见>")
+                               "/plan rollback <版本号>、/plan approve、/plan reject [意见]、"
+                               "/plan feedback <意见>")
         except _pm.PlanModeError as _pe:
             _plan_reply = "命令未生效：%s" % _pe.message
         if _plan_reply is not None:
