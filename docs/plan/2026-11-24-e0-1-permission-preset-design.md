@@ -139,5 +139,9 @@ DSH 的答案（实测源码/README）：
    `sandbox_unavailable`。探针 `.local/verify_e0_1_permission_preset.py` 16 项全过（真机；含 run_program 两条）。
 7. **本次没做（不要当成已做）**：Low integrity 标签（见 2.4）、`decompress`/`compress` 的
    输出路径围栏、审批策略真正接线（2.1）、非 Windows 的 bwrap/seatbelt（当前直接 fail-closed）。
+8. **一次性预热的超时**：本机 80 万+ 文件单次 `icacls /T` 需 **>30 分钟**（含 .worktrees/data/
+   .pytest_tmp；杀软会逐文件扫 DACL 写入）。首跑被 1800s 上限杀掉 —— ACL 已大部分落地但
+   **marker 没写**（`sandbox_grant --status` 会显示 granted=false）。已把递归授权/撤销超时改成
+   7200s 并给 `sandbox_grant.py` 加 `--timeout`；`marker 命中后 O(1)` 不受影响。
 
 

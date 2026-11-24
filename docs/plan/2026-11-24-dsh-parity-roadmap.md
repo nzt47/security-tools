@@ -70,6 +70,11 @@
   新增设置项 → 设置中心 UI/契约测试。
 - **验收**：预设切换后 shell/fs 的写越界被 OS 拒绝（探针）；只读档下 `write_file` 必失败；
   CI 全绿；不改变插件 AppContainer 现有语义。
+- **交付状态（2026-11-24）**：✅ 已交付（896d9f016 + 769a1217a）。
+  设计/边界/实测偏差见 `docs/plan/2026-11-24-e0-1-permission-preset-design.md`；
+  默认 `full-access`（不改现网/CI 行为），生产切 `workspace-write` 前跑 `scripts/sandbox_grant.py` 预热。
+  真机探针 `.local/verify_e0_1_permission_preset.py` 16/16；遗留项在 `data/handoff_next.json`
+  的 `dsh-parity-e0-1-followups`（受限档 bash / decompress 围栏 / Low IL / 生产切档）。
 
 #### E0-2 上下文工程（P0）
 - **DSH 参照**：`token-meter`、`compaction-basic`、`compaction-tool-result-pruner`、
