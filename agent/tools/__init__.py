@@ -757,6 +757,13 @@ def call(*args, **params) -> Any:
                 _spilled_result = _spill_result(name, result)
                 if _spilled_result is not None:
                     result = _spilled_result
+                    # 【污点账不能因为 spill 掉线】上面已按原文打标；模型看到的是**预览**
+                    # （原文子串）。摘要按片段算，预览的切片边界不同 ⇒ 可能匹配不上，
+                    # 所以对预览再打一次（classify 对非外来工具返回空串，幂等无害）。
+                    try:
+                        mark_result_foreign(name, {"content": _spilled_result.get("preview") or ""})
+                    except Exception:  # noqa: BLE001  打标是旁路
+                        pass
             except Exception as _spill_err:  # noqa: BLE001
                 logger.debug("[%s] spill 跳过: %s", trace_id, type(_spill_err).__name__)
 

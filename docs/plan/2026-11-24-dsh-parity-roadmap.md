@@ -88,6 +88,10 @@
 - **连锁**：新增工具（read_spill）= 5 处连锁；改动工具结果形状 → 注册表/契约测试同步。
 - **验收**：超大输出不再丢内容（可按 locator 取回）；压缩后仍可回答细节；token 统计与
   `/api/context/status` 同源。
+- **交付状态（2026-11-24，部分）**：① 大输出 spill + `read_spill` ✅（80360b2e3；
+  设计/边界见 `docs/plan/2026-11-24-e0-2-context-spill-design.md`；真机探针 8/8，工具 102）。
+  ② pruner / ③ 图片 offload / ④ token-meter 压缩**未做**，登记在 `data/handoff_next.json`
+  的 `dsh-parity-e0-2-remaining`（顺序 ②→④→③）。
 
 #### E0-3 会话检查点 + 变更快照（P0）
 - **DSH 参照**：`session-checkpoint-policy`（模型请求/工具副作用前语义检查点）、
