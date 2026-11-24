@@ -31,7 +31,12 @@ logger = logging.getLogger(__name__)
 GROUP_NAME = "YunshuSandboxW"
 GROUP_COMMENT = "Yunshu E0-1 sandbox write identity (no members)"
 
-_ICACLS_TIMEOUT_SEC = 1800.0
+#: 递归授权/撤销的超时。**本机实测 80 万文件（含 .worktrees/data/.pytest_tmp）>30 分钟**，
+#: 2026-11-24 首次预热就因为 1800s 上限被 timeout 杀掉（ACL 已大部分落地、marker 没写）。
+#: 这是一次性运维动作，给足 2 小时；常规仓库 20k 文件约 10s。
+_RECURSIVE_TIMEOUT_SEC = 7200.0
+#: 单目录 icacls 查询 / 私有 temp（空目录）授权
+_QUICK_TIMEOUT_SEC = 120.0
 _NET_TIMEOUT_SEC = 60.0
 _SECURITY_MAX_SID_SIZE = 68
 _SID_TYPE_ALIAS = 4
@@ -173,7 +178,7 @@ def has_write_ace(root: Any) -> bool:
     """
     if not is_windows():
         return True
-    rc, out = _run(["icacls", str(root)], timeout=_ICACLS_TIMEOUT_SEC)
+    rc, out = _run(["icacls", str(root)], timeout=_QUICK_TIMEOUT_SEC)
     if rc != 0:
         return False
     if GROUP_NAME in out:
@@ -195,7 +200,7 @@ def is_granted(root: Any, *, sid: Optional[str] = None) -> bool:
 
 
 def grant(root: Any, *, sid: Optional[str] = None, standing: bool = True,
-          timeout: float = _ICACLS_TIMEOUT_SEC) -> str:
+          timeout: float = _RECURSIVE_TIMEOUT_SEC) -> str:
     """给 root（递归）授写 ACE；返回组 SID。任何失败抛 SandboxUnavailable。"""
     if not is_windows():
         raise SandboxUnavailable("当前平台不是 Windows")
@@ -220,7 +225,8 @@ def grant(root: Any, *, sid: Optional[str] = None, standing: bool = True,
     return resolved_sid
 
 
-def revoke(root: Any, *, standing: bool = True, timeout: float = _ICACLS_TIMEOUT_SEC) -> bool:
+def revoke(root: Any, *, standing: bool = True,
+           timeout: float = _RECURSIVE_TIMEOUT_SEC) -> bool:
     """撤掉写 ACE（递归）；返回是否成功。不存在/无 ACE 也视为成功（幂等）。"""
     if not is_windows():
         return True
@@ -258,3 +264,4 @@ __all__ = [
     "is_windows", "state_path", "group_sid", "ensure_group", "delete_group",
     "is_granted", "grant", "revoke", "ensure_grant", "status",
 ]
+

@@ -42,6 +42,8 @@ def main(argv=None) -> int:
     parser.add_argument("--keep-group", action="store_true", help="撤销时保留写身份组")
     parser.add_argument("--status", action="store_true", help="只打印当前状态（不写任何东西）")
     parser.add_argument("--json", action="store_true", help="JSON 输出")
+    parser.add_argument("--timeout", type=float, default=7200.0,
+                        help="递归授权/撤销的超时秒数（默认 7200；本机 80 万文件实测 >30 分钟）")
     args = parser.parse_args(argv)
 
     root = Path(args.root).expanduser().resolve() if args.root else preset_mod.sandbox_root()
@@ -56,7 +58,7 @@ def main(argv=None) -> int:
 
     if args.revoke:
         started = time.time()
-        ok = win_acl.revoke(root)
+        ok = win_acl.revoke(root, timeout=args.timeout)
         group_removed = True
         if not args.keep_group:
             group_removed = win_acl.delete_group()
@@ -73,7 +75,7 @@ def main(argv=None) -> int:
         return 1
     started = time.time()
     sid = win_acl.ensure_group()
-    win_acl.grant(root, sid=sid)
+    win_acl.grant(root, sid=sid, timeout=args.timeout)
     _print({
         "granted": True,
         "root": str(root),
@@ -88,3 +90,4 @@ def main(argv=None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
