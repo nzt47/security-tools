@@ -29,4 +29,23 @@ schema:
   required:
   - path
   - content
+# 【result_schema（2026-11-24，L2 high 批次；实调写临时文件后删除）】
+#   成功 {ok,path,abs_path,size[,backup]}；失败 {ok:false,error}。required 只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    path:
+      type: string
+    abs_path:
+      type: string
+    size:
+      type: integer
+    backup:
+      type: string
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

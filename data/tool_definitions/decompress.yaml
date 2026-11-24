@@ -25,4 +25,23 @@ schema:
       description: 解压输出目录（可选，默认解压到压缩文件所在目录下的同名文件夹）
   required:
   - file_path
+# 【result_schema（2026-11-24，L2 high 批次；实调 compress→decompress 到临时目录）】
+#   成功 {ok,output_dir,file_count,extracted_size,format}；失败 {ok:false,error}。只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    output_dir:
+      type: string
+    file_count:
+      type: integer
+    extracted_size:
+      type: integer
+    format:
+      type: string
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

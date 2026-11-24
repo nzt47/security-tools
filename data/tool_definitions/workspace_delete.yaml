@@ -23,4 +23,17 @@ schema:
       description: 工作区内的相对路径（不允许空值或工作区根目录）
   required:
   - path
+# 【result_schema（2026-11-24，L2 high 批次；实调缺参 + 删除临时路径）】
+#   成功 {ok,path}；失败 {ok:false,error}（agent/tools/workspace_tools.py::delete_workspace）。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    path:
+      type: string
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

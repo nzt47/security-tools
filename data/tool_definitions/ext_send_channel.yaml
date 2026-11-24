@@ -32,4 +32,18 @@ schema:
   required:
   - channel_id
   - message
+# 【result_schema（2026-11-24，L2 high 批次；实调不存在的 channel）】
+#   实调 → {ok:false,message:"..."}；成功分支由 ExtensionManager.send_channel_message
+#   透传（同形含 ok/message 与通道回执）。只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    message:
+      type: string
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

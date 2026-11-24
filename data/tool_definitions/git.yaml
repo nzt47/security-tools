@@ -73,4 +73,39 @@ schema:
       description: 写操作确认开关：add/commit/checkout/stash 必须传 true，否则拒绝执行
   required:
   - action
+# 【result_schema（2026-11-24，L2 high 批次；实调 status 与 add 无 confirm）】
+#   成功 {ok,action,argv,cwd,returncode,stdout,stderr,truncated[,error]}；
+#   写操作未确认 {ok:false,error,action,confirm_required:true}；
+#   git 缺失 {ok:false,error,git_available:false,action}；超时另有 timeout_sec。只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    action:
+      type: string
+    argv:
+      type: array
+      items:
+        type: string
+    cwd:
+      type: string
+    returncode:
+      type: integer
+    stdout:
+      type: string
+    stderr:
+      type: string
+    truncated:
+      type: boolean
+    confirm_required:
+      type: boolean
+    git_available:
+      type: boolean
+    timeout_sec:
+      type: integer
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

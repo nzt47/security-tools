@@ -30,4 +30,21 @@ schema:
       description: 工作目录
   required:
   - program
+# 【result_schema（2026-11-24，L2 high 批次；实调非白名单程序）】
+#   成功 {ok,pid,program}；失败 {ok:false,error[,blocked]}（agent/tools/process_tools.py）。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    pid:
+      type: integer
+    program:
+      type: string
+    blocked:
+      type: boolean
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

@@ -35,4 +35,27 @@ schema:
   - path
   - old_string
   - new_string
+# 【result_schema（2026-11-24，L2 high 批次；实调 temp 文件：read_file→edit→删除）】
+#   成功 {ok,path,replaced,bytes_written}；失败另有 error/occurrences/lines/blocked。只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    path:
+      type: string
+    replaced:
+      type: integer
+    bytes_written:
+      type: integer
+    occurrences:
+      type: integer
+    lines:
+      type: array
+    blocked:
+      type: boolean
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

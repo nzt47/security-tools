@@ -758,7 +758,8 @@ class TestResultSchemaCoverage:
     get_pdf_info / data_convert / humanize_zh）**12/91**
     →（2026-11-24 L2 第一批：web_get / web_extract / web_batch / ext_discover /
     kb_discuss / look_at_screen，均按真实返回逐项核对）**30/101**
-    →（2026-11-24 第二批：16 个 medium 工具，实调 + 按 return 字面量核对）**46/101**。
+    →（2026-11-24 第二批：16 个 medium 工具，实调 + 按 return 字面量核对）**46/101**
+    →（2026-11-24 第三批：11 个 high 工具）**57/101**。
     机制本身早已存在并接线（contract.py + invoke.py 步骤⑦，违约只报告不改 status），
     缺的是声明覆盖 —— 所以这里锁的是「别退回去」。
 
@@ -770,7 +771,7 @@ class TestResultSchemaCoverage:
     与对应 YAML（删除两批新增的 22 个名字）。
     """
 
-    FLOOR = 46
+    FLOOR = 57
 
     def _count(self):
         import glob

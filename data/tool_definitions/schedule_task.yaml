@@ -36,4 +36,29 @@ schema:
       description: '执行参数，如 {"command": "echo hello"}'
   required:
   - name
+# 【result_schema（2026-11-24，L2 high 批次；实调 name+interval）】
+#   当前动作执行未实现 ⇒ {ok:false,error_code:NOT_IMPLEMENTED,error,implemented:false,
+#   action_execution_implemented:false,guidance}；实现后成功走调度器 add_task 的
+#   {ok,task...} 并补 action_execution_implemented/note。required 只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    error_code:
+      type: string
+    error:
+      type: string
+    implemented:
+      type: boolean
+    action_execution_implemented:
+      type: boolean
+    action_execution_note:
+      type: string
+    guidance:
+      type: string
+    task:
+      type: object
+  required: [ok]
+  additionalProperties: true
 examples: []

@@ -35,4 +35,43 @@ schema:
       description: 超时秒数，默认 30，最大 120
   required:
   - skill_id
+# 【result_schema（2026-11-24，L2 high 批次；失败分支实调 + 实现 return 核对）】
+#   成功/失败同形：ok/skill_id/script_name/success/exit_code/duration_ms/timed_out/
+#   validation_status；成功另有 result，运行输出有 stdout_tail/stderr_tail，
+#   失败有 error；缺参/不适用另有 applicable/available_scripts。只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    skill_id:
+      type: string
+    script_name:
+      type: string
+    success:
+      type: boolean
+    exit_code:
+      type: integer
+    duration_ms:
+      type: number
+    timed_out:
+      type: boolean
+    validation_status:
+      type: string
+    result:
+      type: object
+    stdout_tail:
+      type: string
+    stderr_tail:
+      type: string
+    applicable:
+      type: boolean
+    available_scripts:
+      type: array
+      items:
+        type: string
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

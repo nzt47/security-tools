@@ -27,4 +27,34 @@ schema:
       description: 为 true 时只做校验、不写盘，默认 false
   required:
   - patch
+# 【result_schema（2026-11-24，L2 high 批次；实调 dry_run 与真写 temp 文件后清理）】
+#   成功 {ok,dry_run,applied,files[{path,hunks,added,removed,created,bytes}],total_added,
+#   total_removed[,message|root]}；失败 {ok:false,error[,failed_hunk]}。只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    dry_run:
+      type: boolean
+    applied:
+      type: boolean
+    files:
+      type: array
+      items:
+        type: object
+    total_added:
+      type: integer
+    total_removed:
+      type: integer
+    message:
+      type: string
+    root:
+      type: string
+    failed_hunk:
+      type: object
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

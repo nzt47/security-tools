@@ -84,4 +84,35 @@ schema:
       description: 并发上限（§4.2）：合法区间 1..DEFAULT_MAX_CONCURRENCY（当前 4），缺省 4；越界会被 clamp 到区间内并在返回的 notes 里说明
   required:
   - tasks
+# 【result_schema（2026-11-24，L2 high 批次；实调空 tasks + 实现汇总字面量核对）】
+#   拒绝 {ok:false,error_code,error[,tasks_problems]}；汇总 {ok,status,partial,total,
+#   succeeded,failed,max_concurrency,results[逐任务],...}（agent/tools/fan_out_tools.py
+#   步骤 7 的 envelope）。只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    status:
+      type: string
+    partial:
+      type: boolean
+    total:
+      type: integer
+    succeeded:
+      type: integer
+    failed:
+      type: integer
+    max_concurrency:
+      type: integer
+    results:
+      type: array
+    tasks_problems:
+      type: array
+    error_code:
+      type: string
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []
