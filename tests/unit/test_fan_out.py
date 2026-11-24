@@ -318,7 +318,7 @@ class TestRegistrationAndGovernance:
             "location", "location_reason",
             "plane", "effect", "risk", "tool_type", "llm_callable",
             "callable_mode", "permission_level", "sandbox_allowed",
-            "tags", "schema", "examples",
+            "tags", "schema", "result_schema", "examples",
         ]
 
     def test_yaml_与_python_字面量逐字段一致(self, make_tool):
