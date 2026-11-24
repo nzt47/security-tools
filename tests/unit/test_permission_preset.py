@@ -62,8 +62,9 @@ def test_审批姿态映射(monkeypatch):
         assert preset_mod.approval_policy(preset) == policy
 
 
-def test_沙箱根_非法值回落仓库根(monkeypatch):
-    monkeypatch.setenv(preset_mod.ROOT_ENV, "\0bad")
+def test_沙箱根_空白值回落仓库根(monkeypatch):
+    # 空/全空白 = 未配置（NUL 不能进 os.environ，跨平台用例不碰它）
+    monkeypatch.setenv(preset_mod.ROOT_ENV, "   ")
     assert preset_mod.sandbox_root() == preset_mod.repo_root()
 
 
@@ -128,6 +129,7 @@ def test_围栏_前缀相同但不是子目录被拒(monkeypatch, tmp_path):
     assert fs_fence.check_write(sibling / "a.txt", "write_file") is not None
 
 
+@pytest.mark.skipif(os.name != "nt", reason="大小写不敏感是 Windows 语义（Linux 区分大小写）")
 def test_围栏_大小写不敏感(monkeypatch, tmp_path):
     root = tmp_path / "CaseWS"
     root.mkdir()
@@ -197,3 +199,4 @@ def test_env_block_双NUL结尾():
     block = env_block(build_env(Path(os.environ.get("TEMP", "."))))
     assert block.endswith(b"\0\0")
     assert "PATH=" in block.decode("utf-16-le", errors="replace")
+
