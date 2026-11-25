@@ -2310,6 +2310,18 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
             except Exception as _pe:  # noqa: BLE001 减法失败保持原样
                 logger.debug("[workbench][SSE] 轻量档工具减法不可用: %s", _pe)
 
+        # 【E1-3a 修补】交互原语（ask/present）必须**永远在场**：
+        #   上一步若走的是「主线装配」（identity 减过一次），得到的白名单里没有这两个
+        #   交互面 —— 实测默认主线 engineering 下，模型直接回「可用工具里没有
+        #   ask_user_question」，提问/交付卡在工作台里等于不存在。
+        #   所以统一在白名单算完之后并上 META_ALWAYS_TOOLS（与 `get_tools_for_input` /
+        #   `hybrid_select_tools` 的"截断后追加"同一口径，只是这条路径没有截断）。
+        if _whitelist:
+            _merged, _added = merge_meta_tools(_whitelist)
+            if _added:
+                _whitelist = _merged
+                _sel_note += "+交互原语(%d)" % _added
+
         tool_defs = _get_defs(whitelist=_whitelist)
         try:
             from agent.tool_schema_pruner import prune_tool_defs
@@ -3072,6 +3084,33 @@ def _goal_status_line(st: dict) -> str:
     if blocked:
         line += " · 阻塞 %s：%s" % (blocked.get("code", ""), blocked.get("reason", ""))
     return line
+
+
+def merge_meta_tools(whitelist):
+    """把交互原语（ask/present）并进工具白名单。
+
+    【为什么单独一层】主线装配（`agent.lines`）是"按身份做减法"：它给出的白名单
+    里没有交互面。交互原语不是身份工具，任何线上都必须可用，所以在**白名单算完
+    之后**统一并进来（与 `get_tools_for_input` / `hybrid_select_tools` 的
+    "截断后追加"同一口径，只是这条路径没有截断）。
+
+    Returns:
+        (新列表, 追加个数)：已存在的不重复追加；入参为空/异常时原样返回、个数 0。
+    """
+    try:
+        names = list(whitelist or [])
+    except TypeError:
+        return whitelist, 0
+    if not names:
+        return whitelist, 0
+    try:
+        from agent.tool_router import META_ALWAYS_TOOLS as _META
+    except Exception:  # noqa: BLE001 导入失败保持原样（宁可少补，不影响对话）
+        return names, 0
+    missing = [t for t in _META if t not in names]
+    if not missing:
+        return names, 0
+    return names + missing, len(missing)
 
 
 def tool_side_events(tool_result, tool_name: str = "") -> list:
