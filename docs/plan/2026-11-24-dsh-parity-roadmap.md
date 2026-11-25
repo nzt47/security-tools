@@ -138,6 +138,9 @@
 - **交付**：goal 服务（事件溯源/持久化）、模型工具、自动续跑驱动器（受预算/轮次上限）、
   UI GoalBar；与现有"交接/长任务"口径打通（不重复两套状态）。
 - **验收**：跨重启/恢复目标仍在；自动续跑在 round 上限停止；blocked 有稳定 code+说明。
+- **设计状态（2026-11-25）**：📝 设计页已出 `docs/plan/2026-11-25-e1-2-goal-design.md`
+  （事件溯源 + 投影、单工具多动作 `goal`、前端驱动 round driver、GoalBar、四片实现顺序
+  E1-2a→d）；**未动代码**，下一轮从 E1-2a 开始。
 
 #### E1-3 ask_user_question + present/交付卡（P1）
 - **DSH 参照**：`tool-ask-user`（选项/多选/自定义）、`tool-present`、变更文件卡。
