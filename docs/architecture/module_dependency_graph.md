@@ -734,6 +734,7 @@ flowchart LR
         agent_tools_file_tools["agent.tools.file_tools"]:::crosslayer
         agent_tools_file_tools_reg["agent.tools.file_tools_reg"]:::crosslayer
         agent_tools_git_tools["agent.tools.git_tools"]:::crosslayer
+        agent_tools_goal_tools["agent.tools.goal_tools"]:::crosslayer
         agent_tools_governance["agent.tools.governance"]
         agent_tools_lint_tools["agent.tools.lint_tools"]:::crosslayer
         agent_tools_mcp_connector["agent.tools.mcp_connector"]
@@ -968,6 +969,7 @@ flowchart LR
     agent_context_assembler -.-> agent_guardrails_instruction_data
     agent_context_assembler -.-> agent_guardrails_foreign_taint
     agent_context_checkpoint -.-> agent_utils
+    agent_context_goal -.-> agent_observability_trace_v2
     agent_data_observability -.-> agent_logging_utils
     agent_data_observability -.-> agent_monitoring_business_metrics
     agent_data_analytics --> agent_logging_utils
@@ -1801,6 +1803,7 @@ flowchart LR
     agent_orchestrator_lifecycle_manager -.-> agent_tools_subagent_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_fan_out_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_plan_tools
+    agent_orchestrator_lifecycle_manager -.-> agent_tools_goal_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_extra_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_git_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_test_tools
@@ -1878,6 +1881,7 @@ flowchart LR
     agent_orchestrator_orchestrator -.-> agent_monitoring_prometheus
     agent_orchestrator_orchestrator -.-> agent_context_assembler
     agent_orchestrator_orchestrator -.-> agent_context_plan_mode
+    agent_orchestrator_orchestrator -.-> agent_context_goal
     agent_orchestrator_orchestrator -.-> agent_system_prompt_manager
     agent_orchestrator_orchestrator -.-> agent_state_manager
     agent_orchestrator_orchestrator -.-> agent_cognitive_reflection
@@ -2981,6 +2985,8 @@ flowchart LR
     agent_tools_file_tools_reg -.-> agent_context_spill
     agent_tools_git_tools --> agent
     agent_tools_git_tools -.-> agent_utils
+    agent_tools_goal_tools --> agent_tools
+    agent_tools_goal_tools -.-> agent_context
     agent_tools_governance -.-> agent_audit_facade
     agent_tools_lint_tools --> agent
     agent_tools_lint_tools -.-> agent_utils
@@ -3140,9 +3146,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 796
-- 模块节点数: 690
-- 依赖边数: 2318
-- 跨层调用数: 1473
+- 扫描文件数: 797
+- 模块节点数: 691
+- 依赖边数: 2323
+- 跨层调用数: 1477
 - 违规调用数: 0
 - 动态 import 数: 1
