@@ -65,6 +65,7 @@ flowchart LR
         agent_context["agent.context"]:::crosslayer
         agent_context_assembler["agent.context.assembler"]:::crosslayer
         agent_context_checkpoint["agent.context.checkpoint"]:::crosslayer
+        agent_context_goal["agent.context.goal"]:::crosslayer
         agent_context_plan_mode["agent.context.plan_mode"]:::crosslayer
         agent_context_spill["agent.context.spill"]:::crosslayer
     end
@@ -2477,6 +2478,7 @@ flowchart LR
     agent_server_routes_tracing_decorator -.-> agent_logging_utils
     agent_server_routes_tracing_middleware -.-> agent_monitoring_tracing
     agent_session_manager -.-> agent_context_plan_mode
+    agent_session_manager -.-> agent_context_goal
     agent_session_manager --> agent
     agent_session_manager -.-> agent_observability_trace_v2
     agent_settings --> agent_settings_masking
@@ -3138,9 +3140,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 795
-- 模块节点数: 689
-- 依赖边数: 2317
-- 跨层调用数: 1472
+- 扫描文件数: 796
+- 模块节点数: 690
+- 依赖边数: 2318
+- 跨层调用数: 1473
 - 违规调用数: 0
 - 动态 import 数: 1

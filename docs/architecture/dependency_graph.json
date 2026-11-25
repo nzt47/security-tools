@@ -3471,7 +3471,7 @@
       "layer": "core",
       "file_path": "",
       "in_degree": 1,
-      "out_degree": 3
+      "out_degree": 4
     },
     {
       "path": "agent.tool_schema_pruner",
@@ -4792,6 +4792,14 @@
       "file_path": "agent/server_routes/tracing_middleware.py",
       "in_degree": 0,
       "out_degree": 1
+    },
+    {
+      "path": "agent.context.goal",
+      "name": "goal",
+      "layer": "context",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 0
     },
     {
       "path": "agent.settings.masking",
@@ -27149,11 +27157,24 @@
     },
     {
       "source": "agent.session_manager",
+      "target": "agent.context.goal",
+      "source_layer": "core",
+      "target_layer": "context",
+      "import_type": "from_import",
+      "line": 322,
+      "source_file": "agent/session_manager.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.session_manager",
       "target": "agent",
       "source_layer": "core",
       "target_layer": "unknown",
       "import_type": "from_import",
-      "line": 436,
+      "line": 442,
       "source_file": "agent/session_manager.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -27166,7 +27187,7 @@
       "source_layer": "core",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 613,
+      "line": 619,
       "source_file": "agent/session_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -35638,10 +35659,10 @@
     }
   ],
   "stats": {
-    "total_files": 795,
-    "total_nodes": 689,
-    "total_edges": 2317,
-    "cross_layer_edges": 1472,
+    "total_files": 796,
+    "total_nodes": 690,
+    "total_edges": 2318,
+    "cross_layer_edges": 1473,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -35667,7 +35688,7 @@
       "cognitive": 13,
       "config": 2,
       "orchestrator": 13,
-      "context": 5,
+      "context": 6,
       "dao": 1,
       "descriptors": 4,
       "digestion": 18,
