@@ -63,10 +63,12 @@ flowchart LR
     end
     subgraph context [context]
         agent_context["agent.context"]:::crosslayer
+        agent_context_ask["agent.context.ask"]:::crosslayer
         agent_context_assembler["agent.context.assembler"]:::crosslayer
         agent_context_checkpoint["agent.context.checkpoint"]:::crosslayer
         agent_context_goal["agent.context.goal"]:::crosslayer
         agent_context_plan_mode["agent.context.plan_mode"]:::crosslayer
+        agent_context_session_bind["agent.context.session_bind"]
         agent_context_spill["agent.context.spill"]:::crosslayer
     end
     subgraph core [core]
@@ -573,6 +575,7 @@ flowchart LR
         agent_server_routes_observability["agent.server_routes.observability"]
         agent_server_routes_routes_agent_lines["agent.server_routes.routes_agent_lines"]
         agent_server_routes_routes_approval["agent.server_routes.routes_approval"]:::crosslayer
+        agent_server_routes_routes_ask["agent.server_routes.routes_ask"]
         agent_server_routes_routes_assets["agent.server_routes.routes_assets"]
         agent_server_routes_routes_background["agent.server_routes.routes_background"]
         agent_server_routes_routes_business_dashboard["agent.server_routes.routes_business_dashboard"]
@@ -724,6 +727,7 @@ flowchart LR
     end
     subgraph tools [tools]
         agent_tools["agent.tools"]:::crosslayer
+        agent_tools_ask_tools["agent.tools.ask_tools"]:::crosslayer
         agent_tools_browser_tools["agent.tools.browser_tools"]:::crosslayer
         agent_tools_code_tools["agent.tools.code_tools"]:::crosslayer
         agent_tools_core_tools["agent.tools.core_tools"]:::crosslayer
@@ -970,7 +974,10 @@ flowchart LR
     agent_context_assembler -.-> agent_guardrails_instruction_data
     agent_context_assembler -.-> agent_guardrails_foreign_taint
     agent_context_checkpoint -.-> agent_utils
-    agent_context_goal -.-> agent_observability_trace_v2
+    agent_context_goal --> agent_context
+    agent_context_goal --> agent_context
+    agent_context_goal --> agent_context
+    agent_context_session_bind -.-> agent_observability_trace_v2
     agent_data_observability -.-> agent_logging_utils
     agent_data_observability -.-> agent_monitoring_business_metrics
     agent_data_analytics --> agent_logging_utils
@@ -1805,6 +1812,7 @@ flowchart LR
     agent_orchestrator_lifecycle_manager -.-> agent_tools_fan_out_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_plan_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_goal_tools
+    agent_orchestrator_lifecycle_manager -.-> agent_tools_ask_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_extra_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_git_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_test_tools
@@ -2218,6 +2226,10 @@ flowchart LR
     agent_server_routes_routes_approval -.-> agent_approval_surface
     agent_server_routes_routes_approval -.-> agent_security_governance_bridge
     agent_server_routes_routes_approval -.-> agent_security_governance_bridge
+    agent_server_routes_routes_ask -.-> agent_server_auth
+    agent_server_routes_routes_ask --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_ask --> agent_server_routes__errors
+    agent_server_routes_routes_ask -.-> agent_context
     agent_server_routes_routes_assets -.-> agent_server_auth
     agent_server_routes_routes_assets --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_assets -.-> agent_prompt_manager_storage
@@ -2487,6 +2499,7 @@ flowchart LR
     agent_server_routes_tracing_decorator -.-> agent_logging_utils
     agent_server_routes_tracing_middleware -.-> agent_monitoring_tracing
     agent_session_manager -.-> agent_context_plan_mode
+    agent_session_manager -.-> agent_context_ask
     agent_session_manager -.-> agent_context_goal
     agent_session_manager --> agent
     agent_session_manager -.-> agent_observability_trace_v2
@@ -2917,6 +2930,9 @@ flowchart LR
     agent_tools --> agent_tools_governance
     agent_tools -.-> agent_context_checkpoint
     agent_tools -.-> agent_context_spill
+    agent_tools_ask_tools --> agent_tools
+    agent_tools_ask_tools -.-> agent_context
+    agent_tools_ask_tools -.-> agent_context
     agent_tools_browser_tools -.-> agent_guardrails_ssrf_guard
     agent_tools_browser_tools -.-> agent_guardrails_ssrf_guard
     agent_tools_code_tools --> agent
@@ -3151,9 +3167,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 798
-- 模块节点数: 692
-- 依赖边数: 2327
-- 跨层调用数: 1479
+- 扫描文件数: 802
+- 模块节点数: 696
+- 依赖边数: 2339
+- 跨层调用数: 1485
 - 违规调用数: 0
 - 动态 import 数: 1
