@@ -435,7 +435,8 @@ class TestMainLine:
         assert line["line_id"] == "engineering"
         # 【2026-11-21】26 → 27：engineering 的 boost 收进 ui_guard_check / ui_guard_fix 后 max_tools 26→27
         # （保持 26 会挤掉 run_tests），清单的可见集随之 27 条。
-        assert len(line["visible"]) == 28, f"engineering 主线可见集应为 27 条，实得 {len(line['visible'])}"
+        # 【2026-11-26 E1-4d】28 → 30：session_search / session_trace 进 boost（max_tools 28→30）
+        assert len(line["visible"]) == 30, f"engineering 主线可见集应为 30 条，实得 {len(line['visible'])}"
         assert set(line["muted"]) == {"web_extract", "web_search", "web_batch"}
         assert "connect_mcp" in line["denied_by_effect"]
 

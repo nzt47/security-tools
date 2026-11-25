@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-11-26T01:14:23",
+  "generated_at": "2026-11-26T01:55:48",
   "scope": "仓库可复现口径：data/tool_definitions/*.yaml + data/skill_callability.yaml + data/skills_repo/*/skill.md + data/permission_policies.json + 注册点静态扫描（不含 .gitignore 里的运行时技能目录/台账）",
   "runtime_only_declarations": [
     "global-core-principles",
@@ -318,6 +318,8 @@
       "goal",
       "remember",
       "search_memory",
+      "session_search",
+      "session_trace",
       "todo_write",
       "code_review",
       "delegate",
@@ -371,7 +373,7 @@
       "git",
       "run_sandbox"
     ],
-    "max_tools": 28,
+    "max_tools": 30,
     "note": ""
   },
   "performance_note": "性能列（avg_ms / p99_ms / dpm）**一律未采集**：仓库现有实测只有一次 HTTP 压测（p50=15.84s），且进程内计时冒充压测的产物已确认不可引用（见 TASK-00 §0.2b）。清单**不提供估算值**；采集方案与 TASK-08 对接。",
@@ -444,9 +446,9 @@
       "planning": 0
     },
     "by_main_line_status": {
-      "not_assembled": 63,
+      "not_assembled": 61,
       "n/a": 50,
-      "visible": 28,
+      "visible": 30,
       "denied_by_effect": 8,
       "muted": 3
     },
@@ -9056,7 +9058,7 @@
       "confirm_level_reason": "",
       "internal": false,
       "enabled": true,
-      "main_line_status": "not_assembled"
+      "main_line_status": "visible"
     },
     {
       "tool_name": "session_trace",
@@ -9183,7 +9185,7 @@
       "confirm_level_reason": "",
       "internal": false,
       "enabled": true,
-      "main_line_status": "not_assembled"
+      "main_line_status": "visible"
     },
     {
       "tool_name": "set_clipboard",
@@ -24138,7 +24140,7 @@
       "confirm_level_reason": "",
       "internal": false,
       "enabled": true,
-      "main_line_status": "not_assembled"
+      "main_line_status": "visible"
     },
     {
       "tool_name": "session_trace",
@@ -24265,7 +24267,7 @@
       "confirm_level_reason": "",
       "internal": false,
       "enabled": true,
-      "main_line_status": "not_assembled"
+      "main_line_status": "visible"
     },
     {
       "tool_name": "set_clipboard",
