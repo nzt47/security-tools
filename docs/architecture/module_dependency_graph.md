@@ -579,6 +579,7 @@ flowchart LR
         agent_server_routes_routes_capabilities["agent.server_routes.routes_capabilities"]
         agent_server_routes_routes_dashboard["agent.server_routes.routes_dashboard"]
         agent_server_routes_routes_feedback["agent.server_routes.routes_feedback"]
+        agent_server_routes_routes_goal["agent.server_routes.routes_goal"]
         agent_server_routes_routes_health["agent.server_routes.routes_health"]
         agent_server_routes_routes_knowledge["agent.server_routes.routes_knowledge"]
         agent_server_routes_routes_llm_gate["agent.server_routes.routes_llm_gate"]
@@ -2262,6 +2263,10 @@ flowchart LR
     agent_server_routes_routes_feedback -.-> agent_feedback
     agent_server_routes_routes_feedback -.-> agent_feedback
     agent_server_routes_routes_feedback -.-> agent_feedback
+    agent_server_routes_routes_goal -.-> agent_server_auth
+    agent_server_routes_routes_goal --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_goal --> agent_server_routes__errors
+    agent_server_routes_routes_goal -.-> agent_context
     agent_server_routes_routes_health -.-> agent_server_auth
     agent_server_routes_routes_health -.-> agent_health_health_score
     agent_server_routes_routes_health -.-> agent_logging_utils
@@ -3146,9 +3151,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 797
-- 模块节点数: 691
-- 依赖边数: 2323
-- 跨层调用数: 1477
+- 扫描文件数: 798
+- 模块节点数: 692
+- 依赖边数: 2327
+- 跨层调用数: 1479
 - 违规调用数: 0
 - 动态 import 数: 1
