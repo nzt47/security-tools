@@ -143,6 +143,15 @@ class TestRoute:
         assert r.status_code == 404
         assert r.get_json()["code"] == "unknown_checkpoint"
 
+    def test_已有检查点时_未知_id仍_404_不回落最新(self, client, repo):
+        # 这条钉住「有检查点 ⇒ 打错的 id 不能回落成最近一次」：没有检查点时 404 是
+        # 因为"没有快照"，有检查点时 404 必须是因为"这个 id 不存在"。
+        (repo / "a.txt").write_text("a1\na2\nA3\n", encoding="utf-8")
+        checkpoint.snapshot(root=repo, trigger_tool="pytest", session_id="s-1")
+        r = client.get("/api/changes?session_id=s-1&checkpoint=20260101T000000Z-deadbeef")
+        assert r.status_code == 404
+        assert r.get_json()["code"] == "unknown_checkpoint"
+
     def test_最近检查点_会话一致_scope_session(self, client, repo):
         (repo / "a.txt").write_text("a1\na2\nA3\n", encoding="utf-8")
         checkpoint.snapshot(root=repo, trigger_tool="pytest", session_id="s-1")

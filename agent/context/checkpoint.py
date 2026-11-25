@@ -520,9 +520,14 @@ def changes(checkpoint_id: str = "", *, max_chars_per_file: int = 0,
          new_file,added,removed,diff,truncated}], "truncated": bool}
         检查点不存在/没有检查点 → None
     """
-    target = _resolve(checkpoint_id) if checkpoint_id else None
+    target: Optional[Path] = None
     manifest = None
-    if target is not None:
+    if checkpoint_id:
+        # 指定了 id 就必须是**存在的那一份**：找不到就返回 None（路由回 404），
+        # **不能**回落到"最近一次" —— 那会把「id 打错」伪装成成功。
+        target = _resolve(checkpoint_id)
+        if target is None:
+            return None
         manifest = load_manifest(checkpoint_id)
     else:
         rows = list_checkpoints(1)
