@@ -293,6 +293,11 @@
       "area": "会话管理",
       "note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。"
     },
+    "/api/goal/*": {
+      "intent": "should_be_in_ui",
+      "area": "会话管理/目标",
+      "note": "E1-2d 目标：状态读取（GET /state）+ 暂停/恢复/清除（POST /mode）+ 追加验收（POST /accept）。消费方是会话页的 GoalBar（yunshu-ui/src/components/workbench/chat/GoalBar.tsx）。"
+    },
     "/api/plan-mode/*": {
       "intent": "should_be_in_ui",
       "area": "会话管理/计划模式",

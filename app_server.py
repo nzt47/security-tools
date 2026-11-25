@@ -1566,6 +1566,16 @@ try:
 except Exception as e:
     _record_route_failure("计划模式路由", e)
 
+# ════════════════════════════════════════════════════════════
+#  E1-2d Goal 路由（/api/goal/*）
+# ════════════════════════════════════════════════════════════
+try:
+    from agent.server_routes.routes_goal import register_routes as reg_goal
+    reg_goal(app, lambda: None)
+    logger.info("目标路由已注册 (/api/goal/*)")
+except Exception as e:
+    _record_route_failure("目标路由", e)
+
 
 # ════════════════════════════════════════════════════════════
 #  工作流学习系统路由（/api/workflow-learning/*）

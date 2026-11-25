@@ -13,6 +13,7 @@
         "/api/context",
         "/api/handoff",
         "/api/history",
+        "/api/goal",
         "/api/news",
         "/api/plan-mode",
         "/api/projects",

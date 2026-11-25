@@ -21,6 +21,9 @@ import { ApprovalPrompt } from '../chat/ApprovalPrompt';
 // E1-1 计划模式：卡片只嵌在会话页（不新增页面/叶子 ⇒ 深链不变）
 import { PlanCard } from '../chat/PlanCard';
 import { getPlan, setPlanMode } from '@/lib/planApi';
+// E1-2d 目标：进度条只嵌会话页（不新增叶子）
+import { GoalBar } from '../chat/GoalBar';
+import { getGoal } from '@/lib/goalApi';
 import { authHeader } from '@/lib/apiToken';
 
 import {
@@ -46,6 +49,8 @@ export function ChatPanel() {
   const activeSessionId = useLayoutStore((s) => s.activeSessionId);
   const plan = useLayoutStore((s) => s.plan);
   const setPlan = useLayoutStore((s) => s.setPlan);
+  const goal = useLayoutStore((s) => s.goal);
+  const setGoal = useLayoutStore((s) => s.setGoal);
   const [planBusy, setPlanBusy] = useState(false);
 
   // 切会话 / 刷新页面时回填计划状态（状态在磁盘上，会话恢复后仍在）
@@ -58,8 +63,11 @@ export function ChatPanel() {
     getPlan(activeSessionId)
       .then((p) => { if (!cancelled) setPlan(p); })
       .catch(() => { /* 计划端点不可用不影响对话 */ });
+    getGoal(activeSessionId)
+      .then((g) => { if (!cancelled) setGoal(g); })
+      .catch(() => { /* 目标端点不可用不影响对话 */ });
     return () => { cancelled = true; };
-  }, [activeSessionId, setPlan]);
+  }, [activeSessionId, setPlan, setGoal]);
 
   const togglePlanMode = async () => {
     if (!activeSessionId || planBusy) return;
@@ -344,6 +352,9 @@ export function ChatPanel() {
           <ChatStyleMenu />
         </div>
       </div>
+
+      {/* 目标进度条（E1-2d）：无目标时 GoalBar 自身返回 null，不占位 */}
+      {goal && <GoalBar goal={goal} />}
 
       {/* 消息区 */}
       <div

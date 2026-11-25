@@ -222,6 +222,16 @@ export const PLAN_MODE_SET = '/api/plan-mode/mode';
 export const PLAN_MODE_DECISION = '/api/plan-mode/decision';
 
 // ═══════════════════════════════════════════════════════════════
+//  目标模式（/api/goal/*，E1-2）
+// ═══════════════════════════════════════════════════════════════
+/** 目标状态 + 最近事件（?session_id=，只读） */
+export const GOAL_STATE = '/api/goal/state';
+/** 暂停 / 恢复 / 清除（POST {session_id, action}，需令牌） */
+export const GOAL_MODE = '/api/goal/mode';
+/** 追加验收条件（POST {session_id, item}，需令牌） */
+export const GOAL_ACCEPT = '/api/goal/accept';
+
+// ═══════════════════════════════════════════════════════════════
 //  知识库（/api/knowledge）
 // ═══════════════════════════════════════════════════════════════
 // 新增知识文档（legacy 记忆/向量域端点；content 必填）
