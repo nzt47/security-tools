@@ -1,10 +1,6 @@
 name: goal
 category: core
-description: '维护本会话的**单一持续目标**（goal / 目标 / 长期任务）：create 创建（必填 title，建议给 acceptance
-  验收条件）；edit 修改；pause/resume 暂停恢复；complete 完成（**必须带 evidence**：命令输出/文件/检查点
-  id）；block 阻塞（必须带 code∈{need_user,external,permission,unclear} + reason）；clear 清除；status
-  查看。一个会话只有一个目标；目标会进入系统提示，每轮收尾由 driver 决定是否自动续跑（轮次上限默认 256）。
-  多步推进请配合 todo_write 记录步骤。Manage the single persistent goal of this session'
+description: '维护本会话的**单一持续目标**（goal / 目标 / 长期任务）：create 创建（必填 title，建议给 acceptance 验收条件）；edit 修改；pause/resume 暂停恢复；complete 完成（**必须带 evidence**：命令输出/文件/检查点 id）；block 阻塞（必须带 code∈{need_user,external,permission,unclear} + reason）；clear 清除；status 查看。一个会话只有一个目标；目标会进入系统提示，每轮收尾由 driver 决定是否自动续跑（轮次上限默认 256）。多步推进请配合 todo_write 记录步骤。Manage the single persistent goal of this session'
 deprecated: false
 version: 1.0.0
 location: local

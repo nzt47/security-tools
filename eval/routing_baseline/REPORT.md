@@ -1,6 +1,6 @@
 # TASK-10 · 既有路由可验证化基线报告（机器生成）
 
-- HEAD: 9420b72f6fcc953b8331b9d69b2bec6a5b512973
+- HEAD: 0b27ba270824f00a139a338047d60a6cac9d87a0
 - 语义层状态: {"retriever_available": true, "degraded_bm25_only": true, "embedding_available": false, "bm25_docs": 97, "alpha": 0.5, "index_path": "data/tool_index.json", "embedding_health": {"mode": "bm25_only", "init_failed": false, "worker_alive": false, "worker_ready": false, "load_cache_probe": null, "available": false, "failure_total": 0, "restart_attempts": 0, "max_restart_attempts": 3, "restarting": false, "retry_exhausted": false, "next_restart_in_sec": null, "last_failure": {}, "retriever_degraded": true}}
 
 ## 1. 意图类目表（机器派生）

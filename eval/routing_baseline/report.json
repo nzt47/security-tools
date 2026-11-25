@@ -1,6 +1,6 @@
 {
   "task": "TASK-10 · 既有路由的可验证化",
-  "head_commit": "9420b72f6fcc953b8331b9d69b2bec6a5b512973",
+  "head_commit": "0b27ba270824f00a139a338047d60a6cac9d87a0",
   "environment": {
     "python": "3.12.0",
     "new_dependencies": [],

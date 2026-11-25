@@ -531,10 +531,11 @@ class TestCasesVersionSelection:
         # （判据不变：50 个候选 τ 里 F1 最大；27/50 的通过数没变，只标定值跟着索引变）
         # 【2026-11-09】0.0577 → 0.0571：新增 skill_script_run 后索引 93→94 篇 ⇒ 检索分差分布变化
         # 【2026-11-20】0.0571 → 0.0478：新增 ui_guard_check 后索引 93→94 篇 ⇒ 检索分差分布变化
+        # 【2026-11-25】0.0477 → 0.0565：新增 goal 后索引 97→98 篇（v1 口径；决策层仍 27/50）
         # 【2026-11-24】0.0478 → 0.0477：新增 read_spill 后索引 95→96 篇（v1 用例集口径；
         #   v2 默认用例集的 τ 建议另算，2026-11-24 实测 0.0233）
         # （决策层通过数仍 27/50，未变；τ 是派生值，随索引重标定）
-        assert "τ 建议   : 0.0477" in out
+        assert "τ 建议   : 0.0565" in out
 
 
 class TestEvalRunsV2:
@@ -551,7 +552,7 @@ class TestEvalRunsV2:
                 assert isinstance(r["passed"], bool)
 
     def test_基线可复现(self, eval_run_v2):
-        """E1-B 基线（bm25_only，v2）：决策层 48/111 正样本，下发层 expected 88/111。
+        """E1-B 基线（bm25_only，v2）：决策层 48/111 正样本，下发层 expected 87/111。
         低分是现状（新样本刻意压测难的一侧），这条断言守的是「数字有没有漂」。"""
         base = EV.BASELINE_BY_VERSION["v2"]["bm25_only"]
         s = eval_run_v2["summary"]

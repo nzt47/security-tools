@@ -78,8 +78,10 @@ BASELINE_BY_VERSION: Dict[str, Dict[str, Optional[Dict[str, int]]]] = {
         "hybrid": None,
     },
     "v2": {
+        # 【2026-11-25 E1-2b】goal 进候选池后下发层 expected 命中 88 → 87
+        # （决策层仍 48/111；这是"数字有没有漂"的基线，不是及格线）
         "bm25_only": {"cases": 121, "positives": 111, "decision_pass": 48,
-                      "payload_expect_pass": 88},
+                      "payload_expect_pass": 87},
         "hybrid": None,
     },
 }

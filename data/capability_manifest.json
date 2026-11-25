@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-11-25T18:15:10",
+  "generated_at": "2026-11-25T18:57:50",
   "scope": "仓库可复现口径：data/tool_definitions/*.yaml + data/skill_callability.yaml + data/skills_repo/*/skill.md + data/permission_policies.json + 注册点静态扫描（不含 .gitignore 里的运行时技能目录/台账）",
   "runtime_only_declarations": [
     "global-core-principles",
@@ -4777,7 +4777,7 @@
       "sandbox_allowed": false,
       "isolation_level": "process",
       "reason": "",
-      "description": "维护本会话的**单一持续目标**（goal / 目标 / 长期任务）：create 创建（必填 title，建议给 acceptance 验收条件）；edit 修改；pause/resume 暂停恢复；complete 完成（**必须带 evidence**：命令输出/文件/检查点 id）；block 阻塞（必须带 code∈{need_user,external,permission,unclear} + reason）；clear 清除；status 查看。一个会话只有一个目标；目标会进入系统提示，每轮收尾由 driver 决定是否自动续跑（轮次上限默认 256）。 多步推进请配合 todo_write 记录步骤。Manage the single persistent goal of this session",
+      "description": "维护本会话的**单一持续目标**（goal / 目标 / 长期任务）：create 创建（必填 title，建议给 acceptance 验收条件）；edit 修改；pause/resume 暂停恢复；complete 完成（**必须带 evidence**：命令输出/文件/检查点 id）；block 阻塞（必须带 code∈{need_user,external,permission,unclear} + reason）；clear 清除；status 查看。一个会话只有一个目标；目标会进入系统提示，每轮收尾由 driver 决定是否自动续跑（轮次上限默认 256）。多步推进请配合 todo_write 记录步骤。Manage the single persistent goal of this session",
       "capability_id": "default:yunshu:goal@1.0.0",
       "kind": "tool",
       "location": "local",
@@ -19426,7 +19426,7 @@
       "sandbox_allowed": false,
       "isolation_level": "process",
       "reason": "",
-      "description": "维护本会话的**单一持续目标**（goal / 目标 / 长期任务）：create 创建（必填 title，建议给 acceptance 验收条件）；edit 修改；pause/resume 暂停恢复；complete 完成（**必须带 evidence**：命令输出/文件/检查点 id）；block 阻塞（必须带 code∈{need_user,external,permission,unclear} + reason）；clear 清除；status 查看。一个会话只有一个目标；目标会进入系统提示，每轮收尾由 driver 决定是否自动续跑（轮次上限默认 256）。 多步推进请配合 todo_write 记录步骤。Manage the single persistent goal of this session",
+      "description": "维护本会话的**单一持续目标**（goal / 目标 / 长期任务）：create 创建（必填 title，建议给 acceptance 验收条件）；edit 修改；pause/resume 暂停恢复；complete 完成（**必须带 evidence**：命令输出/文件/检查点 id）；block 阻塞（必须带 code∈{need_user,external,permission,unclear} + reason）；clear 清除；status 查看。一个会话只有一个目标；目标会进入系统提示，每轮收尾由 driver 决定是否自动续跑（轮次上限默认 256）。多步推进请配合 todo_write 记录步骤。Manage the single persistent goal of this session",
       "capability_id": "default:yunshu:goal@1.0.0",
       "kind": "tool",
       "location": "local",
