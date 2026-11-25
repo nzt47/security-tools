@@ -212,7 +212,7 @@ def _read_capture(root: Path, rel: str) -> Tuple[bool, bool, int, str, bytes]:
     return True, False, len(data), hashlib.sha256(data).hexdigest(), data
 
 
-def snapshot(*, trigger_tool: str = "manual", note: str = "",
+def snapshot(*, trigger_tool: str = "manual", note: str = "", session_id: str = "",
              root: Optional[Path] = None) -> Optional[Dict[str, Any]]:
     """抓一次 workspace 变更快照；非 git 仓库/无改动返回 None。"""
     if not enabled():
@@ -259,6 +259,8 @@ def snapshot(*, trigger_tool: str = "manual", note: str = "",
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         "trigger_tool": str(trigger_tool),
         "note": str(note or ""),
+        # 触发时的会话（E1-3b 变更文件卡据此标注 scoped）；拿不到就是空串
+        "session_id": str(session_id or ""),
         "workspace_root": str(work_root),
         "git_head": head_commit(work_root),
         "changed": changed,
@@ -299,10 +301,17 @@ def maybe_snapshot(trigger_tool: str) -> bool:
             return False
         _state["running"] = True
         _state["last_ts"] = now
+    # 会话绑定是 ContextVar：后台线程里读不到发起方的值，必须在**排入前**取
+    try:
+        from agent.context.session_bind import current as _bound_session
+
+        session_id = _bound_session()
+    except Exception:  # noqa: BLE001 拿不到就按空串记（不阻塞快照）
+        session_id = ""
 
     def _run() -> None:
         try:
-            snapshot(trigger_tool=str(trigger_tool))
+            snapshot(trigger_tool=str(trigger_tool), session_id=session_id)
         except Exception as exc:  # noqa: BLE001  快照是旁路
             logger.warning("[checkpoint] 快照失败: %s", type(exc).__name__)
         finally:
@@ -469,11 +478,124 @@ def purge(checkpoint_id: str) -> bool:
     return True
 
 
+# ── 逐文件 diff（E1-3b 变更文件卡） ───────────────────────────
+
+#: 单个文件的 diff 上限与整份响应上限（字符数；变更文件卡是"看个大概"，不是完整补丁）
+_DIFF_PER_FILE = 20_000
+_DIFF_TOTAL = 200_000
+_DIFF_HEADER_RE = re.compile(r"^diff --git a/(?P<a>.+?) b/(?P<b>.+)$")
+
+
+def parse_diff_by_file(text: str) -> Dict[str, str]:
+    """把 `git diff` 全文按文件切块；键 = b 侧相对路径（正斜杠归一）。"""
+    chunks: Dict[str, List[str]] = {}
+    current: Optional[str] = None
+    for line in str(text or "").splitlines(keepends=True):
+        match = _DIFF_HEADER_RE.match(line.rstrip("\r\n"))
+        if match:
+            current = _norm_rel(match.group("b"))
+            chunks.setdefault(current, [])
+        if current is not None:
+            chunks[current].append(line)
+    return {path: "".join(lines) for path, lines in chunks.items()}
+
+
+def count_diff_lines(diff: str) -> Tuple[int, int]:
+    """(added, removed)：不计 `+++` / `---` 头部。"""
+    added = removed = 0
+    for line in str(diff or "").splitlines():
+        if line.startswith("+") and not line.startswith("+++"):
+            added += 1
+        elif line.startswith("-") and not line.startswith("---"):
+            removed += 1
+    return added, removed
+
+
+def changes(checkpoint_id: str = "", *, max_chars_per_file: int = 0,
+            max_total_chars: int = 0) -> Optional[Dict[str, Any]]:
+    """某次检查点的逐文件变更（最新一次 checkpoint_id 为空时取最近）。
+
+    Returns:
+        {"checkpoint": {...摘要...}, "files": [{path,status,size,captured,binary,
+         new_file,added,removed,diff,truncated}], "truncated": bool}
+        检查点不存在/没有检查点 → None
+    """
+    target = _resolve(checkpoint_id) if checkpoint_id else None
+    manifest = None
+    if target is not None:
+        manifest = load_manifest(checkpoint_id)
+    else:
+        rows = list_checkpoints(1)
+        if rows:
+            manifest = load_manifest(rows[0]["id"])
+            target = _resolve(str(rows[0]["id"]))
+    if manifest is None or target is None:
+        return None
+
+    per_file = max(1_000, int(max_chars_per_file or _DIFF_PER_FILE))
+    total_cap = max(1_000, int(max_total_chars or _DIFF_TOTAL))
+    try:
+        diff_text = (target / "diff.patch").read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        diff_text = ""
+    by_file = parse_diff_by_file(diff_text)
+
+    files: List[Dict[str, Any]] = []
+    used = 0
+    truncated_any = False
+    for entry in manifest.get("changed") or []:
+        rel = _norm_rel(str(entry.get("path") or ""))
+        if not rel:
+            continue
+        status = str(entry.get("status") or "")
+        raw = by_file.get(rel, "")
+        added, removed = count_diff_lines(raw)
+        piece = raw
+        truncated = False
+        if len(piece) > per_file:
+            piece = piece[:per_file] + "\n…（本文件 diff 已截断）\n"
+            truncated = True
+        if used + len(piece) > total_cap:
+            piece = ""
+            truncated = True
+        used += len(piece)
+        truncated_any = truncated_any or truncated
+        files.append({
+            "path": rel,
+            "status": status,
+            "size": int(entry.get("size") or 0),
+            "captured": bool(entry.get("captured")),
+            "binary": bool(entry.get("binary")),
+            # 未跟踪/新增文件在 `git diff` 里没有块（内容已整文件捕获）
+            "new_file": status.startswith("?") or status.startswith("A"),
+            "added": added,
+            "removed": removed,
+            "diff": piece,
+            "truncated": truncated,
+        })
+    return {
+        "checkpoint": {
+            "id": manifest.get("id", ""),
+            "created_at": manifest.get("created_at", ""),
+            "trigger_tool": manifest.get("trigger_tool", ""),
+            "session_id": manifest.get("session_id", ""),
+            "git_head": manifest.get("git_head", ""),
+            "changed_total": int(manifest.get("changed_total") or 0),
+            "files_captured": int(manifest.get("files_captured") or 0),
+            "diff_truncated": bool(manifest.get("diff_truncated")),
+            "truncated": bool(manifest.get("truncated")),
+        },
+        "files": files,
+        "truncated": truncated_any,
+    }
+
+
 __all__ = [
     "CHECKPOINT_ENABLED_ENV", "MAX_FILES_ENV", "MAX_FILE_BYTES_ENV", "DEBOUNCE_ENV",
     "MUTATING_TOOLS", "enabled", "max_files", "max_file_bytes", "debounce_seconds",
     "workspace_root", "checkpoint_dir", "snapshot", "maybe_snapshot", "reset_state",
     "list_checkpoints", "load_manifest", "read_file", "compare", "status", "purge",
+    "parse_diff_by_file", "count_diff_lines", "changes",
 ]
 
 

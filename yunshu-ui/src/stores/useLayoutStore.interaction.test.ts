@@ -31,7 +31,8 @@ async function* stream(events: unknown[]) {
 afterEach(() => {
   vi.clearAllMocks()
   useLayoutStore.setState({
-    pendingAsk: null, presented: null, messages: [], streaming: false, activeSessionId: null,
+    pendingAsk: null, presented: null, changes: null, messages: [], streaming: false,
+    activeSessionId: null,
   })
 })
 
@@ -68,5 +69,35 @@ describe('useLayoutStore · 交互事件', () => {
     useLayoutStore.getState().setActiveSession('s2')
     expect(useLayoutStore.getState().pendingAsk).toBeNull()
     expect(useLayoutStore.getState().presented).toBeNull()
+  })
+})
+
+const CHANGES = {
+  session_id: 's1',
+  scope: 'session' as const,
+  checkpoint: { id: 'cp-1', created_at: '', trigger_tool: 'edit' },
+  files: [],
+  counts: { files: 0, added: 0, removed: 0, truncated: 0 },
+}
+
+describe('useLayoutStore · 变更卡（E1-3b）', () => {
+  it('setChanges 写入 / 传 null 清空', () => {
+    useLayoutStore.getState().setChanges(CHANGES)
+    expect(useLayoutStore.getState().changes?.checkpoint?.id).toBe('cp-1')
+    useLayoutStore.getState().setChanges(null)
+    expect(useLayoutStore.getState().changes).toBeNull()
+  })
+
+  it('新一轮发送清掉上一轮变更卡（只反映最近一轮）', async () => {
+    useLayoutStore.setState({ activeSessionId: 's1', changes: CHANGES })
+    streamMock.mockReturnValueOnce(stream([{ type: 'done' }]))
+    await useLayoutStore.getState().sendMessage('下一轮')
+    expect(useLayoutStore.getState().changes).toBeNull()
+  })
+
+  it('切换会话清空 changes', () => {
+    useLayoutStore.setState({ activeSessionId: 's1', changes: CHANGES })
+    useLayoutStore.getState().setActiveSession('s2')
+    expect(useLayoutStore.getState().changes).toBeNull()
   })
 })

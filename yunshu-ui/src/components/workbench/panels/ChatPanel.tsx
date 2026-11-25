@@ -27,7 +27,9 @@ import { getGoal } from '@/lib/goalApi';
 // E1-3a 交互：提问卡 + 交付卡
 import { QuestionCard } from '../chat/QuestionCard';
 import { PresentCard } from '../chat/PresentCard';
+import { ChangeCard } from '../chat/ChangeCard';
 import { getPendingAsk } from '@/lib/askApi';
+import { getChanges } from '@/lib/changesApi';
 import { authHeader } from '@/lib/apiToken';
 
 import {
@@ -58,6 +60,8 @@ export function ChatPanel() {
   const pendingAsk = useLayoutStore((s) => s.pendingAsk);
   const setPendingAsk = useLayoutStore((s) => s.setPendingAsk);
   const presented = useLayoutStore((s) => s.presented);
+  const changes = useLayoutStore((s) => s.changes);
+  const setChanges = useLayoutStore((s) => s.setChanges);
   const [planBusy, setPlanBusy] = useState(false);
 
   // 切会话 / 刷新页面时回填计划状态（状态在磁盘上，会话恢复后仍在）
@@ -78,6 +82,18 @@ export function ChatPanel() {
       .catch(() => { /* 提问端点不可用不影响对话 */ });
     return () => { cancelled = true; };
   }, [activeSessionId, setPlan, setGoal, setPendingAsk]);
+
+  // 一轮跑完（streaming true→false）再拉变更卡：检查点由工具执行后的后台快照生成，
+  // 流还没结束时拉会拿到上一轮的快照。切会话时清空，避免显示别的会话的变更。
+  useEffect(() => {
+    if (!activeSessionId) return;
+    if (streaming) return;
+    let cancelled = false;
+    getChanges(activeSessionId)
+      .then((doc) => { if (!cancelled) setChanges(doc); })
+      .catch(() => { /* 变更端点不可用不影响对话 */ });
+    return () => { cancelled = true; };
+  }, [activeSessionId, streaming, setChanges]);
 
   const togglePlanMode = async () => {
     if (!activeSessionId || planBusy) return;
@@ -408,6 +424,7 @@ export function ChatPanel() {
               ))}
             </AnimatePresence>
             <div ref={bottomRef} />
+            {changes && <ChangeCard changes={changes} />}
             {presented && presented.files.length > 0 && (
               <PresentCard files={presented.files} note={presented.note} />
             )}

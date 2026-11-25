@@ -298,6 +298,11 @@
       "area": "会话管理/交互",
       "note": "E1-3a 结构化提问：读取未答问题（GET /pending）与提交回答（POST /answer）。消费方是会话页的 QuestionCard（yunshu-ui/src/components/workbench/chat/QuestionCard.tsx）。"
     },
+    "/api/changes": {
+      "intent": "should_be_in_ui",
+      "area": "会话管理/交互",
+      "note": "E1-3b 变更文件卡：读 E0-3 最近一次工作区检查点的逐文件变更与 diff（GET /api/changes?session_id=）。消费方是会话页的 ChangeCard（yunshu-ui/src/components/workbench/chat/ChangeCard.tsx）。"
+    },
     "/api/goal/*": {
       "intent": "should_be_in_ui",
       "area": "会话管理/目标",

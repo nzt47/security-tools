@@ -26,6 +26,7 @@ import {
   type PanelId,
 } from '../lib/mosaic';
 import { createChatStream, type AskState, type GoalState, type PlanState, type PresentedFile, type ThinkingStatus } from '../lib/sse';
+import type { ChangesState } from '../lib/changesApi';
 import { useChatPrefsStore } from './useChatPrefsStore';
 import { authHeader } from '@/lib/apiToken';
 
@@ -130,6 +131,9 @@ interface LayoutStore {
   /** 最近一轮的交付声明（E1-3a；PresentCard 消费） */
   presented: { files: PresentedFile[]; note: string } | null;
   setPresented: (v: { files: PresentedFile[]; note: string } | null) => void;
+  /** 本轮工作区变更（E1-3b；ChangeCard 消费；数据来自 /api/changes） */
+  changes: ChangesState | null;
+  setChanges: (v: ChangesState | null) => void;
 }
 
 // 仅暴露给 persist 的字段（layout 之外的动态数据不做本地持久化）
@@ -233,6 +237,7 @@ export const useLayoutStore = create<LayoutStore>()(
       goal: null,
       pendingAsk: null,
       presented: null,
+      changes: null,
 
       setLayout: (next) => set({ layout: next }),
 
@@ -290,6 +295,7 @@ export const useLayoutStore = create<LayoutStore>()(
           activeStreamId: streamId,
           thinking: [],
           presented: null,   // 新一轮开始：上一轮交付卡收起
+          changes: null,     // 同上：变更卡也只反映最近一轮
         }));
 
         emitStreamLog({ kind: 'send', ts: Date.now(), streamId, detail: text });
@@ -564,6 +570,7 @@ export const useLayoutStore = create<LayoutStore>()(
       setGoal: (v) => set({ goal: v }),
       setPendingAsk: (v) => set({ pendingAsk: v }),
       setPresented: (v) => set({ presented: v }),
+      setChanges: (v) => set({ changes: v }),
 
       setActiveSession: (id) => {
         // 会话切换/新建/删除后由页面调用；只更新归属标记，不清空消息流
@@ -576,6 +583,7 @@ export const useLayoutStore = create<LayoutStore>()(
           goal: s.activeSessionId === id ? s.goal : null,
           pendingAsk: s.activeSessionId === id ? s.pendingAsk : null,
           presented: s.activeSessionId === id ? s.presented : null,
+          changes: s.activeSessionId === id ? s.changes : null,
         }));
       },
     }),

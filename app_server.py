@@ -1586,6 +1586,16 @@ try:
 except Exception as e:
     _record_route_failure("提问路由", e)
 
+# ════════════════════════════════════════════════════════════
+#  E1-3b 变更文件卡路由（/api/changes）
+# ════════════════════════════════════════════════════════════
+try:
+    from agent.server_routes.routes_changes import register_routes as reg_changes
+    reg_changes(app, lambda: None)
+    logger.info("变更文件卡路由已注册 (/api/changes)")
+except Exception as e:
+    _record_route_failure("变更文件卡路由", e)
+
 
 # ════════════════════════════════════════════════════════════
 #  工作流学习系统路由（/api/workflow-learning/*）
