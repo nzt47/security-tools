@@ -178,6 +178,20 @@
 - **E1-3 余项（记入 `data/handoff_next.json` `dsh-parity-e1-3-followups`）**：检查点仍是
   **workspace 级**（历史快照没有 session_id），变更卡只能标作用域、不能按会话过滤；
   另：快照去抖 120s ⇒ 一轮刚结束拉 `/api/changes` 可能还是上一轮的快照。
+- **真机端到端发现并修掉的真缺陷（2026-11-25，`3a76fe862`）**：工作台的工具白名单有三条来源
+  （主线装配 / 智能选择 / 全量回退），E1-3a 只把交互原语补进了"智能选择"那条；**默认主线
+  `engineering` 走的是主线装配**，于是模型思考里写「可用工具里没有 ask_user_question」，
+  提问卡/交付卡在工作台里等于不存在。修法：白名单算完统一并上 `META_ALWAYS_TOOLS`
+  （纯函数 `plugins.chat.merge_meta_tools()`，原序不动、已存在不重复）。
+  真机 E2E（`.local/probe_e1_3_e2e_llm.py`，真模型要求调用两个工具）**8/8**：
+  SSE `ask`/`present` 都出现在 `done` 之前，`GET /api/ask/pending` 能读回。
+  教训：**交互原语的"永远在场"要在所有装配路径上验证**，只测纯函数 + 智能选择路径会漏掉主线。
+- **真机全链路 UI 又逮到两个真缺陷（`b820a1396`）**：`.local/probe_e1_3_e2e_ui_llm.py`（真模型、
+  不拦流）第一跑：卡片出现、提交 200、台账落盘，但**对话里没有那条回答**、续跑没发生。
+  ① 服务端 `ask` 后没结束本轮（模型继续自问自答）⇒ 工具循环 `_ask_raised` 即 `break`
+  并 gate 掉"补结论"合成轮；② 客户端 `sendMessage` 在 `streaming` 时**静默丢弃**答案 ⇒
+  改为排队、本轮 `finally` 补发。修后全链路 **7/7**（卡片→答题→`answers.jsonl`→pending 清空→
+  回答成用户消息→续跑 5678 字），截图 `.ui_shots/ASK_E13A_LIVE*.png`。
 
 
 #### E1-4 会话智能（P1）
