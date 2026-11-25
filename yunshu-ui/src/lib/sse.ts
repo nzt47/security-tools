@@ -26,6 +26,23 @@ export interface PlanRevision {
   rollback_of?: number;
 }
 
+/** 目标状态（与后端 /api/goal/* 及 SSE goal 事件同口径，E1-2） */
+export type GoalStatus = 'idle' | 'active' | 'paused' | 'blocked' | 'completed';
+
+export interface GoalState {
+  session_id: string;
+  goal_id: string;
+  title: string;
+  why?: string;
+  acceptance: string[];
+  state: GoalStatus;
+  round: number;
+  max_rounds: number;
+  blocked?: { code: string; reason: string } | null;
+  evidence?: string;
+  recent_events?: { seq: number; at: string; type: string }[];
+}
+
 export interface PlanState {
   session_id: string;
   plan_mode: boolean;
@@ -81,6 +98,11 @@ export type StreamEvent =
    * 客户端只把它写进 store，由 PlanCard 渲染——不是消息，不进对话正文。
    */
   | { type: 'plan'; plan: PlanState }
+  /**
+   * 目标状态（E1-2）：命令/收尾时下发。``auto_continue`` 为真时带 ``next_prompt``，
+   * 客户端用普通 ``sendMessage`` 续跑一轮（同一对话链路；轮次上限由服务端控制）。
+   */
+  | { type: 'goal'; goal: GoalState; auto_continue?: boolean; next_prompt?: string }
   | { type: 'done' };
 
 /**

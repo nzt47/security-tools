@@ -91,6 +91,10 @@ block, clear, status}`：
 **边界如实写进设计页**：页面关闭/断网即停（恢复后 GoalBar 显示"已暂停：无活动"，
 用户点「继续」或重新发消息即恢复）。
 
+> 【E1-2c 实测口径】首版 driver **只执行轮次上限**；`budget_tokens` 字段已随目标存储，
+> 但 token 预算的执行要等 E0-2④ token-meter（按真实 token）接入后再接线 —— 不用"字符÷3"
+> 冒充 token 预算（那会变成假精度）。
+
 **停止条件**（任一，写 `goal_paused`/`goal_blocked`/`goal_completed`）：
 `round >= max_rounds`（E1-2a 实现为 `blocked code=unclear` + reason 写明 "budget"：
 在 UI 出现前不分裂 code 枚举；d 片若 UI 需要区分，再提升为独立 `budget` code）、累计 token 超 `budget_tokens`、

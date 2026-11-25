@@ -3050,6 +3050,30 @@ def _goal_payload(session_id: str) -> dict:
     }
 
 
+def _record_goal_turn(session_id: str, turn_id: str):
+    """E1-2c：一轮收尾时记目标轮次，并给出 driver 载荷（不 active 返回 None）
+
+    - 仅 active 目标计数；``turn_id`` 相同 ⇒ 幂等（重连/重发不重复计）；
+    - 未到上限 ⇒ 带 ``auto_continue`` 与 ``next_prompt``，由前端用普通 ``sendMessage`` 续跑
+      （与用户手打同一条链路：记忆/审计/权限/预算一套口径）；
+    - 到上限 ⇒ ``record_round`` 已写 budget 阻塞，这里不再续跑。
+    """
+    try:
+        from agent.context.goal import get_state, next_prompt, record_round
+        st = get_state(session_id)
+        if not st.get("goal_id"):
+            return None
+        if st.get("state") == "active":
+            st = record_round(session_id, turn_id)
+        payload = _goal_payload(session_id)
+        if payload["state"] == "active" and payload["round"] < payload["max_rounds"]:
+            payload["auto_continue"] = True
+            payload["next_prompt"] = next_prompt(session_id)
+        return payload
+    except Exception:  # noqa: BLE001 driver 故障不阻断本轮回复
+        return None
+
+
 def _goal_status_line(st: dict) -> str:
     """目标状态的一行人读摘要（``/goal`` 命令回复用）"""
     if not st.get("goal_id"):
@@ -3311,6 +3335,8 @@ def api_chat_stream():
                 _perm_token = _set_perm(raw_perm)
             except Exception as _pe:  # noqa: BLE001 档位设置失败 ⇒ 回落默认，不阻断对话
                 logger.debug("[workbench][SSE] 设置权限档位失败（按默认 auto）: %s", _pe)
+        # E1-2c：本轮 id（goal_round 幂等去重；同一流重发不会重复计数）
+        _turn_id = "%d-%d" % (time.time_ns(), os.getpid())
         # 目标工具（E1-2b）：把本次请求绑定到会话，`goal` 工具据此定位"当前会话"
         # （并发两个会话时不会互相覆盖；与权限档位 contextvar 同一因）。
         _goal_session_token = None
@@ -3341,6 +3367,10 @@ def api_chat_stream():
                                 session_id, "".join(acc_real_parts))
                             if _plan_state:
                                 yield _sse_event({"type": "plan", "plan": _plan_state})
+                            # E1-2c：目标轮次 + driver 事件（仍在 done 之前）
+                            _goal_state = _record_goal_turn(session_id, _turn_id)
+                            if _goal_state:
+                                yield _sse_event({"type": "goal", "goal": _goal_state})
                     except Exception:
                         pass
                 yield _evt

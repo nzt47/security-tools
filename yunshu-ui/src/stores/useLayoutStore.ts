@@ -25,7 +25,7 @@ import {
   stripPanels,
   type PanelId,
 } from '../lib/mosaic';
-import { createChatStream, type PlanState, type ThinkingStatus } from '../lib/sse';
+import { createChatStream, type GoalState, type PlanState, type ThinkingStatus } from '../lib/sse';
 import { useChatPrefsStore } from './useChatPrefsStore';
 import { authHeader } from '@/lib/apiToken';
 
@@ -121,6 +121,9 @@ interface LayoutStore {
    */
   plan: PlanState | null;
   setPlan: (v: PlanState | null) => void;
+  /** 当前会话的目标状态（E1-2；GoalBar 在 E1-2d 消费，driver 在 c 片即刻生效） */
+  goal: GoalState | null;
+  setGoal: (v: GoalState | null) => void;
 }
 
 // 仅暴露给 persist 的字段（layout 之外的动态数据不做本地持久化）
@@ -221,6 +224,7 @@ export const useLayoutStore = create<LayoutStore>()(
       activeSessionId: null,
       pendingApproval: null,
       plan: null,
+      goal: null,
 
       setLayout: (next) => set({ layout: next }),
 
@@ -330,6 +334,8 @@ export const useLayoutStore = create<LayoutStore>()(
         let accumulated = 0;
         // 【2026-10-12】区分『正常收尾』与『读到 EOF 却从未收到 done』
         let sawDone = false;
+        // E1-2c：goal 事件的 auto_continue（等本轮收尾、streaming=false 后再发下一轮）
+        let pendingGoalPrompt: string | null = null;
         try {
           // 携带当前激活会话 ID → 后端按该会话落盘（多会话持久化关键）
           const sessionId = get().activeSessionId ?? undefined;
@@ -389,6 +395,12 @@ export const useLayoutStore = create<LayoutStore>()(
               // 计划模式状态（E1-1）：不是消息、不进正文，只驱动计划卡。
               // 后端保证它先于 done 到达（先 break 就收不到）。
               set({ plan: event.plan });
+            } else if (event.type === 'goal') {
+              // 目标状态（E1-2）：只驱动 GoalBar/driver，不进对话正文。
+              set({ goal: event.goal });
+              if (event.auto_continue && event.next_prompt) {
+                pendingGoalPrompt = event.next_prompt;
+              }
             } else if (event.type === 'error') {
               // 服务端显式报错：在正文里留下证据，并把该条回复标为 error（不再假装正常结束）
               const msg = event.message || '服务端异常，本轮回复中断';
@@ -447,6 +459,12 @@ export const useLayoutStore = create<LayoutStore>()(
             streaming: false,
             activeStreamId: null,
           }));
+          if (pendingGoalPrompt) {
+            const next = pendingGoalPrompt;
+            pendingGoalPrompt = null;
+            // 服务端已按 max_rounds 控制轮次；这里只是"把下一轮交给同一条对话链路"。
+            void get().sendMessage(next);
+          }
         } catch (err) {
           // 主动停止（AbortError）不视为错误，保留已生成内容
           const isAbort = err instanceof DOMException && err.name === 'AbortError';
@@ -528,13 +546,18 @@ export const useLayoutStore = create<LayoutStore>()(
       setHighlightMsg: (id) => set({ highlightMsgId: id }),
       setPendingApproval: (v) => set({ pendingApproval: v }),
       setPlan: (v) => set({ plan: v }),
+      setGoal: (v) => set({ goal: v }),
 
       setActiveSession: (id) => {
         // 会话切换/新建/删除后由页面调用；只更新归属标记，不清空消息流
         // （消息流的清空由页面 clearConversation + loadSessionHistory 负责）
         // 计划状态跟着会话走：换会话先清空，由 ChatPanel 重新 GET 回填
         // （不清会让新会话短暂显示上一个会话的计划卡）。
-        set((s) => ({ activeSessionId: id, plan: s.activeSessionId === id ? s.plan : null }));
+        set((s) => ({
+          activeSessionId: id,
+          plan: s.activeSessionId === id ? s.plan : null,
+          goal: s.activeSessionId === id ? s.goal : null,
+        }));
       },
     }),
     {
