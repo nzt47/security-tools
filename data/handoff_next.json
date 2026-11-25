@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-25T12:20:00+08:00",
+ "updated_at": "2026-11-25T12:50:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1484,7 +1484,7 @@
    "priority": "P1",
    "title": "Phase 1 工作方式：计划模式、Goal + 自动续跑、ask_user_question + present/变更文件卡、会话智能（标题/FTS/outline/stats/导出）",
    "criteria": "【E1-1 已交付 2026-11-25】/plan 命令族（enter/exit/status/submit/approve/reject/feedback）+ 会话级 plan_mode 状态机（data/plan_mode/<session>/state.json + plan.md + vN.md，版本可回滚）+ 计划卡（批准/反馈/拒绝/回滚/退出，嵌会话页）+ SSE plan 事件 + 会话恢复保留；不新增模型工具（命令 + 计划模式回复即计划版本）。剩余：E1-2 goal 服务+工具+round driver+GoalBar（每会话单目标，Round 上限）；E1-3 结构化提问工具 + UI 接管 + present 交付卡（对接 E0-3 快照）；E1-4 LLM 标题、FTS5 搜索、turn outline、per-turn stats、会话导出（ZIP/MD）、模型工具 session_search/session_trace。",
-   "next": "E1-1 已交付并部署（aedf19a04；探针 14/14、202 files/1546 tests、CI 30/30、CodeQL 0）。**E1-2 Goal 设计页已出**：docs/plan/2026-11-25-e1-2-goal-design.md（事件溯源/投影、goal 工具 8 动作、前端驱动 round driver + 轮次/预算上限、GoalBar、切片 E1-2a→d）。下一轮从 **E1-2a**（agent/context/goal.py + /goal 命令族，不含工具/UI）开始，再 b（工具+5 处连锁）→ c（driver）→ d（GoalBar+3 路由+派生面）；每片单独提交/部署/CI。"
+   "next": "E1-1 已交付（aedf19a04）；E1-2 Goal 设计页已出；**E1-2a 已交付（b0aead94f：agent/context/goal.py 事件溯源 + /goal 命令族，探针 16/16、单测 27）**。下一步 **E1-2b**：goal 工具（8 动作）走完整 5 处连锁 + 把 goal.system_directive 接进工作台/编排器稳定块 + 探针；再 c（round driver：SSE goal 事件先于 done + 前端续跑 + record_round 去重/预算）→ d（GoalBar + 3 路由 + 派生面）。每片单独提交/部署/CI。"
   },
   {
    "id": "dsh-parity-p2-multiagent",

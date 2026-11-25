@@ -92,7 +92,8 @@ block, clear, status}`：
 用户点「继续」或重新发消息即恢复）。
 
 **停止条件**（任一，写 `goal_paused`/`goal_blocked`/`goal_completed`）：
-`round >= max_rounds`（`blocked code=budget`）、累计 token 超 `budget_tokens`、
+`round >= max_rounds`（E1-2a 实现为 `blocked code=unclear` + reason 写明 "budget"：
+在 UI 出现前不分裂 code 枚举；d 片若 UI 需要区分，再提升为独立 `budget` code）、累计 token 超 `budget_tokens`、
 用户暂停、模型 `complete`/`block`、会话被删除。
 
 ## 5. 用户侧命令（不依赖模型）
