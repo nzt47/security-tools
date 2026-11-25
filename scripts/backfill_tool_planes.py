@@ -154,6 +154,11 @@ PLANE_MAP: dict[str, tuple[str, str, str, list[str]]] = {
     "ask_user_question": ("resident", "read", "low", []),
     "present": ("resident", "read", "low", []),
 
+    # ── session_tools.py（2，2026-11-26 E1-4d）──────────────
+    # 都只读本机数据（会话索引 SQLite / 会话消息文件），无外部副作用 ⇒ read/low。
+    "session_search": ("resident", "read", "low", ["memory"]),
+    "session_trace": ("resident", "read", "low", ["memory"]),
+
     # ── goal_tools.py（1，2026-11-25 E1-2b）─────────────────
     # 只写本会话 data/goals/（事件溯源），无外部副作用、无子进程、无网络 ⇒ low；
     # 与 todo_write 同为常驻（模型必须随时能登记/收口目标）。

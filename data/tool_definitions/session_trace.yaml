@@ -1,0 +1,50 @@
+# 【E1-4d】会话轨迹工具：只读本机会话消息（data/sessions/*/messages.jsonl），
+# 每个工具步骤只回 200 字摘要 ⇒ effect=read（L0）。
+# 它是**任务工具**（进检索索引），不是 META 交互原语。
+name: session_trace
+category: knowledge
+description: 查看**某一轮**的工具调用轨迹（工具名/参数摘要/结果摘要各取前 200 字）。给 round 就取该轮，不给就取最近 3 轮；session_id 缺省为当前会话。用于复盘「上一轮到底调了什么」。Show the tool-call trace of a round in a session.
+location_reason: 调用链（agent.tools.session_tools:_session_trace_tool → agent.context.session_insight）只读本机会话文件，不触碰外部系统。
+effect: read
+schema:
+  type: object
+  properties:
+    session_id:
+      type: string
+      description: 会话 id（缺省 = 当前会话）
+    round:
+      type: integer
+      description: 第几轮（从 1 开始；缺省 = 最近 3 轮）
+  required: []
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    code:
+      type: string
+    session_id:
+      type: string
+    round_count:
+      type: integer
+    returned:
+      type: integer
+    rounds:
+      type: array
+    error:
+      type: string
+  required:
+  - ok
+  additionalProperties: true
+examples: []
+deprecated: false
+version: 1.0.0
+location: local
+plane: resident
+risk: low
+
+tool_type: tool
+llm_callable: true
+callable_mode: auto
+permission_level: public
+sandbox_allowed: false

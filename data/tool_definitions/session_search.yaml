@@ -1,0 +1,53 @@
+# 【E1-4d】会话检索工具：只读本机会话索引（data/session_index.db），
+# 不碰用户数据、不写任何文件 ⇒ effect=read（L0，免摘要确认）。
+# 注意：它是**任务工具**（进检索索引），不是 META 交互原语（ask/present 那类）。
+name: session_search
+category: knowledge
+description: 在**历史会话**里按关键词检索（本机已建索引的全部会话消息）。只返回命中片段与会话/轮次定位，不返回全文（避免把上下文灌爆）；limit 最多 10。用于「我上次说过/做过什么」的回忆。Search your past sessions by keyword; returns snippets only.
+location_reason: 调用链（agent.tools.session_tools:_session_search_tool → agent.context.session_index）只读本机 SQLite 索引文件，不触碰外部系统。
+effect: read
+schema:
+  type: object
+  properties:
+    query:
+      type: string
+      description: 关键词（≥3 字走全文索引；<3 字回落模糊匹配）
+    limit:
+      type: integer
+      description: 最多返回几条命中（默认 5，上限 10）
+  required:
+  - query
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    code:
+      type: string
+    query:
+      type: string
+    mode:
+      type: string
+    hits:
+      type: array
+    count:
+      type: integer
+    took_ms:
+      type: number
+    error:
+      type: string
+  required:
+  - ok
+  additionalProperties: true
+examples: []
+deprecated: false
+version: 1.0.0
+location: local
+plane: resident
+risk: low
+
+tool_type: tool
+llm_callable: true
+callable_mode: auto
+permission_level: public
+sandbox_allowed: false
