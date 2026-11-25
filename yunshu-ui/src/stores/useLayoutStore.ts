@@ -25,7 +25,7 @@ import {
   stripPanels,
   type PanelId,
 } from '../lib/mosaic';
-import { createChatStream, type GoalState, type PlanState, type ThinkingStatus } from '../lib/sse';
+import { createChatStream, type AskState, type GoalState, type PlanState, type PresentedFile, type ThinkingStatus } from '../lib/sse';
 import { useChatPrefsStore } from './useChatPrefsStore';
 import { authHeader } from '@/lib/apiToken';
 
@@ -124,6 +124,12 @@ interface LayoutStore {
   /** 当前会话的目标状态（E1-2；GoalBar 在 E1-2d 消费，driver 在 c 片即刻生效） */
   goal: GoalState | null;
   setGoal: (v: GoalState | null) => void;
+  /** 当前待回答的结构化问题（E1-3a；QuestionCard 消费） */
+  pendingAsk: AskState | null;
+  setPendingAsk: (v: AskState | null) => void;
+  /** 最近一轮的交付声明（E1-3a；PresentCard 消费） */
+  presented: { files: PresentedFile[]; note: string } | null;
+  setPresented: (v: { files: PresentedFile[]; note: string } | null) => void;
 }
 
 // 仅暴露给 persist 的字段（layout 之外的动态数据不做本地持久化）
@@ -225,6 +231,8 @@ export const useLayoutStore = create<LayoutStore>()(
       pendingApproval: null,
       plan: null,
       goal: null,
+      pendingAsk: null,
+      presented: null,
 
       setLayout: (next) => set({ layout: next }),
 
@@ -281,6 +289,7 @@ export const useLayoutStore = create<LayoutStore>()(
           streaming: true,
           activeStreamId: streamId,
           thinking: [],
+          presented: null,   // 新一轮开始：上一轮交付卡收起
         }));
 
         emitStreamLog({ kind: 'send', ts: Date.now(), streamId, detail: text });
@@ -395,6 +404,12 @@ export const useLayoutStore = create<LayoutStore>()(
               // 计划模式状态（E1-1）：不是消息、不进正文，只驱动计划卡。
               // 后端保证它先于 done 到达（先 break 就收不到）。
               set({ plan: event.plan });
+            } else if (event.type === 'ask') {
+              // 结构化提问（E1-3a）：内联成卡，等用户回答；本轮随 done 结束。
+              set({ pendingAsk: event.ask });
+            } else if (event.type === 'present') {
+              // 交付声明（E1-3a）：回复下方成卡。
+              set({ presented: { files: event.files || [], note: event.note || '' } });
             } else if (event.type === 'goal') {
               // 目标状态（E1-2）：只驱动 GoalBar/driver，不进对话正文。
               set({ goal: event.goal });
@@ -547,6 +562,8 @@ export const useLayoutStore = create<LayoutStore>()(
       setPendingApproval: (v) => set({ pendingApproval: v }),
       setPlan: (v) => set({ plan: v }),
       setGoal: (v) => set({ goal: v }),
+      setPendingAsk: (v) => set({ pendingAsk: v }),
+      setPresented: (v) => set({ presented: v }),
 
       setActiveSession: (id) => {
         // 会话切换/新建/删除后由页面调用；只更新归属标记，不清空消息流
@@ -557,6 +574,8 @@ export const useLayoutStore = create<LayoutStore>()(
           activeSessionId: id,
           plan: s.activeSessionId === id ? s.plan : null,
           goal: s.activeSessionId === id ? s.goal : null,
+          pendingAsk: s.activeSessionId === id ? s.pendingAsk : null,
+          presented: s.activeSessionId === id ? s.presented : null,
         }));
       },
     }),

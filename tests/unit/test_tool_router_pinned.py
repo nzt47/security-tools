@@ -34,6 +34,7 @@ from pathlib import Path
 import pytest
 
 from agent.tool_router import (
+    META_ALWAYS_TOOLS,
     PINNED_TOOLS,
     TOOL_ALIASES,
     TOOL_CATEGORIES,
@@ -104,7 +105,9 @@ def _candidates(categories: set) -> set:
 
 
 def _non_pinned(tools) -> list:
-    return [t for t in tools if t not in PINNED_TOOLS]
+    # 【E1-3a】交互原语（META_ALWAYS_TOOLS）与 pinned 一样是"截断后追加"，
+    # 不属于"占名额的普通工具"。
+    return [t for t in tools if t not in PINNED_TOOLS and t not in META_ALWAYS_TOOLS]
 
 
 # ════════════════════════════════════════════════════════════
@@ -161,8 +164,8 @@ class TestPinnedSurvivesTruncation:
         result = get_tools_for_input(COMPOSITE_INPUT)
         overflow = result[MAX_TOOLS:]
         assert overflow, "复合输入下应有 pinned 工具被补回（否则本用例失去意义）"
-        assert all(t in PINNED_TOOLS for t in overflow), (
-            f"超过 max_tools 的部分只允许是 pinned 工具，实际: {overflow}"
+        assert all(t in PINNED_TOOLS or t in META_ALWAYS_TOOLS for t in overflow), (
+            f"超过 max_tools 的部分只允许是 pinned/交互原语，实际: {overflow}"
         )
         assert result[MAX_TOOLS - 1] not in PINNED_TOOLS, (
             "第 25 位仍是普通工具 ⇒ 补回确实发生在截断之后"
@@ -172,7 +175,7 @@ class TestPinnedSurvivesTruncation:
         """回归基线：单意图输入本来就能看到 delegate（改动不得把它弄丢或弄重）"""
         result = get_tools_for_input(SINGLE_INTENT_INPUT)
         assert "delegate" in result
-        assert len(result) <= MAX_TOOLS
+        assert len(result) <= MAX_TOOLS + len(META_ALWAYS_TOOLS)
         assert len(result) == len(set(result))
 
     def test_补回不产生重复项(self):
@@ -295,7 +298,7 @@ class TestTruncationStillWorks:
         故此处仍以 limit + PINNED 为上界（实测 limit=1/2/5/10/25/40 全部满足）。
         """
         result = get_tools_for_input(COMPOSITE_INPUT, max_tools=limit)
-        assert len(result) <= limit + len(PINNED_TOOLS), result
+        assert len(result) <= limit + len(PINNED_TOOLS) + len(META_ALWAYS_TOOLS), result
         assert len(result) == len(set(result))
 
 
@@ -335,8 +338,9 @@ class TestCountBound:
     def test_总数不超过上限加补回数(self):
         result = get_tools_for_input(COMPOSITE_INPUT)
         restored = [t for t in result if t in PINNED_TOOLS]
-        assert len(result) <= MAX_TOOLS + len(restored)
-        assert len(result) == len(_non_pinned(result)) + len(restored)
+        meta = [t for t in result if t in META_ALWAYS_TOOLS]
+        assert len(result) <= MAX_TOOLS + len(restored) + len(meta)
+        assert len(result) == len(_non_pinned(result)) + len(restored) + len(meta)
 
     def test_复合输入下总数就是上限加二(self):
         """实测口径：25 个截断结果 + 2 个补回的 pinned（delegate、fan_out）= 27
@@ -347,7 +351,8 @@ class TestCountBound:
         若补回逻辑被放宽（例如整类补回、或补回未命中类别的工具），数字会立刻变化。
         """
         result = get_tools_for_input(COMPOSITE_INPUT)
-        assert len(result) == MAX_TOOLS + 2, f"实际 {len(result)}: {result}"
+        # 【2026-11-25 E1-3a】+ 交互原语 ask_user_question / present（截断后追加）
+        assert len(result) == MAX_TOOLS + 2 + len(META_ALWAYS_TOOLS), f"实际 {len(result)}: {result}"
         restored = [t for t in result if t in PINNED_TOOLS]
         assert set(restored) == set(PINNED_TOOLS), (
             f"复合输入命中了 async 类别，两个 pinned 工具都应被补回，实际补回: {restored}")

@@ -293,6 +293,11 @@
       "area": "会话管理",
       "note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。"
     },
+    "/api/ask/*": {
+      "intent": "should_be_in_ui",
+      "area": "会话管理/交互",
+      "note": "E1-3a 结构化提问：读取未答问题（GET /pending）与提交回答（POST /answer）。消费方是会话页的 QuestionCard（yunshu-ui/src/components/workbench/chat/QuestionCard.tsx）。"
+    },
     "/api/goal/*": {
       "intent": "should_be_in_ui",
       "area": "会话管理/目标",

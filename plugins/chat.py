@@ -15,6 +15,7 @@ import logging
 import os
 import re
 import time
+import uuid
 from typing import Optional
 
 from flask import Blueprint, request, jsonify
@@ -2723,23 +2724,9 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                 #   提升为**独立 SSE 事件**。此前它只藏在回传给模型的 result 里 ⇒ 界面既不显示
                 #   "等待人工审批"、也不显示"审批超时/被否决"，用户看到的是"模型答到一半不动了"。
                 #   这里只做**识别与上报**，不改变工具结果本身（模型仍按原口径收到 guidance）。
-                _approval_evt = None
-                if isinstance(tool_result, str) and tool_result.lstrip().startswith("{"):
-                    try:
-                        _r = json.loads(tool_result)
-                        if isinstance(_r, dict):
-                            _code = str(_r.get("error_code") or "")
-                            if _code in ("APPROVAL_REQUIRED", "APPROVAL_REJECTED"):
-                                _approval_evt = {
-                                    "type": "approval",
-                                    "tool": tname,
-                                    "status": ("pending" if _code == "APPROVAL_REQUIRED"
-                                               else "rejected"),
-                                    "approvalId": str(_r.get("approval_id") or ""),
-                                    "message": str(_r.get("error") or "")[:400],
-                                }
-                    except Exception:
-                        _approval_evt = None
+                # 交互边界（审批/提问/交付）：统一提升为独立 SSE 事件
+                for _side_evt in tool_side_events(tool_result, tname):
+                    yield _sse(_side_evt)
                 _call_id = f"call_{tname}_{_ti}"
                 _tool_calls_msg.append({
                     "id": _call_id,
@@ -2754,6 +2741,10 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                             "detail": f"结果: {tool_result[:100]}", "status": "done"})
                 if _approval_evt:
                     yield _sse(_approval_evt)
+                if _ask_evt:
+                    yield _sse(_ask_evt)
+                if _present_evt:
+                    yield _sse(_present_evt)
             # 本轮全部工具执行完 ⇒ 按合法结构一次性回传：
             #   一条 assistant(tool_calls=全部) + 每个 tool_call_id 一条 tool。
             if _tool_calls_msg:
@@ -3089,6 +3080,51 @@ def _goal_status_line(st: dict) -> str:
     return line
 
 
+def tool_side_events(tool_result, tool_name: str = "") -> list:
+    """把工具结果里的“交互边界”提升为独立 SSE 事件（**不改变结果本身**）。
+
+    目前三类：approval（等待/被拒审批）、ask（结构化提问）、present（交付声明）。
+    纯函数，便于单测；顺序与工具执行顺序一致。
+    """
+    if not isinstance(tool_result, str) or not tool_result.lstrip().startswith("{"):
+        return []
+    try:
+        r = json.loads(tool_result)
+    except Exception:
+        return []
+    if not isinstance(r, dict):
+        return []
+    out = []
+    code = str(r.get("error_code") or "")
+    if code in ("APPROVAL_REQUIRED", "APPROVAL_REJECTED"):
+        out.append({
+            "type": "approval",
+            "tool": str(r.get("tool") or tool_name or ""),
+            "status": ("pending" if code == "APPROVAL_REQUIRED" else "rejected"),
+            "approvalId": str(r.get("approval_id") or ""),
+            "message": str(r.get("error") or "")[:400],
+        })
+    elif code == "USER_INPUT_REQUIRED":
+        out.append({
+            "type": "ask",
+            "ask": {
+                "question_id": str(r.get("question_id") or ""),
+                "question": str(r.get("question") or ""),
+                "options": r.get("options") or [],
+                "allow_multiple": bool(r.get("allow_multiple")),
+                "allow_custom": bool(r.get("allow_custom", True)),
+                "context": str(r.get("context") or ""),
+            },
+        })
+    elif isinstance(r.get("presented"), list):
+        out.append({
+            "type": "present",
+            "files": r.get("presented") or [],
+            "note": str(r.get("note") or ""),
+        })
+    return out
+
+
 def _parse_goal_command(question: str):
     """解析 ``/goal`` 命令族；不是命令返回 ``None``，是命令返回 ``(action, arg)``
 
@@ -3336,7 +3372,9 @@ def api_chat_stream():
             except Exception as _pe:  # noqa: BLE001 档位设置失败 ⇒ 回落默认，不阻断对话
                 logger.debug("[workbench][SSE] 设置权限档位失败（按默认 auto）: %s", _pe)
         # E1-2c：本轮 id（goal_round 幂等去重；同一流重发不会重复计数）
-        _turn_id = "%d-%d" % (time.time_ns(), os.getpid())
+        # 【不易】必须用 uuid 而不是 time_ns：Windows 的 time_ns 粒度可粗到毫秒级，
+        # 两次相邻对话可能拿到同一个值 ⇒ 第二轮的 record_round 被误判为"重复"而不计数。
+        _turn_id = uuid.uuid4().hex
         # 目标工具（E1-2b）：把本次请求绑定到会话，`goal` 工具据此定位"当前会话"
         # （并发两个会话时不会互相覆盖；与权限档位 contextvar 同一因）。
         _goal_session_token = None

@@ -143,7 +143,9 @@ class TestPayloadIsCrossProcessDeterministic:
             "同一查询 / 同一索引 / 同一份代码，跨进程下发了**不同的工具集**：\n"
             + "\n".join("  seeds=%s -> %s" % (v, list(k)) for k, v in seen.items()))
         payload = list(next(iter(seen)))
-        assert len(payload) == 25, "下发集规模异常：%d" % len(payload)
+        # 【E1-3a】交互原语在截断后追加 ⇒ 25 + 2；本用例只关心"跨进程一致"
+        from agent.tool_router import META_ALWAYS_TOOLS
+        assert len(payload) == 25 + len(META_ALWAYS_TOOLS), "下发集规模异常：%d" % len(payload)
         assert payload[:4] == ["get_status", "search_memory", "remember", "tieprobe01"], (
             "下发集前缀不是确定序列（相关度序/类别序被扰动）：%s" % payload[:6])
 

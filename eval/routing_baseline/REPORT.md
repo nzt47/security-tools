@@ -1,13 +1,13 @@
 # TASK-10 · 既有路由可验证化基线报告（机器生成）
 
-- HEAD: 0b27ba270824f00a139a338047d60a6cac9d87a0
+- HEAD: 7c518fb7af903e3d16e88251087db6067bb0ed51
 - 语义层状态: {"retriever_available": true, "degraded_bm25_only": true, "embedding_available": false, "bm25_docs": 97, "alpha": 0.5, "index_path": "data/tool_index.json", "embedding_health": {"mode": "bm25_only", "init_failed": false, "worker_alive": false, "worker_ready": false, "load_cache_probe": null, "available": false, "failure_total": 0, "restart_attempts": 0, "max_restart_attempts": 3, "restarting": false, "retry_exhausted": false, "next_restart_in_sec": null, "last_failure": {}, "retriever_degraded": true}}
 
 ## 1. 意图类目表（机器派生）
 
 - 来源：agent/tool_router.py:308 TOOL_CATEGORIES（YAML 存在时由 _load_tool_categories_from_yaml() 于 :238 从 data/tool_definitions/*.yaml 派生）
-- 类别数 11，工具总数 97：async, code, core, extension, file, knowledge, pdf, schedule, system, v2, web
-- 每类工具数：{"async": 7, "code": 18, "core": 6, "extension": 12, "file": 14, "knowledge": 7, "pdf": 5, "schedule": 5, "system": 10, "v2": 4, "web": 9}
+- 类别数 11，工具总数 99：async, code, core, extension, file, knowledge, pdf, schedule, system, v2, web
+- 每类工具数：{"async": 7, "code": 18, "core": 8, "extension": 12, "file": 14, "knowledge": 7, "pdf": 5, "schedule": 5, "system": 10, "v2": 4, "web": 9}
 
 ## 2. 每层读数
 

@@ -158,10 +158,17 @@ def build_document() -> Dict[str, Any]:
     spec = json.loads(CASES.read_text(encoding="utf-8"))
     calib_ids, test_ids = split_ids(spec)
     index_data = json.loads(INDEX.read_text(encoding="utf-8"))
+    # 【E1-3a】交互原语不进检索索引（与 HybridRetriever.rebuild 同口径）：
+    #   它们始终附加在下发集末尾，参与 BM25 只会稀释任务工具的 top1。
+    try:
+        from agent.tool_router import META_ALWAYS_TOOLS
+    except Exception:  # noqa: BLE001 脚本独立运行时按空集处理（不改变历史口径）
+        META_ALWAYS_TOOLS = ()
+    index_tools = [t for t in index_data["tools"] if t.get("name") not in META_ALWAYS_TOOLS]
     tools = [
         (t["name"],
          t["name"] + " " + " ".join(t.get("parameter_names") or []) + " " + t.get("description", ""))
-        for t in index_data["tools"]
+        for t in index_tools
     ]
     bm_bi, rows_bi = _run_caliber(tokenize_bigram, tools, spec["cases"], calib_ids)
     bm_uni, rows_uni = _run_caliber(tokenize_unigram, tools, spec["cases"], calib_ids)

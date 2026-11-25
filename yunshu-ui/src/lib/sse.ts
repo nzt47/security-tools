@@ -43,6 +43,28 @@ export interface GoalState {
   recent_events?: { seq: number; at: string; type: string }[];
 }
 
+/** 结构化提问（E1-3a） */
+export interface AskOption {
+  id: string;
+  label: string;
+  description?: string;
+}
+
+export interface AskState {
+  question_id: string;
+  question: string;
+  options: AskOption[];
+  allow_multiple: boolean;
+  allow_custom: boolean;
+  context?: string;
+}
+
+/** 交付声明里的一个文件（E1-3a；只回显路径，不读内容） */
+export interface PresentedFile {
+  path: string;
+  title?: string;
+}
+
 export interface PlanState {
   session_id: string;
   plan_mode: boolean;
@@ -103,6 +125,10 @@ export type StreamEvent =
    * 客户端用普通 ``sendMessage`` 续跑一轮（同一对话链路；轮次上限由服务端控制）。
    */
   | { type: 'goal'; goal: GoalState; auto_continue?: boolean; next_prompt?: string }
+  /** 结构化提问（E1-3a）：工具返回 USER_INPUT_REQUIRED 时下发；前端内联成卡。 */
+  | { type: 'ask'; ask: AskState }
+  /** 交付声明（E1-3a）：present 工具成功后下发；前端在回复下方成卡。 */
+  | { type: 'present'; files: PresentedFile[]; note?: string }
   | { type: 'done' };
 
 /**

@@ -149,6 +149,11 @@ PLANE_MAP: dict[str, tuple[str, str, str, list[str]]] = {
     # ── plan_tools.py（1）──────────────────────────────────
     "todo_write": ("resident", "write", "low", []),
 
+    # ── ask_tools.py（2，2026-11-25 E1-3a）─────────────────
+    # 交互原语：ask 只写本会话提问台账、present 只做路径声明 ⇒ read/low。
+    "ask_user_question": ("resident", "read", "low", []),
+    "present": ("resident", "read", "low", []),
+
     # ── goal_tools.py（1，2026-11-25 E1-2b）─────────────────
     # 只写本会话 data/goals/（事件溯源），无外部副作用、无子进程、无网络 ⇒ low；
     # 与 todo_write 同为常驻（模型必须随时能登记/收口目标）。

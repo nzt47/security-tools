@@ -1,6 +1,6 @@
 {
   "task": "TASK-10 · 既有路由的可验证化",
-  "head_commit": "0b27ba270824f00a139a338047d60a6cac9d87a0",
+  "head_commit": "7c518fb7af903e3d16e88251087db6067bb0ed51",
   "environment": {
     "python": "3.12.0",
     "new_dependencies": [],
@@ -25,7 +25,7 @@
     "tools_per_category": {
       "async": 7,
       "code": 18,
-      "core": 6,
+      "core": 8,
       "extension": 12,
       "file": 14,
       "knowledge": 7,
@@ -35,7 +35,7 @@
       "v2": 4,
       "web": 9
     },
-    "total_tools": 97
+    "total_tools": 99
   },
   "semantic_layer_status": {
     "retriever_available": true,

@@ -41,7 +41,9 @@ boost:
 tags: [code, self_modify, extension, mcp, harness]
 
 # 这条线要动自身组合，名额给足
-max_tools: 26
+# 26 → 27（2026-11-25 E1-3a）：ask/present 进 core 后，26 会把 protected 工具挤出
+# （实测受保护 9→8）；27 恢复且零截断。
+max_tools: 27
 # 本分身默认上下文窗口（2026-11-15）：按任务类型的建议起点取中位 —— 组合自省/装配：读配置与产物，量级接近写作
 context_window_tokens: 32768
 

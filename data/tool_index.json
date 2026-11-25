@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-25T18:57:22",
-  "tool_count": 97,
+  "generated_at": "2026-11-25T22:30:20",
+  "tool_count": 99,
   "categories": [
     "async",
     "code",
@@ -324,6 +324,20 @@
       ]
     },
     {
+      "name": "ask_user_question",
+      "category": "core",
+      "description": "向用户提出**结构化问题**（单选/多选/自定义），等用户回答后再继续。适用：需求有歧义、有多个可行方案需要用户拍板、缺少关键信息（路径/账号/口径）。options 最多 8 个（每项 {id?, label, description?}）；allow_multiple 允许多选；allow_custom 允许用户自己填。提交后本轮应结束等待；无交互界面时按默认继续并说明假设。Ask the user a structured question (single/multi choice or custom), then wait.",
+      "version": "1.0.0",
+      "deprecated": false,
+      "parameter_names": [
+        "question",
+        "options",
+        "allow_multiple",
+        "allow_custom",
+        "context"
+      ]
+    },
+    {
       "name": "get_sensor_summary",
       "category": "core",
       "description": "查看所有传感器状态",
@@ -356,6 +370,17 @@
         "summary",
         "code",
         "reason"
+      ]
+    },
+    {
+      "name": "present",
+      "category": "core",
+      "description": "声明本次交付的文件（在回复下方以卡片展示，用户可复制路径/在工作区打开）。files 为相对路径数组（可带 title）；**只声明、不读取文件内容**；最多 20 个。用于交付报告/补丁/文档/截图等产物，让用户一眼看到改了哪些文件。Present deliverable files as cards under the reply.",
+      "version": "1.0.0",
+      "deprecated": false,
+      "parameter_names": [
+        "files",
+        "note"
       ]
     },
     {

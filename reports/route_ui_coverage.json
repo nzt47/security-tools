@@ -1,22 +1,22 @@
 {
-  "generated_at": "2026-11-25T18:30:08",
+  "generated_at": "2026-11-25T22:43:46",
   "totals": {
-    "routes": 524,
-    "live": 524,
+    "routes": 526,
+    "live": 526,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 463,
+    "ui": 465,
     "cli_script": 15,
     "runtime_only": 12,
     "unreferenced": 34,
     "live_by_category": {
-      "ui": 463,
+      "ui": 465,
       "cli_script": 15,
       "runtime_only": 12,
       "unreferenced": 34
     },
     "by_intent": {
-      "should_be_in_ui": 429,
+      "should_be_in_ui": 431,
       "should_not_be_in_ui": 80,
       "unclassified": 15
     },
@@ -26,10 +26,10 @@
       "观测与诊断": 84,
       "系统与配置": 46,
       "治理与审批": 47,
+      "对话与会话": 43,
       "资产与文件": 19,
       "管理与后台": 18,
       "调度与任务": 26,
-      "对话与会话": 41,
       "业务与评估": 18,
       "技能与工具": 136,
       "认知与学习": 6,
@@ -37,7 +37,7 @@
       "记忆与知识": 42
     }
   },
-  "frontend_endpoints": 467,
+  "frontend_endpoints": 469,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -63,7 +63,7 @@
         "scripts/_check_page.py"
       ],
       "where": [
-        "app_server.py:2158"
+        "app_server.py:2168"
       ],
       "description": "首页：重定向到统一工作台（2026-10-03 R0-b legacy 收敛）。",
       "description_source": "handler",
@@ -736,6 +736,57 @@
       "intent_note": "机器/内部面：身份查询，程序化调用",
       "ui_pending": false,
       "domain": "治理与审批"
+    },
+    {
+      "path": "/api/ask/answer",
+      "norm": "/api/ask/answer",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_ask.py:57"
+      ],
+      "description": "回答问题（答题台账 + 落一条用户消息；next_message 交前端续跑）",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "会话管理/交互",
+      "intent_note": "E1-3a 结构化提问：读取未答问题（GET /pending）与提交回答（POST /answer）。消费方是会话页的 QuestionCard（yunshu-ui/src/components/workbench/chat/QuestionCard.tsx）。",
+      "ui_pending": false,
+      "domain": "对话与会话"
+    },
+    {
+      "path": "/api/ask/pending",
+      "norm": "/api/ask/pending",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/lib/askApi.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_ask.py:41"
+      ],
+      "description": "未答问题（无则 pending=null；只读）",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "会话管理/交互",
+      "intent_note": "E1-3a 结构化提问：读取未答问题（GET /pending）与提交回答（POST /answer）。消费方是会话页的 QuestionCard（yunshu-ui/src/components/workbench/chat/QuestionCard.tsx）。",
+      "ui_pending": false,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/assets/<category>",
@@ -1539,7 +1590,7 @@
         "scripts/probe_prefix_cache_interaction.py"
       ],
       "where": [
-        "plugins/chat.py:3145"
+        "plugins/chat.py:3180"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
@@ -3955,7 +4006,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:1836"
+        "app_server.py:1846"
       ],
       "description": "混合检索器（embedding worker）健康状态（**只读**；永不 500）。",
       "description_source": "handler",
@@ -7075,7 +7126,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:2892"
+        "plugins/chat.py:2882"
       ],
       "description": "提示词实验室「真实接口」的后端代理（2026-10-14 修 404）。",
       "description_source": "handler",
@@ -11374,7 +11425,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2314"
+        "app_server.py:2324"
       ],
       "description": "测试端点：测试除法运算（正常情况）",
       "description_source": "handler",
@@ -11399,7 +11450,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2290"
+        "app_server.py:2300"
       ],
       "description": "测试端点：触发除零错误以验证堆栈捕获",
       "description_source": "handler",
@@ -11424,7 +11475,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2303"
+        "app_server.py:2313"
       ],
       "description": "测试端点：触发空指针错误以验证堆栈捕获",
       "description_source": "handler",
@@ -13013,7 +13064,7 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2205"
+        "app_server.py:2215"
       ],
       "description": "云枢 React SPA 入口（build:flask 同步自 yunshu-ui/dist → templates/yunshu.html）。",
       "description_source": "handler",
@@ -13374,7 +13425,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2269"
+        "app_server.py:2279"
       ],
       "description": "[简易] 用户行为回放页面",
       "description_source": "handler",
@@ -13399,7 +13450,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2261"
+        "app_server.py:2271"
       ],
       "description": "搜索引擎状态监控页面",
       "description_source": "handler",
@@ -13425,7 +13476,7 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2242"
+        "app_server.py:2252"
       ],
       "description": "云枢 Web 应用 — 感知底座 + 数字生命对话",
       "description_source": "module",
@@ -13436,5 +13487,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "6440e23dc6535ae0"
+  "content_hash": "0b181b0b198f900f"
 }

@@ -292,7 +292,9 @@ class TestS0Provenance:
         assert sha == artifact["scoring_口径"]["index_sha256_16"], (
             "data/tool_index.json 已变化 ⇒ 产物过期，须重新导出")
 
-        tools = json.loads(index_path.read_text(encoding="utf-8"))["tools"]
+        from agent.tool_router import META_ALWAYS_TOOLS
+        tools = [t for t in json.loads(index_path.read_text(encoding="utf-8"))["tools"]
+                 if t["name"] not in META_ALWAYS_TOOLS]
         bm = BM25Index()
         for t in tools:
             bm.add_document(t["name"], t["name"] + " " + " ".join(t.get("parameter_names") or [])
@@ -337,8 +339,11 @@ class TestS0Provenance:
         old_re = _re.compile(r"[a-zA-Z0-9_]+|[\u4e00-\u9fff]")
         monkeypatch.setattr(mod, "_tokenize", lambda t: old_re.findall((t or "").lower()))
         index_path = ROOT / "data" / "tool_index.json"
+        from agent.tool_router import META_ALWAYS_TOOLS
         bm = BM25Index()
         for t in json.loads(index_path.read_text(encoding="utf-8"))["tools"]:
+            if t["name"] in META_ALWAYS_TOOLS:
+                continue
             bm.add_document(t["name"], t["name"] + " " + " ".join(t.get("parameter_names") or [])
                             + " " + t.get("description", ""))
         for row in artifact["per_case"]:

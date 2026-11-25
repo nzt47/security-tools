@@ -1,0 +1,59 @@
+# 【E1-3a 分类说明】与 todo_write 一样，本工具只写“本会话的交互台账”
+# （data/ask/<sha256(session)[:32]>/）。它不写用户数据、不碰外部系统 ⇒
+# effect=read（L0，免摘要确认）：若判成 write 会让“提问”本身先弹审批，
+# 用户看不到问题就要先批一次，属于把交互原语当危险动作。
+name: present
+category: core
+description: 声明本次交付的文件（在回复下方以卡片展示，用户可复制路径/在工作区打开）。files 为相对路径数组（可带 title）；**只声明、不读取文件内容**；最多 20 个。用于交付报告/补丁/文档/截图等产物，让用户一眼看到改了哪些文件。Present deliverable files as cards under the reply.
+location_reason: 纯字符串校验与声明（不读文件、不写文件）；调用链在 6 跳内未命中任何跨边界原语。
+effect: read
+schema:
+  type: object
+  properties:
+    files:
+      type: array
+      description: 交付文件（相对路径，最多 20 个）
+      items:
+        oneOf:
+        - type: string
+        - type: object
+          properties:
+            path:
+              type: string
+            title:
+              type: string
+          required:
+          - path
+    note:
+      type: string
+      description: 交付说明（可选，≤1000 字）
+  required:
+  - files
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    presented:
+      type: array
+    count:
+      type: integer
+    note:
+      type: string
+    error:
+      type: string
+  required:
+  - ok
+  additionalProperties: true
+examples: []
+deprecated: false
+version: 1.0.0
+location: local
+plane: resident
+risk: low
+
+tool_type: tool
+llm_callable: true
+callable_mode: auto
+permission_level: public
+sandbox_allowed: false

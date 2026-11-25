@@ -312,6 +312,7 @@ except ImportError:
 try:
     from agent.tool_router import (
         _apply_alias_merge_and_priority_sort,
+        META_ALWAYS_TOOLS,
         TOOL_CATEGORIES,
         classify_user_input as _classify_user_input,
     )
@@ -1871,6 +1872,10 @@ class HybridRetriever:
                 name = tool.get("name", "")
                 if not name:
                     continue
+                # 【E1-3a】交互原语不进检索索引：它们始终随下发集附加（META_ALWAYS_TOOLS），
+                # 参与 BM25/向量只会稀释任务工具的 top1（实测决策层 48→46）。
+                if name in META_ALWAYS_TOOLS:
+                    continue
                 description = tool.get("description", "")
                 # parameter_names 可能缺失(旧索引),兜底为空列表
                 param_names = tool.get("parameter_names", []) or []
@@ -2329,6 +2334,11 @@ def hybrid_select_tools(
                 _note_retrieval_early_exit("whitelist_empty")
                 return None  # 白名单过滤后无候选,让调用方回退
 
+        # 【E1-3a】交互原语不参与名额竞争：先从候选集摘出，截断后追加回结果
+        meta_extra = [t for t in META_ALWAYS_TOOLS if t in selected]
+        if meta_extra:
+            selected = selected - set(meta_extra)
+
         # 【E1-D · 生产非确定性修复】下发阶的候选必须按**确定次序**交给 helper。
         #   为什么：helper 内部是 sorted(selected, key=priority)（**稳定排序**），
         #   同优先级并列项的先后 = 输入迭代序；原来传的是 set ⇒ 迭代序随
@@ -2380,6 +2390,8 @@ def hybrid_select_tools(
             _note_retrieval_early_exit("sort_empty")
             return None
 
+        if meta_extra:
+            result = list(result) + [t for t in meta_extra if t not in result]
         tools_preview = result[:10]
         return result
     except Exception as e:

@@ -79,6 +79,9 @@ _DEFAULT_TOOL_CATEGORIES = {
             # 【2026-11-25 E1-2b】会话级持续目标：与 todo_write 同为常驻自管理原语
             # （模型要能随时登记/完成/阻塞目标；8 动作单工具，schema 很小）。
             "goal",
+            # 【2026-11-25 E1-3a】交互原语：提问与交付声明必须随时可用
+            # （模型缺信息时要能问、有产物时要能交），否则会被名额截断成"猜着做"。
+            "ask_user_question", "present",
         ],
     },
     "web": {
@@ -394,6 +397,13 @@ TOOL_ALIASES: dict[str, list[str]] = {}
 #   （tests/unit/test_tool_router_pinned.py 已同步）。
 PINNED_TOOLS: tuple = ("delegate", "fan_out")
 
+#: 【E1-3a】**交互原语**：永远附加在下发集**末尾**（排在 max_tools 截断之后），
+#: 且**不进检索索引**（见 tool_router_hybrid.HybridRetriever.rebuild）。
+#: 为什么：它们不是"按相关性挑选的任务工具"，而是模型随时可能要用的交互面
+#: （提问/交付声明）。若参与检索与截断，会稀释任务工具的 top1 与 25 个名额
+#: （实测：加入后路由冲突决策层 48→46、v1 27→26）。
+META_ALWAYS_TOOLS: tuple = ("ask_user_question", "present")
+
 
 # ════════════════════════════════════════════════════════════
 #  默认关键词（当配置文件不存在时使用）
@@ -618,8 +628,15 @@ def get_tools_for_input(
         whitelist_set = set(enabled_whitelist)
         selected &= whitelist_set
 
+    # 【E1-3a】交互原语：不参与名额竞争，截断后追加（见 META_ALWAYS_TOOLS）
+    _meta_extra = [t for t in META_ALWAYS_TOOLS if t in selected]
+    if _meta_extra:
+        selected = selected - set(_meta_extra)
+
     # 【功能 2/1/3】别名合并 + 优先级排序 + 数量截断(抽为 helper,供 hybrid 复用)
     result = _apply_alias_merge_and_priority_sort(selected, categories, max_tools)
+    if _meta_extra:
+        result = list(result) + [t for t in _meta_extra if t not in result]
 
     # 任务6：进化策略注入（工具路由层）— 高失败率工具的备用路径策略
     # 策略 param_patch 含 fallback_tools 时,将备用工具补入结果(追加末尾,不破坏排序);

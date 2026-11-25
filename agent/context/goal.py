@@ -56,10 +56,6 @@ EVENT_TYPES = (
 
 _KEY_RE = re.compile(r"^(?P<key>[0-9a-f]{32})$")
 
-#: 请求级会话绑定：工作台流式入口在开流时 bind，工具（goal 等）据此定位"当前会话"。
-#: 为什么用 ContextVar 而不是全局变量：并发两个会话时全局会被互相覆盖（与权限档位同因）。
-_BOUND_SESSION: contextvars.ContextVar[str] = contextvars.ContextVar(
-    "yunshu_goal_session", default="")
 
 
 class GoalError(ValueError):
@@ -306,28 +302,20 @@ def _append(key: str, etype: str, payload: dict) -> dict:
 # ════════════════════════════════════════════════════════════
 
 def bind_session(session_id: str):
-    """把当前执行上下文绑定到某会话（返回 token，供调用方 reset）"""
-    return _BOUND_SESSION.set(str(session_id or ""))
+    """把当前执行上下文绑定到某会话（委托 agent.context.session_bind，goal/ask 共享）"""
+    from agent.context import session_bind
+    return session_bind.bind(session_id)
 
 
 def reset_session(token) -> None:
-    try:
-        _BOUND_SESSION.reset(token)
-    except (ValueError, RuntimeError):  # 跨线程 reset 失败不影响主链路
-        pass
+    from agent.context import session_bind
+    session_bind.reset(token)
 
 
 def current_session() -> str:
-    """当前工具调用所属会话：请求级绑定优先，回退编排器 TraceContext 的 subject_id"""
-    sid = _BOUND_SESSION.get()
-    if sid:
-        return sid
-    try:
-        from agent.observability.trace_v2 import TraceContext  # 惰性导入（与 todo_write 同源）
-        ctx = TraceContext.current()
-        return str(getattr(ctx, "subject_id", "") or "").strip()
-    except Exception:  # noqa: BLE001 观测上下文不可用不影响工具失败语义
-        return ""
+    """当前工具调用所属会话（请求级绑定优先，回退 TraceContext.subject_id）"""
+    from agent.context import session_bind
+    return session_bind.current()
 
 
 def get_state(session_id: str) -> dict:

@@ -232,6 +232,14 @@ export const GOAL_MODE = '/api/goal/mode';
 export const GOAL_ACCEPT = '/api/goal/accept';
 
 // ═══════════════════════════════════════════════════════════════
+//  结构化提问（/api/ask/*，E1-3）
+// ═══════════════════════════════════════════════════════════════
+/** 未答问题（?session_id=，只读；无则 pending=null） */
+export const ASK_PENDING = '/api/ask/pending';
+/** 回答问题（POST {session_id, question_id, answers, custom}，需令牌；回 next_message） */
+export const ASK_ANSWER = '/api/ask/answer';
+
+// ═══════════════════════════════════════════════════════════════
 //  知识库（/api/knowledge）
 // ═══════════════════════════════════════════════════════════════
 // 新增知识文档（legacy 记忆/向量域端点；content 必填）

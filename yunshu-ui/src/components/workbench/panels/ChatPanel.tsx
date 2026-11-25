@@ -24,6 +24,10 @@ import { getPlan, setPlanMode } from '@/lib/planApi';
 // E1-2d 目标：进度条只嵌会话页（不新增叶子）
 import { GoalBar } from '../chat/GoalBar';
 import { getGoal } from '@/lib/goalApi';
+// E1-3a 交互：提问卡 + 交付卡
+import { QuestionCard } from '../chat/QuestionCard';
+import { PresentCard } from '../chat/PresentCard';
+import { getPendingAsk } from '@/lib/askApi';
 import { authHeader } from '@/lib/apiToken';
 
 import {
@@ -51,6 +55,9 @@ export function ChatPanel() {
   const setPlan = useLayoutStore((s) => s.setPlan);
   const goal = useLayoutStore((s) => s.goal);
   const setGoal = useLayoutStore((s) => s.setGoal);
+  const pendingAsk = useLayoutStore((s) => s.pendingAsk);
+  const setPendingAsk = useLayoutStore((s) => s.setPendingAsk);
+  const presented = useLayoutStore((s) => s.presented);
   const [planBusy, setPlanBusy] = useState(false);
 
   // 切会话 / 刷新页面时回填计划状态（状态在磁盘上，会话恢复后仍在）
@@ -66,8 +73,11 @@ export function ChatPanel() {
     getGoal(activeSessionId)
       .then((g) => { if (!cancelled) setGoal(g); })
       .catch(() => { /* 目标端点不可用不影响对话 */ });
+    getPendingAsk(activeSessionId)
+      .then((q) => { if (!cancelled) setPendingAsk(q); })
+      .catch(() => { /* 提问端点不可用不影响对话 */ });
     return () => { cancelled = true; };
-  }, [activeSessionId, setPlan, setGoal]);
+  }, [activeSessionId, setPlan, setGoal, setPendingAsk]);
 
   const togglePlanMode = async () => {
     if (!activeSessionId || planBusy) return;
@@ -398,6 +408,9 @@ export function ChatPanel() {
               ))}
             </AnimatePresence>
             <div ref={bottomRef} />
+            {presented && presented.files.length > 0 && (
+              <PresentCard files={presented.files} note={presented.note} />
+            )}
           </div>
         )}
       </div>
@@ -406,6 +419,13 @@ export function ChatPanel() {
       {plan?.plan_mode && (
         <div className="shrink-0 border-t border-amber-900/30 bg-slate-950/40 px-4 pt-2">
           <PlanCard plan={plan} />
+        </div>
+      )}
+
+      {/* 结构化提问（E1-3a）：有未答问题时占位；提交后由 store 清掉 */}
+      {pendingAsk && (
+        <div className="shrink-0 border-t border-cyan-900/30 bg-slate-950/40 px-4 pt-2">
+          <QuestionCard ask={pendingAsk} />
         </div>
       )}
 

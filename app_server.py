@@ -1576,6 +1576,16 @@ try:
 except Exception as e:
     _record_route_failure("目标路由", e)
 
+# ════════════════════════════════════════════════════════════
+#  E1-3a 结构化提问路由（/api/ask/*）
+# ════════════════════════════════════════════════════════════
+try:
+    from agent.server_routes.routes_ask import register_routes as reg_ask
+    reg_ask(app, lambda: None)
+    logger.info("提问路由已注册 (/api/ask/*)")
+except Exception as e:
+    _record_route_failure("提问路由", e)
+
 
 # ════════════════════════════════════════════════════════════
 #  工作流学习系统路由（/api/workflow-learning/*）
