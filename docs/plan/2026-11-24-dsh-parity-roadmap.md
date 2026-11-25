@@ -200,6 +200,12 @@
 - **交付**：会话标题（LLM，异步、可回退首条消息）；FTS5 索引 + 搜索 API/UI；
   turn outline；每轮 stats；会话导出（ZIP/MD）；模型工具 `session_search`/`session_trace`。
 - **验收**：能按关键词搜到历史会话并跳转；标题生成失败不影响会话；导出可读。
+- **交付状态（2026-11-25）**：**设计稿已定稿，未实现** ——
+  `docs/plan/2026-11-26-e1-4-session-intelligence-design.md`（中文检索用 FTS5 `trigram`
+  + <3 字回落 LIKE；索引 `data/session_index.db` 运行期状态、可全量重建；标题只写 `title_auto`、
+  人工改名永不覆盖；outline/stats 全部从 `messages.jsonl` 现算；导出文件名用 sha256 派生；
+  4 条路由 + 2 个模型工具）；按 **E1-4a 标题 / E1-4b 搜索 / E1-4c outline+stats+导出 /
+  E1-4d 模型工具** 四片交付，d 片才触发工具派生面。
 
 ### Phase 2 — 多代理协作（建议第 7–9 周）
 
