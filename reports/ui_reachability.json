@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-11-25T23:10:09",
+  "generated_at": "2026-11-26T01:00:58",
   "entry": "yunshu-ui/src/main.tsx",
   "scanned": {
-    "source_modules": 324,
-    "reachable_modules": 316,
+    "source_modules": 326,
+    "reachable_modules": 318,
     "page_files": 113
   },
   "unreachable": [],

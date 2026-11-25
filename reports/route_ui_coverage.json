@@ -1,22 +1,22 @@
 {
-  "generated_at": "2026-11-25T23:10:08",
+  "generated_at": "2026-11-26T01:00:57",
   "totals": {
-    "routes": 527,
-    "live": 527,
+    "routes": 531,
+    "live": 531,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 466,
+    "ui": 470,
     "cli_script": 15,
     "runtime_only": 12,
     "unreferenced": 34,
     "live_by_category": {
-      "ui": 466,
+      "ui": 470,
       "cli_script": 15,
       "runtime_only": 12,
       "unreferenced": 34
     },
     "by_intent": {
-      "should_be_in_ui": 432,
+      "should_be_in_ui": 436,
       "should_not_be_in_ui": 80,
       "unclassified": 15
     },
@@ -26,7 +26,7 @@
       "观测与诊断": 84,
       "系统与配置": 46,
       "治理与审批": 47,
-      "对话与会话": 44,
+      "对话与会话": 48,
       "资产与文件": 19,
       "管理与后台": 18,
       "调度与任务": 26,
@@ -37,7 +37,7 @@
       "记忆与知识": 42
     }
   },
-  "frontend_endpoints": 470,
+  "frontend_endpoints": 474,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -63,7 +63,7 @@
         "scripts/_check_page.py"
       ],
       "where": [
-        "app_server.py:2178"
+        "app_server.py:2198"
       ],
       "description": "首页：重定向到统一工作台（2026-10-03 R0-b legacy 收敛）。",
       "description_source": "handler",
@@ -1616,7 +1616,7 @@
         "scripts/probe_prefix_cache_interaction.py"
       ],
       "where": [
-        "plugins/chat.py:3175"
+        "plugins/chat.py:3222"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
@@ -4032,7 +4032,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:1856"
+        "app_server.py:1876"
       ],
       "description": "混合检索器（embedding worker）健康状态（**只读**；永不 500）。",
       "description_source": "handler",
@@ -7152,7 +7152,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:2877"
+        "plugins/chat.py:2897"
       ],
       "description": "提示词实验室「真实接口」的后端代理（2026-10-14 修 404）。",
       "description_source": "handler",
@@ -8226,6 +8226,32 @@
       "domain": "对话与会话"
     },
     {
+      "path": "/api/session-search",
+      "norm": "/api/session-search",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/lib/sessionSearchApi.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_session_search.py:26"
+      ],
+      "description": "按关键词检索历史会话消息（只读）",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "会话管理/搜索",
+      "intent_note": "E1-4b 会话全文检索：按关键词搜历史会话消息（GET /api/session-search?q=）。消费方是会话栏的「历史命中」区块（yunshu-ui/src/components/workbench/sessions/SessionRail.tsx）。",
+      "ui_pending": false,
+      "domain": "对话与会话"
+    },
+    {
       "path": "/api/sessions",
       "norm": "/api/sessions",
       "methods": [
@@ -8305,6 +8331,31 @@
       "domain": "对话与会话"
     },
     {
+      "path": "/api/sessions/<session_id>/export",
+      "norm": "/api/sessions/*/export",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/sessionInsightApi.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_session_insight.py:73"
+      ],
+      "description": "导出会话（md 文本 / zip 包；文件名 sha256 派生）",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "会话管理",
+      "intent_note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。",
+      "ui_pending": false,
+      "domain": "对话与会话"
+    },
+    {
       "path": "/api/sessions/<session_id>/group",
       "norm": "/api/sessions/*/group",
       "methods": [
@@ -8358,6 +8409,31 @@
       "domain": "对话与会话"
     },
     {
+      "path": "/api/sessions/<session_id>/outline",
+      "norm": "/api/sessions/*/outline",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/sessionInsightApi.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_session_insight.py:42"
+      ],
+      "description": "轮次大纲（只读）",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "会话管理",
+      "intent_note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。",
+      "ui_pending": false,
+      "domain": "对话与会话"
+    },
+    {
       "path": "/api/sessions/<session_id>/project",
       "norm": "/api/sessions/*/project",
       "methods": [
@@ -8400,6 +8476,31 @@
         "plugins/chat.py:612"
       ],
       "description": "重命名会话",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "会话管理",
+      "intent_note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。",
+      "ui_pending": false,
+      "domain": "对话与会话"
+    },
+    {
+      "path": "/api/sessions/<session_id>/stats",
+      "norm": "/api/sessions/*/stats",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/sessionInsightApi.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_session_insight.py:57"
+      ],
+      "description": "每轮统计 + 汇总（只读）",
       "description_source": "handler",
       "intent": "should_be_in_ui",
       "intent_area": "会话管理",
@@ -11451,7 +11552,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2334"
+        "app_server.py:2354"
       ],
       "description": "测试端点：测试除法运算（正常情况）",
       "description_source": "handler",
@@ -11476,7 +11577,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2310"
+        "app_server.py:2330"
       ],
       "description": "测试端点：触发除零错误以验证堆栈捕获",
       "description_source": "handler",
@@ -11501,7 +11602,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2323"
+        "app_server.py:2343"
       ],
       "description": "测试端点：触发空指针错误以验证堆栈捕获",
       "description_source": "handler",
@@ -13090,7 +13191,7 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2225"
+        "app_server.py:2245"
       ],
       "description": "云枢 React SPA 入口（build:flask 同步自 yunshu-ui/dist → templates/yunshu.html）。",
       "description_source": "handler",
@@ -13451,7 +13552,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2289"
+        "app_server.py:2309"
       ],
       "description": "[简易] 用户行为回放页面",
       "description_source": "handler",
@@ -13476,7 +13577,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2281"
+        "app_server.py:2301"
       ],
       "description": "搜索引擎状态监控页面",
       "description_source": "handler",
@@ -13502,7 +13603,7 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2262"
+        "app_server.py:2282"
       ],
       "description": "云枢 Web 应用 — 感知底座 + 数字生命对话",
       "description_source": "module",
@@ -13513,5 +13614,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "1185a7cf39d55b43"
+  "content_hash": "ef228b9ab0f80905"
 }
