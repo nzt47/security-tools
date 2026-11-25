@@ -3019,6 +3019,96 @@ def _record_plan_turn(session_id: str, text: str):
         return None
 
 
+def _goal_payload(session_id: str) -> dict:
+    """目标状态 → SSE ``goal`` 事件载荷（与 agent.context.goal 投影同口径）"""
+    try:
+        from agent.context.goal import get_state
+        st = get_state(session_id)
+    except Exception:  # noqa: BLE001 目标状态读失败不阻断对话
+        st = {}
+    return {
+        "session_id": st.get("session_id", session_id),
+        "goal_id": st.get("goal_id", ""),
+        "title": st.get("title", ""),
+        "why": st.get("why", ""),
+        "acceptance": st.get("acceptance", []),
+        "state": st.get("state", "idle"),
+        "round": int(st.get("round") or 0),
+        "max_rounds": int(st.get("max_rounds") or 0),
+        "blocked": st.get("blocked"),
+        "evidence": st.get("evidence", ""),
+        "recent_events": st.get("recent_events", []),
+    }
+
+
+def _goal_status_line(st: dict) -> str:
+    """目标状态的一行人读摘要（``/goal`` 命令回复用）"""
+    if not st.get("goal_id"):
+        return "当前会话没有目标。用 /goal set <标题> 或让模型调用 goal 工具创建。"
+    line = "目标「%s」：%s · 轮次 %d/%d" % (
+        st.get("title", ""), st.get("state", "idle"),
+        int(st.get("round") or 0), int(st.get("max_rounds") or 0))
+    if st.get("acceptance"):
+        line += " · 验收 %d 条" % len(st["acceptance"])
+    blocked = st.get("blocked") or {}
+    if blocked:
+        line += " · 阻塞 %s：%s" % (blocked.get("code", ""), blocked.get("reason", ""))
+    return line
+
+
+def _parse_goal_command(question: str):
+    """解析 ``/goal`` 命令族；不是命令返回 ``None``，是命令返回 ``(action, arg)``
+
+    与 ``/plan`` 同构：纯状态命令不进 LLM。``set/create`` 让用户也能自己立目标
+    （与模型工具共用同一状态机，见设计页 §5）。
+    """
+    text = (question or "").strip()
+    m = re.match(r"^/goal(?:\s+([\s\S]*))?$", text, re.IGNORECASE)
+    if not m:
+        return None
+    rest = (m.group(1) or "").strip()
+    if not rest:
+        return ("status", "")
+    parts = rest.split(None, 1)
+    sub = parts[0].lower()
+    arg = parts[1].strip() if len(parts) > 1 else ""
+    if sub in ("status", "state"):
+        return ("status", arg)
+    if sub in ("set", "create", "new"):
+        return ("set", arg)
+    if sub in ("pause", "stop"):
+        return ("pause", arg)
+    if sub in ("resume", "continue", "go"):
+        return ("resume", arg)
+    if sub in ("clear", "delete", "remove"):
+        return ("clear", arg)
+    if sub in ("accept", "criterion", "add"):
+        return ("accept", arg)
+    return ("unknown", rest)
+
+
+def _goal_reply_response(session_id: str, question: str, reply: str):
+    """目标命令的 SSE 响应：落盘一轮问答 + ``goal`` 事件 + ``done``"""
+    from flask import Response, stream_with_context
+    try:
+        from app_server import _session_mgr as _sm
+        _sm.add_message(session_id, "user", question)
+        _sm.add_message(session_id, "assistant", reply)
+    except Exception:  # noqa: BLE001 落盘失败不影响命令结果
+        pass
+
+    def _gen():
+        for i in range(0, len(reply), 8):
+            yield _sse_event({"type": "chunk", "text": reply[i:i + 8]})
+        yield _sse_event({"type": "goal", "goal": _goal_payload(session_id)})
+        yield _sse_event({"type": "done"})
+
+    resp = Response(stream_with_context(_gen()), mimetype="text/event-stream")
+    resp.headers["Cache-Control"] = "no-cache"
+    resp.headers["X-Accel-Buffering"] = "no"
+    return resp
+
+
 @bp.route("/api/chat/stream", methods=["POST"])
 @_require_token
 def api_chat_stream():
@@ -3143,6 +3233,41 @@ def api_chat_stream():
         if _plan_reply is not None:
             return _plan_reply_response(session_id, question, _plan_reply)
         _plan_prefix = _plan_payload(session_id)
+
+    # ── 目标命令（E1-2a）────────────────────────────────────────────
+    # 纯状态命令不进 LLM；``/goal set`` 只是让用户也能自己立目标（与模型工具同一状态机）。
+    _goal_cmd = _parse_goal_command(question)
+    if _goal_cmd is not None:
+        from agent.context import goal as _gm
+        _gaction, _garg = _goal_cmd
+        try:
+            if _gaction == "set":
+                if not _garg:
+                    _greply = "用法：/goal set <标题>（可再 /goal accept <验收条件>）"
+                else:
+                    _st = _gm.create(session_id, _garg)
+                    _greply = "已创建目标「%s」，轮次 0/%d。" % (
+                        _st.get("title", ""), int(_st.get("max_rounds") or 0))
+            elif _gaction == "pause":
+                _gm.pause(session_id, _garg)
+                _greply = "目标已暂停。" + _goal_status_line(_gm.get_state(session_id))
+            elif _gaction == "resume":
+                _gm.resume(session_id)
+                _greply = "目标已恢复。" + _goal_status_line(_gm.get_state(session_id))
+            elif _gaction == "clear":
+                _gm.clear(session_id)
+                _greply = "目标已清除（事件流保留，可回放）。"
+            elif _gaction == "accept":
+                _gm.accept(session_id, _garg)
+                _greply = "已补充验收条件：" + _garg
+            elif _gaction == "status":
+                _greply = _goal_status_line(_gm.get_state(session_id))
+            else:
+                _greply = ("未知目标命令。可用：/goal、/goal set <标题>、/goal pause [原因]、"
+                           "/goal resume、/goal clear、/goal accept <验收条件>")
+        except _gm.GoalError as _ge:
+            _greply = "命令未生效：%s" % _ge.message
+        return _goal_reply_response(session_id, question, _greply)
 
     def gen():
         # 【2026-11-20】LLM 禁用时段：在开流前直接回一条 error + done，

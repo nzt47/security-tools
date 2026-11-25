@@ -317,6 +317,12 @@ class SessionManager:
             delete_plan(session_id)
         except Exception as e:  # noqa: BLE001 计划存储故障不阻断会话删除
             logger.debug("清理会话计划失败: %s", e)
+        # 【E1-2a 目标】事件流落 data/goals/<key>/，会话删除时一并清理
+        try:
+            from agent.context.goal import delete_goal
+            delete_goal(session_id)
+        except Exception as e:  # noqa: BLE001 目标存储故障不阻断会话删除
+            logger.debug("清理会话目标失败: %s", e)
 
         import shutil
         session_dir = self._sessions_dir / session_id
