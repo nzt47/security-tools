@@ -69,6 +69,8 @@ flowchart LR
         agent_context_goal["agent.context.goal"]:::crosslayer
         agent_context_plan_mode["agent.context.plan_mode"]:::crosslayer
         agent_context_session_bind["agent.context.session_bind"]
+        agent_context_session_insight["agent.context.session_insight"]
+        agent_context_session_title["agent.context.session_title"]
         agent_context_spill["agent.context.spill"]:::crosslayer
     end
     subgraph core [core]
@@ -108,7 +110,7 @@ flowchart LR
         agent_learning_metrics_api["agent.learning_metrics_api"]
         agent_llm_idle_gate["agent.llm_idle_gate"]
         agent_llm_key["agent.llm_key"]:::crosslayer
-        agent_llm_monitor["agent.llm_monitor"]
+        agent_llm_monitor["agent.llm_monitor"]:::crosslayer
         agent_llm_response_cache["agent.llm_response_cache"]:::crosslayer
         agent_logging_utils["agent.logging_utils"]:::crosslayer
         agent_mcp_executor["agent.mcp_executor"]
@@ -595,6 +597,8 @@ flowchart LR
         agent_server_routes_routes_process_distill["agent.server_routes.routes_process_distill"]
         agent_server_routes_routes_replay["agent.server_routes.routes_replay"]
         agent_server_routes_routes_semantic_config["agent.server_routes.routes_semantic_config"]
+        agent_server_routes_routes_session_insight["agent.server_routes.routes_session_insight"]
+        agent_server_routes_routes_session_search["agent.server_routes.routes_session_search"]
         agent_server_routes_routes_settings["agent.server_routes.routes_settings"]
         agent_server_routes_routes_skills_mgmt["agent.server_routes.routes_skills_mgmt"]
         agent_server_routes_routes_subagent["agent.server_routes.routes_subagent"]
@@ -980,6 +984,8 @@ flowchart LR
     agent_context_goal --> agent_context
     agent_context_goal --> agent_context
     agent_context_session_bind -.-> agent_observability_trace_v2
+    agent_context_session_insight -.-> agent_llm_monitor
+    agent_context_session_title -.-> agent_env_config_manager
     agent_data_observability -.-> agent_logging_utils
     agent_data_observability -.-> agent_monitoring_business_metrics
     agent_data_analytics --> agent_logging_utils
@@ -2363,6 +2369,11 @@ flowchart LR
     agent_server_routes_routes_semantic_config -.-> agent_orchestrator_orchestrator
     agent_server_routes_routes_semantic_config -.-> agent_monitoring_metrics
     agent_server_routes_routes_semantic_config -.-> agent_monitoring_metrics
+    agent_server_routes_routes_session_insight --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_session_insight --> agent_server_routes__errors
+    agent_server_routes_routes_session_insight -.-> agent_context
+    agent_server_routes_routes_session_search --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_session_search -.-> agent_context
     agent_server_routes_routes_settings -.-> agent_security
     agent_server_routes_routes_settings -.-> agent_security_actor_matrix
     agent_server_routes_routes_settings -.-> agent_server_auth
@@ -2507,6 +2518,7 @@ flowchart LR
     agent_session_manager -.-> agent_context_ask
     agent_session_manager -.-> agent_context_goal
     agent_session_manager --> agent
+    agent_session_manager -.-> agent_context
     agent_session_manager -.-> agent_observability_trace_v2
     agent_settings --> agent_settings_masking
     agent_settings --> agent_settings_overrides
@@ -3172,9 +3184,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 803
-- 模块节点数: 697
-- 依赖边数: 2343
-- 跨层调用数: 1486
+- 扫描文件数: 808
+- 模块节点数: 701
+- 依赖边数: 2351
+- 跨层调用数: 1491
 - 违规调用数: 0
 - 动态 import 数: 1

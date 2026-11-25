@@ -790,7 +790,7 @@
       "name": "context",
       "layer": "context",
       "file_path": "",
-      "in_degree": 10,
+      "in_degree": 13,
       "out_degree": 0
     },
     {
@@ -800,6 +800,38 @@
       "file_path": "",
       "in_degree": 31,
       "out_degree": 12
+    },
+    {
+      "path": "agent.context.session_insight",
+      "name": "session_insight",
+      "layer": "context",
+      "file_path": "agent/context/session_insight.py",
+      "in_degree": 0,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.llm_monitor",
+      "name": "llm_monitor",
+      "layer": "core",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 12
+    },
+    {
+      "path": "agent.context.session_title",
+      "name": "session_title",
+      "layer": "context",
+      "file_path": "agent/context/session_title.py",
+      "in_degree": 0,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.env_config_manager",
+      "name": "env_config_manager",
+      "layer": "core",
+      "file_path": "",
+      "in_degree": 9,
+      "out_degree": 4
     },
     {
       "path": "agent.data.observability",
@@ -1272,14 +1304,6 @@
       "file_path": "agent/dsml_adapter.py",
       "in_degree": 0,
       "out_degree": 2
-    },
-    {
-      "path": "agent.env_config_manager",
-      "name": "env_config_manager",
-      "layer": "core",
-      "file_path": "agent/env_config_manager.py",
-      "in_degree": 8,
-      "out_degree": 4
     },
     {
       "path": "agent.timeout_budget",
@@ -2314,14 +2338,6 @@
       "out_degree": 2
     },
     {
-      "path": "agent.llm_monitor",
-      "name": "llm_monitor",
-      "layer": "core",
-      "file_path": "agent/llm_monitor.py",
-      "in_degree": 0,
-      "out_degree": 12
-    },
-    {
       "path": "agent.llm_idle_gate",
       "name": "llm_idle_gate",
       "layer": "core",
@@ -2774,7 +2790,7 @@
       "name": "_errors",
       "layer": "server_routes",
       "file_path": "",
-      "in_degree": 20,
+      "in_degree": 21,
       "out_degree": 0
     },
     {
@@ -3511,7 +3527,7 @@
       "layer": "core",
       "file_path": "",
       "in_degree": 1,
-      "out_degree": 5
+      "out_degree": 6
     },
     {
       "path": "agent.tool_schema_pruner",
@@ -4238,7 +4254,7 @@
       "name": "tracing_decorator",
       "layer": "server_routes",
       "file_path": "",
-      "in_degree": 24,
+      "in_degree": 26,
       "out_degree": 2
     },
     {
@@ -4480,6 +4496,22 @@
       "file_path": "agent/server_routes/routes_semantic_config.py",
       "in_degree": 0,
       "out_degree": 8
+    },
+    {
+      "path": "agent.server_routes.routes_session_insight",
+      "name": "routes_session_insight",
+      "layer": "server_routes",
+      "file_path": "agent/server_routes/routes_session_insight.py",
+      "in_degree": 0,
+      "out_degree": 3
+    },
+    {
+      "path": "agent.server_routes.routes_session_search",
+      "name": "routes_session_search",
+      "layer": "server_routes",
+      "file_path": "agent/server_routes/routes_session_search.py",
+      "in_degree": 0,
+      "out_degree": 2
     },
     {
       "path": "agent.server_routes.routes_settings",
@@ -7641,6 +7673,32 @@
       "import_type": "from_import",
       "line": 36,
       "source_file": "agent/context/session_bind.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.context.session_insight",
+      "target": "agent.llm_monitor",
+      "source_layer": "context",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 116,
+      "source_file": "agent/context/session_insight.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.context.session_title",
+      "target": "agent.env_config_manager",
+      "source_layer": "context",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 140,
+      "source_file": "agent/context/session_title.py",
       "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
@@ -25626,6 +25684,71 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.server_routes.routes_session_insight",
+      "target": "agent.server_routes.tracing_decorator",
+      "source_layer": "server_routes",
+      "target_layer": "server_routes",
+      "import_type": "from_import",
+      "line": 17,
+      "source_file": "agent/server_routes/routes_session_insight.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_session_insight",
+      "target": "agent.server_routes._errors",
+      "source_layer": "server_routes",
+      "target_layer": "server_routes",
+      "import_type": "from_import",
+      "line": 18,
+      "source_file": "agent/server_routes/routes_session_insight.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_session_insight",
+      "target": "agent.context",
+      "source_layer": "server_routes",
+      "target_layer": "context",
+      "import_type": "from_import",
+      "line": 26,
+      "source_file": "agent/server_routes/routes_session_insight.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_session_search",
+      "target": "agent.server_routes.tracing_decorator",
+      "source_layer": "server_routes",
+      "target_layer": "server_routes",
+      "import_type": "from_import",
+      "line": 18,
+      "source_file": "agent/server_routes/routes_session_search.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_session_search",
+      "target": "agent.context",
+      "source_layer": "server_routes",
+      "target_layer": "context",
+      "import_type": "from_import",
+      "line": 24,
+      "source_file": "agent/server_routes/routes_session_search.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.server_routes.routes_settings",
       "target": "agent.security",
       "source_layer": "server_routes",
@@ -27451,7 +27574,7 @@
       "source_layer": "core",
       "target_layer": "context",
       "import_type": "from_import",
-      "line": 316,
+      "line": 318,
       "source_file": "agent/session_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -27464,7 +27587,7 @@
       "source_layer": "core",
       "target_layer": "context",
       "import_type": "from_import",
-      "line": 322,
+      "line": 324,
       "source_file": "agent/session_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -27477,7 +27600,7 @@
       "source_layer": "core",
       "target_layer": "context",
       "import_type": "from_import",
-      "line": 328,
+      "line": 330,
       "source_file": "agent/session_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -27490,9 +27613,22 @@
       "source_layer": "core",
       "target_layer": "unknown",
       "import_type": "from_import",
-      "line": 448,
+      "line": 468,
       "source_file": "agent/session_manager.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.session_manager",
+      "target": "agent.context",
+      "source_layer": "core",
+      "target_layer": "context",
+      "import_type": "from_import",
+      "line": 538,
+      "source_file": "agent/session_manager.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -27503,7 +27639,7 @@
       "source_layer": "core",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 625,
+      "line": 654,
       "source_file": "agent/session_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -36040,10 +36176,10 @@
     }
   ],
   "stats": {
-    "total_files": 803,
-    "total_nodes": 697,
-    "total_edges": 2343,
-    "cross_layer_edges": 1486,
+    "total_files": 808,
+    "total_nodes": 701,
+    "total_edges": 2351,
+    "cross_layer_edges": 1491,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -36069,7 +36205,7 @@
       "cognitive": 13,
       "config": 2,
       "orchestrator": 13,
-      "context": 8,
+      "context": 10,
       "dao": 1,
       "descriptors": 4,
       "digestion": 18,
@@ -36091,7 +36227,7 @@
       "common": 1,
       "maintenance": 1,
       "memory_import": 9,
-      "server_routes": 36,
+      "server_routes": 38,
       "network": 3,
       "workflow_engine": 5,
       "verification": 1,
