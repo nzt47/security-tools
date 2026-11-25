@@ -24,6 +24,8 @@ boost:
 - code_review
 - todo_write
 - delegate
+- session_search
+- session_trace
 mute:
 - web_extract
 - web_batch
@@ -39,7 +41,7 @@ mute:
 - disconnect_mcp
 tags:
 - code
-max_tools: 22
+max_tools: 24
 # 本分身默认上下文窗口（2026-11-15）：按任务类型的建议起点取中位 —— 通用研发：单文件为主，跨文件靠检索
 context_window_tokens: 32768
 effect_allow:
