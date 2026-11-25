@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-25T19:05:00+08:00",
+ "updated_at": "2026-11-25T23:05:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
   {
@@ -1483,8 +1483,8 @@
    "status": "open",
    "priority": "P1",
    "title": "Phase 1 工作方式：计划模式、Goal + 自动续跑、ask_user_question + present/变更文件卡、会话智能（标题/FTS/outline/stats/导出）",
-   "criteria": "【E1-1 已交付 2026-11-25】/plan 命令族 + 会话级 plan_mode + 计划卡 + 版本回滚 + 会话恢复。【E1-2 已交付 2026-11-25】goal 事件溯源（events.jsonl + 投影）/ 单工具 8 动作 / 前端驱动 round driver（轮次上限 256，token 预算待 E0-2④）/ GoalBar + /api/goal/* 三路由。剩余：E1-3 结构化提问工具 + UI 接管 + present 交付卡（对接 E0-3 快照）；E1-4 LLM 标题、FTS5 搜索、turn outline、per-turn stats、会话导出、session_search/session_trace。",
-   "next": "E1-1/E1-2 已交付并部署（E1-2：b0aead94f / f43ce3e57 / 1ee611915 / cd3bbd141 / d2719ffa8；工具 103；探针 a16/16·b15/15·d UI PASS；前端 204 files/1558 tests）。下一步 **E1-3 ask_user_question + present/变更文件卡**：先出设计页——结构化提问的 schema 与 UI 接管、present 交付卡与附件、变更文件卡如何复用 E0-3 检查点快照（逐文件 diff）、cli/桌面端降级；再按片实现（新增工具走 5 处连锁；新增路由同步 intent/domains + 干净 worktree 重派生）。"
+   "criteria": "【E1-1 已交付】计划模式。【E1-2 已交付】目标事件溯源+工具+driver+GoalBar。【E1-3a 已交付 2026-11-25（0e159677f）】ask_user_question + present + 两卡 + /api/ask/*。剩余：E1-3b 变更文件卡（读 E0-3 检查点逐文件 diff + ChangeCard + 路由）；E1-4 标题/FTS5/outline/stats/导出/session_search。",
+   "next": "E1-3a 已推送（0e159677f），CI run 45638511217 待绿；**尚未部署**（服务仍 7c9ecffc1）。下一步：①看 CI → ②部署 → ③跑 .local/verify_e1_3_ask.py（10 项）+ 既有探针 → ④补 UI 截图探针 → ⑤文档 → ⑥**E1-3b 变更文件卡**（GET /api/changes 读检查点 + ChangeCard）。"
   },
   {
    "id": "dsh-parity-p2-multiagent",

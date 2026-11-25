@@ -153,6 +153,12 @@
 - **交付**：结构化提问工具 + UI 接管；`present` 声明交付文件；变更文件卡（逐文件 diff、
   打开/定位）；与 E0-3 快照对接。
 - **验收**：提问带选项与多选；交付文件在回复下方成卡；点击可打开。
+- **交付状态（2026-11-25，E1-3a 已交付）**：`0e159677f` —— `ask_user_question`（不阻塞：
+  `USER_INPUT_REQUIRED` → SSE `ask` → 本轮结束 → 回答按普通用户消息继续）+ `present`
+  （纯字符串校验、不读文件）+ `/api/ask/{pending,answer}` + QuestionCard/PresentCard；
+  设计页 `docs/plan/2026-11-25-e1-3-interaction-design.md`。测试：ask 29+7、前端 207 files/1571；
+  探针 10 项待部署后跑。**关键决定**：两个交互原语不进检索索引（`META_ALWAYS_TOOLS` 排除、
+  截断后追加），否则路由冲突决策层 48→46 / v1 27→26（跌破下限）。**E1-3b 变更文件卡未开始**。
 
 #### E1-4 会话智能（P1）
 - **DSH 参照**：`session-query-sqlite`（FTS5）、`session-title-*`、`session-turn-outline`、
