@@ -580,6 +580,7 @@ flowchart LR
         agent_server_routes_routes_background["agent.server_routes.routes_background"]
         agent_server_routes_routes_business_dashboard["agent.server_routes.routes_business_dashboard"]
         agent_server_routes_routes_capabilities["agent.server_routes.routes_capabilities"]
+        agent_server_routes_routes_changes["agent.server_routes.routes_changes"]
         agent_server_routes_routes_dashboard["agent.server_routes.routes_dashboard"]
         agent_server_routes_routes_feedback["agent.server_routes.routes_feedback"]
         agent_server_routes_routes_goal["agent.server_routes.routes_goal"]
@@ -974,6 +975,7 @@ flowchart LR
     agent_context_assembler -.-> agent_guardrails_instruction_data
     agent_context_assembler -.-> agent_guardrails_foreign_taint
     agent_context_checkpoint -.-> agent_utils
+    agent_context_checkpoint --> agent_context_session_bind
     agent_context_goal --> agent_context
     agent_context_goal --> agent_context
     agent_context_goal --> agent_context
@@ -2256,6 +2258,9 @@ flowchart LR
     agent_server_routes_routes_capabilities -.-> agent_security_tenant
     agent_server_routes_routes_capabilities -.-> agent_server_auth
     agent_server_routes_routes_capabilities -.-> agent_capregistry_skillsearch
+    agent_server_routes_routes_changes --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_changes --> agent_server_routes__errors
+    agent_server_routes_routes_changes -.-> agent_context
     agent_server_routes_routes_dashboard -.-> agent_server_auth
     agent_server_routes_routes_dashboard -.-> agent_monitoring_tracing
     agent_server_routes_routes_dashboard -.-> agent_monitoring_metrics
@@ -3167,9 +3172,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 802
-- 模块节点数: 696
-- 依赖边数: 2339
-- 跨层调用数: 1485
+- 扫描文件数: 803
+- 模块节点数: 697
+- 依赖边数: 2343
+- 跨层调用数: 1486
 - 违规调用数: 0
 - 动态 import 数: 1

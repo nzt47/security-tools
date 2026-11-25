@@ -767,6 +767,14 @@
       "layer": "context",
       "file_path": "agent/context/checkpoint.py",
       "in_degree": 1,
+      "out_degree": 2
+    },
+    {
+      "path": "agent.context.session_bind",
+      "name": "session_bind",
+      "layer": "context",
+      "file_path": "",
+      "in_degree": 1,
       "out_degree": 1
     },
     {
@@ -782,16 +790,8 @@
       "name": "context",
       "layer": "context",
       "file_path": "",
-      "in_degree": 9,
+      "in_degree": 10,
       "out_degree": 0
-    },
-    {
-      "path": "agent.context.session_bind",
-      "name": "session_bind",
-      "layer": "context",
-      "file_path": "agent/context/session_bind.py",
-      "in_degree": 0,
-      "out_degree": 1
     },
     {
       "path": "agent.observability.trace_v2",
@@ -2774,7 +2774,7 @@
       "name": "_errors",
       "layer": "server_routes",
       "file_path": "",
-      "in_degree": 19,
+      "in_degree": 20,
       "out_degree": 0
     },
     {
@@ -4238,7 +4238,7 @@
       "name": "tracing_decorator",
       "layer": "server_routes",
       "file_path": "",
-      "in_degree": 23,
+      "in_degree": 24,
       "out_degree": 2
     },
     {
@@ -4320,6 +4320,14 @@
       "file_path": "",
       "in_degree": 2,
       "out_degree": 0
+    },
+    {
+      "path": "agent.server_routes.routes_changes",
+      "name": "routes_changes",
+      "layer": "server_routes",
+      "file_path": "agent/server_routes/routes_changes.py",
+      "in_degree": 0,
+      "out_degree": 3
     },
     {
       "path": "agent.server_routes.routes_dashboard",
@@ -7569,6 +7577,19 @@
       "line": 33,
       "source_file": "agent/context/checkpoint.py",
       "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.context.checkpoint",
+      "target": "agent.context.session_bind",
+      "source_layer": "context",
+      "target_layer": "context",
+      "import_type": "from_import",
+      "line": 306,
+      "source_file": "agent/context/checkpoint.py",
+      "is_cross_layer": false,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -24240,6 +24261,45 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.server_routes.routes_changes",
+      "target": "agent.server_routes.tracing_decorator",
+      "source_layer": "server_routes",
+      "target_layer": "server_routes",
+      "import_type": "from_import",
+      "line": 20,
+      "source_file": "agent/server_routes/routes_changes.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_changes",
+      "target": "agent.server_routes._errors",
+      "source_layer": "server_routes",
+      "target_layer": "server_routes",
+      "import_type": "from_import",
+      "line": 21,
+      "source_file": "agent/server_routes/routes_changes.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_changes",
+      "target": "agent.context",
+      "source_layer": "server_routes",
+      "target_layer": "context",
+      "import_type": "from_import",
+      "line": 31,
+      "source_file": "agent/server_routes/routes_changes.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.server_routes.routes_dashboard",
       "target": "agent.server_auth",
       "source_layer": "server_routes",
@@ -35980,10 +36040,10 @@
     }
   ],
   "stats": {
-    "total_files": 802,
-    "total_nodes": 696,
-    "total_edges": 2339,
-    "cross_layer_edges": 1485,
+    "total_files": 803,
+    "total_nodes": 697,
+    "total_edges": 2343,
+    "cross_layer_edges": 1486,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -36031,7 +36091,7 @@
       "common": 1,
       "maintenance": 1,
       "memory_import": 9,
-      "server_routes": 35,
+      "server_routes": 36,
       "network": 3,
       "workflow_engine": 5,
       "verification": 1,
