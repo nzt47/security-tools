@@ -2739,12 +2739,6 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                 # 展示工具完成状态（含结果摘要）
                 yield _sse({"type": "thinking", "id": f"tool-real-{tname}", "title": f"工具调用：{tname}",
                             "detail": f"结果: {tool_result[:100]}", "status": "done"})
-                if _approval_evt:
-                    yield _sse(_approval_evt)
-                if _ask_evt:
-                    yield _sse(_ask_evt)
-                if _present_evt:
-                    yield _sse(_present_evt)
             # 本轮全部工具执行完 ⇒ 按合法结构一次性回传：
             #   一条 assistant(tool_calls=全部) + 每个 tool_call_id 一条 tool。
             if _tool_calls_msg:
