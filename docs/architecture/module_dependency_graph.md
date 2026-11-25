@@ -755,6 +755,7 @@ flowchart LR
         agent_tools_plan_tools["agent.tools.plan_tools"]:::crosslayer
         agent_tools_process_tools["agent.tools.process_tools"]:::crosslayer
         agent_tools_search_tools["agent.tools.search_tools"]:::crosslayer
+        agent_tools_session_tools["agent.tools.session_tools"]:::crosslayer
         agent_tools_shell_tools["agent.tools.shell_tools"]:::crosslayer
         agent_tools_skill_tools["agent.tools.skill_tools"]:::crosslayer
         agent_tools_software_tools["agent.tools.software_tools"]:::crosslayer
@@ -1821,6 +1822,7 @@ flowchart LR
     agent_orchestrator_lifecycle_manager -.-> agent_tools_plan_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_goal_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_ask_tools
+    agent_orchestrator_lifecycle_manager -.-> agent_tools_session_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_extra_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_git_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_test_tools
@@ -3046,6 +3048,10 @@ flowchart LR
     agent_tools_process_tools -.-> agent_sandbox_win_acl
     agent_tools_search_tools --> agent
     agent_tools_search_tools -.-> agent_sandbox_fs_fence
+    agent_tools_session_tools --> agent_tools
+    agent_tools_session_tools -.-> agent_context
+    agent_tools_session_tools -.-> agent_context
+    agent_tools_session_tools -.-> agent_context
     agent_tools_shell_tools -.-> agent_subagent_sandbox
     agent_tools_shell_tools -.-> agent_sandbox
     agent_tools_shell_tools -.-> agent_sandbox_win_acl
@@ -3184,9 +3190,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 808
-- 模块节点数: 701
-- 依赖边数: 2351
-- 跨层调用数: 1491
+- 扫描文件数: 809
+- 模块节点数: 702
+- 依赖边数: 2356
+- 跨层调用数: 1495
 - 违规调用数: 0
 - 动态 import 数: 1
