@@ -116,7 +116,9 @@ RESULT_SCHEMA_REQUIRED_TOOLS: Tuple[str, ...] = (
     "sqlite_query", "todo_write", "trigger_distillation", "web_search", "weekly_report",
     "workspace_init", "workspace_list", "get_status", "get_sensor_summary",
     # 【2026-11-24 E0-2】read_spill（大输出落盘后的分段读取；按实现 return 字面量声明）
-    "read_spill")
+    "read_spill",
+    # 【2026-11-25 E1-2b】goal（会话级单目标；成功键取自 goal_tools._summary）
+    "goal")
 
 
 def _builtin_check(value: Any, schema: Dict[str, Any], path: str,

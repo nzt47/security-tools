@@ -76,6 +76,9 @@ _DEFAULT_TOOL_CATEGORIES = {
             # 起步）⇒ 等于"始终可见"；且 core 优先级 0，不会被 max_tools 截断。
             # 它只有一个数组参数，常驻 schema 的 token 成本很小（对比 delegate 的八要素）。
             "get_sensor_summary", "todo_write",
+            # 【2026-11-25 E1-2b】会话级持续目标：与 todo_write 同为常驻自管理原语
+            # （模型要能随时登记/完成/阻塞目标；8 动作单工具，schema 很小）。
+            "goal",
         ],
     },
     "web": {

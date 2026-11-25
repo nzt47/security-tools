@@ -186,7 +186,7 @@ class Test真实数据两个口径:
         # 保持 26 会挤掉 run_tests（实测），故 max_tools 26→27。断言仍钉「装配结果 = 上限 = 主线档案的上限」，
         # 并加一条派生关系：装配用的上限必须等于档案里的 max_tools（防止数据与断言各自漂移）。
         assert res.max_tools == prof.max_tools
-        assert len(res.tools) == res.max_tools == 27
+        assert len(res.tools) == res.max_tools == 28
         # 【2026-11-05 复核】仍是 8：两条 software_* 不在 engineering 线的名额里
         # （本机有运行时登记工具时会多 —— 那是本机噪音，判绿以干净 worktree 为准）
         # 【2026-11-20】8 → 9：ui_guard_fix（write/high）进入 engineering 线并受保护
@@ -329,7 +329,7 @@ class Test装配层裁剪:
         assert res.token_used == 0 and res.token_over_budget is False
         assert res.protected_kept == []
         # 26 → 27（2026-11-21 主线 boost 决定的直接结果；"不裁剪"的语义不变：仍是全部名额都填满）
-        assert len(res.tools) == res.max_tools == 27
+        assert len(res.tools) == res.max_tools == 28
 
     def test_装配层超预算_高危零误伤_低危被裁(self, meta):
         """装配结果的 token 预算裁剪：受保护工具零误伤"""

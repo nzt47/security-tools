@@ -155,7 +155,7 @@ class TestCapabilitySpecFields:
         # 【2026-11-19】94 → 95：ui_guard_check（UI 规范守卫，只读）
         # 【2026-11-20】95 → 96：ui_guard_fix（受控修复，默认停用但仍登记）
         # 【2026-11-24】96 → 97：read_spill（E0-2 大输出落盘后的分段读取）
-        assert len(committed) == 97, f"入库工具 YAML 数量变了（实测应为 97）：{len(committed)}"
+        assert len(committed) == 98, f"入库工具 YAML 数量变了（实测应为 98）：{len(committed)}"
         for name, meta in committed.items():
             d = meta.to_dict()          # 不抛异常即通过
             assert d["capability_id"], f"{name}: capability_id 为空"
@@ -175,7 +175,7 @@ class TestLocationCoverage:
         # 【2026-11-07】139 -> 140：chart-visualization 入文件轨（§11.57 ①）。
         # 【2026-11-20】145 → 146：ui_guard_fix（工具 +1）
         # 【2026-11-24】146 → 147：read_spill（工具 +1）
-        assert len(manifest["entries"]) == 147
+        assert len(manifest["entries"]) == 148
         for e in manifest["entries"]:
             assert e.get("location") in ("local", "remote"), \
                 f"{e['tool_name']}: location 缺失或非法"
@@ -431,7 +431,7 @@ class TestMainLine:
         assert line["line_id"] == "engineering"
         # 【2026-11-21】26 → 27：engineering 的 boost 收进 ui_guard_check / ui_guard_fix 后 max_tools 26→27
         # （保持 26 会挤掉 run_tests），清单的可见集随之 27 条。
-        assert len(line["visible"]) == 27, f"engineering 主线可见集应为 27 条，实得 {len(line['visible'])}"
+        assert len(line["visible"]) == 28, f"engineering 主线可见集应为 27 条，实得 {len(line['visible'])}"
         assert set(line["muted"]) == {"web_extract", "web_search", "web_batch"}
         assert "connect_mcp" in line["denied_by_effect"]
 

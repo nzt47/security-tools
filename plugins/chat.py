@@ -2357,6 +2357,15 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
     except Exception as _pe2:  # noqa: BLE001 计划提示注入失败不影响对话
         logger.debug("[workbench][SSE] 计划模式提示注入失败: %s", _pe2)
 
+    # ── E1-2b 目标：稳定块追加（与计划模式同一位置；active 才注入）──
+    try:
+        from agent.context.goal import system_directive as _goal_directive
+        _goal_block = _goal_directive(session_id)
+        if _goal_block:
+            SYSTEM_PROMPT = SYSTEM_PROMPT + "\n\n" + _goal_block
+    except Exception as _ge2:  # noqa: BLE001 目标提示注入失败不影响对话
+        logger.debug("[workbench][SSE] 目标提示注入失败: %s", _ge2)
+
     # ══════════════════════════════════════════════════════════════════════
     #  上下文预算与单次回复上限（2026-10-02：让工作台真正吃到面板上的旋钮）
     # ══════════════════════════════════════════════════════════════════════
@@ -3302,6 +3311,14 @@ def api_chat_stream():
                 _perm_token = _set_perm(raw_perm)
             except Exception as _pe:  # noqa: BLE001 档位设置失败 ⇒ 回落默认，不阻断对话
                 logger.debug("[workbench][SSE] 设置权限档位失败（按默认 auto）: %s", _pe)
+        # 目标工具（E1-2b）：把本次请求绑定到会话，`goal` 工具据此定位"当前会话"
+        # （并发两个会话时不会互相覆盖；与权限档位 contextvar 同一因）。
+        _goal_session_token = None
+        try:
+            from agent.context.goal import bind_session as _bind_goal_session
+            _goal_session_token = _bind_goal_session(session_id)
+        except Exception as _gbe:  # noqa: BLE001 绑定失败不阻断对话（工具会回 ok=False）
+            logger.debug("[workbench][SSE] 目标会话绑定失败: %s", _gbe)
         # 计划模式命令的即时状态（如 /plan approve）：先让卡片更新，再跑本轮。
         if _plan_prefix:
             yield _sse_event({"type": "plan", "plan": _plan_prefix})
@@ -3376,6 +3393,12 @@ def api_chat_stream():
                 try:
                     from agent.tool_gate import reset_permission_mode as _reset_perm
                     _reset_perm(_perm_token)
+                except Exception:  # noqa: BLE001
+                    pass
+            if _goal_session_token is not None:
+                try:
+                    from agent.context.goal import reset_session as _reset_goal_session
+                    _reset_goal_session(_goal_session_token)
                 except Exception:  # noqa: BLE001
                     pass
 

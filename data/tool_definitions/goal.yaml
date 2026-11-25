@@ -1,0 +1,106 @@
+name: goal
+category: core
+description: '维护本会话的**单一持续目标**（goal / 目标 / 长期任务）：create 创建（必填 title，建议给 acceptance
+  验收条件）；edit 修改；pause/resume 暂停恢复；complete 完成（**必须带 evidence**：命令输出/文件/检查点
+  id）；block 阻塞（必须带 code∈{need_user,external,permission,unclear} + reason）；clear 清除；status
+  查看。一个会话只有一个目标；目标会进入系统提示，每轮收尾由 driver 决定是否自动续跑（轮次上限默认 256）。
+  多步推进请配合 todo_write 记录步骤。Manage the single persistent goal of this session'
+deprecated: false
+version: 1.0.0
+location: local
+location_reason: "调用链（agent.tools.goal_tools:_goal_tool → agent.context.goal）在 6 跳内未命中任何跨边界原语；另有少量调用点静态无法解析（见 unresolved）"
+plane: resident
+effect: write
+risk: low
+tool_type: tool
+llm_callable: true
+callable_mode: auto
+permission_level: internal
+sandbox_allowed: false
+schema:
+  type: object
+  properties:
+    action:
+      type: string
+      enum:
+      - create
+      - edit
+      - pause
+      - resume
+      - complete
+      - block
+      - clear
+      - status
+      description: create/edit/pause/resume/complete/block/clear/status
+    title:
+      type: string
+      description: 目标标题（create 必填，≤200 字）
+    why:
+      type: string
+      description: 为什么要做（可选，≤2000 字）
+    acceptance:
+      type: array
+      items:
+        type: string
+      description: 验收条件列表（建议 create 时给出：怎样才算完成）
+    max_rounds:
+      type: integer
+      minimum: 1
+      maximum: 1000
+      description: 轮次上限（默认 256）
+    budget_tokens:
+      type: integer
+      description: 可选 token 预算
+    evidence:
+      type: string
+      description: complete 必填：完成证据（命令输出/文件路径/检查点 id）
+    summary:
+      type: string
+      description: 完成摘要（可选）
+    code:
+      type: string
+      enum:
+      - need_user
+      - external
+      - permission
+      - unclear
+      description: block 必填：need_user/external/permission/unclear
+    reason:
+      type: string
+      description: block 必填：阻塞原因
+  required:
+  - action
+# 【result_schema（2026-11-25，E1-2b）】
+#   成功键取自 agent/tools/goal_tools.py::_summary（ok/action/goal_id/state/title/round/
+#   max_rounds/acceptance_count/blocked_code/blocked_reason/evidence_provided），
+#   失败键为 ok/error(/code)。required 只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    action:
+      type: string
+    goal_id:
+      type: string
+    state:
+      type: string
+    title:
+      type: string
+    round:
+      type: integer
+    max_rounds:
+      type: integer
+    acceptance_count:
+      type: integer
+    blocked_code:
+      type: string
+    blocked_reason:
+      type: string
+    evidence_provided:
+      type: boolean
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
+examples: []

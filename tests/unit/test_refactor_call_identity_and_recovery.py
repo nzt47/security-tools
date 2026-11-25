@@ -774,7 +774,7 @@ class TestResultSchemaCoverage:
     与对应 YAML（删除两批新增的 22 个名字）。
     """
 
-    FLOOR = 97
+    FLOOR = 98
 
     def _count(self):
         import glob

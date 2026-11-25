@@ -1147,6 +1147,8 @@ class LifecycleManager:
         # 并行多线委派（一次调用把 N 个任务并发派给 N 个子代理，各按主线档案装配工具集）
         from agent.tools.fan_out_tools import register_all as reg_fan_out
         from agent.tools.plan_tools import register_all as reg_plan
+        # E1-2b：会话级持续目标工具（goal，8 动作；与 /goal 命令族共用同一状态机）
+        from agent.tools.goal_tools import register_all as reg_goal
         # 补登记（沙盒/剪贴板/浏览器/工作区/PDF表格/MCP清单/屏幕OCR/周报）
         from agent.tools.extra_tools import register_all as reg_extra
         # 工程闭环三件套（git / run_tests / apply_patch）
@@ -1195,6 +1197,7 @@ class LifecycleManager:
         reg_subagent(self)
         reg_fan_out(self)
         reg_plan(self)
+        reg_goal(self)
         reg_extra(self)
         reg_git(self)
         reg_test(self)

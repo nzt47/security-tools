@@ -173,11 +173,12 @@ class TestQuery:
         # 【2026-11-09】142 → 143：skill_script_run（技能 L3 显式执行点）
         # 【2026-11-20】145 → 146 / tool 95 → 96 / local 122 → 123：ui_guard_fix（默认停用仍入清单）
         # 【2026-11-24】146 → 147 / tool 96 → 97 / local 123 → 124：read_spill（E0-2）
-        assert st["total"] == 147, f"能力总数应为 147，实际 {st['total']}"
+        # 【2026-11-25】147 → 148 / tool 97 → 98 / local 124 → 125：goal（E1-2b）
+        assert st["total"] == 148, f"能力总数应为 148，实际 {st['total']}"
         # 【2026-11-09】tool 93 → 94：skill_script_run（技能 L3 显式执行点）
-        assert st["by_kind"] == {"skill": 50, "tool": 97}
+        assert st["by_kind"] == {"skill": 50, "tool": 98}
         # 【2026-11-09】remote 22 → 23：skill_script_run（子进程执行 ⇒ remote）
-        assert st["by_location"] == {"local": 124, "remote": 23}
+        assert st["by_location"] == {"local": 125, "remote": 23}
         assert st["degraded"] is False
 
     def test_主键索引_tenant_name(self, real_registry):
@@ -197,7 +198,7 @@ class TestQuery:
         # 【2026-11-09】93 → 94：skill_script_run（技能 L3 显式执行点）
         # 【2026-11-20】95 → 96：ui_guard_fix（query 不按 enabled 过滤）
         # 【2026-11-24】96 → 97：read_spill（E0-2）
-        assert len(tools) == 97
+        assert len(tools) == 98
         assert len(skills) == 46
         remote = real_registry.query(location="remote")
         # 【2026-11-05】21 -> 22：software_install（subprocess.run ⇒ location=remote）
@@ -214,7 +215,7 @@ class TestQuery:
     @_SKIP_COMMITTED_BASELINE
     def test_索引_确实被构建(self, real_registry):
         idx = real_registry.stats()["index"]
-        assert idx["primary"] == 147  # 2026-11-07 +1 chart-visualization；2026-11-09 +1 skill_script_run；2026-11-20 +1 ui_guard_fix；2026-11-24 +1 read_spill
+        assert idx["primary"] == 148  # 2026-11-07 +1 chart-visualization；2026-11-09 +1 skill_script_run；2026-11-20 +1 ui_guard_fix；2026-11-24 +1 read_spill；2026-11-25 +1 goal
         assert idx["facet"] >= 1
 
 
@@ -265,7 +266,7 @@ class TestModelCapabilityProbe:
         # 【2026-11-07】137 -> 138：chart-visualization 入文件轨（§11.57 ①）
         # 【2026-11-20】141 → 142：ui_guard_fix（envelope 不按工具 enabled 过滤）
         # 【2026-11-24】142 → 143：read_spill（E0-2）
-        assert env["data"]["returned"] == env["data"]["total"] == 143
+        assert env["data"]["returned"] == env["data"]["total"] == 144
         assert env["data"]["model_capability"]["supports_tool_calling"] is True
 
     @pytest.mark.parametrize("sentinel", ["none", "off", "-", "no-tools"])
@@ -277,7 +278,7 @@ class TestModelCapabilityProbe:
         assert env["data"]["items"] == []
         # **total 仍然如实报告**：裁剪的是"给这个模型看的清单"，
         # 不是"注册表里有多少能力"。两个数含义不同，不许混。
-        assert env["data"]["total"] == 143  # +1 skill_script_run；+1 ui_guard_fix；+1 read_spill
+        assert env["data"]["total"] == 144  # +1 skill_script_run；+1 ui_guard_fix；+1 read_spill；+1 goal
 
     def test_不支持前缀被识别(self):
         ok, why = modelcaps.supports_tool_calling("text-davinci-003")

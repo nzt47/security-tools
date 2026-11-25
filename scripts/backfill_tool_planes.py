@@ -149,6 +149,11 @@ PLANE_MAP: dict[str, tuple[str, str, str, list[str]]] = {
     # ── plan_tools.py（1）──────────────────────────────────
     "todo_write": ("resident", "write", "low", []),
 
+    # ── goal_tools.py（1，2026-11-25 E1-2b）─────────────────
+    # 只写本会话 data/goals/（事件溯源），无外部副作用、无子进程、无网络 ⇒ low；
+    # 与 todo_write 同为常驻（模型必须随时能登记/收口目标）。
+    "goal": ("resident", "write", "low", []),
+
     # ── knowledge/tools.py（6，此前从未接线）──────────────
     "kb_capture": ("act", "write", "low", ["knowledge", "memory"]),
     "kb_distill": ("act", "write", "medium", ["knowledge", "evolution"]),

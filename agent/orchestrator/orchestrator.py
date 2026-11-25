@@ -4491,6 +4491,15 @@ class Orchestrator:
         except Exception:  # noqa: BLE001 计划提示注入失败不影响本轮
             pass
 
+        # ── E1-2b 目标：稳定块追加（与工作台同一口径；active 才注入）──
+        try:
+            from agent.context.goal import system_directive as _goal_directive
+            _goal_block = _goal_directive(session_id or getattr(self, "_session_id", None))
+            if _goal_block:
+                system_prompt = append_to_stable_block(system_prompt, _goal_block)
+        except Exception:  # noqa: BLE001 目标提示注入失败不影响本轮
+            pass
+
         messages = []
         try:
             context = self._memory.get_context(token_limit=self._memory_token_limit)

@@ -43,7 +43,9 @@ tags:
 - document
 - evolution
 - knowledge
-max_tools: 20
+# 20 → 21（2026-11-25 E1-2b）：goal 进 core（恒为候选）后，20 会把 protected 的
+# kb_distill 挤出装配结果（实测受保护 1→0）；21 恢复且零截断。
+max_tools: 21
 # 本分身默认上下文窗口（2026-11-15）：按任务类型的建议起点取中位 —— 知识 → workflow / RAG 型：关键仍是检索质量，不是无限塞上下文
 context_window_tokens: 131072
 effect_allow:
