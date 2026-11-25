@@ -156,9 +156,29 @@
 - **交付状态（2026-11-25，E1-3a 已交付）**：`0e159677f` —— `ask_user_question`（不阻塞：
   `USER_INPUT_REQUIRED` → SSE `ask` → 本轮结束 → 回答按普通用户消息继续）+ `present`
   （纯字符串校验、不读文件）+ `/api/ask/{pending,answer}` + QuestionCard/PresentCard；
-  设计页 `docs/plan/2026-11-25-e1-3-interaction-design.md`。测试：ask 29+7、前端 207 files/1571；
-  探针 10 项待部署后跑。**关键决定**：两个交互原语不进检索索引（`META_ALWAYS_TOOLS` 排除、
-  截断后追加），否则路由冲突决策层 48→46 / v1 27→26（跌破下限）。**E1-3b 变更文件卡未开始**。
+  设计页 `docs/plan/2026-11-25-e1-3-interaction-design.md`。测试：ask 29+7、前端 207 files/1571。
+  **关键决定**：两个交互原语不进检索索引（`META_ALWAYS_TOOLS` 排除、截断后追加），
+  否则路由冲突决策层 48→46 / v1 27→26（跌破下限）。
+  部署后真机探针 **13/13**（`.local/verify_e1_3_ask.py`，含令牌/409 stale/no_pending/present 校验）；
+  UI 探针 **19/19**（`.local/verify_e1_3a_ui.py`：刷新恢复卡 → 选择 → 提交 → 答案落盘 + 用户消息
+  + next_message 续跑 → 交付卡 → 复制路径 → 新一轮收起），截图 `.ui_shots/ASK_E13A.png` /
+  `PRESENT_E13A.png`。
+- **交付状态（2026-11-25，E1-3b 已交付）**：`db4b0a208` + `493a2641e` —— `GET /api/changes?session_id=[&checkpoint=]`
+  把 E0-3 最近一次检查点摊成**逐文件**变更（每文件 20k / 整份 200k 截断并标记）；
+  未跟踪文件标 `new_file`（`git diff` 无块、内容在检查点里整文件捕获）；快照补记 `session_id`
+  （`maybe_snapshot()` 在排入线程前取 ContextVar），会话不一致时 `scope="workspace"` 并给说明
+  —— **不假装属于本会话**。前端 ChangeCard（逐文件展开 diff）；`changes` 槽新一轮/切会话清空。
+  派生面：route_ui_coverage hash `0b181b0b198f900f` → **`1185a7cf39d55b43`**（路由 526→527、
+  ui 465→466、unreferenced 仍 34、该进却未进 UI 0）；ui_reachability 113 页 / 0 不可达。
+  测试：后端 `test_changes_routes.py` 13、前端 ChangeCard 9 + store 3（全量 vitest 208 files/1583）；
+  真机探针 11/11→**14/14**（`.local/verify_e1_3b_changes.py`，探针自己改一行再还原）、UI 探针 9/9
+  （`.local/verify_e1_3b_ui.py`，截图 `.ui_shots/CHANGE_E13B.png`）。**顺带修的真缺陷**：
+  `checkpoint.changes()` 指定不存在的 id 会回落"最近一次"（把打错的 id 伪装成成功）⇒ 现在 404
+  `unknown_checkpoint`。
+- **E1-3 余项（记入 `data/handoff_next.json` `dsh-parity-e1-3-followups`）**：检查点仍是
+  **workspace 级**（历史快照没有 session_id），变更卡只能标作用域、不能按会话过滤；
+  另：快照去抖 120s ⇒ 一轮刚结束拉 `/api/changes` 可能还是上一轮的快照。
+
 
 #### E1-4 会话智能（P1）
 - **DSH 参照**：`session-query-sqlite`（FTS5）、`session-title-*`、`session-turn-outline`、

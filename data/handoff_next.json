@@ -1,7 +1,15 @@
 {
- "updated_at": "2026-11-25T23:05:00+08:00",
+ "updated_at": "2026-11-25T23:20:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
+  {
+   "id": "dsh-parity-e1-3-followups",
+   "status": "open",
+   "priority": "P2",
+   "title": "E1-3 余项：检查点按会话归属（变更卡只能标作用域，不能按会话过滤）+ 快照去抖与卡片的时序",
+   "criteria": "2026-11-25 E1-3b 实测：E0-3 的检查点是 **workspace 级**的（历史快照没有 session_id），所以 `GET /api/changes?session_id=` 里的 session_id 只用于标注：快照的 session_id 与请求一致才 `scope=session`，否则 `scope=workspace` + 说明。**本会话改动与其它会话/手工改动仍混在同一份清单里**。第二个已知时序：`maybe_snapshot()` 去抖 120s 且是后台线程 ⇒ 一轮刚结束就拉 `/api/changes` 可能还是**上一轮**的检查点（卡片显示旧变更，不是报错）。",
+   "next": "① 让检查点真正按会话归属：快照时把 session_id 写进 manifest（E1-3b 已做），读取侧加 `?session_id=` 过滤（manifest.session_id 为空的老快照按 workspace 处理），ChangeCard 上给「只看本会话 / 看全部」开关；② 卡片时序：`sendMessage` 的 done 之后按 「首拉 + 1.5s 再拉一次」或让快照完成发一个轻量信号（勿用固定 sleep 假绿）；③ 顺手把 `data/checkpoints/` 的保留策略（条数/天数）写进 E0-3 文档。"
+  },
   {
    "id": "ci-2613fd951-watch",
    "status": "done",
@@ -1468,7 +1476,7 @@
    "priority": "P1",
    "title": "DSH 能力对齐总程序：DSH 有而云枢缺/弱的全部补齐，云枢更强的保留",
    "criteria": "Owner 2026-11-24 决定：所有欠缺与不如 DSH 的能力都要做；强项（审计链/知识库/摄入/单位看板/UI 守卫/插件签名+AppContainer/中文多引擎/角色审批/技能双轨/调度）保留。总规划见 docs/plan/2026-11-24-dsh-parity-roadmap.md（19 项差距、6 个 Phase、E0-1 到 E5-2 共 20 个 Epic）。",
-   "next": "Phase 0 四项已交付（E0-1 / E0-2① / E0-3 / E0-4①，2026-11-25，3e5f4f887）；Phase 1 首项 **E1-1 计划模式已交付**（c1d1eb451，设计页 docs/plan/2026-11-25-e1-1-plan-mode-design.md）。下一步 Phase 1：E1-2 Goal → E1-3 提问/交付卡（对接 E0-3 检查点）→ E1-4 会话智能。每个 Epic 单独提交/部署/CI。"
+   "next": "Phase 0 四项已交付（E0-1 / E0-2① / E0-3 / E0-4①）；Phase 1：E1-1 计划模式、E1-2 目标、E1-3 提问+交付卡+变更文件卡**均已交付并部署**（2026-11-25）。下一步 Phase 1 最后一项 **E1-4 会话智能**（标题/FTS5/outline/stats/导出/session_search），每个 Epic 单独提交/部署/CI。"
   },
   {
    "id": "dsh-parity-p0-foundation",
@@ -1483,8 +1491,8 @@
    "status": "open",
    "priority": "P1",
    "title": "Phase 1 工作方式：计划模式、Goal + 自动续跑、ask_user_question + present/变更文件卡、会话智能（标题/FTS/outline/stats/导出）",
-   "criteria": "【E1-1 已交付】计划模式。【E1-2 已交付】目标事件溯源+工具+driver+GoalBar。【E1-3a 已交付 2026-11-25（0e159677f）】ask_user_question + present + 两卡 + /api/ask/*。剩余：E1-3b 变更文件卡（读 E0-3 检查点逐文件 diff + ChangeCard + 路由）；E1-4 标题/FTS5/outline/stats/导出/session_search。",
-   "next": "E1-3a 已推送（0e159677f），CI run 45638511217 待绿；**尚未部署**（服务仍 7c9ecffc1）。下一步：①看 CI → ②部署 → ③跑 .local/verify_e1_3_ask.py（10 项）+ 既有探针 → ④补 UI 截图探针 → ⑤文档 → ⑥**E1-3b 变更文件卡**（GET /api/changes 读检查点 + ChangeCard）。"
+   "criteria": "【E1-1 已交付】计划模式。【E1-2 已交付】目标事件溯源+工具+driver+GoalBar。【E1-3a 已交付 2026-11-25（0e159677f）】ask_user_question + present + 两卡 + /api/ask/*。【E1-3b 已交付 2026-11-25（db4b0a208 + 493a2641e）】GET /api/changes（读 E0-3 最近检查点逐文件 diff）+ ChangeCard + 路由 intent/domains + 干净 worktree 重派生。剩余：E1-4 标题/FTS5/outline/stats/导出/session_search；E1-3 余项见 `dsh-parity-e1-3-followups`（检查点按会话归属）。",
+   "next": "E1-3 已收口（a+b 均部署 + 真机探针/UI 探针绿）。下一步 **E1-4 会话智能**：先出设计页（标题 LLM 异步可回退 / FTS5 索引 + 搜索 API/UI / turn outline / stats / 导出），再按片交付（新路由 = intent+domains + 干净 worktree 重派生两份 reports + 探针）。"
   },
   {
    "id": "dsh-parity-p2-multiagent",
