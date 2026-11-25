@@ -200,12 +200,31 @@
 - **交付**：会话标题（LLM，异步、可回退首条消息）；FTS5 索引 + 搜索 API/UI；
   turn outline；每轮 stats；会话导出（ZIP/MD）；模型工具 `session_search`/`session_trace`。
 - **验收**：能按关键词搜到历史会话并跳转；标题生成失败不影响会话；导出可读。
-- **交付状态（2026-11-25）**：**设计稿已定稿，未实现** ——
-  `docs/plan/2026-11-26-e1-4-session-intelligence-design.md`（中文检索用 FTS5 `trigram`
-  + <3 字回落 LIKE；索引 `data/session_index.db` 运行期状态、可全量重建；标题只写 `title_auto`、
-  人工改名永不覆盖；outline/stats 全部从 `messages.jsonl` 现算；导出文件名用 sha256 派生；
-  4 条路由 + 2 个模型工具）；按 **E1-4a 标题 / E1-4b 搜索 / E1-4c outline+stats+导出 /
-  E1-4d 模型工具** 四片交付，d 片才触发工具派生面。
+- **交付状态（2026-11-25 设计定稿 / 2026-11-26 a+b+c 已交付）**：设计页
+  `docs/plan/2026-11-26-e1-4-session-intelligence-design.md`；已交付 **E1-4a 标题**
+  （`SessionManager.set_title` 索引+meta 双写、`title_source` 人工锁定、旁路生成器
+  `agent/context/session_title.py`：守护线程 + 8s 超时 + 关 thinking、≥2 轮才起、
+  LLM 失败回退首条消息；列表「AI」角标）、**E1-4b 搜索**（`agent/context/session_index.py`
+  FTS5 trigram + `messages` 表；`add_message` 提交后同进程写入；`GET /api/session-search`
+  三字以上 MATCH+snippet、短查询回落 LIKE+`LIMIT`；会话栏「历史命中」区块；
+  `scripts/rebuild_session_index.py` 全量重建）、**E1-4c 大纲/统计/导出**
+  （`agent/context/session_insight.py` 纯函数 + `/api/sessions/<id>/{outline,stats,export?format=md|zip}`，
+  导出文件名 `session_<sha256(sid)[:12]>`；历史抽屉里「大纲 / 统计 / 导出 MD / 导出 ZIP」）。
+  数字：后端新增用例 **27+15+6+16=64**、前端 +5（vitest **208 files/1589**）；真机探针
+  **a 8/8 · b 9/9 · c 9/9**、UI 探针 **PASS**（截图 `.ui_shots/E14_SEARCH.png` /
+  `E14_INSIGHT.png`）；派生面 coverage hash `1185a7cf39d55b43` → **`ef228b9ab0f80905`**
+  （路由 527→531、ui 466→470、unreferenced 仍 34、该进却未进 UI 0）。
+- **交付状态（2026-11-26，E1-4d 已交付）**：`session_search`（检索本机会话索引，只回片段 ≤200 字、
+  limit ≤10）与 `session_trace`（某轮工具轨迹，缺省最近 3 轮）两个**任务工具**
+  （`effect=read` / `permission_level=public`）；5 处连锁全做：YAML+register 逐字一致 /
+  tool_index 99→**101** / 能力清单 150→**152** / `_BM25_HALF_SATURATION` 5.7446→**5.788** /
+  7 条主线 boost 各 +2 且 max_tools 各 +2（engineering 28→30、harness 27→29、knowledge 25→27…）。
+  真机：工具已启用且在索引里、`session_search` 能搜到刚写的消息、**真模型会主动调用**
+  `session_search`（9/9）。**两个关键坑**：① `register_all` 必须接受生命周期管理器传的 `self`
+  （零参数 ⇒ 后端启动 TypeError、deploy 卡 180s 未就绪）；② 主线装配按身份减工具 ⇒ 新任务工具
+  还要进 boost（与 E1-2b 给 goal 加 boost 同形），否则模型说"工具集里没有它"。
+- **E1-4 全部收口**：a 标题 / b FTS5 搜索 / c 大纲·统计·导出 / d 两个模型工具 ⇒
+  Phase 1（工作方式）**完成**；下一段 Phase 2 多代理（E2-1 …）。
 
 ### Phase 2 — 多代理协作（建议第 7–9 周）
 

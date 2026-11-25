@@ -102,3 +102,45 @@
 - 标题：`CP_SESSION_TITLE_ENABLED=0` ⇒ 只回退首条消息，不调 LLM。
 - 工具：YAML `enabled: false` + 干净 worktree 重派生（与其它工具同一回滚路径）。
 - 导出：路由层直接 404（无状态、无迁移）。
+
+## 10. 实装记录（2026-11-26，a+b+c 已交付）
+
+与设计稿的差异（都在实现时收敛，不回退口径）：
+
+1. **标题接口复用 `/rename`**：设计中写的 `PUT /api/sessions/<id>/title` 没有新增 ——
+   既有 `PUT /api/sessions/<id>/rename` 已存在且被前端使用，改成内部调 `set_title(source="manual")`
+   就同时满足「人工改名 + 永久锁定」，少一条路由债（route_ui_coverage 也就不用多一条 unreferenced 判定）。
+2. **大纲/统计/导出的 UI 落在「历史问话」抽屉**（`HistoryDrawer`）：抽屉本身就是会话级，
+   加一排「大纲 / 统计 / 导出 MD / 导出 ZIP」比新开一个叶子页/抽屉更省（`ui_reachability` 不漂移）。
+3. **搜索 UI 落在会话栏**（`SessionRail`）：「历史命中」区块在搜索框下、按消息粒度列出，
+   点一条切会话；与本地标题过滤并存（本地过滤仍然即时）。
+4. **FTS5 两个实测坑**（写进代码注释与单测）：
+   - `snippet()` 的第一个参数**必须是 FTS 表名本身**，写别名会 `no such column: f`；
+   - `snippet()` 会在命中词两侧插高亮标记 ⇒ 断言不能直接拿原文串去比（要先剥标记）。
+5. **测试隔离**：`tests/conftest.py` 新增 autouse fixture 把 `CP_SESSION_INDEX_PATH` 指到 tmp ——
+   否则单测里的 `add_message()` 会往生产 `data/session_index.db` 灌消息（与既有的
+   「转化作业台账」「审批库」隔离同一纪律）。
+
+交付读数：后端用例 `test_session_title` 27 / `test_session_index` 15 /
+`test_session_search_route` 6 / `test_session_insight` 16；前端 SessionRail +2、HistoryDrawer +3
+（vitest 208 files/1589 全绿）；真机探针 a 8/8、b 9/9、c 9/9；UI 探针 PASS
+（`.ui_shots/E14_SEARCH.png` / `E14_INSIGHT.png`）；coverage hash `ef228b9ab0f80905`。
+
+**未做（E1-4d）**：模型工具 `session_search` / `session_trace` —— 它们是**任务工具**（进检索索引），
+新增要走 5 处连锁 + 干净 worktree 全量重派生，与 a/b/c 分开做。
+
+## 11. E1-4d 实装记录（2026-11-26）
+
+- 两个工具：`agent/tools/session_tools.py` —— `session_search(query, limit≤10)` 复用
+  `session_index.search()`（片段剥掉 `[`/`]` 高亮、截 200 字）；`session_trace(session_id?, round?)`
+  复用 `session_insight.rounds()`（每步摘要 ≤200 字、缺省最近 3 轮）。
+- 治理：`effect=read` / `plane=resident` ⇒ `permission_level=public`；`PLANE_MAP` 补两条；
+  `lifecycle_manager` 接线；YAML 描述与 `register()` 逐字一致（`test_tool_definitions_yaml` 守）。
+- 派生面：tool_index 99→**101**、能力清单 150→**152**、`_BM25_HALF_SATURATION` 5.7446→**5.788**
+  （calib p50）、路由基线/REPORT 重生成、7 条主线 **boost +2 / max_tools +2**。
+- **踩到的两个坑（写进 §10 同级的教训）**：
+  1. `register_all()` 必须**能接一个位置参数**（生命周期管理器统一 `reg_xxx(self)` 调用）；
+     零参数会在**启动阶段** TypeError，表现为 deploy 卡在 `/api/health` 180s 未就绪。
+  2. 任务工具进了索引**还不够**：主线装配按身份做减法，必须同时进各线 `boost`，
+     否则模型思考里会说「my available tools don't include …」。
+- 真机探针 `.local/verify_e1_4d_tools.py` **9/9**（注册/索引/治理轴/模块检索/轨迹/真模型调用）。
