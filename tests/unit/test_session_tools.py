@@ -131,7 +131,19 @@ def test_trace_没有管理器(monkeypatch):
 def test_两个工具注册进_registry():
     from agent import tools as _tools
 
-    ST.register_all()
+    ST.register_all(None)  # 与生命周期管理器同一调用形状（传 self）
     for name in ("session_search", "session_trace"):
         assert name in _tools._registry
         assert _tools._registry[name].get("description")
+
+
+def test_register_all_能接一个位置参数():
+    """生命周期管理器统一 `reg_xxx(self)` 调用（ask/goal 同形）：写死零参数会在启动时
+    TypeError（2026-11-26 实测：后端起不来、deploy 卡在 /api/health 180s）。"""
+    import inspect
+
+    params = list(inspect.signature(ST.register_all).parameters.values())
+    assert params, "register_all 必须接受一个可选位置参数（生命周期管理器会传 self）"
+    assert params[0].default is not inspect.Parameter.empty or params[0].kind in (
+        inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD,
+    )

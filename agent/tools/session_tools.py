@@ -141,7 +141,7 @@ def run_session_trace(session_id="", round=0) -> dict:
             "returned": len(out), "rounds": out}
 
 
-def register_all() -> None:
+def register_all(dl=None) -> None:  # noqa: ARG001 与 ask/goal 同签名（生命周期管理器会传 self）
     @_tools.register(
         "session_search",
         "在**历史会话**里按关键词检索（本机已建索引的全部会话消息）。只返回命中片段与会话/轮次定位，"
