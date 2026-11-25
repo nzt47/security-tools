@@ -142,6 +142,10 @@ type PersistedState = Pick<LayoutStore, 'layout'>;
 // 模拟流的中止控制器（非响应式，仅控制生成器）
 let abortController: AbortController | null = null;
 
+// 正在生成时收到的下一条消息（E1-3a：结构化提问的答案可能比本轮更快落地）。
+// 只保留最后一条；本轮 finally 里自动发出。
+let queuedSend: string | null = null;
+
 // ─── 流式过程日志订阅（供 ChatPanel 打印排查断流/乱序，非响应式） ───
 export type StreamLogKind = 'send' | 'thinking' | 'chunk' | 'done' | 'error' | 'abort';
 
@@ -271,7 +275,15 @@ export const useLayoutStore = create<LayoutStore>()(
 
       sendMessage: async (text) => {
         const { streaming } = get();
-        if (streaming || !text.trim()) return;
+        if (!text.trim()) return;
+        if (streaming) {
+          // 【E1-3a 修补】正在生成时不能静默丢弃：结构化提问的答案就是一条"普通用户消息"，
+          // 而卡片出现的那一刻本轮可能还没结束（服务端已改为 ask 后立即收束，但网络/渲染
+          // 仍有窗口）—— 丢了就变成"服务端记了答案、对话里没有、模型也不再继续"。
+          // 这里排队，等本轮流结束后自动发出（只保留最后一条，避免堆积）。
+          queuedSend = text.trim();
+          return;
+        }
 
         const userMsg: ChatMessage = {
           id: `user-${Date.now()}`,
@@ -507,6 +519,10 @@ export const useLayoutStore = create<LayoutStore>()(
           }));
         } finally {
           abortController = null;
+          // 排队的那一条（见 sendMessage 的 streaming 分支）在本轮结束后补发
+          const queued = queuedSend;
+          queuedSend = null;
+          if (queued) void get().sendMessage(queued);
         }
       },
 

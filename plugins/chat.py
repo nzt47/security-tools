@@ -2537,6 +2537,7 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
 
     _reasoning_supported = _supports_on_reasoning(getattr(llm, "chat_stream", None))
 
+    _ask_raised = False   # 跨轮：ask 一提就终止（见工具循环里的同名判断）
     try:
         for round_idx in range(max_tool_rounds + 1):
             # 墙钟预算到点：不再开新一轮工具，直接转入收束（_last_round_had_tools=True）
@@ -2738,6 +2739,8 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                 #   这里只做**识别与上报**，不改变工具结果本身（模型仍按原口径收到 guidance）。
                 # 交互边界（审批/提问/交付）：统一提升为独立 SSE 事件
                 for _side_evt in tool_side_events(tool_result, tname):
+                    if _side_evt.get("type") == "ask":
+                        _ask_raised = True
                     yield _sse(_side_evt)
                 _call_id = f"call_{tname}_{_ti}"
                 _tool_calls_msg.append({
@@ -2773,6 +2776,11 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                         "tool_call_id": _call_id,
                         "content": _res[:4000],
                     })
+            # ask 已提出 ⇒ 本轮到此结束：不再开下一轮模型，也不做"收束"补话
+            # （补话会让用户看到「我已经问你了…」这种与卡片重复的正文）。
+            if _ask_raised:
+                logger.info("[workbench][SSE] 结构化提问已提出，本轮结束等待回答")
+                break
     except Exception as _e:
         _stream_error = True
         logger.error("[workbench][SSE] LLM 流式生成异常: %s", _e)
@@ -2789,7 +2797,7 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
     #   正文都用在第一轮（"明白，先做只读勘察"），之后每轮只发工具调用，用户看到的
     #   就只有那句开头、且没有任何"为什么停"的交代。这里补一次**不带 tools** 的收束，
     #   让最后一屏总有模型对当前进度的结论与下一步；收束仍为空则交给既有兜底文案。
-    if not _stream_error and (_last_round_had_tools or _last_round_text_chars == 0):
+    if not _stream_error and not _ask_raised and (_last_round_had_tools or _last_round_text_chars == 0):
         if _last_round_had_tools:
             yield _sse({"type": "thinking", "id": "tool-round-cap",
                         "title": "工具轮次已达上限",

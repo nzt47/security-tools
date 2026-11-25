@@ -101,3 +101,21 @@ describe('useLayoutStore · 变更卡（E1-3b）', () => {
     expect(useLayoutStore.getState().changes).toBeNull()
   })
 })
+
+describe('useLayoutStore · 流中提交（E1-3a 修补）', () => {
+  it('正在生成时收到的消息排队，本轮结束后自动发出（不静默丢弃）', async () => {
+    streamMock.mockReturnValue(stream([{ type: 'chunk', text: '本轮回答' }, { type: 'done' }]))
+    useLayoutStore.setState({ activeSessionId: 's1' })
+    const first = useLayoutStore.getState().sendMessage('第一轮')
+    // 模拟：提问卡出现时本轮还没结束，用户提交了答案
+    await useLayoutStore.getState().sendMessage('回答（问题「选哪种存储？」）：选项 postgres')
+    expect(streamMock).toHaveBeenCalledTimes(1)          // 没并发生成
+    await first                                          // 本轮流结束
+    await new Promise((r) => setTimeout(r, 0))            // 让排队的 send 起来
+    expect(streamMock).toHaveBeenCalledTimes(2)
+    expect(String(streamMock.mock.calls[1][0])).toContain('回答（问题')
+    expect(
+      useLayoutStore.getState().messages.some((m) => m.content.includes('回答（问题')),
+    ).toBe(true)
+  })
+})
