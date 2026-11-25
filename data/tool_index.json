@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-25T22:30:20",
-  "tool_count": 99,
+  "generated_at": "2026-11-26T01:14:13",
+  "tool_count": 101,
   "categories": [
     "async",
     "code",
@@ -788,6 +788,28 @@
       "parameter_names": [
         "query",
         "top_k"
+      ]
+    },
+    {
+      "name": "session_search",
+      "category": "knowledge",
+      "description": "在**历史会话**里按关键词检索（本机已建索引的全部会话消息）。只返回命中片段与会话/轮次定位，不返回全文（避免把上下文灌爆）；limit 最多 10。用于「我上次说过/做过什么」的回忆。Search your past sessions by keyword; returns snippets only.",
+      "version": "1.0.0",
+      "deprecated": false,
+      "parameter_names": [
+        "query",
+        "limit"
+      ]
+    },
+    {
+      "name": "session_trace",
+      "category": "knowledge",
+      "description": "查看**某一轮**的工具调用轨迹（工具名/参数摘要/结果摘要各取前 200 字）。给 round 就取该轮，不给就取最近 3 轮；session_id 缺省为当前会话。用于复盘「上一轮到底调了什么」。Show the tool-call trace of a round in a session.",
+      "version": "1.0.0",
+      "deprecated": false,
+      "parameter_names": [
+        "session_id",
+        "round"
       ]
     },
     {

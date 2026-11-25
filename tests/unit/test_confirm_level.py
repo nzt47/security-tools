@@ -333,7 +333,7 @@ class TestConsistencyWithPermissionLevel:
         """
         tools = [e for e in _manifest_entries() if e.get("kind") == "tool"]
         # 【2026-11-24】96 → 97：read_spill（E0-2；低风险只读，L2/L3 计数不受影响）
-        assert len(tools) == 100, len(tools)
+        assert len(tools) == 102, len(tools)  # 2026-11-26：+session_search / session_trace（E1-4d）
 
         mismatch = []
         for e in tools:
@@ -1108,7 +1108,7 @@ class TestNoYamlWritesNeeded:
     def test_全部_YAML_仍然零声明(self):
         """本裁决的可复核形式：YAML 侧不写该字段，且这不影响任何判定"""
         metas = _committed_metas()
-        assert len(metas) == 100, len(metas)
+        assert len(metas) == 102, len(metas)  # 2026-11-26：+session_search / session_trace（E1-4d）
         declared = {k: v.confirm_level for k, v in metas.items() if v.confirm_level}
         assert declared == {}, f"若要写进 YAML 就属于口径变更，必须同时更新本裁决：{declared}"
 

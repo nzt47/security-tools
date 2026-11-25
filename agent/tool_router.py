@@ -247,6 +247,8 @@ _DEFAULT_TOOL_CATEGORIES = {
             "kb_capture", "kb_distill", "kb_discuss", "kb_card", "kb_lint", "kb_search",
             # distill_process_async → distill_process_from_knowledge(async_=true)
             "distill_process_from_knowledge",
+            # 【2026-11-26 E1-4d】会话检索工具（读本机会话索引/消息）
+            "session_search", "session_trace",
         ],
     },
 }

@@ -114,13 +114,15 @@ class TestFixtureShapeMatchesProduction:
         # 【2026-11-20】94 → 95：新增 ui_guard_fix（llm_callable=true、默认停用但仍入索引）
         # 【2026-11-24】95 → 96：新增 read_spill（E0-2；llm_callable=true 入索引）
         # 【2026-11-25 E1-3a】97 → 99：ask_user_question / present（llm_callable=true）
-        assert len(real_tools) == 99, f"真实工具数应为 99，实际 {len(real_tools)}"
+        # 【2026-11-26 E1-4d】99 → 101：session_search / session_trace（llm_callable=true）
+        assert len(real_tools) == 101, f"真实工具数应为 101，实际 {len(real_tools)}"
 
     def test_index_is_not_a_toy_fixture(self, real_retriever, real_tools):
         # 【2026-11-25 E1-3a】交互原语不进检索索引（META_ALWAYS_TOOLS）⇒ BM25 文档数
         # 比 llm_callable 工具数少 2；它们始终追加在下发集末尾（见 tool_router）。
         from agent.tool_router import META_ALWAYS_TOOLS
-        assert real_retriever._bm25.size == len(real_tools) - len(META_ALWAYS_TOOLS) == 97
+        # 101 个 llm_callable 里排除 2 个交互原语 ⇒ BM25 索引 99 篇
+        assert real_retriever._bm25.size == len(real_tools) - len(META_ALWAYS_TOOLS) == 99
 
 
 # ════════════════════════════════════════════════════════════

@@ -155,7 +155,9 @@ class TestCapabilitySpecFields:
         # 【2026-11-19】94 → 95：ui_guard_check（UI 规范守卫，只读）
         # 【2026-11-20】95 → 96：ui_guard_fix（受控修复，默认停用但仍登记）
         # 【2026-11-24】96 → 97：read_spill（E0-2 大输出落盘后的分段读取）
-        assert len(committed) == 100, f"入库工具 YAML 数量变了（实测应为 100）：{len(committed)}"
+        # 【2026-11-25】97 → 100：goal / ask_user_question / present（E1-2b + E1-3a）
+        # 【2026-11-26】100 → 102：session_search / session_trace（E1-4d）
+        assert len(committed) == 102, f"入库工具 YAML 数量变了（实测应为 102）：{len(committed)}"
         for name, meta in committed.items():
             d = meta.to_dict()          # 不抛异常即通过
             assert d["capability_id"], f"{name}: capability_id 为空"
@@ -175,7 +177,9 @@ class TestLocationCoverage:
         # 【2026-11-07】139 -> 140：chart-visualization 入文件轨（§11.57 ①）。
         # 【2026-11-20】145 → 146：ui_guard_fix（工具 +1）
         # 【2026-11-24】146 → 147：read_spill（工具 +1）
-        assert len(manifest["entries"]) == 150
+        # 【2026-11-25】147 → 150：goal / ask_user_question / present
+        # 【2026-11-26】150 → 152：session_search / session_trace（E1-4d）
+        assert len(manifest["entries"]) == 152
         for e in manifest["entries"]:
             assert e.get("location") in ("local", "remote"), \
                 f"{e['tool_name']}: location 缺失或非法"

@@ -3397,6 +3397,27 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        " [agent/orchestrator/orchestrator.py:_context_assembler_experience]",
        owner="agent/orchestrator/orchestrator.py",
        impact="影响面：开启后每轮按相关性下限命中经验条目并追加到 system prompt 尾部"),
+
+    # ────────────────────────────────────────────────────────
+    #  E1-4 会话智能（2026-11-26）：标题 / 全文索引
+    # ────────────────────────────────────────────────────────
+    _a("CP_SESSION_TITLE_ENABLED", CAT_ORCHESTRATION, True,
+       "会话标题自动生成开关：一轮收尾后**旁路**用 LLM 起一个 ≤24 字标题"
+       "（人工改名永不覆盖；LLM 不可用回退首条用户消息）。置 0/false/no/off/disable ⇒ 只保留"
+       "占位/人工标题（逃生开关）"
+       " [E1-4a；agent/context/session_title.py:enabled]",
+       owner="agent/context/session_title.py"),
+    _a("CP_SESSION_INDEX_ENABLED", CAT_ORCHESTRATION, True,
+       "会话消息全文索引开关（FTS5 trigram）：dd_message 后同进程写索引；"
+       "置 0/false/no/off/disable ⇒ 不写不搜（/api/session-search 回 ok=false + 固定文案）。"
+       "索引是可丢弃的派生数据（data/session_index.db 不提交、可 rebuild）"
+       " [E1-4b；agent/context/session_index.py:enabled]",
+       owner="agent/context/session_index.py"),
+    _a("CP_SESSION_INDEX_PATH", CAT_ORCHESTRATION, "",
+       "会话索引库文件路径（默认空 = <repo>/data/session_index.db）。仅供测试/多实例隔离，"
+       "生产不要设；改它不会迁移旧数据，需要跑 scripts/rebuild_session_index.py 重建"
+       " [E1-4b；agent/context/session_index.py:db_path]",
+       owner="agent/context/session_index.py"),
 ]
 # ════════════════════════════════════════════════════════════
 #  与 observability_config 既有校验表合并（**勿重复造**）
