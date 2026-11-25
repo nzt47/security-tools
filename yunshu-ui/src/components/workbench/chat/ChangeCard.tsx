@@ -67,11 +67,15 @@ function FileRow({ file }: { file: ChangedFile }) {
   );
 }
 
+/** 一次最多铺开多少行：检查点单次最多 50 个文件，全铺出来会把会话区顶掉 */
+const MAX_ROWS = 12;
+
 export function ChangeCard({ changes }: { changes: ChangesState }) {
   const cp = changes.checkpoint;
   if (!cp) return null;
   const files = changes.files || [];
   if (files.length === 0) return null;
+  const shown = files.slice(0, MAX_ROWS);
   return (
     <Card data-testid="change-card" className="mt-1 border-slate-700/60 bg-slate-900/40 p-2.5">
       <div className="flex flex-wrap items-center gap-2">
@@ -86,8 +90,13 @@ export function ChangeCard({ changes }: { changes: ChangesState }) {
         </span>
       </div>
       <ul className="mt-1.5 flex flex-col gap-1">
-        {files.map((f) => <FileRow key={f.path} file={f} />)}
+        {shown.map((f) => <FileRow key={f.path} file={f} />)}
       </ul>
+      {files.length > shown.length && (
+        <p className="mt-1 text-micro text-slate-600" data-testid="change-more">
+          另有 {files.length - shown.length} 个文件未列出（检查点单次最多 50 个文件）
+        </p>
+      )}
       {changes.scope !== 'session' && (
         <p className="mt-1 text-micro text-slate-600" data-testid="change-scope-note">
           {changes.note || '工作区级快照：可能包含本会话之外的改动'}

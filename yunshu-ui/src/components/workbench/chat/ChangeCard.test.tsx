@@ -95,4 +95,16 @@ describe('ChangeCard · 本轮变更卡', () => {
     render(<ChangeCard changes={makeState()} />)
     expect(screen.queryByTestId('change-scope-note')).toBeNull()
   })
+
+  it('文件多时只铺 12 行并说明还有多少（检查点单次最多 50 个）', () => {
+    const many = Array.from({ length: 20 }, (_, i) => ({
+      path: `agent/f${i}.py`, status: 'M', size: 1, captured: true, binary: false,
+      new_file: false, added: 1, removed: 0, diff: 'x', truncated: false,
+    }))
+    render(<ChangeCard changes={makeState({
+      files: many, counts: { files: 20, added: 20, removed: 0, truncated: 0 },
+    })} />)
+    expect(screen.getByTestId('change-more').textContent).toContain('另有 8 个文件未列出')
+    expect(screen.queryByText('agent/f19.py')).toBeNull()
+  })
 })
