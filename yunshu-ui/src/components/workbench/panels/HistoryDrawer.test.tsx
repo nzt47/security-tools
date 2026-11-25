@@ -73,6 +73,36 @@ const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => 
     }
     return jsonResponse({ ok: false, error: '索引超出范围' }, false, 404);
   }
+  if (method === 'GET' && url.includes('/outline')) {
+    return jsonResponse({
+      ok: true, session_id: 's1', title: '检查点', round_count: 2, truncated: false,
+      rounds: [
+        { round: 1, user: '看下检查点', tools: ['read_file'], conclusion: '已勘察', ts: '', messages: 2 },
+        { round: 2, user: '改导出', tools: [], conclusion: '改好了', ts: '', messages: 2 },
+      ],
+    });
+  }
+  if (method === 'GET' && url.includes('/stats')) {
+    return jsonResponse({
+      ok: true, session_id: 's1', round_count: 1, truncated: false,
+      rounds: [{ round: 1, tokens_in: 12, tokens_out: 34, tools: 2, tool_names: ['read_file'], ts: '' }],
+      totals: { tokens_in: 12, tokens_out: 34, tools: 2, rounds: 1 },
+    });
+  }
+  if (method === 'GET' && url.includes('/export')) {
+    return {
+      ok: true,
+      status: 200,
+      headers: {
+        get: (name: string) =>
+          name.toLowerCase() === 'content-disposition'
+            ? 'attachment; filename="session_abc123def456.md"'
+            : null,
+      },
+      blob: async () => new Blob(['# 检查点'], { type: 'text/markdown' }),
+      text: async () => '# 检查点',
+    } as unknown as Response;
+  }
   if (method === 'GET' && url.startsWith('/api/sessions/')) {
     // 降级场景：empty-session 无可加载消息
     if (url.includes('empty-session')) return jsonResponse([]);
@@ -228,3 +258,47 @@ describe('HistoryDrawer 历史问话侧滑面板', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('HistoryDrawer · E1-4c 会话洞察与导出', () => {
+  beforeEach(() => {
+    serverEntries = ENTRIES.map((e) => ({ ...e }));
+    vi.stubGlobal('fetch', fetchMock);
+    resetStore();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    resetStore();
+  });
+
+  it('点「大纲」按轮列出用户问题与工具', async () => {
+    renderDrawer()
+    fireEvent.click(screen.getByTestId('session-outline-toggle'))
+    await waitFor(() => expect(screen.getByTestId('session-insight-panel')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText('看下检查点')).toBeTruthy())
+    expect(screen.getByText(/工具：read_file/)).toBeTruthy()
+    // 再点一次收起
+    fireEvent.click(screen.getByTestId('session-outline-toggle'))
+    await waitFor(() => expect(screen.queryByTestId('session-insight-panel')).toBeNull())
+  })
+
+  it('点「统计」显示汇总与每轮 token', async () => {
+    renderDrawer()
+    fireEvent.click(screen.getByTestId('session-stats-toggle'))
+    await waitFor(() => expect(screen.getByText(/进 12 tok/)).toBeTruthy())
+    expect(screen.getByText(/工具 2 次/)).toBeTruthy()
+  })
+
+  it('点「导出 MD」带令牌取文件并触发下载（文件名由服务端派生）', async () => {
+    const createObjectURL = vi.fn(() => 'blob:mock')
+    const revokeObjectURL = vi.fn()
+    Object.assign(URL, { createObjectURL, revokeObjectURL })
+    renderDrawer()
+    fireEvent.click(screen.getByTestId('session-export-md'))
+    await waitFor(() => expect(createObjectURL).toHaveBeenCalled())
+    const called = fetchMock.mock.calls.map((c) => String(c[0]))
+    expect(called.some((u) => u.includes('/api/sessions/s1/export?format=md'))).toBe(true)
+    await waitFor(() => expect(screen.getByText(/已导出 session_abc123def456\.md/)).toBeTruthy())
+  })
+})

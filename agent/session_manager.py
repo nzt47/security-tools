@@ -179,6 +179,8 @@ class SessionManager:
         session_info = {
             "id": session_id,
             "title": title or f"会话 {datetime.now().strftime('%m-%d %H:%M')}",
+            # E1-4a：标题来源（人工改名 = manual 永久锁定；占位/回退/自动才允许被 LLM 改写）
+            "title_source": "manual" if str(title or "").strip() else "placeholder",
             "created_at": now,
             "updated_at": now,
             "message_count": 0,
@@ -344,27 +346,45 @@ class SessionManager:
         return True
 
     def rename_session(self, session_id: str, title: str) -> bool:
-        """重命名会话"""
+        """重命名会话（**人工改名**：锁定，自动标题不再覆盖）"""
+        return self.set_title(session_id, title, source="manual")
+
+    def set_title(self, session_id: str, title: str, source: str = "auto") -> bool:
+        """写会话标题（索引 + meta 双写），并记来源与时间。
+
+        Args:
+            source: `manual`（人工改名，永久锁定）/ `auto`（LLM 生成）/
+                `fallback`（LLM 不可用时取首条用户消息）/ `placeholder`（创建时的占位）
+
+        【为什么双写】`list_sessions` 读索引（sessions.json）、`get_session_metadata` 以
+        meta.json 优先 —— 只写一处会让「列表里的标题」与「详情/自动生成判断」对不上
+        （与 set_session_project / set_session_agent 同一纪律）。
+        """
+        text = str(title or "").strip()
+        if not text:
+            return False
+        now = datetime.now(timezone.utc).isoformat()
         with self._lock:
             index = self._read_index()
+            found = False
             for s in index:
                 if s["id"] == session_id:
-                    s["title"] = title
-                    self._write_index(index)
-                    meta_path = self._sessions_dir / session_id / "meta.json"
-                    if meta_path.exists():
-                        try:
-                            meta = json.loads(meta_path.read_text(encoding="utf-8"))
-                            meta["title"] = title
-                            meta_path.write_text(
-                                json.dumps(meta, ensure_ascii=False, indent=2),
-                                encoding="utf-8"
-                            )
-                        except Exception as e:
-                            logger.warning("更新 meta.json 失败: %s", e)
-                    logger.info("会话已重命名: %s → %s", session_id, title)
-                    return True
-        return False
+                    s["title"] = text
+                    s["title_source"] = source
+                    s["title_at"] = now
+                    found = True
+                    break
+            if not found:
+                return False
+            self._write_index(index)
+        # 锁外写 meta（update_session_metadata 内部再取锁，非重入锁）
+        try:
+            self.update_session_metadata(
+                session_id, title=text, title_source=source, title_at=now)
+        except Exception as e:  # noqa: BLE001 meta 写失败不影响索引（列表仍可见）
+            logger.warning("更新 meta.json 标题失败: %s", e)
+        logger.info("会话标题已写入: %s → %s（%s）", session_id, text, source)
+        return True
 
     def set_session_project(self, session_id: str, project_id: str | None) -> bool:
         """把会话归入/移出项目（None = 未归属项目）。
@@ -512,6 +532,15 @@ class SessionManager:
                     s["updated_at"] = msg["timestamp"]
                     self._write_index(index)
                     break
+
+        # E1-4b：写进全文索引（可丢弃的派生数据；失败只降级为"搜不到这一条"）
+        try:
+            from agent.context import session_index as _session_index
+
+            _session_index.index_message(session_id, role, msg["content"],
+                                         msg.get("timestamp", ""))
+        except Exception as e:  # noqa: BLE001 索引不可用不影响消息落盘
+            logger.debug("会话消息入索引失败: %s", e)
 
         return msg
 

@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { Badge, Button, Input, MenuPanel, ModalBase, Notice, RowButton, Select, Switch } from '@/components/ui';
 import type { Project, SessionGroup, SessionMeta } from '../../../lib/sessionApi';
+import { searchSessions, type SessionSearchHit } from '../../../lib/sessionSearchApi';
 
 export interface SessionRailProps {
   sessions: SessionMeta[];
@@ -137,6 +138,9 @@ export function SessionRail({
   onMoveProject,
 }: SessionRailProps) {
   const [query, setQuery] = useState('');
+  // E1-4b：全库「历史命中」（服务端 FTS5 检索结果；与本地标题过滤是两件事）
+  const [hits, setHits] = useState<SessionSearchHit[]>([]);
+  const [hitsBusy, setHitsBusy] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -154,6 +158,35 @@ export function SessionRail({
   // 会话行操作菜单（单触发点，参照 DSH）：menuFor = 当前打开菜单的会话 id
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const menuAnchor = useRef<HTMLElement | null>(null);
+
+  // E1-4b：搜索框输入 300ms 后打一次全库检索（空串直接清空，不发请求）
+  useEffect(() => {
+    const q = query.trim();
+    if (!q) {
+      setHits([]);
+      setHitsBusy(false);
+      return;
+    }
+    let cancelled = false;
+    setHitsBusy(true);
+    const timer = setTimeout(() => {
+      searchSessions(q, 12)
+        .then((res) => {
+          if (!cancelled) setHits((res.hits || []).slice(0, 12));
+        })
+        .catch(() => {
+          /* 检索端点不可用不影响本地过滤 */
+          if (!cancelled) setHits([]);
+        })
+        .finally(() => {
+          if (!cancelled) setHitsBusy(false);
+        });
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query]);
 
   // 左栏宽度（可拖动，落 localStorage；双击手柄恢复默认）
   const [railWidth, setRailWidth] = useState(readRailWidth);
@@ -382,12 +415,20 @@ export function SessionRail({
             />
           ) : (
             <>
-              <div
-                className={`truncate text-body leading-tight ${
-                  active ? 'font-medium text-cyan-200' : 'text-slate-200'
-                }`}
-              >
-                {s.title || '（未命名）'}
+              <div className="flex min-w-0 items-center gap-1">
+                <span
+                  className={`min-w-0 truncate text-body leading-tight ${
+                    active ? 'font-medium text-cyan-200' : 'text-slate-200'
+                  }`}
+                >
+                  {s.title || '（未命名）'}
+                </span>
+                {/* E1-4a：标题由模型自动生成时给一个小角标（人工改名不显示） */}
+                {s.title_source === 'auto' && (
+                  <Badge tone="neutral" size="sm" className="shrink-0" data-testid="session-title-ai">
+                    AI
+                  </Badge>
+                )}
               </div>
               <div className="mt-0.5 truncate text-micro text-slate-500">
                 {formatRelTime(s.updated_at)} · {s.message_count ?? 0} 条
@@ -710,6 +751,43 @@ export function SessionRail({
           }
         />
       </div>
+
+      {/* E1-4b：全库「历史命中」（消息粒度；点一条 = 切到该会话） */}
+      {query.trim() && (hits.length > 0 || hitsBusy) && (
+        <div className="shrink-0 px-3 pb-1" data-testid="session-search-hits">
+          <div className="flex items-center justify-between pb-1">
+            <span className="text-micro font-medium uppercase tracking-[0.18em] text-slate-600">
+              历史命中
+            </span>
+            <span className="font-mono text-micro text-slate-500">
+              {hitsBusy ? '检索中…' : `${hits.length} 条`}
+            </span>
+          </div>
+          <ul className="flex max-h-40 flex-col gap-1 overflow-auto">
+            {hits.map((hit) => {
+              const meta = sessions.find((s) => s.id === hit.session_id)
+              return (
+                <li key={`${hit.session_id}-${hit.seq}`}>
+                  <RowButton
+                    bare
+                    onClick={() => onSelect(hit.session_id)}
+                    title={`${meta?.title ?? hit.session_id} · 第 ${hit.seq + 1} 条`}
+                    data-testid={`session-search-hit-${hit.session_id}-${hit.seq}`}
+                    className="w-full rounded-md border border-slate-800/70 px-2 py-1 text-left hover:border-cyan-700/60 hover:bg-cyan-500/5"
+                  >
+                    <div className="truncate text-micro text-slate-300">
+                      {meta?.title ?? hit.session_id}
+                    </div>
+                    <div className="truncate text-micro text-slate-500">
+                      {hit.snippet.replace(/\[/g, '').replace(/\]/g, '')}
+                    </div>
+                  </RowButton>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
 
       {/* 分组工具行 + 新建分组 */}
       <div className="shrink-0 px-3 pb-0.5">

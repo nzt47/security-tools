@@ -48,6 +48,10 @@ export interface SessionMeta {
   project_id?: string | null;
   /** 本会话使用的分身名（null/缺失 = 母体） */
   agent?: string | null;
+  /** 标题来源（E1-4a）：manual 人工锁定 / auto 模型生成 / fallback 首条消息 / placeholder 占位 */
+  title_source?: 'manual' | 'auto' | 'fallback' | 'placeholder' | null;
+  /** 标题最近一次写入时间（ISO） */
+  title_at?: string | null;
 }
 
 /** 项目：会话/分组的工作空间归属容器 */

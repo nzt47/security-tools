@@ -303,6 +303,11 @@
       "area": "会话管理/交互",
       "note": "E1-3b 变更文件卡：读 E0-3 最近一次工作区检查点的逐文件变更与 diff（GET /api/changes?session_id=）。消费方是会话页的 ChangeCard（yunshu-ui/src/components/workbench/chat/ChangeCard.tsx）。"
     },
+    "/api/session-search": {
+      "intent": "should_be_in_ui",
+      "area": "会话管理/搜索",
+      "note": "E1-4b 会话全文检索：按关键词搜历史会话消息（GET /api/session-search?q=）。消费方是会话栏的「历史命中」区块（yunshu-ui/src/components/workbench/sessions/SessionRail.tsx）。"
+    },
     "/api/goal/*": {
       "intent": "should_be_in_ui",
       "area": "会话管理/目标",

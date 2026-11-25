@@ -190,6 +190,15 @@ export const HANDOFF = '/api/handoff';
 export const SESSIONS_FROM_HANDOFF = '/api/sessions/from-handoff';
 export const SESSIONS_CURRENT = '/api/sessions/current';
 export const SESSION_GROUPS = '/api/session-groups';
+/** 会话全文检索（GET ?q=&limit=，E1-4b；FTS5 trigram） */
+export const SESSION_SEARCH = '/api/session-search';
+/** 轮次大纲（E1-4c，只读） */
+export const sessionOutline = (id: string) => `/api/sessions/${encodeURIComponent(id)}/outline`;
+/** 每轮统计（E1-4c，只读） */
+export const sessionStats = (id: string) => `/api/sessions/${encodeURIComponent(id)}/stats`;
+/** 导出（E1-4c；?format=md|zip，文件名由服务端按 sha256 派生） */
+export const sessionExport = (id: string, format: 'md' | 'zip' = 'md') =>
+  `/api/sessions/${encodeURIComponent(id)}/export?format=${format}`;
 export const WORKSPACES = '/api/workspaces';
 /** 项目（工作空间归属容器；GET 列表 / POST 新建） */
 export const PROJECTS = '/api/projects';

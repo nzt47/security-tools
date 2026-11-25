@@ -3498,6 +3498,14 @@ def api_chat_stream():
                         write_memory=(mode != "full"),
                         memory_answer="".join(acc_real_parts),
                         write_turn_state=(mode != "full"))
+            # E1-4a 会话标题：一轮正常收尾后**旁路**起标题（守护线程 + 8s 超时；
+            #   人工标题永不覆盖，LLM 不可用回退首条用户消息）。任何异常都不得影响本流。
+            if session_id and completed:
+                try:
+                    from agent.context import session_title as _session_title
+                    _session_title.maybe_schedule(session_id)
+                except Exception as _tle:  # noqa: BLE001 标题是旁路
+                    logger.debug("[workbench][SSE] 会话标题排入失败: %s", _tle)
             if _perm_token is not None:
                 try:
                     from agent.tool_gate import reset_permission_mode as _reset_perm

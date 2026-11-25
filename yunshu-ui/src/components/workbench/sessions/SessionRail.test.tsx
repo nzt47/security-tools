@@ -12,6 +12,12 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { SessionRail } from './SessionRail'
 import type { Project, SessionMeta } from '../../../lib/sessionApi'
 
+// E1-4b：搜索框会打全库检索；测试里统一桩掉，默认返回空命中（不影响既有用例）
+vi.mock('../../../lib/sessionSearchApi', () => ({
+  searchSessions: vi.fn().mockResolvedValue({ ok: true, mode: 'empty', hits: [], took_ms: 0 }),
+}))
+import { searchSessions } from '../../../lib/sessionSearchApi'
+
 const P1: Project = { id: 'proj-1', name: '项目甲', workspace_root: 'C:/work/alpha' }
 const P2: Project = { id: 'proj-2', name: '项目乙', workspace_root: 'C:/work/beta' }
 
@@ -173,5 +179,40 @@ describe('SessionRail · 项目选择条', () => {
 
     await waitFor(() => expect(screen.getByText(/路径不是本地绝对路径/)).toBeInTheDocument())
     expect(screen.getByRole('dialog', { name: '新建项目' })).toBeInTheDocument()
+  })
+})
+
+describe('SessionRail · E1-4a 标题来源 / E1-4b 历史命中', () => {
+  afterEach(() => cleanup())
+
+  it('标题由模型生成时显示 AI 角标（人工改名不显示）', () => {
+    render(
+      <SessionRail
+        {...makeProps({
+          sessions: [
+            { id: 's-auto', title: '检查点收口', title_source: 'auto' },
+            { id: 's-manual', title: '我自己起的', title_source: 'manual' },
+          ] as SessionMeta[],
+        })}
+      />,
+    )
+    expect(screen.getAllByTestId('session-title-ai')).toHaveLength(1)
+  })
+
+  it('搜索时展示全库命中，点击切到该会话', async () => {
+    vi.mocked(searchSessions).mockResolvedValueOnce({
+      ok: true,
+      mode: 'match',
+      hits: [{ session_id: 's-a', seq: 3, role: 'user', snippet: '帮我看看[检查点]与变更卡' }],
+      took_ms: 1,
+    })
+    const onSelect = vi.fn()
+    render(<SessionRail {...makeProps({ sessions: SESSIONS, onSelect })} />)
+
+    fireEvent.change(screen.getByLabelText('搜索会话'), { target: { value: '检查点' } })
+    const hit = await screen.findByTestId('session-search-hit-s-a-3', undefined, { timeout: 3000 })
+    expect(hit.textContent).toContain('帮我看看检查点与变更卡')
+    fireEvent.click(hit)
+    expect(onSelect).toHaveBeenCalledWith('s-a')
   })
 })

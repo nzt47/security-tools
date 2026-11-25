@@ -32,6 +32,13 @@ import {
 } from 'lucide-react';
 import { Button, Input } from '@/components/ui';
 import { historyApi, type HistoryEntry } from '../../../lib/historyApi';
+import {
+  downloadSession,
+  getOutline,
+  getStats,
+  type SessionOutline,
+  type SessionStats,
+} from '../../../lib/sessionInsightApi';
 import { useLayoutStore } from '../../../stores/useLayoutStore';
 
 /** 复制成功勾选展示时长 */
@@ -88,6 +95,12 @@ export function HistoryDrawer({ sessionId, onClose }: HistoryDrawerProps) {
   const [search, setSearch] = useState('');
   const [copiedOrdinal, setCopiedOrdinal] = useState<number | null>(null);
   const [hint, setHint] = useState('');
+  // E1-4c：会话洞察（大纲 / 统计）+ 导出
+  const [insight, setInsight] = useState<'none' | 'outline' | 'stats'>('none');
+  const [outlineDoc, setOutlineDoc] = useState<SessionOutline | null>(null);
+  const [statsDoc, setStatsDoc] = useState<SessionStats | null>(null);
+  const [insightBusy, setInsightBusy] = useState(false);
+  const [exportBusy, setExportBusy] = useState(false);
   const mountedRef = useRef(true);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -141,6 +154,39 @@ export function HistoryDrawer({ sessionId, onClose }: HistoryDrawerProps) {
     setHint(text);
     if (hintTimer.current) clearTimeout(hintTimer.current);
     hintTimer.current = setTimeout(() => setHint(''), 3000);
+  };
+
+  /** E1-4c：切换大纲/统计（首次点开才拉数据，之后复用） */
+  const toggleInsight = async (kind: 'outline' | 'stats') => {
+    if (insight === kind) {
+      setInsight('none');
+      return;
+    }
+    setInsight(kind);
+    if (!sessionId) return;
+    setInsightBusy(true);
+    try {
+      if (kind === 'outline' && !outlineDoc) setOutlineDoc(await getOutline(sessionId));
+      if (kind === 'stats' && !statsDoc) setStatsDoc(await getStats(sessionId));
+    } catch {
+      flashHint(kind === 'outline' ? '读取轮次大纲失败' : '读取统计失败');
+    } finally {
+      setInsightBusy(false);
+    }
+  };
+
+  /** E1-4c：导出会话（md / zip；带 Bearer 令牌，文件名由服务端派生） */
+  const handleExport = async (format: 'md' | 'zip') => {
+    if (!sessionId || exportBusy) return;
+    setExportBusy(true);
+    try {
+      const name = await downloadSession(sessionId, format);
+      flashHint(`已导出 ${name}`);
+    } catch (e) {
+      flashHint(e instanceof Error ? e.message : '导出失败');
+    } finally {
+      setExportBusy(false);
+    }
   };
 
   /**
@@ -273,6 +319,105 @@ export function HistoryDrawer({ sessionId, onClose }: HistoryDrawerProps) {
             </Button>
           </div>
         </div>
+
+        {/* E1-4c：会话洞察 + 导出（大纲 / 统计 / 导出 md / 导出 zip） */}
+        <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-slate-800 px-3 py-1.5">
+          <Button
+            type="button" variant="ghost" size="xs"
+            aria-pressed={insight === 'outline'}
+            data-testid="session-outline-toggle"
+            onClick={() => void toggleInsight('outline')}
+            title="按轮查看：用户说了什么 / 调了哪些工具 / 结论一句"
+          >
+            大纲
+          </Button>
+          <Button
+            type="button" variant="ghost" size="xs"
+            aria-pressed={insight === 'stats'}
+            data-testid="session-stats-toggle"
+            onClick={() => void toggleInsight('stats')}
+            title="每轮 tokens / 工具数 / 汇总"
+          >
+            统计
+          </Button>
+          <span className="flex-1" />
+          <Button
+            type="button" variant="ghost" size="xs"
+            data-testid="session-export-md"
+            disabled={!sessionId || exportBusy}
+            onClick={() => void handleExport('md')}
+            title="导出为 Markdown（文件名由服务端按 sha256 派生）"
+          >
+            导出 MD
+          </Button>
+          <Button
+            type="button" variant="ghost" size="xs"
+            data-testid="session-export-zip"
+            disabled={!sessionId || exportBusy}
+            onClick={() => void handleExport('zip')}
+            title="导出为 ZIP（manifest.json + transcript.md + messages.jsonl）"
+          >
+            导出 ZIP
+          </Button>
+        </div>
+
+        {/* E1-4c：洞察面板（大纲 / 统计） */}
+        {insight !== 'none' && (
+          <div
+            className="wb-think-scroll max-h-56 shrink-0 overflow-y-auto border-b border-slate-800 px-3 py-2"
+            data-testid="session-insight-panel"
+          >
+            {insightBusy && (
+              <div className="flex items-center gap-1.5 text-micro text-slate-500">
+                <Loader2 size={11} className="animate-spin" /> 读取中…
+              </div>
+            )}
+            {insight === 'outline' && outlineDoc && (
+              <ol className="flex flex-col gap-1.5">
+                {outlineDoc.rounds.map((row) => (
+                  <li key={row.round} className="rounded border border-slate-800/70 px-2 py-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono text-micro text-cyan-400">#{row.round}</span>
+                      <span className="min-w-0 flex-1 truncate text-micro text-slate-300" title={row.user}>
+                        {row.user || '（无用户消息）'}
+                      </span>
+                    </div>
+                    {row.tools.length > 0 && (
+                      <div className="mt-0.5 truncate text-micro text-slate-500" title={row.tools.join('、')}>
+                        工具：{row.tools.join('、')}
+                      </div>
+                    )}
+                    {row.conclusion && (
+                      <div className="mt-0.5 truncate text-micro text-slate-500" title={row.conclusion}>
+                        {row.conclusion}
+                      </div>
+                    )}
+                  </li>
+                ))}
+                {outlineDoc.rounds.length === 0 && (
+                  <li className="text-micro text-slate-500">还没有可列出的一轮</li>
+                )}
+              </ol>
+            )}
+            {insight === 'stats' && statsDoc && (
+              <div className="flex flex-col gap-1">
+                <div className="text-micro text-slate-400">
+                  {statsDoc.totals.rounds} 轮 · 进 {statsDoc.totals.tokens_in} tok ·
+                  出 {statsDoc.totals.tokens_out} tok · 工具 {statsDoc.totals.tools} 次
+                </div>
+                {statsDoc.rounds.map((row) => (
+                  <div key={row.round} className="flex items-baseline gap-2 text-micro text-slate-400">
+                    <span className="font-mono text-cyan-400">#{row.round}</span>
+                    <span className="flex-1 truncate font-mono">
+                      进 {row.tokens_in} · 出 {row.tokens_out} · 工具 {row.tools}
+                      {row.tool_names.length > 0 ? `（${row.tool_names.join('、')}）` : ''}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 搜索 */}
         <div className="shrink-0 px-3 pb-2 pt-2.5">

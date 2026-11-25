@@ -20,6 +20,7 @@
         "/api/plan-mode",
         "/api/projects",
         "/api/session-groups",
+        "/api/session-search",
         "/api/sessions"
       ]
     },

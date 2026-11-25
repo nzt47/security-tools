@@ -1596,6 +1596,26 @@ try:
 except Exception as e:
     _record_route_failure("变更文件卡路由", e)
 
+# ════════════════════════════════════════════════════════════
+#  E1-4b 会话全文检索路由（/api/session-search）
+# ════════════════════════════════════════════════════════════
+try:
+    from agent.server_routes.routes_session_search import register_routes as reg_session_search
+    reg_session_search(app, lambda: None)
+    logger.info("会话检索路由已注册 (/api/session-search)")
+except Exception as e:
+    _record_route_failure("会话检索路由", e)
+
+# ════════════════════════════════════════════════════════════
+#  E1-4c 会话智能路由（outline / stats / export）
+# ════════════════════════════════════════════════════════════
+try:
+    from agent.server_routes.routes_session_insight import register_routes as reg_session_insight
+    reg_session_insight(app, lambda: None)
+    logger.info("会话智能路由已注册 (/api/sessions/<id>/{outline,stats,export})")
+except Exception as e:
+    _record_route_failure("会话智能路由", e)
+
 
 # ════════════════════════════════════════════════════════════
 #  工作流学习系统路由（/api/workflow-learning/*）

@@ -296,10 +296,19 @@ def _keep_repo_root_first():
 
 
 @pytest.fixture(autouse=True)
-def _isolate_transform_jobs(tmp_path, monkeypatch):
-    """转化**作业台账**默认落点改到 tmp_path：单测不许往真实 data/transforms/jobs.json 写。
+def _isolate_session_index(tmp_path, monkeypatch):
+    """会话全文索引（E1-4b）默认落点改到 tmp_path：单测不许往真实 data/session_index.db 写。
 
-    【为什么（2026-11-07 实测）】真实台账里 62 条作业有 **35 条**的 artifacts 指向
+    与 `_isolate_transform_jobs` 同一纪律：`SessionManager.add_message()` 提交后会写索引，
+    不隔离的话"跑一次单测"就往生产索引库灌一堆假消息（还会让 `/api/session-search` 搜到
+    测试内容）。显式 `monkeypatch.setenv("CP_SESSION_INDEX_PATH", ...)` 的用例仍可覆盖。
+    """
+    monkeypatch.setenv("CP_SESSION_INDEX_PATH", str(tmp_path / "session_index.db"))
+
+
+@pytest.fixture(autouse=True)
+def _isolate_transform_jobs(tmp_path, monkeypatch):
+    """转化**作业台账**默认落点改到 tmp_path：单测不许往真实 data/transforms/jobs.json 写。真实台账里 62 条作业有 **35 条**的 artifacts 指向
     系统临时目录下的 pytest-of-... 子目录 —— 都是跑单测时经 upsert_job() 写进去的。
     后果：转化队列里混进一堆永远不可能推进的假作业（还会被当成 target_missing 僵尸），
     而「测试写生产数据」是本仓反复踩的坑（审批库/事件流/审计台账都有过同类守卫）。
