@@ -130,3 +130,55 @@ inbox:[{run_id, kind, text, at}]}`；`effect=write`（send/interrupt 会改变�
 - Team 看板：`CP_TEAM_BOARD_ENABLED=0` ⇒ 路由 404（看板本身仍由 TaskBoard 落盘）。
 - fork / Ralph：纯参数，缺省关闭 ⇒ 行为与改动前逐字一致。
 - 工具级回滚仍走 YAML `enabled: false` + 干净 worktree 重派生。
+
+## 8. E2-1 实施清单（可直接照做）
+
+**代码（按依赖顺序）**
+
+1. `agent/subagent/runs.py`（新）：`RunHandle` dataclass + `RunRegistry`（`register/get/list_runs/unregister/snapshot`）；
+   `snapshot()` 落 `data/subagent_runs.json`（运行期状态，不提交）；`inbox_path` 在
+   `data/subagent_runs/<run_id>/inbox.jsonl`；`append_inbox/drain_inbox` 用文件锁 + JSONL。
+2. `agent/subagent/executor.py`：轮循环开头 `drain_inbox(run_id)` → 作为 user 消息追加；
+   每步之间 `if handle.cancel_event.is_set(): outcome=interrupted; break`；
+   `delegate()` 入口 `register(...)`、`finally: unregister(...)`（`lifecycle.py` 里那层更合适，若 delegate 在 lifecycle）。
+3. `agent/tools/subagent_control.py`（新）：`run_list/run_send/run_interrupt/run_inbox` 四个纯函数
+   + `register_all(self)`（**签名必须能接 self**，见 §11.231 D.1）；工具名 `subagent_control`，
+   action 枚举 `list|send|interrupt|inbox`；`effect=read`（list/inbox）与 `write`（send/interrupt）
+   混合 ⇒ 按最严的 `write` 登记，在 description 里写清"list/inbox 只读"。
+4. `agent/orchestrator/lifecycle_manager.py`：注册新工具（与 ask/goal 同一处）。
+5. `data/tool_definitions/subagent_control.yaml`：description 与 register() **逐字一致**；
+   `plane/effect/risk` 用 `backfill_tool_planes.py` 的 PLANE_MAP 补条目后回填。
+6. 路由（`agent/server_routes/routes_subagent.py` 追加或新模块）：
+   `GET /api/subagent/runs`、`POST /api/subagent/runs/<run_id>/message`、
+   `POST /api/subagent/runs/<run_id>/interrupt`；写端点 `@require_token`；
+   `config/route_domains.json`（分身与主线）+ `config/route_ui_intent.json`（should_be_in_ui）。
+7. 前端：既有子代理页加「运行中」块（`Table`/`Badge`/`Button`）：列 run_id/子代理/状态/轮次/耗时/
+   最后输出；行内「发消息」「打断」两个动作 + 输入框；`lib/subagentApi.ts` 加三个方法。
+
+**派生（干净 worktree，一次做完）**
+
+- `scripts/sync_tool_index.py`（101→102）、`scripts/sync_capability_manifest.py`（152→153）+
+  盘点表、`scripts/gen_baseline_bm25_raw.py`（S0 重标定）、`scripts/run_routing_reliability.py`、
+  路由冲突 v1/v2 τ 重算（`eval_route_conflict.py` 的基线字典若变要同步）、
+  7 条线 boost +1 / max_tools +1（若该工具要在主线可见）、计数哨兵（102/153/…）。
+- `reports/route_ui_coverage.json` + `reports/ui_reachability.json` 重派生（3 条新路由 ⇒ 路由 531→534）。
+
+**测试**
+
+- `tests/unit/test_subagent_runs.py`：登记/注销/快照、inbox 追加与 drain、并发追加不丢行。
+- `tests/unit/test_subagent_control.py`：list 空/有 run、send 到不存在 run 的降级、
+  interrupt 置位、inbox 读取上限、`register_all(None)` 可调用。
+- `tests/unit/test_subagent_control_routes.py`：3 条路由的 200/400/404/401 形状。
+- 前端：子代理页「运行中」块渲染 + 两个动作调用（mock `subagentApi`）。
+
+**真机探针 `.local/verify_e2_1_control.py`**
+
+1. 起一个长任务（`delegate` 一个 sleep/多轮任务）→ `GET /api/subagent/runs` 能看到；
+2. `POST .../message` → 子代理下一轮轨迹里出现该文本；
+3. `POST .../interrupt` → run 变 `interrupted`、已产出保留；
+4. `GET /api/subagent/runs` 列表为空（注销）；5) 既有 17 条 + E1 系列探针不回归。
+
+**收尾**
+
+- 部署（先停后端 → deploy → 三处一致）→ 探针全绿 → 文档（roadmap Phase 2 状态、
+  handoff_next、交接 §11.233）→ 代码 CI 绿后再推 [skip ci] 文档。
