@@ -4,6 +4,37 @@
 **分支**: master
 **涵盖范围**: 5 个核心 commit（4608614c → 9977c949）
 
+## [CHG] - 2026-11-27: E3-2 收口（纯库路线）—— pptx_read 补齐 Office 读取 ✅
+
+**影响模块**: `agent/office/pptx_text.py`（新）、`agent/tools/pptx_tools.py`（新）、
+`data/tool_definitions/pptx_read.yaml`（新）、`agent/orchestrator/lifecycle_manager.py`、
+`data/agent_lines/engineering.yaml`、`agent/tool_router_hybrid.py`（S0）
+**关联文档**: `docs/plan/2026-11-27-e3-2-pptx-read-design.md`
+
+### 决策
+- **不装 LibreOffice**（Owner 授权按推荐执行）：本机与 CI 都没有，为渲染/转换截图引入 350MB 依赖不划算
+  ⇒ E3-2 走**纯库路线**收口：`office_render / office_convert / office_recalculate` 明确不做。
+
+### Added
+- **pptx_read**（e7c7b821c）：标准库 zipfile + ElementTree 读 `.pptx` 每页正文与表格；
+  **页序以 `ppt/presentation.xml` 的 `sldIdLst` + rels 为准**（缺 rels 才退回数字序并在 hint 标注）；
+  每页取 `p:sp` 的 `a:p` 段落与 `a:tbl` 表格；上限 200 页 / 120k 字符 / 每页 200 段（超限 `truncated=true`）；
+  不取备注/母版/图片/批注；非 .pptx 拒绝并说明。工具层用 `safe_resolve_path` 围栏。
+
+### 派生（干净 worktree）
+- `data/tool_index.json` 106→107；`data/capability_manifest.json` + 盘点表 156→157；
+  主线可见集 33→34（`engineering.yaml` boost 加 pptx_read、`max_tools` 33→34，
+  `POST /api/agent-lines/preview` 实测 `added=[pptx_read]/lost=[]`）；
+- `_BM25_HALF_SATURATION` 5.8826→5.8942（calib n=11 / p10=2.8997 / p90=11.6469 / max=11.9708）；
+  `eval/routing_baseline/*` 按新 S0 重导出；v1 路由冲突 τ **仍 0.0297**（决策层 28/50、下发 40/50）。
+
+### 验证
+- `tests/unit/test_pptx_read.py` 14 条（页序/段落表格/缺 rels 降级/上限/坏 zip/无幻灯片/坏页跳过/工具层）；
+- 干净 worktree 回归：capability_spec / capregistry_core / confirm_level / real_index_l28 /
+  tool_pruning / route_conflict_cases / pptx_read **378 passed**（脏树会把未跟踪 byted_*.yaml 算进去，判绿必须在干净树）；
+- 真机 E2E（`.local/verify_pptx_tool.py`）：上传 2 页 .pptx → 模型用 pptx_read 读对第 1 页标题/正文
+  与第 2 页表格（指标/数值/可用性/99.9%），退出 0。
+
 ## [CHG] - 2026-11-27: E3-1 侧栏交互终端（PTY）落 UI 侧 ✅
 
 **影响模块**: `plugins/system_tools.py`（6 条会话路由）、`agent/pty_session.py`（失败码）、

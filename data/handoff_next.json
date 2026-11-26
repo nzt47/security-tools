@@ -1564,7 +1564,7 @@
    "priority": "P1",
    "title": "Phase 3 执行与内容：持久终端 PTY、Office 三件套、附件/@引用/逐条反馈、语音输入/CoT 翻译（按需）",
    "criteria": "E3-1 terminal_open/send/read/signal/close/list + 侧栏终端（ConPTY；多会话隔离）；E3-2 office_render/convert/recalculate + Office 技能（LibreOfficeKit 或本机 LibreOffice；不改输入、不写工作区）；E3-3 聊天附件/图片上传与粘贴、@file/@session 引用、消息引用、逐条 like/dislike；E3-4 STT 语音输入与 CoT 翻译（默认关）。 【2026-11-27 进度】E3-3 已交付三项：逐条点赞/点踩（复用 /api/feedback/submit，trace_id=消息 id，L5 直接吃到 like/dislike）、消息引用（引用块前缀 + 输入框引用条）、附件上传（/api/chat/attachments：文件名清洗 + 常量落点 + 写围栏 + 20MiB 上限 + 可执行后缀拒收 +图片 OCR 旁路；前端 📎 chips + 消息 manifest）。E3-3 余项：@file 自动补全、@session 引用、点击引用跳转到原消息。E3-1 PTY 与 E3-2 Office 的**依赖现状**见各自条目。 【2026-11-27 追加】@ 文件引用已交付（21c197c4c）：输入 @关键词（≥2 字）防抖 350ms 调**既有** /api/filesystem/search，选中插入 @相对路径（不新增路由、不造第二套索引）。 真机探针 .local/verify_e33.py 4/4：附件上传 / 带 manifest 的对话 / metered 有真实样本 （prompt_tokens 8918, 13.6%）/ 逐条 like 能在反馈列表查到。 【2026-11-27 再追加】# 会话引用（e20a4c689：拉既有 /api/sessions 本地过滤，插入【引用会话】<标题>（session_id=<id>））与引用块点击回跳（quoteAnchor：只认开头引用块 +按内容归一化找原消息 + 既有高亮机制；找不到就什么都不做）已交付 ⇒ **E3-3 全部完成**。",
-   "next": "E3-1 UI 已交付（96e504885，详见 dsh-parity-e3-1-pty）：右坞「交互」+ 6 条会话路由，失败只回稳定 code。E3-3 已全部交付。本条目只剩 E3-2：等 Owner 对 LibreOffice 拍板——① 装则做 render/convert/recalculate；② 收口纯库则补 pptx_read（套路照 docx/xlsx，含 6 处计数契约 + 主线 boost + S0 重标定）。"
+   "next": "E3-1（工具+UI）、E3-2（纯库收口，含 pptx_read）、E3-3（全部）都已交付；本条目只剩 E3-4（STT 语音输入 / CoT 翻译，路线图标注「按需」）与 E3-1 的开关开通（CP_TERMINAL_ENABLED + boost，B 级、默认关，界面已就绪并如实显示未启用）。"
   },
   {
    "id": "dsh-parity-p4-orchestration",
@@ -1616,11 +1616,11 @@
   },
   {
    "id": "dsh-parity-e3-2-office",
-   "status": "open",
+   "status": "done",
    "priority": "P1",
    "title": "E3-2 Office 三件套（render/convert/recalculate）与 Office 技能",
-   "criteria": "依赖现状（2026-11-27 实测）：python-docx 1.2.0 已装到本机、python-pptx / openpyxl 早已可用，但 **LibreOffice 仍缺**（soffice 不在 PATH，也没有 C:\\Program Files\\LibreOffice）。⇒ office_render / office_convert / office_recalculate 这三条**做不了**（它们本质是 LibreOffice无头调用）；能做的是纯库路线：docx/xlsx/pptx 的读写与结构编辑（不改输入、不写工作区）。 【2026-11-27 部分交付】558466e85：docx_read（纯标准库 zipfile + ElementTree 解析word/document.xml，取正文段落与表格；上限 400 段 / 120k 字符 / 200 行表格，超限 truncated=true；不依赖 LibreOffice 也不依赖 python-docx）⇒ 「读 Word 文档」这一半已可用。仍缺 render/convert/recalculate（必须 LibreOffice）与 xlsx/pptx 的同等抽取（openpyxl/pptx 未进主依赖）。",
-   "next": "① 等 Owner 对 LibreOffice 拍板（装了才能做 render/convert/recalculate）；② 不装的话：按同一套路补 xlsx/pptx 抽取（纯库或把 openpyxl/pptx 提为主依赖，二选一先问 Owner）。"
+   "criteria": "依赖现状（2026-11-27 实测）：python-docx 1.2.0 已装到本机、python-pptx / openpyxl 早已可用，但 **LibreOffice 仍缺**（soffice 不在 PATH，也没有 C:\\Program Files\\LibreOffice）。⇒ office_render / office_convert / office_recalculate 这三条**做不了**（它们本质是 LibreOffice无头调用）；能做的是纯库路线：docx/xlsx/pptx 的读写与结构编辑（不改输入、不写工作区）。 【2026-11-27 部分交付】558466e85：docx_read（纯标准库 zipfile + ElementTree 解析word/document.xml，取正文段落与表格；上限 400 段 / 120k 字符 / 200 行表格，超限 truncated=true；不依赖 LibreOffice 也不依赖 python-docx）⇒ 「读 Word 文档」这一半已可用。仍缺 render/convert/recalculate（必须 LibreOffice）与 xlsx/pptx 的同等抽取（openpyxl/pptx 未进主依赖）。 【2026-11-27 收口（Owner 授权按推荐决策）】决定**不装 LibreOffice**（本机与 CI 都没有，为渲染截图值 350MB 依赖不划算）⇒ E3-2 走纯库路线并收口：新增 pptx_read（agent/office/pptx_text.py + agent/tools/pptx_tools.py + YAML，e7c7b821c）：页序以 ppt/presentation.xml 的 sldIdLst+rels 为准、每页取 p:sp 段落与 a:tbl 表格、上限 200 页/120k 字符/每页 200 段（truncated 如实标）、不取备注/母版/图片。派生：工具索引 106→107、清单 156→157、主线可见集 33→34（boost+max_tools 34，preview 实测 added=[pptx_read]/lost=[]）、S0 5.8826→5.8942、v1 τ 仍 0.0297（28/50）；干净 worktree 378 passed。真机 E2E：上传 .pptx 后模型用 pptx_read读对第 1 页标题/正文与第 2 页表格（.local/verify_pptx_tool.py 退出 0）。设计/判据：docs/plan/2026-11-27-e3-2-pptx-read-design.md。",
+   "next": "已收口：读 Office 三件套（docx_read/xlsx_read/pptx_read）齐了；office_render/convert/recalculate 明确不做（需要 LibreOffice，Owner 已授权按推荐不装）。后续若真有渲染/转换需求，再单独排期装 LibreOffice。"
   }
  ]
 }
