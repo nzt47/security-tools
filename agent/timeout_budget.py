@@ -46,6 +46,13 @@ from typing import Any, Callable, Dict, Optional, Tuple
 
 #: 工具 handler 的墙钟上界（秒）。**0 表示不限**（保留旧行为，用于紧急回滚）。
 #:
+#: 【E0-4② · 2026-11-27】这个上界在**线程内**生效：到点后调用方拿到超时错误，但
+#:   **handler 本身不会被打断**（Python 没有安全抢占线程的手段）。也就是说：
+#:     · 子进程类工具（shell_execute / run_program / lint / test 等）**能真正取消** ——
+#:       它们自己的 Popen 超时会杀掉整棵进程树（agent/proc_tree.py 的 kill_tree）；
+#:     · 纯线程内计算的工具**不会中断**，超时后它仍在后台跑完（只是结果被丢弃）。
+#:   写新工具时若"不能被杀"，请在它的 docstring 里写明这一点，不要让人以为超时=停止。
+#:
 #: 【为什么默认是 1800 而不是看着更「好看」的 120】
 #: 仓库里各工具**自述**的上限是分层的，实测（grep 证据）：
 #:     test_tools  timeout_sec 默认 300 / 最大 900

@@ -31,6 +31,11 @@ from typing import Optional, Set, List, Dict, Callable, Iterator
 
 logger = logging.getLogger(__name__)
 
+#: 超时后「杀完整棵进程树」再收管道的宽限期（秒）。
+#: 【为什么还要宽限】taskkill /T 与 SIGKILL 都是异步生效的；直接用无 timeout 的
+#:   communicate() 等管道关闭，会在"孙进程刚 fork 出来还没枚举到"时**永久阻塞**。
+_TREE_KILL_GRACE_S = 5.0
+
 
 # ════════════════════════════════════════════════════════════════════
 #  路径包含判定（TASK-07 第 4 步第 4 项）
@@ -595,12 +600,31 @@ class Sandbox:
             try:
                 stdout, stderr = proc.communicate(timeout=limits.timeout_s)
             except subprocess.TimeoutExpired:
-                proc.kill()
-                stdout, stderr = proc.communicate()
+                # 【E0-4② · 2026-11-27】超时杀**整棵进程树**，不是只杀直接子进程。
+                #   proc.kill() 只终结 Popen 那一个进程；真实命令常是
+                #   "cmd /c python -m pytest" / "bash -c npm run x"：孙进程会继续跑并
+                #   占住 SQLite/日志文件锁（下一轮撞「文件被占用」）。见 agent/proc_tree.py。
+                try:
+                    from agent.proc_tree import kill_tree as _kill_tree
+                    _tree_ok = _kill_tree(proc.pid)
+                except Exception:  # noqa: BLE001 清理模块不可用 ⇒ 退回只杀直接子进程
+                    _tree_ok = False
+                if not _tree_ok:
+                    proc.kill()
                 timed_out = True
+                try:
+                    stdout, stderr = proc.communicate(timeout=_TREE_KILL_GRACE_S)
+                except subprocess.TimeoutExpired:
+                    # 孙子进程仍握着管道（极少数：清理被拒或刚 fork 出来没枚举到）
+                    # ⇒ 不能无限等：如实回"输出不可得"，让调用方按超时处理。
+                    proc.kill()
+                    stdout, stderr = "", ""
+                    logger.warning(
+                        "[Sandbox] 超时清理后管道仍未关闭 pid=%s（输出不可得）", proc.pid)
                 logger.warning(
-                    "[Sandbox] run_sandboxed 超时 kill cmd=%r timeout_s=%.1f duration_ms=%.1f",
-                    cmd, limits.timeout_s, (time.time() - start_time) * 1000,
+                    "[Sandbox] run_sandboxed 超时 kill cmd=%r timeout_s=%.1f duration_ms=%.1f "
+                    "tree_killed=%s",
+                    cmd, limits.timeout_s, (time.time() - start_time) * 1000, _tree_ok,
                 )
 
             duration_ms = (time.time() - start_time) * 1000

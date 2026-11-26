@@ -32,6 +32,22 @@ def _trace_id():
 _CHUNK_SIZE = 64 * 1024
 
 
+def _fence_denied(path: str, tool: str):
+    """写前围栏（E0-1②）：压缩/解压产物也是「写」，与 write_file 同一道闸。
+
+    【为什么必须补】本模块此前只有 safe_resolve_path（穿不过保护目录/..）+ is_protected_path，
+    但**没有权限预设的写档闸** —— workspace-write 档下把 output_path/output_dir 指到工作区外
+    照样落盘，而 write_file/edit 在同一档下会被拒（同一件事两套边界）。
+    fs_fence 的可写根与 shell ACL 同源，这里复用同一个入口；拒绝会由它自己审计
+    （sandbox_fs_denied，只记工具名 + 路径指纹，不回显路径原文）。
+
+    Returns:
+        None（放行）或可直接回给模型的拒绝字典。
+    """
+    from agent.sandbox.fs_fence import check_write as _check_write
+    return _check_write(path, tool)
+
+
 def compress(
     source_path: str,
     output_path: str = "",
@@ -86,6 +102,12 @@ def compress(
             output_path = safe_resolve_path(output_path)
         except ValueError as e:
             return {"ok": False, "error": f"输出路径不安全: {e}"}
+
+    # ── 3.5 写围栏（E0-1② · 2026-11-27）──────────────────────────────────
+    # 放在**创建目录之前**：拒绝时不留半成品目录（与 write_file 同一姿态）。
+    denied = _fence_denied(output_path, "compress")
+    if denied:
+        return denied
 
     # 确保输出目录存在
     out_dir = os.path.dirname(output_path) or "."
@@ -273,6 +295,13 @@ def decompress(
     # 检查输出目录不在系统保护目录中
     if is_protected_path(output_dir):
         return {"ok": False, "error": f"输出目录位于系统保护目录，拒绝解压: {output_dir}"}
+
+    # ── 3.5 写围栏（E0-1② · 2026-11-27）──────────────────────────────────
+    # 成员路径已在 _safe_extract_* 里做过 Zip Slip + realpath 二次确认（必在 output_dir 内），
+    # 所以这里检查 output_dir 一处即可覆盖整次解压；同样放在创建目录之前。
+    denied = _fence_denied(output_dir, "decompress")
+    if denied:
+        return denied
 
     # 确保输出目录存在
     try:
