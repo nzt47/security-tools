@@ -4,8 +4,48 @@
 **分支**: master
 **涵盖范围**: 5 个核心 commit（4608614c → 9977c949）
 
----
+## [CHG] - 2026-11-27: E0 余项收口（token-meter/图片 offload/每步时钟/进程树/写围栏）+ E3-3 三项 + E3-1 PTY ✅
 
+**影响模块**: `memory/token_meter.py`、`memory/memory_manager.py`、`agent/context/image_offload.py`、
+`agent/time_context.py`、`agent/proc_tree.py`、`agent/pty_session.py`、`agent/tools/terminal_tools.py`、
+`agent/compression_tools.py`、`agent/subagent/sandbox.py`、`plugins/chat.py`、`plugins/memory.py`、
+`yunshu-ui/src/components/workbench/chat/*`、`agent/settings/registry.py`、`scripts/sandbox_grant.py`
+**关联文档**: `docs/plan/2026-11-27-e0-2-e0-4-收口.md`、`docs/plan/2026-11-27-e3-1-pty-design.md`、
+`docs/handoff/2026-11-27_e0收口与e3进展_新会话提示词.md`
+
+### Added
+- **token-meter 驱动压缩**（E0-2④）：`memory/token_meter.py` 是实测装配量的**唯一**读数入口，
+  压缩触发与 `/api/context/status.metered` 都只调它；压缩成功后记水位（再压要长够 1.10 倍，口径 §7）。
+  开关 `CP_TOKEN_METER`（默认开）。
+- **图片/截图 offload**（E0-2③）：带 PNG/JPEG/GIF/WebP 魔数的长 base64 落盘 `agent/data/images/`，
+  结果换占位 + `image:<16hex>`；`read_spill` 分派回元数据 + 尽力 OCR。开关 `CP_IMAGE_OFFLOAD`。
+- **每步时钟**（E0-4①）：`agent/time_context.py` 顺既有易变尾簇下发，`CP_TIME_CONTEXT` 默认关。
+- **持久终端 PTY**（E3-1）：`terminal` **一个**工具 + action 枚举（open/send/read/signal/close/list），
+  `agent/pty_session.py` 管多会话/环形缓冲/空闲回收；**默认关** `CP_TERMINAL_ENABLED=0`，受限档一律拒绝；
+  pywinpty 走可选依赖 `.[pty]` 且延迟 import（缺失回可执行提示，不降级成管道）。
+- **逐条反馈/消息引用/附件上传**（E3-3）：👍/👎 复用 `/api/feedback/submit`（L5 直接吃到 like/dislike）、
+  引用块前缀 + 输入框引用条、`/api/chat/attachments`（清洗 + 写围栏 + 20MiB + 可执行后缀拒收 + 图片 OCR）。
+
+### Fixed
+- **子进程硬超时杀整棵树**（E0-4②）：`agent/proc_tree.py`（Windows `taskkill /F /T`；POSIX `/proc` 叶子优先
+  SIGKILL，**不用 killpg**），`run_sandboxed` 超时先杀树、收管道加 5s 宽限；线程内工具「不会中断」写进
+  `agent/timeout_budget.py` 注释。
+- **compress/decompress 接写围栏**（E0-1②）：与 `write_file` 同一道 `fs_fence.check_write`，拒绝在建目录之前。
+- **受限档 bash**（E0-1①）：结论=维持 fail-closed；新增 `python scripts/sandbox_grant.py --probe-shell`
+  （本机 workspace-write 档实测 cmd/powershell 可用、bash 不可用）。
+
+### 派生（干净 worktree）
+- `data/tool_index.json` 103→104、`data/capability_manifest.json` + 盘点表 153→154；
+- `_BM25_HALF_SATURATION` 5.8269→5.8606（calib n=11 / p50 5.8606）；路由基线重导出；v1 路由冲突 τ 0.0297→0.0296；
+- `route_ui_coverage.json` 随 `/api/chat/attachments` 重派生（pending_backlog ceiling 未抬高）。
+
+### 验证
+- 单测：token_meter 14 / image_offload 14 / time_context 8 / proc_tree 5 / compression_fence 12 /
+  shell_probe 4 / chat_attachments 9 / terminal 12；前端 MessageFeedback 5 + MessageQuote 5 + AttachmentPicker 8；
+- 干净 worktree 受影响面 **534 passed**（capability/confirm_level/router/route_conflict/settings 全绿）；
+- `npm run ui:check` 绿；部署后 `/api/version` backend = frontend.build_commit = master。
+
+---
 ## [CHG] - 2026-10-03: 熔断器状态序列接通 + 删掉 SafeFileReader 的空指标与作废断言 ✅
 
 **影响模块**: `app_server.py`、`agent/monitoring/business_metrics.py`、`agent/monitoring/prometheus.py`、
