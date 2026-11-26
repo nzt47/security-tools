@@ -119,6 +119,8 @@ _DEFAULT_TOOL_CATEGORIES = {
             # 能力补全：工作区管理与报表生成
             "workspace_init", "workspace_list", "workspace_write", "workspace_delete",
             "weekly_report",
+            # 【2026-11-27】E3-2 纯库路线：.docx 正文/表格抽取（read_file 对 docx 只能回 binary）
+            "docx_read",
         ],
     },
     "code": {

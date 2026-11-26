@@ -1172,6 +1172,8 @@ class LifecycleManager:
         # E3-1：持久终端（PTY）。默认停用（CP_TERMINAL_ENABLED=0）且受限档一律拒绝，
         # 所以接线本身不改变现网行为；工具会先看开关与权限预设再决定是否可用。
         from agent.tools.terminal_tools import register_all as reg_terminal
+        # E3-2 纯库路线：.docx 正文/表格抽取（标准库 zip + OOXML，无外部依赖）
+        from agent.tools.docx_tools import register_all as reg_docx
         # 技能脚本执行（L3）：补「带脚本技能」的显式执行点（2026-11-09，
         # 此前 SkillExecutor 只挂在 REST 手动端点与评估器上，聊天链路一条都没有）。
         # 默认停用（YAML enabled: false），观察期由 Owner 显式打开。
@@ -1219,6 +1221,7 @@ class LifecycleManager:
         reg_skill_script(self)
         reg_ui_guard(self)
         reg_terminal(self)
+        reg_docx(self)
 
         # 动态工具（吞噬登记的自生成工具）属于工具集的一部分，必须随启动加载。
         # 【为什么放在这里】此前只有 `_get_ext_manager` 会调 load_dynamic_tools，而它只被
