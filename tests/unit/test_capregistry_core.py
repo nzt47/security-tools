@@ -226,7 +226,8 @@ class TestQuery:
     def test_索引_确实被构建(self, real_registry):
         idx = real_registry.stats()["index"]
         # 【2026-11-27】156：+terminal（E3-1）/+docx_read、xlsx_read（E3-2）
-        assert idx["primary"] == 156
+        # 【2026-11-27】156 → 157：pptx_read（E3-2 收口）
+        assert idx["primary"] == 157
         assert idx["facet"] >= 1
 
 
@@ -278,7 +279,8 @@ class TestModelCapabilityProbe:
         # 【2026-11-20】141 → 142：ui_guard_fix（envelope 不按工具 enabled 过滤）
         # 【2026-11-24】142 → 143：read_spill（E0-2）
         # 【2026-11-27】151 → 152：xlsx_read（E3-2）
-        assert env["data"]["returned"] == env["data"]["total"] == 152
+        # 【2026-11-27】152 → 153：pptx_read（E3-2 收口）
+        assert env["data"]["returned"] == env["data"]["total"] == 153
         assert env["data"]["model_capability"]["supports_tool_calling"] is True
 
     @pytest.mark.parametrize("sentinel", ["none", "off", "-", "no-tools"])
@@ -291,7 +293,8 @@ class TestModelCapabilityProbe:
         # **total 仍然如实报告**：裁剪的是"给这个模型看的清单"，
         # 不是"注册表里有多少能力"。两个数含义不同，不许混。
         # 【2026-11-27】151 → 152：xlsx_read（E3-2）
-        assert env["data"]["total"] == 152
+        # 【2026-11-27】152 → 153：pptx_read（E3-2 收口）
+        assert env["data"]["total"] == 153
 
     def test_不支持前缀被识别(self):
         ok, why = modelcaps.supports_tool_calling("text-davinci-003")
