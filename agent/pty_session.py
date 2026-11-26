@@ -325,8 +325,10 @@ def open_session(command: str = "", cwd: str = "", rows: int = 30, cols: int = 1
             proc, master_fd = _spawn_windows(argv, workdir, rows, cols)
         else:
             proc, master_fd = _spawn_posix(argv, workdir, rows, cols)
-    except RuntimeError as exc:
-        return {"ok": False, "dependency": "pywinpty", "code": "dependency", "error": str(exc)}
+    except RuntimeError as exc:  # noqa: BLE001 依赖缺失：只回可执行提示，异常原文不进结果/响应体
+        logger.debug("[terminal] PTY 后端不可用: %s", type(exc).__name__)
+        return {"ok": False, "dependency": "pywinpty", "code": "dependency",
+                "error": "缺少 pywinpty：pip install pywinpty 后重试"}
     except Exception as exc:  # noqa: BLE001 启动失败只回固定文案（异常原文不进响应体）
         logger.warning("[terminal] 启动失败: %s", type(exc).__name__)
         return {"ok": False, "code": "spawn_failed", "error": "终端启动失败（详见服务日志）"}
