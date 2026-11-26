@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-26T12:55:00+08:00",
+ "updated_at": "2026-11-26T13:30:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。 【接手入口】交接文档（仓外 yunshu_session_handoff_20261024.md）文件头写了最新一节与代码/CI/服务读数，文末最新 §（当前 §11.232）带一份可直接复制的下一轮独立提示词。",
  "items": [
   {
@@ -1508,7 +1508,23 @@
    "priority": "P2",
    "title": "Phase 2 多代理：子代理控制（发消息/打断/发现）、Agent Team 任务板、fork 子代理、Ralph 循环",
    "criteria": "Phase 2：① 子代理控制（运行中发消息 / 打断 / 发现 / 收件箱）—— 复用既有 delegate/fan_out 的生命周期管理器；② Agent Team 任务板（认领/交接/看板）；③ fork 子代理（继承上下文再分叉）；④ Ralph 循环（同一目标反复推进直到满足验收）。本仓已有：delegate、fan_out、subagent 生命周期与持久化、任务板雏形（需勘察）。",
-   "next": "先勘察现状（`agent/subagent/*`、`agent/tools/subagent_tools.py`、`routes_subagent.py`、前端子代理页），出 1 页设计（接口/路由/工具/回滚），再按 E2-1 → E2-2 → E2-3 → E2-4 分片交付；新工具/新路由照旧走 5 处连锁与干净 worktree 重派生。"
+   "next": "E2-1a 已交付（2026-11-26）：`agent/subagent/runs.py` 运行期登记表 + 执行器每轮 drain 追加指令/轮间协作式打断 + `subagent_control` 工具（list/send/interrupt/inbox，core 常驻）；17 条单测 + 真机探针 .local/verify_e2_1_control.py 全过。下一步 E2-1b：3 条路由（GET /api/subagent/runs、POST .../message、.../interrupt）+ 前端「运行中」块（不新增叶子页），同批重派生 route_ui_coverage/ui_reachability；之后 E2-2 Team 任务板（claim/release/handoff + 乐观锁）、E2-3 fork、E2-4 Ralph。"
+  },
+  {
+   "id": "dsh-parity-e2-1a-control",
+   "status": "done",
+   "priority": "P2",
+   "title": "E2-1a 运行中控制：RunRegistry 登记表 + subagent_control 工具（list/send/interrupt/inbox）",
+   "criteria": "2026-11-26 交付：agent/subagent/runs.py（RunHandle/RunRegistry：进程内登记、inbox.jsonl 追加/按游标 drain、线程绑定、data/subagent_runs.json 只读快照、CP_SUBAGENT_CONTROL_ENABLED 开关）；执行器在通道调用期间绑定句柄，内部 LLM 执行器每轮开始前 drain 追加指令、每轮之间检查 cancel_event ⇒ status=interrupted 且保留已产出（外部 CLI 通道无逐轮钩子，如实不支持）；工具 subagent_control 单工具 4 动作，effect=write，进 core 常驻分类；YAML/索引（101→102）/能力清单（152→153）/BM25 基线/路由覆盖同批派生。真机探针四条全过，单测 209 条绿（新增 17 条）。",
+   "next": "E2-1b：① 3 条路由（GET /api/subagent/runs 只读快照；POST /api/subagent/runs/<run_id>/message；POST .../interrupt；写端点 @require_token；run_id 允许 delegation_id 兜底；关闭开关时 404）；② config/route_domains.json + route_ui_intent.json（should_be_in_ui）并同批重派生 route_ui_coverage（531→534）/ui_reachability；③ 前端子代理页「运行中」块（Table/Badge/Button + lib/subagentApi.ts 三方法，不新增页面文件）让待办归零（禁止抬高 backlog ceiling）；④ 部署后跑探针 + 既有 17 条不回归。"
+  },
+  {
+   "id": "dsh-parity-e2-1b-ui-routes",
+   "status": "open",
+   "priority": "P2",
+   "title": "E2-1b 运行中控制：路由 + 前端「运行中」块（引擎/工具已交付）",
+   "criteria": "三条路由的形状与错误码：200 快照/追加/打断；400 空 message；404 未知 run 或开关关闭；401 缺 token。前端「运行中」块列 run_id/子代理/状态/轮次/耗时/最后输出，行内「发消息」「打断」两个动作 + 输入框。",
+   "next": "先加路由（routes_subagent.py 末尾；静态 /api/subagent/runs 优先于 /<name>），再更新 route_domains/route_ui_intent，然后重派生两份 reports，最后接 UI；UI 完成前不要提交路由（否则 route_ui_pending_backlog 必须抬高 ceiling，而该文件明令只许收缩）。"
   },
   {
    "id": "dsh-parity-p3-execution",

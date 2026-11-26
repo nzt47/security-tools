@@ -1153,6 +1153,8 @@ class LifecycleManager:
         from agent.tools.ask_tools import register_all as reg_ask
         # E1-4d：会话检索工具（session_search / session_trace，读本机索引与消息）
         from agent.tools.session_tools import register_all as reg_session_tools
+        # E2-1：运行中子代理控制（list/send/interrupt/inbox）
+        from agent.tools.subagent_control import register_all as reg_subagent_control
         # 补登记（沙盒/剪贴板/浏览器/工作区/PDF表格/MCP清单/屏幕OCR/周报）
         from agent.tools.extra_tools import register_all as reg_extra
         # 工程闭环三件套（git / run_tests / apply_patch）
@@ -1204,6 +1206,7 @@ class LifecycleManager:
         reg_goal(self)
         reg_ask(self)
         reg_session_tools(self)
+        reg_subagent_control(self)
         reg_extra(self)
         reg_git(self)
         reg_test(self)

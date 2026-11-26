@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-26T01:14:13",
-  "tool_count": 101,
+  "generated_at": "2026-11-26T13:08:09",
+  "tool_count": 102,
   "categories": [
     "async",
     "code",
@@ -405,6 +405,21 @@
         "query",
         "scope",
         "max_items"
+      ]
+    },
+    {
+      "name": "subagent_control",
+      "category": "core",
+      "description": "查看/控制**正在运行**的子代理（委派执行中）：list 列出正在跑的 run（含子代理名/轮次/耗时/最后输出）；send 给某个 run 追加一条指令（**不进断当前轮**，下一轮生效）；interrupt 协作式打断（执行器在每轮之间结束，已产出保留）；inbox 读该 run 的收件箱。run_id 可用 delegation_id 兜底。只有内部 LLM 执行器响应 send/interrupt，外部 CLI 通道不支持。进程重启后登记表失效。Inspect and steer running subagent delegations",
+      "version": "1.0.0",
+      "deprecated": false,
+      "parameter_names": [
+        "action",
+        "run_id",
+        "message",
+        "reason",
+        "status",
+        "limit"
       ]
     },
     {

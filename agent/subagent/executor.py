@@ -307,8 +307,28 @@ class LlmChannelExecutor(ChannelExecutor):
             )
         final_text = ""
         turns_used = 0
+        # E2-1 运行中控制：本线程绑定的 run 句柄（无则逐字旧行为）
+        from agent.subagent.runs import current_run, run_registry
+
+        ctrl = current_run()
         for turn in range(max_turns):
             turns_used = turn + 1
+            if ctrl is not None:
+                # 每轮之间检查打断：置位即结束本轮、保留已产出（不硬杀）
+                if ctrl.cancel_event.is_set():
+                    ctrl.status = "interrupted"
+                    ctrl.reason = ctrl.reason or "运行中被中断"
+                    ctrl.set_output(final_text)
+                    return RawOutput(stdout=json.dumps(
+                        {"status": "interrupted", "summary": final_text[:4000],
+                         "reason": ctrl.reason}, ensure_ascii=False),
+                        returncode=0, duration_ms=(time.time() - start) * 1000)
+                # 每轮开始前把追加指令 drain 成 user 消息（不打断当前轮）
+                for extra in run_registry.drain_inbox(ctrl):
+                    text = str(extra.get("text") or "").strip()
+                    if text:
+                        messages.append({"role": "user",
+                                         "content": "【运行中追加指令】\n" + text})
             try:
                 raw = self._llm.chat(messages, system_prompt=system_prompt)
             except Exception as e:  # noqa: BLE001  执行器异常 → 通道层按失败处理
@@ -318,6 +338,9 @@ class LlmChannelExecutor(ChannelExecutor):
             if not raw:
                 continue
             final_text = raw
+            if ctrl is not None:
+                ctrl.rounds = turns_used
+                ctrl.set_output(raw)
             if _is_final_turn(raw):
                 break
             # 未终结：把上一轮结果作为**上下文**续跑（system prompt 仍为云枢自有文本）
@@ -1131,6 +1154,13 @@ class DelegationExecutor:
 
         任务时长取契约⑦（``timeout_seconds``）——§5.9 的「TTL ≤ 任务时长」上界来源。
         """
+        # E2-1：本次委派登记进运行期登记表（句柄在通道调用期间绑定到本线程，
+        # 内部 LLM 执行器据此 drain 追加指令 / 检查打断）
+        from agent.subagent.runs import run_registry
+
+        handle = run_registry.ensure(
+            ctx.delegation_id,
+            str(ctx.metadata.get("subagent") or ctx.delegate_actor or ""))
         with credential_scope(self._credentials, list(credentials),
                               task_timeout_seconds=ctx.timeout_seconds) as creds:
             env = self._build_env(creds)
@@ -1158,15 +1188,21 @@ class DelegationExecutor:
             _autonomy = _metadata_level(getattr(ctx, "metadata", None))
             with scope_context(ctx.tenant_id, ctx.subject_id,
                                workspace_id=str(ctx.metadata.get("workspace_id") or "")):
-                if _autonomy is None:
-                    output = resolve_channel_output(
-                        lambda: self._channel(invocation), llm=self._llm, invocation=invocation)
-                else:
-                    # 本分身的自主权档位对通道内任何 AutonomyPolicy/get_autonomy_level
-                    # 消费者生效（空档 ⇒ 不包，逐字旧行为）。
-                    with AutonomyContext(_autonomy):
+                run_registry.bind_thread(handle)
+                try:
+                    if _autonomy is None:
                         output = resolve_channel_output(
                             lambda: self._channel(invocation), llm=self._llm, invocation=invocation)
+                    else:
+                        # 本分身的自主权档位对通道内任何 AutonomyPolicy/get_autonomy_level
+                        # 消费者生效（空档 ⇒ 不包，逐字旧行为）。
+                        with AutonomyContext(_autonomy):
+                            output = resolve_channel_output(
+                                lambda: self._channel(invocation), llm=self._llm, invocation=invocation)
+                finally:
+                    run_registry.bind_thread(None)
+        # 通道已返回：登记表状态收尾（interrupted 由执行器置位；其余按 done）
+        run_registry.finish(handle, handle.status if handle.status != "running" else "done")
         # 退出 with 即已销毁；此处断言销毁证据（隐藏失败会长期留存凭据）
         for cred in creds:
             record = self._credentials.get(cred.credential_id)

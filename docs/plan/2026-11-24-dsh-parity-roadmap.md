@@ -225,6 +225,9 @@
   还要进 boost（与 E1-2b 给 goal 加 boost 同形），否则模型说"工具集里没有它"。
 - **E1-4 全部收口**：a 标题 / b FTS5 搜索 / c 大纲·统计·导出 / d 两个模型工具 ⇒
   Phase 1（工作方式）**完成**；下一段 Phase 2 多代理（E2-1 …）。
+- **E2-1a 已交付（2026-11-26）**：`agent/subagent/runs.py` 运行期登记表 + 执行器每轮
+  drain 追加指令 / 轮间协作式打断 + `subagent_control` 工具（list/send/interrupt/inbox，
+  core 常驻）；17 条单测 + 真机探针全过。**E2-1b 待做**：3 条路由 + 子代理页「运行中」块。
 
 ### Phase 2 — 多代理协作（建议第 7–9 周）
 

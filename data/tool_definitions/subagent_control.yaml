@@ -1,0 +1,80 @@
+name: subagent_control
+category: core
+description: 查看/控制**正在运行**的子代理（委派执行中）：list 列出正在跑的 run（含子代理名/轮次/耗时/最后输出）；send 给某个 run 追加一条指令（**不进断当前轮**，下一轮生效）；interrupt 协作式打断（执行器在每轮之间结束，已产出保留）；inbox 读该 run 的收件箱。run_id 可用 delegation_id 兜底。只有内部 LLM 执行器响应 send/interrupt，外部 CLI 通道不支持。进程重启后登记表失效。Inspect and steer running subagent delegations
+deprecated: false
+version: 1.0.0
+location: local
+location_reason: 调用链（agent.tools.subagent_control → agent.subagent.runs）在 6 跳内未命中跨边界原语
+plane: resident
+effect: write
+risk: low
+tool_type: tool
+llm_callable: true
+callable_mode: auto
+permission_level: internal
+sandbox_allowed: false
+schema:
+  type: object
+  properties:
+    action:
+      type: string
+      enum:
+      - list
+      - send
+      - interrupt
+      - inbox
+      description: list/send/interrupt/inbox
+    run_id:
+      type: string
+      description: 目标 run（send/interrupt/inbox 必填；可用 delegation_id 兜底）
+    message:
+      type: string
+      description: send 必填：追加指令（下一轮生效，≤4000 字）
+    reason:
+      type: string
+      description: interrupt 可选：打断原因
+    status:
+      type: string
+      description: list 可选：running（默认）| all | done | interrupted | failed
+    limit:
+      type: integer
+      description: 列表/收件箱条数（默认 20/10）
+  required:
+  - action
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    action:
+      type: string
+    count:
+      type: integer
+    runs:
+      type: array
+      items:
+        type: object
+    inbox:
+      type: array
+      items:
+        type: object
+    run_id:
+      type: string
+    status:
+      type: string
+    queued:
+      type: object
+    cancelled:
+      type: boolean
+    already_finished:
+      type: boolean
+    reason:
+      type: string
+    error:
+      type: string
+    code:
+      type: string
+  required:
+  - ok
+  additionalProperties: true
+examples: []
