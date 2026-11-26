@@ -1,6 +1,6 @@
 {
- "updated_at": "2026-11-26T12:20:00+08:00",
- "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
+ "updated_at": "2026-11-26T12:55:00+08:00",
+ "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。 【接手入口】交接文档（仓外 yunshu_session_handoff_20261024.md）文件头写了最新一节与代码/CI/服务读数，文末最新 §（当前 §11.232）带一份可直接复制的下一轮独立提示词。",
  "items": [
   {
    "id": "session-index-recency",
