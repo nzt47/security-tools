@@ -51,8 +51,11 @@
 
 ### 验证
 - `tests/unit/test_pptx_read.py` 14 条（页序/段落表格/缺 rels 降级/上限/坏 zip/无幻灯片/坏页跳过/工具层）；
-- 干净 worktree 回归：capability_spec / capregistry_core / confirm_level / real_index_l28 /
-  tool_pruning / route_conflict_cases / pptx_read **378 passed**（脏树会把未跟踪 byted_*.yaml 算进去，判绿必须在干净树）；
+- 干净 worktree 回归：capability_spec / capregistry_core / confirm_level / real_index_l28 / tool_pruning /
+  route_conflict_cases / test_tool_definitions_yaml / test_settings_registry / test_scripts_quality_gate /
+  pptx_read / terminal / session_events **565 passed**（脏树会把未跟踪 byted_*.yaml 算进去，判绿必须在干净树）；
+- 两处"第二张表"同步（干净 worktree 实测发现，属实红）：`agent/tool_router._DEFAULT_TOOL_CATEGORIES` 加 pptx_read
+  （与 YAML 逐字一致）、`scripts/backfill_tool_planes.PLANE_MAP` 加 pptx_read（治理平面 --check 退出 0）；
 - 真机 E2E（`.local/verify_pptx_tool.py`）：上传 2 页 .pptx → 模型用 pptx_read 读对第 1 页标题/正文
   与第 2 页表格（指标/数值/可用性/99.9%），退出 0。
 

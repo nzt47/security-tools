@@ -1572,7 +1572,7 @@
    "priority": "P2",
    "title": "Phase 4 编排与生态：Workflow JS、PTC、MCP resources/prompts、插件市场索引/推荐、平台集成（ACP/SDK/LiveShare/Inspector/worktree/forge/导入）",
    "criteria": "E4-1 脚本编排（沙箱 JS 扇出 subagent，保留模板路径）；E4-2 PTC（程序化调工具、状态保留、资源上限）；E4-3 MCP resources/prompts；E4-4 市场索引 + Discover + 推荐 + 组合安装（不绕过签名/白名单）；E4-5 ACP/SDK/headless/LiveShare/Inspector/worktree/forge/DeepSeek 会话导入（每项独立、默认关）。",
-   "next": "安全设计已出（2026-11-27）：docs/plan/2026-11-27-p4-编排安全设计.md —— 独立进程 node --permission（实测 v25.8.1 下 fs/child_process/http 全部 ERR_ACCESS_DENIED；旧版本无 --allow-net 则视为无网络围栏、默认拒跑）、JSONL 协议由宿主执行工具（白名单=主线装配∩E4 清单，govern/terminal 永不进）、五道上限（墙钟/内存/输出字节/调用次数/子代理与嵌套）。待 Owner 拍板 3 项：Node 作为可选运行时、旧版 node 无围栏即不跑、高危工具审批粒度（逐次 vs 整 run）。实现按口径 §3：新工具同批 6 处计数契约 + 主线 boost + 干净 worktree 派生，新 env 登记 registry.py。"
+   "next": "安全设计已出（docs/plan/2026-11-27-p4-编排安全设计.md）且三项已决（2026-11-27，Owner 授权按推荐）：① Node.js 作为可选运行时（缺失 no_node，不降级）；② 网络 fail-closed（探测不到 --allow-net 即拒跑，不提供绕过开关）；③ 高危工具默认不进白名单，将来要进就整 run 一次性授权。⇒ **E4-1 第一期可直接开工**：独立 node 子进程 + JSONL 工具 RPC（宿主执行并过授权/审批/审计）+ 五道资源上限 + 开关 CP_ORCH_SCRIPT_ENABLED（默认 0）。实现时按口径 §3：新工具同批 6 处计数契约 + 分类默认表（tool_router._DEFAULT_TOOL_CATEGORIES）+ 主线 boost + 干净 worktree 派生，新 env 登记 registry.py。"
   },
   {
    "id": "dsh-parity-p5-longterm",
