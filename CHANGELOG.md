@@ -4,6 +4,36 @@
 **分支**: master
 **涵盖范围**: 5 个核心 commit（4608614c → 9977c949）
 
+## [CHG] - 2026-11-27: E3-1 侧栏交互终端（PTY）落 UI 侧 ✅
+
+**影响模块**: `plugins/system_tools.py`（6 条会话路由）、`agent/pty_session.py`（失败码）、
+`yunshu-ui/src/components/workbench/panels/DockPanel.tsx`（右坞「交互」子视图）、`yunshu-ui/src/api/endpoints.ts`
+**关联文档**: `docs/plan/2026-11-27-e3-1-terminal-ui.md`（设计与判据）、`docs/plan/2026-11-27-e3-1-pty-design.md` §8
+
+### Added
+- **侧栏交互终端**（E3-1 UI 侧，提交 96e504885）：先定消费者（右坞 `DockPanel → TerminalPane` 第三个子视图
+  「交互」）再建路由，同批接 5 个归一化路径 / 6 条路由：`GET|POST /api/terminal/sessions`、
+  `POST /api/terminal/input`、`GET /api/terminal/output`、`POST /api/terminal/signal`、`POST /api/terminal/close`。
+  前端 800ms 轮询增量输出（offset/next_offset），显示会话 id/存活/缓冲量，支持 Ctrl-C、终止、关闭、清空。
+- **失败码口径**（响应体不回异常派生串）：`pty_session` 每个失败结果补稳定 `code`
+  （disabled/blocked/dependency/max_sessions/bad_cwd/spawn_failed/no_session/write_failed/bad_action）；
+  路由层 `_pty_public()` 丢掉 `error` 原文（只进服务日志）只回 code，中文文案唯一一份在前端；
+  域内失败一律 HTTP 200 + ok=false + code（`hubPost` 只在非 2xx 抛错），只有缺 id 才 400。
+  所有 PTY 路由 `log=False`（stdin/输出可能含密钥，审计仍由 pty_session 记摘要）。
+
+### 派生
+- `reports/route_ui_coverage.json` 重派生：路由 539→544，5 条新路由全部 **ui 引用**；
+  `route_ui_pending_backlog` 仍 0/0（ceiling 未动）；顺带修掉上轮 chat.py 行号漂移。
+
+### 验证
+- `python -m pytest tests/unit/test_terminal_ui_routes.py`（15）+ `test_terminal_tool.py`（12）全绿；
+  route_ui_coverage / 路由错误卫生 / system_tools 回归 **161 passed**；contract + frontend-stray **40 passed**。
+- `cd yunshu-ui && npm run ui:check` 绿（DockPanel vitest 12 passed，含新增 2 条；原语量具 0 回归）。
+
+### 边界
+- **不打开 `CP_TERMINAL_ENABLED`**（B 级，Owner 拍板），因此不动 `data/agent_lines/engineering.yaml` 的 boost / `max_tools`；
+- 不做 resize / 多标签 / 终端历史落盘；不引入 xterm.js（等宽 pre + 单行 Input 够覆盖看进度/发命令/Ctrl-C）。
+
 ## [CHG] - 2026-11-27: E0 余项收口（token-meter/图片 offload/每步时钟/进程树/写围栏）+ E3-3 三项 + E3-1 PTY ✅
 
 **影响模块**: `memory/token_meter.py`、`memory/memory_manager.py`、`agent/context/image_offload.py`、

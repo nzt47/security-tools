@@ -1612,7 +1612,7 @@
    "priority": "P1",
    "title": "E3-1 持久终端 PTY（terminal_open/send/read/signal/close/list + 侧栏终端）",
    "criteria": "依赖已不是障碍：pywinpty 3.1.2 已装到本机 Python 3.12（pip 走的是 cp312 win_amd64 wheel，2026-11-27 装好；PyPI 下载慢但可用）。缺口在实现与派生：① 会话管理（多会话隔离、输出环形缓冲、空闲回收）；② 工具面（建议**一个** terminal 工具 + action 枚举，把工具索引/清单/契约的连锁压到 1 次）；③ 安全：raw PTY 会绕过命令沙箱与权限预设 ⇒ 必须默认关（CP_TERMINAL_ENABLED=0）、confined 档一律拒绝、危险命令模式复用 shell_tools 的匹配；④ 侧栏终端 UI（本轮无路由时可只做模型侧，但**不要**先造无 UI 引用的路由）。 【2026-11-27 已交付】28e76333c：agent/pty_session.py（多会话隔离/环形缓冲/空闲回收/受限档拒绝/fail-closed）+ agent/tools/terminal_tools.py（**一个** terminal 工具 + action 枚举，把 5 处连锁压到 1 次）+ 4 个 CP_TERMINAL_* 开关 + pyproject 可选依赖 .[pty]（pywinpty 延迟 import，缺失时回可执行提示、绝不降级成管道）+ backfill_tool_planes 补 terminal；配套：BM25 重标定 5.8269→5.8606（9dc9abbf5）、产物重派生 104/154（c13ec23f5）、v1 路由冲突 τ 0.0297→0.0296（60fc7235e）、计数契约同步（e816d11cd）。设计/边界/派生清单见 docs/plan/2026-11-27-e3-1-pty-design.md。",
-   "next": "剩余只有 UI 侧：侧栏终端（需要 1 条读路由 + 一个面板；先定「谁消费」再建路由，别造无 UI 引用的路由债）+ resize/多标签（改 enum 即可，不动工具面）。"
+   "next": "UI 侧已交付（96e504885）：右坞 DockPanel→TerminalPane→「交互」+ 6 条会话路由（sessions/input/output/signal/close），失败只回稳定 code；route_ui_coverage 重派生 539→544、pending 仍 0/0。剩余：① 打开 CP_TERMINAL_ENABLED（B 级，Owner 拍板）后把 terminal 加进 engineering.yaml 的 boost 并调 max_tools（先 preview 量加/丢）再重派生 capability_manifest；② resize/多标签/历史落盘（改 enum 即可，不动工具面）。设计与判据见 docs/plan/2026-11-27-e3-1-terminal-ui.md。"
   },
   {
    "id": "dsh-parity-e3-2-office",
