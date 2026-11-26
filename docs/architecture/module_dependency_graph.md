@@ -3090,6 +3090,7 @@ flowchart LR
     agent_tools_subagent_control -.-> agent_subagent_runs
     agent_tools_subagent_tools --> agent
     agent_tools_subagent_tools -.-> agent_subagent_delegation
+    agent_tools_subagent_tools -.-> agent_subagent_delegation
     agent_tools_subagent_tools -.-> agent_subagent_container
     agent_tools_subagent_tools -.-> agent_subagent_channel
     agent_tools_subagent_tools --> agent_tools_goal_tools
@@ -3217,7 +3218,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 812
 - 模块节点数: 705
-- 依赖边数: 2378
-- 跨层调用数: 1513
+- 依赖边数: 2379
+- 跨层调用数: 1514
 - 违规调用数: 0
 - 动态 import 数: 1
