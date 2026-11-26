@@ -84,10 +84,17 @@ def _sheet_files(zf: zipfile.ZipFile) -> List[tuple]:
     for sheet in wb.findall(_NS_MAIN + "sheets/" + _NS_MAIN + "sheet"):
         name = str(sheet.get("name") or "")
         rid = sheet.get(_NS_REL + "id")
-        target = rel_map.get(rid or "", "")
-        path = ("xl/" + target.lstrip("/")) if target else ""
-        if path and not path.startswith("xl/"):
-            path = "xl/" + path
+        target = str(rel_map.get(rid or "", "") or "")
+        # 【两种 Target 都要认】Excel/openpyxl 写**绝对**路径（/xl/worksheets/sheet1.xml），
+        # 也有生成器写相对路径（worksheets/sheet1.xml）。此前一律 "xl/" + lstrip("/") ⇒
+        # 绝对路径会变成 xl/xl/... ⇒ zf.read KeyError ⇒ 每张表都返回空（本机实测：
+        # openpyxl 生成的真实工作簿读出 2 张表但 rows 全空）。现在按形态归一，只补一次前缀。
+        if not target:
+            path = ""
+        elif target.startswith("/"):
+            path = target.lstrip("/")
+        else:
+            path = "xl/" + target
         out.append((name, path))
     return [(n, p) for n, p in out if p]
 

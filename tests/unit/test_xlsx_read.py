@@ -47,7 +47,9 @@ def make_xlsx(path, sheets, shared=None, rows_xmls=None):
         if shared is not None:
             zf.writestr("xl/sharedStrings.xml", _shared(shared))
         for _n, rid, target in sheets:
-            zf.writestr("xl/" + target, _sheet((rows_xmls or {}).get(rid, "")))
+            # 与真实工作簿一致：绝对 Target（/xl/...）就是 zip 内路径；相对 Target 才补 xl/
+            zip_path = target.lstrip("/") if target.startswith("/") else "xl/" + target
+            zf.writestr(zip_path, _sheet((rows_xmls or {}).get(rid, "")))
     return str(path)
 
 
@@ -66,6 +68,19 @@ class TestExtract:
         assert sheet["rows"][1] == ["42", "", "7"]
         assert got["counts"]["rows"] == 2
         assert got["truncated"] is False
+
+    def test_绝对Target也能读出真实形状(self, tmp_path):
+        """Excel/openpyxl 写绝对 Target（/xl/worksheets/sheet1.xml）——真实工作簿就是这样
+
+        本机实测缺陷：一律 "xl/" + lstrip("/") 会把绝对路径拼成 xl/xl/... ⇒ zf.read KeyError
+        ⇒ 每张表都返回空（2 张表、rows 全空，看起来"读到了但没内容"）。
+        """
+        rows = '<row r="1"><c r="A1"><v>11</v></c><c r="B1"><v>22</v></c></row>'
+        p = make_xlsx(tmp_path / "abs.xlsx", [("S", "rId1", "/xl/worksheets/sheet1.xml")],
+                      rows_xmls={"rId1": rows})
+        got = xlsx_text.extract(p)
+        assert got["ok"] is True
+        assert got["sheets"][0]["rows"] == [["11", "22"]], got
 
     def test_内联字符串与布尔(self, tmp_path):
         rows = ('<row r="1"><c r="A1" t="inlineStr"><is><t>内联</t></is></c>'
