@@ -25,6 +25,9 @@
   pywinpty 走可选依赖 `.[pty]` 且延迟 import（缺失回可执行提示，不降级成管道）。
 - **逐条反馈/消息引用/附件上传**（E3-3）：👍/👎 复用 `/api/feedback/submit`（L5 直接吃到 like/dislike）、
   引用块前缀 + 输入框引用条、`/api/chat/attachments`（清洗 + 写围栏 + 20MiB + 可执行后缀拒收 + 图片 OCR）。
+- **@ 文件引用 / # 会话引用 / 引用回跳**（E3-3 尾巴，三件都不新增路由）：
+  `@关键词` 调既有 `/api/filesystem/search` 插 `@相对路径`；`#关键词` 拉既有 `/api/sessions` 插
+  `【引用会话】<标题>（session_id=<id>）`；用户消息的引用块可点 → 既有高亮 + 滚到 `data-mid`。
 
 ### Fixed
 - **子进程硬超时杀整棵树**（E0-4②）：`agent/proc_tree.py`（Windows `taskkill /F /T`；POSIX `/proc` 叶子优先
