@@ -129,6 +129,7 @@ flowchart LR
         agent_permission_system["agent.permission_system"]:::crosslayer
         agent_proc_tree["agent.proc_tree"]:::crosslayer
         agent_prometheus_exporter["agent.prometheus_exporter"]:::crosslayer
+        agent_pty_session["agent.pty_session"]
         agent_rate_limiter["agent.rate_limiter"]:::crosslayer
         agent_response_workflows["agent.response_workflows"]:::crosslayer
         agent_safe_paths["agent.safe_paths"]:::crosslayer
@@ -768,6 +769,7 @@ flowchart LR
         agent_tools_subagent_tools["agent.tools.subagent_tools"]:::crosslayer
         agent_tools_system_tools["agent.tools.system_tools"]:::crosslayer
         agent_tools_task_tools["agent.tools.task_tools"]:::crosslayer
+        agent_tools_terminal_tools["agent.tools.terminal_tools"]:::crosslayer
         agent_tools_test_tools["agent.tools.test_tools"]:::crosslayer
         agent_tools_tool_generator["agent.tools.tool_generator"]:::crosslayer
         agent_tools_ui_guard_tools["agent.tools.ui_guard_tools"]:::crosslayer
@@ -1839,6 +1841,7 @@ flowchart LR
     agent_orchestrator_lifecycle_manager -.-> agent_tools_db_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_lint_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_ui_guard_tools
+    agent_orchestrator_lifecycle_manager -.-> agent_tools_terminal_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_skill_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_core_tools
     agent_orchestrator_lifecycle_manager -.-> agent_utils_compatibility
@@ -2058,6 +2061,10 @@ flowchart LR
     agent_prompt_manager_storage -.-> agent_utils_singleton_manager
     agent_prompt_manager_version_control -.-> agent_logging_utils
     agent_prompt_manager_version_control -.-> agent_utils_singleton_manager
+    agent_pty_session -.-> agent_utils
+    agent_pty_session -.-> agent_audit_facade
+    agent_pty_session -.-> agent_sandbox
+    agent_pty_session --> agent_proc_tree
     agent_quality_observability -.-> agent_logging_utils
     agent_quality_observability -.-> agent_monitoring_business_metrics
     agent_rate_limiter --> agent_logging_utils
@@ -3117,6 +3124,8 @@ flowchart LR
     agent_tools_task_tools -.-> agent_task_scheduler
     agent_tools_task_tools -.-> agent_task_scheduler
     agent_tools_task_tools -.-> agent_task_scheduler
+    agent_tools_terminal_tools --> agent
+    agent_tools_terminal_tools --> agent
     agent_tools_test_tools --> agent
     agent_tools_test_tools -.-> agent_utils
     agent_tools_test_tools -.-> agent_sandbox_fs_fence
@@ -3224,9 +3233,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 816
-- 模块节点数: 708
-- 依赖边数: 2384
-- 跨层调用数: 1518
+- 扫描文件数: 818
+- 模块节点数: 710
+- 依赖边数: 2391
+- 跨层调用数: 1522
 - 违规调用数: 0
 - 动态 import 数: 1
