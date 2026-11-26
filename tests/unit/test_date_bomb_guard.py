@@ -77,7 +77,9 @@ CLOCK_BOUNDARY_APIS: Dict[str, Tuple[str, str]] = {
     # API 名: (承载模块路径, 依据说明)
     "archive_daily_file": (
         "agent/skills_mgmt/log_archiver.py",
-        "L394 `today = date.today().isoformat()`；签名仅 (path)，无可注入时钟",
+        # 【2026-11-27 更新】归档的「今天」已改为 UTC（L400 `datetime.now(timezone.utc)`），
+        # 与事件 ts 同源；签名仍仅 (path)，无可注入时钟 ⇒ 仍属本登记表。
+        "L400 `today = datetime.now(timezone.utc).date().isoformat()`；签名仅 (path)，无可注入时钟",
     ),
     "scan_unused": (
         "agent/skills_mgmt/cleanup.py",

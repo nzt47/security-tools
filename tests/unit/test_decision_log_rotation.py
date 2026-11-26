@@ -1250,13 +1250,17 @@ def test_warm_archive_is_date_independent(tmp_path, monkeypatch, offset_days):
     real_today = date.today()
     fake_today = real_today + timedelta(days=offset_days)
 
-    class _FakeDate(date):
-        @classmethod
-        def today(cls):  # type: ignore[override]
-            return fake_today
+    class _FakeDatetime:
+        """伪造"今天"：`archive_daily_file` 现在按 **UTC** 取今天（与事件 ts 同源）"""
 
-    # `archive_daily_file` 内部用模块级 `date.today()`（本地时区）⇒ 替换模块属性即可
-    monkeypatch.setattr(_la, "date", _FakeDate)
+        @staticmethod
+        def now(tz=None):
+            return datetime.combine(fake_today, datetime.min.time(),
+                                    tzinfo=tz or timezone.utc)
+
+    # 【2026-11-27】原先替换的是模块级 `date.today()`；归档改用 UTC 的 `datetime.now()` 后
+    # 改为替换 `datetime`（否则 AttributeError —— CI 实测 shard3 的 5 个 offset 全红）。
+    monkeypatch.setattr(_la, "datetime", _FakeDatetime)
     _la._ARCHIVED.clear()          # 幂等缓存按路径记；清理以免与顺序相关
 
     def _at(days_ago: int) -> str:
