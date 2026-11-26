@@ -126,9 +126,20 @@ class TestRegistrationAndSchema:
         assert _tools._registry["delegate"]["schema"]["type"] == "object"
 
     def test_schema_covers_all_eight_elements_in_order(self, make_tool):
+        """八要素必须**在前且顺序不变**；其后的可选控制参数单独列白名单
+
+        【为什么不是全等】E2-3/E2-4 给 delegate 增加了可选控制参数
+        （fork* / ralph* / acceptance）。它们不得插进八要素中间、也不得改八要素的
+        语义；这里同时守住"前缀顺序"与"新增参数必须显式登记"两道。
+        """
         make_tool()
         props = list(_schema()["properties"].keys())
-        assert props == list(EIGHT_ELEMENTS), f"八要素键名/顺序不符: {props}"
+        assert props[:len(EIGHT_ELEMENTS)] == list(EIGHT_ELEMENTS), f"八要素键名/顺序不符: {props}"
+        extras = props[len(EIGHT_ELEMENTS):]
+        assert extras == [
+            "fork", "fork_messages", "fork_summary",
+            "ralph", "ralph_rounds", "acceptance",
+        ], f"可选控制参数未登记或顺序漂移: {extras}"
 
     def test_required_derived_from_real_validator(self, make_tool):
         """required 必须由 element_problems 推导：八个要素缺任一都被判不合格"""
