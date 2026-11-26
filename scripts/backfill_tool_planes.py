@@ -110,6 +110,11 @@ PLANE_MAP: dict[str, tuple[str, str, str, list[str]]] = {
     "list_processes": ("perceive", "read", "low", ["process"]),
     "shell_execute": ("act", "execute", "critical", ["shell"]),
     "run_program": ("act", "execute", "high", ["process"]),
+    # E3-1 持久终端（PTY）：与 shell_execute 同为"任意命令"，但它是**常驻交互会话**
+    # （能绕过一次性命令的模式匹配）⇒ 同 critical 档，默认关、受限档拒绝。
+    "terminal": ("act", "execute", "critical", ["shell", "terminal"]),
+    # E2-1 运行中子代理控制（list/send/interrupt/inbox）：只操作本进程的登记表，不改文件
+    "subagent_control": ("govern", "write", "medium", ["subagent"]),
     "stop_process": ("act", "execute", "medium", ["process"]),
 
     # ── software_tools.py（2，2026-11-05 受控安装通道）────────

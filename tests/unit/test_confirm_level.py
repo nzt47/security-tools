@@ -288,7 +288,8 @@ class TestL0StaysFree:
         assert dist["L0"] >= 30, f"L0（免确认）太少，说明分级退化成一刀切：{dist}"
         assert dist["L1"] >= 30, f"L1（可批量摘要确认）太少：{dist}"
         # 只有 14 个 high（+ critical）进 L2/L3，其余不该被牵连
-        assert dist["L2"] + dist["L3"] == 22, dist      # 12 个 L2 + 10 个 L3
+        # 【2026-11-27】22 → 23：terminal（E3-1，risk=critical ⇒ L3；默认关但级别照样派生）
+        assert dist["L2"] + dist["L3"] == 23, dist      # 12 个 L2 + 11 个 L3
 
     @pytest.mark.parametrize("tool", ["read_file", "list_dir", "grep",
                                       "get_weather", "web_search"])
@@ -332,8 +333,8 @@ class TestConsistencyWithPermissionLevel:
         `derive_confirm_level` 是**工具侧** L0–L3 的派生（TASK-06 §3 第 2 步）。
         """
         tools = [e for e in _manifest_entries() if e.get("kind") == "tool"]
-        # 【2026-11-24】96 → 97：read_spill（E0-2；低风险只读，L2/L3 计数不受影响）
-        assert len(tools) == 103, len(tools)  # 2026-11-26：+session_search / session_trace（E1-4d）
+        # 【2026-11-27】103 → 104：terminal（E3-1，risk=critical ⇒ L3）
+        assert len(tools) == 104, len(tools)
 
         mismatch = []
         for e in tools:
@@ -1108,7 +1109,7 @@ class TestNoYamlWritesNeeded:
     def test_全部_YAML_仍然零声明(self):
         """本裁决的可复核形式：YAML 侧不写该字段，且这不影响任何判定"""
         metas = _committed_metas()
-        assert len(metas) == 103, len(metas)  # 2026-11-26：+session_search / session_trace（E1-4d）
+        assert len(metas) == 104, len(metas)  # 2026-11-27：+terminal（E3-1）
         declared = {k: v.confirm_level for k, v in metas.items() if v.confirm_level}
         assert declared == {}, f"若要写进 YAML 就属于口径变更，必须同时更新本裁决：{declared}"
 

@@ -1,0 +1,92 @@
+name: terminal
+category: code
+description: 持久终端（PTY）会话：把交互式程序当成长跑会话操作。action=open 开会话（默认当前平台 shell）、send 写 stdin（默认补换行）、read 取输出（offset/limit 以字符计）、signal 发 Ctrl-C 或终止、close 关闭、list 列出。需要 CP_TERMINAL_ENABLED=1，且权限预设必须是 full-access。Manage persistent PTY terminal sessions
+deprecated: false
+version: 1.0.0
+location: remote
+location_reason: "调用链经 agent.pty_session 命中跨边界原语（ConPTY / pty.openpty + 子进程）"
+plane: act
+effect: execute
+risk: critical
+tool_type: tool
+# E3-1：默认**关**（CP_TERMINAL_ENABLED=0）；受限档一律拒绝。开关打开后才真正可用。
+enabled: true
+llm_callable: true
+callable_mode: auto
+permission_level: restricted
+sandbox_allowed: false
+tags: [shell]
+schema:
+  type: object
+  properties:
+    action:
+      type: string
+      enum: [open, send, read, signal, close, list]
+      description: 要做的动作
+    command:
+      type: string
+      description: action=open 时要启动的命令（缺省 cmd/bash）；按空格拆分，不支持管道与重定向
+    cwd:
+      type: string
+      description: action=open 时的工作目录（缺省当前目录）
+    rows:
+      type: integer
+      description: PTY 行数（默认 30）
+    cols:
+      type: integer
+      description: PTY 列数（默认 120）
+    id:
+      type: string
+      description: 会话 id（open 返回；其余动作必填）
+    text:
+      type: string
+      description: action=send 时写入 stdin 的文本
+    newline:
+      type: boolean
+      description: action=send 时是否补一个回车（默认 true，等于按 Enter；向 REPL 发代码通常要）
+    offset:
+      type: integer
+      description: action=read 的起始字符偏移（用上次的 next_offset）
+    limit:
+      type: integer
+      description: action=read 本次最多返回的字符数（默认 20000，上限 60000）
+    signal:
+      type: string
+      enum: [interrupt, terminate]
+      description: "action=signal 的动作：interrupt=Ctrl-C，terminate=结束进程树"
+  required:
+  - action
+# 【result_schema】按实现 return 字面量声明（agent/pty_session.py + terminal_tools 分派）：
+#   open {ok,id,command,cwd,rows,cols,hint}；read {ok,id,chunk,offset,next_offset,total_chars,
+#   trimmed_from,trimmed,alive}；list {ok,sessions,count,max}；send/close/signal {ok,id,...}；
+#   失败 {ok:false,error}（disabled / blocked / dependency 三态附原因）。required 只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    id:
+      type: string
+    chunk:
+      type: string
+    offset:
+      type: integer
+    next_offset:
+      type: integer
+    total_chars:
+      type: integer
+    trimmed_from:
+      type: integer
+    trimmed:
+      type: boolean
+    alive:
+      type: boolean
+    sessions:
+      type: array
+    count:
+      type: integer
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
+examples: []

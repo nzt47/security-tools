@@ -594,6 +594,26 @@ _REGISTRY_ROWS: List[SettingSpec] = [
         "spill 信封里的预览字符预算（头 4/5 + 尾 1/5）",
         owner="agent/context/spill.py",
         validator=_range_validator(512, 65536, kind="int")),
+    # ── E3-1 持久终端 PTY（2026-11-27）──────────────────────────────────
+    # 【为什么"开终端"是 B 级】打开它就是给模型一条**完整交互 shell**：绕过 shell_execute
+    #   的一次性命令模式匹配，也绕过权限预设对子进程的限制 ⇒ 与"降低防护姿态"同类。
+    #   默认关；受限档（非 full-access）即使打开也一律拒绝（见 agent/pty_session.py）。
+    _b("CP_TERMINAL_ENABLED", CAT_SELF_HEALING, False,
+       "持久终端（PTY）会话：terminal 工具的 open/send/read/signal/close/list。"
+       "默认关；打开后仍要求权限预设为 full-access（受限档一律拒绝）",
+       owner="agent/pty_session.py"),
+    _mk("CP_TERMINAL_MAX_SESSIONS", CAT_ORCHESTRATION, 4,
+        "同时存活的终端会话上限（1–16）；超限时 open 回可执行提示",
+        owner="agent/pty_session.py",
+        validator=_range_validator(1, 16, kind="int")),
+    _mk("CP_TERMINAL_BUFFER_CHARS", CAT_ORCHESTRATION, 200000,
+        "单会话输出环形缓冲的字符上限（4096–2000000）；被裁掉的部分用 trimmed_from 如实告知",
+        owner="agent/pty_session.py",
+        validator=_range_validator(4096, 2000000, kind="int")),
+    _mk("CP_TERMINAL_IDLE_SECONDS", CAT_ORCHESTRATION, 1800,
+        "终端会话空闲自动回收的秒数（30–86400）",
+        owner="agent/pty_session.py",
+        validator=_range_validator(30, 86400, kind="int")),
     # ── E0-2③ 图片/截图 offload（2026-11-26）─────────────────────────────
     # 【为什么是 A 级】只改"图片以什么形态进上下文"，不改权限；关掉 = 回到把 base64
     #   塞进上下文（一次截图就可能顶穿窗口，这条开关是事故时的回滚位）。
