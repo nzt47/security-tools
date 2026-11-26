@@ -1551,6 +1551,14 @@
    "next": "已完成。Phase 2（多代理）四项全部交付。下一步 Phase 3：PTY 持久终端（E3-1）与 Office 三件套（E3-2）——两者可并行两条工作流。"
   },
   {
+   "id": "dsh-parity-e2-ci-green",
+   "status": "done",
+   "priority": "P2",
+   "title": "E2 收口：CI 全绿（5a9075955）+ 三处派生失配修复",
+   "criteria": "2026-11-26「云枢系统测试流程」在 5a9075955 上 success（12 shard × 2 平台 + 集成/E2E/安全/性能/失败基线回归全部通过；其余 workflow 亦 success，仅可观测性质量保障为定时任务）。过程中修复：① BM25 S0 5.788→5.8269（与重标定产物一致）；② 路由冲突基线 27→28/50、τ 0.0563→0.0297（新工具改变检索排序，属提升）；③ 重跑 run_routing_reliability.py（report.json/REPORT.md）；④ 能力清单/盘点表同源重派生 153 条（location local 130 / remote 23）、capregistry 探针 149/103、confirm_level 103；⑤ 测试对可选控制参数（fork*/ralph*/acceptance）的白名单断言。",
+   "next": "已完成。下一步 Phase 3（E3-1 PTY / E3-2 Office）或 E0-2 余项（token-meter 压缩、图片 offload）、E0-4 余项（time-context / 协作式取消）。"
+  },
+  {
    "id": "dsh-parity-p3-execution",
    "status": "open",
    "priority": "P1",
