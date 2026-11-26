@@ -28,6 +28,29 @@ def _env(monkeypatch):
     yield
 
 
+def _reset_view_cache() -> None:
+    """清掉 system_tools 各路由 `_view` 的包装缓存。
+
+    【为什么必须清】本文件用**假 app_server**（require_token=直通）注册蓝图；`_view` 会把首次
+    请求时包好的装饰器缓存在闭包里。不清的话，同进程后续测试（随机顺序）里真 app 的
+    `/api/terminal/*` 会用到这个"免鉴权"包装 —— 变成难以复现的红。teardown 统一清空，
+    下一次真请求会重新从当时的 app_server 取装饰器。
+    """
+    import plugins.system_tools as st
+
+    for name in dir(st):
+        if not name.startswith("api_"):
+            continue
+        fn = getattr(st, name)
+        for cell in getattr(fn, "__closure__", None) or ():
+            try:
+                contents = cell.cell_contents
+            except ValueError:  # 空 cell
+                continue
+            if isinstance(contents, dict) and "wrapped" in contents:
+                contents["wrapped"] = None
+
+
 @pytest.fixture()
 def client(monkeypatch):
     """装配桩 app_server（require_token / log_request 直通）+ 注册 system_tools 蓝图。"""
@@ -48,6 +71,7 @@ def client(monkeypatch):
     yield app.test_client()
     from agent import pty_session
     pty_session.close_all()
+    _reset_view_cache()
 
 
 class TestDisabledByDefault:
