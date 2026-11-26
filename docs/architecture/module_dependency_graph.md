@@ -460,6 +460,7 @@ flowchart LR
     end
     subgraph office [office]
         agent_office_docx_text["agent.office.docx_text"]:::crosslayer
+        agent_office_pptx_text["agent.office.pptx_text"]:::crosslayer
         agent_office_xlsx_text["agent.office.xlsx_text"]:::crosslayer
     end
     subgraph orchestrator [orchestrator]
@@ -764,6 +765,7 @@ flowchart LR
         agent_tools_pdf_tools["agent.tools.pdf_tools"]:::crosslayer
         agent_tools_persistence["agent.tools.persistence"]:::crosslayer
         agent_tools_plan_tools["agent.tools.plan_tools"]:::crosslayer
+        agent_tools_pptx_tools["agent.tools.pptx_tools"]:::crosslayer
         agent_tools_process_tools["agent.tools.process_tools"]:::crosslayer
         agent_tools_search_tools["agent.tools.search_tools"]:::crosslayer
         agent_tools_session_tools["agent.tools.session_tools"]:::crosslayer
@@ -1850,6 +1852,7 @@ flowchart LR
     agent_orchestrator_lifecycle_manager -.-> agent_tools_terminal_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_docx_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_xlsx_tools
+    agent_orchestrator_lifecycle_manager -.-> agent_tools_pptx_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_skill_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_core_tools
     agent_orchestrator_lifecycle_manager -.-> agent_utils_compatibility
@@ -3088,6 +3091,9 @@ flowchart LR
     agent_tools_persistence --> agent
     agent_tools_plan_tools --> agent
     agent_tools_plan_tools -.-> agent_observability_trace_v2
+    agent_tools_pptx_tools --> agent
+    agent_tools_pptx_tools -.-> agent_office_pptx_text
+    agent_tools_pptx_tools -.-> agent_system_tools
     agent_tools_process_tools -.-> agent_sandbox
     agent_tools_process_tools -.-> agent_sandbox_win_acl
     agent_tools_search_tools --> agent
@@ -3247,9 +3253,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 823
-- 模块节点数: 714
-- 依赖边数: 2399
-- 跨层调用数: 1528
+- 扫描文件数: 825
+- 模块节点数: 716
+- 依赖边数: 2403
+- 跨层调用数: 1531
 - 违规调用数: 0
 - 动态 import 数: 1

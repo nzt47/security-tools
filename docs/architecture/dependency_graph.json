@@ -478,7 +478,7 @@
       "name": "agent",
       "layer": "unknown",
       "file_path": "",
-      "in_degree": 71,
+      "in_degree": 72,
       "out_degree": 0
     },
     {
@@ -710,7 +710,7 @@
       "name": "system_tools",
       "layer": "core",
       "file_path": "",
-      "in_degree": 13,
+      "in_degree": 14,
       "out_degree": 8
     },
     {
@@ -3191,7 +3191,7 @@
       "layer": "orchestrator",
       "file_path": "agent/orchestrator/lifecycle_manager.py",
       "in_degree": 0,
-      "out_degree": 61
+      "out_degree": 62
     },
     {
       "path": "agent.orchestrator.turn_state",
@@ -3412,6 +3412,14 @@
     {
       "path": "agent.tools.xlsx_tools",
       "name": "xlsx_tools",
+      "layer": "tools",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 3
+    },
+    {
+      "path": "agent.tools.pptx_tools",
+      "name": "pptx_tools",
       "layer": "tools",
       "file_path": "",
       "in_degree": 1,
@@ -5576,6 +5584,14 @@
       "file_path": "agent/tools/observability.py",
       "in_degree": 0,
       "out_degree": 2
+    },
+    {
+      "path": "agent.office.pptx_text",
+      "name": "pptx_text",
+      "layer": "office",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 0
     },
     {
       "path": "agent.tools.win_bash",
@@ -18474,7 +18490,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 1459,
+      "line": 1461,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -18847,11 +18863,24 @@
     },
     {
       "source": "agent.orchestrator.lifecycle_manager",
+      "target": "agent.tools.pptx_tools",
+      "source_layer": "orchestrator",
+      "target_layer": "tools",
+      "import_type": "from_import",
+      "line": 1178,
+      "source_file": "agent/orchestrator/lifecycle_manager.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.orchestrator.lifecycle_manager",
       "target": "agent.tools.skill_tools",
       "source_layer": "orchestrator",
       "target_layer": "tools",
       "import_type": "from_import",
-      "line": 1181,
+      "line": 1182,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -18864,7 +18893,7 @@
       "source_layer": "orchestrator",
       "target_layer": "tools",
       "import_type": "from_import",
-      "line": 1247,
+      "line": 1249,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -19059,7 +19088,7 @@
       "source_layer": "orchestrator",
       "target_layer": "process_distill",
       "import_type": "from_import",
-      "line": 1185,
+      "line": 1186,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -19072,7 +19101,7 @@
       "source_layer": "orchestrator",
       "target_layer": "knowledge",
       "import_type": "from_import",
-      "line": 1194,
+      "line": 1195,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -19085,7 +19114,7 @@
       "source_layer": "orchestrator",
       "target_layer": "unknown",
       "import_type": "from_import",
-      "line": 1233,
+      "line": 1235,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -19202,7 +19231,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 1376,
+      "line": 1378,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -33255,7 +33284,7 @@
       "source_layer": "core",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 314,
+      "line": 316,
       "source_file": "agent/tool_router_hybrid.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -33268,7 +33297,7 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 320,
+      "line": 322,
       "source_file": "agent/tool_router_hybrid.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -33281,7 +33310,7 @@
       "source_layer": "core",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 2161,
+      "line": 2163,
       "source_file": "agent/tool_router_hybrid.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -33294,7 +33323,7 @@
       "source_layer": "core",
       "target_layer": "orchestrator",
       "import_type": "from_import",
-      "line": 2180,
+      "line": 2182,
       "source_file": "agent/tool_router_hybrid.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -34934,6 +34963,45 @@
       "import_type": "from_import",
       "line": 142,
       "source_file": "agent/tools/plan_tools.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.tools.pptx_tools",
+      "target": "agent",
+      "source_layer": "tools",
+      "target_layer": "unknown",
+      "import_type": "from_import",
+      "line": 11,
+      "source_file": "agent/tools/pptx_tools.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.tools.pptx_tools",
+      "target": "agent.office.pptx_text",
+      "source_layer": "tools",
+      "target_layer": "office",
+      "import_type": "from_import",
+      "line": 29,
+      "source_file": "agent/tools/pptx_tools.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.tools.pptx_tools",
+      "target": "agent.system_tools",
+      "source_layer": "tools",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 30,
+      "source_file": "agent/tools/pptx_tools.py",
       "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
@@ -36904,10 +36972,10 @@
     }
   ],
   "stats": {
-    "total_files": 823,
-    "total_nodes": 714,
-    "total_edges": 2399,
-    "cross_layer_edges": 1528,
+    "total_files": 825,
+    "total_nodes": 716,
+    "total_edges": 2403,
+    "cross_layer_edges": 1531,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -36919,7 +36987,7 @@
       "extensions": 19,
       "health": 7,
       "audit": 8,
-      "tools": 41,
+      "tools": 42,
       "observability": 13,
       "security": 10,
       "evolution": 1,
@@ -36971,7 +37039,7 @@
       "ui_guard": 4,
       "feedback_collector": 1,
       "task_planner": 5,
-      "office": 2
+      "office": 3
     }
   }
 }
