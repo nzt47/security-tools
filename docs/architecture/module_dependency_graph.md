@@ -701,6 +701,7 @@ flowchart LR
         agent_subagent_delegation_history["agent.subagent.delegation_history"]:::crosslayer
         agent_subagent_dependencies["agent.subagent.dependencies"]:::crosslayer
         agent_subagent_executor["agent.subagent.executor"]:::crosslayer
+        agent_subagent_fork_context["agent.subagent.fork_context"]:::crosslayer
         agent_subagent_lifecycle["agent.subagent.lifecycle"]:::crosslayer
         agent_subagent_llm_factory["agent.subagent.llm_factory"]:::crosslayer
         agent_subagent_local_inference["agent.subagent.local_inference"]:::crosslayer
@@ -2453,6 +2454,7 @@ flowchart LR
     agent_server_routes_routes_subagent -.-> agent_subagent_role_prompt_library
     agent_server_routes_routes_subagent -.-> agent_subagent_role_templates
     agent_server_routes_routes_subagent -.-> agent_tools_subagent_tools
+    agent_server_routes_routes_subagent -.-> agent_subagent_fork_context
     agent_server_routes_routes_subagent -.-> agent_subagent_bundle
     agent_server_routes_routes_subagent -.-> agent_subagent_callback_channel
     agent_server_routes_routes_subagent -.-> agent_subagent_runs
@@ -2781,6 +2783,7 @@ flowchart LR
     agent_subagent_executor --> agent_subagent_role_templates
     agent_subagent_executor --> agent_subagent_autonomy_gate
     agent_subagent_executor --> agent_subagent_callback_outbox
+    agent_subagent_fork_context -.-> agent_context
     agent_subagent_lifecycle --> agent_subagent_container
     agent_subagent_lifecycle --> agent_subagent_task_board
     agent_subagent_lifecycle --> agent_subagent_memory_broker
@@ -3089,6 +3092,8 @@ flowchart LR
     agent_tools_subagent_tools -.-> agent_subagent_delegation
     agent_tools_subagent_tools -.-> agent_subagent_container
     agent_tools_subagent_tools -.-> agent_subagent_channel
+    agent_tools_subagent_tools --> agent_tools_goal_tools
+    agent_tools_subagent_tools -.-> agent_subagent_fork_context
     agent_tools_subagent_tools -.-> agent_monitoring_tracing
     agent_tools_subagent_tools -.-> agent_subagent_local_inference
     agent_tools_system_tools --> agent
@@ -3210,9 +3215,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 811
-- 模块节点数: 704
-- 依赖边数: 2374
-- 跨层调用数: 1510
+- 扫描文件数: 812
+- 模块节点数: 705
+- 依赖边数: 2378
+- 跨层调用数: 1513
 - 违规调用数: 0
 - 动态 import 数: 1
