@@ -47,6 +47,18 @@ def test_写入并检索中文子串():
     assert "检查点" in hit["snippet"]
 
 
+def test_同分时新的在前():
+    """两个会话内容完全一样 ⇒ rank 相同；必须让**后写入**的排在前面。
+
+    真机踩过（2026-11-26 E1-4d 探针）：同一关键词重复跑过多轮后，旧的同分命中占满
+    limit=5，刚写的消息搜不到 —— 回忆场景语义上应该"新的优先"。
+    """
+    S.index_message("sess_old", "user", "同一句话：检查点口径")
+    S.index_message("sess_new", "user", "同一句话：检查点口径")
+    hits = S.search("检查点口径", limit=2)["hits"]
+    assert [h["session_id"] for h in hits][:2] == ["sess_new", "sess_old"]
+
+
 def test_检索未命中返回空():
     S.index_message("s1", "user", "完全无关的内容")
     out = S.search("检查点")

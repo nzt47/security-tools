@@ -175,7 +175,9 @@ def search(query: str, limit: Any = DEFAULT_LIMIT) -> Dict[str, Any]:
                 " snippet(messages_fts, 0, '[', ']', '…', ?), m.ts"
                 " FROM messages_fts JOIN messages AS m"
                 "   ON m.session_id = messages_fts.session_id AND m.seq = messages_fts.seq"
-                " WHERE messages_fts MATCH ? ORDER BY rank LIMIT ?",
+                # 【2026-11-26】rank 相同时**新的在前**：回忆场景里"同分"几乎都是同一句话的
+                #   多次出现（例如同一探针跑过多轮），旧的排前面会把刚写的挤到 limit 之外。
+                " WHERE messages_fts MATCH ? ORDER BY rank, m.rowid DESC LIMIT ?",
                 (SNIPPET_TOKENS, '"%s"' % text.replace('"', " "), capped)).fetchall()
             mode = "match"
         else:
