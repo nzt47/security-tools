@@ -23,7 +23,15 @@ function res(body: unknown, envelope = false) {
   } as unknown as Response
 }
 
-function installFetch(opts: { terminal?: unknown } = {}) {
+interface PtyOpts {
+  sessions?: unknown
+  open?: unknown
+  output?: { chunk?: string; next_offset?: number | null }[]
+}
+
+function installFetch(opts: { terminal?: unknown; pty?: PtyOpts } = {}) {
+  // PTY 输出按队列逐次消费：轮询是 800ms 定时器，测试里只关心「首块上屏」，之后回空块
+  const ptyQueue = [...(opts.pty?.output ?? [{ chunk: 'READY\r\n', next_offset: 7 }])]
   const fn = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input)
     if (url.includes('/api/subagent/list')) {
@@ -63,6 +71,17 @@ function installFetch(opts: { terminal?: unknown } = {}) {
         ],
       })
     }
+    if (url.includes('/api/terminal/sessions')) {
+      if (init?.method === 'POST') return res(opts.pty?.open ?? { ok: true, id: 't-1', command: 'cmd' })
+      return res(opts.pty?.sessions ?? { ok: true, enabled: true, backend: 'winpty', max_sessions: 4, sessions: [] })
+    }
+    if (url.includes('/api/terminal/output')) {
+      const next = ptyQueue.length ? ptyQueue.shift() : { chunk: '', next_offset: null }
+      return res({ ok: true, offset: 0, alive: true, ...next })
+    }
+    if (url.includes('/api/terminal/input')) return res({ ok: true, id: 't-1', chars: 3 })
+    if (url.includes('/api/terminal/signal')) return res({ ok: true, id: 't-1', action: 'interrupt' })
+    if (url.includes('/api/terminal/close')) return res({ ok: true, id: 't-1' })
     if (url.includes('/api/terminal/exec')) {
       return res(opts.terminal ?? {
         ok: true, argv: ['git', 'status', '--short'], exit_code: 0,
@@ -178,6 +197,54 @@ describe('DockPanel · 右侧可切换边栏', () => {
     render(<DockPanel />)
     fireEvent.click(screen.getByRole('tab', { name: /终端/ }))
     await waitFor(() => expect(screen.getByText(/未授权/)).toBeInTheDocument())
+  })
+
+  it('终端 · 交互：开关未开时如实提示，开会话只显示固定文案（不回后端原文）', async () => {
+    installFetch({
+      pty: {
+        sessions: { ok: true, enabled: false, backend: 'winpty', max_sessions: 4, sessions: [] },
+        open: { ok: false, code: 'disabled' },
+      },
+    })
+    render(<DockPanel />)
+    fireEvent.click(screen.getByRole('tab', { name: /终端/ }))
+    fireEvent.click(screen.getByRole('button', { name: '交互' }))
+    await waitFor(() => expect(screen.getByText(/CP_TERMINAL_ENABLED=1/)).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /打开/ }))
+    await waitFor(() => expect(screen.getByText(/终端未启用：到「设置中心」/)).toBeInTheDocument())
+  })
+
+  it('终端 · 交互：开会话后轮询输出上屏，发送/ Ctrl-C 打对应端点', async () => {
+    const fn = installFetch()
+    render(<DockPanel />)
+    fireEvent.click(screen.getByRole('tab', { name: /终端/ }))
+    fireEvent.click(screen.getByRole('button', { name: '交互' }))
+    fireEvent.click(screen.getByRole('button', { name: /打开/ }))
+
+    await waitFor(() => expect(screen.getByText(/READY/)).toBeInTheDocument())
+
+    fireEvent.change(screen.getByLabelText('终端输入'), { target: { value: 'dir' } })
+    fireEvent.click(screen.getByRole('button', { name: /发送/ }))
+    await waitFor(() => {
+      const call = fn.mock.calls.find(([u]) => String(u).includes('/api/terminal/input'))
+      expect(call).toBeTruthy()
+    })
+    const inputCall = fn.mock.calls.find(([u]) => String(u).includes('/api/terminal/input'))
+    expect(JSON.parse(String(((inputCall?.[1] as RequestInit) || {}).body))).toMatchObject({
+      id: 't-1',
+      text: 'dir',
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ctrl-C' }))
+    await waitFor(() => {
+      const call = fn.mock.calls.find(([u]) => String(u).includes('/api/terminal/signal'))
+      expect(call).toBeTruthy()
+    })
+    const sigCall = fn.mock.calls.find(([u]) => String(u).includes('/api/terminal/signal'))
+    expect(JSON.parse(String(((sigCall?.[1] as RequestInit) || {}).body))).toMatchObject({
+      id: 't-1',
+      action: 'interrupt',
+    })
   })
 
   it('浏览器 · 交互模式：建会话后出帧，点击按 viewport 换算成页面坐标', async () => {

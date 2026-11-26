@@ -1,16 +1,16 @@
 {
-  "generated_at": "2026-11-27T00:05:17",
+  "generated_at": "2026-11-27T05:12:54",
   "totals": {
-    "routes": 539,
-    "live": 539,
+    "routes": 544,
+    "live": 544,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 478,
+    "ui": 483,
     "cli_script": 15,
     "runtime_only": 12,
     "unreferenced": 34,
     "live_by_category": {
-      "ui": 478,
+      "ui": 483,
       "cli_script": 15,
       "runtime_only": 12,
       "unreferenced": 34
@@ -18,13 +18,13 @@
     "by_intent": {
       "should_be_in_ui": 444,
       "should_not_be_in_ui": 80,
-      "unclassified": 15
+      "unclassified": 20
     },
     "by_domain": {
       "页面入口": 7,
       "分身与主线": 27,
       "观测与诊断": 84,
-      "系统与配置": 46,
+      "系统与配置": 51,
       "治理与审批": 47,
       "对话与会话": 49,
       "资产与文件": 19,
@@ -37,7 +37,7 @@
       "记忆与知识": 42
     }
   },
-  "frontend_endpoints": 482,
+  "frontend_endpoints": 487,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -1643,7 +1643,7 @@
         "scripts/probe_prefix_cache_interaction.py"
       ],
       "where": [
-        "plugins/chat.py:3395"
+        "plugins/chat.py:3400"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
@@ -1666,7 +1666,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1346"
+        "plugins/chat.py:1351"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
@@ -3815,7 +3815,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:895"
+        "plugins/chat.py:900"
       ],
       "description": "生成会话交接文档 —— LLM 把当前会话压缩成 Markdown，落盘到 OS 临时目录。",
       "description_source": "handler",
@@ -4286,7 +4286,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1324"
+        "plugins/chat.py:1329"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
@@ -4311,7 +4311,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1360"
+        "plugins/chat.py:1365"
       ],
       "description": "删除指定索引的历史记录（同时删除用户消息和助手回复）",
       "description_source": "handler",
@@ -5992,7 +5992,7 @@
         "scripts/verify_key_revocation.ps1"
       ],
       "where": [
-        "plugins/chat.py:593"
+        "plugins/chat.py:598"
       ],
       "description": "新闻直通接口 — 搜索+翻译+格式化，绕过 LLM",
       "description_source": "handler",
@@ -7126,8 +7126,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1161",
-        "plugins/chat.py:1169"
+        "plugins/chat.py:1166",
+        "plugins/chat.py:1174"
       ],
       "description": "列出全部项目（id / name / workspace_root / created_at / updated_at）",
       "description_source": "handler",
@@ -7153,8 +7153,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1194",
-        "plugins/chat.py:1223"
+        "plugins/chat.py:1199",
+        "plugins/chat.py:1228"
       ],
       "description": "改名 / 改工作空间：body {name?, path|workspace_root?, create?}（只改传了的字段）",
       "description_source": "handler",
@@ -7179,7 +7179,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:3070"
+        "plugins/chat.py:3075"
       ],
       "description": "提示词实验室「真实接口」的后端代理（2026-10-14 修 404）。",
       "description_source": "handler",
@@ -8214,8 +8214,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1258",
-        "plugins/chat.py:1267"
+        "plugins/chat.py:1263",
+        "plugins/chat.py:1272"
       ],
       "description": "列出分组及 会话→分组 归属表；?project_id= 只返回该项目下的分组",
       "description_source": "handler",
@@ -8241,8 +8241,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1282",
-        "plugins/chat.py:1297"
+        "plugins/chat.py:1287",
+        "plugins/chat.py:1302"
       ],
       "description": "重命名分组",
       "description_source": "handler",
@@ -8296,8 +8296,8 @@
         "scripts/dev/verify_prompt_injection_mock.py"
       ],
       "where": [
-        "plugins/chat.py:675",
-        "plugins/chat.py:714"
+        "plugins/chat.py:680",
+        "plugins/chat.py:719"
       ],
       "description": "获取会话列表",
       "description_source": "handler",
@@ -8322,7 +8322,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:736"
+        "plugins/chat.py:741"
       ],
       "description": "删除会话",
       "description_source": "handler",
@@ -8347,7 +8347,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:793"
+        "plugins/chat.py:798"
       ],
       "description": "设置/清除会话级智能体：body {agent: string|null}；null/空 = 母体。",
       "description_source": "handler",
@@ -8397,7 +8397,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1308"
+        "plugins/chat.py:1313"
       ],
       "description": "把会话移入/移出分组：body {group_id: string|null}；null = 未分组",
       "description_source": "handler",
@@ -8424,8 +8424,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:846",
-        "plugins/chat.py:856"
+        "plugins/chat.py:851",
+        "plugins/chat.py:861"
       ],
       "description": "获取会话消息",
       "description_source": "handler",
@@ -8475,7 +8475,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:771"
+        "plugins/chat.py:776"
       ],
       "description": "把会话归入/移出项目：body {project_id: string|null}；null = 未归属项目。",
       "description_source": "handler",
@@ -8500,7 +8500,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:756"
+        "plugins/chat.py:761"
       ],
       "description": "重命名会话",
       "description_source": "handler",
@@ -8550,7 +8550,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:996"
+        "plugins/chat.py:1001"
       ],
       "description": "列出会话工作空间文件树（会话不存在 404）",
       "description_source": "handler",
@@ -8576,8 +8576,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1019",
-        "plugins/chat.py:1045"
+        "plugins/chat.py:1024",
+        "plugins/chat.py:1050"
       ],
       "description": "绑定/切换会话工作空间到本地绝对路径（仿 DSH 添加工作区）",
       "description_source": "handler",
@@ -8602,7 +8602,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1057"
+        "plugins/chat.py:1062"
       ],
       "description": "在系统文件管理器中打开该会话的工作空间目录（本机桌面应用场景）",
       "description_source": "handler",
@@ -8627,7 +8627,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:817"
+        "plugins/chat.py:822"
       ],
       "description": "切换当前会话",
       "description_source": "handler",
@@ -8652,7 +8652,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:934"
+        "plugins/chat.py:939"
       ],
       "description": "用交接文档开一个新会话（可选的续接入口）",
       "description_source": "handler",
@@ -11679,9 +11679,34 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:874"
+        "plugins/system_tools.py:885"
       ],
       "description": "「云枢当前正在执行什么」—— 审计链尾部 + 进行中的子代理委派（只读）。",
+      "description_source": "handler",
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false,
+      "domain": "系统与配置"
+    },
+    {
+      "path": "/api/terminal/close",
+      "norm": "/api/terminal/close",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/system_tools.py:1061"
+      ],
+      "description": "关闭 PTY 会话（先 terminate 再整树 kill；幂等，再关一次只回 no_session）。",
       "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
@@ -11704,7 +11729,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:787"
+        "plugins/system_tools.py:798"
       ],
       "description": "列出可执行命令白名单（界面用它渲染按钮，**不接受自由输入**）。",
       "description_source": "handler",
@@ -11729,9 +11754,112 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:859"
+        "plugins/system_tools.py:870"
       ],
       "description": "按白名单执行一条命令（`shell=False`，cwd 锁仓库根）。",
+      "description_source": "handler",
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false,
+      "domain": "系统与配置"
+    },
+    {
+      "path": "/api/terminal/input",
+      "norm": "/api/terminal/input",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/system_tools.py:1017"
+      ],
+      "description": "写 PTY stdin（默认补 \\r —— PTY 的 Enter 是 \\r，不是 \\n）。",
+      "description_source": "handler",
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false,
+      "domain": "系统与配置"
+    },
+    {
+      "path": "/api/terminal/output",
+      "norm": "/api/terminal/output",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/components/workbench/panels/DockPanel.tsx"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/system_tools.py:1033"
+      ],
+      "description": "按 offset/limit 取 PTY 增量输出（前端轮询用；trimmed=true 表示环形窗口已滑过）。",
+      "description_source": "handler",
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false,
+      "domain": "系统与配置"
+    },
+    {
+      "path": "/api/terminal/sessions",
+      "norm": "/api/terminal/sessions",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/system_tools.py:1001",
+        "plugins/system_tools.py:982"
+      ],
+      "description": "开一个 PTY 会话（默认当前平台 shell）；开关未开/受限档只回 code，绝不 spawn。",
+      "description_source": "handler",
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false,
+      "domain": "系统与配置"
+    },
+    {
+      "path": "/api/terminal/signal",
+      "norm": "/api/terminal/signal",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/system_tools.py:1048"
+      ],
+      "description": "给 PTY 会话发信号：interrupt=Ctrl-C，terminate=结束整棵进程树。",
       "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
@@ -13217,9 +13345,9 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1121",
-        "plugins/chat.py:1129",
-        "plugins/chat.py:1145"
+        "plugins/chat.py:1126",
+        "plugins/chat.py:1134",
+        "plugins/chat.py:1150"
       ],
       "description": "列出已添加的工作区（路径/名称/添加时间）",
       "description_source": "handler",
@@ -13816,5 +13944,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "bdbf50e0c4a0e8ef"
+  "content_hash": "692673de3b3b9a66"
 }

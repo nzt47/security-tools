@@ -721,6 +721,12 @@ export const TERMINAL_COMMANDS = '/api/terminal/commands';
 export const TERMINAL_EXEC = '/api/terminal/exec';
 /** 实时活动（审计链尾部 + 进行中的子代理委派；只读，轮询用） */
 export const TERMINAL_ACTIVITY = '/api/terminal/activity';
+/** E3-1 持久终端（PTY）会话：右坞「交互」子视图；开关默认关，失败只回稳定 code */
+export const TERMINAL_SESSIONS = '/api/terminal/sessions';
+export const TERMINAL_INPUT = '/api/terminal/input';
+export const TERMINAL_OUTPUT = '/api/terminal/output';
+export const TERMINAL_SIGNAL = '/api/terminal/signal';
+export const TERMINAL_CLOSE = '/api/terminal/close';
 export const CLIPBOARD = '/api/clipboard';
 // 认知闭环（元认知）状态 / 任务接受度裁决（方案 §7 第三批接入）
 export const COGNITIVE_STATUS = '/api/cognitive/status';

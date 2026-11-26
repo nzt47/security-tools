@@ -13,7 +13,7 @@
  *   - 终端  ：POST /api/sandbox/run（Python 沙盒；features.sandbox 关闭时如实显示后端原因）
  */
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
-import { BookOpen, Bot, Code2, Globe, Loader2, Play, RefreshCw, Terminal } from 'lucide-react'
+import { BookOpen, Bot, Code2, Globe, Loader2, Play, RefreshCw, Send, Terminal } from 'lucide-react'
 import { CodeEditorPanel } from './CodeEditorPanel'
 import { getEnvelope } from '@/api/envelope'
 import { hubGet, hubPost } from '../../../pages/hub/components/ui'
@@ -25,8 +25,13 @@ import {
   SUBAGENT_HISTORY,
   SUBAGENT_LIST,
   TERMINAL_ACTIVITY,
+  TERMINAL_CLOSE,
   TERMINAL_COMMANDS,
   TERMINAL_EXEC,
+  TERMINAL_INPUT,
+  TERMINAL_OUTPUT,
+  TERMINAL_SESSIONS,
+  TERMINAL_SIGNAL,
   BROWSER_REMOTE_SESSION,
   BROWSER_REMOTE_FRAME,
   BROWSER_REMOTE_INPUT,
@@ -606,12 +611,13 @@ interface TerminalResult {
 
 function TerminalPane() {
   // 【2026-11-19】默认看「实时活动」（审计链尾部 = 云枢此刻在做什么），命令面板仍在旁边一键切
-  const [mode, setMode] = useState<'cmd' | 'activity'>('activity')
+  // 【2026-11-27】新增第三个子视图「交互」= 真 PTY 会话（E3-1 界面侧）；开关默认关
+  const [mode, setMode] = useState<'cmd' | 'activity' | 'pty'>('activity')
 
   return (
     <Pane>
       <div className="flex shrink-0 items-center gap-1 border-b border-slate-800/60 px-2 py-1">
-        {(['cmd', 'activity'] as const).map((m) => (
+        {(['cmd', 'activity', 'pty'] as const).map((m) => (
           <Button
             key={m}
             variant={mode === m ? 'primary' : 'default'}
@@ -619,14 +625,18 @@ function TerminalPane() {
             onClick={() => setMode(m)}
             aria-pressed={mode === m}
           >
-            {m === 'cmd' ? '命令' : '实时活动'}
+            {m === 'cmd' ? '命令' : m === 'activity' ? '实时活动' : '交互'}
           </Button>
         ))}
         <span className="ml-auto text-micro text-slate-600">
-          {mode === 'cmd' ? '白名单执行 · 不是自由 shell' : '审计链尾部 · 3s 轮询'}
+          {mode === 'cmd'
+            ? '白名单执行 · 不是自由 shell'
+            : mode === 'activity'
+              ? '审计链尾部 · 3s 轮询'
+              : '真 PTY · 800ms 轮询'}
         </span>
       </div>
-      {mode === 'cmd' ? <CommandView /> : <ActivityView />}
+      {mode === 'cmd' ? <CommandView /> : mode === 'activity' ? <ActivityView /> : <PtyView />}
     </Pane>
   )
 }
@@ -749,6 +759,347 @@ function CommandView() {
         )}
       </div>
     </>
+  )
+}
+
+
+
+/* ───────────────────────── 交互终端（PTY，E3-1） ───────────────────────── */
+
+interface PtySessionRow {
+  id: string
+  command?: string
+  cwd?: string
+  alive?: boolean
+  age_s?: number
+  idle_s?: number
+  buffered_chars?: number
+  total_chars?: number
+}
+
+interface PtySessionsResp {
+  ok?: boolean
+  enabled?: boolean
+  backend?: string
+  max_sessions?: number
+  sessions?: PtySessionRow[]
+}
+
+interface PtyReadResp {
+  ok?: boolean
+  code?: string
+  chunk?: string
+  offset?: number
+  next_offset?: number | null
+  trimmed?: boolean
+  trimmed_from?: number
+  total_chars?: number
+  alive?: boolean
+}
+
+/** 轮询间隔 + 界面保留的最大字符数（与 pty_session 的环形窗口同量级） */
+const PTY_POLL_MS = 800
+const PTY_KEEP_CHARS = 200_000
+
+/** 失败码 → 界面文案。**中文只在界面这一份**：后端只回稳定 code（不回异常派生串）。 */
+const PTY_ERROR_TEXT: Record<string, string> = {
+  disabled: '终端未启用：到「设置中心」打开 CP_TERMINAL_ENABLED 后重试',
+  blocked: '权限预设为受限档：raw PTY 会绕过命令沙箱，已按 fail-closed 拒绝',
+  dependency: '缺少 pywinpty：pip install pywinpty（或 pip install .[pty]）',
+  max_sessions: '会话已达上限：先关闭一个会话再开',
+  bad_cwd: '工作目录不存在或不可访问',
+  spawn_failed: '终端启动失败（详见服务日志）',
+  no_session: '会话不存在（可能已关闭或被空闲回收）',
+  write_failed: '写入失败（会话可能已退出）',
+  bad_action: '不支持的动作',
+  missing_id: '缺少会话 id',
+}
+
+export function ptyErrorText(code?: string): string {
+  return (code && PTY_ERROR_TEXT[code]) || '操作失败（详见服务日志）'
+}
+
+/**
+ * 交互终端：真 PTY 会话（不是白名单命令，也不是审计流）。
+ *
+ * 三条如实：
+ *  - 开关没开就显示「未启用」并给出该开哪个开关（后端 code=disabled，这里映射文案）；
+ *  - 环形窗口滑过的部分用 trimmed_from 告知，绝不假装读到了；
+ *  - 会话只存服务端进程内存，切走再回来按窗口起点重读（最多 20k 字符/次）。
+ */
+function PtyView() {
+  const [meta, setMeta] = useState<PtySessionsResp | null>(null)
+  const [sessions, setSessions] = useState<PtySessionRow[]>([])
+  const [sid, setSid] = useState('')
+  const [command, setCommand] = useState('')
+  const [cwd, setCwd] = useState('')
+  const [text, setText] = useState('')
+  const [out, setOut] = useState('')
+  const [alive, setAlive] = useState(false)
+  const [notice, setNotice] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const offsetRef = useRef(0)
+  const sidRef = useRef('')
+  const boxRef = useRef<HTMLPreElement>(null)
+
+  useEffect(() => {
+    sidRef.current = sid
+  }, [sid])
+
+  const refresh = useCallback(async () => {
+    try {
+      const r = await hubGet<PtySessionsResp>(TERMINAL_SESSIONS)
+      setMeta(r)
+      const list = Array.isArray(r?.sessions) ? r.sessions : []
+      setSessions(list)
+      setError('')
+      if (!sidRef.current && list.length) {
+        const first = list[0]
+        if (first?.id) {
+          offsetRef.current = 0
+          setOut('')
+          setSid(first.id)
+          setAlive(Boolean(first.alive))
+        }
+      }
+    } catch (e) {
+      setError(`终端状态不可用：${e instanceof Error ? e.message : String(e)}`)
+    }
+  }, [])
+
+  useEffect(() => {
+    void refresh()
+  }, [refresh])
+
+  const poll = useCallback(async () => {
+    const cur = sidRef.current
+    if (!cur) return
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
+    try {
+      const r = await hubGet<PtyReadResp>(
+        `${TERMINAL_OUTPUT}?id=${encodeURIComponent(cur)}&offset=${offsetRef.current}`,
+      )
+      if (r?.ok === false) {
+        setError(ptyErrorText(r.code))
+        if (r.code === 'no_session') {
+          sidRef.current = ''
+          setSid('')
+          setAlive(false)
+        }
+        return
+      }
+      if (r?.trimmed) {
+        const from = Number(r?.trimmed_from ?? 0)
+        offsetRef.current = from
+        setNotice(`输出窗口已滑过：前 ${from} 个字符已被环形缓冲裁掉`)
+      }
+      const chunk = String(r?.chunk ?? '')
+      if (typeof r?.next_offset === 'number') offsetRef.current = r.next_offset
+      else if (typeof r?.offset === 'number') offsetRef.current = Number(r.offset) + chunk.length
+      if (chunk) {
+        setOut((prev) => {
+          const next = prev + chunk
+          return next.length > PTY_KEEP_CHARS ? next.slice(next.length - PTY_KEEP_CHARS) : next
+        })
+      }
+      if (typeof r?.alive === 'boolean') setAlive(r.alive)
+      setError('')
+    } catch (e) {
+      setError(`读取失败：${e instanceof Error ? e.message : String(e)}`)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!sid) {
+      setAlive(false)
+      return
+    }
+    void poll()
+    const timer = window.setInterval(() => void poll(), PTY_POLL_MS)
+    return () => window.clearInterval(timer)
+  }, [sid, poll])
+
+  useEffect(() => {
+    const el = boxRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [out])
+
+  const adopt = (id: string, isAlive?: boolean) => {
+    offsetRef.current = 0
+    sidRef.current = id
+    setOut('')
+    setNotice('')
+    setError('')
+    setSid(id)
+    setAlive(Boolean(isAlive))
+  }
+
+  const open = async () => {
+    setBusy(true)
+    setError('')
+    try {
+      const r = await hubPost<{ ok?: boolean; code?: string; id?: string }>(TERMINAL_SESSIONS, {
+        command: command.trim(),
+        cwd: cwd.trim(),
+      })
+      if (!r?.ok || !r?.id) {
+        setError(ptyErrorText(r?.code))
+        return
+      }
+      adopt(r.id, true)
+      await refresh()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const send = async () => {
+    const cur = sidRef.current
+    if (!cur || !text) return
+    const payload = text
+    setText('')
+    try {
+      const r = await hubPost<{ ok?: boolean; code?: string }>(TERMINAL_INPUT, { id: cur, text: payload })
+      if (r?.ok === false) {
+        setError(ptyErrorText(r.code))
+        setText(payload)
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+      setText(payload)
+    }
+  }
+
+  const signal = async (action: 'interrupt' | 'terminate') => {
+    const cur = sidRef.current
+    if (!cur) return
+    try {
+      const r = await hubPost<{ ok?: boolean; code?: string }>(TERMINAL_SIGNAL, { id: cur, action })
+      if (r?.ok === false) setError(ptyErrorText(r.code))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    }
+  }
+
+  const close = async () => {
+    const cur = sidRef.current
+    sidRef.current = ''
+    setSid('')
+    setAlive(false)
+    if (!cur) return
+    try {
+      const r = await hubPost<{ ok?: boolean; code?: string }>(TERMINAL_CLOSE, { id: cur })
+      if (r?.ok === false && r.code !== 'no_session') setError(ptyErrorText(r.code))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    }
+    await refresh()
+  }
+
+  return (
+    <Pane>
+      <Hint>
+        {meta?.enabled
+          ? `真 PTY 会话（${meta.backend ?? 'pty'}）· 上限 ${meta.max_sessions ?? '?'} 个 · 空闲回收由服务端按 CP_TERMINAL_IDLE_SECONDS 执行`
+          : '终端未启用：需要 CP_TERMINAL_ENABLED=1（设置中心 A 级开关）；受限档一律拒绝。'}
+      </Hint>
+      <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-slate-800/60 px-2 py-1">
+        <Button variant="default" size="xs" onClick={() => void refresh()}>
+          {busy ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />} 刷新
+        </Button>
+        {sessions.map((s) => (
+          <Button
+            key={s.id}
+            variant={s.id === sid ? 'primary' : 'default'}
+            size="xs"
+            className="font-mono"
+            title={s.command ?? ''}
+            onClick={() => adopt(s.id, s.alive)}
+          >
+            {s.id}
+            {s.alive === false ? '（已退出）' : ''}
+          </Button>
+        ))}
+        <span className="ml-auto text-micro text-slate-600">
+          {meta?.enabled ? `会话 ${sessions.length}/${meta.max_sessions ?? '?'}` : '开关未开'}
+          {sid ? (alive ? ' · 运行中' : ' · 已退出（可继续读残余输出）') : ''}
+        </span>
+      </div>
+      <form
+        className="flex shrink-0 items-center gap-1 border-b border-slate-800/60 px-2 py-1"
+        onSubmit={(e) => {
+          e.preventDefault()
+          void open()
+        }}
+      >
+        <Input
+          variant="bare"
+          className="w-32 shrink-0"
+          inputClassName="rounded border border-slate-800 bg-slate-950/70 px-1.5 py-0.5 font-mono text-micro text-slate-200 placeholder:text-slate-600 focus:border-cyan-600/60 focus:outline-hidden"
+          value={command}
+          onChange={(e) => setCommand(e.target.value)}
+          placeholder="命令（空=默认 shell）"
+          aria-label="启动命令"
+        />
+        <Input
+          variant="bare"
+          className="min-w-0 flex-1"
+          inputClassName="rounded border border-slate-800 bg-slate-950/70 px-1.5 py-0.5 font-mono text-micro text-slate-200 placeholder:text-slate-600 focus:border-cyan-600/60 focus:outline-hidden"
+          value={cwd}
+          onChange={(e) => setCwd(e.target.value)}
+          placeholder="工作目录（空=服务端当前目录）"
+          aria-label="工作目录"
+        />
+        <Button type="submit" variant="default" size="xs" disabled={busy}>
+          <Play size={10} /> 打开
+        </Button>
+      </form>
+      {notice && <p className="px-3 py-1 text-micro text-amber-300/90">{notice}</p>}
+      {error && <p className="px-3 py-1 text-micro text-rose-300">{error}</p>}
+      <pre
+        ref={boxRef}
+        className="m-0 min-h-0 flex-1 overflow-y-auto whitespace-pre-wrap break-words bg-slate-950/60 px-2 py-1 font-mono text-micro leading-relaxed text-slate-300"
+      >
+        {out || (sid ? '（等待输出…）' : '尚未打开会话')}
+      </pre>
+      <form
+        className="flex shrink-0 items-center gap-1 border-t border-slate-800/60 px-2 py-1"
+        onSubmit={(e) => {
+          e.preventDefault()
+          void send()
+        }}
+      >
+        <Input
+          variant="bare"
+          className="min-w-0 flex-1"
+          inputClassName="rounded border border-slate-800 bg-slate-950/70 px-1.5 py-0.5 font-mono text-micro text-slate-200 placeholder:text-slate-600 focus:border-cyan-600/60 focus:outline-hidden"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder={sid ? '输入后回车发送（自动补回车）' : '先打开一个会话'}
+          aria-label="终端输入"
+          disabled={!sid}
+        />
+        <Button type="submit" variant="primary" size="xs" disabled={!sid}>
+          <Send size={10} /> 发送
+        </Button>
+        <Button type="button" variant="default" size="xs" disabled={!sid} onClick={() => void signal('interrupt')}>
+          Ctrl-C
+        </Button>
+        <Button
+          type="button"
+          variant="default"
+          size="xs"
+          className="border-danger/60 text-danger hover:bg-danger/10"
+          disabled={!sid}
+          onClick={() => void close()}
+        >
+          关闭
+        </Button>
+      </form>
+    </Pane>
   )
 }
 

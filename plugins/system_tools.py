@@ -726,6 +726,17 @@ PLUGIN = register_plugin(Plugin(
 _TERMINAL_TIMEOUT_SEC = 30
 _TERMINAL_MAX_OUTPUT = 20000
 
+#: E3-1 持久终端（界面侧）：行/列与单次读取上限（数值一律走模块常量，不进调用参数）
+_PTY_ROWS_DEFAULT = 30
+_PTY_ROWS_MIN = 5
+_PTY_ROWS_MAX = 200
+_PTY_COLS_DEFAULT = 120
+_PTY_COLS_MIN = 20
+_PTY_COLS_MAX = 400
+_PTY_READ_LIMIT_DEFAULT = 20000
+_PTY_READ_LIMIT_MAX = 60000
+_PTY_OFFSET_MAX = 2 ** 31 - 1
+
 
 def _clamp_int(raw, lo: int, hi: int, default: int) -> int:
     """把外部传入的参数收敛成 [lo, hi] 内的整数；非法一律回默认。"""
@@ -943,6 +954,122 @@ def api_terminal_activity():
     return jsonify({"ok": True, "rows": rows, "inflight": inflight[:10],
                     "last_seq": rows[-1]["seq"] if rows else since_seq,
                     "now": _now_iso()})
+
+# ════════════════════════════════════════════════════════════
+#  持久终端（PTY）会话 —— 界面侧入口（E3-1，2026-11-27）
+# ════════════════════════════════════════════════════════════
+#
+# 【谁消费】右坞 DockPanel → TerminalPane 的「交互」子视图（与本节同批落地）：
+# 先定消费者再建路由，不造无 UI 引用的端点（口径 §11「别造路由债」）。
+# 【唯一事实源】开关（CP_TERMINAL_ENABLED）/ 权限预设 / 会话上限的判定只在
+# agent/pty_session.py；本层只做**参数收敛**与**响应体整形**，不写第二份阈值。
+# 【为什么不回 error 原文】pty_session 的失败文案是常量，但路由层统一只回稳定 code，
+# 中文由界面自己出（CodeQL 口径 §4：响应体不回异常派生串；也避免前后端两处文案漂移）。
+# 【为什么 log=False】stdin / 输出可能含密钥；审计已由 pty_session 记摘要，不再进访问日志。
+
+
+def _pty_public(result) -> dict:
+    """PTY 结果 → 响应体：丢掉 error 原文（只进服务日志），失败时补稳定 code。"""
+    out = dict(result or {})
+    message = out.pop("error", "")
+    if message:
+        _get_logger().warning("[terminal-pty] 失败（固定文案）: %s", message)
+    if out.get("ok") is False:
+        out.setdefault("code", "failed")
+    return out
+
+
+@bp.route("/api/terminal/sessions", methods=["GET"])
+@_view(auth=True, log=False)
+def api_terminal_sessions():
+    """列出 PTY 会话：开关/后端/上限 + 每个会话的命令、存活与缓冲量（只读；开关关时也回 200）。"""
+    from agent import pty_session
+
+    status = pty_session.status()
+    listed = pty_session.list_sessions()
+    return jsonify({
+        "ok": True,
+        "enabled": status["enabled"],
+        "backend": status["backend"],
+        "max_sessions": status["max_sessions"],
+        "idle_seconds": status["idle_seconds"],
+        "buffer_chars": status["buffer_chars"],
+        "sessions": listed.get("sessions") or [],
+    })
+
+
+@bp.route("/api/terminal/sessions", methods=["POST"])
+@_view(auth=True, log=False)
+def api_terminal_open_session():
+    """开一个 PTY 会话（默认当前平台 shell）；开关未开/受限档只回 code，绝不 spawn。"""
+    from agent import pty_session
+
+    data = request.get_json(silent=True) or {}
+    result = pty_session.open_session(
+        command=str(data.get("command") or ""),
+        cwd=str(data.get("cwd") or ""),
+        rows=_clamp_int(data.get("rows"), _PTY_ROWS_MIN, _PTY_ROWS_MAX, _PTY_ROWS_DEFAULT),
+        cols=_clamp_int(data.get("cols"), _PTY_COLS_MIN, _PTY_COLS_MAX, _PTY_COLS_DEFAULT),
+    )
+    return jsonify(_pty_public(result))
+
+
+@bp.route("/api/terminal/input", methods=["POST"])
+@_view(auth=True, log=False)
+def api_terminal_input():
+    """写 PTY stdin（默认补 \\r —— PTY 的 Enter 是 \\r，不是 \\n）。"""
+    from agent import pty_session
+
+    data = request.get_json(silent=True) or {}
+    session_id = str(data.get("id") or "").strip()
+    if not session_id:
+        return jsonify({"ok": False, "code": "missing_id", "error": "缺少 id"}), 400
+    text = str(data.get("text") or "")
+    if data.get("newline") is not False:
+        text += "\r"
+    return jsonify(_pty_public(pty_session.send(session_id, text)))
+
+
+@bp.route("/api/terminal/output", methods=["GET"])
+@_view(auth=True, log=False)
+def api_terminal_output():
+    """按 offset/limit 取 PTY 增量输出（前端轮询用；trimmed=true 表示环形窗口已滑过）。"""
+    from agent import pty_session
+
+    session_id = str(request.args.get("id") or "").strip()
+    if not session_id:
+        return jsonify({"ok": False, "code": "missing_id", "error": "缺少 id"}), 400
+    raw_offset = request.args.get("offset")
+    offset = None if raw_offset in (None, "") else _clamp_int(raw_offset, 0, _PTY_OFFSET_MAX, 0)
+    limit = _clamp_int(request.args.get("limit"), 1, _PTY_READ_LIMIT_MAX, _PTY_READ_LIMIT_DEFAULT)
+    return jsonify(_pty_public(pty_session.read(session_id, offset=offset, limit=limit)))
+
+
+@bp.route("/api/terminal/signal", methods=["POST"])
+@_view(auth=True, log=False)
+def api_terminal_signal():
+    """给 PTY 会话发信号：interrupt=Ctrl-C，terminate=结束整棵进程树。"""
+    from agent import pty_session
+
+    data = request.get_json(silent=True) or {}
+    session_id = str(data.get("id") or "").strip()
+    if not session_id:
+        return jsonify({"ok": False, "code": "missing_id", "error": "缺少 id"}), 400
+    return jsonify(_pty_public(pty_session.signal(session_id, str(data.get("action") or "interrupt"))))
+
+
+@bp.route("/api/terminal/close", methods=["POST"])
+@_view(auth=True, log=False)
+def api_terminal_close():
+    """关闭 PTY 会话（先 terminate 再整树 kill；幂等，再关一次只回 no_session）。"""
+    from agent import pty_session
+
+    data = request.get_json(silent=True) or {}
+    session_id = str(data.get("id") or "").strip()
+    if not session_id:
+        return jsonify({"ok": False, "code": "missing_id", "error": "缺少 id"}), 400
+    return jsonify(_pty_public(pty_session.close(session_id)))
+
 
 
 def _now_iso() -> str:

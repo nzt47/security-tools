@@ -282,28 +282,29 @@ def _reap_idle() -> None:
 def open_session(command: str = "", cwd: str = "", rows: int = 30, cols: int = 120) -> Dict[str, Any]:
     """开一个 PTY 会话（默认起当前平台默认 shell）。"""
     if not enabled():
-        return {"ok": False, "disabled": True,
+        return {"ok": False, "disabled": True, "code": "disabled",
                 "error": "终端未启用：需要 CP_TERMINAL_ENABLED=1（设置中心 A 级开关）"}
     try:
         from agent.sandbox import is_confined
         if is_confined():
-            return {"ok": False, "blocked": True,
+            return {"ok": False, "blocked": True, "code": "blocked",
                     "error": "权限预设为受限档：raw PTY 会绕过命令沙箱，已拒绝（fail-closed）"}
     except Exception:  # noqa: BLE001 判不了就按受限处理（fail-closed）
-        return {"ok": False, "blocked": True, "error": "无法判定权限预设，按受限档拒绝"}
+        return {"ok": False, "blocked": True, "code": "blocked",
+                "error": "无法判定权限预设，按受限档拒绝"}
 
     _reap_idle()
     with _lock:
         if len(_sessions) >= max_sessions():
-            return {"ok": False,
+            return {"ok": False, "code": "max_sessions",
                     "error": "终端会话已达上限（%d）；先 terminal(action=close) 或 list 看看" % max_sessions()}
 
     workdir = str(cwd or os.getcwd())
     try:
         if not os.path.isdir(workdir):
-            return {"ok": False, "error": "工作目录不存在（或不可访问）"}
+            return {"ok": False, "code": "bad_cwd", "error": "工作目录不存在（或不可访问）"}
     except OSError:
-        return {"ok": False, "error": "工作目录不可访问"}
+        return {"ok": False, "code": "bad_cwd", "error": "工作目录不可访问"}
 
     argv = shlex.split(command) if str(command or "").strip() else []
     if not argv:
@@ -315,10 +316,10 @@ def open_session(command: str = "", cwd: str = "", rows: int = 30, cols: int = 1
         else:
             proc, master_fd = _spawn_posix(argv, workdir, rows, cols)
     except RuntimeError as exc:
-        return {"ok": False, "dependency": "pywinpty", "error": str(exc)}
+        return {"ok": False, "dependency": "pywinpty", "code": "dependency", "error": str(exc)}
     except Exception as exc:  # noqa: BLE001 启动失败只回固定文案（异常原文不进响应体）
         logger.warning("[terminal] 启动失败: %s", type(exc).__name__)
-        return {"ok": False, "error": "终端启动失败（详见服务日志）"}
+        return {"ok": False, "code": "spawn_failed", "error": "终端启动失败（详见服务日志）"}
 
     session_id = "t-" + uuid.uuid4().hex[:8]
     session = _Session(session_id, proc, master_fd, " ".join(argv), workdir)
@@ -345,12 +346,13 @@ def _get(session_id: Any) -> Optional[_Session]:
 def send(session_id: str, text: str) -> Dict[str, Any]:
     sess = _get(session_id)
     if sess is None:
-        return {"ok": False, "error": "会话不存在（可能已关闭/回收）"}
+        return {"ok": False, "code": "no_session", "error": "会话不存在（可能已关闭/回收）"}
     try:
         sess.write(str(text or ""))
     except Exception as exc:  # noqa: BLE001
         logger.debug("[terminal] 写入失败 %s: %s", session_id, type(exc).__name__)
-        return {"ok": False, "id": session_id, "error": "写入失败（会话可能已退出）"}
+        return {"ok": False, "id": session_id, "code": "write_failed",
+                "error": "写入失败（会话可能已退出）"}
     _audit("terminal_input", session_id=session_id, command=str(text or ""))
     return {"ok": True, "id": session_id, "chars": len(str(text or ""))}
 
@@ -358,14 +360,14 @@ def send(session_id: str, text: str) -> Dict[str, Any]:
 def read(session_id: str, offset: Any = None, limit: Any = None) -> Dict[str, Any]:
     sess = _get(session_id)
     if sess is None:
-        return {"ok": False, "error": "会话不存在（可能已关闭/回收）"}
+        return {"ok": False, "code": "no_session", "error": "会话不存在（可能已关闭/回收）"}
     return sess.read(offset=offset, limit=limit)
 
 
 def signal(session_id: str, action: str = "interrupt") -> Dict[str, Any]:
     sess = _get(session_id)
     if sess is None:
-        return {"ok": False, "error": "会话不存在（可能已关闭/回收）"}
+        return {"ok": False, "code": "no_session", "error": "会话不存在（可能已关闭/回收）"}
     act = str(action or "interrupt").strip().lower()
     if act in ("interrupt", "ctrl-c", "sigint"):
         sess.interrupt()
@@ -375,7 +377,7 @@ def signal(session_id: str, action: str = "interrupt") -> Dict[str, Any]:
         sess.terminate()
         _audit("terminal_signal", session_id=session_id, payload={"action": "terminate"})
         return {"ok": True, "id": session_id, "action": "terminate"}
-    return {"ok": False, "error": "action 只能是 interrupt 或 terminate"}
+    return {"ok": False, "code": "bad_action", "error": "action 只能是 interrupt 或 terminate"}
 
 
 def close(session_id: str) -> Dict[str, Any]:
@@ -383,7 +385,7 @@ def close(session_id: str) -> Dict[str, Any]:
     with _lock:
         sess = _sessions.pop(sid, None)
     if sess is None:
-        return {"ok": False, "error": "会话不存在（可能已关闭）"}
+        return {"ok": False, "code": "no_session", "error": "会话不存在（可能已关闭）"}
     sess.close()
     _audit("terminal_close", session_id=sid)
     return {"ok": True, "id": sid}
