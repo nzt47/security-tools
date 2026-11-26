@@ -117,6 +117,8 @@ PLANE_MAP: dict[str, tuple[str, str, str, list[str]]] = {
     "subagent_control": ("govern", "write", "medium", ["subagent"]),
     # E3-2 纯库路线：.docx 正文/表格抽取（纯标准库读文件，低危）
     "docx_read": ("perceive", "read", "low", ["doc"]),
+    # E3-2 纯库路线：.xlsx 取值矩阵抽取（同上）
+    "xlsx_read": ("perceive", "read", "low", ["doc"]),
     "stop_process": ("act", "execute", "medium", ["process"]),
 
     # ── software_tools.py（2，2026-11-05 受控安装通道）────────

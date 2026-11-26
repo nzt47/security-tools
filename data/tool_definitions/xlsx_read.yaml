@@ -1,0 +1,48 @@
+name: xlsx_read
+category: file
+description: 读取 .xlsx（Excel）工作簿的**单元格取值**（每张表按行×列返回；不含公式原文与格式）。不依赖 Office / openpyxl；输出有上限，超限会标 truncated。Read values from a .xlsx file
+deprecated: false
+version: 1.0.0
+location: local
+location_reason: "纯标准库解析 zip + OOXML，不起子进程、不联网"
+plane: perceive
+effect: read
+risk: low
+tool_type: tool
+enabled: true
+llm_callable: true
+callable_mode: auto
+permission_level: public
+sandbox_allowed: true
+tags: [doc]
+schema:
+  type: object
+  properties:
+    path:
+      type: string
+      description: xlsx 文件路径（必填）
+  required:
+  - path
+# 【result_schema】按实现 return 字面量声明（agent/office/xlsx_text.py::extract）：
+#   成功 {ok,path,sheets:[{name,rows,row_count}],counts:{sheets,rows,chars},truncated,hint}；
+#   失败 {ok:false,error}。required 只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    path:
+      type: string
+    sheets:
+      type: array
+    counts:
+      type: object
+    truncated:
+      type: boolean
+    hint:
+      type: string
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
+examples: []

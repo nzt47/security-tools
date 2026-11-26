@@ -121,6 +121,8 @@ _DEFAULT_TOOL_CATEGORIES = {
             "weekly_report",
             # 【2026-11-27】E3-2 纯库路线：.docx 正文/表格抽取（read_file 对 docx 只能回 binary）
             "docx_read",
+            # 【2026-11-27】E3-2 纯库路线：.xlsx 取值矩阵抽取
+            "xlsx_read",
         ],
     },
     "code": {
