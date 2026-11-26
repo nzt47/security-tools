@@ -74,6 +74,12 @@ class TestKillTree:
             assert grandchild, "用例前提：孙进程必须先把 pid 写出来"
             assert proc_tree.alive(parent.pid)
             assert proc_tree.kill_tree(parent.pid) is True
+            # 【POSIX 僵尸】被杀的子进程在父进程 wait() 之前仍是 Z 态：先收尸再断言，
+            # 否则测的是"僵尸还在不在"，不是"进程还在不在"。
+            try:
+                parent.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                pass
             assert _wait_dead(parent.pid), "直接子进程必须退出"
             assert _wait_dead(grandchild), "孙进程也必须退出（这就是本片要修的那条）"
         finally:

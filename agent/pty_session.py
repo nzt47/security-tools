@@ -227,12 +227,17 @@ def _spawn_windows(argv: List[str], cwd: str, rows: int, cols: int):
 
 def _spawn_posix(argv: List[str], cwd: str, rows: int, cols: int):
     import pty
+
+    from agent.utils import proc as _proc
+
     master_fd, slave_fd = pty.openpty()
     try:
+        # **_proc.hidden_kwargs()：形态口径（test_proc_hidden_window 会静态扫描裸 Popen）。
+        # 非 Windows 返回 {}，所以对 POSIX 行为零影响；加上它是为了「不留一个裸 spawn 形态」。
         proc = subprocess.Popen(
             argv, cwd=cwd or None,
             stdin=slave_fd, stdout=slave_fd, stderr=slave_fd,
-            preexec_fn=os.setsid, close_fds=True)
+            preexec_fn=os.setsid, close_fds=True, **_proc.hidden_kwargs())
     finally:
         os.close(slave_fd)
     return proc, master_fd

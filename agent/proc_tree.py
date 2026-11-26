@@ -155,6 +155,17 @@ def alive(pid) -> bool:
             return bool(psutil.pid_exists(pid))
         except Exception:  # noqa: BLE001 psutil 缺失 ⇒ 交给调用方按未知处理
             return False
+    # 【POSIX 的僵尸坑】子进程被 SIGKILL 后、父进程还没 wait() 之前是 **Z（zombie）**：
+    # os.kill(pid, 0) 对它仍然成功 ⇒ 只看信号会把"已杀死的僵尸"判成"还活着"（CI 实测）。
+    # 先读 /proc/<pid>/stat 的状态位：Z/X ⇒ 已经死了。
+    try:
+        with open("/proc/%d/stat" % pid, "r", encoding="utf-8", errors="replace") as fh:
+            raw = fh.read()
+        state = raw.rsplit(")", 1)[1].strip().split()[0]
+        if state in ("Z", "X", "x"):
+            return False
+    except (OSError, IndexError):
+        pass
     try:
         os.kill(pid, 0)
         return True
