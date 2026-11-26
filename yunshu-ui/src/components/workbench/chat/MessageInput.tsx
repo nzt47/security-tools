@@ -4,9 +4,10 @@
  * 【E3-3 · 2026-11-27】新增引用条：点某条消息的「引用」后，这里显示一行摘要；
  * 发送时由 ChatPanel 把原文拼成 Markdown 引用块前缀（本组件不碰消息内容）。
  */
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CornerDownLeft, X } from 'lucide-react';
 import { Button, Textarea } from '@/components/ui';
+import { FileMentionMenu, applyMention, extractMentionQuery } from './FileMentionMenu';
 
 interface Props {
   value: string;
@@ -20,6 +21,11 @@ interface Props {
 
 export function MessageInput({ value, onChange, onSend, disabled, quoted, onClearQuote }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // 【E3-3】@ 文件引用：只认「末尾正在输入的 @片段」；关掉后同一片段不再弹（改字再弹）
+  const mentionQuery = extractMentionQuery(value);
+  const [mentionClosedFor, setMentionClosedFor] = useState<string | null>(null);
+  const showMention = mentionQuery !== null && mentionQuery.trim().length >= 2
+    && mentionClosedFor !== mentionQuery;
 
   // 输入后自动增高（封顶约 15 行 ≈ 320px；超高才出现细滚动条）
   useEffect(() => {
@@ -56,6 +62,17 @@ export function MessageInput({ value, onChange, onSend, disabled, quoted, onClea
             <X size={12} />
           </Button>
         </div>
+      ) : null}
+      {showMention && mentionQuery !== null ? (
+        <FileMentionMenu
+          query={mentionQuery}
+          onPick={(path) => {
+            onChange(applyMention(value, path));
+            setMentionClosedFor(null);
+            textareaRef.current?.focus();
+          }}
+          onClose={() => setMentionClosedFor(mentionQuery)}
+        />
       ) : null}
       <div className="wb-input-wrap">
         {/* 【2026-11-19】外观/自动长高仍由 .wb-input + 本组件的 useEffect 决定；原语只提供 ref 转发与一致性 */}
