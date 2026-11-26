@@ -95,3 +95,27 @@ def test_HTTP入口_未开fork不碰会话(monkeypatch):
     monkeypatch.setattr(fc, "collect_parent_context", boom)
     ctx = rr._build_context({"task": "x"}, "把交接文档补完")
     assert ctx.metadata == {}
+
+def test_fork_view_只回元信息不回正文():
+    from agent.server_routes import routes_subagent as rr
+
+    class Ctx:
+        metadata = {"fork": {"from_session": "s-1", "rounds": 3, "chars": 120,
+                             "truncated": False, "summarized": True,
+                             "messages": [{"role": "user", "content": "秘密正文"}],
+                             "note": "n"}}
+
+    view = rr._fork_view(Ctx())
+    assert view == {"from_session": "s-1", "rounds": 3, "chars": 120,
+                    "truncated": False, "summarized": True}
+    assert "秘密正文" not in str(view)
+
+
+def test_fork_view_未开fork为空():
+    from agent.server_routes import routes_subagent as rr
+
+    class Ctx:
+        metadata = {}
+
+    assert rr._fork_view(Ctx()) == {}
+    assert rr._fork_view(object()) == {}

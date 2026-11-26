@@ -641,6 +641,18 @@ def _apply_follow_up(data: dict, ctx: Any):
     return linked, round_view(linked)
 
 
+def _fork_view(ctx) -> dict:
+    """fork 上下文回显（**只回元信息，不回正文**）：UI/探针据此确认"带入了多少" """
+    meta = getattr(ctx, "metadata", None)
+    if not isinstance(meta, dict):
+        return {}
+    fork = meta.get("fork")
+    if not isinstance(fork, dict):
+        return {}
+    return {k: fork.get(k) for k in
+            ("from_session", "rounds", "chars", "truncated", "summarized")}
+
+
 def _elements_view(ctx) -> dict:
     """八要素回显：让调用方看到"实际是按什么跑的"（含缺省补齐后的值）"""
     return {
@@ -1251,6 +1263,9 @@ def register_routes(app, state):
             payload = _outcome_payload(outcome, ctx)
             payload["name"] = name
             payload["elements"] = _elements_view(ctx)
+            fork_view = _fork_view(ctx)
+            if fork_view:
+                payload["fork"] = fork_view
             payload["channel"] = channel
             payload["llm"] = resolution.to_dict()
             # 角色生效情况随响应回显（模板/档位/红档/是否需审计；**不含 role_text 正文**）
@@ -1357,6 +1372,9 @@ def register_routes(app, state):
             payload["name"] = "临时分身"
             payload["ephemeral"] = True
             payload["elements"] = _elements_view(ctx)
+            fork_view = _fork_view(ctx)
+            if fork_view:
+                payload["fork"] = fork_view
             payload["channel"] = channel
             payload["llm"] = resolution.to_dict()
             payload["role"] = role.to_dict()
