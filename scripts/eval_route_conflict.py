@@ -74,7 +74,7 @@ MIN_CASES_BY_VERSION: Dict[str, int] = {"v1": 50, "v2": 100}
 # 键 = 用例集版本 → 检索模式；None = 该模式尚未标定（不得当作 0 用）。
 BASELINE_BY_VERSION: Dict[str, Dict[str, Optional[Dict[str, int]]]] = {
     "v1": {
-        "bm25_only": {"cases": 50, "decision_pass": 27, "payload_expect_pass": 40},
+        "bm25_only": {"cases": 50, "decision_pass": 28, "payload_expect_pass": 40},
         "hybrid": None,
     },
     "v2": {

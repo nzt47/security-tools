@@ -230,7 +230,7 @@ class TestEvalRuns:
             assert r["top1"] is None or isinstance(r["top1"], str)
 
     def test_基线可复现(self, eval_run):
-        """本卡基线（bm25_only）：决策层通过 27/50，下发层 expected 命中 40/50。
+        """本卡基线（bm25_only）：决策层通过 28/50，下发层 expected 命中 40/50。
         低分是现状 —— 这条断言守的是「数字有没有漂」，不是「分数够不够高」。"""
         base = EV.BASELINE["bm25_only"]
         summ = eval_run["summary"]
@@ -255,7 +255,7 @@ class TestEvalRuns:
 
     def test_CLI退出码为0当达到下限(self, capsys):
         """E1-B 起 CLI 的默认用例集 = 最高版本（v2）⇒ 下限取**当前默认版本**的基线。
-        （v1 的 27/50 由 test_基线可复现 继续守着，未放宽。）"""
+        （v1 的 28/50 由 test_基线可复现 继续守着，未放宽。）"""
         _ver, base = _default_version_baseline()
         rc = EV.main(["--root", str(_ROOT), "--no-embedding",
                       "--min-pass", str(base["decision_pass"])])
@@ -521,23 +521,25 @@ class TestCasesVersionSelection:
             EV.discover_cases(str(_ROOT), "9")
 
     def test_CLI仍能用v1跑出E1基线(self, capsys):
-        """旧集不许被删改，也不许被新集挤掉：显式 --cases-version 1 必须复现 27/50"""
+        """旧集不许被删改，也不许被新集挤掉：显式 --cases-version 1 必须复现 28/50"""
         rc = EV.main(["--root", str(_ROOT), "--cases-version", "1", "--no-embedding",
-                      "--min-pass", "27"])
+                      "--min-pass", "28"])
         out = capsys.readouterr().out
         assert rc == 0
-        assert "决策层通过 27/50" in out
+        assert "决策层通过 28/50" in out
         # 【2026-11-05】0.0465 -> 0.0577：新增 software_probe / software_install 后检索分差分布变了
-        # （判据不变：50 个候选 τ 里 F1 最大；27/50 的通过数没变，只标定值跟着索引变）
+        # （判据不变：50 个候选 τ 里 F1 最大；28/50 的通过数没变，只标定值跟着索引变）
         # 【2026-11-09】0.0577 → 0.0571：新增 skill_script_run 后索引 93→94 篇 ⇒ 检索分差分布变化
         # 【2026-11-20】0.0571 → 0.0478：新增 ui_guard_check 后索引 93→94 篇 ⇒ 检索分差分布变化
         # 【2026-11-25】0.0477 → 0.0565：新增 goal 后索引 97→98 篇（v1 口径；决策层仍 27/50）
         # 【2026-11-26】0.0565 → 0.0563：新增 session_search / session_trace 后索引 99→101 篇
-        #   （v1 口径；决策层仍 27/50、下发仍 40/50 —— τ 是派生值，随索引重标定，判据不变）
+        #   （v1 口径；决策层仍 28/50、下发仍 40/50 —— τ 是派生值，随索引重标定，判据不变）
         # 【2026-11-24】0.0478 → 0.0477：新增 read_spill 后索引 95→96 篇（v1 用例集口径；
         #   v2 默认用例集的 τ 建议另算，2026-11-24 实测 0.0233）
-        # （决策层通过数仍 27/50，未变；τ 是派生值，随索引重标定）
-        assert "τ 建议   : 0.0563" in out
+        # （决策层通过数仍 28/50，未变；τ 是派生值，随索引重标定）
+        assert "τ 建议   : 0.0297" in out
+        # 【2026-11-26】0.0563 → 0.0297：新增 subagent_control 后索引 101→102 篇（E2-1）；
+        #   决策层 27→28/50（同一处检索排序变化带来的**提升**），τ 随索引重标定，判据不变
 
 
 class TestEvalRunsV2:
