@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-27T01:25:29",
-  "tool_count": 104,
+  "generated_at": "2026-11-27T02:50:21",
+  "tool_count": 105,
   "categories": [
     "async",
     "code",
@@ -759,6 +759,16 @@
         "path",
         "content",
         "encoding"
+      ]
+    },
+    {
+      "name": "xlsx_read",
+      "category": "file",
+      "description": "读取 .xlsx（Excel）工作簿的**单元格取值**（每张表按行×列返回；不含公式原文与格式）。不依赖 Office / openpyxl；输出有上限，超限会标 truncated。Read values from a .xlsx file",
+      "version": "1.0.0",
+      "deprecated": false,
+      "parameter_names": [
+        "path"
       ]
     },
     {
