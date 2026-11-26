@@ -21724,7 +21724,7 @@
       "source_layer": "core",
       "target_layer": "sandbox",
       "import_type": "from_import",
-      "line": 288,
+      "line": 295,
       "source_file": "agent/pty_session.py",
       "is_cross_layer": true,
       "is_violation": false,
