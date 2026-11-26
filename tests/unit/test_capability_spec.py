@@ -158,7 +158,7 @@ class TestCapabilitySpecFields:
         # 【2026-11-25】97 → 100：goal / ask_user_question / present（E1-2b + E1-3a）
         # 【2026-11-26】100 → 102：session_search / session_trace（E1-4d）
         # 【2026-11-27】103 → 104：terminal（E3-1）
-    assert len(committed) == 104, f"入库工具 YAML 数量变了：{len(committed)}"
+        assert len(committed) == 104, f"入库工具 YAML 数量变了：{len(committed)}"
         for name, meta in committed.items():
             d = meta.to_dict()          # 不抛异常即通过
             assert d["capability_id"], f"{name}: capability_id 为空"
@@ -181,7 +181,7 @@ class TestLocationCoverage:
         # 【2026-11-25】147 → 150：goal / ask_user_question / present
         # 【2026-11-26】150 → 152：session_search / session_trace（E1-4d）
         # 【2026-11-27】153 → 154：terminal（E3-1）
-    assert len(manifest["entries"]) == 154
+        assert len(manifest["entries"]) == 154
         for e in manifest["entries"]:
             assert e.get("location") in ("local", "remote"), \
                 f"{e['tool_name']}: location 缺失或非法"
