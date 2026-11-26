@@ -177,12 +177,14 @@ class TestQuery:
         # 【2026-11-26】150 → 152 / tool 100 → 102 / local 127 → 129：session_search / session_trace（E1-4d）
 # 【2026-11-26】152 → 153 / tool 102 → 103 / local 129 → 130：subagent_control（E2-1）
         # 【2026-11-27】155 → 156 / tool 105 → 106 / local 131 → 132：xlsx_read（E3-2，local）
-        assert st["total"] == 156, f"能力总数应为 156，实际 {st['total']}"
+        # 【2026-11-27】156 → 157 / tool 106 → 107 / local 132 → 133：pptx_read（E3-2 收口，local）
+        assert st["total"] == 157, f"能力总数应为 157，实际 {st['total']}"
         # 【2026-11-09】tool 93 → 94：skill_script_run（技能 L3 显式执行点）
-        assert st["by_kind"] == {"skill": 50, "tool": 106}
+        assert st["by_kind"] == {"skill": 50, "tool": 107}
         # 【2026-11-09】remote 22 → 23：skill_script_run（子进程执行 ⇒ remote）
         # 【2026-11-27】local 132 / remote 24：terminal 是 remote、docx/xlsx_read 是 local
-        assert st["by_location"] == {"local": 132, "remote": 24}
+        # 【2026-11-27】local 132 → 133：pptx_read（local）
+        assert st["by_location"] == {"local": 133, "remote": 24}
         assert st["degraded"] is False
 
     def test_主键索引_tenant_name(self, real_registry):
@@ -204,7 +206,8 @@ class TestQuery:
         # 【2026-11-24】96 → 97：read_spill（E0-2）
         # 【2026-11-26】100 → 102：session_search / session_trace（E1-4d）
         # 【2026-11-27】105 → 106：xlsx_read（E3-2）
-        assert len(tools) == 106
+        # 【2026-11-27】106 → 107：pptx_read（E3-2 收口）
+        assert len(tools) == 107
         assert len(skills) == 46
         remote = real_registry.query(location="remote")
         # 【2026-11-05】21 -> 22：software_install（subprocess.run ⇒ location=remote）

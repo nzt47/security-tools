@@ -43,6 +43,8 @@ boost:
 - docx_read
 # E3-2（2026-11-27）：.xlsx 取值矩阵抽取（同上；离线装配实测：max_tools 33 时零丢失）。
 - xlsx_read
+# E3-2 收口（2026-11-27）：.pptx 每页正文/表格抽取（同上；preview 实测 max_tools 34 零丢失）。
+- pptx_read
 mute:
 - web_extract
 - web_batch
@@ -55,7 +57,8 @@ tags:
 #   30 会挤掉 run_sandbox；31 零丢失；32 还能把此前已被挤掉的 run_tests 找回来
 #   （实测 added=[docx_read, run_tests]，lost=[]）。
 # 32 → 33（2026-11-27）：再加 xlsx_read 到 boost；离线装配实测 added=[xlsx_read]、lost=[]。
-max_tools: 33
+# 33 → 34（2026-11-27）：再加 pptx_read 到 boost；preview 实测 added=[pptx_read]、lost=[]。
+max_tools: 34
 # 本分身默认上下文窗口（2026-11-15）：按任务类型的建议起点取中位 —— 代码 Agent / 跨文件理解：需要上下文，但推理比检索更怕噪声
 context_window_tokens: 65536
 effect_allow:

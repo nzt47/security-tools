@@ -1,0 +1,50 @@
+name: pptx_read
+category: file
+description: 读取 .pptx（PowerPoint）演示文稿的**每页正文段落与表格文本**（纯文本，不含版式/图片/备注/母版）。不依赖 Office 或 LibreOffice；输出有上限，超限会标 truncated。Read text from a .pptx file
+deprecated: false
+version: 1.0.0
+location: local
+location_reason: "纯标准库解析 zip + OOXML，不起子进程、不联网"
+plane: perceive
+effect: read
+risk: low
+tool_type: tool
+enabled: true
+llm_callable: true
+callable_mode: auto
+permission_level: public
+sandbox_allowed: true
+tags: [doc, office, pptx]
+schema:
+  type: object
+  properties:
+    path:
+      type: string
+      description: pptx 文件路径（必填）
+  required:
+  - path
+# 【result_schema】按实现 return 字面量声明（agent/office/pptx_text.py::extract）：
+#   成功 {ok,path,slides,text,counts:{slides,paragraphs,tables,chars},truncated,hint}；失败 {ok:false,error}。
+#   required 只锁 ok（与仓内口径一致，避免误报）。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    path:
+      type: string
+    slides:
+      type: array
+    text:
+      type: string
+    counts:
+      type: object
+    truncated:
+      type: boolean
+    hint:
+      type: string
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
+examples: []
