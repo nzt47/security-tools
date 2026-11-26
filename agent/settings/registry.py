@@ -933,6 +933,13 @@ _c("CP_SUBAGENT_CALLBACK_ALLOW", CAT_SELF_HEALING, "",
        validator=Validator("int")),
     # 【P5 本地推理档（2026-10-09）】断网场景的第三执行通道。默认关闭：关着时通道
     # 选择与改动前逐字相同；开启即允许执行器走本地 Ollama（不再是远端 API 调用）。
+    # 【E2-1 运行中控制（2026-11-26）】默认**开启**：list/inbox 只读，send/interrupt 走
+    # effect=write 的治理档；关闭时工具回 code=disabled、三条路由 404（一处环境变量回滚）。
+    _b("CP_SUBAGENT_CONTROL_ENABLED", CAT_SELF_HEALING, True,
+       "运行中子代理控制总开关（list/send/interrupt/inbox + 三条只读/写路由）；"
+       "置 0/false/off 关闭 = 工具回 disabled、路由 404",
+       owner="agent/subagent/runs.py",
+       impact="影响面：开启后模型/界面可给运行中的子代理追加指令或协作式打断（写动作按治理轴审批）"),
     _a("CP_SUBAGENT_LOCAL_ENABLED", CAT_SELF_HEALING, False,
        "子代理本地推理档总开关；开启即允许执行器使用本地 Ollama（断网可跑），"
        "默认关闭 = 通道选择与改动前逐字相同",
