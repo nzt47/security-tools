@@ -277,7 +277,8 @@ class TestToken预算零误伤:
         assert plan_off.misprune_rate() == 0.0
         # 【2026-11-09】7 → 8：新增 skill_script_run（risk=high）进入同一预算下的误裁集合
         # 【2026-11-20】8 → 9：新增 ui_guard_fix（risk=high）
-        assert len(hit) == 9, f"无保护口径下的高危误裁基线是 9，实测 {len(hit)}"
+        # 【2026-11-27】9 → 10：新增 terminal（risk=critical）
+        assert len(hit) == 10, f"无保护口径下的高危误裁基线是 10，实测 {len(hit)}"
 
     def test_预算充足时不裁剪(self, meta, real_defs):
         """对照：预算充足 ⇒ `applied=False`、`dropped=[]`（防"裁剪"被误判为发生）"""
