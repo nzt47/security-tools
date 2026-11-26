@@ -329,9 +329,10 @@ class TestS0Provenance:
             # 【2026-11-25 重标定】新增 goal ⇒ 索引 97→98 篇
             # 【2026-11-26 重标定】新增 session_search / session_trace ⇒ 索引 99→101 篇
             # 【2026-11-27 重标定】E3-1 新增 terminal ⇒ 索引 101→102 篇
-            #   （calib n=11，p10 2.8777 / p50 5.8606 / p90 11.5577 / max 11.8583；
-            #    S0=5.8606 与 _BM25_HALF_SATURATION 同源）
-            11, 2.8777, 5.8606, 11.5577, 11.8583), f"注释引用的分位数与产物不符：{st}"
+            # 【2026-11-27 再重标定】E3-2 新增 docx_read ⇒ 索引 102→103 篇
+            #   （calib n=11，p10 2.8849 / p50 5.8716 / p90 11.5874 / max 11.8957；
+            #    S0=5.8716 与 _BM25_HALF_SATURATION 同源）
+            11, 2.8849, 5.8716, 11.5874, 11.8957), f"注释引用的分位数与产物不符：{st}"
 
     def test_uni_log_caliber_is_also_reproducible(self, artifact, monkeypatch):
         """提交1（仅对数 idf、单字分词）口径同样可复算（A1-b-prime 需要该口径的 S0）"""
