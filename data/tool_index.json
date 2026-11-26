@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-27T02:50:21",
-  "tool_count": 105,
+  "generated_at": "2026-11-27T06:12:12",
+  "tool_count": 106,
   "categories": [
     "async",
     "code",
@@ -661,6 +661,16 @@
       "parameter_names": [
         "path",
         "show_hidden"
+      ]
+    },
+    {
+      "name": "pptx_read",
+      "category": "file",
+      "description": "读取 .pptx（PowerPoint）演示文稿的**每页正文段落与表格文本**（纯文本，不含版式/图片/备注/母版）。不依赖 Office 或 LibreOffice；输出有上限，超限会标 truncated。Read text from a .pptx file",
+      "version": "1.0.0",
+      "deprecated": false,
+      "parameter_names": [
+        "path"
       ]
     },
     {
