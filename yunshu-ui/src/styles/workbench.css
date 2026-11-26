@@ -806,6 +806,35 @@ body,
   color: var(--wbp-accent-text);
 }
 
+/* ─── 附件（E3-3）：📎 + chips ─── */
+.wb-attach {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 2px 0;
+}
+/* 隐藏原生 file input，但**保留可访问性**（用 label/aria 代理点击时仍能被读屏找到） */
+.wb-attach-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.wb-attach-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 18rem;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--wb-border);
+  background: var(--wb-panel-strong);
+  font-size: var(--text-caption);
+  color: var(--wb-text);
+}
+
 /* ─── 引用（E3-3）：输入框上方的引用条 + 消息动作条 ─── */
 .wb-input-col {
   display: flex;

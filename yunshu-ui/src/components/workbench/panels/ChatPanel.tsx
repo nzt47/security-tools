@@ -14,6 +14,7 @@ import { isHistoryMessageId, subscribeStreamLog, useLayoutStore } from '../../..
 import { chatStyleVars, useChatPrefsStore } from '../../../stores/useChatPrefsStore';
 import { MessageItem, isToolStep } from '../chat/MessageItem';
 import { MessageInput } from '../chat/MessageInput';
+import { AttachmentPicker, buildAttachmentManifest, type AttachmentMeta } from '../chat/AttachmentPicker';
 import { ChatStyleMenu } from '../chat/ChatStyleMenu';
 import { ChatModeMenu } from '../chat/ChatModeMenu';
 import { PermissionModeMenu } from '../chat/PermissionModeMenu';
@@ -139,6 +140,8 @@ export function ChatPanel() {
   const [input, setInput] = useState('');
   //: 被引用的消息原文（空 = 无引用）；由 MessageItem 的「引用」按钮写入
   const [quoted, setQuoted] = useState('');
+  //: 已上传附件（E3-3）；发送时拼成消息前缀，发完清空
+  const [attachments, setAttachments] = useState<AttachmentMeta[]>([]);
   // 斜杠命令注册表（已发布技能 → /skill:<id>，输入 / 时提示）
   interface SlashCmd { token?: string; id?: string; name?: string; description?: string; content_type?: string; category?: string; version?: string }
   const typeLabel = (c: SlashCmd): string => {
@@ -304,9 +307,12 @@ export function ChatPanel() {
     // 【E3-3 · 2026-11-27】引用：把被引消息原文拼成 Markdown 引用块放在最前面。
     // 只在用户真的点了「引用」时加，且发完即清（否则下一句会莫名带着上一句的引用）。
     const prefix = quoted ? '> ' + quoted.replace(/\s*\n\s*/g, ' ') + '\n\n' : '';
-    sendMessage(prefix + expandSlash(input));
+    // 【E3-3】附件清单走在引用块**前面**：先声明"这次带了什么文件"，再说引用了哪句
+    const manifest = buildAttachmentManifest(attachments);
+    sendMessage(manifest + prefix + expandSlash(input));
     setInput('');
     setQuoted('');
+    setAttachments([]);
   };
 
   return (
@@ -501,6 +507,12 @@ export function ChatPanel() {
             ))}
           </div>
         )}
+        <AttachmentPicker
+          sessionId={activeSessionId ?? undefined}
+          value={attachments}
+          onChange={setAttachments}
+          disabled={streaming}
+        />
         <MessageInput
           value={input}
           onChange={setInput}

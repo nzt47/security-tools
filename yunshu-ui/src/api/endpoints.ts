@@ -555,6 +555,8 @@ export const observabilityAlert = (name: string) => `/api/observability/alerts/$
 // ═══════════════════════════════════════════════════════════════
 //  反馈中心 / 业务看板 / 系统仪表盘 / 实例管理
 // ═══════════════════════════════════════════════════════════════
+/** 聊天附件上传（E3-3，multipart/form-data，需令牌） */
+export const CHAT_ATTACHMENTS = '/api/chat/attachments';
 export const FEEDBACK_LIST = '/api/feedback/list';
 export const FEEDBACK_SUMMARY = '/api/feedback/summary';
 export const FEEDBACK_REPORT = '/api/feedback/report';

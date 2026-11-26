@@ -446,6 +446,150 @@ def api_chat():
     })
 
 
+@bp.route("/api/chat/attachments", methods=["POST"])
+@_require_token
+def api_chat_attachment_upload():
+    """聊天附件上传（E3-3）：把文件落到 data/uploads/<会话>/，回可读路径。
+
+    【为什么只回路径、不把内容塞进对话】模型已有 read_file/read_spill 等读取能力，
+    附件只需要一个**稳定、可复核的路径**；前端在消息里写一行 manifest（文件名 → 路径），
+    模型按需读取。这样上传接口与对话链路解耦，出问题时不至于把聊天一起带下去。
+
+    【安全边界（按顺序）】
+      1. 鉴权：与本插件其它写端点同一条 @_require_token；
+      2. 文件名：只取 basename + 白名单字符，长度截断 —— 绝不允许 `..` 或路径分隔符进入落盘路径；
+      3. 落点：常量目录 + 会话子目录 + 随机前缀，**不接受调用方给路径**；
+      4. 写围栏：与 write_file 同一道 fs_fence.check_write（workspace-write 档下越界即拒）；
+      5. 体积：边写边计数，超限立即删掉半成品并入审计，不当"悄悄截断"；
+      6. 可执行后缀（.exe/.bat/.ps1/.msi…）一律拒收 —— 这个目录是给人看/给模型读的，
+         不是投放程序的地方（真正的执行边界在沙箱，但没必要在这里留台阶）。
+
+    Returns:
+        200 {ok, path, name, bytes, kind, mime, ocr?}；400/403/413 为结构化错误。
+    """
+    import os
+    import re
+    import uuid
+
+    from flask import request as _rq
+    from agent.api_envelope import ok as _ok, problem as _problem
+
+    from app_server import _get_current_session_id, logger as _logger
+
+    upload = _rq.files.get("file")
+    if upload is None or not (upload.filename or "").strip():
+        return _problem(400, detail="缺少文件（form 字段名 file）", type_slug="missing_file")
+
+    raw_name = os.path.basename(str(upload.filename).replace("\\", "/"))
+    safe_name = re.sub(r"[^0-9A-Za-z._\u4e00-\u9fff-]", "_", raw_name)[:80].lstrip(".")
+    if not safe_name:
+        return _problem(400, detail="文件名不可用（清洗后为空）", type_slug="bad_filename")
+
+    ext = os.path.splitext(safe_name)[1].lower()
+    if ext in ATTACHMENT_BLOCKED_EXTS:
+        return _problem(403, detail=f"该类型不允许上传（{ext}）", type_slug="blocked_extension")
+
+    session_id = str(_rq.form.get("session_id") or "").strip() or str(_get_current_session_id() or "")
+    token_dir = "".join(ch for ch in session_id if ch.isalnum() or ch in "-_")[:64] or "_default"
+    directory = os.path.join(_attachments_root(), token_dir)
+    target = os.path.join(directory, "%s__%s" % (uuid.uuid4().hex[:8], safe_name))
+
+    try:
+        from agent.sandbox.fs_fence import check_write as _check_write
+        denied = _check_write(target, "write_file")
+    except Exception:  # noqa: BLE001 围栏不可用 ⇒ fail-closed（宁可拒收，也不绕过写边界）
+        return _problem(403, detail="写围栏不可用，拒收附件", type_slug="fence_unavailable")
+    if denied:
+        return _problem(403, detail="目标位置不在可写范围内（权限预设）", type_slug="sandbox_denied")
+
+    written = 0
+    try:
+        os.makedirs(directory, exist_ok=True)
+        with open(target, "wb") as fh:
+            while True:
+                chunk = upload.stream.read(ATTACHMENT_CHUNK_BYTES)
+                if not chunk:
+                    break
+                written += len(chunk)
+                if written > ATTACHMENT_MAX_BYTES:
+                    fh.close()
+                    os.remove(target)
+                    _logger.warning("[附件] 超限拒收 size>%d name=%s", ATTACHMENT_MAX_BYTES, safe_name)
+                    return _problem(413,
+                                    detail="附件超过 %d MB 上限" % (ATTACHMENT_MAX_BYTES // (1024 * 1024)),
+                                    type_slug="too_large")
+                fh.write(chunk)
+    except OSError as exc:
+        try:
+            if os.path.exists(target):
+                os.remove(target)
+        except OSError:
+            pass
+        _logger.warning("[附件] 落盘失败 %s", type(exc).__name__)
+        return _problem(500, detail="附件写入失败（详见服务日志）", type_slug="write_failed")
+
+    if written == 0:
+        try:
+            os.remove(target)
+        except OSError:
+            pass
+        return _problem(400, detail="空文件", type_slug="empty_file")
+
+    import mimetypes
+    mime = mimetypes.guess_type(safe_name)[0] or "application/octet-stream"
+    kind = _attachment_kind(ext, mime)
+    rel_path = os.path.relpath(target, _repo_root()).replace("\\", "/")
+    payload = {
+        "ok": True,
+        "path": rel_path,
+        "name": safe_name,
+        "bytes": written,
+        "kind": kind,
+        "mime": mime,
+    }
+    if kind == "image":
+        # 图片对纯文本模型不可见 —— 尽力 OCR 一段文字随上传一起回（不可用就如实说不可用）
+        try:
+            from agent.context.image_offload import ocr_text as _ocr
+            payload["ocr"] = _ocr(target)
+        except Exception:  # noqa: BLE001 OCR 是旁路，失败不影响上传结果
+            payload["ocr"] = {"available": False, "note": "OCR 不可用"}
+    return _ok(payload)
+
+
+def _repo_root() -> str:
+    """仓库根（本文件在 plugins/ 下一层）"""
+    import os
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def _attachments_root() -> str:
+    """附件落盘根：仓库 data/uploads（运行期、不入库）"""
+    import os
+    return os.path.join(_repo_root(), "data", "uploads")
+
+
+def _attachment_kind(ext: str, mime: str) -> str:
+    """附件类别（前端图标与模型提示共用同一判定，避免各写一套）"""
+    if mime.startswith("image/") or ext in _ATTACHMENT_IMAGE_EXTS:
+        return "image"
+    if ext in (".pdf",) or mime.startswith("text/") or ext in (
+            ".md", ".csv", ".json", ".yaml", ".yml", ".log", ".py", ".ts", ".tsx", ".js"):
+        return "text"
+    return "binary"
+
+
+#: 单附件上限（20 MiB）：够放常规文档/截图，又不至于把磁盘吃穿
+ATTACHMENT_MAX_BYTES = 20 * 1024 * 1024
+#: 分块写盘粒度（边写边计数，避免一次性读进内存）
+ATTACHMENT_CHUNK_BYTES = 64 * 1024
+#: 拒收的可执行后缀（这个目录不是投放程序的地方）
+ATTACHMENT_BLOCKED_EXTS = frozenset({
+    ".exe", ".bat", ".cmd", ".ps1", ".psm1", ".scr", ".msi", ".dll", ".com", ".vbs", ".vbe",
+    ".jse", ".wsf", ".wsh", ".cpl", ".hta", ".jar", ".lnk",
+})
+_ATTACHMENT_IMAGE_EXTS = frozenset({".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp"})
+
 @bp.route("/api/news", methods=["GET"])
 def api_news():
     """新闻直通接口 — 搜索+翻译+格式化，绕过 LLM"""
