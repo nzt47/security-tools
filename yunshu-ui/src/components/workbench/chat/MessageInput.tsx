@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import { CornerDownLeft, X } from 'lucide-react';
 import { Button, Textarea } from '@/components/ui';
 import { FileMentionMenu, applyMention, extractMentionQuery } from './FileMentionMenu';
+import { SessionMentionMenu, applySessionMention, extractSessionQuery } from './SessionMentionMenu';
 
 interface Props {
   value: string;
@@ -26,6 +27,11 @@ export function MessageInput({ value, onChange, onSend, disabled, quoted, onClea
   const [mentionClosedFor, setMentionClosedFor] = useState<string | null>(null);
   const showMention = mentionQuery !== null && mentionQuery.trim().length >= 2
     && mentionClosedFor !== mentionQuery;
+  // 【E3-3】# 会话引用：与 @ 文件引用并存，但同一时刻只弹一个（末尾只能是其中之一）
+  const sessionQuery = extractSessionQuery(value);
+  const [sessionClosedFor, setSessionClosedFor] = useState<string | null>(null);
+  const showSessionMention = sessionQuery !== null && sessionQuery.trim().length >= 1
+    && sessionClosedFor !== sessionQuery;
 
   // 输入后自动增高（封顶约 15 行 ≈ 320px；超高才出现细滚动条）
   useEffect(() => {
@@ -62,6 +68,17 @@ export function MessageInput({ value, onChange, onSend, disabled, quoted, onClea
             <X size={12} />
           </Button>
         </div>
+      ) : null}
+      {showSessionMention && sessionQuery !== null ? (
+        <SessionMentionMenu
+          query={sessionQuery}
+          onPick={(hit) => {
+            onChange(applySessionMention(value, hit.title, hit.id));
+            setSessionClosedFor(null);
+            textareaRef.current?.focus();
+          }}
+          onClose={() => setSessionClosedFor(sessionQuery)}
+        />
       ) : null}
       {showMention && mentionQuery !== null ? (
         <FileMentionMenu
