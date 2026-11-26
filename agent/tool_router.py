@@ -123,6 +123,8 @@ _DEFAULT_TOOL_CATEGORIES = {
             "docx_read",
             # 【2026-11-27】E3-2 纯库路线：.xlsx 取值矩阵抽取
             "xlsx_read",
+            # 【2026-11-27】E3-2 收口：.pptx 每页正文/表格抽取（默认表与 YAML 派生必须逐字一致）
+            "pptx_read",
         ],
     },
     "code": {
