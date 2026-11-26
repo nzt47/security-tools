@@ -21,6 +21,7 @@ import { isHistoryMessageId, useLayoutStore, type ChatMessage, type ThinkingEven
 import { useChatPrefsStore } from '../../../stores/useChatPrefsStore';
 import { Markdown } from './Markdown';
 import { MessageFeedback } from './MessageFeedback';
+import { findQuotedMessage, parseLeadingQuote } from './quoteAnchor';
 
 const formatTime = (ts: number) =>
   new Date(ts).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
@@ -106,6 +107,21 @@ export function MessageItem({
   const format = useChatPrefsStore((s) => s.format);
   // 【E3-3】逐条反馈要带会话 id（反馈中心的按会话检索用），与消息同源于 layout store
   const sessionId = useLayoutStore((s) => s.activeSessionId ?? undefined);
+  // 【E3-3 尾巴】引用块可点击跳回原消息（纯前端：消息里已有 DOM 锚点 data-mid）
+  const quote = isUser ? parseLeadingQuote(message.content) : null;
+  const jumpToQuoted = () => {
+    if (!quote) return;
+    const all = useLayoutStore.getState().messages;
+    const target = findQuotedMessage(all, quote.quoted);
+    if (!target) return;
+    useLayoutStore.getState().setHighlightMsg(target.id);
+    try {
+      const el = document.querySelector('[data-mid="' + target.id + '"]');
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch {
+      /* 滚动失败不影响高亮 */
+    }
+  };
 
   const steps = message.steps ?? [];
   const thoughtSteps = steps.filter((s) => !isToolStep(s));
@@ -207,10 +223,24 @@ export function MessageItem({
 
         {/* 字号跟随「外观 → 字体大小」（--chat-fs 挂在 .wb-chat-surface 上）：
             这里不要写死 text-body-lg，否则改字号对真实消息无效（2026-11-21 修）。 */}
+        {quote && (
+          <Button
+            type="button"
+            variant="plain"
+            size="bare"
+            className="wb-quoted-ref"
+            title="跳到被引用的消息"
+            aria-label="跳到被引用的消息"
+            onClick={jumpToQuoted}
+          >
+            <Quote size={10} />
+            <span className="min-w-0 truncate">{quote.quoted.slice(0, 60)}</span>
+          </Button>
+        )}
         <div className={`wb-bubble ${isUser ? 'wb-bubble-user' : 'wb-bubble-bot'}`}>
           {isUser ? (
             <p className="whitespace-pre-wrap wrap-break-word leading-relaxed">
-              {message.content}
+              {quote ? quote.rest || quote.quoted : message.content}
             </p>
           ) : (
             <>

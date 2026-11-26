@@ -806,6 +806,24 @@ body,
   color: var(--wbp-accent-text);
 }
 
+/* ─── 引用回跳（E3-3 尾巴）：用户消息里那段 "> 引用" 可点 ─── */
+.wb-quoted-ref {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 1px 6px;
+  border-left: 2px solid var(--wbp-accent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--wbp-accent) 10%, transparent);
+  font-size: var(--text-caption);
+  color: var(--wb-text-dim);
+  cursor: pointer;
+}
+.wb-quoted-ref:hover {
+  color: var(--wbp-accent-text);
+}
+
 /* ─── @ 文件引用（E3-3）：输入框上方的候选列表 ─── */
 .wb-mention-menu {
   display: flex;
