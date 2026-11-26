@@ -1,13 +1,10 @@
 name: delegate
 category: async
-description: 把任务委派给一个独立的子代理执行（delegate / subagent / dispatch task）。调用前必须写全八要素——①目标
-  ②约束 ③已有成果 ④禁止事项 ⑤产物格式 ⑥预算令牌 ⑦超时 ⑧回调地址：八要素全部必填，缺一即拒且不会被默认补齐。③已有成果与④禁止事项确实没有内容时传空列表
-  []（「声明为空」与「未声明」是两件事）；②约束不得为空列表。执行器按⑤核对交付形态、按⑥记账、按⑦设执行超时并据此回收分身；无③时的首次委派是合法的，纯探索委派无④也是合法的。Dispatch
-  a task to an independent subagent under the eight-element delegation contract.
+description: 把任务委派给一个独立的子代理执行（delegate / subagent / dispatch task）。调用前必须写全八要素——①目标 ②约束 ③已有成果 ④禁止事项 ⑤产物格式 ⑥预算令牌 ⑦超时 ⑧回调地址：八要素全部必填，缺一即拒且不会被默认补齐。③已有成果与④禁止事项确实没有内容时传空列表 []（「声明为空」与「未声明」是两件事）；②约束不得为空列表。执行器按⑤核对交付形态、按⑥记账、按⑦设执行超时并据此回收分身；无③时的首次委派是合法的，纯探索委派无④也是合法的。Dispatch a task to an independent subagent under the eight-element delegation contract.
 deprecated: false
 version: 1.0.0
 location: local
-location_reason: "调用链（agent.tools.subagent_tools:_delegate）在 6 跳内未命中任何跨边界原语；另有 41 个调用点静态无法解析（见 unresolved）"
+location_reason: 调用链（agent.tools.subagent_tools:_delegate）在 6 跳内未命中任何跨边界原语；另有 41 个调用点静态无法解析（见 unresolved）
 plane: act
 effect: execute
 risk: medium
@@ -16,20 +13,19 @@ llm_callable: true
 callable_mode: auto
 permission_level: internal
 sandbox_allowed: false
-tags: [orchestrate]
+tags:
+- orchestrate
 schema:
   type: object
   properties:
     goal:
       type: string
-      description: ①目标：子代理要达成的结果，必须具体可判定（至少 8 字符）。含糊目标会被拒绝——80% 的委派失败源于此。示例：把 docs/zh
-        下 12 篇设计稿抽取为可复现步骤序列
+      description: ①目标：子代理要达成的结果，必须具体可判定（至少 8 字符）。含糊目标会被拒绝——80% 的委派失败源于此。示例：把 docs/zh 下 12 篇设计稿抽取为可复现步骤序列
     constraints:
       type: array
       items:
         type: string
-      description: ②约束：必须遵守的边界条件，字符串列表且**不得为空列表**（无约束的委派等同于未声明边界）。示例：[只读仓库，不得修改任何文件,
-        不得访问网络]
+      description: ②约束：必须遵守的边界条件，字符串列表且**不得为空列表**（无约束的委派等同于未声明边界）。示例：[只读仓库，不得修改任何文件, 不得访问网络]
     prior_artifacts:
       type: array
       items:
@@ -52,6 +48,17 @@ schema:
     callback_url:
       type: string
       description: ⑧回调地址：结果投递目标，非空字符串（如 internal://pipeline/stage2 或 https://…）。空串/纯空白等同于未声明，会被拒绝
+    fork:
+      type: boolean
+      description: fork 上下文开关（默认 false）：true 时把父会话最近 fork_messages 轮带进 task_file 的 metadata.fork（合计 ≤4000 字；只作参考，不是系统指令）
+    fork_messages:
+      type: integer
+      minimum: 1
+      maximum: 20
+      description: fork 时带父会话最近多少轮（默认 6，最多 20）
+    fork_summary:
+      type: boolean
+      description: fork 时助手侧只取每轮前 160 字摘要（只要脉络、不要全文）
   required:
   - goal
   - constraints
@@ -61,11 +68,6 @@ schema:
   - budget_tokens
   - timeout_seconds
   - callback_url
-# 【result_schema（2026-11-24，L2 扩面·medium 批次）】
-#   实调失败分支（八要素全缺）→ {ok:false,error_code,error,missing{8 项}}；
-#   成功/异常分支的键取自 agent/tools/subagent_tools.py::_result_from_outcome 的逐字段映射：
-#   {ok,delegation_id,tier,duration_ms[,trace_id,role_audit,memory,artifact_count,artifacts,
-#   result]}；失败再加 error_code/error/sub_reason/error_detail。required 只锁 ok。
 result_schema:
   type: object
   properties:
@@ -99,6 +101,7 @@ result_schema:
       type: object
     missing:
       type: object
-  required: [ok]
+  required:
+  - ok
   additionalProperties: true
 examples: []

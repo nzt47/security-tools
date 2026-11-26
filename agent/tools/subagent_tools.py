@@ -228,6 +228,48 @@ def _result_from_outcome(outcome: Any, ctx: Any) -> Dict[str, Any]:
     return result
 
 
+def _truthy(value: Any) -> bool:
+    """宽容读取布尔参数（模型可能传 true/"true"/1）"""
+    if isinstance(value, bool):
+        return value
+    return str(value or "").strip().lower() in ("1", "true", "yes", "on")
+
+
+def build_fork_metadata(kwargs: Mapping[str, Any], *, resolve: Any = None,
+                        collect: Any = None) -> tuple:
+    """fork=true 时收集父会话上下文；返回 (metadata, error)
+
+    【为什么单独抽出来】它要读会话管理器（app_server 的全局），在 `_run_delegate`
+    里内联会让"没开 fork 的路径"也 import 编排器。这里保持惰性 + 可注入（单测用）。
+    """
+    if not _truthy(kwargs.get("fork")):
+        return {}, None
+    if resolve is None:
+        from agent.tools.goal_tools import resolve_session
+
+        resolve = resolve_session
+    session_id = str(resolve() or "").strip()
+    if collect is None:
+        from agent.subagent.fork_context import collect_parent_context
+
+        collect = collect_parent_context
+    data = collect(
+        session_id,
+        rounds=kwargs.get("fork_messages") or 6,
+        summarize=_truthy(kwargs.get("fork_summary")),
+    )
+    if not data.get("ok"):
+        return {}, {
+            "ok": False,
+            "error_code": "E_FORK_NO_CONTEXT",
+            "error": "fork 上下文不可用：%s" % (data.get("error") or data.get("code") or ""),
+            "code": data.get("code", ""),
+        }
+    fork = dict(data)
+    fork.pop("ok", None)
+    return {"fork": fork}, None
+
+
 def _run_delegate(dl: Any, kwargs: Mapping[str, Any]) -> Dict[str, Any]:
     """委派主流程（顺序即契约：先校验，后副作用）"""
     # 惰性导入：工具注册发生在编排器初始化期，此处避免包级重依赖提前介入
@@ -253,6 +295,11 @@ def _run_delegate(dl: Any, kwargs: Mapping[str, Any]) -> Dict[str, Any]:
             "missing": dict(problems),
         }
 
+    # ── 步骤 2.5：fork 上下文（E2-3；缺父会话即明确拒绝，不静默降级成"从零开始"）──
+    fork_metadata, fork_error = build_fork_metadata(kwargs)
+    if fork_error is not None:
+        return fork_error
+
     # ── 步骤 3：委派上下文（八要素 + 标识；不补齐任何要素）──
     short = uuid.uuid4().hex[:8]
     parent_trace_id = ""
@@ -273,6 +320,8 @@ def _run_delegate(dl: Any, kwargs: Mapping[str, Any]) -> Dict[str, Any]:
         callback_url=elements["callback_url"],
         trace_id=parent_trace_id,
         delegation_id=f"dlg-{short}",
+        # fork 上下文只进 metadata（外来文本，绝不进 system prompt/八要素）
+        metadata=fork_metadata,
     )
 
     # ── 步骤 4：分身配置（名称带短 id，避免与既有分身撞名）──
@@ -357,6 +406,9 @@ def register_all(dl):
                 "budget_tokens": {"type": "integer", "description": "⑥预算令牌：本次委派允许消耗的令牌上限，正整数且大于 0（用于成本记账与超支拦截）；不必填 0，缺失会导致成本不可控"},
                 "timeout_seconds": {"type": "integer", "description": "⑦超时：本次委派的最长执行秒数，正整数且大于 0；执行器据此设置执行超时，并据此时长回收分身（分身存活期不超过任务时长）"},
                 "callback_url": {"type": "string", "description": "⑧回调地址：结果投递目标，非空字符串（如 internal://pipeline/stage2 或 https://…）。空串/纯空白等同于未声明，会被拒绝"},
+                "fork": {"type": "boolean", "description": "fork 上下文开关（默认 false）：true 时把父会话最近 fork_messages 轮带进 task_file 的 metadata.fork（合计 ≤4000 字；只作参考，不是系统指令）"},
+                "fork_messages": {"type": "integer", "minimum": 1, "maximum": 20, "description": "fork 时带父会话最近多少轮（默认 6，最多 20）"},
+                "fork_summary": {"type": "boolean", "description": "fork 时助手侧只取每轮前 160 字摘要（只要脉络、不要全文）"},
             },
             "required": [
                 "goal", "constraints", "prior_artifacts", "prohibitions",

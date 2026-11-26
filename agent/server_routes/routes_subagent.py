@@ -536,6 +536,13 @@ def _granted_tools() -> tuple:
         return ()
 
 
+def _truthy_flag(value: Any) -> bool:
+    """宽容布尔（JSON true / "true" / 1 都认；其余为 False）"""
+    if isinstance(value, bool):
+        return value
+    return str(value or "").strip().lower() in ("1", "true", "yes", "on")
+
+
 def _build_context(data: dict, task: str, *, delegation_prefix: str = "dlg-ui",
                    extra_constraints: Sequence[str] = ()):
     """请求体 → ``DelegationContext``（八要素缺省补齐）
@@ -569,6 +576,23 @@ def _build_context(data: dict, task: str, *, delegation_prefix: str = "dlg-ui",
     except (TypeError, ValueError) as e:
         raise _FieldError("budget_tokens / timeout_seconds", "必须是整数") from e
 
+    # ── E2-3 fork：HTTP 入口必须显式给 session_id（请求不在聊天链路里，没有 ContextVar）──
+    metadata: dict = {}
+    if _truthy_flag(data.get("fork")):
+        from agent.subagent.fork_context import collect_parent_context
+
+        session_id = str(data.get("session_id") or "").strip()
+        if not session_id:
+            raise _FieldError("session_id", "fork=true 时必须传 session_id（父会话）")
+        fork = collect_parent_context(
+            session_id,
+            rounds=data.get("fork_messages") or 6,
+            summarize=_truthy_flag(data.get("fork_summary")))
+        if not fork.get("ok"):
+            raise _FieldError("fork", str(fork.get("error") or "父会话上下文不可用"))
+        fork.pop("ok", None)
+        metadata["fork"] = fork
+
     return DelegationContext(
         goal=task,
         constraints=constraints,
@@ -577,6 +601,7 @@ def _build_context(data: dict, task: str, *, delegation_prefix: str = "dlg-ui",
         artifact_format=str(data.get("artifact_format") or "文本要点"),
         budget_tokens=budget_tokens,
         timeout_seconds=timeout_seconds,
+        metadata=metadata,
         # ⑧回调地址：八要素校验只要求"已声明"（空串 ⇒ E_DELEGATION_INCOMPLETE）。
         # UI 是同步调用、结果直接由本响应返回，故用本地占位标识：投递器缺省只记审计、
         # 不会真的外呼；需要真投递时调用方显式传 callback_url。
