@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-27T00:35:00+08:00",
+ "updated_at": "2026-11-27T00:50:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。 【接手入口】交接文档（仓外 yunshu_session_handoff_20261024.md）文件头写了最新一节与代码/CI/服务读数，文末「独立提示词」一节可直接复制（2026-11-26 起见 docs/handoff/2026-11-26_e2_e13_收口与新会话提示词.md）。",
  "items": [
   {
@@ -1563,8 +1563,8 @@
    "status": "open",
    "priority": "P1",
    "title": "Phase 3 执行与内容：持久终端 PTY、Office 三件套、附件/@引用/逐条反馈、语音输入/CoT 翻译（按需）",
-   "criteria": "E3-1 terminal_open/send/read/signal/close/list + 侧栏终端（ConPTY；多会话隔离）；E3-2 office_render/convert/recalculate + Office 技能（LibreOfficeKit 或本机 LibreOffice；不改输入、不写工作区）；E3-3 聊天附件/图片上传与粘贴、@file/@session 引用、消息引用、逐条 like/dislike；E3-4 STT 语音输入与 CoT 翻译（默认关）。 【2026-11-27 进度】E3-3 已交付三项：逐条点赞/点踩（复用 /api/feedback/submit，trace_id=消息 id，L5 直接吃到 like/dislike）、消息引用（引用块前缀 + 输入框引用条）、附件上传（/api/chat/attachments：文件名清洗 + 常量落点 + 写围栏 + 20MiB 上限 + 可执行后缀拒收 +图片 OCR 旁路；前端 📎 chips + 消息 manifest）。E3-3 余项：@file 自动补全、@session 引用、点击引用跳转到原消息。E3-1 PTY 与 E3-2 Office 的**依赖现状**见各自条目。",
-   "next": "剩余：① E3-2 Office（等 Owner 对 LibreOffice 拍板，见 dsh-parity-e3-2-office）；② E3-3 尾巴（@file 自动补全、@session 引用、点引用跳转原消息）；③ E3-1 的侧栏终端 UI。"
+   "criteria": "E3-1 terminal_open/send/read/signal/close/list + 侧栏终端（ConPTY；多会话隔离）；E3-2 office_render/convert/recalculate + Office 技能（LibreOfficeKit 或本机 LibreOffice；不改输入、不写工作区）；E3-3 聊天附件/图片上传与粘贴、@file/@session 引用、消息引用、逐条 like/dislike；E3-4 STT 语音输入与 CoT 翻译（默认关）。 【2026-11-27 进度】E3-3 已交付三项：逐条点赞/点踩（复用 /api/feedback/submit，trace_id=消息 id，L5 直接吃到 like/dislike）、消息引用（引用块前缀 + 输入框引用条）、附件上传（/api/chat/attachments：文件名清洗 + 常量落点 + 写围栏 + 20MiB 上限 + 可执行后缀拒收 +图片 OCR 旁路；前端 📎 chips + 消息 manifest）。E3-3 余项：@file 自动补全、@session 引用、点击引用跳转到原消息。E3-1 PTY 与 E3-2 Office 的**依赖现状**见各自条目。 【2026-11-27 追加】@ 文件引用已交付（21c197c4c）：输入 @关键词（≥2 字）防抖 350ms 调**既有** /api/filesystem/search，选中插入 @相对路径（不新增路由、不造第二套索引）。 真机探针 .local/verify_e33.py 4/4：附件上传 / 带 manifest 的对话 / metered 有真实样本 （prompt_tokens 8918, 13.6%）/ 逐条 like 能在反馈列表查到。 【2026-11-27 再追加】# 会话引用（e20a4c689：拉既有 /api/sessions 本地过滤，插入【引用会话】<标题>（session_id=<id>））与引用块点击回跳（quoteAnchor：只认开头引用块 +按内容归一化找原消息 + 既有高亮机制；找不到就什么都不做）已交付 ⇒ **E3-3 全部完成**。",
+   "next": "E3-3 已全部交付，本条目只剩 E3-1/E3-2 的引用（见各自条目）：① E3-2 Office 等 Owner 对 LibreOffice 拍板；② E3-1 侧栏终端 UI（先定消费者再建路由）。"
   },
   {
    "id": "dsh-parity-p4-orchestration",
