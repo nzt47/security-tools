@@ -181,7 +181,8 @@ class TestQuery:
         # 【2026-11-09】tool 93 → 94：skill_script_run（技能 L3 显式执行点）
         assert st["by_kind"] == {"skill": 50, "tool": 104}
         # 【2026-11-09】remote 22 → 23：skill_script_run（子进程执行 ⇒ remote）
-        assert st["by_location"] == {"local": 131, "remote": 23}
+        # 【2026-11-27】terminal 是 remote（PTY/子进程 ⇒ location=remote）：local 130 / remote 24
+        assert st["by_location"] == {"local": 130, "remote": 24}
         assert st["degraded"] is False
 
     def test_主键索引_tenant_name(self, real_registry):
@@ -208,7 +209,8 @@ class TestQuery:
         remote = real_registry.query(location="remote")
         # 【2026-11-05】21 -> 22：software_install（subprocess.run ⇒ location=remote）
         # 【2026-11-09】22 → 23：skill_script_run 经 SkillExecutor 起子进程 ⇒ remote
-        assert len(remote) == 23
+        # 【2026-11-27】23 → 24：terminal（remote）
+        assert len(remote) == 24
 
     def test_identity_白名单过滤(self, real_registry):
         """`callable_by` 是入口身份白名单（v1.4 §5.1）"""
