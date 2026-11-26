@@ -458,6 +458,9 @@ flowchart LR
         agent_observability_tracer["agent.observability.tracer"]:::crosslayer
         agent_observability_utc["agent.observability.utc"]:::crosslayer
     end
+    subgraph office [office]
+        agent_office_docx_text["agent.office.docx_text"]:::crosslayer
+    end
     subgraph orchestrator [orchestrator]
         agent_orchestrator["agent.orchestrator"]:::crosslayer
         agent_orchestrator_dialog_state["agent.orchestrator.dialog_state"]
@@ -744,6 +747,7 @@ flowchart LR
         agent_tools_core_tools["agent.tools.core_tools"]:::crosslayer
         agent_tools_db_tools["agent.tools.db_tools"]:::crosslayer
         agent_tools_discovery_service["agent.tools.discovery_service"]:::crosslayer
+        agent_tools_docx_tools["agent.tools.docx_tools"]:::crosslayer
         agent_tools_ext_tools["agent.tools.ext_tools"]:::crosslayer
         agent_tools_extra_tools["agent.tools.extra_tools"]:::crosslayer
         agent_tools_fan_out_tools["agent.tools.fan_out_tools"]:::crosslayer
@@ -1842,6 +1846,7 @@ flowchart LR
     agent_orchestrator_lifecycle_manager -.-> agent_tools_lint_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_ui_guard_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_terminal_tools
+    agent_orchestrator_lifecycle_manager -.-> agent_tools_docx_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_skill_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_core_tools
     agent_orchestrator_lifecycle_manager -.-> agent_utils_compatibility
@@ -3010,6 +3015,9 @@ flowchart LR
     agent_tools_discovery_service --> agent_tools_mcp_connector
     agent_tools_discovery_service -.-> agent_tool_gate
     agent_tools_discovery_service -.-> agent_extensions_market
+    agent_tools_docx_tools --> agent
+    agent_tools_docx_tools -.-> agent_office_docx_text
+    agent_tools_docx_tools -.-> agent_system_tools
     agent_tools_ext_tools --> agent
     agent_tools_ext_tools -.-> agent_extensions_market
     agent_tools_ext_tools --> agent_tools_tool_generator
@@ -3233,9 +3241,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 818
-- 模块节点数: 710
-- 依赖边数: 2391
-- 跨层调用数: 1522
+- 扫描文件数: 821
+- 模块节点数: 712
+- 依赖边数: 2395
+- 跨层调用数: 1525
 - 违规调用数: 0
 - 动态 import 数: 1
