@@ -148,3 +148,72 @@ class TestInputAndOutput:
                            json={"command": "cmd", "rows": 9999, "cols": 1}).get_json()
         assert body["ok"] is True
         assert seen["rows"] == 200 and seen["cols"] == 20 and seen["command"] == "cmd"
+
+
+
+# ── 真 PTY 全链路（HTTP 层）：路由 → pty_session → 子进程 → 输出 → 关闭 ──
+# 上面的用例都 monkeypatch 了 pty_session；这一条**不 mock**，用真终端跑一遍，
+# 防止「路由参数都对、但接上真会话就不通」。无 PTY 后端（Windows 缺 winpypty）时 skip。
+
+def _pty_backend() -> str:
+    if sys.platform == "win32":
+        try:
+            import winpty  # noqa: F401
+            return "winpty"
+        except Exception:  # noqa: BLE001
+            return ""
+    try:
+        import pty  # noqa: F401
+        return "pty"
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+BACKEND = _pty_backend()
+needs_pty = pytest.mark.skipif(not BACKEND, reason="本机没有可用的 PTY 后端（Windows 需 pywinpty）")
+
+
+def _read_until(client, sid, needle, timeout=15.0):
+    import time as _time
+
+    deadline = _time.time() + timeout
+    collected, offset = "", 0
+    while _time.time() < deadline:
+        body = client.get("/api/terminal/output?id=%s&offset=%s" % (sid, offset)).get_json()
+        assert body.get("ok"), body
+        chunk = body.get("chunk") or ""
+        collected += chunk
+        nxt = body.get("next_offset")
+        offset = nxt if nxt is not None else int(body.get("offset", 0)) + len(chunk)
+        if needle in collected:
+            return collected
+        _time.sleep(0.1)
+    return collected
+
+
+@needs_pty
+class TestRealPtyThroughRoutes:
+    def test_开_发_读_关全链路(self, client, tmp_path, monkeypatch):
+        monkeypatch.setenv("CP_TERMINAL_ENABLED", "1")
+        script = tmp_path / "echo_lines.py"
+        script.write_text(
+            "import sys\n"
+            "print('READY', flush=True)\n"
+            "for line in sys.stdin:\n"
+            "    print('ECHO:' + line.strip(), flush=True)\n",
+            encoding="utf-8")
+        resp = client.post("/api/terminal/sessions", json={
+            "command": '"%s" "%s"' % (sys.executable, script),
+            "cwd": str(tmp_path),
+        })
+        body = resp.get_json()
+        assert body.get("ok") is True and body.get("id"), body
+        sid = body["id"]
+        assert "READY" in _read_until(client, sid, "READY")
+        assert client.post("/api/terminal/input",
+                           json={"id": sid, "text": "hello"}).get_json()["ok"] is True
+        assert "ECHO:hello" in _read_until(client, sid, "ECHO:hello")
+        assert client.post("/api/terminal/close", json={"id": sid}).get_json()["ok"] is True
+        # 关掉之后：再读/再关都回 no_session（200，不是 500）
+        assert client.get("/api/terminal/output?id=%s" % sid).get_json()["code"] == "no_session"
+        assert client.post("/api/terminal/close", json={"id": sid}).get_json()["code"] == "no_session"
