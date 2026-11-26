@@ -715,6 +715,7 @@ flowchart LR
         agent_subagent_role_prompt_library["agent.subagent.role_prompt_library"]:::crosslayer
         agent_subagent_role_templates["agent.subagent.role_templates"]:::crosslayer
         agent_subagent_rounds["agent.subagent.rounds"]:::crosslayer
+        agent_subagent_runs["agent.subagent.runs"]:::crosslayer
         agent_subagent_runtime_tool_decls["agent.subagent.runtime_tool_decls"]
         agent_subagent_sandbox["agent.subagent.sandbox"]:::crosslayer
         agent_subagent_scoped_memory_gate["agent.subagent.scoped_memory_gate"]
@@ -759,6 +760,7 @@ flowchart LR
         agent_tools_shell_tools["agent.tools.shell_tools"]:::crosslayer
         agent_tools_skill_tools["agent.tools.skill_tools"]:::crosslayer
         agent_tools_software_tools["agent.tools.software_tools"]:::crosslayer
+        agent_tools_subagent_control["agent.tools.subagent_control"]:::crosslayer
         agent_tools_subagent_tools["agent.tools.subagent_tools"]:::crosslayer
         agent_tools_system_tools["agent.tools.system_tools"]:::crosslayer
         agent_tools_task_tools["agent.tools.task_tools"]:::crosslayer
@@ -1823,6 +1825,7 @@ flowchart LR
     agent_orchestrator_lifecycle_manager -.-> agent_tools_goal_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_ask_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_session_tools
+    agent_orchestrator_lifecycle_manager -.-> agent_tools_subagent_control
     agent_orchestrator_lifecycle_manager -.-> agent_tools_extra_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_git_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_test_tools
@@ -2452,6 +2455,9 @@ flowchart LR
     agent_server_routes_routes_subagent -.-> agent_tools_subagent_tools
     agent_server_routes_routes_subagent -.-> agent_subagent_bundle
     agent_server_routes_routes_subagent -.-> agent_subagent_callback_channel
+    agent_server_routes_routes_subagent -.-> agent_subagent_runs
+    agent_server_routes_routes_subagent -.-> agent_subagent_runs
+    agent_server_routes_routes_subagent -.-> agent_subagent_runs
     agent_server_routes_routes_subagent -.-> agent_subagent_capabilities
     agent_server_routes_routes_subagent -.-> agent_subagent_bundle
     agent_server_routes_routes_subagent -.-> agent_subagent_dependencies
@@ -2748,9 +2754,11 @@ flowchart LR
     agent_subagent_executor --> agent_subagent_scoped_memory_gate
     agent_subagent_executor --> agent_subagent_toolset
     agent_subagent_executor --> agent_subagent_local_inference
+    agent_subagent_executor --> agent_subagent_runs
     agent_subagent_executor --> agent_subagent_cognitive_loop
     agent_subagent_executor -.-> agent_memory_scoped_store
     agent_subagent_executor -.-> agent_memory_topic_policy
+    agent_subagent_executor --> agent_subagent_runs
     agent_subagent_executor --> agent_subagent_callback_channel
     agent_subagent_executor --> agent_subagent_local_inference
     agent_subagent_executor -.-> agent_memory_broker
@@ -2800,6 +2808,7 @@ flowchart LR
     agent_subagent_persistence --> agent_subagent_container
     agent_subagent_role_prompt_library --> agent_subagent_role_templates
     agent_subagent_role_templates -.-> agent_prompt_manager_roles
+    agent_subagent_runs -.-> agent_jsonl_history
     agent_subagent_runtime_tool_decls -.-> agent_lines_models
     agent_subagent_runtime_tool_decls -.-> agent_lines_models
     agent_subagent_sandbox -.-> agent_lines_models
@@ -3065,6 +3074,11 @@ flowchart LR
     agent_tools_software_tools --> agent
     agent_tools_software_tools -.-> agent_utils
     agent_tools_software_tools -.-> agent_audit_facade
+    agent_tools_subagent_control --> agent_tools
+    agent_tools_subagent_control -.-> agent_subagent_runs
+    agent_tools_subagent_control -.-> agent_subagent_runs
+    agent_tools_subagent_control -.-> agent_subagent_runs
+    agent_tools_subagent_control -.-> agent_subagent_runs
     agent_tools_subagent_tools --> agent
     agent_tools_subagent_tools -.-> agent_subagent_delegation
     agent_tools_subagent_tools -.-> agent_subagent_container
@@ -3190,9 +3204,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 809
-- 模块节点数: 702
-- 依赖边数: 2356
-- 跨层调用数: 1495
+- 扫描文件数: 811
+- 模块节点数: 704
+- 依赖边数: 2368
+- 跨层调用数: 1504
 - 违规调用数: 0
 - 动态 import 数: 1
