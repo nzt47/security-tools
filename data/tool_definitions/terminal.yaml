@@ -43,7 +43,7 @@ schema:
       description: action=send 时写入 stdin 的文本
     newline:
       type: boolean
-      description: action=send 时是否补一个回车（默认 true，等于按 Enter；向 REPL 发代码通常要）
+      description: action=send 时是否补一个换行（默认 true；向 REPL 发代码通常要）
     offset:
       type: integer
       description: action=read 的起始字符偏移（用上次的 next_offset）

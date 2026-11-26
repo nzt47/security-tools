@@ -145,6 +145,9 @@ _DEFAULT_TOOL_CATEGORIES = {
             "ui_guard_check",
             # 【2026-11-20】UI 规范守卫的受控修复（写工具；YAML 默认停用，启用后走审批）
             "ui_guard_fix",
+            # 【2026-11-27】E3-1 持久终端（PTY）：默认关（CP_TERMINAL_ENABLED=0），
+            #   且受限档一律拒绝 ⇒ 归 code 分类但不进默认可用集
+            "terminal",
         ],
     },
     "system": {
