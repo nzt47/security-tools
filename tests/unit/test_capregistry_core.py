@@ -175,11 +175,12 @@ class TestQuery:
         # 【2026-11-24】146 → 147 / tool 96 → 97 / local 123 → 124：read_spill（E0-2）
         # 【2026-11-25】147 → 148 / tool 97 → 98 / local 124 → 125：goal（E1-2b）
         # 【2026-11-26】150 → 152 / tool 100 → 102 / local 127 → 129：session_search / session_trace（E1-4d）
+# 【2026-11-26】152 → 153 / tool 102 → 103 / local 129 → 130：subagent_control（E2-1）
         assert st["total"] == 153, f"能力总数应为 153，实际 {st['total']}"
         # 【2026-11-09】tool 93 → 94：skill_script_run（技能 L3 显式执行点）
         assert st["by_kind"] == {"skill": 50, "tool": 103}
         # 【2026-11-09】remote 22 → 23：skill_script_run（子进程执行 ⇒ remote）
-        assert st["by_location"] == {"local": 129, "remote": 23}
+        assert st["by_location"] == {"local": 130, "remote": 23}
         assert st["degraded"] is False
 
     def test_主键索引_tenant_name(self, real_registry):
