@@ -3154,6 +3154,16 @@ class Orchestrator:
             limit = self._memory_token_limit
             pct = (total_tokens / limit) * 100 if limit else 0.0
             compress_rounds = self._memory.compress_rounds
+            # 【E0-2④ · 2026-11-26】编排侧的真实装配量也登记进 token-meter：
+            #   与 /api/context/status、压缩触发读的是同一个入口（memory/token_meter.py）。
+            try:
+                from memory import token_meter as _token_meter
+                _token_meter.record(self._current_session_key(),
+                                    prompt_tokens=int(total_tokens),
+                                    window_tokens=int(limit) if limit else None,
+                                    source="orchestrator")
+            except Exception:  # noqa: BLE001 读数登记失败不得影响编排
+                pass
 
             base = {
                 "pct": round(pct, 1),

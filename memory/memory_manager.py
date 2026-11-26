@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from .token_counter import TokenCounter
+from . import token_meter
 from .llm_service import LLMService
 from .summarizer import Summarizer
 from .storage import Storage
@@ -387,6 +388,9 @@ class MemoryManager:
         self._compress_floor_by_session = {}       # {session_id: 上次压缩时的正文 token}
         #: 最近一次触发压缩的会话（后台压缩器执行时据此选输入切片）
         self._pending_session = ""
+        #: 最近一次触发压缩的**判据明细**（{source, ...}）：不只说"压了"，
+        #: 还要能回答"按哪个口径压的"——界面与排障都读它（/api/context/status.compression_trigger）。
+        self._last_trigger_detail = {}
         self._recompress_growth_ratio = float(
             config.get("recompress_growth_ratio", 1.10))
         if self._recompress_growth_ratio <= 1.0:
@@ -613,6 +617,12 @@ class MemoryManager:
                 self._set_floor(sid, counted_now)
             except Exception:  # noqa: BLE001 记录失败不影响压缩结果
                 self._set_floor(sid, 0)
+            # 【E0-2④】实测口径的水位同样在"压缩成功后"记：压缩只写摘要、不删消息 ⇒
+            #   实测值不会自己掉下来，不记水位就会每条消息压一次（口径 §7）。
+            try:
+                token_meter.note_compaction(sid)
+            except Exception:  # noqa: BLE001 水位记录失败不影响压缩结果
+                pass
             return True
         except Exception as e:
             total_elapsed = (time.time() - total_start) * 1000
@@ -774,8 +784,50 @@ class MemoryManager:
                 counted, tool_tokens)
         if self._summarizer.should_compress(counted, self._token_limit,
                                             self._compress_threshold):
+            self._last_trigger_detail = {"source": "memory_window",
+                                         "counted_tokens": int(counted),
+                                         "tool_tokens": int(tool_tokens)}
             return True
-        return tool_tokens >= self._token_limit
+        if tool_tokens >= self._token_limit:
+            self._last_trigger_detail = {"source": "tool_results",
+                                         "tool_tokens": int(tool_tokens)}
+            return True
+        # 【E0-2④ · 2026-11-26】实测口径（token-meter）：记忆池正文只是**代理指标**，
+        #   真正装进请求的还有系统提示/工具 schema/摘要/检索。实测到"快满"时同样该压，
+        #   判据与水位全在 memory.token_meter（同一入口，界面读数也调它）。
+        metered = self._meter_trigger(session_id)
+        if metered:
+            self._last_trigger_detail = dict(metered)
+            logger.info("[MemoryManager] 压缩触发（实测口径）：实测 %d tok / 窗口 %d（%.1f%%），"
+                        "上次压缩水位 %d tok",
+                        metered.get("prompt_tokens", 0), metered.get("limit_tokens", 0),
+                        float(metered.get("percentage") or 0.0),
+                        metered.get("watermark_tokens", 0))
+            return True
+        self._last_trigger_detail = {}
+        return False
+
+    def _meter_trigger(self, session_id: str = "") -> dict | None:
+        """实测口径（token-meter）判一次触发；无样本/未到阈值/水位没长够 ⇒ None
+
+        【为什么单独一个方法】口径只有一份（memory.token_meter.should_compress），
+        这里只负责把本实例的三个参数（窗口/阈值/水位倍数）传下去，不再自己算一遍。
+        """
+        try:
+            return token_meter.should_compress(
+                session_id,
+                limit_tokens=int(getattr(self, "_token_limit", 0) or 0),
+                threshold=float(getattr(self, "_compress_threshold", 0.8) or 0.8),
+                growth_ratio=float(getattr(self, "_recompress_growth_ratio", 1.10) or 1.10),
+            )
+        except Exception as e:  # noqa: BLE001 读数异常 ⇒ 退回旧口径（绝不因读数炸主链路）
+            logger.debug("[MemoryManager] 实测口径判定失败（回落记忆窗口）: %s", e)
+            return None
+
+    def last_compression_trigger(self) -> dict:
+        """最近一次触发压缩的判据明细（无触发时返回空字典，**不伪造** source）"""
+        detail = getattr(self, "_last_trigger_detail", None)
+        return dict(detail) if isinstance(detail, dict) else {}
 
     def add_message(self, role: str, content: str, session_id: str = "") -> str:
         """添加新消息

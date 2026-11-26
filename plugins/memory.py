@@ -266,6 +266,26 @@ def api_context_status():
 
     limit_info = _context_limit_info(_Yunshu)
     limit = limit_info["limit_tokens"]
+
+    # ── 实测口径（E0-2④ · 2026-11-26）──────────────────────────────────────
+    # 【与压缩触发同源】这个块只调 memory.token_meter.usage()，而压缩判据
+    #   （MemoryManager._should_compress_now → token_meter.should_compress）调的是同一个函数；
+    #   分母优先取编排窗口（与 percentage 的分母同一个数），拿不到才回落样本自带窗口。
+    # 【为什么不是"再算一遍"】真实装配量（系统提示+工具 schema+历史）只有装配方知道，
+    #   读数入口留在这里只做一次查表，避免面板与触发各写一套统计（那是 2026-11-08 修过的分裂）。
+    meter_snapshot = None
+    try:
+        from memory import token_meter as _token_meter
+        meter_snapshot = _token_meter.usage(session_id, limit_tokens=limit)
+    except Exception as _tm_e:  # noqa: BLE001 读数不可用 ⇒ 如实返回 None（不伪造 0）
+        import logging as _logging_tm
+        _logging_tm.getLogger(__name__).debug("token-meter 读数失败: %s", _tm_e)
+        meter_snapshot = None
+    trigger_snapshot = {}
+    try:
+        trigger_snapshot = _Yunshu._memory.last_compression_trigger() or {}
+    except Exception:  # noqa: BLE001
+        trigger_snapshot = {}
     configured_limit = _cfg.get("memory", "token_limit", default=MEMORY_TOKEN_LIMIT_DEFAULT)
 
     # ── 分子：**与压缩触发同源**（2026-11-09）──────────────────────────────
@@ -375,6 +395,14 @@ def api_context_status():
         # 不参与压缩触发/摘要/最近消息窗口，也不再写入；这里如实披露条数与口径，
         # 让面板能写「N 条 · 已冻结」，而不是让人以为压缩漏了它们（L5：不折算成 0）。
         "legacy_pool": _legacy_pool_snapshot(),
+        # 实测口径：真正装进请求的 token（系统提示+工具+历史），由装配方用同一个
+        # TokenCounter 量完写进 memory/token_meter.py；无样本时**如实 null**（不折算成 0）。
+        "metered": meter_snapshot,
+        "metered_percentage": (meter_snapshot or {}).get("percentage"),
+        "metered_note": ("实测 = 最近一轮真实装配量（系统提示+工具 schema+历史+摘要），"
+                         "与压缩触发的实测判据同一入口；percentage 仍是记忆窗口口径，两者分别披露。"),
+        # 最近一次压缩是**按哪个口径**触发的（memory_window / tool_results / token_meter）
+        "compression_trigger": (trigger_snapshot or None),
     })
 
 

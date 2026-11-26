@@ -594,12 +594,39 @@ _REGISTRY_ROWS: List[SettingSpec] = [
         "spill 信封里的预览字符预算（头 4/5 + 尾 1/5）",
         owner="agent/context/spill.py",
         validator=_range_validator(512, 65536, kind="int")),
+    # ── E0-2③ 图片/截图 offload（2026-11-26）─────────────────────────────
+    # 【为什么是 A 级】只改"图片以什么形态进上下文"，不改权限；关掉 = 回到把 base64
+    #   塞进上下文（一次截图就可能顶穿窗口，这条开关是事故时的回滚位）。
+    _mk("CP_IMAGE_OFFLOAD", CAT_ORCHESTRATION, True,
+        "工具结果里的 base64 图片落盘到 agent/data/images/，结果只留占位 + "
+        "image:<locator>（可用 read_spill 取元数据与 OCR）；关闭即把 base64 塞回上下文",
+        owner="agent/context/image_offload.py"),
+    _mk("CP_IMAGE_OFFLOAD_MIN_CHARS", CAT_ORCHESTRATION, 4000,
+        "多长的 base64 图片才 offload（512–4000000 字符）；太小的图留在结果里更省事",
+        owner="agent/context/image_offload.py",
+        validator=_range_validator(512, 4000000, kind="int")),
+    # ── E0-2④ token-meter 驱动压缩（2026-11-26）──────────────────────────
+    # 【为什么是 A 级】只改变"什么时候触发压缩"，不改变谁能做什么；关掉 = 回到只按
+    #   记忆窗口（最近 200 条正文）口径，行为与改动前逐字一致。
+    # 【为什么默认开】水位闸门让它保守（实测过阈值 **且** 比上次压缩水位长够 10% 才压），
+    #   而它补的正是代理指标的盲区：真正装进请求的系统提示/工具 schema 不算在记忆池里。
+    _mk("CP_TOKEN_METER", CAT_ORCHESTRATION, True,
+        "压缩触发同时参考**实测**装配量（系统提示+工具 schema+历史，tiktoken 实量）："
+        "实测占用过阈值且比上次压缩水位长够 growth 倍才压；关闭即只按记忆窗口口径",
+        owner="memory/token_meter.py"),
     # ── E0-4 工具治理小件（2026-11-24）────────────────────────────────────
     # 【为什么是 A 级】只影响模型看到的提示与元数据，不改变工具可执行性与权限；
     # 关掉即回到逐字旧行为。通用工具超时另有机制（agent/timeout_budget.py），不在此重复登记。
     _mk("CP_TOOL_REPEAT_REMINDER", CAT_ORCHESTRATION, True,
         "同一工具 + 完全相同的参数重复调用时，在结果里附 `_repeat` 提醒并记审计（不阻断）",
         owner="agent/tools/governance.py"),
+    # ── E0-4① 每步时钟 time-context（2026-11-26）──────────────────────────
+    # 【为什么默认关】时间戳会改变「同一问题同一答案」的复现性（排障/回归先关它），
+    #   且注入的是提示词内容 ⇒ 默认关、开了才有行为。注入点只有一个（易变尾簇）。
+    _mk("CP_TIME_CONTEXT", CAT_ORCHESTRATION, False,
+        "在工作台的易变尾簇里注入「现在几点 + 本轮已进行多久」（每轮刷新，不进缓存前缀）；"
+        "默认关：关掉即逐字旧行为，提示词里不出现时间",
+        owner="agent/time_context.py"),
     _mk("CP_TOOL_REPEAT_THRESHOLDS", CAT_ORCHESTRATION, "3,5,8",
         "重复提醒的触发次数（逗号分隔，升序去重；至少两个且 ≥2，非法回落 3,5,8）",
         owner="agent/tools/governance.py", validator=Validator("str")),

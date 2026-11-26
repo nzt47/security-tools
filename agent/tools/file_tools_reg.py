@@ -68,10 +68,10 @@ def register_all(dl):
             note_file_read(path)  # 登记"已读"：edit 工具要求先读后改
         return result
 
-    @_tools.register("read_spill", "按 locator 分段读取被落盘的大结果（工具结果超过阈值时会回 spilled=true 与 locator；offset/limit 以字符计）。Read a spilled tool result by locator in segments", schema={
+    @_tools.register("read_spill", "按 locator 分段读取被落盘的大结果（工具结果超过阈值时会回 spilled=true 与 locator；offset/limit 以字符计）；locator 形如 image:... 的图片只回元数据与 OCR 文字。Read a spilled tool result by locator in segments", schema={
         "type": "object",
         "properties": {
-            "locator": {"type": "string", "description": "spill 信封里的 locator，形如 spill:0123456789abcdef"},
+            "locator": {"type": "string", "description": "信封里的 locator：spill:0123456789abcdef（大文本，可分段读）或 image:0123456789abcdef（图片，只回元数据与 OCR）"},
             "offset": {"type": "integer", "description": "起始字符偏移，默认 0"},
             "limit": {"type": "integer", "description": "本次最多返回的字符数，默认 20000，上限 200000"},
         },

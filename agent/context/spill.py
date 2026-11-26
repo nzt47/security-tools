@@ -165,8 +165,17 @@ def spill_result(tool: str, result: Any) -> Optional[Dict[str, Any]]:
 
 
 def read_locator(locator: Any, offset: Any = 0, limit: Any = _READ_LIMIT_DEFAULT) -> Dict[str, Any]:
-    """按 locator 分段读取落盘内容（offset/limit 以**字符**计）。"""
-    match = _LOCATOR_RE.match(str(locator or "").strip())
+    """按 locator 分段读取落盘内容（offset/limit 以**字符**计）。
+
+    两种 locator：spill:<16 hex>（大文本，可分段读原文）与 image:<16 hex>
+    （E0-2③ 落盘的图片：只回元数据 + 尽力 OCR，二进制原文不进上下文）。
+    """
+    _raw = str(locator or "").strip()
+    if _raw.startswith("image:"):
+        # 【E0-2③】图片走另一个叶子模块：这里只做分派，locator 解析规则只有一份（那边校验）
+        from agent.context.image_offload import read_image_locator as _read_image
+        return _read_image(_raw)
+    match = _LOCATOR_RE.match(_raw)
     if not match:
         return {"ok": False,
                 "error": "locator 不合法（期望形如 spill:<16 位十六进制>）"}

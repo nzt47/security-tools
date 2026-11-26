@@ -765,6 +765,19 @@ def call(*args, **params) -> Any:
             # 详见 `agent/guardrails/untrusted_ingest.py`。
             mark_result_foreign(name, result)
 
+            # ── E0-2③ 图片 offload（先于 spill：base64 先换成占位，spill 才看得到小信封）──
+            # 位置同 spill：handler 返回之后、交给调用方之前。一次 browser_screenshot 的
+            # base64 可达 50 万字符（比整个上下文窗口还大），这里落盘到 agent/data/images/
+            # 并回 {image_offloaded, image_locator, ...}；再读走 read_spill(locator=image:...)。
+            # 失败姿态：只记 debug、原样返回（内容保全不能反过来让工具调用失败）。
+            try:
+                from agent.context.image_offload import offload_result as _image_offload
+                _offloaded = _image_offload(name, result)
+                if _offloaded is not None:
+                    result = _offloaded
+            except Exception as _img_err:  # noqa: BLE001
+                logger.debug("[%s] 图片 offload 跳过: %s", trace_id, type(_img_err).__name__)
+
             # ── E0-2 大输出 spill（唯一汇聚点，覆盖所有调用方）─────────────────
             # 位置：handler 返回之后、交给调用方之前。超阈值的结果落盘为
             # `agent/data/spill/<id>.txt`，这里只回 {spilled, locator, preview}；

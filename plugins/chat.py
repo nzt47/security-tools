@@ -2157,6 +2157,8 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
     #: 处置与编排器 F3-1（agent/system_prompt_manager.split_volatile_tail）同一条原则：
     #: **稳定前缀 + 易变尾部**（尾部本来就是新的，不指望命中）。
     _volatile_parts: list = []
+    #: 本轮开始时刻（time.time() 口径）：E0-4① 每步时钟用它算「本轮已进行多久」
+    _turn_started_at = time.time()
 
     # ── 完整·流式：先跑编排器的「回答前」能力（2026-10-03 新增）──
     #   为什么需要这一档：full 档委托编排器 ⇒ **首字 = 完成**（实测长答 8.80s 全程无输出），
@@ -2201,6 +2203,18 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                        % _retrieval_tokens) if _retrieval_text else
                       "本次未命中任何片段（或该能力未启用）——按轻量继续",
             "status": "done"})
+
+    # ── E0-4① 每步时钟：顺着**同一条**易变尾簇下发（不另开注入点）────────────
+    # 【为什么放这里】时间每轮都变，放 system prompt 会把整条请求的缓存前缀钉死；
+    #   易变尾簇本来就是「每轮新的一段」，且只有这一处装配点（口径：一处 helper）。
+    # 【默认关】CP_TIME_CONTEXT 未设置 = 不注入（见 agent/time_context.py 的边界说明）。
+    try:
+        from agent.time_context import tail_text as _time_tail_text
+        _time_tail = _time_tail_text(started_at=_turn_started_at)
+        if _time_tail:
+            _volatile_parts.append(_time_tail)
+    except Exception as _tc_err:  # noqa: BLE001 时钟提示失败绝不影响对话
+        logger.debug("[workbench][SSE] 时间上下文跳过: %s", _tc_err)
 
     # ── 易变上下文落到「请求最后一条消息」（2026-11-08）──────────────────────
     # 【为什么】system prompt 从缓存前缀的第 0 个 token 起；把每轮都变的检索/技能片段塞进去，
@@ -2418,6 +2432,21 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
         _dropped = len(messages) - len(loop_messages)
         logger.info("[workbench][SSE] 窗口不可得：回落原行为（最近 %d 条），丢弃 %d 条",
                     _FALLBACK_HISTORY_MESSAGES, _dropped)
+    # 【E0-2④ · 2026-11-26】把"这次真的装了多少 token"交给 token-meter
+    #   （memory/token_meter.py）：压缩触发与 /api/context/status 读的是**同一份读数**，
+    #   不再靠"记忆池最近 200 条"去猜真实装配量。只在装配量可得时记（宁缺不造）。
+    if _window_tokens and _used is not None:
+        try:
+            from memory import token_meter as _token_meter
+            _token_meter.record(
+                session_id,
+                prompt_tokens=(int(_system_tokens) + int(_tokens or 0) + int(_used)),
+                window_tokens=_window_tokens,
+                source="chat",
+                overhead_tokens=int(_system_tokens) + int(_tokens or 0),
+                history_tokens=int(_used))
+        except Exception as _tm_e:  # noqa: BLE001 读数失败绝不影响对话
+            logger.debug("[workbench][SSE] token-meter 记录失败: %s", _tm_e)
     logger.info(
         "[workbench][SSE] 上下文预算: 窗口=%s 系统提示=%d 工具=%s 回复上限=%d ⇒ 历史预算=%d；"
         "保留 %d/%d 条（丢弃 %d 条，%s token）",
