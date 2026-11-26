@@ -1,9 +1,11 @@
 # E2 多代理协作（设计） — 2026-11-26
 
-> 状态：**E2-1a 已实现（2026-11-26，引擎 + 工具）**；E2-1b（3 条路由 + 前端「运行中」块）、
-> E2-2/E2-3/E2-4 仍为设计稿。已交付：`agent/subagent/runs.py`（RunRegistry）、执行器每轮
-> drain 追加指令 + 轮间协作式打断、`subagent_control` 工具（list/send/interrupt/inbox）、
-> 17 条单测 + 真机探针 `.local/verify_e2_1_control.py`。对齐 DSH 的子代理控制 / Team 任务板 / fork / Ralph 循环，
+> 状态：**E2-1 已全部实现并部署（2026-11-26，cd7765cc5）**；E2-2/E2-3/E2-4 仍为设计稿。
+> 已交付：`agent/subagent/runs.py`（RunRegistry）、执行器每轮 drain 追加指令 + 轮间协作式打断、
+> `subagent_control` 工具（list/send/interrupt/inbox）、3 条路由 + 分身页「运行中」块
+> （追加指令 / 协作式打断）。验证：单测 17 + 路由 11 + 页面 3；真机探针
+> `.local/verify_e2_1_control.py`（进程内）与 `.local/verify_e2_1b_http.py`（HTTP）全过。
+> 对齐 DSH 的子代理控制 / Team 任务板 / fork / Ralph 循环，
 > **复用**本仓已有的 `delegate` / `fan_out` / 生命周期管理器 / `TaskBoard` / callback outbox。
 > 勘察结论：本仓已具备「一次性委派 + 任务看板落盘 + 回调队列」，缺的是**运行中控制**
 > （发消息 / 打断 / 发现 / 收件箱）、**Team 认领流**、**fork 上下文继承**、**Ralph 反复推进**。

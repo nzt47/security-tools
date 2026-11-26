@@ -1508,7 +1508,7 @@
    "priority": "P2",
    "title": "Phase 2 多代理：子代理控制（发消息/打断/发现）、Agent Team 任务板、fork 子代理、Ralph 循环",
    "criteria": "Phase 2：① 子代理控制（运行中发消息 / 打断 / 发现 / 收件箱）—— 复用既有 delegate/fan_out 的生命周期管理器；② Agent Team 任务板（认领/交接/看板）；③ fork 子代理（继承上下文再分叉）；④ Ralph 循环（同一目标反复推进直到满足验收）。本仓已有：delegate、fan_out、subagent 生命周期与持久化、任务板雏形（需勘察）。",
-   "next": "E2-1a 已交付（2026-11-26）：`agent/subagent/runs.py` 运行期登记表 + 执行器每轮 drain 追加指令/轮间协作式打断 + `subagent_control` 工具（list/send/interrupt/inbox，core 常驻）；17 条单测 + 真机探针 .local/verify_e2_1_control.py 全过。下一步 E2-1b：3 条路由（GET /api/subagent/runs、POST .../message、.../interrupt）+ 前端「运行中」块（不新增叶子页），同批重派生 route_ui_coverage/ui_reachability；之后 E2-2 Team 任务板（claim/release/handoff + 乐观锁）、E2-3 fork、E2-4 Ralph。"
+   "next": "E2-1 全部交付（2026-11-26，代码 cd7765cc5 + 已部署 + 真机探针）：① 运行期登记表 + 执行器轮间 drain/打断 + subagent_control 工具（list/send/interrupt/inbox）；② 3 条路由 + 分身页「运行中」块（追加指令/协作式打断）。下一步 E2-2 Team 任务板（claim/release/handoff + 乐观锁 + UI 块），随后 E2-3 fork、E2-4 Ralph。"
   },
   {
    "id": "dsh-parity-e2-1a-control",
@@ -1520,11 +1520,11 @@
   },
   {
    "id": "dsh-parity-e2-1b-ui-routes",
-   "status": "open",
+   "status": "done",
    "priority": "P2",
-   "title": "E2-1b 运行中控制：路由 + 前端「运行中」块（引擎/工具已交付）",
-   "criteria": "三条路由的形状与错误码：200 快照/追加/打断；400 空 message；404 未知 run 或开关关闭；401 缺 token。前端「运行中」块列 run_id/子代理/状态/轮次/耗时/最后输出，行内「发消息」「打断」两个动作 + 输入框。",
-   "next": "先加路由（routes_subagent.py 末尾；静态 /api/subagent/runs 优先于 /<name>），再更新 route_domains/route_ui_intent，然后重派生两份 reports，最后接 UI；UI 完成前不要提交路由（否则 route_ui_pending_backlog 必须抬高 ceiling，而该文件明令只许收缩）。"
+   "title": "E2-1b 运行中控制：3 条路由 + 前端「运行中」块（已交付并部署）",
+   "criteria": "2026-11-26 交付（cd7765cc5，已部署，backend=frontend=master）：GET /api/subagent/runs（只读快照）、POST .../runs/<run_id>/message、POST .../interrupt（require_token；run_id 允许 delegation_id 兜底；CP_SUBAGENT_CONTROL_ENABLED=0 时三条 404）。前端「运行中」块在既有分身视图内（不新增页面文件）：DataTable 列 run_id/子代理/状态/轮次/耗时/最后输出，行内追加指令 + 发送 + 打断，3s 轮询；无 run 只留一行提示；接口 404 整块隐藏。验证：路由 11 条（含 import app_server 的真实 url_map 守卫）+ 页面 3 条 + ui:check 全绿（7 守卫/18 条，原语量具 0 违规）；部署后 HTTP 探针 .local/verify_e2_1b_http.py 全过（list/send/interrupt/最终态/结束后 running=0）；构建产物 agents-A8frEcOD.js 含 run-send-/run-interrupt-/run-row- 标记。",
+   "next": "已完成。下一步 E2-2 Team 任务板：GET /api/team/board + claim/release/handoff（乐观锁 + 文件锁，冲突 409），UI 在既有子代理页加「任务板」块；之后 E2-3 fork、E2-4 Ralph。"
   },
   {
    "id": "dsh-parity-p3-execution",
