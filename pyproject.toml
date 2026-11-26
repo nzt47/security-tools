@@ -221,6 +221,14 @@ dev = [
   "pip-audit>=2.0.0",
   "import-linter>=2.0.0"
 ]
+# E3-1 持久终端（PTY）：**可选**依赖，故意不放进主 dependencies ——
+#   · 只有 Windows 需要它（ConPTY）；POSIX 用标准库 pty；
+#   · agent/pty_session.py 是**延迟 import**，缺失时 terminal 工具回可执行提示，
+#     不让 CI/生产因一个可选能力装不上而红。
+# 安装：pip install -e ".[pty]"（或 pip install pywinpty）
+pty = [
+  "pywinpty>=3.1.0; sys_platform == 'win32'"
+]
 
 [tool.setuptools.packages.find]
 # 【TASK-05 新增 "cloudshu"】`python -m cloudshu` 是能力层的**非 LLM CLI 入口**
