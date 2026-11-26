@@ -1,21 +1,21 @@
 """运行中子代理登记表（E2-1「运行中控制」）
 
-【要解决什么】\`delegate\` 是同步阻塞的：工具/UI 在委派跑起来之后既发现不了它，
+【要解决什么】`delegate` 是同步阻塞的：工具/UI 在委派跑起来之后既发现不了它，
 也追加不了指令、打断不了。本模块提供**进程内运行期登记表**：
 
     run_id → RunHandle(subagent, delegation_id, status, rounds, cancel_event, inbox)
 
-写盘只落只读快照（\`data/subagent_runs.json\`，运行期状态、不提交）；inbox 落
-\`data/subagent_runs/<run_id>/inbox.jsonl\`（append-only）。进程重启即失效——
+写盘只落只读快照（`data/subagent_runs.json`，运行期状态、不提交）；inbox 落
+`data/subagent_runs/<run_id>/inbox.jsonl`（append-only）。进程重启即失效——
 运行中的 run 本来就不跨重启，这与「让模型看得见正在跑什么」的目标不冲突。
 
 【send 语义】不打断当前轮：消息进 inbox，执行器在**下一轮开始前** drain 成一条
 user 消息（与 DSH 同口径；避免半截工具调用）。
-【interrupt 语义】协作式：置 \`cancel_event\`，内部 LLM 执行器在**每轮之间**检查，
+【interrupt 语义】协作式：置 `cancel_event`，内部 LLM 执行器在**每轮之间**检查，
 结束本轮、保留已产出，status=interrupted。不硬杀线程/进程（会破坏审计与工作区一致性）。
 外部 CLI 通道没有逐轮钩子 ⇒ send/interrupt 对它**不生效**（如实标注，不假装支持）。
 
-【开关】\`CP_SUBAGENT_CONTROL_ENABLED=0\` ⇒ 工具回 \`code="disabled"\`、路由 404。
+【开关】`CP_SUBAGENT_CONTROL_ENABLED=0` ⇒ 工具回 `code="disabled"`、路由 404。
 """
 from __future__ import annotations
 
@@ -57,7 +57,7 @@ FINISHED_TTL_SECONDS = 900.0
 
 
 def enabled() -> bool:
-    """运行中控制是否开启（\`=0/false/off\` 关闭；缺省开）"""
+    """运行中控制是否开启（`=0/false/off` 关闭；缺省开）"""
     raw = str(os.environ.get(ENABLED_ENV, "") or "").strip().lower()
     return raw not in ("0", "false", "no", "off")
 
