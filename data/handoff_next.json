@@ -1579,8 +1579,8 @@
    "status": "open",
    "priority": "P3",
    "title": "Phase 5 长期质量：事件溯源会话与格式迁移、工作目录/依赖工具",
-   "criteria": "E5-1 会话事件溯源 + 版本化格式迁移（与 JSONL/审计并存，先只读投影）；E5-2 working_directory（会话级 cwd）与 load_workspace_dependencies（内置 Python/Node 路径）。",
-   "next": "迁移/回滚方案已出（2026-11-27）：docs/plan/2026-11-27-p5-会话事件溯源迁移方案.md —— 事件 v1（type/seq/id/src）+ 四阶段（影子只读投影 → 双写对照 → 读取灰度 → 收尾），每阶段一条命令回滚；不变量：messages.jsonl 字节不动、冻结池 305 条只读跳过、幂等键 (sid,id)、失败不堵塞对话。实现前需 Owner 点头先做 Phase A 只读投影（零副作用）。"
+   "criteria": "E5-1 会话事件溯源 + 版本化格式迁移（与 JSONL/审计并存，先只读投影）；E5-2 working_directory（会话级 cwd）与 load_workspace_dependencies（内置 Python/Node 路径）。 【2026-11-27 Phase A 已执行】scripts/session_events_project.py（只读投影、原子写、幂等）：76 个会话 / 989 行 → 989 个事件，skipped_legacy=0、quarantine=0；二次运行 written=0 且投影字节不变；messages.jsonl 未被改（只 open 读）。报告落 data/session_events/_migration_report.json（运行期，不进 git）；回滚 = 删该目录。测试 tests/unit/test_session_events_project.py 9 条（幂等/隔离/冻结池/只读/dry-run）。设计/记录：docs/plan/2026-11-27-p5-会话事件溯源迁移方案.md §9。",
+   "next": "Phase A（只读影子投影）已完成；剩余 Phase B（双写，CP_SESSION_EVENTS_WRITE）/ C（读灰度，CP_SESSION_EVENTS_READ=shadow|events）/ D（收尾）——需要新 env 开关（登记 registry.py）与读链路改动，按方案逐阶段推进，每阶段可一键回滚；禁止重写历史会话（冻结池按无 session_id 判据，当前 0 行）。"
   },
   {
    "id": "dsh-parity-e0-1-followups",

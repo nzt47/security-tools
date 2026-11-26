@@ -4,6 +4,27 @@
 **分支**: master
 **涵盖范围**: 5 个核心 commit（4608614c → 9977c949）
 
+## [CHG] - 2026-11-27: P5 / E5-1 Phase A —— 会话事件溯源只读投影 ✅
+
+**影响模块**: `scripts/session_events_project.py`（新）、`tests/unit/test_session_events_project.py`（新）
+**关联文档**: `docs/plan/2026-11-27-p5-会话事件溯源迁移方案.md` §9
+
+### Added
+- **只读影子投影**：把 `data/sessions/<sid>/messages.jsonl` 投影成 `data/session_events/<sid>.jsonl`
+  （事件 v1：`{v,type,sid,seq,id,ts,payload,src}`）。**只读源文件**（一个字节都不改）；
+  冻结池（无 `session_id`）跳过并计数；坏行进 quarantine（只记文件/行号/原因）；
+  事件 id = `sha256(sid|ts|role|content)[:16]` ⇒ 幂等（重跑只补新事件、不改旧事件、不重排 seq）；
+  输出原子写（tmp + `os.replace`）。CLI：`--dry-run` / `--json`。
+
+### 实测
+- 首次：76 个会话 / 989 行 → **989 个事件**，`skipped_legacy=0` / `quarantine=0`；
+- 二次：`written=0`，投影文件逐字节不变（幂等）；`messages.jsonl` 未被改；
+- 报告落 `data/session_events/_migration_report.json`（运行期，不进 git）；回滚 = 删目录。
+
+### 边界
+- 读链路**未切换**（Phase B 双写 / C 读灰度 / D 收尾都未做，需新 env 开关并登记 registry）；
+- 不做哈希链、不做跨会话全局序号、不迁移冻结池。
+
 ## [CHG] - 2026-11-27: E3-2 收口（纯库路线）—— pptx_read 补齐 Office 读取 ✅
 
 **影响模块**: `agent/office/pptx_text.py`（新）、`agent/tools/pptx_tools.py`（新）、
