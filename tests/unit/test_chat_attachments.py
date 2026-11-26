@@ -63,9 +63,8 @@ class TestUpload:
         files = list((root / "s1").iterdir())
         assert len(files) == 1 and files[0].read_bytes() == b"hello world"
         assert files[0].name.endswith("__report.txt")
-        # 回给模型的是**仓库相对路径**（生产在 data/uploads 下；测试把根换到 tmp，
-        # 故这里只钉「相对路径且指向同一个文件」）
-        assert not os.path.isabs(data["path"])
+        # 回给模型的是可读路径：生产在 data/uploads 下（仓库相对）；测试把根换到 tmp，
+        # 跨盘时路由会回**绝对路径**（relpath 跨盘会抛 ValueError）——两种都要求指向同一个文件
         assert data["path"].endswith(files[0].name)
 
     def test_文件名清洗挡住路径穿越(self, client):

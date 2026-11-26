@@ -538,7 +538,12 @@ def api_chat_attachment_upload():
     import mimetypes
     mime = mimetypes.guess_type(safe_name)[0] or "application/octet-stream"
     kind = _attachment_kind(ext, mime)
-    rel_path = os.path.relpath(target, _repo_root()).replace("\\", "/")
+    try:
+        rel_path = os.path.relpath(target, _repo_root()).replace("\\", "/")
+    except ValueError:
+        # 【跨盘】（Windows 上仓库在 D:、附件根在 C: 之类）relpath 会抛 ValueError；
+        # 回**绝对路径**仍是可读路径，别让"换个盘就 500"这种事发生在附件上传上。
+        rel_path = target.replace("\\", "/")
     payload = {
         "ok": True,
         "path": rel_path,
