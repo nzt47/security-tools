@@ -657,6 +657,10 @@ export const subagentDestroyByName = (name: string) => `/api/subagent/${encodeUR
 // 可带走 bundle（S5）：GET 导出一个分身的包 / POST 从包导入（见 agent/subagent/bundle.py）
 export const SUBAGENT_IMPORT = '/api/subagent/import';
 export const SUBAGENT_BUNDLE_BY_NAME = (name: string) => `/api/subagent/${encodeURIComponent(name)}/bundle`;
+// E2-1b 运行中控制：正在跑的委派（只读快照）+ 追加指令 / 协作式打断
+export const SUBAGENT_RUNS = '/api/subagent/runs';
+export const subagentRunMessage = (runId: string) => `/api/subagent/runs/${encodeURIComponent(runId)}/message`;
+export const subagentRunInterrupt = (runId: string) => `/api/subagent/runs/${encodeURIComponent(runId)}/interrupt`;
 
 // ===============================================================
 //  插件 / 心跳 / 可观测 / 杂项

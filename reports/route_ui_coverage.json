@@ -1,28 +1,28 @@
 {
-  "generated_at": "2026-11-26T01:00:57",
+  "generated_at": "2026-11-26T18:27:56",
   "totals": {
-    "routes": 531,
-    "live": 531,
+    "routes": 534,
+    "live": 534,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 470,
+    "ui": 473,
     "cli_script": 15,
     "runtime_only": 12,
     "unreferenced": 34,
     "live_by_category": {
-      "ui": 470,
+      "ui": 473,
       "cli_script": 15,
       "runtime_only": 12,
       "unreferenced": 34
     },
     "by_intent": {
-      "should_be_in_ui": 436,
+      "should_be_in_ui": 439,
       "should_not_be_in_ui": 80,
       "unclassified": 15
     },
     "by_domain": {
       "页面入口": 7,
-      "分身与主线": 20,
+      "分身与主线": 23,
       "观测与诊断": 84,
       "系统与配置": 46,
       "治理与审批": 47,
@@ -37,7 +37,7 @@
       "记忆与知识": 42
     }
   },
-  "frontend_endpoints": 474,
+  "frontend_endpoints": 477,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -60,6 +60,8 @@
       "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
+        "agent/tools/custom/api_multi_search_engine.py",
+        "agent/tools/custom/ingested/byted-bp-cdn-pagesdeploy/scripts/subscribe_cdn.py",
         "scripts/_check_page.py"
       ],
       "where": [
@@ -3813,17 +3815,17 @@
       ],
       "non_ui_refs": [
         "agent/audit/ui_middleware.py",
+        "agent/data/checkpoints/20261124T181601Z-ac7d1564/files/agent/settings/registry.py",
         "agent/modules_api.py",
         "agent/server_auth.py",
         "agent/settings/registry.py",
         "app_server.py",
+        "scripts/_t08_http_stress.py",
         "scripts/deploy_workbench.py",
         "scripts/deployment_drill.py",
         "scripts/dev/graceful_shutdown_persist_probe.py",
         "scripts/full_alert_verify.py",
-        "scripts/probe_prefix_cache_interaction.py",
-        "scripts/rollback.ps1",
-        "scripts/rotate_grafana_password.ps1"
+        "scripts/probe_prefix_cache_interaction.py"
       ],
       "where": [
         "plugins/status.py:237"
@@ -11182,6 +11184,81 @@
       "domain": "分身与主线"
     },
     {
+      "path": "/api/subagent/runs",
+      "norm": "/api/subagent/runs",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_subagent.py:1420"
+      ],
+      "description": "正在运行的委派（运行期登记表只读视图）",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "分身/子代理",
+      "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
+      "ui_pending": false,
+      "domain": "分身与主线"
+    },
+    {
+      "path": "/api/subagent/runs/<run_id>/interrupt",
+      "norm": "/api/subagent/runs/*/interrupt",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/workshop/agents.tsx"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_subagent.py:1462"
+      ],
+      "description": "协作式打断（置位；执行器在每轮之间结束，已产出保留）",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "分身/子代理",
+      "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
+      "ui_pending": false,
+      "domain": "分身与主线"
+    },
+    {
+      "path": "/api/subagent/runs/<run_id>/message",
+      "norm": "/api/subagent/runs/*/message",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/workshop/agents.tsx"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_subagent.py:1435"
+      ],
+      "description": "给运行中的子代理追加一条指令（下一轮生效；不打断当前轮）",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "分身/子代理",
+      "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
+      "ui_pending": false,
+      "domain": "分身与主线"
+    },
+    {
       "path": "/api/system-prompt",
       "norm": "/api/system-prompt",
       "methods": [
@@ -13515,6 +13592,7 @@
       "non_ui_refs": [
         "agent/audit/ui_middleware.py",
         "agent/utils/perf_monitor.py",
+        "scripts/_t08_http_stress.py",
         "scripts/baseline_loadtest_py.py",
         "scripts/check_mcp_log_level.py",
         "scripts/deployment_drill.py",
@@ -13523,8 +13601,7 @@
         "scripts/mock_intent_layer_traffic.py",
         "scripts/mock_metrics_server.py",
         "scripts/mock_service_standalone.py",
-        "scripts/monitoring_longrun/c2_harness.py",
-        "scripts/monitoring_longrun/gen_derived_config.py"
+        "scripts/monitoring_longrun/c2_harness.py"
       ],
       "where": [
         "agent/server_routes/routes_logging.py:1268"
@@ -13614,5 +13691,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "ef228b9ab0f80905"
+  "content_hash": "c2ec82143582bd0a"
 }

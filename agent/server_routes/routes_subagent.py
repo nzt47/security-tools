@@ -1412,3 +1412,75 @@ def register_routes(app, state):
             return _biz_fail("E_SUBAGENT_NOT_FOUND", 400, exc=e)
         except Exception as e:
             return _fail(e)
+
+    # ═══════════════════════════════════════════════════
+    #  E2-1b 运行中控制（发现 / 追加指令 / 协作式打断）
+    #  ═══════════════════════════════════════════════════
+
+    @app.route("/api/subagent/runs")
+    @trace_route("Subagent")
+    @log_request(show_response=False)
+    def api_subagent_runs():
+        """正在运行的委派（运行期登记表只读视图）"""
+        from agent.subagent.runs import enabled, run_registry
+
+        if not enabled():
+            return jsonify({"ok": False, "code": "disabled",
+                            "error": "运行中控制已关闭（CP_SUBAGENT_CONTROL_ENABLED=0）"}), 404
+        run_registry.prune()
+        payload = run_registry.snapshot()
+        payload["ok"] = True
+        return jsonify(payload)
+
+    @app.route("/api/subagent/runs/<run_id>/message", methods=["POST"])
+    @trace_route("Subagent")
+    @require_token
+    @log_request(show_response=False)
+    def api_subagent_run_message(run_id):
+        """给运行中的子代理追加一条指令（下一轮生效；不打断当前轮）"""
+        from agent.subagent.runs import enabled, run_registry
+
+        if not enabled():
+            return jsonify({"ok": False, "code": "disabled",
+                            "error": "运行中控制已关闭"}), 404
+        data = request.get_json(silent=True) or {}
+        message = str(data.get("message") or "").strip()
+        if not message:
+            return jsonify({"ok": False, "code": "invalid_message",
+                            "error": "message 不能为空"}), 400
+        handle = run_registry.get(run_id) or run_registry.by_delegation(run_id)
+        if handle is None:
+            return jsonify({"ok": False, "code": "run_not_found",
+                            "error": "没有这个 run（可能已结束）"}), 404
+        row = run_registry.append_inbox(handle.run_id, message, source="route")
+        if row is None:
+            return jsonify({"ok": False, "code": "inbox_write_failed",
+                            "error": "追加指令写入失败"}), 500
+        return jsonify({"ok": True, "run_id": handle.run_id,
+                        "status": handle.status, "queued": row})
+
+    @app.route("/api/subagent/runs/<run_id>/interrupt", methods=["POST"])
+    @trace_route("Subagent")
+    @require_token
+    @log_request(show_response=False)
+    def api_subagent_run_interrupt(run_id):
+        """协作式打断（置位；执行器在每轮之间结束，已产出保留）"""
+        from agent.subagent.runs import enabled, run_registry
+
+        if not enabled():
+            return jsonify({"ok": False, "code": "disabled",
+                            "error": "运行中控制已关闭"}), 404
+        data = request.get_json(silent=True) or {}
+        handle = run_registry.get(run_id) or run_registry.by_delegation(run_id)
+        if handle is None:
+            return jsonify({"ok": False, "code": "run_not_found",
+                            "error": "没有这个 run（可能已结束）"}), 404
+        if handle.status != "running":
+            return jsonify({"ok": True, "run_id": handle.run_id,
+                            "status": handle.status, "already_finished": True})
+        handle.reason = str(data.get("reason") or "运行中被中断")
+        handle.cancel_event.set()
+        return jsonify({"ok": True, "run_id": handle.run_id,
+                        "status": handle.status, "cancelled": True,
+                        "reason": handle.reason})
+

@@ -73,6 +73,8 @@ const CAPABILITIES = {
 }
 
 const postCalls: { url: string; body: Record<string, unknown> }[] = []
+/** 运行中列表（默认空；只有「运行中」用例会填） */
+let runRows: Array<Record<string, unknown>> = []
 /** 下一批 reload 请求是否要回 400（验证"业务拒绝不关弹窗"） */
 let failReload = false
 const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
@@ -91,6 +93,9 @@ const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     if (/\/api\/agent-lines\/[^/?]+$/.test(u)) return json(DETAIL)
     return json({ ok: true, active: 'engineering', lines: [LINE], broken: [] })
   }
+  if (u.includes('/api/subagent/runs')) {
+    return json({ ok: true, count: runRows.length, running: runRows.length, runs: runRows })
+  }
   return json({})
 })
 vi.stubGlobal('fetch', fetchMock)
@@ -99,7 +104,7 @@ const mod = await import('./agents')
 const WorkshopAgents = mod.default
 const { WORKSHOP_VIEWS, WORKSHOP_VIEW_STORAGE_KEY } = mod
 
-beforeEach(() => { localStorage.clear(); fetchMock.mockClear(); postCalls.length = 0; failReload = false })
+beforeEach(() => { localStorage.clear(); fetchMock.mockClear(); postCalls.length = 0; failReload = false; runRows = [] })
 afterEach(cleanup)
 
 describe('装配车间 · 五视图容器', () => {
@@ -318,5 +323,53 @@ describe('分身 · 编辑角色', () => {
     expect(selectValue('role-editor-template')).toBe('')
     expect(textarea()).toBeDisabled()
     expect(screen.getByTestId('role-editor-text-hint').textContent).toContain('未装角色')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════
+//  运行中控制（E2-1b）
+// ------------------------------------------------------------------
+// 口径：send 不打断当前轮（下一轮生效）；interrupt 是协作式（不是硬杀）；
+// 关闭开关时后端 404 ⇒ 整块隐藏，不把"未启用"报成错误。
+// ═══════════════════════════════════════════════════════════
+describe('分身 · 运行中控制', () => {
+  const RUN = {
+    run_id: 'r-abc123', subagent: 'alpha', delegation_id: 'dlg-1', status: 'running',
+    rounds: 2, elapsed_s: 3.6, last_output: '正在读 plugins/chat.py',
+  }
+
+  it('没有 run 时给一行提示，不占一张空表', async () => {
+    render(<WorkshopAgents />)
+    await waitFor(() => expect(screen.getByTestId('runs-empty')).toBeInTheDocument())
+    expect(screen.queryByTestId('running-runs')).toBeNull()
+  })
+
+  it('有 run 时列出 run_id/状态/轮次，并能追加指令（下一轮生效）', async () => {
+    runRows = [RUN]
+    render(<WorkshopAgents />)
+    await waitFor(() => expect(screen.getByTestId('run-row-r-abc123')).toBeInTheDocument())
+    expect(screen.getByTestId('run-row-r-abc123').textContent).toContain('alpha')
+    expect(screen.getByText('r-abc123')).toBeInTheDocument()
+    fireEvent.change(screen.getByTestId('run-input-r-abc123'), { target: { value: '收窄到 plugins/chat.py' } })
+    fireEvent.click(screen.getByTestId('run-send-r-abc123'))
+    await waitFor(() => expect(postCalls.some((c) => c.url.includes('/api/subagent/runs/r-abc123/message'))).toBe(true))
+    const call = postCalls.find((c) => c.url.includes('/message'))!
+    expect(call.body).toEqual({ message: '收窄到 plugins/chat.py' })
+  })
+
+  it('打断发到 interrupt 端点（带原因），结束后整行禁用', async () => {
+    runRows = [RUN]
+    render(<WorkshopAgents />)
+    await waitFor(() => expect(screen.getByTestId('run-interrupt-r-abc123')).toBeInTheDocument())
+    fireEvent.click(screen.getByTestId('run-interrupt-r-abc123'))
+    await waitFor(() => expect(postCalls.some((c) => c.url.includes('/api/subagent/runs/r-abc123/interrupt'))).toBe(true))
+    expect(postCalls.find((c) => c.url.includes('/interrupt'))!.body).toEqual({ reason: '界面打断' })
+
+    cleanup()
+    runRows = [{ ...RUN, status: 'interrupted' }]
+    render(<WorkshopAgents />)
+    await waitFor(() => expect(screen.getByTestId('run-row-r-abc123')).toBeInTheDocument())
+    expect(screen.getByTestId('run-send-r-abc123')).toBeDisabled()
+    expect(screen.getByTestId('run-interrupt-r-abc123')).toBeDisabled()
   })
 })

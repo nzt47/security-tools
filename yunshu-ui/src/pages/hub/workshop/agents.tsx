@@ -23,15 +23,18 @@
  * `'lines'` 会在**那边**回落成「工具集」（由 `tools/index.test.tsx` 钉住），
  * 不会漂移到本页；本页视图 id 复用 `'lines'` 只是名字相同，两处互不影响。
  */
-import { Suspense, lazy, useEffect, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { Hammer, Layers, Loader2, Package, Route, Trash2, Users } from 'lucide-react'
-import { Button, Card, Loading, ErrorBox, DataTable, Badge, PageTabsHeader, SectionTitle, Tabs, hubPost } from '../components/ui'
+import { Button, Card, Loading, ErrorBox, DataTable, Badge, Input, PageTabsHeader, SectionTitle, Tabs, hubGet, hubPost } from '../components/ui'
 
 import SubagentRowActions from './SubagentRowActions'
 import {
   SUBAGENT_LIST,
+  SUBAGENT_RUNS,
   subagentDestroyByName,
+  subagentRunInterrupt,
+  subagentRunMessage,
 } from '@/api/endpoints';
 // 【P1-front 第三批】后端 GET /api/subagent/list 已带 X-Envelope: v2，改用显式信封解析。
 import { getEnvelope } from '@/api/envelope';
@@ -200,6 +203,176 @@ export interface WorkshopAgentsProps {
 //  ① 分身：创建 / 列表 / 销毁（本页原有内容，一字未改语义）
 // ═══════════════════════════════════════════════════════════
 
+/** 正在运行的一次委派（后端 `RunRegistry.snapshot()` 的一行；运行期状态，不是历史记录） */
+interface RunRow {
+  run_id: string
+  subagent?: string
+  delegation_id?: string
+  status?: string
+  rounds?: number
+  elapsed_s?: number
+  last_output?: string
+  cancelled?: boolean
+  reason?: string
+  [k: string]: unknown
+}
+
+interface RunsPayload {
+  ok?: boolean
+  runs?: RunRow[]
+  count?: number
+  running?: number
+  enabled?: boolean
+}
+
+/** 运行态徽章：running=绿 / interrupted=琥珀 / failed=红 / 其余=灰（done 是刚结束的残留行） */
+const RUN_STATUS_COLOR: Record<string, 'green' | 'amber' | 'red' | 'slate'> = {
+  running: 'green', interrupted: 'amber', failed: 'red', done: 'slate',
+}
+
+/**
+ * 「运行中」块（E2-1b）—— 正在执行的委派 + 追加指令 + 协作式打断。
+ *
+ * 【为什么不新增叶子页】`reports/ui_reachability.json` 按页面文件集派生，多一个 .tsx 就漂移；
+ * 控制运行中的分身本就属于「分身」视图的一部分。
+ * 【语义如实】send 不打断当前轮（下一轮生效）；interrupt 是协作式的（执行器在轮间结束，
+ * 已产出保留），不是硬杀进程 —— 文案不能写成"立即终止"。
+ * 【关闭开关】`CP_SUBAGENT_CONTROL_ENABLED=0` 时后端 404 ⇒ 本块整体隐藏（不把"未启用"报成错误）。
+ */
+function RunningRuns({ onError }: { onError: (msg: string) => void }) {
+  const [runs, setRuns] = useState<RunRow[]>([])
+  const [drafts, setDrafts] = useState<Record<string, string>>({})
+  const [disabled, setDisabled] = useState(false)
+
+  const load = useCallback(async () => {
+    try {
+      const d = await hubGet<RunsPayload>(SUBAGENT_RUNS)
+      setRuns(Array.isArray(d?.runs) ? d.runs : [])
+      setDisabled(false)
+    } catch (e) {
+      const msg = String(e)
+      // 关闭开关时后端回 404：隐藏本块即可，不弹错误（这是"关掉了"，不是"坏了"）
+      if (msg.includes('404')) { setDisabled(true); setRuns([]); return }
+      onError(msg)
+    }
+  }, [onError])
+
+  useEffect(() => { void load() }, [load])
+
+  // 运行中列表是"活的"：定时刷新（后端只是读快照，代价很低）
+  useEffect(() => {
+    if (disabled) return
+    const timer = setInterval(() => { void load() }, 3000)
+    return () => clearInterval(timer)
+  }, [disabled, load])
+
+  const send = async (runId: string) => {
+    const text = String(drafts[runId] || '').trim()
+    if (!text) return
+    try {
+      await hubPost(subagentRunMessage(runId), { message: text })
+      setDrafts((d) => ({ ...d, [runId]: '' }))
+      await load()
+    } catch (e) { onError(String(e)) }
+  }
+
+  const interrupt = async (runId: string) => {
+    try {
+      await hubPost(subagentRunInterrupt(runId), { reason: '界面打断' })
+      await load()
+    } catch (e) { onError(String(e)) }
+  }
+
+  if (disabled) return null
+  if (runs.length === 0) {
+    return (
+      <div className="mb-4 text-caption text-slate-500" data-testid="runs-empty">
+        当前没有正在运行的分身（委派进行中会出现在这里，可追加指令或协作式打断）
+      </div>
+    )
+  }
+
+  return (
+    <div className="mb-5" data-testid="running-runs">
+      <SectionTitle
+        title="运行中"
+        description="正在执行的委派；追加指令在下一轮生效，打断为协作式（已产出保留）"
+      />
+      <Card>
+        <DataTable
+          data={runs}
+          keyField="run_id"
+          columns={[
+            {
+              key: 'run_id', title: '运行',
+              render: (r) => (
+                <span className="flex flex-col" data-testid={`run-row-${r.run_id}`}>
+                  <span className="font-mono text-caption text-cyan-400">{r.run_id}</span>
+                  <span className="text-micro text-slate-500">{String(r.subagent || r.delegation_id || '')}</span>
+                </span>
+              ),
+            },
+            {
+              key: 'status', title: '状态',
+              render: (r) => {
+                const s = String(r.status || '')
+                return <Badge color={RUN_STATUS_COLOR[s] ?? 'slate'}>{s || '?'}</Badge>
+              },
+            },
+            { key: 'rounds', title: '轮次', render: (r) => <span className="text-xs text-slate-300">{Number(r.rounds || 0)}</span> },
+            { key: 'elapsed_s', title: '耗时', render: (r) => <span className="text-xs text-slate-400">{Math.round(Number(r.elapsed_s || 0))}s</span> },
+            {
+              key: 'last_output', title: '最后输出',
+              render: (r) => (
+                <span className="line-clamp-2 max-w-xs text-caption text-slate-400" title={String(r.last_output || '')}>
+                  {String(r.last_output || '（暂无）')}
+                </span>
+              ),
+            },
+            {
+              key: 'actions', title: '操作',
+              render: (r) => {
+                const running = String(r.status) === 'running'
+                return (
+                  <div className="flex items-center justify-end gap-1">
+                    <Input
+                      size="xs"
+                      className="w-48"
+                      value={drafts[r.run_id] || ''}
+                      placeholder="追加指令（下一轮生效）"
+                      disabled={!running}
+                      data-testid={`run-input-${r.run_id}`}
+                      onChange={(e) => setDrafts((d) => ({ ...d, [r.run_id]: e.target.value }))}
+                    />
+                    <Button
+                      size="xs"
+                      variant="default"
+                      disabled={!running}
+                      data-testid={`run-send-${r.run_id}`}
+                      onClick={() => send(r.run_id)}
+                    >
+                      发送
+                    </Button>
+                    <Button
+                      size="xs"
+                      variant="danger-outline"
+                      disabled={!running}
+                      data-testid={`run-interrupt-${r.run_id}`}
+                      onClick={() => interrupt(r.run_id)}
+                    >
+                      打断
+                    </Button>
+                  </div>
+                )
+              },
+            },
+          ]}
+        />
+      </Card>
+    </div>
+  )
+}
+
 function SubagentView({ onShowAssembly }: { onShowAssembly?: () => void }) {
   const [agents, setAgents] = useState<Subagent[]>([])
   const [deployment, setDeployment] = useState<DeploymentLlm | null>(null)
@@ -231,6 +404,7 @@ function SubagentView({ onShowAssembly }: { onShowAssembly?: () => void }) {
 
   return (
     <>
+      <RunningRuns onError={setError} />
       <div className="mb-3 flex items-center justify-between gap-3">
         <span className="text-xs text-slate-500">
           装配一个分身请到「组装台」（六步 + 主权清单 + 装配预览，唯一创建入口）。
