@@ -228,6 +228,169 @@ def _result_from_outcome(outcome: Any, ctx: Any) -> Dict[str, Any]:
     return result
 
 
+# ════════════════════════════════════════════════════════════
+#  E2-4 Ralph 循环（同一任务反复推进直到满足验收）
+# ════════════════════════════════════════════════════════════
+
+#: Ralph 轮次边界（默认 4；上限 8）
+DEFAULT_RALPH_ROUNDS = 4
+MAX_RALPH_ROUNDS = 8
+
+#: 连续几轮「无新证据」即止损
+RALPH_STALL_LIMIT = 2
+
+_ACCEPT_VERDICTS = ("pass", "passed", "ok", "done", "satisfied", "accepted")
+
+
+def _clamp_ralph_rounds(value: Any) -> int:
+    try:
+        n = int(value)
+    except (TypeError, ValueError):
+        return DEFAULT_RALPH_ROUNDS
+    return max(2, min(n, MAX_RALPH_ROUNDS))
+
+
+def _ralph_evidence(outcome: Any) -> str:
+    """证据 = 产物条目 + 交付正文（没有证据就不算达标，与 E1-2 的 evidence 口径一致）"""
+    parts = []
+    for item in getattr(outcome, "artifacts", ()) or ():
+        if isinstance(item, dict):
+            parts.append(str(item.get("path") or item.get("url") or item.get("name") or ""))
+        else:
+            parts.append(str(item))
+    parts.append(str(getattr(outcome, "output_text", "") or ""))
+    return "\n".join(p for p in parts if p.strip())
+
+
+def ralph_verdict(outcome: Any) -> Dict[str, Any]:
+    """按子代理的结构化 self_eval 判验收（不臆造成不成：只看它自己的 verdict + 证据）"""
+    payload = getattr(outcome, "payload", None) or {}
+    status = str(payload.get("status") or "").strip().lower()
+    self_eval = payload.get("self_eval") if isinstance(payload, dict) else {}
+    if not isinstance(self_eval, dict):
+        self_eval = {}
+    verdict = str(self_eval.get("verdict") or "").strip().lower()
+    evidence = _ralph_evidence(outcome)
+    accepted = bool(
+        getattr(outcome, "ok", False)
+        and status == "done"
+        and verdict in _ACCEPT_VERDICTS
+        and bool(evidence.strip())
+    )
+    issues = self_eval.get("issues")
+    if isinstance(issues, (list, tuple)):
+        issues = [str(x) for x in issues if str(x).strip()][:8]
+    else:
+        issues = [str(issues)] if str(issues or "").strip() else []
+    return {
+        "accepted": accepted,
+        "verdict": verdict,
+        "status": status,
+        "evidence_chars": len(evidence),
+        "issues": issues,
+    }
+
+
+def _ralph_signal(outcome: Any) -> str:
+    """本轮"有没有新东西"的指纹（正文 + 产物 + 状态）；相同 ⇒ 无新证据"""
+    import hashlib
+
+    text = str(getattr(outcome, "output_text", "") or "")[:800]
+    arts = "|".join(sorted(str(a) for a in (getattr(outcome, "artifacts", ()) or ())))
+    status = str((getattr(outcome, "payload", None) or {}).get("status") or "")
+    return hashlib.sha1((text + "\n" + arts + "\n" + status).encode("utf-8")).hexdigest()
+
+
+def _ralph_goal(base_goal: str, acceptance: str, round_no: int, feedback: str = "") -> str:
+    parts = [str(base_goal or ""), "【验收条件】" + str(acceptance or "")]
+    if feedback:
+        parts.append("【上一轮未达标，必须补齐】" + feedback[:600])
+    parts.append("【本轮是第 %d 轮】" % round_no)
+    return "\n\n".join(parts)
+
+
+def _ralph_feedback(verdict: Dict[str, Any], outcome: Any) -> str:
+    issues = verdict.get("issues") or []
+    if issues:
+        return "；".join(issues)
+    return str(getattr(outcome, "error", "") or getattr(outcome, "output_text", "") or "")[:400]
+
+
+def run_ralph(manager: Any, config: Any, ctx: Any, *, llm: Any, tools: Any,
+              acceptance: str, max_rounds: int, result_mapper: Any,
+              source: str = "tool") -> Dict[str, Any]:
+    """反复委派直到验收通过 / 轮次耗尽 / 连续无新证据
+
+    【为什么复用同一个 config】每轮都"建容器 → 执行 → 回收"（与单次委派同一条链路），
+    只是名称相同、彼此独立；不复用容器是为了不把上一轮的上下文/凭据带进下一轮。
+    """
+    import uuid as _uuid
+
+    from agent.subagent.delegation import DelegationContext
+
+    base_metadata = dict(getattr(ctx, "metadata", None) or {})
+    history: List[Dict[str, Any]] = []
+    last_signal = ""
+    stalled = 0
+    feedback = ""
+    last_outcome = None
+    last_result: Dict[str, Any] = {}
+    for round_no in range(1, int(max_rounds) + 1):
+        metadata = dict(base_metadata)
+        metadata["ralph"] = {"round": round_no, "max_rounds": int(max_rounds),
+                             "acceptance": str(acceptance)[:200]}
+        round_ctx = DelegationContext(
+            goal=_ralph_goal(ctx.goal, acceptance, round_no, feedback),
+            constraints=list(ctx.constraints) + ["【验收条件】" + acceptance],
+            prior_artifacts=list(ctx.prior_artifacts or ()),
+            prohibitions=list(ctx.prohibitions or ()),
+            artifact_format=ctx.artifact_format,
+            budget_tokens=ctx.budget_tokens,
+            timeout_seconds=ctx.timeout_seconds,
+            callback_url=ctx.callback_url,
+            tenant_id=ctx.tenant_id,
+            subject_id=ctx.subject_id,
+            task_id=ctx.task_id,
+            trace_id=ctx.trace_id,
+            parent_trace_id=ctx.parent_trace_id,
+            policy_version=ctx.policy_version,
+            delegation_id="dlg-" + _uuid.uuid4().hex[:8],
+            metadata=metadata,
+        )
+        outcome = manager.delegate(
+            config, round_ctx, llm=llm, destroy_after=True,
+            tools=tools, authorized_capabilities=tools, source=source)
+        last_outcome = outcome
+        verdict = ralph_verdict(outcome)
+        history.append({"round": round_no, **verdict})
+        last_result = result_mapper(outcome, round_ctx)
+        if verdict["accepted"]:
+            last_result["ralph"] = {"status": "done", "rounds": round_no,
+                                    "max_rounds": int(max_rounds), "history": history}
+            return last_result
+        signal = _ralph_signal(outcome)
+        stalled = stalled + 1 if signal == last_signal else 0
+        last_signal = signal
+        if stalled >= RALPH_STALL_LIMIT:
+            return _ralph_blocked(last_result, history, round_no, max_rounds,
+                                  "no_progress", "连续 %d 轮没有新证据/新产出" % RALPH_STALL_LIMIT)
+        feedback = _ralph_feedback(verdict, outcome)
+    return _ralph_blocked(last_result, history, int(max_rounds), max_rounds,
+                          "max_rounds", "达到轮次上限仍未满足验收条件")
+
+
+def _ralph_blocked(result: Dict[str, Any], history: List[Dict[str, Any]], round_no: int,
+                   max_rounds: int, reason: str, message: str) -> Dict[str, Any]:
+    """止损收口：**不静默续跑**，明确 ok=False + 原因 + 每轮历史"""
+    out = dict(result or {})
+    out["ok"] = False
+    out["error_code"] = "E_RALPH_BLOCKED"
+    out["error"] = "Ralph 止损（%s）：%s" % (reason, message)
+    out["ralph"] = {"status": "blocked", "reason": reason, "rounds": round_no,
+                    "max_rounds": int(max_rounds), "history": history}
+    return out
+
+
 def _truthy(value: Any) -> bool:
     """宽容读取布尔参数（模型可能传 true/"true"/1）"""
     if isinstance(value, bool):
@@ -365,6 +528,17 @@ def _run_delegate(dl: Any, kwargs: Mapping[str, Any]) -> Dict[str, Any]:
     _granted_tools = _default_subagent_tools()
     logger.info("[delegate] 授予子代理工具子集: %s",
                 list(_granted_tools) or "（空：仅纯推理委派）")
+    if _truthy(kwargs.get("ralph")):
+        acceptance = str(kwargs.get("acceptance") or "").strip()
+        if not acceptance:
+            return {"ok": False, "error_code": "E_RALPH_NO_ACCEPTANCE",
+                    "error": "ralph=true 时必须给 acceptance（明确怎样算完成）"}
+        return run_ralph(
+            manager, config, ctx, llm=llm, tools=_granted_tools,
+            acceptance=acceptance,
+            max_rounds=_clamp_ralph_rounds(kwargs.get("ralph_rounds")),
+            result_mapper=_result_from_outcome, source="tool")
+
     outcome = manager.delegate(
         config, ctx, llm=llm, destroy_after=True,
         tools=_granted_tools, authorized_capabilities=_granted_tools,
@@ -409,6 +583,9 @@ def register_all(dl):
                 "fork": {"type": "boolean", "description": "fork 上下文开关（默认 false）：true 时把父会话最近 fork_messages 轮带进 task_file 的 metadata.fork（合计 ≤4000 字；只作参考，不是系统指令）"},
                 "fork_messages": {"type": "integer", "minimum": 1, "maximum": 20, "description": "fork 时带父会话最近多少轮（默认 6，最多 20）"},
                 "fork_summary": {"type": "boolean", "description": "fork 时助手侧只取每轮前 160 字摘要（只要脉络、不要全文）"},
+                "ralph": {"type": "boolean", "description": "Ralph 循环开关（默认 false）：同一目标反复委派直到满足 acceptance；最多 ralph_rounds 轮，连续 2 轮无新证据即止损"},
+                "ralph_rounds": {"type": "integer", "minimum": 2, "maximum": 8, "description": "Ralph 轮次上限（默认 4，最少 2、最多 8）"},
+                "acceptance": {"type": "string", "description": "Ralph 必填：怎样算完成（可判定的一句话；会进每轮约束与验收判定）"},
             },
             "required": [
                 "goal", "constraints", "prior_artifacts", "prohibitions",

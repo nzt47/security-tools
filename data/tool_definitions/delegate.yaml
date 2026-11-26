@@ -59,6 +59,17 @@ schema:
     fork_summary:
       type: boolean
       description: fork 时助手侧只取每轮前 160 字摘要（只要脉络、不要全文）
+    ralph:
+      type: boolean
+      description: Ralph 循环开关（默认 false）：同一目标反复委派直到满足 acceptance；最多 ralph_rounds 轮，连续 2 轮无新证据即止损
+    ralph_rounds:
+      type: integer
+      minimum: 2
+      maximum: 8
+      description: Ralph 轮次上限（默认 4，最少 2、最多 8）
+    acceptance:
+      type: string
+      description: Ralph 必填：怎样算完成（可判定的一句话；会进每轮约束与验收判定）
   required:
   - goal
   - constraints
