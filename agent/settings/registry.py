@@ -937,6 +937,15 @@ _c("CP_SUBAGENT_CALLBACK_ALLOW", CAT_SELF_HEALING, "",
     # effect=write 的治理档；关闭时工具回 code=disabled、三条路由 404（一处环境变量回滚）。
     # 【E2-2 Team 任务板（2026-11-26）】默认开启：认领/交接只改 owner/租约，不改委派状态；
     # 关掉 ⇒ 4 条 /api/subagent/board* 路由 404（看板落盘本身不受影响）。
+    # 【E0-2 ② 工具结果裁剪（2026-11-26）】spill 之后的第二道预算闸：超阈值留头 70%/尾 30%。
+    _b("CP_TOOL_RESULT_PRUNER", CAT_SELF_HEALING, True,
+       "工具结果裁剪开关；开启时超过 CP_TOOL_RESULT_PRUNE_CHARS 的长文本字段只留头尾",
+       owner="agent/context/tool_result_pruner.py",
+       impact="影响面：开启后超长工具结果中段不进上下文（标记注明被裁字符数；要全文请用更窄参数重跑或 read_spill）"),
+    _a("CP_TOOL_RESULT_PRUNE_CHARS", CAT_SELF_HEALING, 32000,
+       "工具结果裁剪阈值（字符，4000–200000）",
+       owner="agent/context/tool_result_pruner.py",
+       validator=Validator("int")),
     _b("CP_TEAM_BOARD_ENABLED", CAT_SELF_HEALING, True,
        "Team 任务板开关（认领/释放/交接 + 看板读面）；置 0/false/off 关闭 = 4 条 board 路由 404",
        owner="agent/subagent/task_board.py",

@@ -771,11 +771,13 @@ def call(*args, **params) -> Any:
             # 模型需要细节时调 read_spill(locator=..., offset=..., limit=...) 分段取。
             # 失败姿态：spill 自身异常只记 debug、**原样返回结果**（内容保全机制不能反过来
             # 让工具调用失败）；`read_spill` 自身不 spill（防递归）。
+            _spilled = False
             try:
                 from agent.context.spill import spill_result as _spill_result
                 _spilled_result = _spill_result(name, result)
                 if _spilled_result is not None:
                     result = _spilled_result
+                    _spilled = True
                     # 【污点账不能因为 spill 掉线】上面已按原文打标；模型看到的是**预览**
                     # （原文子串）。摘要按片段算，预览的切片边界不同 ⇒ 可能匹配不上，
                     # 所以对预览再打一次（classify 对非外来工具返回空串，幂等无害）。
@@ -785,6 +787,23 @@ def call(*args, **params) -> Any:
                         pass
             except Exception as _spill_err:  # noqa: BLE001
                 logger.debug("[%s] spill 跳过: %s", trace_id, type(_spill_err).__name__)
+
+            # ── E0-2 ② 结果裁剪（spill 之后的第二道；超阈值留头 70% / 尾 30%）──────
+            # 与 spill 分工：spill 保全全文（可 read_spill 取回），pruner 直接裁中段
+            # （要细节请用更窄参数重跑）。被 spill 吸收的结果已是小信封，不再裁。
+            # 失败姿态同 spill：裁剪异常只记 debug，原样返回结果。
+            try:
+                if not _spilled:
+                    from agent.context.tool_result_pruner import (
+                        prune_result as _prune_result,
+                    )
+                    result, _prune_meta = _prune_result(name, result)
+                    if _prune_meta.get("pruned"):
+                        logger.info("[%s] 工具结果已裁剪 %d 字符（阈值 %d）",
+                                    trace_id, _prune_meta.get("removed_chars", 0),
+                                    _prune_meta.get("limit", 0))
+            except Exception as _prune_err:  # noqa: BLE001
+                logger.debug("[%s] 结果裁剪跳过: %s", trace_id, type(_prune_err).__name__)
 
             return result
         except Exception as e:
