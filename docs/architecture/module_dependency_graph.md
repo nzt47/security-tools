@@ -127,6 +127,7 @@ flowchart LR
         agent_performance_logging["agent.performance_logging"]
         agent_performance_monitor["agent.performance_monitor"]
         agent_permission_system["agent.permission_system"]:::crosslayer
+        agent_proc_tree["agent.proc_tree"]:::crosslayer
         agent_prometheus_exporter["agent.prometheus_exporter"]:::crosslayer
         agent_rate_limiter["agent.rate_limiter"]:::crosslayer
         agent_response_workflows["agent.response_workflows"]:::crosslayer
@@ -972,6 +973,7 @@ flowchart LR
     agent_cognitive_reflection -.-> agent_logging_utils
     agent_cognitive_reflection -.-> agent_monitoring_observability_config
     agent_compression_tools --> agent_logging_utils
+    agent_compression_tools -.-> agent_sandbox_fs_fence
     agent_compression_tools --> agent_system_tools
     agent_compression_tools --> agent_system_tools
     agent_config_etcd_config_client -.-> agent_logging_utils
@@ -2825,6 +2827,7 @@ flowchart LR
     agent_subagent_runtime_tool_decls -.-> agent_lines_models
     agent_subagent_sandbox -.-> agent_lines_models
     agent_subagent_sandbox -.-> agent_permission_system
+    agent_subagent_sandbox -.-> agent_proc_tree
     agent_subagent_scoped_memory_gate --> agent_subagent_toolset
     agent_subagent_scoped_memory_gate -.-> agent_memory_scoped_store
     agent_subagent_scoped_memory_gate -.-> agent_memory_scoped_store
@@ -3221,9 +3224,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 815
-- 模块节点数: 707
-- 依赖边数: 2382
-- 跨层调用数: 1516
+- 扫描文件数: 816
+- 模块节点数: 708
+- 依赖边数: 2384
+- 跨层调用数: 1518
 - 违规调用数: 0
 - 动态 import 数: 1
