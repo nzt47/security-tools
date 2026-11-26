@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-27T00:50:00+08:00",
+ "updated_at": "2026-11-27T01:35:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。 【接手入口】交接文档（仓外 yunshu_session_handoff_20261024.md）文件头写了最新一节与代码/CI/服务读数，文末「独立提示词」一节可直接复制（2026-11-26 起见 docs/handoff/2026-11-26_e2_e13_收口与新会话提示词.md）。",
  "items": [
   {
@@ -1619,8 +1619,8 @@
    "status": "open",
    "priority": "P1",
    "title": "E3-2 Office 三件套（render/convert/recalculate）与 Office 技能",
-   "criteria": "依赖现状（2026-11-27 实测）：python-docx 1.2.0 已装到本机、python-pptx / openpyxl 早已可用，但 **LibreOffice 仍缺**（soffice 不在 PATH，也没有 C:\\Program Files\\LibreOffice）。⇒ office_render / office_convert / office_recalculate 这三条**做不了**（它们本质是 LibreOffice无头调用）；能做的是纯库路线：docx/xlsx/pptx 的读写与结构编辑（不改输入、不写工作区）。",
-   "next": "二选一（需 Owner 拍板）：(a) 装 LibreOffice（一次性 ~350MB，之后三件套按路线图交付）；(b) 不装，改交付纯库 Office 能力（docx 读写/表格重算用公式求值库），并在路线图把 render/convert标为「需 LibreOffice 环境，不阻塞其它项」。**不要**写一个只在本机有 LibreOffice 时才工作的工具。"
+   "criteria": "依赖现状（2026-11-27 实测）：python-docx 1.2.0 已装到本机、python-pptx / openpyxl 早已可用，但 **LibreOffice 仍缺**（soffice 不在 PATH，也没有 C:\\Program Files\\LibreOffice）。⇒ office_render / office_convert / office_recalculate 这三条**做不了**（它们本质是 LibreOffice无头调用）；能做的是纯库路线：docx/xlsx/pptx 的读写与结构编辑（不改输入、不写工作区）。 【2026-11-27 部分交付】558466e85：docx_read（纯标准库 zipfile + ElementTree 解析word/document.xml，取正文段落与表格；上限 400 段 / 120k 字符 / 200 行表格，超限 truncated=true；不依赖 LibreOffice 也不依赖 python-docx）⇒ 「读 Word 文档」这一半已可用。仍缺 render/convert/recalculate（必须 LibreOffice）与 xlsx/pptx 的同等抽取（openpyxl/pptx 未进主依赖）。",
+   "next": "① 等 Owner 对 LibreOffice 拍板（装了才能做 render/convert/recalculate）；② 不装的话：按同一套路补 xlsx/pptx 抽取（纯库或把 openpyxl/pptx 提为主依赖，二选一先问 Owner）。"
   }
  ]
 }
