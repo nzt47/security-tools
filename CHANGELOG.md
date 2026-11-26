@@ -20,6 +20,10 @@
   路由层 `_pty_public()` 丢掉 `error` 原文（只进服务日志）只回 code，中文文案唯一一份在前端；
   域内失败一律 HTTP 200 + ok=false + code（`hubPost` 只在非 2xx 抛错），只有缺 id 才 400。
   所有 PTY 路由 `log=False`（stdin/输出可能含密钥，审计仍由 pty_session 记摘要）。
+- **界面侧 argv 只来自常量表**（6fda6bcd8）：POST `/api/terminal/sessions` 只收 `shell` 键
+  （default/cmd/powershell/bash/python），映射 `_PTY_SHELLS`；非法值 400 + `bad_shell` 且**不 spawn**；
+  命令文本**永不**进 `argv[0]`（与 `/api/terminal/exec`、`/api/process/start` 同口径，避免
+  `用户输入 → subprocess` 的静态告警）。模型侧 `terminal` 工具仍可传 `command`（非 HTTP 源）。
 
 ### 派生
 - `reports/route_ui_coverage.json` 重派生：路由 539→544，5 条新路由全部 **ui 引用**；
