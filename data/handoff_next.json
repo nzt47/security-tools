@@ -12,11 +12,11 @@
   },
   {
    "id": "dsh-parity-e1-3-followups",
-   "status": "open",
+   "status": "done",
    "priority": "P2",
    "title": "E1-3 余项：检查点按会话归属（变更卡只能标作用域，不能按会话过滤）+ 快照去抖与卡片的时序",
    "criteria": "2026-11-25 E1-3b 实测：E0-3 的检查点是 **workspace 级**的（历史快照没有 session_id），所以 `GET /api/changes?session_id=` 里的 session_id 只用于标注：快照的 session_id 与请求一致才 `scope=session`，否则 `scope=workspace` + 说明。**本会话改动与其它会话/手工改动仍混在同一份清单里**。第二个已知时序：`maybe_snapshot()` 去抖 120s 且是后台线程 ⇒ 一轮刚结束就拉 `/api/changes` 可能还是**上一轮**的检查点（卡片显示旧变更，不是报错）。",
-   "next": "① 让检查点真正按会话归属：快照时把 session_id 写进 manifest（E1-3b 已做），读取侧加 `?session_id=` 过滤（manifest.session_id 为空的老快照按 workspace 处理），ChangeCard 上给「只看本会话 / 看全部」开关；② 卡片时序：`sendMessage` 的 done 之后按 「首拉 + 1.5s 再拉一次」或让快照完成发一个轻量信号（勿用固定 sleep 假绿）；③ 顺手把 `data/checkpoints/` 的保留策略（条数/天数）写进 E0-3 文档。"
+   "next": "已完成（2026-11-26，b6a71521a，已部署）：① 读取侧 scope=session 按 manifest.session_id 严格过滤（老快照只出现在「看全部」），ChangeCard 加「只看本会话 / 看全部」开关；本会话无快照 ⇒ 200 空清单 + 说明，越权指定别会话 checkpoint ⇒ 404 not_in_session；② 卡片时序：流结束后首拉 + 1.5s 再拉一次；③ 保留策略 prune(keep=50/days=30，永远保留最新一份)，每次快照后 best-effort 清理，两个开关进设置中心，E0-3 设计页 §5 已写。验证：单测 12 + ChangeCard 3 + 既有 checkpoint 32；真机探针 .local/verify_e13_changes_scope.py 五项全过。"
   },
   {
    "id": "ci-2613fd951-watch",
