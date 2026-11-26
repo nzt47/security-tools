@@ -18,13 +18,18 @@
 | 方法 | 路径 | 作用 |
 |---|---|---|
 | GET | `/api/terminal/sessions` | 开关/后端/上限 + 会话列表（**开关关时也返回 200 + enabled=false**） |
-| POST | `/api/terminal/sessions` | 开会话（command / cwd / rows / cols） |
+| POST | `/api/terminal/sessions` | 开会话（**shell 取自服务端常量表** default/cmd/powershell/bash/python；rows/cols 收敛） |
 | POST | `/api/terminal/input` | 写 stdin（默认补 `\r`，PTY 的 Enter） |
 | GET | `/api/terminal/output` | 按 offset/limit 取增量输出（前端 800ms 轮询） |
 | POST | `/api/terminal/signal` | interrupt（Ctrl-C）/ terminate |
 | POST | `/api/terminal/close` | 关闭会话（顺手整树 kill） |
 
 所有路由 `log=False`：**输入/输出原文不进 HTTP 访问日志**（可能是密钥）；审计仍由 `pty_session` 记摘要。
+
+**argv 只来自常量表**（与 `/api/process/start` 同口径）：HTTP 只传 `shell` 键，服务端映射成固定 argv，
+用户文本**永不**成为 `argv[0]`（CodeQL `py/command-line-injection` 的正解是常量表，不是"消毒"）。
+工作目录也不从 HTTP 传（固定服务端当前目录），要换目录就在终端里 `cd` —— 模型侧 `terminal` 工具
+仍可传 `command`/`cwd`（那是模型输出，不是 HTTP 请求参数，**不是**这条静态规则的源）。
 
 ## 3. 失败码口径（响应体不回异常派生串）
 
@@ -50,7 +55,7 @@
 2. 6 条路由都有 docstring（覆盖清单的「说明」列取首段）；`/api/terminal` 域前缀已存在（`route_domains.json` 不新增）。
 3. 开关默认关时：GET sessions 200 + `enabled=false`；POST sessions 200 + `code=disabled`（**不 500、不 400**）。
 4. 受限档：POST sessions 200 + `code=blocked`。
-5. 会话不存在：input/output/signal/close 200 + `code=no_session`；缺 id 400。
+5. 会话不存在：input/output/signal/close 200 + `code=no_session`；缺 id 400；非法 `shell` 400 + `bad_shell`（**不 spawn**）。
 6. 单测：`tests/unit/test_terminal_ui_routes.py`（上述 3–5 + 参数收敛 + 输入换行 + 输出 offset 透传）。
 7. 前端：`DockPanel.test.tsx` 新增「交互」用例（未启用时的提示、打开会话、发送、轮询增量、Ctrl-C）。
 8. `cd yunshu-ui && npm run ui:check` 绿；`python -m pytest tests/unit/test_terminal_tool.py tests/unit/test_terminal_ui_routes.py -q` 绿。
@@ -59,4 +64,6 @@
 
 - **不打开 `CP_TERMINAL_ENABLED`**（B 级开关，Owner 拍板）+ 因此**不动** `engineering.yaml` 的 boost / max_tools；
 - 不做 resize / 多标签 / 终端历史落盘（`pty_session` 现状即边界，会话只在进程内存）；
-- 不引入 xterm.js（体积/依赖）：输出用等宽 `pre`、输入用单行 Input，够覆盖"看进度 + 发命令 + Ctrl-C"。
+- 不引入 xterm.js（体积/依赖）：输出用等宽 `pre`、输入用单行 Input，够覆盖"看进度 + 发命令 + Ctrl-C"；
+- **不做自由命令输入**（界面侧）：命令文本若来自 HTTP 就是一条 `用户输入 → argv[0]` 的注入面，
+  与白名单终端（`/api/terminal/exec`）的口径冲突；界面只选 shell，具体命令在终端里敲。

@@ -279,8 +279,15 @@ def _reap_idle() -> None:
         close(sid)
 
 
-def open_session(command: str = "", cwd: str = "", rows: int = 30, cols: int = 120) -> Dict[str, Any]:
-    """开一个 PTY 会话（默认起当前平台默认 shell）。"""
+def open_session(command: str = "", cwd: str = "", rows: int = 30, cols: int = 120,
+                 argv: Optional[List[str]] = None) -> Dict[str, Any]:
+    """开一个 PTY 会话（默认起当前平台默认 shell）。
+
+    Args:
+        command: 命令行文本（模型侧 `terminal` 工具用；按空格拆分）。
+        argv:    **常量表**给的启动参数（界面侧路由用：HTTP 永不把用户文本当 argv[0]）。
+                 给了就以它为准，忽略 `command`。
+    """
     if not enabled():
         return {"ok": False, "disabled": True, "code": "disabled",
                 "error": "终端未启用：需要 CP_TERMINAL_ENABLED=1（设置中心 A 级开关）"}
@@ -306,7 +313,10 @@ def open_session(command: str = "", cwd: str = "", rows: int = 30, cols: int = 1
     except OSError:
         return {"ok": False, "code": "bad_cwd", "error": "工作目录不可访问"}
 
-    argv = shlex.split(command) if str(command or "").strip() else []
+    if argv:
+        argv = [str(a) for a in argv if str(a or "").strip()]
+    else:
+        argv = shlex.split(command) if str(command or "").strip() else []
     if not argv:
         argv = ["cmd", "/Q"] if sys.platform == "win32" else ["bash", "-i"]
 

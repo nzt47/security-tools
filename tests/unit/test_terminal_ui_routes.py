@@ -169,9 +169,21 @@ class TestInputAndOutput:
         monkeypatch.setattr(pty_session, "open_session",
                             lambda **kw: seen.update(kw) or {"ok": True, "id": "t-1"})
         body = client.post("/api/terminal/sessions",
-                           json={"command": "cmd", "rows": 9999, "cols": 1}).get_json()
+                           json={"shell": "powershell", "rows": 9999, "cols": 1}).get_json()
         assert body["ok"] is True
-        assert seen["rows"] == 200 and seen["cols"] == 20 and seen["command"] == "cmd"
+        assert seen["rows"] == 200 and seen["cols"] == 20
+        # argv **只来自服务端常量表**：用户传的 shell 键映射到固定 argv，文本永不进 argv
+        assert seen["argv"] == ["powershell", "-NoLogo"]
+
+    def test_不支持的shell_400且不spawn(self, client, monkeypatch):
+        from agent import pty_session
+        called = {}
+        monkeypatch.setattr(pty_session, "open_session",
+                            lambda **kw: called.setdefault("kw", kw) or {"ok": True, "id": "t-1"})
+        resp = client.post("/api/terminal/sessions", json={"shell": "rm -rf /"})
+        assert resp.status_code == 400
+        assert resp.get_json()["code"] == "bad_shell"
+        assert not called, "非法 shell 必须在 spawn 之前就拒绝"
 
 
 
@@ -219,23 +231,16 @@ def _read_until(client, sid, needle, timeout=15.0):
 class TestRealPtyThroughRoutes:
     def test_开_发_读_关全链路(self, client, tmp_path, monkeypatch):
         monkeypatch.setenv("CP_TERMINAL_ENABLED", "1")
-        script = tmp_path / "echo_lines.py"
-        script.write_text(
-            "import sys\n"
-            "print('READY', flush=True)\n"
-            "for line in sys.stdin:\n"
-            "    print('ECHO:' + line.strip(), flush=True)\n",
-            encoding="utf-8")
-        resp = client.post("/api/terminal/sessions", json={
-            "command": '"%s" "%s"' % (sys.executable, script),
-            "cwd": str(tmp_path),
-        })
-        body = resp.get_json()
+        # 界面侧只能选常量表里的 shell（python REPL 是其中一个）——这里就用它跑真终端，
+        # 顺便证明「HTTP 不传命令文本」的形态下终端依然可用。
+        body = client.post("/api/terminal/sessions", json={"shell": "python"}).get_json()
         assert body.get("ok") is True and body.get("id"), body
         sid = body["id"]
+        assert client.post("/api/terminal/input",
+                           json={"id": sid, "text": "print('READY')"}).get_json()["ok"] is True
         assert "READY" in _read_until(client, sid, "READY")
         assert client.post("/api/terminal/input",
-                           json={"id": sid, "text": "hello"}).get_json()["ok"] is True
+                           json={"id": sid, "text": "print('ECHO:' + 'hello')"}).get_json()["ok"] is True
         assert "ECHO:hello" in _read_until(client, sid, "ECHO:hello")
         assert client.post("/api/terminal/close", json={"id": sid}).get_json()["ok"] is True
         # 关掉之后：再读/再关都回 no_session（200，不是 500）

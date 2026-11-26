@@ -19,6 +19,7 @@
 """
 import functools
 import logging
+import sys
 from flask import Blueprint, Response, request, jsonify
 from .plugin_api import Plugin, register_plugin
 
@@ -737,6 +738,16 @@ _PTY_READ_LIMIT_DEFAULT = 20000
 _PTY_READ_LIMIT_MAX = 60000
 _PTY_OFFSET_MAX = 2 ** 31 - 1
 
+#: PTY 会话可选的 shell —— **argv 只来自这张常量表**（与 /api/process/start 同口径：
+#: HTTP 永不把用户文本当 argv[0]；CodeQL py/command-line-injection 的正解是常量表，不是"消毒"）。
+_PTY_SHELLS = {
+    "default": [],
+    "cmd": ["cmd", "/Q"],
+    "powershell": ["powershell", "-NoLogo"],
+    "bash": ["bash", "-i"],
+    "python": [sys.executable, "-i"],
+}
+
 
 def _clamp_int(raw, lo: int, hi: int, default: int) -> int:
     """把外部传入的参数收敛成 [lo, hi] 内的整数；非法一律回默认。"""
@@ -1001,13 +1012,16 @@ def api_terminal_sessions():
 @bp.route("/api/terminal/sessions", methods=["POST"])
 @_view(auth=True, log=False)
 def api_terminal_open_session():
-    """开一个 PTY 会话（默认当前平台 shell）；开关未开/受限档只回 code，绝不 spawn。"""
+    """开一个 PTY 会话（shell 取自服务端常量表，默认当前平台 shell）；开关未开/受限档只回 code，绝不 spawn。"""
     from agent import pty_session
 
     data = request.get_json(silent=True) or {}
+    shell = str(data.get("shell") or "default").strip().lower()
+    if shell not in _PTY_SHELLS:
+        return jsonify({"ok": False, "code": "bad_shell",
+                        "error": "不支持的 shell（可选 default/cmd/powershell/bash/python）"}), 400
     result = pty_session.open_session(
-        command=str(data.get("command") or ""),
-        cwd=str(data.get("cwd") or ""),
+        argv=list(_PTY_SHELLS[shell]) or None,
         rows=_clamp_int(data.get("rows"), _PTY_ROWS_MIN, _PTY_ROWS_MAX, _PTY_ROWS_DEFAULT),
         cols=_clamp_int(data.get("cols"), _PTY_COLS_MIN, _PTY_COLS_MAX, _PTY_COLS_DEFAULT),
     )

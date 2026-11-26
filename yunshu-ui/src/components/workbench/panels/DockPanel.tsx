@@ -17,7 +17,7 @@ import { BookOpen, Bot, Code2, Globe, Loader2, Play, RefreshCw, Send, Terminal }
 import { CodeEditorPanel } from './CodeEditorPanel'
 import { getEnvelope } from '@/api/envelope'
 import { hubGet, hubPost } from '../../../pages/hub/components/ui'
-import { Button, Input, Tabs } from '@/components/ui'
+import { Button, Input, Select, Tabs } from '@/components/ui'
 import { getApiToken } from '@/lib/apiToken'
 import {
   FILESYSTEM_LIST,
@@ -831,8 +831,7 @@ function PtyView() {
   const [meta, setMeta] = useState<PtySessionsResp | null>(null)
   const [sessions, setSessions] = useState<PtySessionRow[]>([])
   const [sid, setSid] = useState('')
-  const [command, setCommand] = useState('')
-  const [cwd, setCwd] = useState('')
+  const [shell, setShell] = useState('default')
   const [text, setText] = useState('')
   const [out, setOut] = useState('')
   const [alive, setAlive] = useState(false)
@@ -939,10 +938,7 @@ function PtyView() {
     setBusy(true)
     setError('')
     try {
-      const r = await hubPost<{ ok?: boolean; code?: string; id?: string }>(TERMINAL_SESSIONS, {
-        command: command.trim(),
-        cwd: cwd.trim(),
-      })
+      const r = await hubPost<{ ok?: boolean; code?: string; id?: string }>(TERMINAL_SESSIONS, { shell })
       if (!r?.ok || !r?.id) {
         setError(ptyErrorText(r?.code))
         return
@@ -1035,24 +1031,25 @@ function PtyView() {
           void open()
         }}
       >
-        <Input
-          variant="bare"
-          className="w-32 shrink-0"
-          inputClassName="rounded border border-slate-800 bg-slate-950/70 px-1.5 py-0.5 font-mono text-micro text-slate-200 placeholder:text-slate-600 focus:border-cyan-600/60 focus:outline-hidden"
-          value={command}
-          onChange={(e) => setCommand(e.target.value)}
-          placeholder="命令（空=默认 shell）"
-          aria-label="启动命令"
-        />
-        <Input
-          variant="bare"
-          className="min-w-0 flex-1"
-          inputClassName="rounded border border-slate-800 bg-slate-950/70 px-1.5 py-0.5 font-mono text-micro text-slate-200 placeholder:text-slate-600 focus:border-cyan-600/60 focus:outline-hidden"
-          value={cwd}
-          onChange={(e) => setCwd(e.target.value)}
-          placeholder="工作目录（空=服务端当前目录）"
-          aria-label="工作目录"
-        />
+        <div className="w-32 shrink-0">
+          <Select
+            size="xs"
+            aria-label="终端 shell"
+            value={shell}
+            onChange={(v) => setShell(v)}
+            hidePlaceholder
+            options={[
+              { label: '默认 shell', value: 'default' },
+              { label: 'cmd', value: 'cmd' },
+              { label: 'PowerShell', value: 'powershell' },
+              { label: 'bash', value: 'bash' },
+              { label: 'Python REPL', value: 'python' },
+            ]}
+          />
+        </div>
+        <span className="min-w-0 flex-1 truncate text-micro text-slate-600">
+          启动参数只用服务端常量表（不把文本当命令）；打开后在终端里 cd / 运行。
+        </span>
         <Button type="submit" variant="default" size="xs" disabled={busy}>
           <Play size={10} /> 打开
         </Button>

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-27T05:12:54",
+  "generated_at": "2026-11-27T05:25:39",
   "totals": {
     "routes": 544,
     "live": 544,
@@ -1212,7 +1212,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:361"
+        "plugins/system_tools.py:362"
       ],
       "description": "关闭浏览器",
       "description_source": "handler",
@@ -1237,7 +1237,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:390"
+        "plugins/system_tools.py:391"
       ],
       "description": "当前页面截图（JPEG）。二进制响应，故不走 log_request（避免把体积写进日志）。",
       "description_source": "handler",
@@ -1262,7 +1262,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:401"
+        "plugins/system_tools.py:402"
       ],
       "description": "受控输入：click / type / key / scroll / navigate / back / forward / reload。",
       "description_source": "handler",
@@ -1287,7 +1287,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:340"
+        "plugins/system_tools.py:341"
       ],
       "description": "浏览器导航到 URL",
       "description_source": "handler",
@@ -1312,7 +1312,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:352"
+        "plugins/system_tools.py:353"
       ],
       "description": "浏览器截图",
       "description_source": "handler",
@@ -1337,7 +1337,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:378"
+        "plugins/system_tools.py:379"
       ],
       "description": "打开一个可交互浏览器会话（单会话；空 url 或非 http(s) ⇒ 400）。",
       "description_source": "handler",
@@ -1362,7 +1362,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:422"
+        "plugins/system_tools.py:423"
       ],
       "description": "关闭可交互会话（幂等：本来没有会话也返回 ok）。",
       "description_source": "handler",
@@ -1387,7 +1387,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:412"
+        "plugins/system_tools.py:413"
       ],
       "description": "会话状态（url / title / 视口），前端刷新地址栏用。",
       "description_source": "handler",
@@ -1692,8 +1692,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:499",
-        "plugins/system_tools.py:507"
+        "plugins/system_tools.py:500",
+        "plugins/system_tools.py:508"
       ],
       "description": "读取剪贴板",
       "description_source": "handler",
@@ -3613,7 +3613,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:251"
+        "plugins/system_tools.py:252"
       ],
       "description": "获取文件/目录信息",
       "description_source": "handler",
@@ -3639,7 +3639,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:240"
+        "plugins/system_tools.py:241"
       ],
       "description": "列出目录内容",
       "description_source": "handler",
@@ -3664,7 +3664,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:194"
+        "plugins/system_tools.py:195"
       ],
       "description": "读取本地文件内容",
       "description_source": "handler",
@@ -3689,7 +3689,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:262"
+        "plugins/system_tools.py:263"
       ],
       "description": "搜索文件",
       "description_source": "handler",
@@ -3714,7 +3714,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:218"
+        "plugins/system_tools.py:219"
       ],
       "description": "写入本地文件",
       "description_source": "handler",
@@ -6971,7 +6971,7 @@
         "agent/modules_api.py"
       ],
       "where": [
-        "plugins/system_tools.py:434"
+        "plugins/system_tools.py:435"
       ],
       "description": "列出白名单进程",
       "description_source": "handler",
@@ -6998,7 +6998,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/system_tools.py:470"
+        "plugins/system_tools.py:471"
       ],
       "description": "启动白名单程序",
       "description_source": "handler",
@@ -7025,7 +7025,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/system_tools.py:483"
+        "plugins/system_tools.py:484"
       ],
       "description": "终止进程（仅限白名单）",
       "description_source": "handler",
@@ -7050,7 +7050,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:442"
+        "plugins/system_tools.py:443"
       ],
       "description": "获取进程白名单详情",
       "description_source": "handler",
@@ -7075,7 +7075,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:450"
+        "plugins/system_tools.py:451"
       ],
       "description": "添加自定义白名单条目",
       "description_source": "handler",
@@ -7100,7 +7100,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:460"
+        "plugins/system_tools.py:461"
       ],
       "description": "移除自定义白名单条目",
       "description_source": "handler",
@@ -7563,7 +7563,7 @@
         "scripts/docker_sandbox.ps1"
       ],
       "where": [
-        "plugins/system_tools.py:278"
+        "plugins/system_tools.py:279"
       ],
       "description": "在受限沙盒中执行 Python 代码（受 features.sandbox 开关控制）",
       "description_source": "handler",
@@ -11679,7 +11679,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:885"
+        "plugins/system_tools.py:896"
       ],
       "description": "「云枢当前正在执行什么」—— 审计链尾部 + 进行中的子代理委派（只读）。",
       "description_source": "handler",
@@ -11704,7 +11704,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:1061"
+        "plugins/system_tools.py:1075"
       ],
       "description": "关闭 PTY 会话（先 terminate 再整树 kill；幂等，再关一次只回 no_session）。",
       "description_source": "handler",
@@ -11729,7 +11729,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:798"
+        "plugins/system_tools.py:809"
       ],
       "description": "列出可执行命令白名单（界面用它渲染按钮，**不接受自由输入**）。",
       "description_source": "handler",
@@ -11754,7 +11754,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:870"
+        "plugins/system_tools.py:881"
       ],
       "description": "按白名单执行一条命令（`shell=False`，cwd 锁仓库根）。",
       "description_source": "handler",
@@ -11779,7 +11779,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:1017"
+        "plugins/system_tools.py:1031"
       ],
       "description": "写 PTY stdin（默认补 \\r —— PTY 的 Enter 是 \\r，不是 \\n）。",
       "description_source": "handler",
@@ -11805,7 +11805,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:1033"
+        "plugins/system_tools.py:1047"
       ],
       "description": "按 offset/limit 取 PTY 增量输出（前端轮询用；trimmed=true 表示环形窗口已滑过）。",
       "description_source": "handler",
@@ -11831,10 +11831,10 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:1001",
-        "plugins/system_tools.py:982"
+        "plugins/system_tools.py:1012",
+        "plugins/system_tools.py:993"
       ],
-      "description": "开一个 PTY 会话（默认当前平台 shell）；开关未开/受限档只回 code，绝不 spawn。",
+      "description": "开一个 PTY 会话（shell 取自服务端常量表，默认当前平台 shell）；开关未开/受限档只回 code，绝不 spawn。",
       "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
@@ -11857,7 +11857,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:1048"
+        "plugins/system_tools.py:1062"
       ],
       "description": "给 PTY 会话发信号：interrupt=Ctrl-C，terminate=结束整棵进程树。",
       "description_source": "handler",
@@ -12674,7 +12674,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:634"
+        "plugins/system_tools.py:635"
       ],
       "description": "数据清洗",
       "description_source": "handler",
@@ -12697,7 +12697,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:585"
+        "plugins/system_tools.py:586"
       ],
       "description": "CSS 选择器提取",
       "description_source": "handler",
@@ -12720,7 +12720,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:657"
+        "plugins/system_tools.py:658"
       ],
       "description": "下载文件",
       "description_source": "handler",
@@ -12743,7 +12743,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:521"
+        "plugins/system_tools.py:522"
       ],
       "description": "HTTP GET 请求",
       "description_source": "handler",
@@ -12766,7 +12766,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:539"
+        "plugins/system_tools.py:540"
       ],
       "description": "HTTP POST 请求",
       "description_source": "handler",
@@ -12791,7 +12791,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:613"
+        "plugins/system_tools.py:614"
       ],
       "description": "搜索互联网",
       "description_source": "handler",
@@ -12816,7 +12816,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:683"
+        "plugins/system_tools.py:684"
       ],
       "description": "获取当前搜索引擎状态和切换日志（用于前端显示）",
       "description_source": "handler",
@@ -12839,7 +12839,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:670"
+        "plugins/system_tools.py:671"
       ],
       "description": "Web 模块统计",
       "description_source": "handler",
@@ -12862,7 +12862,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:558"
+        "plugins/system_tools.py:559"
       ],
       "description": "XPath 提取",
       "description_source": "handler",
@@ -13243,7 +13243,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:114"
+        "plugins/system_tools.py:115"
       ],
       "description": "列出工作区内容",
       "description_source": "handler",
@@ -13268,7 +13268,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:151"
+        "plugins/system_tools.py:152"
       ],
       "description": "删除工作区文件",
       "description_source": "handler",
@@ -13293,7 +13293,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:167"
+        "plugins/system_tools.py:168"
       ],
       "description": "工作区信息",
       "description_source": "handler",
@@ -13318,7 +13318,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:129"
+        "plugins/system_tools.py:130"
       ],
       "description": "写入工作区文件",
       "description_source": "handler",
