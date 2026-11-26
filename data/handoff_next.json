@@ -1586,9 +1586,9 @@
    "id": "dsh-parity-e0-2-remaining",
    "status": "open",
    "priority": "P1",
-   "title": "E0-2 余项：工具结果裁剪策略、图片/截图 offload、token-meter 驱动压缩",
-   "criteria": "① 大输出 spill + read_spill 已交付（2026-11-24，80360b2e3）：阈值 CP_SPILL_THRESHOLD_BYTES（默认 100KB）、预览头 4/5 + 尾 1/5、字符 offset/limit、常量目录 + 校验过的 16 hex locator；shell/受限子进程捕获上限抬到 1MiB；CP_SPILL_ENABLED=0 回到硬截断。② tool-result pruner（头/中/尾保留 + 可回放）未做；③ 图片/截图类结果 offload 为占位 + 可再读未做；④ token-meter 驱动压缩（按真实 token 而非消息条数）未做——与会话压缩水位/口径 §7 强耦合，需先出方案。",
-   "next": "顺序 ②→④→③。② 先量现有工具结果长度分布（近 7 天 usage_log/审计），只裁真正常见的超长项；④ 先读 MemoryManager.compress_now 与 /api/context/status 的同源口径（口径 §7），不要另起一套 token 统计；③ 先确认 look_at_screen / browser_screenshot 的返回形状与可再读路径，再决定占位文案。"
+   "title": "E0-2 余项：图片/截图 offload、token-meter 驱动压缩（工具结果裁剪已交付）",
+   "criteria": "① 大输出 spill + read_spill 已交付（2026-11-24，80360b2e3）：阈值 CP_SPILL_THRESHOLD_BYTES（默认 100KB）、预览头 4/5 + 尾 1/5、字符 offset/limit、常量目录 + 校验过的 16 hex locator；shell/受限子进程捕获上限抬到 1MiB；CP_SPILL_ENABLED=0 回到硬截断。② tool-result pruner 已交付（2026-11-26，63e2629b6）：超 32KB 留头 70%/尾 30%，只裁 dict 长文本字段（不改形状），CP_TOOL_RESULT_PRUNER / CP_TOOL_RESULT_PRUNE_CHARS 可调；7 条测试；③ 图片/截图类结果 offload 为占位 + 可再读未做；④ token-meter 驱动压缩（按真实 token 而非消息条数）未做——与会话压缩水位/口径 §7 强耦合，需先出方案。",
+   "next": "顺序 ④→③。④ token-meter 驱动压缩：先读 MemoryManager.compress_now 与 /api/context/status 的同源口径（口径 §7），不要另起一套 token 统计；③ 图片/截图 offload：先确认 look_at_screen / browser_screenshot 的返回形状与可再读路径，再决定占位文案。"
   },
   {
    "id": "dsh-parity-e0-4-remaining",

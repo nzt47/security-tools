@@ -66,3 +66,16 @@ spill 开着时把 shell（含 Windows 受限执行器）的捕获上限 100KB �
 `CP_SPILL_ENABLED=0` 时不落盘。服务侧 `.local/_check_spill_setting.py`：3 条设置 + 工具 102（read_spill 启用）。
 单测 `tests/unit/test_context_spill.py`（27）。派生产物：tool_index 97 / BM25 S0 5.6993 / 路由报告 /
 能力清单 147 / 盘点表（干净 worktree 重派生，五项 `--check` 全 0）。
+
+## 5. 二期：tool-result pruner（2026-11-26 已交付，63e2629b6）
+
+- **要解决的问题**：spill 只在 >100KB 时保全全文；8–100KB 的结果（一次大 diff、一次宽表查询）仍整段进上下文。
+- **决定**：在 `tools.call()` 里、**spill 之后**再收一道：超 `CP_TOOL_RESULT_PRUNE_CHARS`（默认 32000）
+  的字符串字段只留头 70% / 尾 30%，中段替换为「已裁剪 N 字符」标记。
+- **只动这些字段**：`stdout/stderr/content/result/output/text/diff/body`；**不新增/删除键**（形状不变），
+  非 dict 结果不裁。`CP_TOOL_RESULT_PRUNER=0` 完全关闭。
+- **与 spill 的分工**：spill 保全全文（`read_spill` 可分段取回）；pruner 只为预算，**不落盘**——
+  要细节请用更窄的参数重跑。被 spill 吸收的小信封不会再被裁。
+- **失败姿态**：裁剪异常只记 debug、原样返回；与 spill 同一条纪律（内容保全不得反过来让工具失败）。
+- **验收**：`tests/unit/test_tool_result_pruner.py` 7 条（阈值/头尾比例/形状/开关/阈值收敛/call() 接线）；
+  `test_context_spill.py` 与 `test_tool_calling_refactor.py` 无回归。
