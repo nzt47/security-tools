@@ -229,6 +229,8 @@
   drain 追加指令 / 轮间协作式打断 + `subagent_control` 工具（list/send/interrupt/inbox，
   core 常驻）；17 条单测 + 真机探针全过。**E2-1b 同日交付（cd7765cc5）**：3 条路由 +
   分身页「运行中」块（追加指令 / 协作式打断），已部署；路由 11 + 页面 3 条测试，ui:check 全绿。
+- **E2-2 同日交付（cd3bd1e86）**：Team 任务板（claim/release/handoff + 乐观锁 + 租约），
+  看板读面 + 分身页「任务板」块；引擎 9 + 路由 9 + 页面 7 条测试，HTTP 探针全过。
 
 ### Phase 2 — 多代理协作（建议第 7–9 周）
 
