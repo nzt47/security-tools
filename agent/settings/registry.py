@@ -625,6 +625,16 @@ _REGISTRY_ROWS: List[SettingSpec] = [
         "同进程两次快照的最小间隔（秒，10–3600）；防止连续写工具把机器拖慢",
         owner="agent/context/checkpoint.py",
         validator=_range_validator(10, 3600, kind="int")),
+    # 【E1-3 余项·保留策略（2026-11-26）】data/checkpoints 无界增长会吃磁盘：
+    # 每次快照后按「最多 N 份 + 最多 N 天」清理（永远保留最新一份）。
+    _mk("CP_CHECKPOINT_KEEP", CAT_ORCHESTRATION, 50,
+        "最多保留多少份检查点（5–500；最新一份永远保留）",
+        owner="agent/context/checkpoint.py",
+        validator=_range_validator(5, 500, kind="int")),
+    _mk("CP_CHECKPOINT_MAX_AGE_DAYS", CAT_ORCHESTRATION, 30,
+        "检查点最长保留天数（1–365；超龄的清掉，最新一份永远保留）",
+        owner="agent/context/checkpoint.py",
+        validator=_range_validator(1, 365, kind="int")),
     _b("CP_TOOL_SANDBOX_ALLOWED_ENFORCE", CAT_SELF_HEALING, True,
        "受限会话内是否消费 YAML 的 sandbox_allowed=false（拒绝该能力）",
        owner="agent/tool_gate.py"),

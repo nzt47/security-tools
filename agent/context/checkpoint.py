@@ -286,6 +286,11 @@ def snapshot(*, trigger_tool: str = "manual", note: str = "", session_id: str = 
     logger.info("[checkpoint] 快照 %s：%d 个改动（捕获 %d 个文件，diff %d 字节）",
                 checkpoint_id, len(status), len(captured_data), diff_bytes)
     _state["last_id"] = checkpoint_id
+    # 保留策略：每次快照后顺手清一次（条数/天数超限才删；失败绝不影响快照）
+    try:
+        prune()
+    except Exception as e:  # noqa: BLE001
+        logger.debug("[checkpoint] 保留策略清理失败（忽略）: %s", e)
     return manifest
 
 
@@ -341,10 +346,19 @@ def _resolve(checkpoint_id: str) -> Optional[Path]:
     return target if (target / "manifest.json").is_file() else None
 
 
-def list_checkpoints(limit: int = 20) -> List[Dict[str, Any]]:
+def list_checkpoints(limit: int = 20, *, session_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    """最近 N 个检查点摘要（新的在前）
+
+    Args:
+        limit: 返回条数上限。
+        session_id: 非 None 时只返回该会话触发的快照（严格相等；老快照没有
+            session_id 键 ⇒ 永远不匹配，按 workspace 处理）。用于「只看本会话」。
+    """
     directory = checkpoint_dir()
     if not directory.is_dir():
         return []
+    # 空串 = 不按会话过滤（工作区级口径，与改动前一致）；只有非空才算「只看本会话」
+    want = str(session_id or "")
     rows = []
     for path in sorted(directory.iterdir(), reverse=True):
         manifest = path / "manifest.json"
@@ -354,6 +368,9 @@ def list_checkpoints(limit: int = 20) -> List[Dict[str, Any]]:
             data = json.loads(manifest.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             continue
+        owner = str(data.get("session_id") or "")
+        if want and owner != want:
+            continue
         rows.append({
             "id": data.get("id") or path.name,
             "created_at": data.get("created_at", ""),
@@ -361,6 +378,7 @@ def list_checkpoints(limit: int = 20) -> List[Dict[str, Any]]:
             "changed": data.get("changed_total", 0),
             "captured": data.get("files_captured", 0),
             "truncated": bool(data.get("truncated") or data.get("diff_truncated")),
+            "session_id": owner,
         })
         if len(rows) >= max(1, int(limit)):
             break
@@ -478,6 +496,72 @@ def purge(checkpoint_id: str) -> bool:
     return True
 
 
+
+# ── 保留策略（E1-3 余项）：条数 + 天数，防止 data/checkpoints 无界增长 ──
+
+#: 最多保留份数 / 最长保留天数（环境变量可调；0 = 该维度不限制）
+KEEP_ENV = "CP_CHECKPOINT_KEEP"
+MAX_AGE_ENV = "CP_CHECKPOINT_MAX_AGE_DAYS"
+_KEEP_DEFAULT = 50
+_KEEP_MIN, _KEEP_MAX = 5, 500
+_AGE_DEFAULT = 30
+_AGE_MIN, _AGE_MAX = 1, 365
+
+
+def keep_count() -> int:
+    return _clamp_int(os.environ.get("CP_CHECKPOINT_KEEP"), _KEEP_DEFAULT,
+                      _KEEP_MIN, _KEEP_MAX, KEEP_ENV)
+
+
+def max_age_days() -> int:
+    return _clamp_int(os.environ.get("CP_CHECKPOINT_MAX_AGE_DAYS"), _AGE_DEFAULT,
+                      _AGE_MIN, _AGE_MAX, MAX_AGE_ENV)
+
+
+def prune(keep: int = 0, days: int = 0, *, dry_run: bool = False) -> Dict[str, Any]:
+    """按「条数 + 天数」清理检查点（**保留最新一份**，防把当前一轮删掉）
+
+    Args:
+        keep: 最多保留份数（0 = 用 keep_count()）。
+        days: 最长保留天数（0 = 用 max_age_days()）。
+        dry_run: True 只统计不删除（运维预览）。
+
+    Returns:
+        {"removed": n, "kept": n, "ids": [...], "dry_run": bool}
+    """
+    directory = checkpoint_dir()
+    result: Dict[str, Any] = {"removed": 0, "kept": 0, "ids": [], "dry_run": bool(dry_run)}
+    if not directory.is_dir():
+        return result
+    keep_n = max(1, int(keep or keep_count()))
+    age_days = max(1, int(days or max_age_days()))
+    now = time.time()
+    rows = []
+    for path in sorted(directory.iterdir(), reverse=True):
+        if not (path / "manifest.json").is_file():
+            continue
+        try:
+            mtime = (path / "manifest.json").stat().st_mtime
+        except OSError:
+            mtime = now
+        rows.append((path, mtime))
+    for index, (path, mtime) in enumerate(rows):
+        if index == 0:
+            continue  # 永远保留最新一份
+        too_many = index >= keep_n
+        too_old = (now - mtime) > age_days * 86400
+        if not (too_many or too_old):
+            continue
+        result["ids"].append(path.name)
+        if not dry_run:
+            shutil.rmtree(path, ignore_errors=True)
+        result["removed"] += 1
+    result["kept"] = len(rows) - result["removed"]
+    if result["removed"]:
+        logger.info("[checkpoint] 保留策略清理 %d 份（keep=%d, max_age=%dd, dry_run=%s）",
+                    result["removed"], keep_n, age_days, dry_run)
+    return result
+
 # ── 逐文件 diff（E1-3b 变更文件卡） ───────────────────────────
 
 #: 单个文件的 diff 上限与整份响应上限（字符数；变更文件卡是"看个大概"，不是完整补丁）
@@ -511,9 +595,15 @@ def count_diff_lines(diff: str) -> Tuple[int, int]:
     return added, removed
 
 
-def changes(checkpoint_id: str = "", *, max_chars_per_file: int = 0,
+def changes(checkpoint_id: str = "", *, session_id: str = "",
+            max_chars_per_file: int = 0,
             max_total_chars: int = 0) -> Optional[Dict[str, Any]]:
     """某次检查点的逐文件变更（最新一次 checkpoint_id 为空时取最近）。
+
+    Args:
+        checkpoint_id: 指定检查点 id；空 = 取最近（受 session_id 约束）。
+        session_id: 非空时只在该会话触发的快照里取（「只看本会话」）；空 = 工作区级
+            （取全局最近一次，与改动前逐字一致）。
 
     Returns:
         {"checkpoint": {...摘要...}, "files": [{path,status,size,captured,binary,
@@ -530,7 +620,8 @@ def changes(checkpoint_id: str = "", *, max_chars_per_file: int = 0,
             return None
         manifest = load_manifest(checkpoint_id)
     else:
-        rows = list_checkpoints(1)
+        sid = str(session_id or "")
+        rows = list_checkpoints(1, session_id=sid) if sid else list_checkpoints(1)
         if rows:
             manifest = load_manifest(rows[0]["id"])
             target = _resolve(str(rows[0]["id"]))
@@ -600,6 +691,7 @@ __all__ = [
     "MUTATING_TOOLS", "enabled", "max_files", "max_file_bytes", "debounce_seconds",
     "workspace_root", "checkpoint_dir", "snapshot", "maybe_snapshot", "reset_state",
     "list_checkpoints", "load_manifest", "read_file", "compare", "status", "purge",
+    "KEEP_ENV", "MAX_AGE_ENV", "keep_count", "max_age_days", "prune",
     "parse_diff_by_file", "count_diff_lines", "changes",
 ]
 

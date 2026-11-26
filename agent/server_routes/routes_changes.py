@@ -27,6 +27,13 @@ def _session_id() -> str:
     return str(request.args.get("session_id") or "").strip()
 
 
+def _scope_arg() -> str:
+    """scope=session（只看本会话）| workspace（默认，工作区级最近一次）"""
+    raw = str(request.args.get("scope") or "").strip().lower()
+    return "session" if raw == "session" else "workspace"
+
+
+
 def register_routes(app, state=None):
     from agent.context import checkpoint as _cp
 
@@ -38,8 +45,10 @@ def register_routes(app, state=None):
         if not sid:
             return jsonify({"ok": False, "error": "session_id 不能为空"}), 400
         wanted = str(request.args.get("checkpoint") or "").strip()
+        scope_arg = _scope_arg()
         try:
-            doc = _cp.changes(wanted)
+            # 「只看本会话」= 只在 session_id 严格相等的快照里取；默认仍是工作区级最近一次
+            doc = _cp.changes(wanted, session_id=sid if scope_arg == "session" else "")
         except Exception as exc:  # noqa: BLE001 检查点损坏不该 500 出异常原文
             logger.warning("[changes] 读取检查点失败: %s", exc)
             return jsonify({"ok": False, "error": _safe(exc, logger)}), 500
@@ -47,6 +56,14 @@ def register_routes(app, state=None):
             if wanted:
                 return jsonify({"ok": False, "code": "unknown_checkpoint",
                                 "error": "检查点不存在或已清理"}), 404
+            if scope_arg == "session":
+                return jsonify({
+                    "ok": True, "session_id": sid, "scope": "session",
+                    "checkpoint": None, "files": [],
+                    "counts": {"files": 0, "added": 0, "removed": 0, "truncated": 0},
+                    "note": "本会话还没有检查点：会改工作区的工具在本会话里跑过之后才有快照"
+                            "（老快照没有会话归属，只出现在「看全部」里）",
+                })
             return jsonify({
                 "ok": True, "session_id": sid, "scope": "workspace",
                 "checkpoint": None, "files": [],
@@ -55,6 +72,10 @@ def register_routes(app, state=None):
             })
         meta = doc.get("checkpoint") or {}
         scoped = bool(meta.get("session_id")) and meta.get("session_id") == sid
+        if scope_arg == "session" and not scoped:
+            # 指定了 checkpoint 但那份快照不属于本会话：明确拒绝（不静默换一份）
+            return jsonify({"ok": False, "code": "not_in_session",
+                            "error": "该检查点不是本会话触发的"}), 404
         files = doc.get("files") or []
         return jsonify({
             "ok": True,

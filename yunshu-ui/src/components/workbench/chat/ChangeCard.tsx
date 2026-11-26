@@ -70,10 +70,54 @@ function FileRow({ file }: { file: ChangedFile }) {
 /** 一次最多铺开多少行：检查点单次最多 50 个文件，全铺出来会把会话区顶掉 */
 const MAX_ROWS = 12;
 
-export function ChangeCard({ changes }: { changes: ChangesState }) {
+export function ChangeCard({
+  changes,
+  scope = 'workspace',
+  onScopeChange,
+}: {
+  changes: ChangesState;
+  /** 请求口径（E1-3 余项）：session=只看本会话；workspace=看全部 */
+  scope?: 'session' | 'workspace';
+  onScopeChange?: (next: 'session' | 'workspace') => void;
+}) {
   const cp = changes.checkpoint;
-  if (!cp) return null;
   const files = changes.files || [];
+  const toggle = onScopeChange ? (
+    <div className="ml-auto flex items-center gap-1" data-testid="change-scope-toggle">
+      <Button
+        size="xs"
+        variant={scope === 'session' ? 'primary' : 'default'}
+        data-testid="change-scope-session"
+        onClick={() => onScopeChange('session')}
+      >
+        只看本会话
+      </Button>
+      <Button
+        size="xs"
+        variant={scope === 'workspace' ? 'primary' : 'default'}
+        data-testid="change-scope-workspace"
+        onClick={() => onScopeChange('workspace')}
+      >
+        看全部
+      </Button>
+    </div>
+  ) : null;
+  if (!cp) {
+    // 「只看本会话」且本会话还没有快照：给一句说明（而不是整卡消失，让人以为坏了）
+    if (scope !== 'session' || !onScopeChange) return null;
+    return (
+      <Card data-testid="change-card-empty" className="mt-1 border-slate-700/60 bg-slate-900/40 p-2.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <GitCompare size={13} className="shrink-0 text-sky-400" />
+          <h3 className="text-ui font-medium text-slate-200">本轮变更</h3>
+          {toggle}
+        </div>
+        <p className="mt-1 text-micro text-slate-600" data-testid="change-empty-session">
+          {changes.note || '本会话还没有检查点'}
+        </p>
+      </Card>
+    );
+  }
   if (files.length === 0) return null;
   const shown = files.slice(0, MAX_ROWS);
   return (
@@ -88,6 +132,7 @@ export function ChangeCard({ changes }: { changes: ChangesState }) {
           {cp.trigger_tool ? `触发：${cp.trigger_tool}` : ''}
           {cp.created_at ? ` · ${String(cp.created_at).replace('T', ' ')}` : ''}
         </span>
+        {toggle}
       </div>
       <ul className="mt-1.5 flex flex-col gap-1">
         {shown.map((f) => <FileRow key={f.path} file={f} />)}

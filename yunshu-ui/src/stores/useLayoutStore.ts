@@ -134,6 +134,10 @@ interface LayoutStore {
   /** 本轮工作区变更（E1-3b；ChangeCard 消费；数据来自 /api/changes） */
   changes: ChangesState | null;
   setChanges: (v: ChangesState | null) => void;
+  /** 变更卡口径（E1-3 余项）：session=只看本会话（按 manifest.session_id 过滤）；
+   * workspace=看全部（工作区级最近一次，含老快照） */
+  changeScope: 'session' | 'workspace';
+  setChangeScope: (v: 'session' | 'workspace') => void;
 }
 
 // 仅暴露给 persist 的字段（layout 之外的动态数据不做本地持久化）
@@ -242,6 +246,7 @@ export const useLayoutStore = create<LayoutStore>()(
       pendingAsk: null,
       presented: null,
       changes: null,
+      changeScope: 'workspace',
 
       setLayout: (next) => set({ layout: next }),
 
@@ -587,6 +592,7 @@ export const useLayoutStore = create<LayoutStore>()(
       setPendingAsk: (v) => set({ pendingAsk: v }),
       setPresented: (v) => set({ presented: v }),
       setChanges: (v) => set({ changes: v }),
+      setChangeScope: (v) => set({ changeScope: v }),
 
       setActiveSession: (id) => {
         // 会话切换/新建/删除后由页面调用；只更新归属标记，不清空消息流

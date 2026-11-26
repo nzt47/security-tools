@@ -48,9 +48,10 @@ export interface ChangesState {
 export async function getChanges(
   sessionId: string,
   checkpointId?: string,
+  scope: 'session' | 'workspace' = 'workspace',
 ): Promise<ChangesState> {
   const query = `?session_id=${encodeURIComponent(sessionId)}${
     checkpointId ? `&checkpoint=${encodeURIComponent(checkpointId)}` : ''
-  }`;
+  }${scope === 'session' ? '&scope=session' : ''}`;
   return request<ChangesState>(`${CHANGES}${query}`);
 }

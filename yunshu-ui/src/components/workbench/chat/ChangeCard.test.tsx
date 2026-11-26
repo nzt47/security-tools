@@ -4,7 +4,7 @@
  * 钉住：文件数/增删行/逐文件展开 diff；新增文件没有 diff 时给说明不装作有空补丁；
  * 截断要明说；`scope=workspace` 时明确声明"不保证只含本会话"；没有检查点/没有文件时不渲染。
  */
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { ChangeCard } from './ChangeCard'
 import type { ChangesState } from '../../../lib/changesApi'
@@ -106,5 +106,35 @@ describe('ChangeCard · 本轮变更卡', () => {
     })} />)
     expect(screen.getByTestId('change-more').textContent).toContain('另有 8 个文件未列出')
     expect(screen.queryByText('agent/f19.py')).toBeNull()
+  })
+})
+
+describe('ChangeCard · 会话归属开关（E1-3 余项）', () => {
+  it('只看本会话且没有快照：给说明并保留开关', () => {
+    const onScope = vi.fn()
+    render(
+      <ChangeCard
+        changes={makeState({ checkpoint: null, files: [], note: '本会话还没有检查点：工具在本会话里跑过之后才有快照' })}
+        scope="session"
+        onScopeChange={onScope}
+      />,
+    )
+    expect(screen.getByTestId('change-card-empty')).toBeTruthy()
+    expect(screen.getByTestId('change-empty-session').textContent).toContain('本会话还没有检查点')
+    fireEvent.click(screen.getByTestId('change-scope-workspace'))
+    expect(onScope).toHaveBeenCalledWith('workspace')
+  })
+
+  it('有快照时卡上两个口径按钮，点击回传 session', () => {
+    const onScope = vi.fn()
+    render(<ChangeCard changes={makeState()} scope="workspace" onScopeChange={onScope} />)
+    expect(screen.getByTestId('change-scope-toggle')).toBeTruthy()
+    fireEvent.click(screen.getByTestId('change-scope-session'))
+    expect(onScope).toHaveBeenCalledWith('session')
+  })
+
+  it('不传 onScopeChange 时不渲染开关（纯展示用法不变）', () => {
+    render(<ChangeCard changes={makeState()} />)
+    expect(screen.queryByTestId('change-scope-toggle')).toBeNull()
   })
 })

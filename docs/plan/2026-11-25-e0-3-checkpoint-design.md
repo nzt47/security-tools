@@ -80,3 +80,22 @@
   清单含逐文件状态与 sha256、捕获内容可读、`compare` 与当前工作区一致；随后还原探针改动。
 - 干净 worktree：`scan_settings --check` 零缺口、`sync_capability_manifest --check` 一致。
 
+
+## 5. 保留策略与按会话读取（E1-3 余项，2026-11-26）
+
+### 5.1 保留（防无界增长）
+
+- 每次快照成功后顺手清理一次（失败绝不影响快照）：`prune(keep, days)`。
+- **两条规则任一超限即删**：份数超过 `CP_CHECKPOINT_KEEP`（默认 50，5–500）或
+  年龄超过 `CP_CHECKPOINT_MAX_AGE_DAYS`（默认 30 天，1–365）。
+- **永远保留最新一份**（index 0 受保护）：避免把"刚生成、正要给变更卡看"的那份删掉。
+- 运维可 `prune(dry_run=True)` 预览；`purge(id)` 仍可单删。
+
+### 5.2 按会话读取（「只看本会话 / 看全部」）
+
+- 读取侧新增 `scope=session`：只在 `manifest.session_id` **严格相等**的快照里取
+  （`list_checkpoints(..., session_id=)` / `changes(..., session_id=)`）。
+- 老快照没有 `session_id` ⇒ **只出现在「看全部」**里，不冒充任何会话；
+  指定了别的会话的 `checkpoint` 且 `scope=session` ⇒ 404 `not_in_session`（不静默换一份）。
+- 本会话还没有快照 ⇒ 200 + 空清单 + 说明文案（前端渲染一句提示，不整卡消失）。
+- 卡片时序：流结束后**首拉 + 1.5s 再拉一次**（检查点是后台去抖快照，首拉可能还是上一轮）。
