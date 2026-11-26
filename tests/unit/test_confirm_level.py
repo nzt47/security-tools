@@ -333,8 +333,8 @@ class TestConsistencyWithPermissionLevel:
         `derive_confirm_level` 是**工具侧** L0–L3 的派生（TASK-06 §3 第 2 步）。
         """
         tools = [e for e in _manifest_entries() if e.get("kind") == "tool"]
-        # 【2026-11-27】103 → 104：terminal（E3-1，risk=critical ⇒ L3）
-        assert len(tools) == 104, len(tools)
+        # 【2026-11-27】104 → 105：docx_read（E3-2，read/low ⇒ L0）
+        assert len(tools) == 105, len(tools)
 
         mismatch = []
         for e in tools:
@@ -1109,7 +1109,7 @@ class TestNoYamlWritesNeeded:
     def test_全部_YAML_仍然零声明(self):
         """本裁决的可复核形式：YAML 侧不写该字段，且这不影响任何判定"""
         metas = _committed_metas()
-        assert len(metas) == 104, len(metas)  # 2026-11-27：+terminal（E3-1）
+        assert len(metas) == 105, len(metas)  # 2026-11-27：+terminal（E3-1）/+docx_read（E3-2）
         declared = {k: v.confirm_level for k, v in metas.items() if v.confirm_level}
         assert declared == {}, f"若要写进 YAML 就属于口径变更，必须同时更新本裁决：{declared}"
 

@@ -176,13 +176,13 @@ class TestQuery:
         # 【2026-11-25】147 → 148 / tool 97 → 98 / local 124 → 125：goal（E1-2b）
         # 【2026-11-26】150 → 152 / tool 100 → 102 / local 127 → 129：session_search / session_trace（E1-4d）
 # 【2026-11-26】152 → 153 / tool 102 → 103 / local 129 → 130：subagent_control（E2-1）
-        # 【2026-11-27】153 → 154 / tool 103 → 104 / local 130 → 131：terminal（E3-1）
-        assert st["total"] == 154, f"能力总数应为 154，实际 {st['total']}"
+        # 【2026-11-27】154 → 155 / tool 104 → 105 / local 130 → 131：docx_read（E3-2，local）
+        assert st["total"] == 155, f"能力总数应为 155，实际 {st['total']}"
         # 【2026-11-09】tool 93 → 94：skill_script_run（技能 L3 显式执行点）
-        assert st["by_kind"] == {"skill": 50, "tool": 104}
+        assert st["by_kind"] == {"skill": 50, "tool": 105}
         # 【2026-11-09】remote 22 → 23：skill_script_run（子进程执行 ⇒ remote）
-        # 【2026-11-27】terminal 是 remote（PTY/子进程 ⇒ location=remote）：local 130 / remote 24
-        assert st["by_location"] == {"local": 130, "remote": 24}
+        # 【2026-11-27】local 131 / remote 24：terminal 是 remote、docx_read 是 local
+        assert st["by_location"] == {"local": 131, "remote": 24}
         assert st["degraded"] is False
 
     def test_主键索引_tenant_name(self, real_registry):
@@ -203,8 +203,8 @@ class TestQuery:
         # 【2026-11-20】95 → 96：ui_guard_fix（query 不按 enabled 过滤）
         # 【2026-11-24】96 → 97：read_spill（E0-2）
         # 【2026-11-26】100 → 102：session_search / session_trace（E1-4d）
-        # 【2026-11-27】103 → 104：terminal（E3-1）
-        assert len(tools) == 104
+        # 【2026-11-27】104 → 105：docx_read（E3-2）
+        assert len(tools) == 105
         assert len(skills) == 46
         remote = real_registry.query(location="remote")
         # 【2026-11-05】21 -> 22：software_install（subprocess.run ⇒ location=remote）
@@ -222,8 +222,8 @@ class TestQuery:
     @_SKIP_COMMITTED_BASELINE
     def test_索引_确实被构建(self, real_registry):
         idx = real_registry.stats()["index"]
-        # 【2026-11-27】154：+terminal（E3-1）
-        assert idx["primary"] == 154
+        # 【2026-11-27】155：+terminal（E3-1）/+docx_read（E3-2）
+        assert idx["primary"] == 155
         assert idx["facet"] >= 1
 
 
@@ -274,8 +274,8 @@ class TestModelCapabilityProbe:
         # 【2026-11-07】137 -> 138：chart-visualization 入文件轨（§11.57 ①）
         # 【2026-11-20】141 → 142：ui_guard_fix（envelope 不按工具 enabled 过滤）
         # 【2026-11-24】142 → 143：read_spill（E0-2）
-        # 【2026-11-27】149 → 150：terminal（E3-1）
-        assert env["data"]["returned"] == env["data"]["total"] == 150
+        # 【2026-11-27】150 → 151：docx_read（E3-2）
+        assert env["data"]["returned"] == env["data"]["total"] == 151
         assert env["data"]["model_capability"]["supports_tool_calling"] is True
 
     @pytest.mark.parametrize("sentinel", ["none", "off", "-", "no-tools"])
@@ -287,8 +287,8 @@ class TestModelCapabilityProbe:
         assert env["data"]["items"] == []
         # **total 仍然如实报告**：裁剪的是"给这个模型看的清单"，
         # 不是"注册表里有多少能力"。两个数含义不同，不许混。
-        # 【2026-11-27】149 → 150：terminal（E3-1）
-        assert env["data"]["total"] == 150
+        # 【2026-11-27】150 → 151：docx_read（E3-2）
+        assert env["data"]["total"] == 151
 
     def test_不支持前缀被识别(self):
         ok, why = modelcaps.supports_tool_calling("text-davinci-003")

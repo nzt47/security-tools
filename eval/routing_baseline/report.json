@@ -1,6 +1,6 @@
 {
   "task": "TASK-10 · 既有路由的可验证化",
-  "head_commit": "9dc9abbf55800120202aba5f99ebb5ef434b333d",
+  "head_commit": "2762e57ed56df77f021f8c92cadcd1443f3949b4",
   "environment": {
     "python": "3.12.0",
     "new_dependencies": [],
@@ -27,7 +27,7 @@
       "code": 19,
       "core": 9,
       "extension": 12,
-      "file": 14,
+      "file": 15,
       "knowledge": 9,
       "pdf": 5,
       "schedule": 5,
@@ -35,13 +35,13 @@
       "v2": 4,
       "web": 9
     },
-    "total_tools": 103
+    "total_tools": 104
   },
   "semantic_layer_status": {
     "retriever_available": true,
     "degraded_bm25_only": true,
     "embedding_available": false,
-    "bm25_docs": 101,
+    "bm25_docs": 102,
     "alpha": 0.5,
     "index_path": "data/tool_index.json",
     "embedding_health": {
@@ -695,25 +695,25 @@
         "confidence_semantics": "HybridRetriever.query 的融合分（查询无关的单调校准：BM25 走 p=s/(s+S0)，余弦走以 _COSINE_CUTOFF 为下界的线性映射；见 agent/tool_router_hybrid.py 的 _calibrate_bm25_scores / _calibrate_cosine_scores）",
         "n_scored": 10,
         "fused_top_scores": [
-          0.4141,
-          0.4698,
-          0.6377,
-          0.6443,
+          0.4145,
+          0.4702,
+          0.6379,
           0.6444,
-          0.6635,
-          0.6742,
-          0.676,
-          0.7365,
-          0.7482
+          0.6445,
+          0.6637,
+          0.6744,
+          0.6761,
+          0.7317,
+          0.7483
         ],
         "degenerate": false,
         "conclusion": "融合分已可校准（L27 起改用查询无关的单调校准，top1 不再恒为 1.0）。但**校准不等于可标定**：S0 由 n=11 条 calib 用例中位数导出，换个同样合理的口径得 10.0877（约 1.8 倍）⇒ 该分数可用于单调排序，在其上做温度缩放/ECE 时必须计入该不确定度，不得声称已得到可标定的概率。",
         "raw_top1_percentiles": {
           "n": 10,
-          "p10": 4.1418,
-          "p50": 10.6189,
-          "p90": 16.3801,
-          "max": 17.4124,
+          "p10": 4.1566,
+          "p50": 10.643,
+          "p90": 16.0151,
+          "max": 17.455,
           "note": "原始 BM25 top1 分位数；S0 取 calib 划分的中位数。"
         }
       },
@@ -722,13 +722,13 @@
         "n_calib": 5,
         "n_test": 5,
         "temperature": {
-          "T": 1.433697,
-          "nll_before": 0.264507,
-          "nll_after": 0.244994
+          "T": 1.435351,
+          "nll_before": 0.264191,
+          "nll_after": 0.244605
         },
         "ece_before": {
-          "ece": 0.078,
-          "mce": 0.3408,
+          "ece": 0.0784,
+          "mce": 0.342,
           "n": 5,
           "bins": [
             {
@@ -774,10 +774,10 @@
                 0.4
               ],
               "n": 1,
-              "avg_confidence": 0.3408,
+              "avg_confidence": 0.342,
               "accuracy": 0.0,
-              "gap": 0.3408,
-              "contribution": 0.0682
+              "gap": 0.342,
+              "contribution": 0.0684
             },
             {
               "bin": 4,
@@ -846,16 +846,16 @@
                 1.0
               ],
               "n": 4,
-              "avg_confidence": 0.9878,
+              "avg_confidence": 0.9875,
               "accuracy": 1.0,
-              "gap": 0.0122,
-              "contribution": 0.0098
+              "gap": 0.0125,
+              "contribution": 0.01
             }
           ]
         },
         "ece_after": {
-          "ece": 0.1063,
-          "mce": 0.387,
+          "ece": 0.1072,
+          "mce": 0.388,
           "n": 5,
           "bins": [
             {
@@ -901,10 +901,10 @@
                 0.4
               ],
               "n": 1,
-              "avg_confidence": 0.387,
+              "avg_confidence": 0.388,
               "accuracy": 0.0,
-              "gap": 0.387,
-              "contribution": 0.0774
+              "gap": 0.388,
+              "contribution": 0.0776
             },
             {
               "bin": 4,
@@ -973,16 +973,16 @@
                 1.0
               ],
               "n": 4,
-              "avg_confidence": 0.9639,
+              "avg_confidence": 0.963,
               "accuracy": 1.0,
-              "gap": 0.0361,
-              "contribution": 0.0289
+              "gap": 0.037,
+              "contribution": 0.0296
             }
           ]
         },
         "ece_before_fullset_not_heldout": {
-          "ece": 0.1149,
-          "mce": 0.7239,
+          "ece": 0.1151,
+          "mce": 0.7235,
           "n": 10,
           "bins": [
             {
@@ -1016,9 +1016,9 @@
                 0.3
               ],
               "n": 1,
-              "avg_confidence": 0.2761,
+              "avg_confidence": 0.2765,
               "accuracy": 1.0,
-              "gap": 0.7239,
+              "gap": 0.7235,
               "contribution": 0.0724
             },
             {
@@ -1028,10 +1028,10 @@
                 0.4
               ],
               "n": 1,
-              "avg_confidence": 0.3408,
+              "avg_confidence": 0.342,
               "accuracy": 0.0,
-              "gap": 0.3408,
-              "contribution": 0.0341
+              "gap": 0.342,
+              "contribution": 0.0342
             },
             {
               "bin": 4,
@@ -1103,13 +1103,13 @@
               "avg_confidence": 0.9894,
               "accuracy": 1.0,
               "gap": 0.0106,
-              "contribution": 0.0084
+              "contribution": 0.0085
             }
           ]
         },
         "ece_after_fullset_not_heldout": {
-          "ece": 0.0557,
-          "mce": 0.1375,
+          "ece": 0.0559,
+          "mce": 0.1368,
           "n": 10,
           "bins": [
             {
@@ -1155,10 +1155,10 @@
                 0.4
               ],
               "n": 2,
-              "avg_confidence": 0.3625,
+              "avg_confidence": 0.3632,
               "accuracy": 0.5,
-              "gap": 0.1375,
-              "contribution": 0.0275
+              "gap": 0.1368,
+              "contribution": 0.0274
             },
             {
               "bin": 4,
@@ -1227,10 +1227,10 @@
                 1.0
               ],
               "n": 8,
-              "avg_confidence": 0.9648,
+              "avg_confidence": 0.9644,
               "accuracy": 1.0,
-              "gap": 0.0352,
-              "contribution": 0.0282
+              "gap": 0.0356,
+              "contribution": 0.0285
             }
           ]
         }
@@ -1238,7 +1238,7 @@
     }
   },
   "reject_sweep": {
-    "source_signal": "hybrid_raw_bm25 softmax top1（经 T=1.433697 温度缩放）",
+    "source_signal": "hybrid_raw_bm25 softmax top1（经 T=1.435351 温度缩放）",
     "note": "覆盖率 = 接受比例；risk = 被接受样本中的错误率。labeled 折给 risk，corpus 折只给覆盖/拒识。",
     "labeled": {
       "rows": [
@@ -1371,7 +1371,7 @@
           "pred": "read_pdf",
           "correct": true,
           "rank_of_gold": 1,
-          "p_calibrated": 0.9618
+          "p_calibrated": 0.9581
         },
         {
           "id": "TOOL-002",
@@ -1379,7 +1379,7 @@
           "pred": "merge_pdf",
           "correct": true,
           "rank_of_gold": 1,
-          "p_calibrated": 0.9049
+          "p_calibrated": 0.9051
         },
         {
           "id": "TOOL-003",
@@ -1395,7 +1395,7 @@
           "pred": "get_weather",
           "correct": true,
           "rank_of_gold": 1,
-          "p_calibrated": 0.9656
+          "p_calibrated": 0.9658
         },
         {
           "id": "TOOL-005",
@@ -1403,7 +1403,7 @@
           "pred": "web_search",
           "correct": true,
           "rank_of_gold": 1,
-          "p_calibrated": 0.9787
+          "p_calibrated": 0.9789
         },
         {
           "id": "TOOL-006",
@@ -1411,7 +1411,7 @@
           "pred": "read_pdf",
           "correct": true,
           "rank_of_gold": 1,
-          "p_calibrated": 0.338
+          "p_calibrated": 0.3384
         },
         {
           "id": "TOOL-007",
@@ -1419,7 +1419,7 @@
           "pred": "merge_pdf",
           "correct": true,
           "rank_of_gold": 1,
-          "p_calibrated": 0.9409
+          "p_calibrated": 0.9412
         },
         {
           "id": "TOOL-008",
@@ -1427,7 +1427,7 @@
           "pred": "split_pdf",
           "correct": true,
           "rank_of_gold": 1,
-          "p_calibrated": 0.9774
+          "p_calibrated": 0.9775
         },
         {
           "id": "TOOL-009",
@@ -1435,7 +1435,7 @@
           "pred": "get_weather",
           "correct": true,
           "rank_of_gold": 1,
-          "p_calibrated": 0.9945
+          "p_calibrated": 0.9946
         },
         {
           "id": "TOOL-010",
@@ -1443,7 +1443,7 @@
           "pred": "search_lifetrace",
           "correct": false,
           "rank_of_gold": 4,
-          "p_calibrated": 0.387
+          "p_calibrated": 0.388
         }
       ]
     },
@@ -1608,10 +1608,10 @@
       ],
       "n": 58,
       "p_calibrated_percentiles": {
-        "p10": 0.3862,
-        "p50": 0.5765,
+        "p10": 0.3865,
+        "p50": 0.5772,
         "p90": 0.9999,
-        "min": 0.3218,
+        "min": 0.3222,
         "max": 0.9999
       }
     }
@@ -1642,21 +1642,21 @@
       "id": "F2",
       "severity": "blocker",
       "title": "语义层融合分被 min-max 归一化抹平 ⇒ 该分数不携带置信度",
-      "evidence": "agent/tool_router_hybrid.py:1154-1167 _min_max_normalize 把每路召回的 max 映射为 1.0；实测 fused_top_scores=[0.4141, 0.4698, 0.6377, 0.6443, 0.6444, 0.6635, 0.6742, 0.676, 0.7365, 0.7482]",
+      "evidence": "agent/tool_router_hybrid.py:1154-1167 _min_max_normalize 把每路召回的 max 映射为 1.0；实测 fused_top_scores=[0.4145, 0.4702, 0.6379, 0.6444, 0.6445, 0.6637, 0.6744, 0.6761, 0.7317, 0.7483]",
       "impact": "直接在该分数上做拒识等价于'永不拒识'；本基线改用未归一化的原始 BM25 分作为可校准出口"
     },
     {
       "id": "F3",
       "severity": "high",
       "title": "本环境 Embedding 路不可用，语义层实际运行在 BM25-only 降级路",
-      "evidence": "{\"retriever_available\": true, \"degraded_bm25_only\": true, \"embedding_available\": false, \"bm25_docs\": 101, \"alpha\": 0.5, \"index_path\": \"data/tool_index.json\", \"embedding_health\": {\"mode\": \"bm25_only\", \"init_failed\": false, \"worker_alive\": false, \"worker_ready\": false, \"load_cache_probe\": null, \"available\": false, \"failure_total\": 0, \"restart_attempts\": 0, \"max_restart_attempts\": 3, \"restarting\": false, \"retry_exhausted\": false, \"next_restart_in_sec\": null, \"last_failure\": {}, \"retriever_degraded\": true}}",
+      "evidence": "{\"retriever_available\": true, \"degraded_bm25_only\": true, \"embedding_available\": false, \"bm25_docs\": 102, \"alpha\": 0.5, \"index_path\": \"data/tool_index.json\", \"embedding_health\": {\"mode\": \"bm25_only\", \"init_failed\": false, \"worker_alive\": false, \"worker_ready\": false, \"load_cache_probe\": null, \"available\": false, \"failure_total\": 0, \"restart_attempts\": 0, \"max_restart_attempts\": 3, \"restarting\": false, \"retry_exhausted\": false, \"next_restart_in_sec\": null, \"last_failure\": {}, \"retriever_degraded\": true}}",
       "impact": "所有语义层读数描述降级路；AGENT_HYBRID_ALPHA=0.5 的融合路未被本次基线覆盖"
     },
     {
       "id": "F4",
       "severity": "medium",
       "title": "原始 BM25 softmax 分数可校准：NLL 大幅下降，但 ECE 在 n=5 的测试折上不可解释",
-      "evidence": "T=1.433697，NLL 0.264507 -> 0.244994；测试折 ECE 0.078 -> 0.1063，全标注集 ECE 0.1149 -> 0.0557",
+      "evidence": "T=1.435351，NLL 0.264191 -> 0.244605；测试折 ECE 0.0784 -> 0.1072，全标注集 ECE 0.1151 -> 0.0559",
       "impact": "测试折 n=5，ECE 由'哪 5 条落到折里'决定；只能采信 NLL 的下降方向，不能采信 ECE 的绝对差"
     },
     {
@@ -1670,7 +1670,7 @@
       "id": "F6",
       "severity": "high",
       "title": "语义层在真实 90 工具索引上存在实际误召回",
-      "evidence": "[{\"id\": \"TOOL-010\", \"text\": \"搜索网页\", \"gold\": \"web_search\", \"pred\": \"search_lifetrace\", \"raw_bm25_top5\": [[\"search_lifetrace\", 4.1418], [\"web_get\", 3.7577], [\"search_files\", 3.3017], [\"web_search\", 3.261], [\"browser_navigate\", 3.2427]]}]",
+      "evidence": "[{\"id\": \"TOOL-010\", \"text\": \"搜索网页\", \"gold\": \"web_search\", \"pred\": \"search_lifetrace\", \"raw_bm25_top5\": [[\"search_lifetrace\", 4.1566], [\"web_get\", 3.7667], [\"search_files\", 3.3128], [\"web_search\", 3.2714], [\"browser_navigate\", 3.2501]]}]",
       "impact": "例：中文查询'解析pdf'在真实索引上 top1=run_lint（合成 5 工具索引下该单测是过的）⇒ 原单测的'召回正确'结论不覆盖真实索引"
     },
     {
