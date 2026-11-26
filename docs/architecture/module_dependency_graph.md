@@ -72,6 +72,7 @@ flowchart LR
         agent_context_session_insight["agent.context.session_insight"]
         agent_context_session_title["agent.context.session_title"]
         agent_context_spill["agent.context.spill"]:::crosslayer
+        agent_context_tool_result_pruner["agent.context.tool_result_pruner"]:::crosslayer
     end
     subgraph core [core]
         agent_ab_testing["agent.ab_testing"]
@@ -2967,6 +2968,7 @@ flowchart LR
     agent_tools --> agent_tools_governance
     agent_tools -.-> agent_context_checkpoint
     agent_tools -.-> agent_context_spill
+    agent_tools -.-> agent_context_tool_result_pruner
     agent_tools_ask_tools --> agent_tools
     agent_tools_ask_tools -.-> agent_context
     agent_tools_ask_tools -.-> agent_context
@@ -3216,9 +3218,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 812
-- 模块节点数: 705
-- 依赖边数: 2379
-- 跨层调用数: 1514
+- 扫描文件数: 813
+- 模块节点数: 706
+- 依赖边数: 2380
+- 跨层调用数: 1515
 - 违规调用数: 0
 - 动态 import 数: 1
