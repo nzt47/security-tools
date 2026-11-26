@@ -478,7 +478,7 @@
       "name": "agent",
       "layer": "unknown",
       "file_path": "",
-      "in_degree": 70,
+      "in_degree": 71,
       "out_degree": 0
     },
     {
@@ -710,7 +710,7 @@
       "name": "system_tools",
       "layer": "core",
       "file_path": "",
-      "in_degree": 12,
+      "in_degree": 13,
       "out_degree": 8
     },
     {
@@ -3191,7 +3191,7 @@
       "layer": "orchestrator",
       "file_path": "agent/orchestrator/lifecycle_manager.py",
       "in_degree": 0,
-      "out_degree": 60
+      "out_degree": 61
     },
     {
       "path": "agent.orchestrator.turn_state",
@@ -3404,6 +3404,14 @@
     {
       "path": "agent.tools.docx_tools",
       "name": "docx_tools",
+      "layer": "tools",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 3
+    },
+    {
+      "path": "agent.tools.xlsx_tools",
+      "name": "xlsx_tools",
       "layer": "tools",
       "file_path": "",
       "in_degree": 1,
@@ -5576,6 +5584,14 @@
       "file_path": "agent/tools/win_bash.py",
       "in_degree": 0,
       "out_degree": 1
+    },
+    {
+      "path": "agent.office.xlsx_text",
+      "name": "xlsx_text",
+      "layer": "office",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 0
     },
     {
       "path": "agent.ui_guard.models",
@@ -18458,7 +18474,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 1457,
+      "line": 1459,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -18818,11 +18834,24 @@
     },
     {
       "source": "agent.orchestrator.lifecycle_manager",
+      "target": "agent.tools.xlsx_tools",
+      "source_layer": "orchestrator",
+      "target_layer": "tools",
+      "import_type": "from_import",
+      "line": 1177,
+      "source_file": "agent/orchestrator/lifecycle_manager.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.orchestrator.lifecycle_manager",
       "target": "agent.tools.skill_tools",
       "source_layer": "orchestrator",
       "target_layer": "tools",
       "import_type": "from_import",
-      "line": 1180,
+      "line": 1181,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -18835,7 +18864,7 @@
       "source_layer": "orchestrator",
       "target_layer": "tools",
       "import_type": "from_import",
-      "line": 1245,
+      "line": 1247,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -19030,7 +19059,7 @@
       "source_layer": "orchestrator",
       "target_layer": "process_distill",
       "import_type": "from_import",
-      "line": 1184,
+      "line": 1185,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -19043,7 +19072,7 @@
       "source_layer": "orchestrator",
       "target_layer": "knowledge",
       "import_type": "from_import",
-      "line": 1193,
+      "line": 1194,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -19056,7 +19085,7 @@
       "source_layer": "orchestrator",
       "target_layer": "unknown",
       "import_type": "from_import",
-      "line": 1231,
+      "line": 1233,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -19173,7 +19202,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 1374,
+      "line": 1376,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -33161,7 +33190,7 @@
       "source_layer": "core",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 346,
+      "line": 348,
       "source_file": "agent/tool_router.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -33174,7 +33203,7 @@
       "source_layer": "core",
       "target_layer": "evolution",
       "import_type": "from_import",
-      "line": 655,
+      "line": 657,
       "source_file": "agent/tool_router.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -33187,7 +33216,7 @@
       "source_layer": "core",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 659,
+      "line": 661,
       "source_file": "agent/tool_router.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -33226,7 +33255,7 @@
       "source_layer": "core",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 312,
+      "line": 314,
       "source_file": "agent/tool_router_hybrid.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -33239,7 +33268,7 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 318,
+      "line": 320,
       "source_file": "agent/tool_router_hybrid.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -33252,7 +33281,7 @@
       "source_layer": "core",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 2159,
+      "line": 2161,
       "source_file": "agent/tool_router_hybrid.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -33265,7 +33294,7 @@
       "source_layer": "core",
       "target_layer": "orchestrator",
       "import_type": "from_import",
-      "line": 2178,
+      "line": 2180,
       "source_file": "agent/tool_router_hybrid.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -35743,6 +35772,45 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.tools.xlsx_tools",
+      "target": "agent",
+      "source_layer": "tools",
+      "target_layer": "unknown",
+      "import_type": "from_import",
+      "line": 10,
+      "source_file": "agent/tools/xlsx_tools.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.tools.xlsx_tools",
+      "target": "agent.office.xlsx_text",
+      "source_layer": "tools",
+      "target_layer": "office",
+      "import_type": "from_import",
+      "line": 27,
+      "source_file": "agent/tools/xlsx_tools.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.tools.xlsx_tools",
+      "target": "agent.system_tools",
+      "source_layer": "tools",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 28,
+      "source_file": "agent/tools/xlsx_tools.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.tools_prompt_guard",
       "target": "agent",
       "source_layer": "core",
@@ -36836,10 +36904,10 @@
     }
   ],
   "stats": {
-    "total_files": 821,
-    "total_nodes": 712,
-    "total_edges": 2395,
-    "cross_layer_edges": 1525,
+    "total_files": 823,
+    "total_nodes": 714,
+    "total_edges": 2399,
+    "cross_layer_edges": 1528,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -36851,7 +36919,7 @@
       "extensions": 19,
       "health": 7,
       "audit": 8,
-      "tools": 40,
+      "tools": 41,
       "observability": 13,
       "security": 10,
       "evolution": 1,
@@ -36903,7 +36971,7 @@
       "ui_guard": 4,
       "feedback_collector": 1,
       "task_planner": 5,
-      "office": 1
+      "office": 2
     }
   }
 }

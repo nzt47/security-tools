@@ -460,6 +460,7 @@ flowchart LR
     end
     subgraph office [office]
         agent_office_docx_text["agent.office.docx_text"]:::crosslayer
+        agent_office_xlsx_text["agent.office.xlsx_text"]:::crosslayer
     end
     subgraph orchestrator [orchestrator]
         agent_orchestrator["agent.orchestrator"]:::crosslayer
@@ -780,6 +781,7 @@ flowchart LR
         agent_tools_web_tools["agent.tools.web_tools"]:::crosslayer
         agent_tools_win_bash["agent.tools.win_bash"]
         agent_tools_workspace_tools["agent.tools.workspace_tools"]:::crosslayer
+        agent_tools_xlsx_tools["agent.tools.xlsx_tools"]:::crosslayer
     end
     subgraph ui_guard [ui_guard]
         agent_ui_guard["agent.ui_guard"]:::crosslayer
@@ -1847,6 +1849,7 @@ flowchart LR
     agent_orchestrator_lifecycle_manager -.-> agent_tools_ui_guard_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_terminal_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_docx_tools
+    agent_orchestrator_lifecycle_manager -.-> agent_tools_xlsx_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_skill_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_core_tools
     agent_orchestrator_lifecycle_manager -.-> agent_utils_compatibility
@@ -3149,6 +3152,9 @@ flowchart LR
     agent_tools_win_bash -.-> agent_utils
     agent_tools_workspace_tools -.-> agent_sandbox_fs_fence
     agent_tools_workspace_tools -.-> agent_sandbox_fs_fence
+    agent_tools_xlsx_tools --> agent
+    agent_tools_xlsx_tools -.-> agent_office_xlsx_text
+    agent_tools_xlsx_tools -.-> agent_system_tools
     agent_tools_prompt_guard --> agent
     agent_tools_prompt_guard -.-> agent_lines
     agent_ui_guard --> agent_ui_guard_models
@@ -3241,9 +3247,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 821
-- 模块节点数: 712
-- 依赖边数: 2395
-- 跨层调用数: 1525
+- 扫描文件数: 823
+- 模块节点数: 714
+- 依赖边数: 2399
+- 跨层调用数: 1528
 - 违规调用数: 0
 - 动态 import 数: 1
