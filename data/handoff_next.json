@@ -1,7 +1,15 @@
 {
- "updated_at": "2026-11-26T02:10:00+08:00",
+ "updated_at": "2026-11-26T12:20:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
  "items": [
+  {
+   "id": "session-index-recency",
+   "status": "done",
+   "priority": "P2",
+   "title": "会话全文检索：同分命中改为“新的在前”（回忆场景新近优先）",
+   "criteria": "真机 E1-4d 探针 8/9：session_search 默认 limit=5，FTS5 只按 rank 排序 ⇒ 同一关键词重复出现（同一探针多轮）时旧记录占满限额，刚写的消息搜不到。",
+   "next": "已修（f395ec103）：MATCH 分支 ORDER BY rank, m.rowid DESC；补 test_同分时新的在前；探针关键词改每次唯一。"
+  },
   {
    "id": "dsh-parity-e1-3-followups",
    "status": "open",
