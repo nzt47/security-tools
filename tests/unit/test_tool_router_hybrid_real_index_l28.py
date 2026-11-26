@@ -115,16 +115,16 @@ class TestFixtureShapeMatchesProduction:
         # 【2026-11-24】95 → 96：新增 read_spill（E0-2；llm_callable=true 入索引）
         # 【2026-11-25 E1-3a】97 → 99：ask_user_question / present（llm_callable=true）
         # 【2026-11-26 E1-4d】99 → 101：session_search / session_trace（llm_callable=true）
-        # 【2026-11-27】103 → 104：docx_read（E3-2，llm_callable=true）
-        assert len(real_tools) == 104, f"真实工具数应为 104，实际 {len(real_tools)}"
+        # 【2026-11-27】104 → 105：xlsx_read（E3-2，llm_callable=true）
+        assert len(real_tools) == 105, f"真实工具数应为 105，实际 {len(real_tools)}"
 
     def test_index_is_not_a_toy_fixture(self, real_retriever, real_tools):
         # 【2026-11-25 E1-3a】交互原语不进检索索引（META_ALWAYS_TOOLS）⇒ BM25 文档数
         # 比 llm_callable 工具数少 2；它们始终追加在下发集末尾（见 tool_router）。
         from agent.tool_router import META_ALWAYS_TOOLS
         # 101 个 llm_callable 里排除 2 个交互原语 ⇒ BM25 索引 99 篇
-        # 【2026-11-27】101 → 102：docx_read 进索引（104 - 2 个交互原语）
-        assert real_retriever._bm25.size == len(real_tools) - len(META_ALWAYS_TOOLS) == 102
+        # 【2026-11-27】102 → 103：xlsx_read 进索引（105 - 2 个交互原语）
+        assert real_retriever._bm25.size == len(real_tools) - len(META_ALWAYS_TOOLS) == 103
 
 
 # ════════════════════════════════════════════════════════════

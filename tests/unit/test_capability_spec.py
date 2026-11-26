@@ -157,8 +157,8 @@ class TestCapabilitySpecFields:
         # 【2026-11-24】96 → 97：read_spill（E0-2 大输出落盘后的分段读取）
         # 【2026-11-25】97 → 100：goal / ask_user_question / present（E1-2b + E1-3a）
         # 【2026-11-26】100 → 102：session_search / session_trace（E1-4d）
-        # 【2026-11-27】104 → 105：docx_read（E3-2 纯库路线）
-        assert len(committed) == 105, f"入库工具 YAML 数量变了：{len(committed)}"
+        # 【2026-11-27】105 → 106：xlsx_read（E3-2 纯库路线）
+        assert len(committed) == 106, f"入库工具 YAML 数量变了：{len(committed)}"
         for name, meta in committed.items():
             d = meta.to_dict()          # 不抛异常即通过
             assert d["capability_id"], f"{name}: capability_id 为空"
@@ -180,8 +180,8 @@ class TestLocationCoverage:
         # 【2026-11-24】146 → 147：read_spill（工具 +1）
         # 【2026-11-25】147 → 150：goal / ask_user_question / present
         # 【2026-11-26】150 → 152：session_search / session_trace（E1-4d）
-        # 【2026-11-27】154 → 155：docx_read（E3-2）
-        assert len(manifest["entries"]) == 155
+        # 【2026-11-27】155 → 156：xlsx_read（E3-2）
+        assert len(manifest["entries"]) == 156
         for e in manifest["entries"]:
             assert e.get("location") in ("local", "remote"), \
                 f"{e['tool_name']}: location 缺失或非法"
@@ -439,7 +439,8 @@ class TestMainLine:
         # （保持 26 会挤掉 run_tests），清单的可见集随之 27 条。
         # 【2026-11-26 E1-4d】28 → 30：session_search / session_trace 进 boost（max_tools 28→30）
         # 【2026-11-27 E3-2】30 → 32：docx_read 进 boost（max_tools 30→32；preview 实测零丢失并找回 run_tests）
-        assert len(line["visible"]) == 32, f"engineering 主线可见集应为 32 条，实得 {len(line['visible'])}"
+        # 【2026-11-27 E3-2】32 → 33：xlsx_read 进 boost（max_tools 33；离线装配实测零丢失）
+        assert len(line["visible"]) == 33, f"engineering 主线可见集应为 33 条，实得 {len(line['visible'])}"
         assert set(line["muted"]) == {"web_extract", "web_search", "web_batch"}
         assert "connect_mcp" in line["denied_by_effect"]
 
