@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-26T13:08:09",
-  "tool_count": 102,
+  "generated_at": "2026-11-27T00:14:48",
+  "tool_count": 103,
   "categories": [
     "async",
     "code",
@@ -39,7 +39,13 @@
         "artifact_format",
         "budget_tokens",
         "timeout_seconds",
-        "callback_url"
+        "callback_url",
+        "fork",
+        "fork_messages",
+        "fork_summary",
+        "ralph",
+        "ralph_rounds",
+        "acceptance"
       ]
     },
     {
@@ -296,6 +302,26 @@
         "sql",
         "limit",
         "params"
+      ]
+    },
+    {
+      "name": "terminal",
+      "category": "code",
+      "description": "持久终端（PTY）会话：把交互式程序当成长跑会话操作。action=open 开会话（默认当前平台 shell）、send 写 stdin（默认补换行）、read 取输出（offset/limit 以字符计）、signal 发 Ctrl-C 或终止、close 关闭、list 列出。需要 CP_TERMINAL_ENABLED=1，且权限预设必须是 full-access。Manage persistent PTY terminal sessions",
+      "version": "1.0.0",
+      "deprecated": false,
+      "parameter_names": [
+        "action",
+        "command",
+        "cwd",
+        "rows",
+        "cols",
+        "id",
+        "text",
+        "newline",
+        "offset",
+        "limit",
+        "signal"
       ]
     },
     {
@@ -643,7 +669,7 @@
     {
       "name": "read_spill",
       "category": "file",
-      "description": "按 locator 分段读取被落盘的大结果（工具结果超过阈值时会回 spilled=true 与 locator；offset/limit 以字符计）。Read a spilled tool result by locator in segments",
+      "description": "按 locator 分段读取被落盘的大结果（工具结果超过阈值时会回 spilled=true 与 locator；offset/limit 以字符计）；locator 形如 image:... 的图片只回元数据与 OCR 文字。Read a spilled tool result by locator in segments",
       "version": "1.0.0",
       "deprecated": false,
       "parameter_names": [
