@@ -4679,7 +4679,7 @@
       "layer": "server_routes",
       "file_path": "agent/server_routes/routes_subagent.py",
       "in_degree": 0,
-      "out_degree": 44
+      "out_degree": 50
     },
     {
       "path": "agent.subagent.delegation_history",
@@ -4694,7 +4694,7 @@
       "name": "task_board",
       "layer": "subagent",
       "file_path": "",
-      "in_degree": 4,
+      "in_degree": 10,
       "out_degree": 1
     },
     {
@@ -26827,6 +26827,84 @@
     },
     {
       "source": "agent.server_routes.routes_subagent",
+      "target": "agent.subagent.task_board",
+      "source_layer": "server_routes",
+      "target_layer": "subagent",
+      "import_type": "from_import",
+      "line": 1497,
+      "source_file": "agent/server_routes/routes_subagent.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_subagent",
+      "target": "agent.subagent.task_board",
+      "source_layer": "server_routes",
+      "target_layer": "subagent",
+      "import_type": "from_import",
+      "line": 1512,
+      "source_file": "agent/server_routes/routes_subagent.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_subagent",
+      "target": "agent.subagent.task_board",
+      "source_layer": "server_routes",
+      "target_layer": "subagent",
+      "import_type": "from_import",
+      "line": 1523,
+      "source_file": "agent/server_routes/routes_subagent.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_subagent",
+      "target": "agent.subagent.task_board",
+      "source_layer": "server_routes",
+      "target_layer": "subagent",
+      "import_type": "from_import",
+      "line": 1536,
+      "source_file": "agent/server_routes/routes_subagent.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_subagent",
+      "target": "agent.subagent.task_board",
+      "source_layer": "server_routes",
+      "target_layer": "subagent",
+      "import_type": "from_import",
+      "line": 1561,
+      "source_file": "agent/server_routes/routes_subagent.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_subagent",
+      "target": "agent.subagent.task_board",
+      "source_layer": "server_routes",
+      "target_layer": "subagent",
+      "import_type": "from_import",
+      "line": 1584,
+      "source_file": "agent/server_routes/routes_subagent.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_subagent",
       "target": "agent.subagent.capabilities",
       "source_layer": "server_routes",
       "target_layer": "subagent",
@@ -27871,7 +27949,7 @@
       "source_layer": "settings",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 3566,
+      "line": 3572,
       "source_file": "agent/settings/registry.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -27884,7 +27962,7 @@
       "source_layer": "settings",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 3686,
+      "line": 3692,
       "source_file": "agent/settings/registry.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -36423,8 +36501,8 @@
   "stats": {
     "total_files": 811,
     "total_nodes": 704,
-    "total_edges": 2368,
-    "cross_layer_edges": 1504,
+    "total_edges": 2374,
+    "cross_layer_edges": 1510,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {

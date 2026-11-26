@@ -2458,6 +2458,12 @@ flowchart LR
     agent_server_routes_routes_subagent -.-> agent_subagent_runs
     agent_server_routes_routes_subagent -.-> agent_subagent_runs
     agent_server_routes_routes_subagent -.-> agent_subagent_runs
+    agent_server_routes_routes_subagent -.-> agent_subagent_task_board
+    agent_server_routes_routes_subagent -.-> agent_subagent_task_board
+    agent_server_routes_routes_subagent -.-> agent_subagent_task_board
+    agent_server_routes_routes_subagent -.-> agent_subagent_task_board
+    agent_server_routes_routes_subagent -.-> agent_subagent_task_board
+    agent_server_routes_routes_subagent -.-> agent_subagent_task_board
     agent_server_routes_routes_subagent -.-> agent_subagent_capabilities
     agent_server_routes_routes_subagent -.-> agent_subagent_bundle
     agent_server_routes_routes_subagent -.-> agent_subagent_dependencies
@@ -3206,7 +3212,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 811
 - 模块节点数: 704
-- 依赖边数: 2368
-- 跨层调用数: 1504
+- 依赖边数: 2374
+- 跨层调用数: 1510
 - 违规调用数: 0
 - 动态 import 数: 1
