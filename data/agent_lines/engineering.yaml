@@ -38,6 +38,9 @@ boost:
 # E1-2b（2026-11-25）：goal 是长任务推进的唯一模型侧入口，boost 保证它不被名额截断；
 # 同步把 max_tools 27→28（加一个仍保留 run_lint / run_sandbox，实测零丢失）。
 - goal
+# E3-2（2026-11-27）：.docx 正文/表格抽取。read_file 对 docx 只能回 binary，模型没有它就
+# 读不到 Word；进 boost 是为了不被名额截断（与 ui_guard/goal 同一处置）。
+- docx_read
 mute:
 - web_extract
 - web_batch
@@ -46,7 +49,10 @@ tags:
 - code
 - orchestrate
 # 26 → 27（2026-11-21）：加两个 ui_guard boost 后，实测 26 会挤掉 run_tests；27 实测零丢失。
-max_tools: 30
+# 30 → 32（2026-11-27）：/api/agent-lines/preview 实测 —— 加 docx_read 到 boost 时，
+#   30 会挤掉 run_sandbox；31 零丢失；32 还能把此前已被挤掉的 run_tests 找回来
+#   （实测 added=[docx_read, run_tests]，lost=[]）。
+max_tools: 32
 # 本分身默认上下文窗口（2026-11-15）：按任务类型的建议起点取中位 —— 代码 Agent / 跨文件理解：需要上下文，但推理比检索更怕噪声
 context_window_tokens: 65536
 effect_allow:
