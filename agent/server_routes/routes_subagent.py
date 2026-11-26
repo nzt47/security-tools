@@ -1484,3 +1484,119 @@ def register_routes(app, state):
                         "status": handle.status, "cancelled": True,
                         "reason": handle.reason})
 
+    # ═══════════════════════════════════════════════════
+    #  E2-2 Team 任务板（读面 + 认领 / 释放 / 交接）
+    #  静态 /api/subagent/board* 优先于 /api/subagent/<name>
+    # ═══════════════════════════════════════════════════
+
+    @app.route("/api/subagent/board")
+    @trace_route("Subagent")
+    @log_request(show_response=False)
+    def api_subagent_board():
+        """看板当前态（折叠后）+ 按状态分组计数"""
+        from agent.subagent.task_board import board_enabled, task_board as board
+
+        if not board_enabled():
+            return jsonify({"ok": False, "code": "disabled",
+                            "error": "Team 任务板已关闭（CP_TEAM_BOARD_ENABLED=0）"}), 404
+        try:
+            data = board.board(status=request.args.get("status", ""),
+                               limit=request.args.get("limit", 50))
+            data["ok"] = True
+            return jsonify(data)
+        except Exception as e:  # noqa: BLE001 读面失败要显式报错，不伪装成空看板
+            return _fail(e, log="TaskBoard 读取失败")
+
+    def _board_action_error(exc: Exception):
+        """看板业务错误 → HTTP 状态（409 冲突 / 404 不存在 / 400 参数）"""
+        from agent.subagent.task_board import BoardConflict, BoardError, BoardNotFound
+
+        if isinstance(exc, BoardConflict):
+            return jsonify({"ok": False, "code": exc.code, "error": exc.message}), 409
+        if isinstance(exc, BoardNotFound):
+            return jsonify({"ok": False, "code": exc.code, "error": exc.message}), 404
+        if isinstance(exc, BoardError):
+            return jsonify({"ok": False, "code": exc.code, "error": exc.message}), 400
+        return None
+
+    def _board_guard():
+        from agent.subagent.task_board import board_enabled
+
+        if not board_enabled():
+            return jsonify({"ok": False, "code": "disabled",
+                            "error": "Team 任务板已关闭"}), 404
+        return None
+
+    @app.route("/api/subagent/board/claim", methods=["POST"])
+    @trace_route("Subagent")
+    @require_token
+    @log_request(show_response=False)
+    def api_subagent_board_claim():
+        """认领任务（他人持有未过期租约 ⇒ 409；force=true 可运维抢占）"""
+        from agent.subagent.task_board import task_board as board
+
+        denied = _board_guard()
+        if denied is not None:
+            return denied
+        data = request.get_json(silent=True) or {}
+        try:
+            rec = board.claim(str(data.get("task_id") or ""),
+                              str(data.get("owner") or ""),
+                              note=str(data.get("note") or ""),
+                              lease_seconds=data.get("lease_seconds") or 1800,
+                              force=bool(data.get("force")))
+            return jsonify({"ok": True, "task": rec})
+        except Exception as e:  # noqa: BLE001
+            mapped = _board_action_error(e)
+            if mapped is not None:
+                return mapped
+            return _fail(e, log="看板认领失败")
+
+    @app.route("/api/subagent/board/release", methods=["POST"])
+    @trace_route("Subagent")
+    @require_token
+    @log_request(show_response=False)
+    def api_subagent_board_release():
+        """释放认领（owner 非空且不是持有者 ⇒ 409）"""
+        from agent.subagent.task_board import task_board as board
+
+        denied = _board_guard()
+        if denied is not None:
+            return denied
+        data = request.get_json(silent=True) or {}
+        try:
+            rec = board.release(str(data.get("task_id") or ""),
+                                owner=str(data.get("owner") or ""),
+                                note=str(data.get("note") or ""))
+            return jsonify({"ok": True, "task": rec})
+        except Exception as e:  # noqa: BLE001
+            mapped = _board_action_error(e)
+            if mapped is not None:
+                return mapped
+            return _fail(e, log="看板释放失败")
+
+    @app.route("/api/subagent/board/handoff", methods=["POST"])
+    @trace_route("Subagent")
+    @require_token
+    @log_request(show_response=False)
+    def api_subagent_board_handoff():
+        """交接给另一个人（to 必填；非持有者交接 ⇒ 409）"""
+        from agent.subagent.task_board import task_board as board
+
+        denied = _board_guard()
+        if denied is not None:
+            return denied
+        data = request.get_json(silent=True) or {}
+        try:
+            rec = board.handoff(str(data.get("task_id") or ""),
+                                str(data.get("to") or ""),
+                                owner=str(data.get("owner") or ""),
+                                note=str(data.get("note") or ""),
+                                lease_seconds=data.get("lease_seconds") or 1800)
+            return jsonify({"ok": True, "task": rec})
+        except Exception as e:  # noqa: BLE001
+            mapped = _board_action_error(e)
+            if mapped is not None:
+                return mapped
+            return _fail(e, log="看板交接失败")
+

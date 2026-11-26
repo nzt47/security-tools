@@ -32,7 +32,7 @@ import os
 import threading
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from agent.jsonl_history import append_jsonl, count_jsonl_lines, read_jsonl_tail
@@ -58,7 +58,40 @@ _FOLD_SCAN_LIMIT = 100_000
 BOARD_OPS = ("create", "update")
 STATUSES = ("pending", "running", "done", "failed", "superseded")
 
-#: 「被新一轮取代」状态（二次派发轮次机制的写侧使用；必须在 STATUSES 内）。
+#: Team 任务板的三种人工动作（**不改 status**，只改 owner/租约/version）
+BOARD_ACTIONS = ("claim", "release", "handoff")
+
+#: 认领租约（秒）：过期后允许他人接手（防"认领后失踪"卡死任务）
+DEFAULT_LEASE_SECONDS = 1800
+
+#: 开关（默认开；=0 关闭 ⇒ 4 条 Team 看板路由 404）
+BOARD_ENABLED_ENV = "CP_TEAM_BOARD_ENABLED"
+
+
+def board_enabled() -> bool:
+    """Team 任务板是否开启（`=0/false/no/off` 关闭；缺省开）"""
+    raw = str(os.environ.get(BOARD_ENABLED_ENV, "") or "").strip().lower()
+    return raw not in ("0", "false", "no", "off")
+
+
+class BoardError(Exception):
+    """看板业务错误（路由把它转成 4xx，不裸 500）"""
+
+    code = "board_error"
+
+    def __init__(self, message: str, *, code: str = ""):
+        super().__init__(message)
+        if code:
+            self.code = code
+        self.message = message
+
+
+class BoardNotFound(BoardError):
+    code = "task_not_found"
+
+
+class BoardConflict(BoardError):
+    code = "task_claimed"
 #: 由 record_outcome 在写入跟单事件前，对上一轮**再写一行** update 事件来标记。
 SUPERSEDED_STATUS = "superseded"
 
@@ -96,6 +129,19 @@ class TaskRecord:
     tenant_id: str = "default"
     subject_id: str = ""
     workspace_id: str = ""
+    # ── E2-2 Team 任务板：认领/交接（追加写一行 update，不改历史）──
+    #: 当前认领者（空 = 未认领）
+    owner: str = ""
+    #: 认领时间（ISO8601）
+    claimed_at: str = ""
+    #: 租约到期时间（ISO8601；过期后可被他人接手，防"认领后失踪"）
+    lease_until: str = ""
+    #: 该任务被认领/交接的次数（乐观锁版本；每次动作 +1）
+    version: int = 0
+    #: 最近一次动作（claim / release / handoff；普通事件为空）
+    board_action: str = ""
+    #: 交接备注 / 动作原因
+    note: str = ""
 
     def to_dict(self) -> dict:
         """字段声明序的普通 dict（JSON 可序列化）"""
@@ -191,6 +237,8 @@ class TaskBoard:
         self._path = path or DEFAULT_PATH
         self._write_failed = 0
         self._lock = threading.Lock()
+        # 认领/交接的读-改-写必须串行（与 record 的写锁分开，避免重入死锁）
+        self._board_lock = threading.RLock()
 
     @property
     def path(self) -> str:
@@ -368,6 +416,114 @@ class TaskBoard:
             "write_failed": self.write_failed,
         }
 
+    # ── Team 任务板：认领 / 释放 / 交接（E2-2）──
+    #
+    # 【为什么不改 status】看板的 status 由委派结果（record_outcome）决定；认领只是
+    # "谁在做"的元信息。把 claim 写成 running 会让"跑完了但没人看"和"正在跑"混为一谈。
+    # 【追加写】每次动作都是**再写一行 update**（沿用 append-only 契约），行里复制上一态
+    # 的字段后再覆盖 owner/租约/version —— 折叠读（latest 胜）自然得到当前态。
+
+    def latest(self, task_id: str) -> Optional[dict]:
+        """该 task_id 的最新一条事件（读失败/不存在 ⇒ None，fail-soft）"""
+        tid = _text(task_id)
+        if not tid:
+            return None
+        try:
+            rows = read_jsonl_tail(self._path, _FOLD_SCAN_LIMIT)
+        except Exception as e:  # noqa: BLE001
+            logger.debug("[TaskBoard] 任务读取失败（按未找到处理）: %s", e)
+            return None
+        for row in reversed(rows):
+            if isinstance(row, Mapping) and _text(row.get("task_id")) == tid:
+                return dict(row)
+        return None
+
+    def claim(self, task_id: str, owner: str, *, note: str = "",
+              lease_seconds: int = DEFAULT_LEASE_SECONDS, force: bool = False) -> dict:
+        """认领任务（乐观锁：他人持有未过期租约 ⇒ BoardConflict）"""
+        return self._act("claim", task_id, owner=owner, note=note,
+                         lease_seconds=lease_seconds, force=force)
+
+    def release(self, task_id: str, *, owner: str = "", note: str = "") -> dict:
+        """释放认领（owner 为空 = 不校验持有者；非空且不匹配 ⇒ BoardConflict）"""
+        return self._act("release", task_id, owner=owner, note=note)
+
+    def handoff(self, task_id: str, to: str, *, owner: str = "", note: str = "",
+                lease_seconds: int = DEFAULT_LEASE_SECONDS) -> dict:
+        """把任务交接给另一个人（to 必填；非持有者交接 ⇒ BoardConflict）"""
+        target = _text(to).strip()
+        if not target:
+            raise BoardError("handoff 需要 to（交接给谁）", code="invalid_handoff")
+        return self._act("handoff", task_id, owner=owner, to=target, note=note,
+                         lease_seconds=lease_seconds)
+
+    def _act(self, action: str, task_id: str, *, owner: str = "", to: str = "",
+             note: str = "", lease_seconds: int = DEFAULT_LEASE_SECONDS,
+             force: bool = False) -> dict:
+        if action not in BOARD_ACTIONS:
+            raise BoardError("未知看板动作：%s" % action, code="invalid_action")
+        tid = _text(task_id).strip()
+        if not tid:
+            raise BoardError("task_id 不能为空", code="invalid_task_id")
+        who = _text(owner).strip()
+        if action == "claim" and not who:
+            raise BoardError("claim 需要 owner（谁来认领）", code="invalid_owner")
+        try:
+            lease = max(60, int(lease_seconds))
+        except (TypeError, ValueError):
+            lease = DEFAULT_LEASE_SECONDS
+        with self._board_lock:
+            latest = self.latest(tid)
+            if latest is None:
+                raise BoardNotFound("看板上没有这个任务：%s" % tid)
+            current = _text(latest.get("owner")).strip()
+            active = _lease_active(latest.get("lease_until"))
+            if current and who and current != who and active and not force:
+                raise BoardConflict(
+                    "任务已被 %s 认领（租约到 %s）" % (current, latest.get("lease_until")),
+                    code="task_claimed")
+            now = _now_iso()
+            rec = TaskRecord.from_row(latest).to_dict()
+            rec["updated_at"] = now
+            rec["board_action"] = action
+            rec["note"] = _text(note)
+            rec["board_op"] = "update"
+            rec["version"] = int(_int_or_none(latest.get("version")) or 0) + 1
+            if action == "release":
+                rec["owner"] = ""
+                rec["claimed_at"] = ""
+                rec["lease_until"] = ""
+            else:
+                rec["owner"] = (to if action == "handoff" else who)
+                rec["claimed_at"] = now
+                rec["lease_until"] = _iso_after(lease)
+            if not self.record(rec, board_op="update"):
+                raise BoardError("看板写入失败（审计/磁盘）", code="board_write_failed")
+            return rec
+
+    def board(self, *, status: str = "", limit: int = 50) -> dict:
+        """看板当前态（折叠后）+ 按状态分组计数（供 /api/subagent/board）"""
+        want = _text(status).strip()
+        try:
+            limit = max(1, min(int(limit), 200))
+        except (TypeError, ValueError):
+            limit = 50
+        records = self.query(limit=limit)
+        if want:
+            records = [r for r in records if _text(r.get("status")) == want]
+        counts = {s: 0 for s in STATUSES}
+        for r in records:
+            key = _text(r.get("status")) or "pending"
+            counts[key] = counts.get(key, 0) + 1
+        return {
+            "records": records,
+            "count": len(records),
+            "counts": counts,
+            "total": self.total(),
+            "write_failed": self.write_failed,
+        }
+
+
 
 # ════════════════════════════════════════════════════════════
 #  辅助
@@ -430,10 +586,32 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def _iso_after(seconds: int) -> str:
+    """当前时间 + N 秒的 ISO8601（租约到期）"""
+    return (datetime.now(timezone.utc) + timedelta(seconds=int(seconds))).isoformat(
+        timespec="seconds")
+
+
+def _lease_active(value: Any) -> bool:
+    """租约是否仍有效：空/不可解析/已过期 ⇒ False（**过期即可被接手**）"""
+    raw = _text(value).strip()
+    if not raw:
+        return False
+    try:
+        until = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except (ValueError, TypeError):
+        return False
+    if until.tzinfo is None:
+        until = until.replace(tzinfo=timezone.utc)
+    return until > datetime.now(timezone.utc)
+
+
 #: 进程级单例（两处写板咽喉写、路由读，共用一份；与 delegation_history 同形）
 task_board = TaskBoard()
 
 __all__ = [
     "TaskRecord", "TaskBoard", "task_board", "build_record", "status_from_outcome",
     "DEFAULT_PATH", "GOAL_MAX_CHARS", "BOARD_OPS", "STATUSES", "SUPERSEDED_STATUS",
+    "BOARD_ACTIONS", "DEFAULT_LEASE_SECONDS", "BoardError", "BoardNotFound",
+    "BoardConflict", "BOARD_ENABLED_ENV", "board_enabled",
 ]

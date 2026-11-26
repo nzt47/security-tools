@@ -1,28 +1,28 @@
 {
-  "generated_at": "2026-11-26T18:27:56",
+  "generated_at": "2026-11-26T18:51:15",
   "totals": {
-    "routes": 534,
-    "live": 534,
+    "routes": 538,
+    "live": 538,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 473,
+    "ui": 477,
     "cli_script": 15,
     "runtime_only": 12,
     "unreferenced": 34,
     "live_by_category": {
-      "ui": 473,
+      "ui": 477,
       "cli_script": 15,
       "runtime_only": 12,
       "unreferenced": 34
     },
     "by_intent": {
-      "should_be_in_ui": 439,
+      "should_be_in_ui": 443,
       "should_not_be_in_ui": 80,
       "unclassified": 15
     },
     "by_domain": {
       "页面入口": 7,
-      "分身与主线": 23,
+      "分身与主线": 27,
       "观测与诊断": 84,
       "系统与配置": 46,
       "治理与审批": 47,
@@ -37,7 +37,7 @@
       "记忆与知识": 42
     }
   },
-  "frontend_endpoints": 477,
+  "frontend_endpoints": 481,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -11009,6 +11009,106 @@
       "domain": "分身与主线"
     },
     {
+      "path": "/api/subagent/board",
+      "norm": "/api/subagent/board",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_subagent.py:1492"
+      ],
+      "description": "看板当前态（折叠后）+ 按状态分组计数",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "分身/子代理",
+      "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
+      "ui_pending": false,
+      "domain": "分身与主线"
+    },
+    {
+      "path": "/api/subagent/board/claim",
+      "norm": "/api/subagent/board/claim",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_subagent.py:1530"
+      ],
+      "description": "认领任务（他人持有未过期租约 ⇒ 409；force=true 可运维抢占）",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "分身/子代理",
+      "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
+      "ui_pending": false,
+      "domain": "分身与主线"
+    },
+    {
+      "path": "/api/subagent/board/handoff",
+      "norm": "/api/subagent/board/handoff",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_subagent.py:1578"
+      ],
+      "description": "交接给另一个人（to 必填；非持有者交接 ⇒ 409）",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "分身/子代理",
+      "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
+      "ui_pending": false,
+      "domain": "分身与主线"
+    },
+    {
+      "path": "/api/subagent/board/release",
+      "norm": "/api/subagent/board/release",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_subagent.py:1555"
+      ],
+      "description": "释放认领（owner 非空且不是持有者 ⇒ 409）",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "分身/子代理",
+      "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
+      "ui_pending": false,
+      "domain": "分身与主线"
+    },
+    {
       "path": "/api/subagent/callback",
       "norm": "/api/subagent/callback",
       "methods": [
@@ -13691,5 +13791,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "c2ec82143582bd0a"
+  "content_hash": "bae99decad0a08af"
 }

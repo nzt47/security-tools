@@ -30,8 +30,12 @@ import { Button, Card, Loading, ErrorBox, DataTable, Badge, Input, PageTabsHeade
 
 import SubagentRowActions from './SubagentRowActions'
 import {
+  SUBAGENT_BOARD,
   SUBAGENT_LIST,
   SUBAGENT_RUNS,
+  subagentBoardClaim,
+  subagentBoardHandoff,
+  subagentBoardRelease,
   subagentDestroyByName,
   subagentRunInterrupt,
   subagentRunMessage,
@@ -373,6 +377,202 @@ function RunningRuns({ onError }: { onError: (msg: string) => void }) {
   )
 }
 
+/** 看板一行（后端 TaskBoard.board() 的折叠当前态） */
+interface BoardTask {
+  task_id: string
+  status?: string
+  goal?: string
+  owner?: string
+  version?: number
+  round?: number
+  lease_until?: string
+  updated_at?: string
+  [k: string]: unknown
+}
+
+interface BoardPayload {
+  ok?: boolean
+  records?: BoardTask[]
+  counts?: Record<string, number>
+  count?: number
+  total?: number
+}
+
+const BOARD_STATUS_LABELS: Record<string, string> = {
+  pending: '待办', running: '进行中', done: '完成', failed: '失败', superseded: '被取代',
+}
+
+const BOARD_OWNER_KEY = 'yunshu.team.owner'
+
+/**
+ * 「任务板」块（E2-2）—— 委派任务的认领 / 释放 / 交接。
+ *
+ * 【乐观锁语义】他人持有未过期租约时认领 ⇒ 后端 409；界面如实把错误显示出来
+ * （不吞成"成功"）。释放/交接只对持有者开放（按钮 disabled，服务端仍是最终裁判）。
+ * 【为什么不新增叶子页】同「运行中」：页面文件集参与 ui_reachability 派生。
+ */
+function TaskBoardPanel({ onError }: { onError: (msg: string) => void }) {
+  const [tasks, setTasks] = useState<BoardTask[]>([])
+  const [counts, setCounts] = useState<Record<string, number>>({})
+  const [handoffs, setHandoffs] = useState<Record<string, string>>({})
+  const [disabled, setDisabled] = useState(false)
+  const [me, setMe] = useState<string>(() => {
+    try { return localStorage.getItem(BOARD_OWNER_KEY) || '我' } catch { return '我' }
+  })
+
+  const load = useCallback(async () => {
+    try {
+      const d = await hubGet<BoardPayload>(SUBAGENT_BOARD)
+      setTasks(Array.isArray(d?.records) ? d.records : [])
+      setCounts(d?.counts || {})
+      setDisabled(false)
+    } catch (e) {
+      const msg = String(e)
+      if (msg.includes('404')) { setDisabled(true); setTasks([]); return }
+      onError(msg)
+    }
+  }, [onError])
+
+  useEffect(() => { void load() }, [load])
+
+  const saveMe = (value: string) => {
+    setMe(value)
+    try { localStorage.setItem(BOARD_OWNER_KEY, value) } catch { /* 仅内存态 */ }
+  }
+
+  const act = async (url: string, body: Record<string, unknown>, taskId: string) => {
+    try {
+      await hubPost(url, body)
+      if (url === subagentBoardHandoff) {
+        setHandoffs((d) => ({ ...d, [taskId]: '' }))
+      }
+      await load()
+    } catch (e) { onError(String(e)) }
+  }
+
+  if (disabled) return null
+
+  const total = Object.values(counts).reduce((a, b) => a + (Number(b) || 0), 0)
+
+  return (
+    <div className="mb-5" data-testid="team-board">
+      <SectionTitle
+        title="任务板"
+        description="委派任务的认领 / 交接；他人持有未过期租约时认领会冲突（409）"
+      />
+      <div className="mb-2 flex flex-wrap items-center gap-2 text-caption text-slate-500">
+        <span>认领身份</span>
+        <Input
+          size="xs"
+          className="w-32"
+          value={me}
+          placeholder="你的名字"
+          data-testid="board-me"
+          onChange={(e) => saveMe(e.target.value)}
+        />
+        <span data-testid="board-counts">
+          共 {total} 条：
+          {Object.entries(BOARD_STATUS_LABELS).map(([key, label]) => `${label} ${counts[key] || 0}`).join(' · ')}
+        </span>
+      </div>
+      <Card>
+        {tasks.length === 0 ? (
+          <div className="p-3 text-caption text-slate-500" data-testid="board-empty">
+            看板暂无任务（子代理委派完成后会上板）
+          </div>
+        ) : (
+          <DataTable
+            data={tasks}
+            keyField="task_id"
+            columns={[
+              {
+                key: 'goal', title: '任务',
+                render: (r) => (
+                  <span className="flex flex-col" data-testid={`board-row-${r.task_id}`}>
+                    <span className="line-clamp-1 max-w-md text-xs text-slate-200" title={String(r.goal || '')}>
+                      {String(r.goal || '（无目标）')}
+                    </span>
+                    <span className="font-mono text-micro text-slate-500">
+                      {r.task_id} · 第 {Number(r.round || 1)} 轮 · v{Number(r.version || 0)}
+                    </span>
+                  </span>
+                ),
+              },
+              {
+                key: 'status', title: '状态',
+                render: (r) => {
+                  const s = String(r.status || 'pending')
+                  return <Badge color={RUN_STATUS_COLOR[s] ?? 'slate'}>{BOARD_STATUS_LABELS[s] || s}</Badge>
+                },
+              },
+              {
+                key: 'owner', title: '认领者',
+                render: (r) => {
+                  const owner = String(r.owner || '')
+                  return (
+                    <span className="text-xs" data-testid={`board-owner-${r.task_id}`}>
+                      {owner || <span className="text-slate-500">未认领</span>}
+                    </span>
+                  )
+                },
+              },
+              {
+                key: 'actions', title: '操作',
+                render: (r) => {
+                  const owner = String(r.owner || '')
+                  const mine = owner === me && !!me
+                  return (
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        size="xs"
+                        variant="default"
+                        disabled={!!owner && !mine}
+                        data-testid={`board-claim-${r.task_id}`}
+                        onClick={() => act(subagentBoardClaim, { task_id: r.task_id, owner: me }, r.task_id)}
+                      >
+                        认领
+                      </Button>
+                      <Button
+                        size="xs"
+                        variant="default"
+                        disabled={!mine}
+                        data-testid={`board-release-${r.task_id}`}
+                        onClick={() => act(subagentBoardRelease, { task_id: r.task_id, owner: me }, r.task_id)}
+                      >
+                        释放
+                      </Button>
+                      <Input
+                        size="xs"
+                        className="w-24"
+                        placeholder="交接给"
+                        value={handoffs[r.task_id] || ''}
+                        disabled={!mine}
+                        data-testid={`board-handoff-input-${r.task_id}`}
+                        onChange={(e) => setHandoffs((d) => ({ ...d, [r.task_id]: e.target.value }))}
+                      />
+                      <Button
+                        size="xs"
+                        variant="default"
+                        disabled={!mine || !String(handoffs[r.task_id] || '').trim()}
+                        data-testid={`board-handoff-${r.task_id}`}
+                        onClick={() => act(subagentBoardHandoff, {
+                          task_id: r.task_id, to: handoffs[r.task_id], owner: me,
+                        }, r.task_id)}
+                      >
+                        交接
+                      </Button>
+                    </div>
+                  )
+                },
+              },
+            ]}
+          />
+        )}
+      </Card>
+    </div>
+  )
+}
+
 function SubagentView({ onShowAssembly }: { onShowAssembly?: () => void }) {
   const [agents, setAgents] = useState<Subagent[]>([])
   const [deployment, setDeployment] = useState<DeploymentLlm | null>(null)
@@ -405,6 +605,7 @@ function SubagentView({ onShowAssembly }: { onShowAssembly?: () => void }) {
   return (
     <>
       <RunningRuns onError={setError} />
+      <TaskBoardPanel onError={setError} />
       <div className="mb-3 flex items-center justify-between gap-3">
         <span className="text-xs text-slate-500">
           装配一个分身请到「组装台」（六步 + 主权清单 + 装配预览，唯一创建入口）。

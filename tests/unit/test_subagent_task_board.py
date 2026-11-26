@@ -324,7 +324,7 @@ class _FakeYunshu:
 
 
 class TestG7HistoryBoardSegment:
-    def test_board_段给出折叠后最新态_不新增路由(self, tmp_path, monkeypatch):
+    def test_board_段给出折叠后最新态_且路由已由_E2_2_暴露(self, tmp_path, monkeypatch):
         board = TaskBoard(path=str(tmp_path / "board.jsonl"))
         board.record_create({"task_id": "t1", "board_op": "create",
                              "status": "running", "goal": "任务一"})
@@ -344,7 +344,11 @@ class TestG7HistoryBoardSegment:
 
         rules = {str(r.rule) for r in app.url_map.iter_rules()}
         assert "/api/subagent/history" in rules
-        assert "/api/subagent/board" not in rules, "board 段不得新增路由"
+        # E2-2（2026-11-26）起看板有了独立读面与认领/交接写面；旧的"本轮不暴露路由"
+        # 是 P4 当时的收敛约束，现由 Team 任务板正式取代（守卫见 test_subagent_team_board_routes）。
+        for path in ("/api/subagent/board", "/api/subagent/board/claim",
+                     "/api/subagent/board/release", "/api/subagent/board/handoff"):
+            assert path in rules
 
         body = client.get("/api/subagent/history").get_json()
         assert body["ok"] is True
@@ -357,6 +361,12 @@ class TestG7HistoryBoardSegment:
         assert by_task["t1"]["status"] == "done"
         assert by_task["t1"]["board_op"] == "update"
         assert by_task["t2"]["status"] == "failed"
+
+        # 读面与历史段同源（同一份折叠结果），不是第二套统计
+        board_body = client.get("/api/subagent/board").get_json()
+        assert board_body["ok"] is True
+        assert {r["task_id"] for r in board_body["records"]} == {"t1", "t2"}
+        assert board_body["counts"]["done"] == 1 and board_body["counts"]["failed"] == 1
 
 
 # ════════════════════════════════════════════════════════════

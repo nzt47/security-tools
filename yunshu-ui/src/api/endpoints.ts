@@ -661,6 +661,11 @@ export const SUBAGENT_BUNDLE_BY_NAME = (name: string) => `/api/subagent/${encode
 export const SUBAGENT_RUNS = '/api/subagent/runs';
 export const subagentRunMessage = (runId: string) => `/api/subagent/runs/${encodeURIComponent(runId)}/message`;
 export const subagentRunInterrupt = (runId: string) => `/api/subagent/runs/${encodeURIComponent(runId)}/interrupt`;
+// E2-2 Team 任务板：看板读面 + 认领 / 释放 / 交接（乐观锁，冲突 409）
+export const SUBAGENT_BOARD = '/api/subagent/board';
+export const subagentBoardClaim = '/api/subagent/board/claim';
+export const subagentBoardRelease = '/api/subagent/board/release';
+export const subagentBoardHandoff = '/api/subagent/board/handoff';
 
 // ===============================================================
 //  插件 / 心跳 / 可观测 / 杂项

@@ -75,6 +75,10 @@ const CAPABILITIES = {
 const postCalls: { url: string; body: Record<string, unknown> }[] = []
 /** 运行中列表（默认空；只有「运行中」用例会填） */
 let runRows: Array<Record<string, unknown>> = []
+/** Team 任务板（默认空；只有「任务板」用例会填） */
+let boardRows: Array<Record<string, unknown>> = []
+/** 下一次认领是否回 409（验证冲突要显示出来，不能吞） */
+let boardConflict = false
 /** 下一批 reload 请求是否要回 400（验证"业务拒绝不关弹窗"） */
 let failReload = false
 const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
@@ -84,6 +88,9 @@ const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     try { body = JSON.parse(String(init.body ?? '{}')) } catch { body = {} }
     postCalls.push({ url: u, body })
     if (failReload && u.includes('/reload')) return json({ ok: false, error: 'role_text 超长（2001 > 2000 字符）' }, 400)
+    if (boardConflict && u.includes('/api/subagent/board/claim')) {
+      return json({ ok: false, code: 'task_claimed', error: '任务已被 alice 认领（租约到 12:00）' }, 409)
+    }
     return envelope({ ok: true })
   }
   if (u.includes('/api/subagent/list')) return envelope(LIST_PAYLOAD)
@@ -96,6 +103,14 @@ const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
   if (u.includes('/api/subagent/runs')) {
     return json({ ok: true, count: runRows.length, running: runRows.length, runs: runRows })
   }
+  if (u.includes('/api/subagent/board')) {
+    const counts: Record<string, number> = { pending: 0, running: 0, done: 0, failed: 0, superseded: 0 }
+    for (const row of boardRows) {
+      const key = String(row.status || 'pending')
+      counts[key] = (counts[key] || 0) + 1
+    }
+    return json({ ok: true, records: boardRows, counts, count: boardRows.length, total: boardRows.length })
+  }
   return json({})
 })
 vi.stubGlobal('fetch', fetchMock)
@@ -104,7 +119,10 @@ const mod = await import('./agents')
 const WorkshopAgents = mod.default
 const { WORKSHOP_VIEWS, WORKSHOP_VIEW_STORAGE_KEY } = mod
 
-beforeEach(() => { localStorage.clear(); fetchMock.mockClear(); postCalls.length = 0; failReload = false; runRows = [] })
+beforeEach(() => {
+  localStorage.clear(); fetchMock.mockClear(); postCalls.length = 0
+  failReload = false; runRows = []; boardRows = []; boardConflict = false
+})
 afterEach(cleanup)
 
 describe('装配车间 · 五视图容器', () => {
@@ -371,5 +389,75 @@ describe('分身 · 运行中控制', () => {
     await waitFor(() => expect(screen.getByTestId('run-row-r-abc123')).toBeInTheDocument())
     expect(screen.getByTestId('run-send-r-abc123')).toBeDisabled()
     expect(screen.getByTestId('run-interrupt-r-abc123')).toBeDisabled()
+  })
+})
+
+// ═══════════════════════════════════════════════════════════
+//  Team 任务板（E2-2）
+// ------------------------------------------------------------------
+// 口径：认领/释放/交接都是写端点；冲突（他人持有租约）必须如实显示成错误；
+// 非持有者的释放/交接按钮 disabled（服务端仍是最终裁判）。
+// ═══════════════════════════════════════════════════════════
+describe('分身 · Team 任务板', () => {
+  const TASK = {
+    task_id: 'dlg-task-1', status: 'pending', goal: '把设计稿拆成步骤', owner: '',
+    version: 0, round: 1,
+  }
+
+  it('没有任务时给一行空态', async () => {
+    render(<WorkshopAgents />)
+    await waitFor(() => expect(screen.getByTestId('board-empty')).toBeInTheDocument())
+    expect(screen.getByTestId('team-board')).toBeInTheDocument()
+  })
+
+  it('列出任务与状态计数，并显示认领者', async () => {
+    boardRows = [{ ...TASK, owner: 'alice', version: 2 }]
+    render(<WorkshopAgents />)
+    await waitFor(() => expect(screen.getByTestId('board-row-dlg-task-1')).toBeInTheDocument())
+    expect(screen.getByTestId('board-row-dlg-task-1').textContent).toContain('把设计稿拆成步骤')
+    expect(screen.getByTestId('board-owner-dlg-task-1').textContent).toContain('alice')
+    expect(screen.getByTestId('board-counts').textContent).toContain('待办 1')
+  })
+
+  it('认领默认用顶部身份，成功后发到 claim 端点', async () => {
+    boardRows = [{ ...TASK }]
+    render(<WorkshopAgents />)
+    await waitFor(() => expect(screen.getByTestId('board-claim-dlg-task-1')).toBeInTheDocument())
+    fireEvent.change(screen.getByTestId('board-me'), { target: { value: 'bob' } })
+    fireEvent.click(screen.getByTestId('board-claim-dlg-task-1'))
+    await waitFor(() => expect(postCalls.some((c) => c.url.includes('/api/subagent/board/claim'))).toBe(true))
+    const call = postCalls.find((c) => c.url.includes('/board/claim'))!
+    expect(call.body).toEqual({ task_id: 'dlg-task-1', owner: 'bob' })
+    expect(localStorage.getItem('yunshu.team.owner')).toBe('bob')
+  })
+
+  it('他人已认领时认领/释放按钮禁用', async () => {
+    boardRows = [{ ...TASK, owner: 'alice' }]
+    render(<WorkshopAgents />)
+    await waitFor(() => expect(screen.getByTestId('board-claim-dlg-task-1')).toBeInTheDocument())
+    expect(screen.getByTestId('board-claim-dlg-task-1')).toBeDisabled()
+    expect(screen.getByTestId('board-release-dlg-task-1')).toBeDisabled()
+  })
+
+  it('冲突 409 要显示成错误（不吞）', async () => {
+    boardRows = [{ ...TASK, owner: '' }]
+    boardConflict = true
+    render(<WorkshopAgents />)
+    await waitFor(() => expect(screen.getByTestId('board-claim-dlg-task-1')).toBeInTheDocument())
+    fireEvent.click(screen.getByTestId('board-claim-dlg-task-1'))
+    await waitFor(() => expect(screen.getByText(/任务已被 alice 认领/)).toBeInTheDocument())
+  })
+
+  it('持有者交接：输入目标人后发到 handoff 端点', async () => {
+    boardRows = [{ ...TASK, owner: '我', version: 1 }]
+    render(<WorkshopAgents />)
+    await waitFor(() => expect(screen.getByTestId('board-handoff-dlg-task-1')).toBeInTheDocument())
+    expect(screen.getByTestId('board-release-dlg-task-1')).not.toBeDisabled()
+    fireEvent.change(screen.getByTestId('board-handoff-input-dlg-task-1'), { target: { value: 'carol' } })
+    fireEvent.click(screen.getByTestId('board-handoff-dlg-task-1'))
+    await waitFor(() => expect(postCalls.some((c) => c.url.includes('/board/handoff'))).toBe(true))
+    expect(postCalls.find((c) => c.url.includes('/board/handoff'))!.body).toEqual(
+      { task_id: 'dlg-task-1', to: 'carol', owner: '我' },
+    )
   })
 })

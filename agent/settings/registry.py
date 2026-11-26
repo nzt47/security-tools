@@ -935,6 +935,12 @@ _c("CP_SUBAGENT_CALLBACK_ALLOW", CAT_SELF_HEALING, "",
     # 选择与改动前逐字相同；开启即允许执行器走本地 Ollama（不再是远端 API 调用）。
     # 【E2-1 运行中控制（2026-11-26）】默认**开启**：list/inbox 只读，send/interrupt 走
     # effect=write 的治理档；关闭时工具回 code=disabled、三条路由 404（一处环境变量回滚）。
+    # 【E2-2 Team 任务板（2026-11-26）】默认开启：认领/交接只改 owner/租约，不改委派状态；
+    # 关掉 ⇒ 4 条 /api/subagent/board* 路由 404（看板落盘本身不受影响）。
+    _b("CP_TEAM_BOARD_ENABLED", CAT_SELF_HEALING, True,
+       "Team 任务板开关（认领/释放/交接 + 看板读面）；置 0/false/off 关闭 = 4 条 board 路由 404",
+       owner="agent/subagent/task_board.py",
+       impact="影响面：开启后界面/脚本可认领与交接委派任务（只改看板元信息，不触发执行）"),
     _b("CP_SUBAGENT_CONTROL_ENABLED", CAT_SELF_HEALING, True,
        "运行中子代理控制总开关（list/send/interrupt/inbox + 三条只读/写路由）；"
        "置 0/false/off 关闭 = 工具回 disabled、路由 404",
