@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-27T00:10:00+08:00",
+ "updated_at": "2026-11-27T00:20:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。 【接手入口】交接文档（仓外 yunshu_session_handoff_20261024.md）文件头写了最新一节与代码/CI/服务读数，文末「独立提示词」一节可直接复制（2026-11-26 起见 docs/handoff/2026-11-26_e2_e13_收口与新会话提示词.md）。",
  "items": [
   {
@@ -1563,8 +1563,8 @@
    "status": "open",
    "priority": "P1",
    "title": "Phase 3 执行与内容：持久终端 PTY、Office 三件套、附件/@引用/逐条反馈、语音输入/CoT 翻译（按需）",
-   "criteria": "E3-1 terminal_open/send/read/signal/close/list + 侧栏终端（ConPTY；多会话隔离）；E3-2 office_render/convert/recalculate + Office 技能（LibreOfficeKit 或本机 LibreOffice；不改输入、不写工作区）；E3-3 聊天附件/图片上传与粘贴、@file/@session 引用、消息引用、逐条 like/dislike；E3-4 STT 语音输入与 CoT 翻译（默认关）。",
-   "next": "PTY 与 Office 是最高价值，建议先做这两个（可并行两条工作流）；都属新增能力面，必须按 5 处连锁与干净 worktree 派生。"
+   "criteria": "E3-1 terminal_open/send/read/signal/close/list + 侧栏终端（ConPTY；多会话隔离）；E3-2 office_render/convert/recalculate + Office 技能（LibreOfficeKit 或本机 LibreOffice；不改输入、不写工作区）；E3-3 聊天附件/图片上传与粘贴、@file/@session 引用、消息引用、逐条 like/dislike；E3-4 STT 语音输入与 CoT 翻译（默认关）。 【2026-11-27 进度】E3-3 已交付三项：逐条点赞/点踩（复用 /api/feedback/submit，trace_id=消息 id，L5 直接吃到 like/dislike）、消息引用（引用块前缀 + 输入框引用条）、附件上传（/api/chat/attachments：文件名清洗 + 常量落点 + 写围栏 + 20MiB 上限 + 可执行后缀拒收 +图片 OCR 旁路；前端 📎 chips + 消息 manifest）。E3-3 余项：@file 自动补全、@session 引用、点击引用跳转到原消息。E3-1 PTY 与 E3-2 Office 的**依赖现状**见各自条目。",
+   "next": "顺序建议：① E3-1 PTY（pywinpty 3.1.2 本机已装，见 dsh-parity-e3-1-pty）→ ② E3-2 Office（LibreOffice 仍缺，见 dsh-parity-e3-2-office）→ ③ E3-3 余项（@file/@session/跳转）。每条都要按 5 处连锁派生（新工具/新路由/新开关），派生在干净 worktree 里做。"
   },
   {
    "id": "dsh-parity-p4-orchestration",
@@ -1605,6 +1605,22 @@
    "title": "E0-4 余项：每步时钟（time-context）与工具超时的协作式取消",
    "criteria": "① time-context（每步时钟）未做：把 `_meta.at/duration_ms` 塞进每个工具结果会被「结果整字典相等」的既有契约断言拦住（实测 7 处 unit 失败：capregistry_loader / injection_end_to_end / backpressure），正确做法是在 chat SSE 消息通道或 orchestrator 易变尾簇里选**一个**正式注入点（不能两处各写一套）。② 通用工具超时已有（agent/timeout_budget.py 的分层上界 + run 级 deadline）；缺的是协作式取消——Python handler 无法被中断，超时只能「回错误、线程继续跑」，与 DSH 的 exec.signal 语义有差距。 【2026-11-27 收口】① 每步时钟已交付（f1939f545）：agent/time_context.py 顺着**既有易变尾簇**下发（一处 helper、一处注入点；不进 system prompt ⇒ 不钉缓存前缀），CP_TIME_CONTEXT 默认关。 ② 协作式取消已收口为「子进程类工具硬超时 + 线程内工具如实声明」：新增 agent/proc_tree.py，run_sandboxed 超时改为杀**整棵进程树**（Windows taskkill /F /T，POSIX /proc 父子表叶子优先 SIGKILL，不用 killpg 以免杀掉服务自己），收管道加 5s 宽限；agent/timeout_budget.py 写明线程内工具**不会中断**。",
    "next": "已收口。验证：test_time_context.py（8）、test_proc_tree.py（5，含真起父→孙进程链断言孙进程也被收掉）；sandbox/timeout 相关回归 121 passed。"
+  },
+  {
+   "id": "dsh-parity-e3-1-pty",
+   "status": "open",
+   "priority": "P1",
+   "title": "E3-1 持久终端 PTY（terminal_open/send/read/signal/close/list + 侧栏终端）",
+   "criteria": "依赖已不是障碍：pywinpty 3.1.2 已装到本机 Python 3.12（pip 走的是 cp312 win_amd64 wheel，2026-11-27 装好；PyPI 下载慢但可用）。缺口在实现与派生：① 会话管理（多会话隔离、输出环形缓冲、空闲回收）；② 工具面（建议**一个** terminal 工具 + action 枚举，把工具索引/清单/契约的连锁压到 1 次）；③ 安全：raw PTY 会绕过命令沙箱与权限预设 ⇒ 必须默认关（CP_TERMINAL_ENABLED=0）、confined 档一律拒绝、危险命令模式复用 shell_tools 的匹配；④ 侧栏终端 UI（本轮无路由时可只做模型侧，但**不要**先造无 UI 引用的路由）。",
+   "next": "第一步：把 pywinpty 写进 pyproject 的**可选依赖**并用延迟 import（缺失时工具回可执行提示，不让 CI 因缺 wheel 变红）；第二步：agent/pty_session.py（open/send/read/signal/close/list + 缓冲上限）；第三步：terminal 工具（action 枚举）+ 契约测试；第四步：干净 worktree 派生 tool_index /capability_manifest / BM25 基线 / 路由冲突 τ，并更新 test_capregistry_core / test_capability_spec /test_confirm_level 里的 103/153 计数。"
+  },
+  {
+   "id": "dsh-parity-e3-2-office",
+   "status": "open",
+   "priority": "P1",
+   "title": "E3-2 Office 三件套（render/convert/recalculate）与 Office 技能",
+   "criteria": "依赖现状（2026-11-27 实测）：python-docx 1.2.0 已装到本机、python-pptx / openpyxl 早已可用，但 **LibreOffice 仍缺**（soffice 不在 PATH，也没有 C:\\Program Files\\LibreOffice）。⇒ office_render / office_convert / office_recalculate 这三条**做不了**（它们本质是 LibreOffice无头调用）；能做的是纯库路线：docx/xlsx/pptx 的读写与结构编辑（不改输入、不写工作区）。",
+   "next": "二选一（需 Owner 拍板）：(a) 装 LibreOffice（一次性 ~350MB，之后三件套按路线图交付）；(b) 不装，改交付纯库 Office 能力（docx 读写/表格重算用公式求值库），并在路线图把 render/convert标为「需 LibreOffice 环境，不阻塞其它项」。**不要**写一个只在本机有 LibreOffice 时才工作的工具。"
   }
  ]
 }
