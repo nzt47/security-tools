@@ -695,7 +695,15 @@
       "layer": "core",
       "file_path": "agent/compression_tools.py",
       "in_degree": 1,
-      "out_degree": 3
+      "out_degree": 4
+    },
+    {
+      "path": "agent.sandbox.fs_fence",
+      "name": "fs_fence",
+      "layer": "sandbox",
+      "file_path": "",
+      "in_degree": 7,
+      "out_degree": 1
     },
     {
       "path": "agent.system_tools",
@@ -1071,7 +1079,7 @@
       "layer": "subagent",
       "file_path": "",
       "in_degree": 9,
-      "out_degree": 2
+      "out_degree": 3
     },
     {
       "path": "agent.digestion.judge_runtime",
@@ -4106,14 +4114,6 @@
       "out_degree": 7
     },
     {
-      "path": "agent.sandbox.fs_fence",
-      "name": "fs_fence",
-      "layer": "sandbox",
-      "file_path": "",
-      "in_degree": 6,
-      "out_degree": 1
-    },
-    {
       "path": "agent.sandbox.preset",
       "name": "preset",
       "layer": "sandbox",
@@ -5344,6 +5344,14 @@
       "file_path": "agent/subagent/persistence.py",
       "in_degree": 0,
       "out_degree": 1
+    },
+    {
+      "path": "agent.proc_tree",
+      "name": "proc_tree",
+      "layer": "core",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 0
     },
     {
       "path": "agent.subagent.summarizer",
@@ -7494,11 +7502,24 @@
     },
     {
       "source": "agent.compression_tools",
+      "target": "agent.sandbox.fs_fence",
+      "source_layer": "core",
+      "target_layer": "sandbox",
+      "import_type": "from_import",
+      "line": 47,
+      "source_file": "agent/compression_tools.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.compression_tools",
       "target": "agent.system_tools",
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 55,
+      "line": 71,
       "source_file": "agent/compression_tools.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -7511,7 +7532,7 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 224,
+      "line": 246,
       "source_file": "agent/compression_tools.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -31561,7 +31582,7 @@
       "source_layer": "subagent",
       "target_layer": "lines",
       "import_type": "from_import",
-      "line": 733,
+      "line": 757,
       "source_file": "agent/subagent/sandbox.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -31574,7 +31595,20 @@
       "source_layer": "subagent",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 417,
+      "line": 422,
+      "source_file": "agent/subagent/sandbox.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.subagent.sandbox",
+      "target": "agent.proc_tree",
+      "source_layer": "subagent",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 608,
       "source_file": "agent/subagent/sandbox.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -36627,14 +36661,14 @@
     }
   ],
   "stats": {
-    "total_files": 815,
-    "total_nodes": 707,
-    "total_edges": 2382,
-    "cross_layer_edges": 1516,
+    "total_files": 816,
+    "total_nodes": 708,
+    "total_edges": 2384,
+    "cross_layer_edges": 1518,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
-      "core": 85,
+      "core": 86,
       "utils": 13,
       "alarms": 9,
       "learning": 3,
@@ -36654,6 +36688,7 @@
       "web": 5,
       "skills_mgmt": 58,
       "cognitive": 13,
+      "sandbox": 6,
       "config": 2,
       "orchestrator": 13,
       "context": 12,
@@ -36688,7 +36723,6 @@
       "quality": 1,
       "repair": 14,
       "retention": 9,
-      "sandbox": 6,
       "settings": 8,
       "ui_panels": 3,
       "ui_guard": 4,
