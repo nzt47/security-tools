@@ -46,6 +46,30 @@ export interface ContextStatus {
   recv_tokens: number;
   messages_count: number;
   recent_messages: RecentMessage[];
+  /** 【2026-11-26 · E0-2④】实测口径：最近一轮真实装配量；无样本为 null，不折算成 0 */
+  metered?: {
+    prompt_tokens?: number;
+    window_tokens?: number | null;
+    limit_tokens?: number | null;
+    percentage?: number | null;
+    source?: string;
+    sampled_at?: string;
+    samples?: number;
+    watermark_tokens?: number;
+    compactions?: number;
+  } | null;
+  metered_percentage?: number | null;
+  metered_note?: string;
+  /** 最近一次压缩的触发口径（memory_window / tool_results / token_meter） */
+  compression_trigger?: {
+    source?: string;
+    prompt_tokens?: number;
+    limit_tokens?: number;
+    percentage?: number | null;
+    watermark_tokens?: number;
+    counted_tokens?: number;
+    tool_tokens?: number;
+  } | null;
   /** 未分会话历史池（会话分家前没有 session_id 的消息）：按「冻结」披露，不参与压缩/摘要/最近消息 */
   legacy_pool?: {
     available?: boolean;

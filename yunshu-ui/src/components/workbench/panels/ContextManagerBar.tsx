@@ -80,6 +80,34 @@ interface CtxStatus {
     tools_tokens?: number | null
     history_tokens?: number | null
   }
+  /** 【2026-11-26 · E0-2④】实测口径：最近一轮**真实装配量**（系统提示+工具+历史）。
+   *  无样本时是 null —— 面板显示 —，不折算成 0（本仓纪律）。 */
+  metered?: {
+    prompt_tokens?: number
+    window_tokens?: number | null
+    limit_tokens?: number | null
+    percentage?: number | null
+    source?: string
+    sampled_at?: string
+    overhead_tokens?: number | null
+    history_tokens?: number | null
+    samples?: number
+    watermark_tokens?: number
+    compactions?: number
+  } | null
+  metered_percentage?: number | null
+  metered_note?: string
+  /** 【2026-11-26】最近一次压缩是**按哪个口径**触发的（memory_window / tool_results / token_meter） */
+  compression_trigger?: {
+    source?: string
+    prompt_tokens?: number
+    limit_tokens?: number
+    percentage?: number | null
+    watermark_tokens?: number
+    counted_tokens?: number
+    tool_tokens?: number
+    sampled_at?: string
+  } | null
 }
 
 /** 会话级 LLM 读数（/api/llm-monitor/stats 的消费子集） */
@@ -337,6 +365,11 @@ export function ContextManagerBar() {
                       ['系统提示词', bk.system_tokens != null ? `${fmt(bk.system_tokens)} tok` : '—'],
                       ['工具定义', bk.tools_tokens != null ? `${fmt(bk.tools_tokens)} tok` : '—'],
                       ['对话消息', bk.history_tokens != null ? `${fmt(bk.history_tokens)} tok` : `${fmt(status.current_tokens)} tok`],
+                      // 【2026-11-26 · E0-2④】实测装配量 = 压缩触发的第二个判据（与后端同一入口）。
+                      // 没样本时 — ；有样本但口径是记忆窗口触发时，这里照旧显示实测值。
+                      ['实测装配', status.metered?.prompt_tokens != null
+                        ? `${fmt(status.metered.prompt_tokens)} tok${status.metered.percentage != null ? `（${status.metered.percentage}%）` : ''}`
+                        : '—'],
                     ],
                   },
                 ] as { title: string; rows: [string, string][] }[]).map((g) => (
@@ -374,6 +407,23 @@ export function ContextManagerBar() {
                 <span>
                   窗口来源：<span className="font-mono text-slate-400">{status.token_limit_source ?? '-'}</span>
                 </span>
+                <span title={status.metered_note}>
+                  最近触发：
+                  <span className="font-mono text-slate-400">
+                    {status.compression_trigger?.source === 'token_meter'
+                      ? '实测（token-meter）'
+                      : status.compression_trigger?.source === 'tool_results'
+                        ? '工具结果'
+                        : status.compression_trigger?.source === 'memory_window'
+                          ? '记忆窗口'
+                          : '—'}
+                  </span>
+                </span>
+                {status.metered?.sampled_at && (
+                  <span title="实测样本的采集时间">
+                    采样：<span className="font-mono text-slate-400">{status.metered.sampled_at}</span>
+                  </span>
+                )}
                 {status.configured_token_limit != null && status.configured_token_limit !== status.token_limit && (
                   <span title={status.configured_token_limit_note}>
                     已保存值 <span className="font-mono text-slate-400">{fmt(status.configured_token_limit)}</span>

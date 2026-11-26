@@ -60,6 +60,26 @@ beforeEach(() => {
       tools_tokens: 6700,
       history_tokens: 12000,
     },
+    // 【2026-11-26 · E0-2④】实测口径：最近一轮真实装配量 + 最近一次触发的判据
+    metered: {
+      prompt_tokens: 22234,
+      window_tokens: 131072,
+      limit_tokens: 131072,
+      percentage: 17.0,
+      source: 'chat',
+      sampled_at: '2026-11-26T23:00:00+0800',
+      samples: 2,
+      watermark_tokens: 0,
+      compactions: 0,
+    },
+    metered_percentage: 17.0,
+    compression_trigger: {
+      source: 'token_meter',
+      prompt_tokens: 22234,
+      limit_tokens: 131072,
+      percentage: 17.0,
+      watermark_tokens: 0,
+    },
     status_level: 'ok',
     send_tokens: 5000,
     recv_tokens: 7000,
@@ -136,6 +156,10 @@ describe('ContextManagerBar · DSH 三组读数', () => {
     expect(screen.getByText('6,700 tok')).toBeTruthy()
     expect(screen.getByText('对话消息')).toBeTruthy()
     expect(screen.getByText('12,000 tok')).toBeTruthy()
+    // 【2026-11-26 · E0-2④】实测装配量（压缩触发的第二个判据）与最近触发口径必须可见
+    expect(screen.getByText('实测装配')).toBeTruthy()
+    expect(screen.getByText('22,234 tok（17%）')).toBeTruthy()
+    expect(screen.getByText('实测（token-meter）')).toBeTruthy()
 
     // 窗口概览 + 压缩次数取「当前窗口」(2)，不是全局累计 (7)
     expect(screen.getByText('窗口已用')).toBeTruthy()
