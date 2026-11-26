@@ -806,6 +806,29 @@ body,
   color: var(--wbp-accent-text);
 }
 
+/* ─── 引用（E3-3）：输入框上方的引用条 + 消息动作条 ─── */
+.wb-input-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+.wb-quote-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-left: 2px solid var(--wbp-accent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--wbp-accent) 10%, transparent);
+}
+.wb-msg-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
 /* ─── 逐条反馈（E3-3）：默认低对比，hover/已选才亮相 ─── */
 .wb-msg-feedback {
   display: flex;

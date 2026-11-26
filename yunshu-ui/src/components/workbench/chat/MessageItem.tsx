@@ -16,7 +16,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui';
 import { motion } from 'framer-motion';
-import { CheckCircle2, ChevronDown, ChevronRight, EyeOff, Loader2, Wrench, XCircle } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronRight, EyeOff, Loader2, Quote, Wrench, XCircle } from 'lucide-react';
 import { isHistoryMessageId, useLayoutStore, type ChatMessage, type ThinkingEvent } from '../../../stores/useLayoutStore';
 import { useChatPrefsStore } from '../../../stores/useChatPrefsStore';
 import { Markdown } from './Markdown';
@@ -90,10 +90,13 @@ function StepRow({ step }: { step: ThinkingEvent }) {
 export function MessageItem({
   message,
   highlighted = false,
+  onQuote,
 }: {
   message: ChatMessage;
   /** 历史问话跳转目标：短暂高亮气泡 */
   highlighted?: boolean;
+  /** 【E3-3】把这条消息引用到输入框（未传 = 不提供引用入口，如只读视图） */
+  onQuote?: (text: string) => void;
 }) {
   const isUser = message.role === 'user';
   const streaming = message.status === 'streaming';
@@ -217,11 +220,26 @@ export function MessageItem({
           )}
         </div>
 
-        {/* 【E3-3 · 2026-11-27】逐条反馈：只对已完成的 assistant 消息给投票入口
-            （流式中点踩会把半句话记成不满意；用户消息不需要满意度） */}
-        {!isUser && !streaming && (
-          <MessageFeedback messageId={message.id} sessionId={sessionId} />
-        )}
+        {/* 【E3-3 · 2026-11-27】消息动作条：引用（两侧都可）+ 逐条反馈（只 assistant）。
+            反馈只对已完成消息显示 —— 流式中点踩会把半句话记成不满意。 */}
+        <div className="wb-msg-actions">
+          {onQuote && !streaming && (
+            <Button
+              type="button"
+              variant="plain"
+              size="bare"
+              className="wb-vote wb-quote-btn"
+              title="引用这条消息"
+              aria-label="引用这条消息"
+              onClick={() => onQuote(message.content)}
+            >
+              <Quote size={12} />
+            </Button>
+          )}
+          {!isUser && !streaming && (
+            <MessageFeedback messageId={message.id} sessionId={sessionId} />
+          )}
+        </div>
       </div>
     </motion.div>
   );

@@ -137,6 +137,8 @@ export function ChatPanel() {
   }, [messages]);
 
   const [input, setInput] = useState('');
+  //: 被引用的消息原文（空 = 无引用）；由 MessageItem 的「引用」按钮写入
+  const [quoted, setQuoted] = useState('');
   // 斜杠命令注册表（已发布技能 → /skill:<id>，输入 / 时提示）
   interface SlashCmd { token?: string; id?: string; name?: string; description?: string; content_type?: string; category?: string; version?: string }
   const typeLabel = (c: SlashCmd): string => {
@@ -299,8 +301,12 @@ export function ChatPanel() {
 
   const handleSend = () => {
     if (!input.trim() || streaming) return;
-    sendMessage(expandSlash(input));
+    // 【E3-3 · 2026-11-27】引用：把被引消息原文拼成 Markdown 引用块放在最前面。
+    // 只在用户真的点了「引用」时加，且发完即清（否则下一句会莫名带着上一句的引用）。
+    const prefix = quoted ? '> ' + quoted.replace(/\s*\n\s*/g, ' ') + '\n\n' : '';
+    sendMessage(prefix + expandSlash(input));
     setInput('');
+    setQuoted('');
   };
 
   return (
@@ -426,7 +432,12 @@ export function ChatPanel() {
           <div className="mx-auto flex max-w-3xl flex-col gap-5">
             <AnimatePresence initial={false}>
               {messages.map((m) => (
-                <MessageItem key={m.id} message={m} highlighted={m.id === highlightMsgId} />
+                <MessageItem
+                  key={m.id}
+                  message={m}
+                  highlighted={m.id === highlightMsgId}
+                  onQuote={setQuoted}
+                />
               ))}
             </AnimatePresence>
             <div ref={bottomRef} />
@@ -495,6 +506,8 @@ export function ChatPanel() {
           onChange={setInput}
           onSend={handleSend}
           disabled={streaming}
+          quoted={quoted}
+          onClearQuote={() => setQuoted('')}
         />
       </div>
     </div>
