@@ -55,7 +55,7 @@ import os
 import shutil
 import threading
 import uuid
-from datetime import date
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
@@ -391,7 +391,13 @@ def archive_daily_file(path: Path | str) -> dict:
     p = Path(path).resolve()
     if not p.exists():
         return {"archived": 0, "files": [], "today": 0}
-    today = date.today().isoformat()
+    # 【时区必须与 ts 同源（2026-11-27 修）】事件行的 ts 由 usage_log/events 写成 UTC
+    # （datetime.now(timezone.utc).isoformat()），这里原先用 **本地** date.today() 当"今天"。
+    # 在 UTC+8 的 00:00–08:00 之间，UTC 日期 < 本地日期 ⇒ **当天的行被当成历史行**：
+    # 归档器把刚写入的事件搬进 <stem>-<UTC日>.jsonl 并删掉活动文件（本机实测：
+    # 追加后活动文件消失、4 条台账用例在凌晨窗口恒红；CI 跑在 UTC 所以看不出）。
+    # 现在两边同用 UTC 日期，判据自洽。
+    today = datetime.now(timezone.utc).date().isoformat()
     if _ARCHIVED.get(str(p)) == today:
         return {"archived": 0, "files": [], "today": 0}
 
