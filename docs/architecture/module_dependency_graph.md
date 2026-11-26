@@ -67,6 +67,7 @@ flowchart LR
         agent_context_assembler["agent.context.assembler"]:::crosslayer
         agent_context_checkpoint["agent.context.checkpoint"]:::crosslayer
         agent_context_goal["agent.context.goal"]:::crosslayer
+        agent_context_image_offload["agent.context.image_offload"]:::crosslayer
         agent_context_plan_mode["agent.context.plan_mode"]:::crosslayer
         agent_context_session_bind["agent.context.session_bind"]
         agent_context_session_insight["agent.context.session_insight"]
@@ -991,6 +992,7 @@ flowchart LR
     agent_context_session_bind -.-> agent_observability_trace_v2
     agent_context_session_insight -.-> agent_llm_monitor
     agent_context_session_title -.-> agent_env_config_manager
+    agent_context_spill --> agent_context_image_offload
     agent_data_observability -.-> agent_logging_utils
     agent_data_observability -.-> agent_monitoring_business_metrics
     agent_data_analytics --> agent_logging_utils
@@ -2967,6 +2969,7 @@ flowchart LR
     agent_tools -.-> agent_timeout_budget
     agent_tools --> agent_tools_governance
     agent_tools -.-> agent_context_checkpoint
+    agent_tools -.-> agent_context_image_offload
     agent_tools -.-> agent_context_spill
     agent_tools -.-> agent_context_tool_result_pruner
     agent_tools_ask_tools --> agent_tools
@@ -3218,9 +3221,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 813
-- 模块节点数: 706
-- 依赖边数: 2380
-- 跨层调用数: 1515
+- 扫描文件数: 815
+- 模块节点数: 707
+- 依赖边数: 2382
+- 跨层调用数: 1516
 - 违规调用数: 0
 - 动态 import 数: 1
