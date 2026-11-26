@@ -806,6 +806,39 @@ body,
   color: var(--wbp-accent-text);
 }
 
+/* ─── 逐条反馈（E3-3）：默认低对比，hover/已选才亮相 ─── */
+.wb-msg-feedback {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 2px;
+  opacity: 0.45;
+  transition: opacity 0.15s;
+}
+.wb-msg:hover .wb-msg-feedback,
+.wb-msg-feedback:focus-within {
+  opacity: 1;
+}
+.wb-vote {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 20px;
+  border-radius: 6px;
+  color: var(--wb-text-dim);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.wb-vote:hover {
+  color: var(--wbp-accent-text);
+  background: color-mix(in srgb, var(--wbp-accent) 14%, transparent);
+}
+.wb-vote.is-on {
+  color: var(--wbp-accent-text);
+  background: color-mix(in srgb, var(--wbp-accent) 20%, transparent);
+}
+
 /* ─── 输出格式：紧凑 ─── */
 .wb-chat-format-compact {
   gap: 8px;

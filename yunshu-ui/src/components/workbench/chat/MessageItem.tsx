@@ -17,9 +17,10 @@ import { useState } from 'react';
 import { Button } from '@/components/ui';
 import { motion } from 'framer-motion';
 import { CheckCircle2, ChevronDown, ChevronRight, EyeOff, Loader2, Wrench, XCircle } from 'lucide-react';
-import { isHistoryMessageId, type ChatMessage, type ThinkingEvent } from '../../../stores/useLayoutStore';
+import { isHistoryMessageId, useLayoutStore, type ChatMessage, type ThinkingEvent } from '../../../stores/useLayoutStore';
 import { useChatPrefsStore } from '../../../stores/useChatPrefsStore';
 import { Markdown } from './Markdown';
+import { MessageFeedback } from './MessageFeedback';
 
 const formatTime = (ts: number) =>
   new Date(ts).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
@@ -100,6 +101,8 @@ export function MessageItem({
   const showToolCalls = useChatPrefsStore((s) => s.showToolCalls);
   const setDisplay = useChatPrefsStore((s) => s.setDisplay);
   const format = useChatPrefsStore((s) => s.format);
+  // 【E3-3】逐条反馈要带会话 id（反馈中心的按会话检索用），与消息同源于 layout store
+  const sessionId = useLayoutStore((s) => s.activeSessionId ?? undefined);
 
   const steps = message.steps ?? [];
   const thoughtSteps = steps.filter((s) => !isToolStep(s));
@@ -213,6 +216,12 @@ export function MessageItem({
             </>
           )}
         </div>
+
+        {/* 【E3-3 · 2026-11-27】逐条反馈：只对已完成的 assistant 消息给投票入口
+            （流式中点踩会把半句话记成不满意；用户消息不需要满意度） */}
+        {!isUser && !streaming && (
+          <MessageFeedback messageId={message.id} sessionId={sessionId} />
+        )}
       </div>
     </motion.div>
   );
