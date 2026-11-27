@@ -57,6 +57,8 @@ const SESSION_MESSAGES = [
 ];
 
 let serverEntries: FakeEntry[];
+/** E4-5：轨迹响应（默认开；用例可改为 disabled 形状） */
+let trajectoryPayload: Record<string, unknown>;
 
 const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = String(input);
@@ -88,6 +90,9 @@ const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => 
       rounds: [{ round: 1, tokens_in: 12, tokens_out: 34, tools: 2, tool_names: ['read_file'], ts: '' }],
       totals: { tokens_in: 12, tokens_out: 34, tools: 2, rounds: 1 },
     });
+  }
+  if (method === 'GET' && url.includes('/trajectory')) {
+    return jsonResponse(trajectoryPayload);
   }
   if (method === 'GET' && url.includes('/export')) {
     return {
@@ -130,6 +135,18 @@ function renderDrawer(sessionId = 's1') {
 describe('HistoryDrawer 历史问话侧滑面板', () => {
   beforeEach(() => {
     serverEntries = ENTRIES.map((e) => ({ ...e }));
+    trajectoryPayload = {
+      ok: true, session_id: 's1', title: '检查点', total: 2, offset: 0, limit: 50,
+      truncated: false,
+      entries: [
+        { index: 0, role: 'user', ts: '2026-06-27T11:41:05+08:00', chars: 5, body: '看下检查点', steps: [] },
+        {
+          index: 1, role: 'assistant', ts: '2026-06-27T11:41:06+08:00', chars: 3, body: '好', steps: [
+            { id: 't1', title: '工具调用：read_file', status: 'done', detail: '结果: ok', at: '' },
+          ],
+        },
+      ],
+    };
     vi.stubGlobal('fetch', fetchMock);
     resetStore();
   });
@@ -288,6 +305,26 @@ describe('HistoryDrawer · E1-4c 会话洞察与导出', () => {
     fireEvent.click(screen.getByTestId('session-stats-toggle'))
     await waitFor(() => expect(screen.getByText(/进 12 tok/)).toBeTruthy())
     expect(screen.getByText(/工具 2 次/)).toBeTruthy()
+  })
+
+  it('点「轨迹」列消息与步骤（只读投影，不新增采集）', async () => {
+    renderDrawer()
+    fireEvent.click(screen.getByTestId('session-trajectory-toggle'))
+    await waitFor(() => expect(screen.getByTestId('session-trajectory-list')).toBeTruthy())
+    expect(screen.getByText(/工具调用：read_file/)).toBeTruthy()
+    const called = fetchMock.mock.calls.map((c) => String(c[0]))
+    expect(called.some((u) => u.includes('/api/sessions/s1/trajectory?limit=50&offset=0'))).toBe(true)
+  })
+
+  it('轨迹默认关：显示未启用而不是错误', async () => {
+    trajectoryPayload = {
+      ok: false, code: 'disabled',
+      error: '轨迹查看未启用（CP_INSPECTOR_ENABLED=0）',
+    }
+    renderDrawer()
+    fireEvent.click(screen.getByTestId('session-trajectory-toggle'))
+    await waitFor(() => expect(screen.getByTestId('session-trajectory-disabled')).toBeTruthy())
+    expect(screen.getByTestId('session-trajectory-disabled').textContent).toContain('轨迹查看未启用')
   })
 
   it('点「导出 MD」带令牌取文件并触发下载（文件名由服务端派生）', async () => {

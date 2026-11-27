@@ -1,9 +1,10 @@
-"""E1-4c 会话智能路由：轮次大纲 / 每轮统计 / 导出
+"""E1-4c 会话智能路由：轮次大纲 / 每轮统计 / 导出 /（E4-5）轨迹
 
-三条只读端点（都按 `session_id` 取会话，**不新增采集**，全部现算）：
+四条只读端点（都按 `session_id` 取会话，**不新增采集**，全部现算）：
   · GET /api/sessions/<session_id>/outline        → 每轮：用户问题 / 工具名 / 结论一句
   · GET /api/sessions/<session_id>/stats          → 每轮 tokens/工具数与汇总
   · GET /api/sessions/<session_id>/export?format=md|zip → 文件流（文件名 sha256 派生）
+  · GET /api/sessions/<session_id>/trajectory     → E4-5 Inspector：消息/步骤只读投影（默认关）
 
 【为什么文件名要派生】会话 ID 来自客户端（`sess_...` / 自定义），直接拼进
 `Content-Disposition` 会有引号/控制字符注入面；这里只用 `sha256(sid)[:12]`。
@@ -11,6 +12,7 @@
 from __future__ import annotations
 
 import logging
+import os
 
 from flask import Response, jsonify, request
 
@@ -21,9 +23,18 @@ logger = logging.getLogger(__name__)
 
 EXPORT_FORMATS = ("md", "zip")
 
+#: E4-5 Inspector 开关（默认关；判据只在这一处与 registry 登记项）
+TRAJECTORY_ENABLED_ENV = "CP_INSPECTOR_ENABLED"
+
+
+def _trajectory_enabled() -> bool:
+    return str(os.environ.get(TRAJECTORY_ENABLED_ENV, "") or "").strip().lower() in (
+        "1", "true", "yes", "on")
+
 
 def register_routes(app, state=None):
     from agent.context import session_insight as _insight
+    from agent.context import trajectory as _trajectory
 
     def _mgr():
         from app_server import _session_mgr
@@ -69,6 +80,25 @@ def register_routes(app, state=None):
         return jsonify({"ok": True, "session_id": session_id,
                         "message_count": meta.get("message_count", len(messages or [])),
                         **doc})
+
+    @app.route("/api/sessions/<session_id>/trajectory", methods=["GET"])
+    @trace_route("SessionTrajectory")
+    def api_session_trajectory(session_id):
+        """E4-5 Inspector：轨迹只读投影（默认关；开关关时不读会话）"""
+        if not _trajectory_enabled():
+            return jsonify({"ok": False, "code": "disabled",
+                            "error": "轨迹查看未启用（CP_INSPECTOR_ENABLED=0）"})
+        try:
+            meta, messages = _load(session_id)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("[session-insight] 读会话失败: %s", exc)
+            return jsonify({"ok": False, "error": _safe(exc, logger)}), 500
+        if meta is None:
+            return jsonify({"ok": False, "error": "会话不存在"}), 404
+        doc = _trajectory.build(messages, limit=request.args.get("limit"),
+                                offset=request.args.get("offset"))
+        return jsonify({"ok": True, "session_id": session_id,
+                        "title": meta.get("title", ""), **doc})
 
     @app.route("/api/sessions/<session_id>/export", methods=["GET"])
     @trace_route("SessionExport")

@@ -36,8 +36,10 @@ import {
   downloadSession,
   getOutline,
   getStats,
+  getTrajectory,
   type SessionOutline,
   type SessionStats,
+  type SessionTrajectory,
 } from '../../../lib/sessionInsightApi';
 import { useLayoutStore } from '../../../stores/useLayoutStore';
 
@@ -96,9 +98,11 @@ export function HistoryDrawer({ sessionId, onClose }: HistoryDrawerProps) {
   const [copiedOrdinal, setCopiedOrdinal] = useState<number | null>(null);
   const [hint, setHint] = useState('');
   // E1-4c：会话洞察（大纲 / 统计）+ 导出
-  const [insight, setInsight] = useState<'none' | 'outline' | 'stats'>('none');
+  const [insight, setInsight] = useState<'none' | 'outline' | 'stats' | 'trajectory'>('none');
   const [outlineDoc, setOutlineDoc] = useState<SessionOutline | null>(null);
   const [statsDoc, setStatsDoc] = useState<SessionStats | null>(null);
+  // E4-5 Inspector：轨迹只读投影（默认关；关时 doc.ok=false + code=disabled）
+  const [trajectoryDoc, setTrajectoryDoc] = useState<SessionTrajectory | null>(null);
   const [insightBusy, setInsightBusy] = useState(false);
   const [exportBusy, setExportBusy] = useState(false);
   const mountedRef = useRef(true);
@@ -156,8 +160,8 @@ export function HistoryDrawer({ sessionId, onClose }: HistoryDrawerProps) {
     hintTimer.current = setTimeout(() => setHint(''), 3000);
   };
 
-  /** E1-4c：切换大纲/统计（首次点开才拉数据，之后复用） */
-  const toggleInsight = async (kind: 'outline' | 'stats') => {
+  /** E1-4c / E4-5：切换大纲/统计/轨迹（首次点开才拉数据，之后复用） */
+  const toggleInsight = async (kind: 'outline' | 'stats' | 'trajectory') => {
     if (insight === kind) {
       setInsight('none');
       return;
@@ -168,8 +172,17 @@ export function HistoryDrawer({ sessionId, onClose }: HistoryDrawerProps) {
     try {
       if (kind === 'outline' && !outlineDoc) setOutlineDoc(await getOutline(sessionId));
       if (kind === 'stats' && !statsDoc) setStatsDoc(await getStats(sessionId));
+      if (kind === 'trajectory' && !trajectoryDoc) {
+        const doc = await getTrajectory(sessionId);
+        setTrajectoryDoc(doc);
+        if (!doc.ok) flashHint(doc.error || '轨迹查看未启用');
+      }
     } catch {
-      flashHint(kind === 'outline' ? '读取轮次大纲失败' : '读取统计失败');
+      flashHint(
+        kind === 'outline' ? '读取轮次大纲失败'
+          : kind === 'stats' ? '读取统计失败'
+            : '读取轨迹失败',
+      );
     } finally {
       setInsightBusy(false);
     }
@@ -340,6 +353,15 @@ export function HistoryDrawer({ sessionId, onClose }: HistoryDrawerProps) {
           >
             统计
           </Button>
+          <Button
+            type="button" variant="ghost" size="xs"
+            aria-pressed={insight === 'trajectory'}
+            data-testid="session-trajectory-toggle"
+            onClick={() => void toggleInsight('trajectory')}
+            title="消息与步骤的只读轨迹（E4-5 Inspector，默认关）"
+          >
+            轨迹
+          </Button>
           <span className="flex-1" />
           <Button
             type="button" variant="ghost" size="xs"
@@ -398,6 +420,67 @@ export function HistoryDrawer({ sessionId, onClose }: HistoryDrawerProps) {
                   <li className="text-micro text-slate-500">还没有可列出的一轮</li>
                 )}
               </ol>
+            )}
+            {insight === 'trajectory' && trajectoryDoc && !trajectoryDoc.ok && (
+              <div className="text-micro text-amber-400/90" data-testid="session-trajectory-disabled">
+                {trajectoryDoc.error || '轨迹查看未启用（CP_INSPECTOR_ENABLED=0）'}
+              </div>
+            )}
+            {insight === 'trajectory' && trajectoryDoc?.ok && (
+              <ol className="flex flex-col gap-1.5" data-testid="session-trajectory-list">
+                {[...(trajectoryDoc.entries ?? [])].reverse().map((row) => (
+                  <li key={row.index} className="rounded border border-slate-800/70 px-2 py-1">
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={`font-mono text-micro ${
+                          row.role === 'user' ? 'text-cyan-400'
+                            : row.role === 'assistant' ? 'text-emerald-400'
+                              : 'text-slate-400'
+                        }`}
+                      >
+                        {row.role || '?'}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-micro text-slate-300" title={row.body}>
+                        {row.body
+                          ? (row.body.length > 120 ? `${row.body.slice(0, 120)}…` : row.body)
+                          : '（空正文）'}
+                      </span>
+                      <span className="shrink-0 font-mono text-micro text-slate-600">
+                        {formatHistTime(row.ts)}
+                      </span>
+                    </div>
+                    {row.steps.length > 0 && (
+                      <ul className="mt-0.5 flex flex-col gap-0.5">
+                        {row.steps.map((step, stepIndex) => (
+                          <li
+                            key={`${step.id || step.title || 'step'}-${stepIndex}`}
+                            className="truncate text-micro text-slate-500"
+                            title={step.detail}
+                          >
+                            {step.title || step.id || '步骤'}
+                            {step.detail
+                              ? ' · ' + (step.detail.length > 90 ? `${step.detail.slice(0, 90)}…` : step.detail)
+                              : ''}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                ))}
+                {(trajectoryDoc.entries ?? []).length === 0 && (
+                  <li className="text-micro text-slate-500">没有可展示的消息</li>
+                )}
+                {trajectoryDoc.truncated && (
+                  <li className="text-micro text-slate-600">
+                    只显示窗口内 {trajectoryDoc.entries?.length ?? 0} 条（共 {trajectoryDoc.total ?? 0} 条）
+                  </li>
+                )}
+              </ol>
+            )}
+            {insight === 'trajectory' && !trajectoryDoc && insightBusy && (
+              <div className="flex items-center gap-1.5 text-micro text-slate-500">
+                <Loader2 size={11} className="animate-spin" /> 读取中…
+              </div>
             )}
             {insight === 'stats' && statsDoc && (
               <div className="flex flex-col gap-1">

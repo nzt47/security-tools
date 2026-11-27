@@ -1,22 +1,22 @@
 {
-  "generated_at": "2026-11-27T05:25:39",
+  "generated_at": "2026-11-28T02:13:22",
   "totals": {
-    "routes": 544,
-    "live": 544,
+    "routes": 545,
+    "live": 545,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 483,
+    "ui": 484,
     "cli_script": 15,
     "runtime_only": 12,
     "unreferenced": 34,
     "live_by_category": {
-      "ui": 483,
+      "ui": 484,
       "cli_script": 15,
       "runtime_only": 12,
       "unreferenced": 34
     },
     "by_intent": {
-      "should_be_in_ui": 444,
+      "should_be_in_ui": 445,
       "should_not_be_in_ui": 80,
       "unclassified": 20
     },
@@ -26,7 +26,7 @@
       "观测与诊断": 84,
       "系统与配置": 51,
       "治理与审批": 47,
-      "对话与会话": 49,
+      "对话与会话": 50,
       "资产与文件": 19,
       "管理与后台": 18,
       "调度与任务": 26,
@@ -37,7 +37,7 @@
       "记忆与知识": 42
     }
   },
-  "frontend_endpoints": 487,
+  "frontend_endpoints": 488,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -60,8 +60,6 @@
       "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
-        "agent/tools/custom/api_multi_search_engine.py",
-        "agent/tools/custom/ingested/byted-bp-cdn-pagesdeploy/scripts/subscribe_cdn.py",
         "scripts/_check_page.py"
       ],
       "where": [
@@ -1111,7 +1109,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_background.py:90"
+        "agent/server_routes/routes_background.py:137"
       ],
       "description": "列出后台任务（默认按创建时间倒序；limit 截断，status 过滤）",
       "description_source": "handler",
@@ -1136,7 +1134,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_background.py:117"
+        "agent/server_routes/routes_background.py:170"
       ],
       "description": "单任务状态",
       "description_source": "handler",
@@ -1162,7 +1160,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_background.py:143"
+        "agent/server_routes/routes_background.py:196"
       ],
       "description": "取消后台任务（仅 pending/running 可取消）",
       "description_source": "handler",
@@ -1187,7 +1185,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_background.py:130"
+        "agent/server_routes/routes_background.py:183"
       ],
       "description": "任务结果（未完成时返回进行中提示，不视为错误）",
       "description_source": "handler",
@@ -3158,7 +3156,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/skills.py:763"
+        "plugins/skills.py:774"
       ],
       "description": "通过通道发送消息",
       "description_source": "handler",
@@ -3840,17 +3838,17 @@
       ],
       "non_ui_refs": [
         "agent/audit/ui_middleware.py",
-        "agent/data/checkpoints/20261124T181601Z-ac7d1564/files/agent/settings/registry.py",
         "agent/modules_api.py",
         "agent/server_auth.py",
         "agent/settings/registry.py",
         "app_server.py",
-        "scripts/_t08_http_stress.py",
         "scripts/deploy_workbench.py",
         "scripts/deployment_drill.py",
         "scripts/dev/graceful_shutdown_persist_probe.py",
         "scripts/full_alert_verify.py",
-        "scripts/probe_prefix_cache_interaction.py"
+        "scripts/probe_prefix_cache_interaction.py",
+        "scripts/rollback.ps1",
+        "scripts/rotate_grafana_password.ps1"
       ],
       "where": [
         "plugins/status.py:237"
@@ -8372,7 +8370,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_session_insight.py:73"
+        "agent/server_routes/routes_session_insight.py:103"
       ],
       "description": "导出会话（md 文本 / zip 包；文件名 sha256 派生）",
       "description_source": "handler",
@@ -8450,7 +8448,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_session_insight.py:42"
+        "agent/server_routes/routes_session_insight.py:53"
       ],
       "description": "轮次大纲（只读）",
       "description_source": "handler",
@@ -8525,9 +8523,34 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_session_insight.py:57"
+        "agent/server_routes/routes_session_insight.py:68"
       ],
       "description": "每轮统计 + 汇总（只读）",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "会话管理",
+      "intent_note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。",
+      "ui_pending": false,
+      "domain": "对话与会话"
+    },
+    {
+      "path": "/api/sessions/<session_id>/trajectory",
+      "norm": "/api/sessions/*/trajectory",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/sessionInsightApi.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_session_insight.py:84"
+      ],
+      "description": "E4-5 Inspector：轨迹只读投影（默认关；开关关时不读会话）",
       "description_source": "handler",
       "intent": "should_be_in_ui",
       "intent_area": "会话管理",
@@ -11957,7 +11980,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/skills.py:890"
+        "plugins/skills.py:901"
       ],
       "description": "云枢技能/扩展/工具域插件（T1.5）：技能 / 扩展 / 工具管理。",
       "description_source": "module",
@@ -11984,7 +12007,7 @@
         "scripts/handoff_snapshot.py"
       ],
       "where": [
-        "plugins/skills.py:789"
+        "plugins/skills.py:800"
       ],
       "description": "获取工具列表及使用统计（**已迁移到统一信封**）。",
       "description_source": "handler",
@@ -12011,7 +12034,7 @@
         "agent/modules_api.py"
       ],
       "where": [
-        "plugins/skills.py:952"
+        "plugins/skills.py:963"
       ],
       "description": "获取工具健康状态（追踪、成功率、评分）",
       "description_source": "handler",
@@ -12037,8 +12060,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/skills.py:900",
-        "plugins/skills.py:914"
+        "plugins/skills.py:911",
+        "plugins/skills.py:925"
       ],
       "description": "云枢技能/扩展/工具域插件（T1.5）：技能 / 扩展 / 工具管理。",
       "description_source": "module",
@@ -12063,7 +12086,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/skills.py:943"
+        "plugins/skills.py:954"
       ],
       "description": "云枢技能/扩展/工具域插件（T1.5）：技能 / 扩展 / 工具管理。",
       "description_source": "module",
@@ -12088,7 +12111,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/skills.py:928"
+        "plugins/skills.py:939"
       ],
       "description": "云枢技能/扩展/工具域插件（T1.5）：技能 / 扩展 / 工具管理。",
       "description_source": "module",
@@ -12113,7 +12136,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/skills.py:834"
+        "plugins/skills.py:845"
       ],
       "description": "移除一个**运行时登记**的工具（台账 + YAML + 实现 + 单测 + UI 开关 + 注册表）。",
       "description_source": "handler",
@@ -12138,7 +12161,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/skills.py:960"
+        "plugins/skills.py:971"
       ],
       "description": "获取所有工具和技能的启用状态摘要（供快捷开关栏使用）",
       "description_source": "handler",
@@ -12165,7 +12188,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/skills.py:874"
+        "plugins/skills.py:885"
       ],
       "description": "切换工具启用状态",
       "description_source": "handler",
@@ -13845,7 +13868,6 @@
       "non_ui_refs": [
         "agent/audit/ui_middleware.py",
         "agent/utils/perf_monitor.py",
-        "scripts/_t08_http_stress.py",
         "scripts/baseline_loadtest_py.py",
         "scripts/check_mcp_log_level.py",
         "scripts/deployment_drill.py",
@@ -13854,7 +13876,8 @@
         "scripts/mock_intent_layer_traffic.py",
         "scripts/mock_metrics_server.py",
         "scripts/mock_service_standalone.py",
-        "scripts/monitoring_longrun/c2_harness.py"
+        "scripts/monitoring_longrun/c2_harness.py",
+        "scripts/monitoring_longrun/gen_derived_config.py"
       ],
       "where": [
         "agent/server_routes/routes_logging.py:1268"
@@ -13944,5 +13967,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "692673de3b3b9a66"
+  "content_hash": "3c0436057181755c"
 }

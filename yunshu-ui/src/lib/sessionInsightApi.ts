@@ -6,7 +6,7 @@
  */
 import { request } from './apiClient';
 import { authHeader } from './apiToken';
-import { sessionExport, sessionOutline, sessionStats } from '@/api/endpoints';
+import { sessionExport, sessionOutline, sessionStats, sessionTrajectory } from '@/api/endpoints';
 import { downloadFile } from '@/utils/system';
 
 export interface OutlineRound {
@@ -53,6 +53,49 @@ export async function getOutline(sessionId: string, signal?: AbortSignal): Promi
 /** 每轮统计 */
 export async function getStats(sessionId: string, signal?: AbortSignal): Promise<SessionStats> {
   return request<SessionStats>(sessionStats(sessionId), { signal });
+}
+
+/** E4-5 Inspector：轨迹 step（后端白名单投影：id/title/status/detail/at） */
+export interface TrajectoryStep {
+  id: string;
+  title: string;
+  status: string;
+  detail: string;
+  at: string;
+  detail_truncated?: boolean;
+}
+
+export interface TrajectoryEntry {
+  index: number;
+  role: string;
+  ts: string;
+  chars: number;
+  body: string;
+  body_truncated?: boolean;
+  steps: TrajectoryStep[];
+}
+
+export interface SessionTrajectory {
+  ok: boolean;
+  code?: string;
+  error?: string;
+  session_id?: string;
+  title?: string;
+  total?: number;
+  offset?: number;
+  limit?: number;
+  entries?: TrajectoryEntry[];
+  truncated?: boolean;
+}
+
+/** 轨迹（E4-5：默认关；关时后端回 ok=false + code=disabled） */
+export async function getTrajectory(
+  sessionId: string,
+  limit = 50,
+  offset = 0,
+  signal?: AbortSignal,
+): Promise<SessionTrajectory> {
+  return request<SessionTrajectory>(sessionTrajectory(sessionId, limit, offset), { signal });
 }
 
 /**

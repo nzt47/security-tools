@@ -196,6 +196,9 @@ export const SESSION_SEARCH = '/api/session-search';
 export const sessionOutline = (id: string) => `/api/sessions/${encodeURIComponent(id)}/outline`;
 /** 每轮统计（E1-4c，只读） */
 export const sessionStats = (id: string) => `/api/sessions/${encodeURIComponent(id)}/stats`;
+/** 轨迹（E4-5 Inspector，只读；?limit=&offset=，默认关） */
+export const sessionTrajectory = (id: string, limit = 50, offset = 0) =>
+  `/api/sessions/${encodeURIComponent(id)}/trajectory?limit=${limit}&offset=${offset}`;
 /** 导出（E1-4c；?format=md|zip，文件名由服务端按 sha256 派生） */
 export const sessionExport = (id: string, format: 'md' | 'zip' = 'md') =>
   `/api/sessions/${encodeURIComponent(id)}/export?format=${format}`;

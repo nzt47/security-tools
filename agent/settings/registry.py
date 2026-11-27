@@ -667,6 +667,13 @@ _REGISTRY_ROWS: List[SettingSpec] = [
             "off": "读 messages.jsonl（今天的行为）。",
             "shadow": "同时读 events 做对拍：差异只记 session_events 日志与计数，输出不变。",
         })),
+    # ── E4-5 Inspector 会话轨迹（2026-11-28）────────────────────────────
+    # 【为什么是 A 级】纯只读查看器：关 = 今天的行为（路由回 disabled、不读会话）；
+    #   打开也不改任何写入/权限，只把既有消息按白名单投影出来。回滚 = 关开关。
+    _mk("CP_INSPECTOR_ENABLED", CAT_OBSERVABILITY, False,
+        "会话轨迹 Inspector：GET /api/sessions/<sid>/trajectory 只读回消息与步骤摘要；"
+        "默认关（关时前端显示未启用）",
+        owner="agent/server_routes/routes_session_insight.py"),
     # ── E0-2③ 图片/截图 offload（2026-11-26）─────────────────────────────
     # 【为什么是 A 级】只改"图片以什么形态进上下文"，不改权限；关掉 = 回到把 base64
     #   塞进上下文（一次截图就可能顶穿窗口，这条开关是事故时的回滚位）。

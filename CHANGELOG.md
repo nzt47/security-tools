@@ -4,6 +4,38 @@
 **分支**: master
 **涵盖范围**: 5 个核心 commit（4608614c → 9977c949）
 
+## [CHG] - 2026-11-28: E4-5 第一批 —— Inspector 会话轨迹只读查看器（默认关）✅
+
+**影响模块**: `agent/context/trajectory.py`（新）、`agent/server_routes/routes_session_insight.py`、
+`agent/settings/registry.py`、`yunshu-ui/src/lib/sessionInsightApi.ts`、`yunshu-ui/src/api/endpoints.ts`、
+`yunshu-ui/src/components/workbench/panels/HistoryDrawer.tsx`
+**关联文档**: `docs/plan/2026-11-28-e4-5-inspector-design.md`
+
+### Added
+- **`GET /api/sessions/<sid>/trajectory?limit=&offset=`**：把会话存储里的 messages（含 steps）
+  压成只读轨迹页；不新采一份轨迹、不写 messages.jsonl（与 E1-4c 大纲/统计同一事实源）。
+- **硬上限**：正文 2000 字符、单个 step.detail 800 字符、单条消息 40 个 step、一次 200 条；
+  `limit`/`offset` 越界夹回，`total`/`truncated` 只表示「窗口外还有」。
+- **白名单投影**：entry 只有 `index/role/ts/chars/body/body_truncated/steps`；
+  step 只有 `id/title/status/detail/detail_truncated/at`（新增字段必须显式加）。
+- **默认关**：`CP_INSPECTOR_ENABLED`（A 级，默认 0）；关时路由回 `disabled` 且**不读会话**，
+  前端显示「轨迹查看未启用」。回滚 = 关开关。
+- **前端**：历史问话抽屉的洞察行加「轨迹」按钮（与大纲/统计同排），点开才拉一次；
+  逐条列 role / 时间 / 正文摘要 / steps（工具调用标题与结果摘要）。
+
+### 边界
+- 只读：不做回放/重放、不导出、不跨会话聚合；不读 `data/messages.jsonl` 冻结池。
+- 不新增工具；新增 1 条只读路由且同批有前端引用（`route_ui_coverage` 重派生：
+  该路由 category=ui、ui_pending=false）。
+- 内容可见性与对话界面一致（同一会话、同一用户），只靠截断与白名单控制响应体大小。
+
+### 实测
+- `tests/unit/test_trajectory.py` 12 条（窗口/夹取/白名单/截断/非字典项）、
+  `test_session_trajectory_route.py` 7 条（默认关不读会话/形状/404/异常不回原文）；
+  `HistoryDrawer.test.tsx` 13 条（新增轨迹列表与默认关两条）。
+- 干净 worktree（`.worktrees/e45 @ 5edc52ece`）：全量 pytest 见交接卡；
+  `sync_tool_index --check`（109）/ `sync_capability_manifest --check`（159，local 133 / remote 26）、
+  `backfill_* --check`、`scan_settings --check` 全部零缺口；`reports/route_ui_coverage.json` 重派生。
 ## [CHG] - 2026-11-28: E4-2 收口 —— 跨轮次显式 state.json + 会话筛选 + run 详情（不新增路由/工具）✅
 
 **影响模块**: `agent/orchestration/state.py`（新）、`agent/orchestration/runtime.py`、
