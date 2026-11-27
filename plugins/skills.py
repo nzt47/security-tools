@@ -754,7 +754,10 @@ def api_extensions_market_refresh():
     try:
         result = _extension_market.fetch_community_index()
         if result:
-            return jsonify({"ok": True, "count": len(result)})
+            # E4-4：索引已归一成 v1 契约（{"schema_version","items","bundles",...}）⇒
+            # count 取**条目数**，不是顶层键数（旧写法会把 4 个类型键报成 4）。
+            return jsonify({"ok": True, "count": int(result.get("count") or 0),
+                            "bundles": len(result.get("bundles") or [])})
         return jsonify({"ok": False, "error": "获取索引失败"}), 500
     except Exception as e:
         return jsonify({"ok": False, "error": _internal_error(e)}), 500

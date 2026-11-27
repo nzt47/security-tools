@@ -140,10 +140,19 @@ class TestExtensionMarket(unittest.TestCase):
     """测试扩展市场"""
     
     def test_search_all(self):
-        """测试搜索扩展 - 使用 search_all 方法"""
+        """测试搜索扩展 - 使用 search_all 方法
+
+        【2026-11-27 E4-4】打桩网络面：社区索引抓取与 GitHub 搜索都不许在单测里真发包
+        （CI 无网络时会被 10s 超时拖慢；本用例只验形状）。
+        """
         market = ExtensionMarket()
-        results = market.search_all("test")
+        with patch.object(ExtensionMarket, "fetch_community_index", return_value=None), \
+                patch.object(ExtensionMarket, "search_github", return_value=[]):
+            results = market.search_all("test")
         self.assertIsInstance(results, dict)
+        self.assertIn("builtin", results)
+        self.assertIn("community", results)
+        self.assertIn("recommend_enabled", results)
     
     @pytest.mark.xfail(
         reason="ExtensionMarket.add_review 方法待统一重构 — 源码未实现",

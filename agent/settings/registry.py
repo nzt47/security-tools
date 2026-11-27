@@ -817,6 +817,17 @@ _REGISTRY_ROWS: List[SettingSpec] = [
            "warn": "灰度：验签失败仍放行，只写日志；不阻断",
            "enforce": "默认：缺失/篡改/未知或撤销 key 一律拒绝",
        })),
+    # ── E4-4 扩展市场索引/推荐（2026-11-27）─────────────────────────────
+    # 【URL 用 _c】外部依赖端点（只读脱敏）；默认保持仓库既有地址，置空 = 只用内置 + 本地缓存。
+    _c("CP_EXTENSION_MARKET_INDEX_URL", CAT_EXTERNAL,
+       "https://raw.githubusercontent.com/nzt47/yunshu-extensions/main/index.json",
+       "社区扩展索引 JSON 的地址（只读脱敏）；空 = 不拉远程。只允许 https，"
+       "每次抓取都过 ssrf_guard、禁跟随 3xx、有 1MiB 字节上限",
+       owner="agent/extensions/market.py"),
+    _b("CP_EXTENSION_MARKET_RECOMMEND_ENABLED", CAT_EXTERNAL, False,
+       "扩展市场「官方推荐位」与 bundle 一键装的展示开关；默认关（关时 search/recommend 的 "
+       "featured/bundles 为空、抽屉不渲染推荐区）。只影响展示，安装仍走双闸 + 验签",
+       owner="agent/extensions/market.py"),
     # 【P5 container 执行档（2026-10-09）】容器通道的开关/镜像/CLI。开启即安全姿态变更
     # （委派改在容器内执行）⇒ 用 _b；镜像与 CLI 属外部依赖端点，用 _c（只读脱敏）。
     _b("CP_SUBAGENT_CONTAINER_ENABLED", CAT_SELF_HEALING, False,

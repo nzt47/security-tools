@@ -27,7 +27,7 @@
  *    同一件事两个入口，迟早会出现"在 A 装完去 B 看不见"的分裂。
  */
 import { createElement, useCallback, useEffect, useRef, useState } from 'react'
-import { ChevronDown, Loader2, PackagePlus, RefreshCw, Search, Server, Settings2, X } from 'lucide-react'
+import { ChevronDown, Download, Loader2, PackagePlus, RefreshCw, Search, Server, Settings2, Sparkles, X } from 'lucide-react'
 import { Badge, Button, Card, ErrorBox, Input, Loading, PageHeader } from './components/ui'
 import InstalledExtensions from './extensions/installed-extensions'
 import { SchemaRenderer } from '@/plugins/schema'
@@ -82,6 +82,16 @@ interface MarketPluginRow {
   ext_type?: string
   source?: string
   market_type?: string
+  featured?: boolean
+}
+
+/** 官方推荐 bundle（E4-4；只含 plugin id；安装 = 逐项走既有 install 路由） */
+interface MarketBundleRow {
+  id?: string
+  name?: string
+  description?: string
+  featured?: boolean
+  items?: string[]
 }
 
 /** 把单个 manifest 条目归一化为 PluginInfo（wire snake_case → 前端 camelCase） */
@@ -159,6 +169,10 @@ export default function PluginManagePage() {
   const [marketRows, setMarketRows] = useState<MarketPluginRow[]>([])
   const [marketBusy, setMarketBusy] = useState('')
   const [marketNotice, setMarketNotice] = useState<Notice | null>(null)
+  // E4-4：官方推荐位 / bundle（后端 CP_EXTENSION_MARKET_RECOMMEND_ENABLED 默认关）
+  const [marketFeatured, setMarketFeatured] = useState<MarketPluginRow[]>([])
+  const [marketBundles, setMarketBundles] = useState<MarketBundleRow[]>([])
+  const [marketRecommendEnabled, setMarketRecommendEnabled] = useState(false)
 
   // 当前配置面板的表单态
   const [values, setValues] = useState<Json>({})
@@ -328,17 +342,27 @@ export default function PluginManagePage() {
         builtin?: MarketPluginRow[]
         community?: MarketPluginRow[]
         github?: MarketPluginRow[]
+        featured?: MarketPluginRow[]
+        bundles?: MarketBundleRow[]
+        recommend_enabled?: boolean
       }>(EXTENSIONS_MARKET_SEARCH + params)
       if (res && res.ok === false) {
         setMarketRows([])
+        setMarketFeatured([])
+        setMarketBundles([])
         setMarketNotice({ kind: 'err', text: `搜索失败：${res.error ?? '后端返回 ok=false'}` })
         return
       }
       const rows = [...(res?.builtin ?? []), ...(res?.community ?? []), ...(res?.github ?? [])]
       setMarketRows(rows)
+      setMarketRecommendEnabled(res?.recommend_enabled === true)
+      setMarketFeatured(res?.recommend_enabled === true ? (res?.featured ?? []) : [])
+      setMarketBundles(res?.recommend_enabled === true ? (res?.bundles ?? []) : [])
       if (rows.length === 0) setMarketNotice({ kind: 'ok', text: '市场里没有匹配的插件包' })
     } catch (e) {
       setMarketRows([])
+      setMarketFeatured([])
+      setMarketBundles([])
       setMarketNotice({ kind: 'err', text: `搜索失败：${e instanceof Error ? e.message : String(e)}` })
     } finally {
       setMarketBusy('')
@@ -371,6 +395,40 @@ export default function PluginManagePage() {
     } finally {
       setMarketBusy('')
     }
+  }
+
+  /** 一键装 bundle：**前端串行** N 次既有安装路由（不新增路由、不绕过双闸/验签） */
+  const installBundle = async (bundle: MarketBundleRow) => {
+    const bundleId = String(bundle.id ?? '')
+    const items = (bundle.items ?? []).map(String)
+    if (items.length === 0) return
+    setMarketBusy('bundle:' + bundleId)
+    setMarketNotice(null)
+    const pool = [...marketFeatured, ...marketRows]
+    let okCount = 0
+    const failed: string[] = []
+    for (const itemId of items) {
+      const row = pool.find((r) => String(r.id ?? '') === itemId)
+      const rawSource = String(row?.source ?? '')
+      const source = /^(github|url|local|path):/.test(rawSource) ? rawSource : itemId
+      try {
+        const r = await request<{ ok?: boolean }>(EXTENSIONS_INSTALL, {
+          method: 'POST',
+          body: { type: 'plugin', source },
+        })
+        if (r && r.ok === false) failed.push(itemId)
+        else okCount += 1
+      } catch {
+        failed.push(itemId)
+      }
+    }
+    setMarketBusy('')
+    if (failed.length > 0) {
+      setMarketNotice({ kind: 'err', text: `bundle ${bundleId}：成功 ${okCount} 项，失败 ${failed.join('、')}` })
+      return
+    }
+    setMarketNotice({ kind: 'ok', text: `已安装 bundle ${bundleId}（${okCount} 项）；清单稍后自动刷新` })
+    window.setTimeout(load, 300)
   }
 
   const renderConfigBody = (plugin: PluginInfo) => {
@@ -623,11 +681,47 @@ export default function PluginManagePage() {
                 {marketNotice.text}
               </div>
             )}
+            {marketRecommendEnabled && (marketFeatured.length > 0 || marketBundles.length > 0) && (
+              <div className="mb-2 rounded-md border border-cyan-900/60 bg-cyan-950/20 px-2 py-1.5" data-testid="market-recommend">
+                <div className="mb-1 flex items-center gap-1.5">
+                  <Sparkles size={11} className="text-cyan-400" />
+                  <span className="text-caption font-medium text-cyan-200">官方推荐</span>
+                  <span className="text-micro text-slate-500">bundle 逐项走既有安装路由（双闸 + 验签不变）</span>
+                </div>
+                {marketFeatured.map((m) => {
+                  const id = String(m.id ?? '')
+                  return (
+                    <div key={'featured-' + id} className="flex flex-wrap items-center gap-2 py-0.5 text-caption" data-testid={'market-featured-' + id}>
+                      <span className="font-mono text-micro text-cyan-300">{id}</span>
+                      <span className="text-slate-200">{m.name ?? ''}</span>
+                      <span className="truncate text-micro text-slate-500">{m.description ?? ''}</span>
+                      <Button type="button" onClick={() => void installMarketPlugin(String(m.source && /^(github|url|local|path):/.test(String(m.source)) ? m.source : id))} disabled={marketBusy !== ''} aria-label={'安装推荐插件 ' + id} variant="default" size="xs" className="ml-auto">
+                        {marketBusy === 'install:' + id ? <Loader2 size={11} className="animate-spin" /> : <PackagePlus size={11} />} 安装
+                      </Button>
+                    </div>
+                  )
+                })}
+                {marketBundles.map((b) => {
+                  const id = String(b.id ?? '')
+                  const count = (b.items ?? []).length
+                  return (
+                    <div key={'bundle-' + id} className="flex flex-wrap items-center gap-2 py-0.5 text-caption" data-testid={'market-bundle-' + id}>
+                      <span className="font-mono text-micro text-cyan-300">{id}</span>
+                      <span className="text-slate-200">{b.name ?? ''}</span>
+                      <span className="truncate text-micro text-slate-500">{b.description ?? ''}（{count} 项）</span>
+                      <Button type="button" onClick={() => void installBundle(b)} disabled={marketBusy !== ''} aria-label={'一键安装 ' + id} variant="accent" size="xs" className="ml-auto">
+                        {marketBusy === 'bundle:' + id ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />} 一键安装
+                      </Button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
             {marketRows.length === 0 && marketBusy !== 'search' && (
               <div className="py-6 text-center text-caption text-slate-500">没有可安装的插件包。</div>
             )}
             <div className="flex max-h-80 flex-col gap-1 overflow-y-auto">
-              {marketRows.map((m) => {
+              {marketRows.filter((m) => !marketFeatured.some((f) => String(f.id ?? '') === String(m.id ?? ''))).map((m) => {
                 const id = m.id ?? ''
                 return (
                   <div key={'market-plugin-' + id} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-caption">

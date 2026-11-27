@@ -287,6 +287,58 @@ describe('PluginManagePage：从市场安装插件包（插件包安装入口收
       ([u]) => String(u) === '/api/extensions/market/search?type=plugin&q=' + encodeURIComponent('演示 插件'),
     )).toBe(true))
   })
+
+  it('官方推荐位默认关：不渲染推荐区（recommend_enabled=false）', async () => {
+    installFetch([
+      { match: isGetPlugins, body: MANIFEST },
+      { match: isMarketSearch, body: { ...SEARCH_BODY, recommend_enabled: false, featured: [], bundles: [] } },
+    ])
+    render(<PluginManagePage />)
+    await screen.findByTestId('plugin-config-toggle-memory')
+    fireEvent.click(screen.getByTestId('plugin-market-open'))
+    await screen.findByText('演示插件包')
+    expect(screen.queryByTestId('market-recommend')).toBeNull()
+  })
+
+  it('推荐位打开：featured 上屏；bundle 一键装串行发 N 次 install（不新增路由）', async () => {
+    const BODY = {
+      ok: true,
+      builtin: [],
+      community: [
+        { id: 'alpha', name: 'Alpha', description: 'a', source: 'github:acme/alpha' },
+        { id: 'beta', name: 'Beta', description: 'b', source: 'local:/opt/beta' },
+      ],
+      github: [],
+      recommend_enabled: true,
+      featured: [{ id: 'alpha', name: 'Alpha', description: 'a', source: 'github:acme/alpha' }],
+      bundles: [{ id: 'starter', name: '入门包', description: 'two', items: ['alpha', 'beta'] }],
+    }
+    const fetchMock = installFetch([
+      { match: isGetPlugins, body: MANIFEST },
+      { match: isMarketSearch, body: BODY },
+      { match: isInstall, body: { ok: true, message: '已安装' } },
+    ])
+    render(<PluginManagePage />)
+    await screen.findByTestId('plugin-config-toggle-memory')
+    fireEvent.click(screen.getByTestId('plugin-market-open'))
+
+    expect(await screen.findByTestId('market-recommend')).toBeInTheDocument()
+    expect(screen.getByTestId('market-featured-alpha')).toBeInTheDocument()
+    // featured 已单列 ⇒ 主列表不再重复
+    expect(screen.getAllByText('Alpha').length).toBe(1)
+
+    fireEvent.click(screen.getByRole('button', { name: '一键安装 starter' }))
+    await waitFor(() => {
+      const bodies = fetchMock.mock.calls
+        .filter(([u]) => String(u) === '/api/extensions/install')
+        .map(([, init]) => JSON.parse(String(init?.body)))
+      expect(bodies).toEqual([
+        { type: 'plugin', source: 'github:acme/alpha' },
+        { type: 'plugin', source: 'local:/opt/beta' },
+      ])
+    })
+    expect(await screen.findByText(/已安装 bundle starter（2 项）/)).toBeInTheDocument()
+  })
 })
 
 describe('PluginManagePage：安全默认（插件包/插件 UI 关闭）', () => {

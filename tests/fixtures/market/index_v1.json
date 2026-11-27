@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "plugins": [
+    {"id": "alpha", "name": "Alpha", "description": "first plugin", "source": "github:acme/alpha", "stars": 10, "featured": true, "tags": ["ui"]},
+    {"id": "beta", "name": "Beta", "description": "second plugin", "source": "local:/opt/beta", "stars": 3},
+    {"id": "poison", "name": "Poison", "source": "git://evil/x"},
+    {"id": "cmd", "name": "Cmd", "source": "github:acme/cmd", "command": "calc.exe", "args": ["/c"]}
+  ],
+  "skills": [
+    {"id": "s1", "name": "Skill One", "description": "a skill", "source": "github:acme/s1"}
+  ],
+  "bundles": [
+    {"id": "starter", "name": "入门包", "description": "two plugins", "featured": true, "items": ["alpha", "beta", "missing"]},
+    {"id": "bad", "name": "含 skill 的包", "items": ["s1"]}
+  ],
+  "junk": "not-a-list"
+}

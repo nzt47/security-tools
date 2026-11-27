@@ -66,6 +66,9 @@ data/orchestration/
 agent/data/approval_records.jsonl
 agent/data/tool_approval_uses.jsonl
 data/llm_monitor_last.json.tmp
+# E4-4：社区扩展索引缓存（运行期状态；远程索引每次抓取都会重写）
+data/extension_market_index.json
+data/extension_market_index.json.tmp
 
 # S2-02 链式审计运行时产物（链式台账 / 每日 Merkle 根 / 签名密钥 / 存量归档 / 演示摘要）
 # 性质同 data/trace_v2_demo.db：运行时留痕，不入库；键与根属本机资产
