@@ -87,6 +87,14 @@ def register_all(*_args, **_kwargs) -> int:
     def _run_orchestration_script(**kwargs) -> Dict[str, Any]:
         from agent.orchestration import runtime
 
+        # 会话 id 只用于**结果面按会话过滤**（agent/context/session_bind.py 是唯一来源；
+        # 取不到就留空，绝不臆造一个共享键）
+        try:
+            from agent.context import session_bind as _session_bind
+
+            session_id = _session_bind.current()
+        except Exception:  # noqa: BLE001 绑定不可用不影响本次 run
+            session_id = ""
         return runtime.run(
             str(kwargs.get("script") or ""),
             line=str(kwargs.get("line") or ""),
@@ -94,6 +102,7 @@ def register_all(*_args, **_kwargs) -> int:
             allow_spawn=bool(kwargs.get("allow_spawn")),
             timeout_sec=kwargs.get("timeout_seconds"),
             max_calls=kwargs.get("max_calls"),
+            session_id=session_id,
         )
 
     return 1

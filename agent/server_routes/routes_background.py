@@ -80,6 +80,23 @@ def _history_view(executor) -> dict:
         return {"total": None, "records": [], "path": path}
 
 
+def _orchestration_view(limit: int) -> dict:
+    """E4-2：脚本编排 run 的**只读投影**（与后台任务同一个 GET，不另开路由）
+
+    【为什么读失败回空块而不是 500】结果面是只读旁路：编排索引坏了只是"这一栏空着"，
+    不能让整个后台任务下拉跟着打不开（与 history 摘要同一失败姿态）。
+    """
+    try:
+        from agent.orchestration import runs as _runs
+
+        data = _runs.read_runs(limit=limit)
+        return {"total": data["total"], "runs": data["runs"],
+                "truncated": data["truncated"], "path": data["path"]}
+    except Exception as e:  # noqa: BLE001 只读旁路：坏了只影响这一栏
+        logger.warning("编排 run 投影读取失败（不影响任务列表）: %s", e)
+        return {"total": 0, "runs": [], "truncated": False, "path": ""}
+
+
 def register_routes(app, state):
     """注册后台任务路由"""
 
@@ -107,6 +124,8 @@ def register_routes(app, state):
                 "active": running,  # 别名：下拉按钮角标使用
                 # 历史摘要：只读控件在"当前为空"时也要能回答问题"到底跑没跑过"
                 "history": _history_view(_executor()),
+                # E4-2：脚本编排 run 的只读投影（同口径；前端「任务队列」页直接渲染）
+                "orchestration": _orchestration_view(limit),
                 "status_filter": status,
                 "ts": time.strftime("%H:%M:%S"),
             })

@@ -44,6 +44,20 @@ interface TaskRow {
   [k: string]: unknown
 }
 
+/** E4-2：脚本编排 run 的只读投影（后端 /api/background/tasks 的 orchestration 块） */
+interface OrcRow {
+  run_id?: string
+  ts?: string
+  line?: string
+  ok?: boolean
+  code?: string
+  duration_ms?: number
+  calls?: number
+  spawned?: number
+  denied?: number
+  whitelist_size?: number
+}
+
 export default function TaskQueue() {
   const [busy, setBusy] = useState('')
   const [err, setErr] = useState('')
@@ -53,6 +67,8 @@ export default function TaskQueue() {
   const [bgRows, setBgRows] = useState<TaskRow[]>([])
   const [bgMeta, setBgMeta] = useState<Record<string, unknown> | null>(null)
   const [asyncRows, setAsyncRows] = useState<TaskRow[]>([])
+  const [orcRows, setOrcRows] = useState<OrcRow[]>([])
+  const [orcTotal, setOrcTotal] = useState(0)
 
   const [detail, setDetail] = useState<Record<string, unknown> | null>(null)
   const [detailLabel, setDetailLabel] = useState('')
@@ -64,7 +80,14 @@ export default function TaskQueue() {
     setBusy('load'); setErr('')
     try {
       const [bg, at] = await Promise.allSettled([
-        hubGet<{ tasks?: TaskRow[]; total?: number; running?: number; active?: number; ok?: boolean }>(
+        hubGet<{
+          tasks?: TaskRow[]
+          total?: number
+          running?: number
+          active?: number
+          ok?: boolean
+          orchestration?: { total?: number; runs?: OrcRow[] }
+        }>(
           BACKGROUND_TASKS + '?limit=50' + (status ? '&status=' + encodeURIComponent(status) : ''),
         ),
         hubGet<{ tasks?: TaskRow[]; total?: number; ok?: boolean }>(ASYNC_TASKS + '?limit=50'),
@@ -72,6 +95,8 @@ export default function TaskQueue() {
       if (bg.status === 'fulfilled') {
         setBgRows(bg.value?.tasks ?? [])
         setBgMeta({ total: bg.value?.total ?? 0, running: bg.value?.running ?? 0, active: bg.value?.active ?? 0 })
+        setOrcRows(bg.value?.orchestration?.runs ?? [])
+        setOrcTotal(bg.value?.orchestration?.total ?? 0)
       }
       if (at.status === 'fulfilled') setAsyncRows(at.value?.tasks ?? [])
     } catch (e) { fail('读取任务列表失败', e) } finally { setBusy('') }
@@ -195,8 +220,8 @@ export default function TaskQueue() {
         {[
           ['后台任务', bgRows.length],
           ['运行中', (bgMeta?.running as number) ?? 0],
-          ['活跃', (bgMeta?.active as number) ?? 0],
           ['异步任务', asyncRows.length],
+          ['编排 run', orcTotal],
         ].map(([k, v]) => (
           <div key={String(k)} className="rounded-sm border border-slate-800 bg-slate-900/50 px-2 py-1.5">
             <div className="text-micro text-slate-500">{String(k)}</div>
@@ -217,6 +242,36 @@ export default function TaskQueue() {
           <ListChecks size={11} className="text-cyan-400" /> 异步任务（{asyncRows.length}）
         </div>
         {renderRows(asyncRows, 'async')}
+      </div>
+
+      {/* E4-2：脚本编排 run 的只读投影。同步工具、跑完即定，所以这一组**没有取消**按钮；
+          数据源与后台任务同一个 GET（orchestration 块），不额外加路由。 */}
+      <div className="mb-2 rounded-lg border border-slate-800 bg-slate-900/50 p-3">
+        <div className="mb-2 flex items-center gap-2 text-caption text-slate-400">
+          <ListChecks size={11} className="text-cyan-400" /> 脚本编排 run（{orcTotal}）
+        </div>
+        <div className="flex flex-col gap-1">
+          {orcRows.map((r) => {
+            const id = String(r.run_id ?? '')
+            const ok = r.ok === true
+            return (
+              <div key={'orc:' + id} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5 text-caption">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-micro text-cyan-300">{id || '—'}</span>
+                  <span className="text-slate-300">{r.line || '默认主线'}</span>
+                  <span className={'text-micro ' + (ok ? 'text-emerald-400' : 'text-red-400')}>
+                    {ok ? 'ok' : (r.code || 'failed')}
+                  </span>
+                  <span className="font-mono text-micro text-slate-500">
+                    {String(r.calls ?? 0)} 次调用 / {String(r.duration_ms ?? 0)}ms / 白名单 {String(r.whitelist_size ?? 0)}
+                  </span>
+                  <span className="ml-auto font-mono text-micro text-slate-600">{String(r.ts ?? '')}</span>
+                </div>
+              </div>
+            )
+          })}
+          {orcRows.length === 0 && <div className="text-caption text-slate-500">还没有脚本编排 run（默认关闭 CP_ORCH_SCRIPT_ENABLED=0）。</div>}
+        </div>
       </div>
 
       {detail && (

@@ -402,7 +402,7 @@ class _Protocol:
 
 def run(script: str, *, line: str = "", allow_tools: Sequence[str] = (),
         allow_spawn: bool = False, timeout_sec: Optional[int] = None,
-        max_calls: Optional[int] = None) -> Dict[str, Any]:
+        max_calls: Optional[int] = None, session_id: str = "") -> Dict[str, Any]:
     """跑一次脚本编排（E4-1 第一期的唯一入口）
 
     Args:
@@ -411,6 +411,7 @@ def run(script: str, *, line: str = "", allow_tools: Sequence[str] = (),
         allow_tools: 额外放行的工具名（仍受静态清单约束；治理平面/编排自身/终端永不放行）
         allow_spawn: 是否允许脚本调 spawn（fan_out；仍过全部闸门）
         timeout_sec / max_calls: 本次收窄上限（只能小于 env 给的上限）
+        session_id: 调用方所属会话（结果面按会话过滤用；空串 = 未声明）
 
     Returns:
         结构化结果（ok / run_id / code / exit_code / duration_ms / calls / spawned /
@@ -679,6 +680,16 @@ def run(script: str, *, line: str = "", allow_tools: Sequence[str] = (),
     }
     if code:
         payload["error"] = CODE_MESSAGES.get(code, "")
+    # ── E4-2：只读投影（checkpoint + run 索引）────────────────────────────
+    # 【为什么是旁路】结果面坏了只是"看不到这次 run"，不该让已经跑完的 run 报错。
+    try:
+        from agent.orchestration import runs as _runs
+
+        _runs.write_checkpoint(run_dir, payload)
+        _runs.record_run({**payload, "session_id": session_id,
+                          "whitelist_size": len(tools_allowed)})
+    except Exception as exc:  # noqa: BLE001 投影失败不影响本次 run 的返回
+        logger.debug("[orchestration] 结果投影失败: %s", type(exc).__name__)
     return payload
 
 

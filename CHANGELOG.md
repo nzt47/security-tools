@@ -4,6 +4,31 @@
 **分支**: master
 **涵盖范围**: 5 个核心 commit（4608614c → 9977c949）
 
+## [CHG] - 2026-11-27: E4-2 第一批 —— 编排 run 只读投影 + 结果面（不新增路由）✅
+
+**影响模块**: `agent/orchestration/runs.py`（新）、`agent/orchestration/runtime.py`、
+`agent/tools/orchestration_tools.py`、`agent/server_routes/routes_background.py`、
+`yunshu-ui/src/pages/hub/engine/tasks.tsx`
+**关联文档**: `docs/plan/2026-11-27-p4-编排安全设计.md` §12.4
+
+### Added
+- **run 索引** `data/orchestration/index.jsonl`（append-only）：每行只放事实
+  （run_id / 会话 / 主线 / 结果码 / 耗时 / 调用数 / 白名单规模 / 上限快照），**不放**脚本源码、
+  stdout、工具参数（白名单字段，新增须显式加）。
+- **checkpoint** `data/orchestration/<run_id>/run.json`：含 stderr 尾部（截 2000 字），同样不含源码；
+  `read_file` 直接可读，不必新增工具或路由。
+- **会话隔离**：工具从 `agent.context.session_bind.current()` 取会话 id 写入索引，
+  `read_runs(session_id=...)` 可过滤（取不到留空，绝不臆造共享键）。
+- **结果面**：`GET /api/background/tasks` 增加 `orchestration` 块（只读、倒序、limit 截断）；
+  前端「任务队列」页新增「脚本编排 run」一栏（run_id / 主线 / 结果码 / 调用数 / 耗时 / 白名单规模），
+  空态如实显示「默认关闭 CP_ORCH_SCRIPT_ENABLED=0」。**不新增路由** ⇒ 覆盖率产物零漂移。
+- **失败姿态**：索引/checkpoint 写失败只 debug；读失败回空块（结果面坏了不影响任务列表）。
+
+### 实测
+- `tests/unit/test_orchestration_runs.py`（8 条）：索引白名单字段、按会话过滤、坏行跳过、
+  checkpoint 截断与写失败不抛；`tests/unit/test_background_tasks_routes.py` 新增 2 条（空块 / 条目回带且不含脚本）。
+- `npm run ui:check` 全绿（tsc + eslint + 守卫 + 原语量具）。
+
 ## [CHG] - 2026-11-27: P5 / E5-1 Phase B + Phase C-shadow —— 会话事件双写与读灰度 ✅
 
 **影响模块**: `agent/session_events.py`（新）、`agent/session_manager.py`、

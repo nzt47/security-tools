@@ -216,6 +216,42 @@ def real_entry():
         _tools._registry_version += 1
 
 
+
+
+class TestOrchestrationView:
+    """E4-2：脚本编排 run 的只读投影挂在同一个 GET 上（不新增路由）"""
+
+    def test_空索引也回结构化块(self, client, tmp_path, monkeypatch):
+        from agent.orchestration import runs as _runs
+
+        monkeypatch.setattr(_runs, "RUN_ROOT", tmp_path / "orch")
+        body = client.get("/api/background/tasks").get_json()
+        assert body["orchestration"]["total"] == 0
+        assert body["orchestration"]["runs"] == []
+        assert body["orchestration"]["truncated"] is False
+
+    def test_索引条目原样回带且不含脚本源码(self, client, tmp_path, monkeypatch):
+        from agent.orchestration import runs as _runs
+
+        monkeypatch.setattr(_runs, "RUN_ROOT", tmp_path / "orch")
+        _runs.record_run({
+            "run_id": "run-x", "line": "engineering", "ok": True, "code": "",
+            "duration_ms": 12, "calls": 2, "spawned": 0, "denied": 0,
+            "session_id": "s1", "whitelist_size": 3,
+            "limits": {"timeout_sec": 120, "max_calls": 50},
+            "script": "SECRET-SCRIPT-BODY", "stderr_tail": "noise",
+        })
+        body = client.get("/api/background/tasks").get_json()
+        block = body["orchestration"]
+        assert block["total"] == 1
+        row = block["runs"][0]
+        assert row["run_id"] == "run-x"
+        assert row["calls"] == 2
+        assert row["session_id"] == "s1"
+        assert "script" not in row and "stderr_tail" not in row
+        assert "SECRET-SCRIPT-BODY" not in json.dumps(block, ensure_ascii=False)
+
+
 def test_端点已在真实入口注册(real_entry):
     """真实 url_map 守门：手搓 Flask 全绿而线上 404 的坑（见文件头说明）"""
     paths = {str(r.rule) for r in real_entry.app.url_map.iter_rules()}
