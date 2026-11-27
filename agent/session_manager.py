@@ -524,6 +524,18 @@ class SessionManager:
             with open(msg_file, "a", encoding="utf-8") as f:
                 f.write(json.dumps(msg, ensure_ascii=False) + "\n")
 
+        # ── P5 / E5-1 Phase B：事件**双写**（先 messages 后 events）─────────────
+        # 【为什么放在 append 锁之外】事件是**旁路**：多占一点写延迟没有意义，
+        #   而把两处写进同一把锁会把"事件目录慢"传导成"消息落盘慢"。
+        # 【失败姿态】事件写失败只记指标 + 日志（append_live_event 内部已吞），
+        #   消息已经落盘 ⇒ 绝不回滚、绝不抛回调用方（方案 §6）。默认关。
+        try:
+            from agent import session_events as _session_events
+
+            _session_events.append_live_event(session_id, msg)
+        except Exception as e:  # noqa: BLE001 旁路异常不得影响消息落盘
+            logger.debug("会话事件双写失败（旁路，不影响消息）: %s", e)
+
         with self._lock:
             index = self._read_index()
             for s in index:
@@ -572,6 +584,19 @@ class SessionManager:
             except json.JSONDecodeError:
                 continue
 
+        # ── P5 / E5-1 Phase C（**只做 shadow**）：读 events 对拍 ──────────────
+        # 【为什么在切片之前】对拍要比**全量**（切片后比会因窗口不同而假红）。
+        # 【失败姿态】对拍只读、只记日志/计数，返回值仍是 messages（方案 §3 C 的
+        #   shadow 语义）；events 模式（以事件为准）要按会话白名单 + 30 天零差异才放行，
+        #   本模块本期不实现（非法档位一律回落 off，见 agent/session_events.py）。
+        try:
+            from agent import session_events as _session_events
+
+            if _session_events.read_mode() == "shadow":
+                _session_events.shadow_compare(session_id, messages)
+        except Exception as e:  # noqa: BLE001 对拍是旁路，绝不影响读取
+            logger.debug("会话事件 shadow 对拍失败（旁路）: %s", e)
+
         if offset > 0:
             messages = messages[offset:]
         if limit > 0:
@@ -606,6 +631,14 @@ class SessionManager:
         if msg_file.exists():
             with self._append_lock:
                 msg_file.write_text("", encoding="utf-8")
+            # P5 Phase B：清空是**用户显式动作**，双轨必须一起清 —— 否则事件里还留着
+            # 已删消息，Phase C 的 events 读会"复活"它们（shadow 也会永远对不上）。
+            try:
+                from agent import session_events as _session_events
+
+                _session_events.clear_events(session_id)
+            except Exception as e:  # noqa: BLE001 旁路异常不影响清空结果
+                logger.debug("清空会话事件失败（旁路）: %s", e)
 
         with self._lock:
             index = self._read_index()

@@ -4,6 +4,36 @@
 **分支**: master
 **涵盖范围**: 5 个核心 commit（4608614c → 9977c949）
 
+## [CHG] - 2026-11-27: P5 / E5-1 Phase B + Phase C-shadow —— 会话事件双写与读灰度 ✅
+
+**影响模块**: `agent/session_events.py`（新）、`agent/session_manager.py`、
+`scripts/session_events_project.py`（幂等键改用共享实现）、`agent/settings/registry.py`
+**关联文档**: `docs/plan/2026-11-27-p5-会话事件溯源迁移方案.md` §10
+
+### Added
+- **双写（Phase B，默认关）**：`CP_SESSION_EVENTS_WRITE=1` 时，`SessionManager.add_message`
+  在写完 messages.jsonl **之后**追加一条事件到 `data/session_events/<sid>.jsonl`
+  （`{v,type,sid,seq,id,ts,payload,src:"live"}`；payload = 同一行 dict）。
+  **事件写失败只记计数 + WARNING**（含会话 id 摘要，不含正文），消息照常落盘、不抛。
+- **幂等键单一实现**：`evt_ + sha256(sid|ts|role|content)[:16]` 收敛到 `agent.session_events`，
+  Phase A 投影器改为 import 它（两处各写一份必然让双轨 id 漂移）。
+- **seq 接续**：首次写某会话扫事件文件取 max(seq)，按文件 mtime 失效缓存
+  ⇒ 投影器原子替换后不会写出重复序号。
+- **读灰度（Phase C-shadow，默认 off）**：`CP_SESSION_EVENTS_READ=shadow` 时 `get_messages`
+  读 events **全量对拍**（切片之前），差异只记日志 + 计数，**返回值仍是 messages**。
+  `events` 档（以事件为准）按方案 §3 需"按会话白名单 + 30 天零差异"，本期不实现，非法值回落 off。
+- **清空会话同时清空事件**：`clear_messages` 一并清事件文件（否则已删消息会被 events 读"复活"）。
+
+### 实测（用例 tests/unit/test_session_events_dual_write.py，11 条）
+- 默认关：不建事件文件、读路径零变化；
+- 打开双写：两条消息 → 两处各两条，payload 逐字段相同、seq 1,2、id = 共享算法；
+- events 根目录被换成普通文件（必失败）⇒ 消息仍落盘、`write_failure_count()>=1`；
+- 已有 seq=7 的 legacy 事件 ⇒ 新事件 seq=8；
+- `READ=shadow` 与 `off` 输出逐字节相同；人为篡改内容 ⇒ `mismatched=1`（reason=content）而输出不变。
+
+### 边界
+- `READ=events` 与 Phase D 未做；`data/messages.jsonl` 仍一字未动；事件目录不进 git。
+
 ## [CHG] - 2026-11-27: E4-1 第一期 —— 脚本编排（独立 node 子进程 + 宿主执行工具）✅
 
 **影响模块**: `agent/orchestration/`（新：`runtime.py` / `node_runner.mjs` / `whitelist.py`）、

@@ -649,6 +649,24 @@ _REGISTRY_ROWS: List[SettingSpec] = [
         "回给脚本的单次工具结果字符上限（512–64000）；超出截断并标记 truncated",
         owner="agent/orchestration/runtime.py",
         validator=_range_validator(512, 64000, kind="int")),
+    # ── P5 / E5-1 会话事件溯源（Phase B 双写 / Phase C 读灰度，2026-11-27）──
+    # 【为什么是 A 级】两条都**不改权限姿态**：默认关 = 今天的行为；打开双写只是多一份
+    #   追加副本（事件写失败只记指标、不影响消息落盘）；shadow 档只对拍不改读结果。
+    #   回滚 = 开关改回默认（事件目录可删，messages.jsonl 从未被改写）。
+    _a("CP_SESSION_EVENTS_WRITE", CAT_ORCHESTRATION, False,
+       "会话事件**双写**：新消息在写 messages.jsonl 之后再追加一条事件到 "
+       "data/session_events/<sid>.jsonl（append-only；写失败只记 session_events_write_failed，"
+       "不影响消息落盘）。默认关",
+       owner="agent/session_events.py"),
+    _mk("CP_SESSION_EVENTS_READ", CAT_ORCHESTRATION, "off",
+        "会话读链路的**灰度档**：off（默认，读 messages.jsonl）/ shadow（读 events 仅对拍，"
+        "差异只记日志与计数，返回值仍是 messages）；events 档需按会话白名单 + 30 天零差异后才放行，"
+        "本期未实现（非法值回落 off）",
+        owner="agent/session_events.py",
+        validator=_enum("off", "shadow", notes={
+            "off": "读 messages.jsonl（今天的行为）。",
+            "shadow": "同时读 events 做对拍：差异只记 session_events 日志与计数，输出不变。",
+        })),
     # ── E0-2③ 图片/截图 offload（2026-11-26）─────────────────────────────
     # 【为什么是 A 级】只改"图片以什么形态进上下文"，不改权限；关掉 = 回到把 base64
     #   塞进上下文（一次截图就可能顶穿窗口，这条开关是事故时的回滚位）。

@@ -17,25 +17,18 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
+import sys
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-_ROLES = {"user", "assistant", "system", "tool"}
-
-
-def event_id(sid: str, ts: str, role: str, content: str) -> str:
-    """幂等键：同一 (会话, 时间, 角色, 正文) 永远得到同一个 id（不依赖原行有没有 id）"""
-    raw = "\x1f".join([str(sid), str(ts), str(role), str(content)])
-    return "evt_" + hashlib.sha256(raw.encode("utf-8", "replace")).hexdigest()[:16]
-
-
-def _event_type(role: str) -> str:
-    role = str(role or "").strip().lower()
-    return "message." + (role if role in _ROLES else "other")
+# 【为什么从 agent.session_events 取】幂等键与事件类型是 Phase A（投影）与 Phase B
+# （双写）**共用的事实**：两处各写一份，改一边就会让同一行在两条轨上得到不同 id
+# （幂等/对拍同时失效）。本脚本只负责"读 messages、算差异、原子写"。
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from agent.session_events import event_id, event_type as _event_type  # noqa: E402
 
 
 def _load_existing(path: Path) -> Tuple[List[Dict[str, Any]], Dict[str, int]]:
