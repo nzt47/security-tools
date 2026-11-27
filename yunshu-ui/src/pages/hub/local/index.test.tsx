@@ -24,8 +24,9 @@ afterEach(() => {
   api.hubPost.mockReset()
 })
 
-function gets() {
+function gets(worktrees: Record<string, unknown> = {}) {
   api.hubGet.mockImplementation(async (url: string) => {
+    if (url === '/api/git/worktrees') return worktrees
     if (url.startsWith('/api/filesystem/list')) {
       return { abs_path: 'C:\\Users\\Administrator\\agent', items: [{ name: 'app_server.py', type: 'file', size: 100 }, { name: 'agent', type: 'dir', size: 0 }] }
     }
@@ -37,6 +38,39 @@ function gets() {
     return {}
   })
 }
+
+describe('LocalResources · E4-5 git worktree 只读投影', () => {
+  it('工作区 Tab 显示 worktree 列表（分支 / 脏标记 / diff --stat）', async () => {
+    gets({
+      ok: true, root: 'C:\\repo', truncated: false,
+      worktrees: [
+        { name: 'repo', path: 'C:\\repo', branch: 'master', dirty: false, counts: { M: 0 }, diff_stat: '' },
+        {
+          name: 'wt-1', path: 'C:\\repo\\.worktrees\\wt-1', branch: 'feat/x',
+          dirty: true, counts: { M: 2, A: 0 }, diff_stat: 'a.py | 2 +-',
+        },
+      ],
+    })
+    render(<LocalResources />)
+    await screen.findByText('app_server.py')
+    fireEvent.click(screen.getByRole('tab', { name: '工作区' }))
+    await waitFor(() => expect(screen.getByTestId('worktree-list')).toBeTruthy())
+    expect(screen.getByText('wt-1')).toBeTruthy()
+    expect(screen.getByText('feat/x')).toBeTruthy()
+    expect(screen.getByText('有改动')).toBeTruthy()
+    expect(screen.getByText('干净')).toBeTruthy()
+    expect(screen.getByText('a.py | 2 +-')).toBeTruthy()
+  })
+
+  it('默认关：显示未启用而不是报错', async () => {
+    gets({ ok: false, code: 'disabled', error: 'worktree 面板未启用（CP_WORKTREE_PANEL_ENABLED=0）' })
+    render(<LocalResources />)
+    await screen.findByText('app_server.py')
+    fireEvent.click(screen.getByRole('tab', { name: '工作区' }))
+    await waitFor(() => expect(screen.getByTestId('worktree-disabled')).toBeTruthy())
+    expect(screen.getByTestId('worktree-disabled').textContent).toContain('worktree 面板未启用')
+  })
+})
 
 describe('LocalResources', () => {
   it('列目录带 path，绝对路径上屏', async () => {

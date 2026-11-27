@@ -1,16 +1,16 @@
 {
-  "generated_at": "2026-11-28T02:13:22",
+  "generated_at": "2026-11-28T03:37:01",
   "totals": {
-    "routes": 545,
-    "live": 545,
+    "routes": 546,
+    "live": 546,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 484,
+    "ui": 485,
     "cli_script": 15,
     "runtime_only": 12,
     "unreferenced": 34,
     "live_by_category": {
-      "ui": 484,
+      "ui": 485,
       "cli_script": 15,
       "runtime_only": 12,
       "unreferenced": 34
@@ -18,7 +18,7 @@
     "by_intent": {
       "should_be_in_ui": 445,
       "should_not_be_in_ui": 80,
-      "unclassified": 20
+      "unclassified": 21
     },
     "by_domain": {
       "页面入口": 7,
@@ -27,7 +27,7 @@
       "系统与配置": 51,
       "治理与审批": 47,
       "对话与会话": 50,
-      "资产与文件": 19,
+      "资产与文件": 20,
       "管理与后台": 18,
       "调度与任务": 26,
       "业务与评估": 18,
@@ -37,7 +37,7 @@
       "记忆与知识": 42
     }
   },
-  "frontend_endpoints": 488,
+  "frontend_endpoints": 489,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -1561,7 +1561,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_changes.py:40"
+        "agent/server_routes/routes_changes.py:50"
       ],
       "description": "最近一次（或指定）检查点的逐文件变更（只读）",
       "description_source": "handler",
@@ -1588,7 +1588,8 @@
         "agent/monitoring/business_metrics.py",
         "scripts/probe_prefix_cache_interaction.py",
         "scripts/stress_zh_assembly_20260815.py",
-        "scripts/verify_zh_scenarios_20260815.py"
+        "scripts/verify_zh_scenarios_20260815.py",
+        "scripts/yunshu_cli.py"
       ],
       "where": [
         "plugins/chat.py:102"
@@ -3719,6 +3720,31 @@
       "intent": "should_be_in_ui",
       "intent_area": "文件浏览",
       "intent_note": "文件浏览：目录/信息/读/写/搜索。",
+      "ui_pending": false,
+      "domain": "资产与文件"
+    },
+    {
+      "path": "/api/git/worktrees",
+      "norm": "/api/git/worktrees",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_changes.py:106"
+      ],
+      "description": "E4-5：git worktree 的**只读**投影（默认关；不建/不删/不提交）",
+      "description_source": "handler",
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
       "ui_pending": false,
       "domain": "资产与文件"
     },
@@ -12617,6 +12643,7 @@
       "non_ui_refs": [
         "scripts/deploy_workbench.py",
         "scripts/handoff_snapshot.py",
+        "scripts/yunshu_cli.py",
         "scripts/yunshu_observe.py"
       ],
       "where": [
@@ -13967,5 +13994,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "3c0436057181755c"
+  "content_hash": "19f1a7fe1c7f13bc"
 }

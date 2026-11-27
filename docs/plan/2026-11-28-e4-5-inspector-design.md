@@ -58,7 +58,23 @@
 ## 7. 分期
 
 - 本批：Inspector v1（上文）。
-- 之后：worktree/forge（先只读）、会话导入、ACP/SDK/headless、LiveShare（每项独立、默认关）。
+- 之后：会话导入、ACP/SDK（server）、LiveShare（每项独立、默认关）。
+## 9. 第三批（同日）：worktree / forge 只读投影（默认关）
+
+- `agent/git_worktree.py`（新）：`collect()` 只跑**只读** git 子命令（`worktree list --porcelain`、
+  `status --porcelain=v1`、`diff --stat`），返回 worktree 列表 + 每个的 status 计数与 diff --stat；
+  最多 20 个、diff 截 4000 字符；git 缺失/不是仓库回稳定 code（`no_git` / `not_a_repo`）。
+- 路由 `GET /api/git/worktrees`（挂在 `routes_changes.py`，与「工作区变更」同域）：默认关
+  `CP_WORKTREE_PANEL_ENABLED`；关时**不读仓库**。
+- 前端：本地资源 → 工作区 Tab 顶部「Git 工作树（只读）」卡片（分支 / detached / 脏标记 /
+  status 计数 / diff --stat）。
+- 边界：**只读**——不建/不删 worktree、不 checkout、不提交、不推远程；argv 全为服务端常量；
+  路径只来自 git 输出，不接受用户传路径（后续「指定某个 worktree」也只能做列表名字的等值匹配）。
+  「创建 worktree / 提交 / forge 请求」属 B 级，另开一片。
+- 判据：`tests/unit/test_git_worktree.py` 8 条（解析 / 上限 / 真实临时仓库 / 失败码）、
+  `test_worktree_route.py` 4 条、`local/index.test.tsx` 新增 2 条；`route_ui_coverage` 重派生
+  （+1 路由且 ui_pending=false）。
+
 ## 8. 第二批（同日）：headless CLI（客户端，不开新监听面）
 
 - `scripts/yunshu_cli.py`：`health` / `version` / `ask` 三个子命令，直接调**既有 REST**；

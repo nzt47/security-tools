@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import {
-  FileText, FolderOpen, HardDrive, Loader2, Play, RefreshCw, Search, Trash2, XOctagon,
+  FileText, FolderOpen, GitBranch, HardDrive, Loader2, Play, RefreshCw, Search, Trash2, XOctagon,
 } from 'lucide-react'
 import { Button, Checkbox, CodeBlock, ErrorBox, hubGet, hubPost, Input, Notice, PageTabsHeader, Select, Tabs, Textarea } from '../components/ui'
 import {
@@ -23,6 +23,7 @@ import {
   FILESYSTEM_READ,
   FILESYSTEM_SEARCH,
   FILESYSTEM_WRITE,
+  GIT_WORKTREES,
   PROCESS_START,
   PROCESS_STOP,
   PROCESS_WHITELIST,
@@ -37,6 +38,29 @@ import {
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 
 interface FsItem { name?: string; type?: string; size?: number; modified?: string }
+
+/** E4-5：worktree 只读投影（后端 /api/git/worktrees；默认关） */
+interface WorktreeRow {
+  name?: string
+  path?: string
+  branch?: string
+  head?: string
+  detached?: boolean
+  locked?: boolean
+  dirty?: boolean
+  counts?: Record<string, number>
+  diff_stat?: string
+  diff_truncated?: boolean
+}
+
+interface WorktreeDoc {
+  ok?: boolean
+  code?: string
+  error?: string
+  root?: string
+  truncated?: boolean
+  worktrees?: WorktreeRow[]
+}
 
 type Tab = 'files' | 'workspace' | 'process'
 
@@ -60,6 +84,7 @@ export default function LocalResources() {
   const [confirmWrite, setConfirmWrite] = useState(false)
 
   // 工作区
+  const [wtDoc, setWtDoc] = useState<WorktreeDoc | null>(null)
   const [wsItems, setWsItems] = useState<FsItem[]>([])
   const [wsInfo, setWsInfo] = useState<Record<string, unknown> | null>(null)
   const [wsPath, setWsPath] = useState('')
@@ -107,7 +132,17 @@ export default function LocalResources() {
     } catch (e) { fail('读取进程白名单失败', e) } finally { setBusy('') }
   }, [])
 
-  useEffect(() => { void loadDir(); void loadWs(); void loadProcess() }, [loadDir, loadWs, loadProcess])
+  const loadWorktrees = useCallback(async () => {
+    setBusy('worktrees'); setErr('')
+    try {
+      const r = await hubGet<WorktreeDoc>(GIT_WORKTREES)
+      setWtDoc(r)
+    } catch (e) { fail('读取工作树失败', e) } finally { setBusy('') }
+  }, [])
+
+  useEffect(() => {
+    void loadDir(); void loadWs(); void loadProcess(); void loadWorktrees()
+  }, [loadDir, loadWs, loadProcess, loadWorktrees])
 
   const info = async (p: string) => {
     setBusy('info'); setErr(''); setFileInfo(null)
@@ -323,6 +358,50 @@ export default function LocalResources() {
 
       {tab === 'workspace' && (
         <div className="space-y-2">
+          {/* E4-5：git worktree 只读投影（默认关；只读，不建/不删/不提交） */}
+          <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
+            <div className="mb-2 flex flex-wrap items-center gap-2 text-caption text-slate-400">
+              <GitBranch size={11} className="text-cyan-400" /> Git 工作树（只读，{(wtDoc?.worktrees ?? []).length} 个）
+              <Button type="button" variant="default" size="xs" onClick={() => void loadWorktrees()} disabled={loading} aria-label="刷新工作树">
+                <RefreshCw size={11} className={busy === 'worktrees' ? 'animate-spin' : ''} /> 刷新
+              </Button>
+              {wtDoc?.truncated && <span className="text-micro text-amber-400/80">只显示前 20 个</span>}
+            </div>
+            {wtDoc && wtDoc.ok === false ? (
+              <div className="text-micro text-amber-400/90" data-testid="worktree-disabled">
+                {wtDoc.error || 'worktree 面板未启用（CP_WORKTREE_PANEL_ENABLED=0）'}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1" data-testid="worktree-list">
+                {(wtDoc?.worktrees ?? []).map((w) => {
+                  const counts = w.counts ?? {}
+                  const changed = ['M', 'A', 'D', 'R', 'C', 'U']
+                    .filter((k) => Number(counts[k] ?? 0) > 0)
+                    .map((k) => k + ' ' + counts[k]).join(' · ')
+                  return (
+                    <div key={w.path || w.name} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5 text-caption">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-micro text-cyan-300">{w.name || '—'}</span>
+                        <span className="text-slate-300">{w.detached ? 'detached' : (w.branch || '—')}</span>
+                        <span className={'text-micro ' + (w.dirty ? 'text-amber-400' : 'text-emerald-400')}>
+                          {w.dirty ? '有改动' : '干净'}
+                        </span>
+                        {changed && <span className="font-mono text-micro text-slate-500">{changed}</span>}
+                        {w.locked && <span className="text-micro text-slate-500">locked</span>}
+                        <span className="ml-auto max-w-[60%] truncate font-mono text-micro text-slate-600" title={w.path}>{w.path}</span>
+                      </div>
+                      {w.diff_stat && <CodeBlock maxH={96} className="mt-1">{w.diff_stat}</CodeBlock>}
+                    </div>
+                  )
+                })}
+                {wtDoc && (wtDoc.worktrees ?? []).length === 0 && (
+                  <div className="text-caption text-slate-500">没有 worktree（或还没加载）。</div>
+                )}
+                {!wtDoc && <div className="text-caption text-slate-500">读取中…</div>}
+              </div>
+            )}
+          </div>
+
           <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
             <div className="mb-2 flex items-center gap-2 text-caption text-slate-400">
               <FolderOpen size={11} className="text-cyan-400" /> 工作区（{wsItems.length} 项）

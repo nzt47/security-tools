@@ -545,6 +545,8 @@ export const FILESYSTEM_WRITE = '/api/filesystem/write';
 /** 工作区根（注意与 /api/workspaces 不是同一个面） */
 export const WORKSPACE_ROOT = '/api/workspace';
 export const WORKSPACE_INFO = '/api/workspace/info';
+/** E4-5：git worktree 只读投影（列表 + status 计数 + diff --stat；默认关） */
+export const GIT_WORKTREES = '/api/git/worktrees';
 export const WORKSPACE_WRITE = '/api/workspace/write';
 export const WORKSPACE_DELETE = '/api/workspace/delete';
 export const PROCESS_WHITELIST = '/api/process/whitelist';

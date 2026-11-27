@@ -670,6 +670,10 @@ _REGISTRY_ROWS: List[SettingSpec] = [
     # ── E4-5 Inspector 会话轨迹（2026-11-28）────────────────────────────
     # 【为什么是 A 级】纯只读查看器：关 = 今天的行为（路由回 disabled、不读会话）；
     #   打开也不改任何写入/权限，只把既有消息按白名单投影出来。回滚 = 关开关。
+    _mk("CP_WORKTREE_PANEL_ENABLED", CAT_OBSERVABILITY, False,
+        "git worktree 只读面板：GET /api/git/worktrees 回 worktree 列表 + 各自 status 计数与 "
+        "diff --stat（只读，不建/不删/不提交）；默认关",
+        owner="agent/server_routes/routes_changes.py"),
     _mk("CP_INSPECTOR_ENABLED", CAT_OBSERVABILITY, False,
         "会话轨迹 Inspector：GET /api/sessions/<sid>/trajectory 只读回消息与步骤摘要；"
         "默认关（关时前端显示未启用）",

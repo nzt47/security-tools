@@ -4,6 +4,31 @@
 **分支**: master
 **涵盖范围**: 5 个核心 commit（4608614c → 9977c949）
 
+## [CHG] - 2026-11-28: E4-5 第三批 —— worktree / forge 只读投影（默认关）✅
+
+**影响模块**: `agent/git_worktree.py`（新）、`agent/server_routes/routes_changes.py`、
+`agent/settings/registry.py`、`yunshu-ui/src/api/endpoints.ts`、`yunshu-ui/src/pages/hub/local/index.tsx`
+**关联文档**: `docs/plan/2026-11-28-e4-5-inspector-design.md` §9
+
+### Added
+- **`GET /api/git/worktrees`**：worktree 列表 + 每个 worktree 的 status 计数（M/A/D/R/C/U）与
+  `diff --stat`；数据来自 `git worktree list --porcelain` 等**只读**子命令，不建/不删/不提交。
+- **默认关** `CP_WORKTREE_PANEL_ENABLED`（A 级）：关时路由回 `disabled` 且**不读仓库**；
+  回滚 = 关开关。
+- **前端**：本地资源 → 工作区 Tab 顶部「Git 工作树（只读）」卡片（分支 / detached / 脏标记 /
+  计数 / diff --stat），带刷新按钮。
+
+### 边界
+- 只读：**不接受**用户传路径；路径只来自 git 自己的输出，argv 全是服务端常量。
+- 上限：最多 20 个 worktree、diff --stat 截 4000 字符；单个 worktree 读取失败只影响它自己。
+- 「创建 worktree / 提交 / forge 请求」属 B 级写操作，本批不做。
+
+### 实测
+- `tests/unit/test_git_worktree.py` 8 条（porcelain 解析 / 上限 / 真实临时仓库两 worktree /
+  失败码）、`test_worktree_route.py` 4 条（默认关不读仓库 / 形状 / 异常脱敏）、
+  `local/index.test.tsx` 8 条（新增 2 条）；干净 worktree 全量 pytest 见交接卡。
+- `route_ui_coverage` 重派生：新路由 category=ui、ui_pending=false，pending 仍 0；
+  工具 / 清单 / S0 / τ 不变（159 / 109 / 5.9497 / 0.0295）。
 ## [CHG] - 2026-11-28: E4-5 第二批 —— headless CLI（客户端，不开新监听面）✅
 
 **影响模块**: `scripts/yunshu_cli.py`（新）、`tests/unit/test_yunshu_cli.py`（新）

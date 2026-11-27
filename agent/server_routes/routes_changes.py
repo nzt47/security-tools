@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import logging
+import os
 
 from flask import jsonify, request
 
@@ -31,6 +32,15 @@ def _scope_arg() -> str:
     """scope=session（只看本会话）| workspace（默认，工作区级最近一次）"""
     raw = str(request.args.get("scope") or "").strip().lower()
     return "session" if raw == "session" else "workspace"
+
+
+#: E4-5：worktree 面板开关（默认关；判据只在这一处与 registry 登记项）
+WORKTREE_ENABLED_ENV = "CP_WORKTREE_PANEL_ENABLED"
+
+
+def _worktree_enabled() -> bool:
+    return str(os.environ.get(WORKTREE_ENABLED_ENV, "") or "").strip().lower() in (
+        "1", "true", "yes", "on")
 
 
 
@@ -92,3 +102,18 @@ def register_routes(app, state=None):
             "note": ("" if scoped else
                      "检查点是工作区级快照（可能由一个会话外的动作触发），不保证只含本会话的改动"),
         })
+
+    @app.route("/api/git/worktrees", methods=["GET"])
+    @trace_route("GitWorktrees")
+    def api_git_worktrees():
+        """E4-5：git worktree 的**只读**投影（默认关；不建/不删/不提交）"""
+        if not _worktree_enabled():
+            return jsonify({"ok": False, "code": "disabled",
+                            "error": "worktree 面板未启用（CP_WORKTREE_PANEL_ENABLED=0）"})
+        try:
+            from agent import git_worktree as _wt
+
+            return jsonify(_wt.collect())
+        except Exception as exc:  # noqa: BLE001 只读面板：异常只回固定文案
+            logger.warning("[worktrees] 读取失败: %s", exc)
+            return jsonify({"ok": False, "error": _safe(exc, logger)}), 500
