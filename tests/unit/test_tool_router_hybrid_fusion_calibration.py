@@ -335,7 +335,10 @@ class TestS0Provenance:
             # 【2026-11-27 五度重标定】E4-1 新增 run_orchestration_script ⇒ 索引 108 篇
             #   （calib n=11，p10 2.9207 / p50 5.9246 / p90 11.7026 / max 12.0386；
             #    S0=5.9246 与 _BM25_HALF_SATURATION 同源）
-            11, 2.9207, 5.9246, 11.7026, 12.0386), f"注释引用的分位数与产物不符：{st}"
+            # 【2026-11-27 六度重标定】E4-3 新增 mcp_resource ⇒ 索引 109 篇
+            #   （calib n=11，p10 2.938 / p50 5.9497 / p90 11.7509 / max 11.9693；
+            #    S0=5.9497 与 _BM25_HALF_SATURATION 同源）
+            11, 2.938, 5.9497, 11.7509, 11.9693), f"注释引用的分位数与产物不符：{st}"
 
     def test_uni_log_caliber_is_also_reproducible(self, artifact, monkeypatch):
         """提交1（仅对数 idf、单字分词）口径同样可复算（A1-b-prime 需要该口径的 S0）"""

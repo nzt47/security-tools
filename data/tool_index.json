@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-27T18:27:37",
-  "tool_count": 107,
+  "generated_at": "2026-11-27T22:42:57",
+  "tool_count": 108,
   "categories": [
     "async",
     "code",
@@ -603,6 +603,20 @@
       "version": "1.0.0",
       "deprecated": false,
       "parameter_names": []
+    },
+    {
+      "name": "mcp_resource",
+      "category": "extension",
+      "description": "读取 MCP 服务器的资源与提示词模板（只读）：action=list_resources 列出资源、read_resource 按 uri 读文本、list_prompts 列出提示词模板、get_prompt 按 name 取回模板。全部只读：不订阅变更、不写资源、不自动注入上下文；服务器未声明对应能力时回 not_supported（不是空列表）。Read MCP resources and prompts (read-only)",
+      "version": "1.0.0",
+      "deprecated": false,
+      "parameter_names": [
+        "action",
+        "connection",
+        "uri",
+        "name",
+        "arguments"
+      ]
     },
     {
       "name": "scan_mcp",
