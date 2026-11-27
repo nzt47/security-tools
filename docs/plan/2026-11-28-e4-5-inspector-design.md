@@ -58,4 +58,17 @@
 ## 7. 分期
 
 - 本批：Inspector v1（上文）。
-- 之后：LiveShare、worktree/forge、ACP/SDK/headless、会话导入（每项独立、默认关）。
+- 之后：worktree/forge（先只读）、会话导入、ACP/SDK/headless、LiveShare（每项独立、默认关）。
+## 8. 第二批（同日）：headless CLI（客户端，不开新监听面）
+
+- `scripts/yunshu_cli.py`：`health` / `version` / `ask` 三个子命令，直接调**既有 REST**；
+  令牌从 `YUNSHU_API_TOKEN` 或仓库 `.env` 的 `FLASK_API_TOKEN` 读（**永不打印**），
+  Base URL 用 `YUNSHU_BASE_URL`（缺省 `http://127.0.0.1:5678`）。
+- **为什么是客户端**：headless 的最短路径是复用已在跑的 REST（同一套令牌 / 审计 / 限流），
+  而不是再开一个监听面。**不新增服务端路由、不新增工具、不改任何运行期行为**；
+  删掉脚本对线上零影响。
+- 边界：`ask` 是同步整轮（不流式）；HTTP 错误只回服务端 `error` 字段（截断 300 字符）；
+  `health` 兼容 `/api/health` 的**传感器数组**（异常项 > 0 时退出码 1）。
+- 判据：`tests/unit/test_yunshu_cli.py` 14 条（令牌来源 / 请求头 / 错误脱敏 / ask body /
+  version 三处 / health 数组）；真机 `health` 与 `version` 均 exit 0。
+

@@ -4,6 +4,29 @@
 **分支**: master
 **涵盖范围**: 5 个核心 commit（4608614c → 9977c949）
 
+## [CHG] - 2026-11-28: E4-5 第二批 —— headless CLI（客户端，不开新监听面）✅
+
+**影响模块**: `scripts/yunshu_cli.py`（新）、`tests/unit/test_yunshu_cli.py`（新）
+**关联文档**: `docs/plan/2026-11-28-e4-5-inspector-design.md` §8
+
+### Added
+- **`python scripts/yunshu_cli.py health | version | ask "问题" [--session] [--json] [--timeout]`**：
+  直接调既有 REST（`/api/health`、`/api/version`、`/api/chat`）的薄客户端；
+  令牌只从 `YUNSHU_API_TOKEN` 或 `.env` 的 `FLASK_API_TOKEN` 读，**永不打印**；
+  Base URL 用 `YUNSHU_BASE_URL`（缺省 `http://127.0.0.1:5678`）。
+- `health` 兼容 `/api/health` 的传感器**数组**（异常项 > 0 时退出码 1）；
+  `version` 打印 backend / frontend.build_commit / bundle 三行；
+  `ask` 输出 `Yunshu` 正文（`--json` 输出完整结构）。
+
+### 边界
+- 客户端形态：**不新增服务端路由、不新增工具、不改运行期行为**；删掉脚本对线上零影响。
+- `ask` 是同步整轮（不流式）；HTTP 错误只回服务端 `error` 字段（截断 300 字符），不回整段正文。
+
+### 实测
+- `tests/unit/test_yunshu_cli.py` 14 条（令牌优先级 / .env 回落 / 请求头 / 错误脱敏 /
+  ask body 带 session / version 三处 / health 数组与失败码）。
+- 真机：`health` → `2 项读数，异常 0 项`（exit 0）；`version` → 三处一致（fc5d8905c /
+  index-DPLKw3D4.js，exit 0）。
 ## [CHG] - 2026-11-28: E4-5 第一批 —— Inspector 会话轨迹只读查看器（默认关）✅
 
 **影响模块**: `agent/context/trajectory.py`（新）、`agent/server_routes/routes_session_insight.py`、
