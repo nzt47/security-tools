@@ -1,8 +1,9 @@
 // E4-1 第一期 runner：把模型写的 JS 关进 vm 沙箱，只暴露 tools.call / spawn /
-// console / sleep。协议：stdout 每行一个 JSON，stdin 每行一个 JSON（宿主回写）。
+// state.get/set/clear / console / sleep。协议：stdout 每行一个 JSON，
+// stdin 每行一个 JSON（宿主回写）。
 //
 // 【不易·脚本拿不到 require/process】用户脚本经 vm.runInContext 在**新 realm** 里执行，
-// 沙箱对象只含四个冻结成员；node 侧再用 --permission 削掉 fs 越界与网络。
+// 沙箱对象只含显式列出的冻结成员；node 侧再用 --permission 削掉 fs 越界与网络。
 // 【不易·输出双计】runner 自己也算 stdout+stderr 字节（宿主另算一遍，防绕过）。
 // 【简易·退出】done/error 后只销毁 stdin，让事件循环自然退出（立刻 process.exit
 //   会截断还没冲出去的 stdout 管道）。
@@ -109,10 +110,21 @@ const sleep = function (ms) {
   return new Promise(function (resolve) { setTimeout(resolve, wait); });
 };
 
+// E4-2③：跨轮次**显式**状态。只有调用这三个方法才会碰 state.json；
+// 脚本上下文里不存在"上一次的 state"这种东西（不隐式继承）。
+const state = Object.freeze({
+  get: function () { return rpc({ t: 'state', op: 'get' }).then(toEnvelope); },
+  set: function (value) {
+    return rpc({ t: 'state', op: 'set', value: value }).then(toEnvelope);
+  },
+  clear: function () { return rpc({ t: 'state', op: 'clear' }).then(toEnvelope); },
+});
+
 const tools = Object.freeze({ call: call });
 const sandbox = {
   tools: tools,
   spawn: spawn,
+  state: state,
   console: consoleApi,
   sleep: sleep,
 };

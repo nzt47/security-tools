@@ -31,6 +31,16 @@ CHECKPOINT_NAME = "run.json"
 DEFAULT_RUNS_LIMIT = 20
 #: 索引行里 stderr 尾部的最大字符数（与 runtime 的回带口径一致）
 _CHECKPOINT_STDERR_CHARS = 2000
+#: 详情面板回带的 checkpoint 字段白名单（**读侧再筛一遍**：写侧不含源码，
+#: 读侧也不信"历史文件里一定没多塞东西"—— 白名单是对旧文件/手改文件的兜底）
+CHECKPOINT_FIELDS = (
+    "run_id", "session_id", "ts", "line", "ok", "code", "exit_code",
+    "duration_ms", "calls", "state_ops", "spawned", "denied",
+    "whitelist", "whitelist_size", "limits", "result",
+    "stdout_bytes", "stderr_bytes", "stderr_tail", "node",
+)
+#: 详情里 stderr 尾部的最大字符数（比索引宽一倍，仍截断）
+_DETAIL_STDERR_CHARS = 4000
 
 _LOCK = threading.Lock()
 
@@ -82,6 +92,7 @@ def write_checkpoint(run_dir: Any, payload: Dict[str, Any]) -> bool:
     try:
         target = Path(run_dir) / CHECKPOINT_NAME
         data = {k: v for k, v in dict(payload or {}).items() if k != "script"}
+        data.setdefault("ts", time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime()))
         tail = str(data.get("stderr_tail") or "")
         if len(tail) > _CHECKPOINT_STDERR_CHARS:
             data["stderr_tail"] = tail[-_CHECKPOINT_STDERR_CHARS:]
@@ -93,6 +104,45 @@ def write_checkpoint(run_dir: Any, payload: Dict[str, Any]) -> bool:
     except (OSError, TypeError, ValueError) as exc:
         logger.debug("[orchestration] checkpoint 写入失败: %s", type(exc).__name__)
         return False
+
+
+def read_checkpoint(run_id: str, root: Optional[Path] = None) -> Optional[Dict[str, Any]]:
+    """读一次 run 的 checkpoint（详情面板用；**只读投影**，不含源码）
+
+    【为什么用「列目录 + 名字等值匹配」而不是拼路径】run_id 来自查询参数，直接
+    用 root / run_id / run.json 拼就是一个路径拼接面（CodeQL 的
+    py/path-injection）。这里先列出 RUN_ROOT 的直接子目录，再拿**已经存在的
+    目录名**做等值匹配 —— 名字不参与路径构造（与 agent/safe_paths.enumerate_path
+    同一形态）。
+    """
+    key = str(run_id or "").strip()
+    if not key.startswith("run-"):
+        return None
+    base = Path(root) if root is not None else RUN_ROOT
+    try:
+        matched = None
+        for child in base.iterdir():
+            if child.is_dir() and child.name == key:
+                matched = child
+                break
+    except OSError as exc:
+        logger.warning("[orchestration] checkpoint 目录读取失败: %s", type(exc).__name__)
+        return None
+    if matched is None:
+        return None
+    path = matched / CHECKPOINT_NAME
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        logger.debug("[orchestration] checkpoint 读取失败: %s", type(exc).__name__)
+        return None
+    if not isinstance(data, dict):
+        return None
+    out: Dict[str, Any] = {k: data.get(k) for k in CHECKPOINT_FIELDS if k in data}
+    tail = str(out.get("stderr_tail") or "")
+    if len(tail) > _DETAIL_STDERR_CHARS:
+        out["stderr_tail"] = tail[-_DETAIL_STDERR_CHARS:]
+    return out
 
 
 def read_runs(limit: int = DEFAULT_RUNS_LIMIT, session_id: str = "",
@@ -145,6 +195,7 @@ def stats(root: Optional[Path] = None) -> Dict[str, Any]:
 
 
 __all__ = [
-    "CHECKPOINT_NAME", "DEFAULT_RUNS_LIMIT", "INDEX_NAME",
-    "index_path", "read_runs", "record_run", "stats", "write_checkpoint",
+    "CHECKPOINT_FIELDS", "CHECKPOINT_NAME", "DEFAULT_RUNS_LIMIT", "INDEX_NAME",
+    "index_path", "read_checkpoint", "read_runs", "record_run", "stats",
+    "write_checkpoint",
 ]

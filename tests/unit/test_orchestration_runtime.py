@@ -332,3 +332,70 @@ class TestToolSurface:
         assert _normalize_tools("read_file, grep，docx_read") == [
             "read_file", "grep", "docx_read"]
         assert _normalize_tools(None) == []
+
+
+# ════════════════════════════════════════════════════════════
+#  7. 跨轮次显式状态（E4-2③）
+# ════════════════════════════════════════════════════════════
+
+class TestCrossRunState:
+    """state 只经 state.get/set/clear 显式读写；不隐式继承、按会话隔离"""
+
+    @NODE_ONLY
+    def test_下一次_run_显式读到上一次写的状态(self, monkeypatch):
+        monkeypatch.setenv(runtime.ENABLED_ENV, "1")
+        first = runtime.run(
+            'await state.set({step: 1}); return await state.get();',
+            timeout_sec=30, session_id="sess-a")
+        assert first["ok"] is True, first
+        assert first["result"] == {"ok": True, "value": {"step": 1}}
+        assert first["state_ops"] == 2
+
+        second = runtime.run('return await state.get();',
+                             timeout_sec=30, session_id="sess-a")
+        assert second["ok"] is True, second
+        assert second["result"] == {"ok": True, "value": {"step": 1}}
+
+    @NODE_ONLY
+    def test_不调用_get_就看不到状态(self, monkeypatch):
+        monkeypatch.setenv(runtime.ENABLED_ENV, "1")
+        runtime.run('await state.set({secret: "x"}); return 1;',
+                    timeout_sec=30, session_id="sess-a")
+        # 脚本上下文里没有"上次状态"的快照变量：只能通过显式 state.get() 拿到
+        result = runtime.run(
+            'return {has: typeof state, injected: typeof globalThis.__state};',
+            timeout_sec=30, session_id="sess-a")
+        assert result["result"] == {"has": "object", "injected": "undefined"}
+
+    @NODE_ONLY
+    def test_会话之间互不可见(self, monkeypatch):
+        monkeypatch.setenv(runtime.ENABLED_ENV, "1")
+        runtime.run('await state.set("A"); return 1;', timeout_sec=30, session_id="sess-a")
+        other = runtime.run('return await state.get();', timeout_sec=30, session_id="sess-b")
+        assert other["result"] == {"ok": True, "value": None}
+
+    def test_没有会话绑定回_unavailable(self, monkeypatch):
+        monkeypatch.setenv(runtime.ENABLED_ENV, "1")
+        # 开关开了但没绑会话：不 spawn 也没关系——这里只验 state 模块的失败码
+        from agent.orchestration import state
+
+        result = state.apply("get", None, session_id="", root=runtime.RUN_ROOT)
+        assert result["ok"] is False and result["code"] == "state_unavailable"
+
+    @NODE_ONLY
+    def test_脚本内超限回_state_too_large(self, monkeypatch):
+        monkeypatch.setenv(runtime.ENABLED_ENV, "1")
+        result = runtime.run(
+            'const r = await state.set("x".repeat(70000)); return r;',
+            timeout_sec=60, session_id="sess-a")
+        assert result["ok"] is True, result
+        assert result["result"]["code"] == "state_too_large"
+
+    def test_回收旧run不删状态目录(self, monkeypatch):
+        monkeypatch.setenv(runtime.ENABLED_ENV, "1")
+        (runtime.RUN_ROOT / "state").mkdir(parents=True)
+        (runtime.RUN_ROOT / "run-old").mkdir()
+        runtime._prune_runs(keep=0)
+        assert (runtime.RUN_ROOT / "state").is_dir()
+        assert not (runtime.RUN_ROOT / "run-old").exists()
+

@@ -81,6 +81,8 @@ CALL_WAIT_SEC = 60
 STDERR_TAIL_CHARS = 2000
 #: kill 之后等进程退出的秒数
 KILL_WAIT_SEC = 5
+#: 一次 run 内状态读/写/清的操作次数上限（防止脚本循环刷盘把只读旁路变成 IO 源）
+MAX_STATE_OPS = 100
 #: 子进程环境变量白名单（不放任何密钥；NODE_OPTIONS 等一律不进）
 _ENV_ALLOWLIST = (
     "PATH", "PATHEXT", "SYSTEMROOT", "WINDIR", "COMSPEC", "NUMBER_OF_PROCESSORS",
@@ -107,6 +109,7 @@ CODE_MESSAGES: Dict[str, str] = {
     "timeout": "脚本墙钟超时，已杀整棵进程树。",
     "crashed": "脚本异常退出（见 stderr 尾巴）。",
     "tool_error": "工具执行抛异常（详见服务日志）。",
+    "cap_state": "状态读/写次数超过上限，已杀树（状态只该在轮次间传递少量进度）。",
 }
 
 _PROBE_CACHE: Dict[str, Dict[str, Any]] = {}
@@ -250,11 +253,18 @@ def _audit(event: str, payload: Mapping[str, Any], *, subject: str = "") -> None
 
 
 def _prune_runs(keep: int = MAX_KEPT_RUNS) -> None:
-    """回收旧的 run 目录（只动 RUN_ROOT 的直接子目录，按 mtime 保留最新 keep 个）"""
+    """回收旧的 run 目录（只动 RUN_ROOT 的直接子目录，按 mtime 保留最新 keep 个）
+
+    【为什么跳过 state】跨轮次状态目录也住在 RUN_ROOT 下；它按 mtime 排进
+    "最旧的那些"就会被当成过期 run 删掉 —— 那是"显式状态"被隐式清理，最坏的一种。
+    """
     try:
         if not RUN_ROOT.is_dir():
             return
-        dirs = [p for p in RUN_ROOT.iterdir() if p.is_dir()]
+        from agent.orchestration.state import STATE_DIR_NAME
+
+        dirs = [p for p in RUN_ROOT.iterdir()
+                if p.is_dir() and p.name != STATE_DIR_NAME]
         if len(dirs) <= keep:
             return
         dirs.sort(key=lambda p: p.stat().st_mtime, reverse=True)
@@ -495,8 +505,8 @@ def run(script: str, *, line: str = "", allow_tools: Sequence[str] = (),
         return _fail("no_node", run_id=run_id)
 
     state: Dict[str, Any] = {"stdout": 0, "stderr": 0, "calls": 0,
-                             "spawned": 0, "denied": 0, "stderr_tail": "",
-                             "stderr_head": "", "memory_hit": False}
+                             "spawned": 0, "denied": 0, "state_ops": 0,
+                             "stderr_tail": "", "stderr_head": "", "memory_hit": False}
     state_lock = threading.Lock()
     out_q: "queue.Queue[Optional[bytes]]" = queue.Queue()
     protocol = _Protocol(proc)
@@ -582,6 +592,28 @@ def run(script: str, *, line: str = "", allow_tools: Sequence[str] = (),
                     state["stderr_tail"] = (state["stderr_tail"] + tail)[-STDERR_TAIL_CHARS * 2:]
                 code = "crashed"
                 break
+            if kind == "state":
+                # E4-2③：跨轮次**显式**状态。放在工具调用之前处理，且不计入 calls
+                # （calls 的语义是"工具调用次数"，混进来会让结果面的读数失真）。
+                with state_lock:
+                    state["state_ops"] += 1
+                    ops_now = state["state_ops"]
+                if ops_now > MAX_STATE_OPS:
+                    _reply(msg.get("id"), {"ok": False, "code": "cap_state",
+                                           "error": CODE_MESSAGES["cap_state"]})
+                    code = "cap_state"
+                    break
+                op = str(msg.get("op") or "")
+                from agent.orchestration import state as _state
+                envelope = _state.apply(op, msg.get("value"),
+                                        session_id=session_id, root=RUN_ROOT)
+                _audit("orchestration_state", {
+                    "run_id": run_id, "op": op,
+                    "ok": bool(envelope.get("ok")),
+                    "bytes": int(envelope.get("bytes") or 0),
+                }, subject=run_id)
+                _reply(msg.get("id"), envelope)
+                continue
             if kind in ("call", "spawn"):
                 with state_lock:
                     state["calls"] += 1
@@ -655,6 +687,7 @@ def run(script: str, *, line: str = "", allow_tools: Sequence[str] = (),
         calls = int(state["calls"])
         spawned = int(state["spawned"])
         denied = int(state["denied"])
+        state_ops = int(state["state_ops"])
         head = str(state["stderr_head"])
         tail = str(state["stderr_tail"])
         memory_hit = bool(state["memory_hit"])
@@ -674,6 +707,7 @@ def run(script: str, *, line: str = "", allow_tools: Sequence[str] = (),
     _audit("orchestration_exit", {
         "run_id": run_id, "code": code or "ok", "exit_code": proc.returncode,
         "duration_ms": duration_ms, "calls": calls, "spawned": spawned,
+        "state_ops": state_ops,
         "stdout_bytes": out_bytes, "stderr_bytes": err_bytes,
     }, subject=run_id)
     payload: Dict[str, Any] = {
@@ -686,6 +720,7 @@ def run(script: str, *, line: str = "", allow_tools: Sequence[str] = (),
         "calls": calls,
         "spawned": spawned,
         "denied": denied,
+        "state_ops": state_ops,
         "whitelist": list(tools_allowed),
         "limits": caps,
         "result": result_value,
@@ -700,7 +735,9 @@ def run(script: str, *, line: str = "", allow_tools: Sequence[str] = (),
     try:
         from agent.orchestration import runs as _runs
 
-        _runs.write_checkpoint(run_dir, payload)
+        # checkpoint 带上 session_id（详情面板要显示"哪个会话的 run"）；
+        # 索引本来就有（结果面按会话过滤用）。
+        _runs.write_checkpoint(run_dir, {**payload, "session_id": session_id})
         _runs.record_run({**payload, "session_id": session_id,
                           "whitelist_size": len(tools_allowed)})
     except Exception as exc:  # noqa: BLE001 投影失败不影响本次 run 的返回
@@ -719,6 +756,6 @@ __all__ = [
     "DEFAULT_MAX_CALLS", "DEFAULT_MAX_MEMORY_MB", "DEFAULT_MAX_OUTPUT_BYTES",
     "DEFAULT_RESULT_CHARS", "DEFAULT_TIMEOUT_SEC",
     "MAX_MAX_CALLS", "MAX_MAX_MEMORY_MB", "MAX_MAX_OUTPUT_BYTES",
-    "MAX_RESULT_CHARS", "MAX_TIMEOUT_SEC",
+    "MAX_RESULT_CHARS", "MAX_STATE_OPS", "MAX_TIMEOUT_SEC",
     "enabled", "limits", "node_binary", "probe_node", "reset_probe_cache", "run",
 ]

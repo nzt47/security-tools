@@ -6,6 +6,8 @@
 
     GET  /api/background/tasks             列出全部后台任务（含状态/进度/耗时 + 历史摘要）
                                            （history: {total, records, path} —— 空态用）
+                                           可选 ?session_id= 只过滤 orchestration 块（E4-2）
+                                           可选 ?run_id= 额外回带该 run 的 checkpoint（详情面板）
     GET  /api/background/tasks/<task_id>   单任务状态
     GET  /api/background/tasks/<task_id>/result  任务结果（未完成时提示进行中）
     POST /api/background/tasks/<task_id>/cancel  取消任务（仅 pending/running）
@@ -80,21 +82,49 @@ def _history_view(executor) -> dict:
         return {"total": None, "records": [], "path": path}
 
 
-def _orchestration_view(limit: int) -> dict:
+def _orchestration_view(limit: int, session_id: str = "") -> dict:
     """E4-2：脚本编排 run 的**只读投影**（与后台任务同一个 GET，不另开路由）
 
     【为什么读失败回空块而不是 500】结果面是只读旁路：编排索引坏了只是"这一栏空着"，
     不能让整个后台任务下拉跟着打不开（与 history 摘要同一失败姿态）。
+
+    【为什么 session_id 只过滤这一块】后台任务（AsyncExecutor）本来就没有会话字段；
+    把同一个参数硬套过去只会让"任务列表空了"而不知道为什么。会话是编排 run 的属性。
     """
     try:
         from agent.orchestration import runs as _runs
 
-        data = _runs.read_runs(limit=limit)
+        data = _runs.read_runs(limit=limit, session_id=session_id)
         return {"total": data["total"], "runs": data["runs"],
-                "truncated": data["truncated"], "path": data["path"]}
+                "truncated": data["truncated"], "path": data["path"],
+                "session_filter": session_id}
     except Exception as e:  # noqa: BLE001 只读旁路：坏了只影响这一栏
         logger.warning("编排 run 投影读取失败（不影响任务列表）: %s", e)
-        return {"total": 0, "runs": [], "truncated": False, "path": ""}
+        return {"total": 0, "runs": [], "truncated": False, "path": "",
+                "session_filter": session_id}
+
+
+def _run_detail(run_id: str) -> dict:
+    """E4-2：run 详情（checkpoint 只读投影，不含脚本源码）
+
+    【为什么挂在同一个 GET 的 ?run_id= 上】不新增路由 ⇒ route_ui_coverage /
+    ui_reachability 零漂移；详情是**按需**读（列表轮询不搬运 stderr 尾部）。
+    """
+    try:
+        from agent.orchestration import runs as _runs
+
+        return {"run_id": run_id, "detail": _runs.read_checkpoint(run_id)}
+    except Exception as e:  # noqa: BLE001 详情是只读旁路
+        logger.warning("编排 run 详情读取失败（不影响任务列表）: %s", e)
+        return {"run_id": run_id, "detail": None}
+
+
+def _orchestration_view_with_detail(limit: int, session_id: str, run_id: str) -> dict:
+    """列表投影 +（可选）一次 run 的详情；两者共用同一个 GET"""
+    view = _orchestration_view(limit, session_id)
+    if run_id:
+        view["detail"] = _run_detail(run_id)["detail"]
+    return view
 
 
 def register_routes(app, state):
@@ -111,6 +141,10 @@ def register_routes(app, state):
         try:
             limit = _safe_int(request.args.get("limit", 50), 50, 1, 500)
             status = (request.args.get("status") or "").strip()
+            # E4-2：会话筛选只作用于 orchestration 块；run_id 只在带了它时
+            # 才去读 checkpoint（列表轮询不搬运 stderr 尾部）。
+            session_id = (request.args.get("session_id") or "").strip()[:128]
+            run_id = (request.args.get("run_id") or "").strip()[:128]
             data = _executor().list_tasks()
             tasks = data.get("tasks", []) if isinstance(data, dict) else []
             if status:
@@ -125,7 +159,7 @@ def register_routes(app, state):
                 # 历史摘要：只读控件在"当前为空"时也要能回答问题"到底跑没跑过"
                 "history": _history_view(_executor()),
                 # E4-2：脚本编排 run 的只读投影（同口径；前端「任务队列」页直接渲染）
-                "orchestration": _orchestration_view(limit),
+                "orchestration": _orchestration_view_with_detail(limit, session_id, run_id),
                 "status_filter": status,
                 "ts": time.strftime("%H:%M:%S"),
             })

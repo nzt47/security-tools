@@ -4,6 +4,41 @@
 **分支**: master
 **涵盖范围**: 5 个核心 commit（4608614c → 9977c949）
 
+## [CHG] - 2026-11-28: E4-2 收口 —— 跨轮次显式 state.json + 会话筛选 + run 详情（不新增路由/工具）✅
+
+**影响模块**: `agent/orchestration/state.py`（新）、`agent/orchestration/runtime.py`、
+`agent/orchestration/node_runner.mjs`、`agent/orchestration/runs.py`、
+`agent/server_routes/routes_background.py`、`yunshu-ui/src/pages/hub/engine/tasks.tsx`
+**关联文档**: `docs/plan/2026-11-27-p4-编排安全设计.md` §5 / §12.6
+
+### Added
+- **跨轮次显式状态**：脚本侧只有 `await state.get()` / `state.set(value)` / `state.clear()`；
+  run 上下文不会自动注入上一次的状态（不隐式继承）。文件落在
+  `data/orchestration/state/<sha256(session_id)[:16]>.json`（仍在编排根子树内，宿主按常量路径读写，
+  node 子进程无权写）；TTL 24h、单份 64KB、坏 JSON 当不存在；没有 session_id 回 `state_unavailable`
+  （不落共享默认键）。写前过 `fs_fence.check_write`，tmp + replace 原子落盘。
+- **一次 run 的状态操作上限 100 次**（`MAX_STATE_OPS`，超限 `cap_state` 杀树）；状态操作不计入
+  `calls`（工具调用次数的语义不变），`state_ops` 进结果面/checkpoint。
+- **run 回收不删状态**：`_prune_runs` 显式跳过 `state/` 目录。
+- **会话筛选**：`GET /api/background/tasks?session_id=` 只过滤 `orchestration` 块；「任务队列」页
+  编排卡片加会话输入框 + 筛选/清除（值不变时手动重拉，避免 effect 不触发）。
+- **run 详情**：同一个 GET 的 `?run_id=` 按需回带 `orchestration.detail`；读侧 20 字段白名单
+  （`script` 永远不在内）；命中方式是「列 RUN_ROOT 目录 + 名字等值匹配」，不拼路径。
+  前端为任务队列页内详情面板（字段概要 / 上限 / 脚本返回值 / stderr 尾部），不新增页面或路由。
+
+### 边界
+- 不新增工具、不新增路由、不新增 env 开关；后台任务（AsyncExecutor）本身无会话字段，
+  `session_id` 只作用于编排块。
+- 状态是「显式传参」不是「续跑」：不保留活进程、不做嵌套编排；过期即视为不存在。
+- `CP_ORCH_SCRIPT_ENABLED` 仍默认 0（B 级，需 Owner 点头）。
+
+### 实测
+- `tests/unit/test_orchestration_state.py` 15 条；`TestCrossRunState` 6 条（真 node 跨两次 run 读写、
+  会话隔离、不隐式注入、超限、回收不删状态）；`TestReadCheckpoint` 5 条；后台路由新增 4 条；
+  前端 `tasks.test.tsx` 6 条（新增会话筛选 URL / 详情面板）。
+- 干净 worktree（`.worktrees/e42 @ f1409372d`）：全量 pytest 见交接卡；`sync_tool_index --check`（109）、
+  `sync_capability_manifest --check`（159，local 133 / remote 26）、`backfill_tool_planes/callability/
+  capability_spec --check`、`scan_settings --check` 零缺口；`npm run ui:check` 全绿（raw_input 0）。
 ## [CHG] - 2026-11-27: E4-4 —— 扩展市场索引 v1 + 抓取硬化 + 官方推荐位/bundle ✅
 
 **影响模块**: `agent/extensions/market_index.py`（新）、`agent/extensions/market.py`、

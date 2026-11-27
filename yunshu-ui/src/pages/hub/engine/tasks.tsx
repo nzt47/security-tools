@@ -16,9 +16,11 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import {
-  Ban, CheckCircle2, Clock, FileText, Loader2, ListChecks, RefreshCw,
+  Ban, CheckCircle2, Clock, FileText, Loader2, ListChecks, RefreshCw, X,
 } from 'lucide-react'
-import { Button, CodeBlock, ErrorBox, hubGet, hubPost, Notice, SectionTitle, Select } from '../components/ui'
+import {
+  Button, CodeBlock, ErrorBox, hubGet, hubPost, Input, Notice, SectionTitle, Select,
+} from '../components/ui'
 import {
   ASYNC_TASKS,
   BACKGROUND_TASKS,
@@ -48,14 +50,27 @@ interface TaskRow {
 interface OrcRow {
   run_id?: string
   ts?: string
+  session_id?: string
   line?: string
   ok?: boolean
   code?: string
   duration_ms?: number
   calls?: number
+  state_ops?: number
   spawned?: number
   denied?: number
   whitelist_size?: number
+}
+
+/** E4-2：run 详情（checkpoint 只读投影；后端保证不含脚本源码与 stdout 原文） */
+interface OrcDetail extends OrcRow {
+  exit_code?: number | null
+  whitelist?: string[]
+  limits?: Record<string, number>
+  result?: unknown
+  stdout_bytes?: number
+  stderr_bytes?: number
+  stderr_tail?: string
 }
 
 export default function TaskQueue() {
@@ -69,6 +84,11 @@ export default function TaskQueue() {
   const [asyncRows, setAsyncRows] = useState<TaskRow[]>([])
   const [orcRows, setOrcRows] = useState<OrcRow[]>([])
   const [orcTotal, setOrcTotal] = useState(0)
+  /** 会话筛选：输入框是草稿，只有点「筛选」/回车才生效（免得每敲一个字都打后端） */
+  const [sessionInput, setSessionInput] = useState('')
+  const [sessionFilter, setSessionFilter] = useState('')
+  const [orcDetail, setOrcDetail] = useState<OrcDetail | null>(null)
+  const [orcDetailId, setOrcDetailId] = useState('')
 
   const [detail, setDetail] = useState<Record<string, unknown> | null>(null)
   const [detailLabel, setDetailLabel] = useState('')
@@ -76,9 +96,10 @@ export default function TaskQueue() {
 
   const fail = (label: string, e: unknown) => setErr(label + '：' + (e instanceof Error ? e.message : String(e)))
 
-  const load = useCallback(async (status = statusFilter) => {
+  const load = useCallback(async (status = statusFilter, session = sessionFilter) => {
     setBusy('load'); setErr('')
     try {
+      const sid = session.trim()
       const [bg, at] = await Promise.allSettled([
         hubGet<{
           tasks?: TaskRow[]
@@ -88,7 +109,10 @@ export default function TaskQueue() {
           ok?: boolean
           orchestration?: { total?: number; runs?: OrcRow[] }
         }>(
-          BACKGROUND_TASKS + '?limit=50' + (status ? '&status=' + encodeURIComponent(status) : ''),
+          BACKGROUND_TASKS + '?limit=50'
+            + (status ? '&status=' + encodeURIComponent(status) : '')
+            // 会话筛选只作用于 orchestration 块（后端同一个 GET，不新增路由）
+            + (sid ? '&session_id=' + encodeURIComponent(sid) : ''),
         ),
         hubGet<{ tasks?: TaskRow[]; total?: number; ok?: boolean }>(ASYNC_TASKS + '?limit=50'),
       ])
@@ -100,9 +124,33 @@ export default function TaskQueue() {
       }
       if (at.status === 'fulfilled') setAsyncRows(at.value?.tasks ?? [])
     } catch (e) { fail('读取任务列表失败', e) } finally { setBusy('') }
-  }, [statusFilter])
+  }, [statusFilter, sessionFilter])
 
   useEffect(() => { void load() }, [load])
+
+  /** 应用会话筛选：值没变就手动重拉（否则 effect 不会触发） */
+  const applySession = () => {
+    const next = sessionInput.trim()
+    if (next === sessionFilter) void load(statusFilter, next)
+    else setSessionFilter(next)
+  }
+
+  const clearSession = () => {
+    setSessionInput('')
+    if (sessionFilter) setSessionFilter('')
+    else void load(statusFilter, '')
+  }
+
+  /** run 详情：同一个 GET 带 run_id，按需读 checkpoint（不新增路由） */
+  const openOrcDetail = async (id: string) => {
+    setBusy('orc:' + id); setErr(''); setOrcDetail(null); setOrcDetailId(id)
+    try {
+      const r = await hubGet<{ orchestration?: { detail?: OrcDetail | null } }>(
+        BACKGROUND_TASKS + '?limit=1&run_id=' + encodeURIComponent(id),
+      )
+      setOrcDetail(r?.orchestration?.detail ?? null)
+    } catch (e) { fail('读取 run 详情失败', e) } finally { setBusy('') }
+  }
 
   const openDetail = async (kind: 'bg' | 'async', id: string) => {
     setBusy('detail'); setErr(''); setDetail(null)
@@ -247,8 +295,27 @@ export default function TaskQueue() {
       {/* E4-2：脚本编排 run 的只读投影。同步工具、跑完即定，所以这一组**没有取消**按钮；
           数据源与后台任务同一个 GET（orchestration 块），不额外加路由。 */}
       <div className="mb-2 rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-        <div className="mb-2 flex items-center gap-2 text-caption text-slate-400">
+        <div className="mb-2 flex flex-wrap items-center gap-2 text-caption text-slate-400">
           <ListChecks size={11} className="text-cyan-400" /> 脚本编排 run（{orcTotal}）
+          <span className="ml-auto flex items-center gap-1">
+            <Input
+              size="xs"
+              className="w-56"
+              value={sessionInput}
+              onChange={(ev) => setSessionInput(ev.target.value)}
+              onKeyDown={(ev) => { if (ev.key === 'Enter') applySession() }}
+              placeholder="按会话筛选（session id）"
+              aria-label="编排 run 会话筛选"
+            />
+            <Button type="button" variant="default" size="xs" onClick={applySession} disabled={loading} aria-label="应用会话筛选">
+              筛选
+            </Button>
+            {(sessionFilter || sessionInput) && (
+              <Button type="button" variant="ghost" size="xs" onClick={clearSession} disabled={loading} aria-label="清除会话筛选">
+                <X size={11} /> 清除
+              </Button>
+            )}
+          </span>
         </div>
         <div className="flex flex-col gap-1">
           {orcRows.map((r) => {
@@ -265,13 +332,90 @@ export default function TaskQueue() {
                   <span className="font-mono text-micro text-slate-500">
                     {String(r.calls ?? 0)} 次调用 / {String(r.duration_ms ?? 0)}ms / 白名单 {String(r.whitelist_size ?? 0)}
                   </span>
-                  <span className="ml-auto font-mono text-micro text-slate-600">{String(r.ts ?? '')}</span>
+                  <span className="font-mono text-micro text-slate-600">
+                    {r.session_id ? '会话 ' + String(r.session_id).slice(0, 8) : '未声明会话'}
+                  </span>
+                  <span className="ml-auto flex items-center gap-2">
+                    <span className="font-mono text-micro text-slate-600">{String(r.ts ?? '')}</span>
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="xs"
+                      onClick={() => void openOrcDetail(id)}
+                      disabled={loading || !id}
+                      aria-label={'run 详情 ' + id}
+                    >
+                      {busy === 'orc:' + id ? <Loader2 size={11} className="animate-spin" /> : <FileText size={11} />} 详情
+                    </Button>
+                  </span>
                 </div>
               </div>
             )
           })}
-          {orcRows.length === 0 && <div className="text-caption text-slate-500">还没有脚本编排 run（默认关闭 CP_ORCH_SCRIPT_ENABLED=0）。</div>}
+          {orcRows.length === 0 && (
+            <div className="text-caption text-slate-500">
+              {sessionFilter
+                ? '该会话还没有脚本编排 run（可点「清除」看全部）。'
+                : '还没有脚本编排 run（默认关闭 CP_ORCH_SCRIPT_ENABLED=0）。'}
+            </div>
+          )}
         </div>
+        {orcDetailId && (
+          <div className="mt-2 rounded-sm border border-slate-800 bg-slate-950/60 p-2">
+            <div className="mb-1.5 flex flex-wrap items-center gap-2 text-caption text-slate-400">
+              <FileText size={11} className="text-cyan-400" /> run 详情
+              <span className="font-mono text-micro text-cyan-300">{orcDetailId}</span>
+              <span className="text-micro text-slate-500">只读投影：不含脚本源码与 stdout 原文</span>
+              <Button
+                type="button" variant="default" size="xs" className="ml-auto"
+                onClick={() => { setOrcDetailId(''); setOrcDetail(null) }}
+                aria-label="关闭 run 详情"
+              >
+                关闭
+              </Button>
+            </div>
+            {!orcDetail ? (
+              <div className="text-caption text-slate-500">没有可读的 checkpoint（可能已被回收）。</div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <div className="grid grid-cols-2 gap-1 sm:grid-cols-4">
+                  {[
+                    ['结果', orcDetail.ok ? 'ok' : (orcDetail.code || 'failed')],
+                    ['耗时', String(orcDetail.duration_ms ?? 0) + 'ms'],
+                    ['工具调用', String(orcDetail.calls ?? 0)],
+                    ['状态读写', String(orcDetail.state_ops ?? 0)],
+                    ['派发', String(orcDetail.spawned ?? 0)],
+                    ['拒绝', String(orcDetail.denied ?? 0)],
+                    ['退出码', String(orcDetail.exit_code ?? '—')],
+                    ['白名单', String(orcDetail.whitelist?.length ?? orcDetail.whitelist_size ?? 0)],
+                  ].map(([k, v]) => (
+                    <div key={String(k)} className="rounded-sm border border-slate-800 bg-slate-900/50 px-2 py-1 text-micro">
+                      <span className="text-slate-500">{String(k)}</span>
+                      <span className="ml-1 font-mono text-slate-200">{String(v)}</span>
+                    </div>
+                  ))}
+                </div>
+                {orcDetail.limits && Object.keys(orcDetail.limits).length > 0 && (
+                  <div className="font-mono text-micro text-slate-500">
+                    上限：{Object.entries(orcDetail.limits).map(([k, v]) => k + '=' + v).join(' / ')}
+                  </div>
+                )}
+                {orcDetail.result !== undefined && (
+                  <div>
+                    <div className="mb-1 text-micro text-slate-500">脚本返回值</div>
+                    <CodeBlock maxH={180}>{JSON.stringify(orcDetail.result, null, 2)}</CodeBlock>
+                  </div>
+                )}
+                {orcDetail.stderr_tail ? (
+                  <div>
+                    <div className="mb-1 text-micro text-slate-500">stderr 尾部</div>
+                    <CodeBlock maxH={140}>{orcDetail.stderr_tail}</CodeBlock>
+                  </div>
+                ) : null}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {detail && (

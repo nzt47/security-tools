@@ -849,6 +849,12 @@ ALLOWLIST: Dict[Tuple[str, str], str] = {
         "「被测 cutoff 由 `datetime.now()` 派生」不构成实际分叉。"
         "（同文件其余 3 处同形写法已在 S11-08 遗留 #3 收口时改为 "
         "`datetime.now().timestamp()`。）",
+    ("tests/unit/test_orchestration_state.py",
+     "mtime_from_time_time:test_ttl_过期读当不存在并删除#1@aa58fcaa"):
+        "**两侧同源、无分叉**：被测 agent/orchestration/state.py 的 TTL 判据是 time.time() - st_mtime（两个都是不被平移的真实 OS 时钟），不是 datetime.now() 派生的今天；本用例把 mtime 显式拨到 TTL 边界之外，正是为了构造过期/未过期两个状态。",
+    ("tests/unit/test_orchestration_state.py",
+     "mtime_from_time_time:test_ttl_未过期照常读#1@aa58fcaa"):
+        "同上：TTL 判据用 time.time()（未被平移），测试用同一时钟把 mtime 拨到 TTL 内一小时处，两侧同源。",
 }
 
 

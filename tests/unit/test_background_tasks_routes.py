@@ -251,6 +251,53 @@ class TestOrchestrationView:
         assert "script" not in row and "stderr_tail" not in row
         assert "SECRET-SCRIPT-BODY" not in json.dumps(block, ensure_ascii=False)
 
+    def test_按会话过滤_只作用于编排块(self, client, tmp_path, monkeypatch):
+        from agent.orchestration import runs as _runs
+
+        monkeypatch.setattr(_runs, "RUN_ROOT", tmp_path / "orch")
+        for rid, sid in (("run-a", "s1"), ("run-b", "s2")):
+            _runs.record_run({"run_id": rid, "line": "engineering", "ok": True,
+                              "code": "", "session_id": sid, "whitelist_size": 1,
+                              "duration_ms": 1, "calls": 1})
+        body = client.get("/api/background/tasks?session_id=s1").get_json()
+        assert [r["run_id"] for r in body["orchestration"]["runs"]] == ["run-a"]
+        assert body["orchestration"]["session_filter"] == "s1"
+        # 后台任务本身没有会话字段 ⇒ 不被这个筛选影响（列表照常可读）
+        assert body["ok"] is True and body["tasks"] == []
+
+    def test_没有_run_id_时不回带详情(self, client, tmp_path, monkeypatch):
+        from agent.orchestration import runs as _runs
+
+        monkeypatch.setattr(_runs, "RUN_ROOT", tmp_path / "orch")
+        block = client.get("/api/background/tasks").get_json()["orchestration"]
+        assert "detail" not in block
+
+    def test_run_id_按需回带详情_不含源码(self, client, tmp_path, monkeypatch):
+        from agent.orchestration import runs as _runs
+
+        monkeypatch.setattr(_runs, "RUN_ROOT", tmp_path / "orch")
+        target = tmp_path / "orch" / "run-x"
+        target.mkdir(parents=True)
+        (target / _runs.CHECKPOINT_NAME).write_text(json.dumps({
+            "run_id": "run-x", "session_id": "s1", "ok": True, "code": "",
+            "calls": 2, "state_ops": 3, "duration_ms": 12,
+            "limits": {"timeout_sec": 120}, "result": {"step": 1},
+            "script": "SECRET-SCRIPT-BODY", "stderr_tail": "noise",
+        }, ensure_ascii=False), encoding="utf-8")
+        block = client.get("/api/background/tasks?limit=1&run_id=run-x").get_json()["orchestration"]
+        detail = block["detail"]
+        assert detail["run_id"] == "run-x" and detail["state_ops"] == 3
+        assert detail["result"] == {"step": 1}
+        assert "script" not in detail
+        assert "SECRET-SCRIPT-BODY" not in json.dumps(block, ensure_ascii=False)
+
+    def test_不存在的_run_id_详情回_none(self, client, tmp_path, monkeypatch):
+        from agent.orchestration import runs as _runs
+
+        monkeypatch.setattr(_runs, "RUN_ROOT", tmp_path / "orch")
+        block = client.get("/api/background/tasks?run_id=run-nope").get_json()["orchestration"]
+        assert block["detail"] is None
+
 
 def test_端点已在真实入口注册(real_entry):
     """真实 url_map 守门：手搓 Flask 全绿而线上 404 的坑（见文件头说明）"""
