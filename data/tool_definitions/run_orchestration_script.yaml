@@ -1,0 +1,86 @@
+name: run_orchestration_script
+category: async
+description: "脚本编排（E4-1）：把一段 JavaScript 当程序跑，用 tools.call(名, 参数) 调工具、spawn(tasks) 派子代理，一次 run 内变量保留。脚本跑在独立 node 子进程的 vm 沙箱里（无 require/process、无网络），工具由宿主执行并过全部闸门；白名单 = 主线装配集 ∩ 只读静态清单 ∩ allow_tools。需要 CP_ORCH_SCRIPT_ENABLED=1 且权限预设 full-access。Run a JavaScript orchestration script in an isolated node subprocess"
+deprecated: false
+version: 1.0.0
+location: remote
+location_reason: "调用链经 agent.orchestration.runtime 起独立 node 子进程（subprocess.Popen）"
+plane: act
+effect: execute
+risk: high
+tool_type: tool
+# E4-1：YAML 保持 enabled=true（与 terminal 同语义），真正的闸门是 env 开关
+# CP_ORCH_SCRIPT_ENABLED（默认 0）与权限预设（受限档一律拒绝）。
+enabled: true
+llm_callable: true
+callable_mode: auto
+permission_level: restricted
+sandbox_allowed: false
+tags: [orchestrate, script]
+schema:
+  type: object
+  properties:
+    script:
+      type: string
+      description: 脚本本体（JavaScript；可用 await tools.call(名, 参数) / await spawn(tasks) / console.log / sleep(ms)）
+    line:
+      type: string
+      description: 按哪条主线的装配集算白名单（缺省=全局激活主线；都没有时用只读默认集）
+    allow_tools:
+      type: array
+      items:
+        type: string
+      description: 额外放行的工具名（仍受静态只读清单约束；治理平面/编排自身/终端永不放行）
+    allow_spawn:
+      type: boolean
+      description: 是否允许脚本调 spawn（fan_out；仍过全部闸门）
+    timeout_seconds:
+      type: integer
+      description: 本次墙钟上限（秒；只能小于服务端上限，缺省 120）
+    max_calls:
+      type: integer
+      description: 本次工具调用次数上限（只能小于服务端上限，缺省 50）
+  required:
+  - script
+# 【result_schema】按实现 return 字面量声明（agent/orchestration/runtime.py::run）：
+#  成功 {ok:true,run_id,line,exit_code,duration_ms,calls,spawned,denied,whitelist,
+#   limits,result,stdout_bytes,stderr_bytes,stderr_tail}；失败 {ok:false,code,error,...}
+#  required 只锁 ok。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    run_id:
+      type: string
+    code:
+      type: string
+    error:
+      type: string
+    line:
+      type: string
+    exit_code:
+      type: integer
+    duration_ms:
+      type: integer
+    calls:
+      type: integer
+    spawned:
+      type: integer
+    denied:
+      type: integer
+    whitelist:
+      type: array
+    limits:
+      type: object
+    result: {}
+    stdout_bytes:
+      type: integer
+    stderr_bytes:
+      type: integer
+    stderr_tail:
+      type: string
+  required:
+  - ok
+  additionalProperties: true
+examples: []

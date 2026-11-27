@@ -113,6 +113,8 @@ PLANE_MAP: dict[str, tuple[str, str, str, list[str]]] = {
     # E3-1 持久终端（PTY）：与 shell_execute 同为"任意命令"，但它是**常驻交互会话**
     # （能绕过一次性命令的模式匹配）⇒ 同 critical 档，默认关、受限档拒绝。
     "terminal": ("act", "execute", "critical", ["shell", "terminal"]),
+    # E4-1：脚本编排（独立 node 子进程 + 宿主执行工具；默认关）
+    "run_orchestration_script": ("act", "execute", "high", ["orchestrate", "script"]),
     # E2-1 运行中子代理控制（list/send/interrupt/inbox）：只操作本进程的登记表，不改文件
     "subagent_control": ("govern", "write", "medium", ["subagent"]),
     # E3-2 纯库路线：.docx 正文/表格抽取（纯标准库读文件，低危）

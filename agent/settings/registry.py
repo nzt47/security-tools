@@ -614,6 +614,41 @@ _REGISTRY_ROWS: List[SettingSpec] = [
         "终端会话空闲自动回收的秒数（30–86400）",
         owner="agent/pty_session.py",
         validator=_range_validator(30, 86400, kind="int")),
+    # ── E4-1 脚本编排（P4，2026-11-27）──────────────────────────────────
+    # 【为什么"开脚本编排"是 B 级】打开它等于给模型一条「写程序调工具」的通路：
+    #   独立 node 子进程 + 宿主执行工具，一次 run 最多 50 次工具调用 / 120s / 1MiB 输出。
+    #   每次调用仍过全部闸门，但爆炸半径比单次工具调用大一个量级 ⇒ 与"开终端"同档。
+    #   默认关；受限权限预设即使打开也一律拒绝（agent/orchestration/runtime.py 是唯一判据）。
+    _b("CP_ORCH_SCRIPT_ENABLED", CAT_SELF_HEALING, False,
+       "脚本编排（run_orchestration_script）：一次 run 内用 JavaScript 程序化调工具/派子代理。"
+       "默认关；打开后仍要求权限预设为 full-access",
+       owner="agent/orchestration/runtime.py",
+       impact="影响面：模型可写程序批量调工具（白名单 = 主线装配集 ∩ 只读静态清单 ∩ allow_tools），"
+              "单次 run 的墙钟/内存/输出/调用次数均受上限约束"),
+    _mk("CP_ORCH_NODE_PATH", CAT_ORCHESTRATION, "node",
+        "脚本编排使用的 node 可执行文件（默认 PATH 里的 node）；缺失回 no_node，"
+        "**不**降级成在服务进程内 eval 执行",
+        owner="agent/orchestration/runtime.py"),
+    _mk("CP_ORCH_TIMEOUT_SEC", CAT_ORCHESTRATION, 120,
+        "单次脚本编排的墙钟上限（1–600 秒）；越界杀整棵进程树并回 timeout",
+        owner="agent/orchestration/runtime.py",
+        validator=_range_validator(1, 600, kind="int")),
+    _mk("CP_ORCH_MAX_CALLS", CAT_ORCHESTRATION, 50,
+        "单次脚本编排的工具调用次数上限（1–200）；越界回 cap_calls",
+        owner="agent/orchestration/runtime.py",
+        validator=_range_validator(1, 200, kind="int")),
+    _mk("CP_ORCH_MAX_OUTPUT", CAT_ORCHESTRATION, 1048576,
+        "单次脚本编排的 stdout+stderr 字节上限（4KB–8MB）；越界回 cap_output",
+        owner="agent/orchestration/runtime.py",
+        validator=_range_validator(4096, 8388608, kind="int")),
+    _mk("CP_ORCH_MAX_MEMORY_MB", CAT_ORCHESTRATION, 512,
+        "单次脚本编排的 node 堆上限（64–2048 MB）；越界终止并回 cap_memory",
+        owner="agent/orchestration/runtime.py",
+        validator=_range_validator(64, 2048, kind="int")),
+    _mk("CP_ORCH_RESULT_CHARS", CAT_ORCHESTRATION, 8000,
+        "回给脚本的单次工具结果字符上限（512–64000）；超出截断并标记 truncated",
+        owner="agent/orchestration/runtime.py",
+        validator=_range_validator(512, 64000, kind="int")),
     # ── E0-2③ 图片/截图 offload（2026-11-26）─────────────────────────────
     # 【为什么是 A 级】只改"图片以什么形态进上下文"，不改权限；关掉 = 回到把 base64
     #   塞进上下文（一次截图就可能顶穿窗口，这条开关是事故时的回滚位）。

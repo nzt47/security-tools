@@ -221,6 +221,9 @@ _DEFAULT_TOOL_CATEGORIES = {
         "tools": [
             "submit_task", "get_task_status", "get_task_result", "cancel_task",
             "list_async_tasks", "delegate", "fan_out",
+            # 【2026-11-27 E4-1】脚本编排：一次 run 内程序化调工具/派子代理
+            # （默认关 CP_ORCH_SCRIPT_ENABLED=0；YAML 与默认表必须逐字一致）
+            "run_orchestration_script",
         ],
     },
     "schedule": {

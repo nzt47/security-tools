@@ -4,6 +4,46 @@
 **分支**: master
 **涵盖范围**: 5 个核心 commit（4608614c → 9977c949）
 
+## [CHG] - 2026-11-27: E4-1 第一期 —— 脚本编排（独立 node 子进程 + 宿主执行工具）✅
+
+**影响模块**: `agent/orchestration/`（新：`runtime.py` / `node_runner.mjs` / `whitelist.py`）、
+`agent/tools/orchestration_tools.py`（新）、`data/tool_definitions/run_orchestration_script.yaml`（新）、
+`agent/orchestrator/lifecycle_manager.py`、`agent/tool_router.py`、`agent/settings/registry.py`、
+`scripts/backfill_tool_planes.py`、`scripts/scan_settings.py`、`data/agent_lines/engineering.yaml`
+**关联文档**: `docs/plan/2026-11-27-p4-编排安全设计.md`（§2–§4 实现，§12 实现记录）
+
+### Added
+- **`run_orchestration_script`**（一个工具 + 6 个参数）：把一段 JS 当程序跑，
+  `await tools.call(名, 参数)` 调工具、`await spawn(tasks)` 派子代理，一次 run 内变量天然保留。
+- **独立 node 子进程**：`node --permission --allow-fs-read=<run_dir>,<runner>
+  --allow-fs-write=<run_dir> --max-old-space-size=<MB> --no-warnings`，**不给** `--allow-net`
+  ⇒ 网络由权限模型拒绝；启动探测 `--permission` / `--allow-net`，缺任一即拒跑
+  （`no_node` / `no_net_fence`，不降级成服务进程内 eval）。
+- **脚本侧 API 冻结**：`vm.runInContext` 新 realm 只暴露 `tools.call` / `spawn` /
+  `console` / `sleep` —— `typeof process === "undefined"`、`typeof require === "undefined"`（用例锁定）。
+- **工具白名单 = 四重交集**（fail-closed）：主线装配集（`agent/subagent/assembly.py`，与 fan_out 同源）
+  ∩ E4 静态只读清单 ∩ `allow_tools`（只能收窄）∩ 宿主真实注册表；治理平面 / 编排自身 / `terminal`
+  / 一切非 `effect=read` 的工具**永远出局**。
+- **五道账全部在宿主侧**：墙钟（默认 120s，上限 600）→ `proc_tree.kill_tree`；内存
+  （node `--max-old-space-size`，512MB / 2048MB）；stdout+stderr（1MiB / 8MiB，宿主 + runner 双计）；
+  工具调用次数（50 / 200）；嵌套 = 0（白名单不含编排工具）。
+- **审计三件套**：`orchestration_run` / `orchestration_tool_call` / `orchestration_exit`
+  （run_id / 白名单大小 / 上限快照 / 结果码 / 耗时；**不记**脚本源码与完整 stdout）。
+- **7 个 env 读点全部登记** `agent/settings/registry.py`（`CP_ORCH_SCRIPT_ENABLED` 为 B 级默认关，
+  其余 A 级带上限校验）；新的透传白名单读取点在 `scripts/scan_settings.py::PASS_THROUGH_SITES` 显式声明。
+
+### 实测（本机 Node v25.8.1）
+- 只读工具调用通；`write_file` / 未知工具 → `denied_tool`（denied 计数 + 审计各一条）；
+- 死循环 2s 内被杀（`timeout`）；输出洪泛 → `cap_output`；第 3 次调用（上限 2）→ `cap_calls`；
+  `--max-old-space-size=64` 下 OOM → `cap_memory`（致命行保留在 stderr 头部）；
+- 开关关 ⇒ `disabled` 且**不建 run_dir、不 spawn**；受限权限预设 ⇒ `confined`。
+
+### 边界（如实）
+- **不是安全沙箱**：`--permission` 是能力削减，不防引擎 0day；无网络围栏的 node 版本直接不跑。
+- `spawn` 走 `fan_out` 的**全部闸门**（含 L2 审批）：脚本内无法弹审批框 ⇒ 需要人工批准的工具
+  会拿到 `needs_approval`（fail-closed），不提供绕过；脚本内**不能**再编排（嵌套=0）。
+- 第二期（E4-2：run 内多步保留变量 / checkpoint 只读投影 / 结果面）未做。
+
 ## [CHG] - 2026-11-27: P5 / E5-1 Phase A —— 会话事件溯源只读投影 ✅
 
 **影响模块**: `scripts/session_events_project.py`（新）、`tests/unit/test_session_events_project.py`（新）

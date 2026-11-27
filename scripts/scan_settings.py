@@ -138,6 +138,10 @@ PASS_THROUGH_SITES: Dict[str, str] = {
         "隔离环境**留证**名单：对固定的敏感变量清单（HOME/SSH_*/各代理/各家凭据）"
         "做只读快照，用于「凭据可见性」的如实披露（`platform_env_raw`）；"
         "只读出值、不做任何切换，故非开关",
+    "agent/orchestration/runtime.py::_ENV_ALLOWLIST":
+        "脚本编排子进程的环境白名单：把运行 node 必需的 OS 变量"
+        "（PATH/PATHEXT/SystemRoot/WINDIR/COMSPEC/NUMBER_OF_PROCESSORS）原样转发给"
+        "子进程；它们是操作系统提供的值，不是云枢开关（改了只会让 node 起不来）",
     "agent/digestion/isolation_worker.py::names":
         "隔离诊断 op（`_op_env_dump`）的导出名单：默认取 ISOLATION_ENV_WATCH，"
         "调用方（探测作业）可显式覆盖；用途是只读回报'哪些变量可见'，非开关",
