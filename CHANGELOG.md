@@ -4,6 +4,40 @@
 **分支**: master
 **涵盖范围**: 5 个核心 commit（4608614c → 9977c949）
 
+## [CHG] - 2026-11-27: E4-4 —— 扩展市场索引 v1 + 抓取硬化 + 官方推荐位/bundle ✅
+
+**影响模块**: `agent/extensions/market_index.py`（新）、`agent/extensions/market.py`、
+`plugins/skills.py`、`agent/settings/registry.py`、`yunshu-ui/src/pages/hub/plugin-manage.tsx`、
+`.gitignore`
+**关联文档**: `docs/plan/2026-11-27-e4-4-market-index-design.md`
+
+### Added
+- **索引契约 v1**（`market_index.normalize_index`）：单/复数类型键与扁平 `items` 三种形状都接受，
+  归一后只有一种；字段白名单（`command/args/deps` 等安装参数**不进条目**）；`source` 只允许
+  `github:/url:/local:/path:/builtin:` 前缀；bundle 只允许 plugin、未知引用过滤、空 bundle 丢弃；
+  上限 1 MiB / 512 条 / 每 bundle 50 项 / id 128 字符。
+- **修复「复数键整类被过滤」**：旧代码按单数键比较而文档写复数键 ⇒ 社区索引实际从未被正确使用。
+- **抓取硬化**：索引 URL 走 `CP_EXTENSION_MARKET_INDEX_URL`；只允许 https；每次抓取过
+  `guardrails.ssrf_guard.check_url`（守卫不可用 fail-closed）；`_NoRedirect` 禁跟随 3xx；
+  读满 `MAX_INDEX_BYTES+1` 即拒；缓存改仓库根 `data/extension_market_index.json`（原子写、已 gitignore）。
+- **官方推荐位 / bundle**（`CP_EXTENSION_MARKET_RECOMMEND_ENABLED`，默认关）：抽屉内「官方推荐」区；
+  bundle 由**前端串行**调既有 `POST /api/extensions/install` —— 不新增路由、不新增工具，签名/白名单/双闸逐项生效；
+  featured 已单列、主列表去重。
+- `plugins/skills.py` 的 `refresh` 计数改为条目数（旧写法把 4 个类型键报成 4）。
+
+### 边界
+- 不新增工具/路由；不绕过验签；不改 `CP_PLUGIN_SIGNATURE_MODE` 的 `enforce` 默认；
+- bundle 只允许 plugin（mcp/skill/channel 的安装会走 pip/npm 或起进程，边界不同）；
+- 局部安装失败如实上屏（成功 N 项 / 失败列表），不做“整体回滚”。
+
+### 实测
+- `tests/unit/test_market_index.py` 20 条：三种索引形状归一、字段白名单、非法 source、bundle 过滤、
+  上限、featured 投影、推荐位默认关/开、抓取非 https/SSRF/超字节/版本不符/禁 3xx；
+- `plugin-manage.test.tsx` 新增 2 条（推荐位默认关不渲染；bundle 串行 2 次 install 且 body 正确）；
+- `tests/test_extensions.py::test_search_all` 打桩网络面（单测不再真发包）；
+- 干净 worktree：`scan_settings --check` 零缺口、清单/索引 `--check` 不变（159/109）、
+  全量 pytest 见交接卡；`npm run ui:check` 全绿。
+
 ## [CHG] - 2026-11-27: E4-3 —— MCP resources / prompts 只读读取（mcp_resource）✅
 
 **影响模块**: `agent/tools/mcp_resource_tools.py`（新）、`agent/tools/mcp_connector.py`、
