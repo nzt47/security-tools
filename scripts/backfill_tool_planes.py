@@ -204,6 +204,8 @@ PLANE_MAP: dict[str, tuple[str, str, str, list[str]]] = {
     "workspace_delete": ("act", "write", "high", ["workspace"]),
     "read_pdf_tables": ("perceive", "read", "low", ["document"]),
     "list_mcp_connections": ("perceive", "read", "low", ["mcp"]),
+    # E4-3：MCP resources/prompts 只读读取（不 subscribe、不写资源）⇒ read/low。
+    "mcp_resource": ("perceive", "read", "low", ["mcp"]),
     "look_at_screen": ("perceive", "read", "medium", ["vision", "privacy"]),
     "weekly_report": ("act", "write", "low", ["document", "report"]),
 

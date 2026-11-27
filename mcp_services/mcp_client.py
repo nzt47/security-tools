@@ -521,6 +521,69 @@ class MCPClient:
 
         return ""
 
+    # ── E4-3：resources / prompts（只读；能力协商必须读回）──────────────
+
+    def supports(self, capability: str) -> bool:
+        """服务端是否声明了某项能力（`resources` / `prompts`）
+
+        【不易·必须是"键存在"而不是"值非空"】MCP 的能力声明允许
+        `capabilities: {"resources": {}}`（支持该能力、但不带子特性）；
+        用真值判断会把"支持"误判成"不支持" ⇒ 回 not_supported（错的那一侧）。
+        """
+        caps = self.capabilities if isinstance(self.capabilities, dict) else {}
+        return capability in caps
+
+    async def read_resource_content(self, uri: str) -> Dict[str, Any]:
+        """读取资源并返回**原始内容项**（`{uri, mimeType, text|blob}`）
+
+        与 `read_resource` 的差别：保留 mimeType 与 blob 事实 —— 工具层要按它判
+        `not_text`（二进制不入上下文），而不是把 blob 静默当成空串。
+        服务器返回 JSON-RPC error 时抛 RuntimeError（原文不回显、由调用方转稳定码）。
+        """
+        if not self._initialized:
+            await self.initialize()
+
+        response = await self._send_request("resources/read", {"uri": uri})
+        if "error" in response:
+            raise RuntimeError("读取资源失败：MCP 服务器返回 error（原文不回显）")
+
+        contents = response.get("result", {}).get("contents", [])
+        first = contents[0] if isinstance(contents, list) and contents else {}
+        return first if isinstance(first, dict) else {}
+
+    async def list_prompts(self) -> List[Dict[str, Any]]:
+        """列出可用提示词模板（MCP `prompts/list`）"""
+        if not self._initialized:
+            await self.initialize()
+
+        response = await self._send_request("prompts/list")
+        if "error" in response:
+            raise RuntimeError("获取提示词列表失败：MCP 服务器返回 error（原文不回显）")
+
+        prompts = response.get("result", {}).get("prompts", [])
+        if not isinstance(prompts, list):
+            return []
+        return [p for p in prompts if isinstance(p, dict)]
+
+    async def get_prompt(self, name: str,
+                         arguments: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """取回一个提示词模板（MCP `prompts/get`）
+
+        【只作为数据回给模型】不把模板内容自动拼进系统提示词（提示注入面）。
+        """
+        if not self._initialized:
+            await self.initialize()
+
+        params: Dict[str, Any] = {"name": name}
+        if arguments:
+            params["arguments"] = arguments
+        response = await self._send_request("prompts/get", params)
+        if "error" in response:
+            raise RuntimeError("获取提示词失败：MCP 服务器返回 error（原文不回显）")
+
+        result = response.get("result", {})
+        return result if isinstance(result, dict) else {}
+
     async def _send_request(self, method: str, params: Optional[Dict] = None,
                            timeout: Optional[int] = None) -> Dict:
         """发送JSON-RPC请求并等待响应（修复Windows兼容性）

@@ -41,6 +41,25 @@ def _ssrf_block_reason(url: str, *, surface: str = "") -> str:
 
 logger = logging.getLogger(__name__)
 
+#: HTTP JSON-RPC 单次调用超时（秒）。与 tools/call 的 30s 分开：resources/prompts
+#: 是只读列举/读取，卡住 30s 会把工具循环拖死；10s 足够本地/局域网的 MCP 服务。
+_HTTP_RPC_TIMEOUT_SEC = 10
+
+
+def _resource_field(item: Any, *names: str) -> Any:
+    """从 MCP 资源条目取字段（兼容 dataclass 与 dict 两种形状）
+
+    【为什么需要】MCPClient.list_resources 返回 `MCPResource`，而 HTTP 传输
+    直接给 JSON dict；两端口径必须一致（否则 stdio 的 uri/name 会静默变空串）。
+    """
+    for name in names:
+        if isinstance(item, dict) and name in item:
+            return item.get(name)
+        value = getattr(item, name, None)
+        if value is not None:
+            return value
+    return ""
+
 
 class McpConnector:
     """MCP 连接管理器 — 管理 MCP 服务的连接、工具注册和生命周期"""
@@ -119,6 +138,11 @@ class McpConnector:
         """
         base_url = f"http://{address}:{port}"
         try:
+            # E4-3：先 initialize 并把服务端 `capabilities` **读回**。
+            # 【为什么必须先做】没有这份读回，"服务器不支持 resources/prompts" 会被
+            # 误报成"空列表"（两者对运维的含义完全不同）；而 initialize 失败不该
+            # 阻断工具面 ⇒ 按"未声明"处理（见 `_http_initialize`）。
+            capabilities = self._http_initialize(base_url)
             # 获取工具列表（JSON-RPC 请求）
             tools_data = self._http_list_tools(base_url)
             if tools_data is None:
@@ -153,6 +177,7 @@ class McpConnector:
                 "transport": "http",
                 "base_url": base_url,
                 "name": name,
+                "capabilities": capabilities,
                 "connected_at": time.time(),
             }
             logger.info(f"[MCP] HTTP 连接成功: {service_id} ({name} @ {base_url}), {count} 个工具")
@@ -188,6 +213,65 @@ class McpConnector:
         except Exception as e:
             logger.warning(f"[MCP] HTTP 请求失败 ({base_url}): {e}")
             return None
+
+    def _http_initialize(self, base_url: str) -> dict:
+        """HTTP 传输的 initialize：只取服务端 `capabilities`
+
+        失败 ⇒ 返回空表（按"未声明任何能力"处理）而不是抛 —— 旧服务的工具面
+        不该因为不支持 `resources/prompts` 就整体不可用（D2 向后兼容）。
+        """
+        rpc = self._http_rpc(base_url, "initialize", {
+            "protocolVersion": "2024-11-05",
+            "clientInfo": {"name": "cloud-yunshu-mcp-client", "version": "1.1.0"},
+            "capabilities": {},
+        })
+        if not rpc.get("ok"):
+            logger.warning("[MCP] HTTP initialize 未取到能力声明（按未声明处理）")
+            return {}
+        caps = rpc.get("result", {}).get("capabilities")
+        return dict(caps) if isinstance(caps, dict) else {}
+
+    def _http_rpc(self, base_url: str, method: str,
+                  params: dict | None = None) -> dict:
+        """HTTP JSON-RPC 单次调用（**每次调用都复检出站目标**）
+
+        Returns:
+            {"ok": True, "result": {...}} 或 {"ok": False, "code": <稳定码>}
+            稳定码只用 no_connection / bad_request：前者是传输层失败（连不上/超时/
+            守卫拒绝），后者是服务器明确回了 JSON-RPC error。**服务器原文不回显**
+            （可能含租户/凭据片段），只进服务日志的类型名。
+        """
+        _blocked = _ssrf_block_reason(base_url, surface=f"mcp_connector.{method}")
+        if _blocked is not None:
+            logger.warning("[MCP] 目标未通过出站判定，拒绝调用: %s（%s）", method, _blocked)
+            return {"ok": False, "code": "no_connection",
+                    "error": "MCP 目标未通过出站判定（详见服务日志）"}
+        try:
+            req_data = json.dumps({
+                "jsonrpc": "2.0", "id": 1, "method": method, "params": params or {},
+            }).encode("utf-8")
+            req = urllib.request.Request(
+                base_url + "/mcp",
+                data=req_data,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=_HTTP_RPC_TIMEOUT_SEC) as resp:
+                payload = json.loads(resp.read().decode("utf-8"))
+        except Exception as exc:  # noqa: BLE001 连接类失败统一转稳定码
+            logger.warning("[MCP] %s 调用失败（%s）", method, type(exc).__name__)
+            return {"ok": False, "code": "no_connection",
+                    "error": "MCP 服务器调用失败（详见服务日志）"}
+        if not isinstance(payload, dict):
+            return {"ok": False, "code": "bad_request",
+                    "error": "MCP 服务器响应格式不可识别（详见服务日志）"}
+        if "error" in payload:
+            # 原文不回显：JSON-RPC error 里可能带 URI/租户片段
+            logger.warning("[MCP] %s 返回 JSON-RPC error（原文不回显）", method)
+            return {"ok": False, "code": "bad_request",
+                    "error": "MCP 服务器拒绝了该请求（详见服务日志）"}
+        result = payload.get("result")
+        return {"ok": True, "result": result if isinstance(result, dict) else {}}
 
     def _make_http_handler(self, base_url: str, tool_name: str):
         """创建 HTTP 转发的工具处理函数
@@ -338,3 +422,132 @@ class McpConnector:
             "tool_names": conn.get("tool_names", []),
             "connected_at": conn.get("connected_at", 0),
         }
+
+    # ── E4-3：resources / prompts（只读；不 subscribe、不写资源）──────────
+
+    def capabilities_of(self, service_id: str) -> dict:
+        """取连接协商到的服务端能力声明（stdio 取客户端读回值，HTTP 取连接登记值）"""
+        conn = self._connections.get(service_id)
+        if not conn:
+            return {}
+        # stdio：客户端是**唯一事实源**（initialize 读回后一直挂在 client 上）；
+        # http：连接登记 initialize 的读回值（没有可用的 client 对象）。
+        client = conn.get("client")
+        if client is not None:
+            caps = getattr(client, "capabilities", None)
+            return dict(caps) if isinstance(caps, dict) else {}
+        caps = conn.get("capabilities")
+        return dict(caps) if isinstance(caps, dict) else {}
+
+    def resource_action(self, service_id: str, action: str, *,
+                        uri: str = "", name: str = "",
+                        arguments: dict | None = None) -> dict:
+        """对一个**已连接**的 MCP 服务器做一次只读 resources/prompts 调用
+
+        【能力协商必须读回】服务器没声明 `resources`/`prompts` ⇒ 回
+        `not_supported`（**不是空列表**）。空列表与"不支持"对运维的含义不同：
+        前者是"服务器有该能力但当前没有条目"，后者是"这条能力根本不存在"。
+        """
+        conn = self._connections.get(service_id)
+        if not conn:
+            return {"ok": False, "code": "no_connection",
+                    "error": "连接不存在或已断开（先用 connect_mcp 连接）"}
+        kind = "prompts" if action in ("list_prompts", "get_prompt") else "resources"
+        caps = self.capabilities_of(service_id)
+        if kind not in caps:
+            return {
+                "ok": False, "code": "not_supported",
+                "capabilities": sorted(caps),
+                "error": f"该 MCP 服务器未声明 {kind} 能力（不是空列表）",
+            }
+        try:
+            if conn.get("transport") == "http":
+                return self._http_resource_action(
+                    str(conn.get("base_url") or ""), action, uri, name, arguments)
+            return self._stdio_resource_action(
+                conn.get("client"), action, uri, name, arguments)
+        except Exception as exc:  # noqa: BLE001 统一转稳定码，异常原文不进响应
+            logger.warning("[MCP] resource_action %s 失败（%s）", action, type(exc).__name__)
+            return {"ok": False, "code": "no_connection",
+                    "error": "MCP 调用失败（详见服务日志）"}
+
+    def _stdio_resource_action(self, client, action: str, uri: str, name: str,
+                               arguments: dict | None) -> dict:
+        """STDIO 传输：经 MCPClient 的异步方法读 resources/prompts"""
+        if client is None:
+            return {"ok": False, "code": "no_connection",
+                    "error": "该连接没有可用的 MCP 客户端"}
+        loop = self._get_loop()
+        if action == "list_resources":
+            items = loop.run_until_complete(client.list_resources())
+            return {"ok": True, "resources": [
+                {
+                    "uri": str(_resource_field(r, "uri")),
+                    "name": str(_resource_field(r, "name")),
+                    "description": str(_resource_field(r, "description")),
+                    "mimeType": str(_resource_field(r, "mimeType", "mime_type")),
+                }
+                for r in (items or [])
+            ]}
+        if action == "read_resource":
+            content = loop.run_until_complete(client.read_resource_content(uri))
+            return {"ok": True, "contents": [content] if content else []}
+        if action == "list_prompts":
+            prompts = loop.run_until_complete(client.list_prompts())
+            return {"ok": True, "prompts": prompts}
+        prompt = loop.run_until_complete(client.get_prompt(name, arguments or {}))
+        return {"ok": True, "prompt": prompt}
+
+    def _http_resource_action(self, base_url: str, action: str, uri: str, name: str,
+                              arguments: dict | None) -> dict:
+        """HTTP 传输：直接发 JSON-RPC（与 tools/call 同一出口，同样复检 SSRF）"""
+        if not base_url:
+            return {"ok": False, "code": "no_connection", "error": "该 HTTP 连接缺少地址"}
+        if action == "list_resources":
+            rpc = self._http_rpc(base_url, "resources/list", {})
+            if not rpc.get("ok"):
+                return rpc
+            items = rpc["result"].get("resources", [])
+            return {"ok": True, "resources": items if isinstance(items, list) else []}
+        if action == "read_resource":
+            rpc = self._http_rpc(base_url, "resources/read", {"uri": uri})
+            if not rpc.get("ok"):
+                return rpc
+            contents = rpc["result"].get("contents", [])
+            return {"ok": True, "contents": contents if isinstance(contents, list) else []}
+        if action == "list_prompts":
+            rpc = self._http_rpc(base_url, "prompts/list", {})
+            if not rpc.get("ok"):
+                return rpc
+            prompts = rpc["result"].get("prompts", [])
+            return {"ok": True, "prompts": prompts if isinstance(prompts, list) else []}
+        params: dict = {"name": name}
+        if arguments:
+            params["arguments"] = arguments
+        rpc = self._http_rpc(base_url, "prompts/get", params)
+        if not rpc.get("ok"):
+            return rpc
+        return {"ok": True, "prompt": rpc["result"]}
+
+
+def resource_action(service_id: str, action: str, *, uri: str = "", name: str = "",
+                    arguments: dict | None = None) -> dict:
+    """模块级入口：取进程内连接管理器执行一次只读 resources/prompts 调用
+
+    【为什么走模块级函数】工具 handler 只依赖这个函数名 ⇒ 静态调用链能落到本模块，
+    由 `McpConnector` 的跨边界事实（stdio 子进程 / HTTP）判定 location。
+    """
+    try:
+        from agent.tool_router import get_discovery_service
+    except Exception:  # noqa: BLE001 路由层不可用 ⇒ 没有连接管理器
+        get_discovery_service = None  # type: ignore[assignment]
+    discovery = get_discovery_service() if callable(get_discovery_service) else None
+    if discovery is None:
+        return {"ok": False, "code": "no_connection",
+                "error": "工具发现服务未初始化（当前进程没有 MCP 连接管理器）"}
+    connector = getattr(discovery, "mcp", None)
+    if connector is None or not hasattr(connector, "resource_action"):
+        return {"ok": False, "code": "no_connection",
+                "error": "当前进程没有 MCP 连接管理器"}
+    return connector.resource_action(service_id, action, uri=uri, name=name,
+                                     arguments=arguments)

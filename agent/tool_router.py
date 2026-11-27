@@ -188,6 +188,9 @@ _DEFAULT_TOOL_CATEGORIES = {
             "generate_tool", "scan_mcp", "connect_mcp", "disconnect_mcp",
             # 能力补全：查看活跃 MCP 连接（实现早已存在、此前无工具暴露）
             "list_mcp_connections",
+            # 【2026-11-27 E4-3】MCP resources/prompts 只读读取（YAML 默认停用观察；
+            #   默认表与 YAML 派生必须逐字一致）
+            "mcp_resource",
         ],
     },
     "pdf": {

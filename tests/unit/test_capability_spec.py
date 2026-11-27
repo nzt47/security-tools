@@ -160,7 +160,8 @@ class TestCapabilitySpecFields:
         # 【2026-11-27】105 → 106：xlsx_read（E3-2 纯库路线）
         # 【2026-11-27】106 → 107：pptx_read（E3-2 收口，纯库路线补齐 PPT 读取）
         # 【2026-11-27】107 → 108：run_orchestration_script（E4-1 第一期脚本编排）
-        assert len(committed) == 108, f"入库工具 YAML 数量变了：{len(committed)}"
+        # 【2026-11-27】108 → 109：mcp_resource（E4-3 MCP resources/prompts，默认停用）
+        assert len(committed) == 109, f"入库工具 YAML 数量变了：{len(committed)}"
         for name, meta in committed.items():
             d = meta.to_dict()          # 不抛异常即通过
             assert d["capability_id"], f"{name}: capability_id 为空"
@@ -185,7 +186,8 @@ class TestLocationCoverage:
         # 【2026-11-27】155 → 156：xlsx_read（E3-2）
         # 【2026-11-27】156 → 157：pptx_read（E3-2 收口）
         # 【2026-11-27】157 → 158：run_orchestration_script（E4-1）
-        assert len(manifest["entries"]) == 158
+        # 【2026-11-27】158 → 159：mcp_resource（E4-3）
+        assert len(manifest["entries"]) == 159
         for e in manifest["entries"]:
             assert e.get("location") in ("local", "remote"), \
                 f"{e['tool_name']}: location 缺失或非法"
@@ -447,7 +449,9 @@ class TestMainLine:
         # 【2026-11-27 E3-2】33 → 34：pptx_read 进 boost（max_tools 34；preview 实测零丢失）
         # 【2026-11-27 E4-1】34 → 35：run_orchestration_script 进 boost（max_tools 35；
         #   离线装配实测：34 它会挤掉 run_tests，35 找回 run_tests、零丢失）
-        assert len(line["visible"]) == 35, f"engineering 主线可见集应为 35 条，实得 {len(line['visible'])}"
+        # 【2026-11-27 E4-3】35 → 36：mcp_resource 进 boost（max_tools 36；离线装配实测：
+        #   35 会挤掉 run_tests，36 零丢失）
+        assert len(line["visible"]) == 36, f"engineering 主线可见集应为 36 条，实得 {len(line['visible'])}"
         assert set(line["muted"]) == {"web_extract", "web_search", "web_batch"}
         assert "connect_mcp" in line["denied_by_effect"]
 

@@ -179,14 +179,17 @@ class TestQuery:
         # 【2026-11-27】155 → 156 / tool 105 → 106 / local 131 → 132：xlsx_read（E3-2，local）
         # 【2026-11-27】156 → 157 / tool 106 → 107 / local 132 → 133：pptx_read（E3-2 收口，local）
         # 【2026-11-27】157 → 158 / tool 107 → 108 / remote 24 → 25：run_orchestration_script（E4-1）
-        assert st["total"] == 158, f"能力总数应为 158，实际 {st['total']}"
+        # 【2026-11-27 E4-3】158 → 159：mcp_resource（remote）
+        assert st["total"] == 159, f"能力总数应为 159，实际 {st['total']}"
         # 【2026-11-09】tool 93 → 94：skill_script_run（技能 L3 显式执行点）
-        assert st["by_kind"] == {"skill": 50, "tool": 108}
+        # 【2026-11-27 E4-3】tool 108 → 109：mcp_resource
+        assert st["by_kind"] == {"skill": 50, "tool": 109}
         # 【2026-11-09】remote 22 → 23：skill_script_run（子进程执行 ⇒ remote）
         # 【2026-11-27】local 132 / remote 24：terminal 是 remote、docx/xlsx_read 是 local
         # 【2026-11-27】local 132 → 133：pptx_read（local）
         # 【2026-11-27】remote 24 → 25：run_orchestration_script（起 node 子进程 ⇒ remote）
-        assert st["by_location"] == {"local": 133, "remote": 25}
+        # 【2026-11-27 E4-3】remote 25 → 26：mcp_resource（声明 remote，与事实一致）
+        assert st["by_location"] == {"local": 133, "remote": 26}
         assert st["degraded"] is False
 
     def test_主键索引_tenant_name(self, real_registry):
@@ -210,14 +213,16 @@ class TestQuery:
         # 【2026-11-27】105 → 106：xlsx_read（E3-2）
         # 【2026-11-27】106 → 107：pptx_read（E3-2 收口）
         # 【2026-11-27】107 → 108：run_orchestration_script（E4-1）
-        assert len(tools) == 108
+        # 【2026-11-27 E4-3】108 → 109：mcp_resource
+        assert len(tools) == 109
         assert len(skills) == 46
         remote = real_registry.query(location="remote")
         # 【2026-11-05】21 -> 22：software_install（subprocess.run ⇒ location=remote）
         # 【2026-11-09】22 → 23：skill_script_run 经 SkillExecutor 起子进程 ⇒ remote
         # 【2026-11-27】23 → 24：terminal（remote）
         # 【2026-11-27】24 → 25：run_orchestration_script（remote）
-        assert len(remote) == 25
+        # 【2026-11-27 E4-3】25 → 26：mcp_resource（MCP 传输 ⇒ remote）
+        assert len(remote) == 26
 
     def test_identity_白名单过滤(self, real_registry):
         """`callable_by` 是入口身份白名单（v1.4 §5.1）"""
@@ -232,7 +237,8 @@ class TestQuery:
         # 【2026-11-27】156：+terminal（E3-1）/+docx_read、xlsx_read（E3-2）
         # 【2026-11-27】156 → 157：pptx_read（E3-2 收口）
         # 【2026-11-27】157 → 158：run_orchestration_script（E4-1）
-        assert idx["primary"] == 158
+        # 【2026-11-27 E4-3】158 → 159：mcp_resource
+        assert idx["primary"] == 159
         assert idx["facet"] >= 1
 
 

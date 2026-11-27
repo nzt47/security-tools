@@ -338,7 +338,8 @@ class TestConsistencyWithPermissionLevel:
         tools = [e for e in _manifest_entries() if e.get("kind") == "tool"]
         # 【2026-11-27】105 → 106：xlsx_read（E3-2，read/low ⇒ L0）
         # 【2026-11-27】107 → 108：run_orchestration_script（E4-1，execute/high ⇒ L2）
-        assert len(tools) == 108, len(tools)
+        # 【2026-11-27 E4-3】108 → 109：mcp_resource（read/low ⇒ L0）
+        assert len(tools) == 109, len(tools)
 
         mismatch = []
         for e in tools:
@@ -1114,7 +1115,8 @@ class TestNoYamlWritesNeeded:
         """本裁决的可复核形式：YAML 侧不写该字段，且这不影响任何判定"""
         metas = _committed_metas()
         # 2026-11-27：+terminal/docx_read/xlsx_read/pptx_read；+run_orchestration_script（E4-1）
-        assert len(metas) == 108, len(metas)
+        # 2026-11-27 E4-3：+mcp_resource
+        assert len(metas) == 109, len(metas)
         declared = {k: v.confirm_level for k, v in metas.items() if v.confirm_level}
         assert declared == {}, f"若要写进 YAML 就属于口径变更，必须同时更新本裁决：{declared}"
 

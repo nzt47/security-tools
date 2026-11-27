@@ -189,8 +189,10 @@ class Test真实数据两个口径:
         # 【2026-11-27】30 → 32：docx_read 进 boost（E3-2）→ 32 → 33：xlsx_read 进 boost
         # 【2026-11-27】33 → 34：pptx_read 进 boost（E3-2 收口）
         # 【2026-11-27】34 → 35：run_orchestration_script 进 boost（E4-1；高危 ⇒ 受保护）
+        # 【2026-11-27 E4-3】35 → 36：mcp_resource 进 boost（read/low ⇒ 不受保护；
+        #   35 会挤掉 run_tests）
         assert res.max_tools == prof.max_tools
-        assert len(res.tools) == res.max_tools == 35
+        assert len(res.tools) == res.max_tools == 36
         # 【2026-11-05 复核】仍是 8：两条 software_* 不在 engineering 线的名额里
         # （本机有运行时登记工具时会多 —— 那是本机噪音，判绿以干净 worktree 为准）
         # 【2026-11-20】8 → 9：ui_guard_fix（write/high）进入 engineering 线并受保护
@@ -339,7 +341,8 @@ class Test装配层裁剪:
         # 28 → 30（2026-11-26 E1-4d：两个会话检索工具进 boost）
         # 30 → 32（2026-11-27 E3-2：docx_read 进 boost）→ 33（xlsx_read 进 boost）→ 34（pptx_read 进 boost）
         # 34 → 35（2026-11-27 E4-1：run_orchestration_script 进 boost）
-        assert len(res.tools) == res.max_tools == 35
+        # 35 → 36（2026-11-27 E4-3：mcp_resource 进 boost）
+        assert len(res.tools) == res.max_tools == 36
 
     def test_装配层超预算_高危零误伤_低危被裁(self, meta):
         """装配结果的 token 预算裁剪：受保护工具零误伤"""

@@ -50,6 +50,12 @@ boost:
 #   只加 YAML 不动 boost：max_tools 34 时它挤掉 run_tests；
 #   boost + max_tools 35：added=[run_tests]（找回）、lost=[]、总数 35=上限。
 - run_orchestration_script
+# E4-3（2026-11-27）：MCP resources/prompts 只读读取（YAML 默认停用观察）。进 boost 是
+# 为了启用后**稳定可见**（与 ui_guard_fix 同一处置）；离线装配实测（排序候选池）：
+#   只加 YAML 不动 boost：它不入选；
+#   boost + max_tools 35：added=[mcp_resource]、lost=[run_tests]（挤掉）；
+#   boost + max_tools 36：added=[mcp_resource]、lost=[]、总数 36=上限。
+- mcp_resource
 mute:
 - web_extract
 - web_batch
@@ -65,7 +71,8 @@ tags:
 # 33 → 34（2026-11-27）：再加 pptx_read 到 boost；preview 实测 added=[pptx_read]、lost=[]。
 # 34 → 35（2026-11-27 E4-1）：run_orchestration_script 进 boost。离线装配（排序候选池）实测：
 #   34 时新工具挤掉 run_tests；35 时 added=[run_tests]（找回）、lost=[]、无截断。
-max_tools: 35
+# 35 → 36（2026-11-27 E4-3）：mcp_resource 进 boost；35 时它挤掉 run_tests，36 时零丢失。
+max_tools: 36
 # 本分身默认上下文窗口（2026-11-15）：按任务类型的建议起点取中位 —— 代码 Agent / 跨文件理解：需要上下文，但推理比检索更怕噪声
 context_window_tokens: 65536
 effect_allow:

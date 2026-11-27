@@ -1857,6 +1857,14 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
     _a("CP_MCP_CALL_TIMEOUT_SEC", CAT_ORCHESTRATION, 30.0,
        "MCP adapter 调用上界兜底（秒）；仅在 McpServerConfig.timeout 缺省时生效",
        owner="agent/timeout_budget.py"),
+    # ── E4-3 MCP resources / prompts（2026-11-27）────────────────────────
+    # 【为什么是 A 级】只读能力；工具本身默认停用（YAML enabled: false）⇒ 打开它
+    #   不改变防护姿态。本键只是"资源/模板进上下文"的字节闸门：超限回 too_large
+    #   且不落盘（与图片 offload 同口径）。
+    _a("CP_MCP_RESOURCE_MAX_BYTES", CAT_ORCHESTRATION, 262144,
+       "单个 MCP resource/prompt 进入上下文的字节上限（超过回 too_large，不落盘）",
+       owner="agent/tools/mcp_resource_tools.py",
+       validator=_range_validator(1024, 16777216, kind="int")),
     _c("VISUAL_WORKFLOWS_STORE", CAT_ORCHESTRATION, None,
        "可视化工作流存储路径（只读）",
        owner="agent/server_routes/routes_visual_workflows.py"),

@@ -118,7 +118,8 @@ class TestFixtureShapeMatchesProduction:
         # 【2026-11-27】104 → 105：xlsx_read（E3-2，llm_callable=true）
         # 【2026-11-27】105 → 106：pptx_read（E3-2 收口）
         # 【2026-11-27】106 → 107：run_orchestration_script（E4-1）
-        assert len(real_tools) == 107, f"真实工具数应为 107，实际 {len(real_tools)}"
+        # 【2026-11-27 E4-3】107 → 108：mcp_resource（llm_callable=true、默认停用但仍入索引）
+        assert len(real_tools) == 108, f"真实工具数应为 108，实际 {len(real_tools)}"
 
     def test_index_is_not_a_toy_fixture(self, real_retriever, real_tools):
         # 【2026-11-25 E1-3a】交互原语不进检索索引（META_ALWAYS_TOOLS）⇒ BM25 文档数
@@ -128,7 +129,8 @@ class TestFixtureShapeMatchesProduction:
         # 【2026-11-27】102 → 103：xlsx_read 进索引（105 - 2 个交互原语）
         # 【2026-11-27】103 → 104：pptx_read 进索引（106 - 2 个交互原语）
         # 【2026-11-27】104 → 105：run_orchestration_script（107 - 2 个交互原语）
-        assert real_retriever._bm25.size == len(real_tools) - len(META_ALWAYS_TOOLS) == 105
+        # 【2026-11-27 E4-3】105 → 106：mcp_resource（108 - 2 个交互原语）
+        assert real_retriever._bm25.size == len(real_tools) - len(META_ALWAYS_TOOLS) == 106
 
 
 # ════════════════════════════════════════════════════════════

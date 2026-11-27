@@ -1,0 +1,80 @@
+name: mcp_resource
+category: extension
+description: "读取 MCP 服务器的资源与提示词模板（只读）：action=list_resources 列出资源、read_resource 按 uri 读文本、list_prompts 列出提示词模板、get_prompt 按 name 取回模板。全部只读：不订阅变更、不写资源、不自动注入上下文；服务器未声明对应能力时回 not_supported（不是空列表）。Read MCP resources and prompts (read-only)"
+deprecated: false
+version: 1.0.0
+location: remote
+location_reason: "调用链经 agent.tools.mcp_connector:resource_action 命中跨边界原语（stdio 子进程 / urllib HTTP）"
+plane: perceive
+effect: read
+risk: low
+tool_type: tool
+# E4-3：一期默认**停用观察**（YAML enabled: false ⇒ 模型可见集里没有它）；
+# 打开只需把这里改 true（或 UI 显式启用），不需要改代码。
+enabled: false
+llm_callable: true
+callable_mode: auto
+permission_level: public
+sandbox_allowed: true
+tags: [mcp]
+schema:
+  type: object
+  properties:
+    action:
+      type: string
+      enum: [list_resources, read_resource, list_prompts, get_prompt]
+      description: 要做的动作（全部只读）
+    connection:
+      type: string
+      description: MCP 连接 id（list_mcp_connections 返回的那个）
+    uri:
+      type: string
+      description: action=read_resource 必填：资源的 uri（list_resources 原样返回）
+    name:
+      type: string
+      description: action=get_prompt 必填：提示词模板名（list_prompts 返回的 name）
+    arguments:
+      type: object
+      description: action=get_prompt 的参数对象（键/值由模板的 arguments 声明）
+  required:
+  - action
+  - connection
+# 【result_schema】按 agent/tools/mcp_resource_tools.py 的 return 字面量声明：
+#   四动作成功 {ok,action,...}：list_resources {resources,count}；list_prompts {prompts,count}；
+#   read_resource {uri,contents[{uri,mimeType,text}],count,bytes}；get_prompt {name,description,messages,bytes}。
+#   失败 {ok:false,code,error}（code ∈ bad_request/no_connection/not_supported/too_large/not_text；
+#   not_supported 另带 capabilities[]）。required 只锁 ok（与仓内口径一致）。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    action:
+      type: string
+    uri:
+      type: string
+    name:
+      type: string
+    resources:
+      type: array
+    prompts:
+      type: array
+    contents:
+      type: array
+    messages:
+      type: array
+    count:
+      type: integer
+    bytes:
+      type: integer
+    limit:
+      type: integer
+    capabilities:
+      type: array
+    code:
+      type: string
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
+examples: []
