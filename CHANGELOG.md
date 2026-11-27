@@ -4,6 +4,29 @@
 **分支**: master
 **涵盖范围**: 5 个核心 commit（4608614c → 9977c949）
 
+## [CHG] - 2026-11-27: E4-1b —— 编排 run-scope（整 run 一次性授权，L2 窄旁路）✅
+
+**影响模块**: `agent/tool_gate.py`、`agent/orchestration/runtime.py`、
+`tests/unit/test_orchestration_run_scope.py`（新）
+**关联文档**: `docs/plan/2026-11-27-p4-编排安全设计.md` §12.5
+
+### Added
+- `set_run_scope` / `reset_run_scope` / `current_run_scope`（contextvar）+ `_run_scope_allows`：
+  在确认分级层插一条**只认 L2** 的窄旁路，命中落审计 `decision=run_scope`。
+- 编排侧：`runtime.run` 的作用域 = 白名单 ∪（`allow_spawn` 时的 `fan_out`），
+  `_call_tool` 在 `agent.tools.call` 前后 set/reset（异常也复位）。
+- **单次消费**：命中一次即摘掉该名字 —— 防 `fan_out` 子代理沿同一线程继承 contextvars 免审批。
+- **伦理不旁路**：命中伦理硬规则（E00x）的调用照常要人确认（整 run 授权不覆盖"该被看见"的判定）。
+
+### 边界
+- L3（govern / critical / extend）**一律不认**（与豁免名单同一裁决）；
+- 只由编排运行时设置，不跨线程继承；**没有新 env**（它是 run 工具审批的一部分）。
+
+### 实测
+- `test_orchestration_run_scope.py` 9 条：无作用域 L2 仍拦、作用域内放行、第二次又拦、L3 不认、
+  子线程不继承、审计落 `run_scope`、`_call_tool` 后作用域复位、`spawn` 不再是 `needs_approval`；
+- 回归：`test_confirm_level` / `test_tool_gate_strict` / `test_tool_approval_e2e` 共 263 passed。
+
 ## [CHG] - 2026-11-27: E4-2 第一批 —— 编排 run 只读投影 + 结果面（不新增路由）✅
 
 **影响模块**: `agent/orchestration/runs.py`（新）、`agent/orchestration/runtime.py`、

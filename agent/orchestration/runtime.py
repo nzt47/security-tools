@@ -308,7 +308,7 @@ def _denial_code(payload: Any) -> str:
 
 
 def _call_tool(name: str, args: Mapping[str, Any], *, run_id: str,
-               result_chars: int) -> Tuple[bool, Dict[str, Any]]:
+               result_chars: int, scope_tools: Sequence[str] = ()) -> Tuple[bool, Dict[str, Any]]:
     """宿主执行一次工具调用（**唯一执行点**：仍然过 agent.tools.call 的全部闸门）
 
     Returns:
@@ -318,7 +318,16 @@ def _call_tool(name: str, args: Mapping[str, Any], *, run_id: str,
     started = time.monotonic()
     try:
         from agent import tools as _tools
-        payload = _tools.call(name, **dict(args or {}))
+        from agent import tool_gate as _gate
+
+        # 【E4-1b】整 run 一次性授权：把本次 run 的授权集放进闸门的 L2 窄旁路
+        # （单次消费；L3 不认。详见 agent/tool_gate.py 的 run-scope 小节）。
+        # 设置点必须在**执行工具的这个线程**里 —— contextvars 不跨线程继承。
+        scope_token = _gate.set_run_scope(scope_tools, run_id=run_id)
+        try:
+            payload = _tools.call(name, **dict(args or {}))
+        finally:
+            _gate.reset_run_scope(scope_token)
     except Exception as exc:  # noqa: BLE001 已知领域失败只回稳定 code（不回原文）
         logger.error("[orchestration] 工具 %s 执行抛异常: %s", name, type(exc).__name__)
         envelope = {"ok": False, "code": "tool_error",
@@ -449,6 +458,10 @@ def run(script: str, *, line: str = "", allow_tools: Sequence[str] = (),
             pass
 
     tools_allowed: Tuple[str, ...] = tuple(resolved.get("tools") or ())
+    # 【E4-1b】run-scope = 本次白名单 ∪（allow_spawn 时的 fan_out）。
+    #   fan_out 不在静态只读清单里（它是 execute），所以它只可能通过 spawn 入口
+    #   被授权；把"整 run 已批准"这件事显式写进作用域，别在别处再判一次。
+    scope_tools: Tuple[str, ...] = tools_allowed + (("fan_out",) if allow_spawn else ())
     run_dir = _write_run_dir(source)
     run_id = run_dir.name
     _prune_runs()
@@ -589,7 +602,8 @@ def run(script: str, *, line: str = "", allow_tools: Sequence[str] = (),
                     tasks = msg.get("tasks")
                     call_args: Dict[str, Any] = {"tasks": tasks if isinstance(tasks, list) else []}
                     fn = lambda: _call_tool("fan_out", call_args, run_id=run_id,
-                                            result_chars=caps["result_chars"])
+                                            result_chars=caps["result_chars"],
+                                            scope_tools=scope_tools)
                 else:
                     name = str(msg.get("name") or "")
                     args = msg.get("args")
@@ -605,7 +619,8 @@ def run(script: str, *, line: str = "", allow_tools: Sequence[str] = (),
                         continue
                     call_args = dict(args) if isinstance(args, Mapping) else {}
                     fn = lambda: _call_tool(name, call_args, run_id=run_id,
-                                            result_chars=caps["result_chars"])
+                                            result_chars=caps["result_chars"],
+                                            scope_tools=scope_tools)
                 wait_s = max(0.1, min(float(CALL_WAIT_SEC), deadline - time.monotonic()))
                 finished, value = _run_in_thread(fn, wait_s)
                 if not finished:

@@ -547,6 +547,67 @@ def reset_execution_identity(handle: Any) -> None:
         logger.warning("[tool_gate] 执行身份还原失败: %s: %s", type(e).__name__, e)
 
 
+# ── 编排 run-scope（E4-1b）：**整 run 一次性授权**，L2 的窄旁路 ──────────────
+# 【为什么需要】脚本编排（run_orchestration_script）本身就是 L2：人批准一次 = 授权
+#   这一次 run。但 run 内部每调一个 L2 工具（例如 spawn → fan_out）都会再挂一张
+#   审批单，而脚本里**没有交互面** ⇒ 那张单永远等不到裁决（等于 spawn 不可用）。
+#   决策 3（docs/plan/2026-11-27-p4-编排安全设计.md §10）明确：高危工具若进白名单，
+#   走「整 run 一次性授权」，不做逐次弹窗。
+# 【边界（三条，缺一不可）】
+#   ① 只放行 **L2**：L3（govern / critical / extend）一律不认 —— 与豁免名单同一裁决
+#      （"免确认名单"不能把 L3 的"默认禁止"改写成"人来点一下也不用"）；
+#   ② **单次消费**：命中一次即把该名字从作用域里摘掉。这不是偷懒 —— 是为了防**泄漏**：
+#      fan_out 处理器的执行线程与发起脚本同线程，其子代理若在同一线程里继续调工具，
+#      会继承 contextvars；不做单次消费，子代理就等于拿到了"免审批"的通行证；
+#   ③ 作用域只由 `set_run_scope` 设置，唯一调用方是 `agent/orchestration/runtime.py`
+#      （测试之外）。没有环境变量开关 —— 它跟着 run 工具的审批一起授权，不再多一个"开"。
+_RUN_SCOPE_VAR: contextvars.ContextVar = contextvars.ContextVar(
+    "cp_run_scope", default=(frozenset(), ""),
+)
+
+
+def set_run_scope(tools: Any, run_id: str = ""):
+    """设置本次编排 run 的**已授权工具集**（返回 token，供 reset）
+
+    只应由 `agent.orchestration.runtime` 在**执行工具的那个线程**里调用
+    （contextvars 不跨线程继承 —— 与 `set_execution_identity` 同一条纪律）。
+    """
+    names = frozenset(str(t).strip() for t in (tools or ()) if str(t).strip())
+    return _RUN_SCOPE_VAR.set((names, str(run_id or "")))
+
+
+def reset_run_scope(token: Any) -> None:
+    """还原 run-scope（失败只告警，不影响调用方）"""
+    try:
+        _RUN_SCOPE_VAR.reset(token)
+    except Exception as e:  # noqa: BLE001 跨线程 reset 失败不影响主链路
+        logger.debug("[tool_gate] run-scope 还原失败: %s", type(e).__name__)
+
+
+def current_run_scope() -> Dict[str, Any]:
+    """读当前 run-scope（调试/测试用）：{"tools": tuple, "run_id": str}"""
+    try:
+        names, run_id = _RUN_SCOPE_VAR.get()
+    except Exception:  # noqa: BLE001
+        return {"tools": (), "run_id": ""}
+    return {"tools": tuple(sorted(names)), "run_id": str(run_id or "")}
+
+
+def _run_scope_allows(name: str) -> bool:
+    """该工具是否在本次 run 的授权集里；**命中即消费**（单次有效，防泄漏）"""
+    raw = str(name or "").strip()
+    if not raw:
+        return False
+    try:
+        names, run_id = _RUN_SCOPE_VAR.get()
+    except Exception:  # noqa: BLE001
+        return False
+    if raw not in names:
+        return False
+    _RUN_SCOPE_VAR.set((frozenset(n for n in names if n != raw), run_id))
+    return True
+
+
 def is_non_interactive(session_source: Optional[str] = None,
                        identity: Optional[str] = None) -> bool:
     """本次调用是否**非交互**（cron / CI / Webhook / 后台任务）
@@ -1734,6 +1795,22 @@ def _confirm_level_outcome(func_name: str, args: Optional[Dict[str, Any]],
             "工具 %s 的 %s 要求确认，但分级开关 %s=0 ⇒ 退回旧口径"
             "（仅旧的 needs_approval 集合挂单；审批边界总开关仍为开）",
             func_name, level, CONFIRM_LEVEL_ENFORCE_ENV)
+        return None
+
+    # ①-c **编排 run-scope**（E4-1b）：整 run 一次性授权里的 L2 工具
+    #   位置：在总开关/分级开关之后（那两个是"要不要拦"的总闸，不能被绕过）、
+    #   在身份判定之前（授权对象是"这一次 run 已批准的工具"，与调用者身份无关）。
+    #   只认 L2；L3 一律不认（见 _run_scope_allows 上方的边界说明）。
+    #   【为什么还要 `not _ethics`】伦理硬规则（E00x）是"人看到也必须犹豫"的那类信号；
+    #   整 run 授权不等于把伦理判定也一起授权 —— 命中伦理就不走这条旁路，照常要人确认
+    #   （宁可让脚本收到 needs_approval，也不静默放行一条伦理上该被看见的调用）。
+    if level == "L2" and not _ethics and _run_scope_allows(func_name):
+        _audit_confirm_decision(
+            tool=func_name, level=level, decision="run_scope",
+            identity=identity, source=source,
+            reason=reason + "；本次调用在编排 run-scope 的授权集内（整 run 一次性授权）",
+            tenant_id=tenant_id, version=version)
+        logger.info("[tool_gate] 工具 %s 以 **编排 run-scope** 放行（%s）", func_name, level)
         return None
 
     # ①-b **操作员豁免名单**（``CP_TOOL_CONFIRM_LEVEL_EXEMPT``，默认空 ⇒ 零影响）
