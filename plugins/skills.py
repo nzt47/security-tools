@@ -754,10 +754,18 @@ def api_extensions_market_refresh():
     try:
         result = _extension_market.fetch_community_index()
         if result:
-            # E4-4：索引已归一成 v1 契约（{"schema_version","items","bundles",...}）⇒
-            # count 取**条目数**，不是顶层键数（旧写法会把 4 个类型键报成 4）。
-            return jsonify({"ok": True, "count": int(result.get("count") or 0),
-                            "bundles": len(result.get("bundles") or [])})
+            # E4-4：正常路径是归一后的 v1 契约（{"count","bundles",...}）；
+            # 兼容两种旧形状（mock/旧缓存）：list 条目、或 {类型: [条目]} 的原始索引 dict。
+            if isinstance(result, dict):
+                if "count" in result:
+                    count = int(result.get("count") or 0)
+                else:
+                    count = sum(len(v) for v in result.values() if isinstance(v, (list, tuple)))
+                bundles = len(result.get("bundles") or [])
+            else:
+                count = len(result)
+                bundles = 0
+            return jsonify({"ok": True, "count": count, "bundles": bundles})
         return jsonify({"ok": False, "error": "获取索引失败"}), 500
     except Exception as e:
         return jsonify({"ok": False, "error": _internal_error(e)}), 500
