@@ -29,6 +29,22 @@ from plugins.admin_api import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _reset_login_rate_limit():
+    """清空**进程级**登录失败限速表（测试隔离）
+
+    【为什么需要】限速表是单进程内存态：随机顺序下别的用例先失败 5 次就会把 admin
+    锁住，本文件的登录用例随后拿到 429 而假红（2026-11-27 全量 -n 4 实测：4 条
+    TestLoginEndpoint 红，单独跑 14/14 过）。本文件断言的是口令来源与令牌可鉴权，
+    不是限速本身 ⇒ 逐条清空即可；**不改任何断言、不放宽口令校验**。
+    """
+    from plugins import admin_api
+
+    admin_api._login_failures.clear()
+    yield
+    admin_api._login_failures.clear()
+
+
 @pytest.fixture()
 def client(monkeypatch):
     """带固定签名密钥的测试客户端（否则进程内随机密钥让断言不可复现）。"""

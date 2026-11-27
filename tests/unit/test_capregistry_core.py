@@ -292,7 +292,8 @@ class TestModelCapabilityProbe:
         # 【2026-11-27】151 → 152：xlsx_read（E3-2）
         # 【2026-11-27】152 → 153：pptx_read（E3-2 收口）
         # 【2026-11-27】153 → 154：run_orchestration_script（E4-1）
-        assert env["data"]["returned"] == env["data"]["total"] == 154
+        # 【2026-11-27 E4-3】154 → 155：mcp_resource
+        assert env["data"]["returned"] == env["data"]["total"] == 155
         assert env["data"]["model_capability"]["supports_tool_calling"] is True
 
     @pytest.mark.parametrize("sentinel", ["none", "off", "-", "no-tools"])
@@ -307,7 +308,8 @@ class TestModelCapabilityProbe:
         # 【2026-11-27】151 → 152：xlsx_read（E3-2）
         # 【2026-11-27】152 → 153：pptx_read（E3-2 收口）
         # 【2026-11-27】153 → 154：run_orchestration_script（E4-1）
-        assert env["data"]["total"] == 154
+        # 【2026-11-27 E4-3】154 → 155：mcp_resource
+        assert env["data"]["total"] == 155
 
     def test_不支持前缀被识别(self):
         ok, why = modelcaps.supports_tool_calling("text-davinci-003")

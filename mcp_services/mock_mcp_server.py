@@ -206,7 +206,21 @@ class MockMCPHandler:
             elif method == "tools/call":
                 result = self._handle_tools_call(request.get("params", {}))
             elif method == "resources/list":
-                result = {"resources": []}
+                result = {"resources": [
+                    {"uri": "file:///mock/hello.txt", "name": "hello",
+                     "description": "演示用文本资源", "mimeType": "text/plain"},
+                    {"uri": "file:///mock/data.bin", "name": "data",
+                     "description": "演示用二进制资源", "mimeType": "application/octet-stream"},
+                ]}
+            elif method == "resources/read":
+                result = self._handle_resources_read(request.get("params", {}))
+            elif method == "prompts/list":
+                result = {"prompts": [
+                    {"name": "review", "description": "代码评审模板",
+                     "arguments": [{"name": "lang", "description": "语言", "required": True}]},
+                ]}
+            elif method == "prompts/get":
+                result = self._handle_prompts_get(request.get("params", {}))
             elif method == "ping":
                 result = {"pong": True}
             else:
@@ -225,6 +239,30 @@ class MockMCPHandler:
                 "id": req_id,
                 "error": {"code": -32603, "message": f"内部错误: {e}"}
             }
+
+    @staticmethod
+    def _handle_resources_read(params: Dict) -> Dict:
+        """E4-3：resources/read —— 文本回 text、二进制回 blob（工具层据此判 not_text）"""
+        uri = str(params.get("uri") or "")
+        if uri.endswith("big.txt"):
+            return {"contents": [{"uri": uri, "mimeType": "text/plain",
+                                  "text": "x" * 5000}]}
+        if uri.endswith(".bin"):
+            return {"contents": [{"uri": uri, "mimeType": "application/octet-stream",
+                                  "blob": "AAECAwQ="}]}
+        return {"contents": [{"uri": uri, "mimeType": "text/plain",
+                              "text": "hello from mock mcp: " + uri}]}
+
+    @staticmethod
+    def _handle_prompts_get(params: Dict) -> Dict:
+        """E4-3：prompts/get —— 只作为数据回给模型，不自动注入"""
+        name = str(params.get("name") or "")
+        args = params.get("arguments") or {}
+        lang = str(args.get("lang") or "zh")
+        return {"description": "代码评审模板",
+                "messages": [{"role": "user",
+                              "content": {"type": "text",
+                                          "text": "请用 %s 评审：%s" % (lang, name)}}]}
 
     def _handle_tools_call(self, params: Dict) -> Dict:
         """处理工具调用"""
