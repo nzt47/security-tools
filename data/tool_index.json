@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-27T06:12:12",
-  "tool_count": 106,
+  "generated_at": "2026-11-27T18:27:37",
+  "tool_count": 107,
   "categories": [
     "async",
     "code",
@@ -86,6 +86,21 @@
       "version": "1.0.0",
       "deprecated": false,
       "parameter_names": []
+    },
+    {
+      "name": "run_orchestration_script",
+      "category": "async",
+      "description": "脚本编排（E4-1）：把一段 JavaScript 当程序跑，用 tools.call(名, 参数) 调工具、spawn(tasks) 派子代理，一次 run 内变量保留。脚本跑在独立 node 子进程的 vm 沙箱里（无 require/process、无网络），工具由宿主执行并过全部闸门；白名单 = 主线装配集 ∩ 只读静态清单 ∩ allow_tools。需要 CP_ORCH_SCRIPT_ENABLED=1 且权限预设 full-access。Run a JavaScript orchestration script in an isolated node subprocess",
+      "version": "1.0.0",
+      "deprecated": false,
+      "parameter_names": [
+        "script",
+        "line",
+        "allow_tools",
+        "allow_spawn",
+        "timeout_seconds",
+        "max_calls"
+      ]
     },
     {
       "name": "submit_task",

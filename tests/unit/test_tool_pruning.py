@@ -188,13 +188,15 @@ class Test真实数据两个口径:
         # 【2026-11-26】28 → 30：session_search / session_trace 进 boost（E1-4d）
         # 【2026-11-27】30 → 32：docx_read 进 boost（E3-2）→ 32 → 33：xlsx_read 进 boost
         # 【2026-11-27】33 → 34：pptx_read 进 boost（E3-2 收口）
+        # 【2026-11-27】34 → 35：run_orchestration_script 进 boost（E4-1；高危 ⇒ 受保护）
         assert res.max_tools == prof.max_tools
-        assert len(res.tools) == res.max_tools == 34
+        assert len(res.tools) == res.max_tools == 35
         # 【2026-11-05 复核】仍是 8：两条 software_* 不在 engineering 线的名额里
         # （本机有运行时登记工具时会多 —— 那是本机噪音，判绿以干净 worktree 为准）
         # 【2026-11-20】8 → 9：ui_guard_fix（write/high）进入 engineering 线并受保护
         # 【2026-11-21】仍 9：ui_guard_check 是只读（不入受保护集合），受保护数不变
-        assert len(in_line) == 9
+        # 【2026-11-27】9 → 10：run_orchestration_script（execute/high ⇒ 受保护）
+        assert len(in_line) == 10
         assert res.truncated == []
         assert res.token_pruned == []
 
@@ -280,7 +282,8 @@ class TestToken预算零误伤:
         # 【2026-11-09】7 → 8：新增 skill_script_run（risk=high）进入同一预算下的误裁集合
         # 【2026-11-20】8 → 9：新增 ui_guard_fix（risk=high）
         # 【2026-11-27】9 → 10：新增 terminal（risk=critical）
-        assert len(hit) == 10, f"无保护口径下的高危误裁基线是 10，实测 {len(hit)}"
+        # 【2026-11-27】10 → 11：新增 run_orchestration_script（risk=high，E4-1）
+        assert len(hit) == 11, f"无保护口径下的高危误裁基线是 11，实测 {len(hit)}"
 
     def test_预算充足时不裁剪(self, meta, real_defs):
         """对照：预算充足 ⇒ `applied=False`、`dropped=[]`（防"裁剪"被误判为发生）"""
@@ -335,7 +338,8 @@ class Test装配层裁剪:
         # 26 → 27（2026-11-21 主线 boost 决定的直接结果；"不裁剪"的语义不变：仍是全部名额都填满）
         # 28 → 30（2026-11-26 E1-4d：两个会话检索工具进 boost）
         # 30 → 32（2026-11-27 E3-2：docx_read 进 boost）→ 33（xlsx_read 进 boost）→ 34（pptx_read 进 boost）
-        assert len(res.tools) == res.max_tools == 34
+        # 34 → 35（2026-11-27 E4-1：run_orchestration_script 进 boost）
+        assert len(res.tools) == res.max_tools == 35
 
     def test_装配层超预算_高危零误伤_低危被裁(self, meta):
         """装配结果的 token 预算裁剪：受保护工具零误伤"""

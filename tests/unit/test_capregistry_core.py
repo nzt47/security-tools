@@ -178,13 +178,15 @@ class TestQuery:
 # 【2026-11-26】152 → 153 / tool 102 → 103 / local 129 → 130：subagent_control（E2-1）
         # 【2026-11-27】155 → 156 / tool 105 → 106 / local 131 → 132：xlsx_read（E3-2，local）
         # 【2026-11-27】156 → 157 / tool 106 → 107 / local 132 → 133：pptx_read（E3-2 收口，local）
-        assert st["total"] == 157, f"能力总数应为 157，实际 {st['total']}"
+        # 【2026-11-27】157 → 158 / tool 107 → 108 / remote 24 → 25：run_orchestration_script（E4-1）
+        assert st["total"] == 158, f"能力总数应为 158，实际 {st['total']}"
         # 【2026-11-09】tool 93 → 94：skill_script_run（技能 L3 显式执行点）
-        assert st["by_kind"] == {"skill": 50, "tool": 107}
+        assert st["by_kind"] == {"skill": 50, "tool": 108}
         # 【2026-11-09】remote 22 → 23：skill_script_run（子进程执行 ⇒ remote）
         # 【2026-11-27】local 132 / remote 24：terminal 是 remote、docx/xlsx_read 是 local
         # 【2026-11-27】local 132 → 133：pptx_read（local）
-        assert st["by_location"] == {"local": 133, "remote": 24}
+        # 【2026-11-27】remote 24 → 25：run_orchestration_script（起 node 子进程 ⇒ remote）
+        assert st["by_location"] == {"local": 133, "remote": 25}
         assert st["degraded"] is False
 
     def test_主键索引_tenant_name(self, real_registry):
@@ -207,13 +209,15 @@ class TestQuery:
         # 【2026-11-26】100 → 102：session_search / session_trace（E1-4d）
         # 【2026-11-27】105 → 106：xlsx_read（E3-2）
         # 【2026-11-27】106 → 107：pptx_read（E3-2 收口）
-        assert len(tools) == 107
+        # 【2026-11-27】107 → 108：run_orchestration_script（E4-1）
+        assert len(tools) == 108
         assert len(skills) == 46
         remote = real_registry.query(location="remote")
         # 【2026-11-05】21 -> 22：software_install（subprocess.run ⇒ location=remote）
         # 【2026-11-09】22 → 23：skill_script_run 经 SkillExecutor 起子进程 ⇒ remote
         # 【2026-11-27】23 → 24：terminal（remote）
-        assert len(remote) == 24
+        # 【2026-11-27】24 → 25：run_orchestration_script（remote）
+        assert len(remote) == 25
 
     def test_identity_白名单过滤(self, real_registry):
         """`callable_by` 是入口身份白名单（v1.4 §5.1）"""
@@ -227,7 +231,8 @@ class TestQuery:
         idx = real_registry.stats()["index"]
         # 【2026-11-27】156：+terminal（E3-1）/+docx_read、xlsx_read（E3-2）
         # 【2026-11-27】156 → 157：pptx_read（E3-2 收口）
-        assert idx["primary"] == 157
+        # 【2026-11-27】157 → 158：run_orchestration_script（E4-1）
+        assert idx["primary"] == 158
         assert idx["facet"] >= 1
 
 
@@ -280,7 +285,8 @@ class TestModelCapabilityProbe:
         # 【2026-11-24】142 → 143：read_spill（E0-2）
         # 【2026-11-27】151 → 152：xlsx_read（E3-2）
         # 【2026-11-27】152 → 153：pptx_read（E3-2 收口）
-        assert env["data"]["returned"] == env["data"]["total"] == 153
+        # 【2026-11-27】153 → 154：run_orchestration_script（E4-1）
+        assert env["data"]["returned"] == env["data"]["total"] == 154
         assert env["data"]["model_capability"]["supports_tool_calling"] is True
 
     @pytest.mark.parametrize("sentinel", ["none", "off", "-", "no-tools"])
@@ -294,7 +300,8 @@ class TestModelCapabilityProbe:
         # 不是"注册表里有多少能力"。两个数含义不同，不许混。
         # 【2026-11-27】151 → 152：xlsx_read（E3-2）
         # 【2026-11-27】152 → 153：pptx_read（E3-2 收口）
-        assert env["data"]["total"] == 153
+        # 【2026-11-27】153 → 154：run_orchestration_script（E4-1）
+        assert env["data"]["total"] == 154
 
     def test_不支持前缀被识别(self):
         ok, why = modelcaps.supports_tool_calling("text-davinci-003")

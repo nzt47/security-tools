@@ -71,9 +71,11 @@ def _committed_metas() -> dict:
 #: TASK-06 §2 实测的 `risk: high` 工具（**名单必须逐字来自 YAML，不手抄**）
 EXPECTED_HIGH: tuple = (
     "apply_patch", "connect_mcp", "decompress", "edit", "ext_install",
-    "ext_send_channel", "ext_uninstall", "fan_out", "git", "run_program",
+    "ext_send_channel", "ext_uninstall", "fan_out", "git",
+    "run_orchestration_script", "run_program",
     "schedule_task", "skill_script_run", "ui_guard_fix", "workspace_delete", "write_file",
 )
+# 【2026-11-27】15 → 16：run_orchestration_script（E4-1；act/execute/high ⇒ L2 逐次确认）
 # 【2026-11-09】13 → 14：skill_script_run（技能 L3 脚本执行，effect=execute + risk=high
 # ⇒ 每次调用 L2 逐次确认）。它不是 plane=govern/extend，故归 L2 而不是 L3。
 # 【2026-11-20】14 → 15：ui_guard_fix（act/write/high，YAML 默认停用；启用后 L2 审批）。
@@ -266,7 +268,7 @@ class TestThirteenHighTools:
         from agent.lines import load_tool_meta
         metas = load_tool_meta()
         l2 = sorted(k for k in EXPECTED_HIGH if k not in HIGH_BUT_L3)
-        assert len(l2) == 12
+        assert len(l2) == 13
         for name in l2:
             assert metas[name].effective_confirm_level == "L2", name
 
@@ -289,7 +291,8 @@ class TestL0StaysFree:
         assert dist["L1"] >= 30, f"L1（可批量摘要确认）太少：{dist}"
         # 只有 14 个 high（+ critical）进 L2/L3，其余不该被牵连
         # 【2026-11-27】22 → 23：terminal（E3-1，risk=critical ⇒ L3；默认关但级别照样派生）
-        assert dist["L2"] + dist["L3"] == 23, dist      # 12 个 L2 + 11 个 L3
+        # 【2026-11-27】23 → 24：run_orchestration_script（E4-1，execute/high ⇒ L2）
+        assert dist["L2"] + dist["L3"] == 24, dist      # 13 个 L2 + 11 个 L3
 
     @pytest.mark.parametrize("tool", ["read_file", "list_dir", "grep",
                                       "get_weather", "web_search"])
@@ -334,7 +337,8 @@ class TestConsistencyWithPermissionLevel:
         """
         tools = [e for e in _manifest_entries() if e.get("kind") == "tool"]
         # 【2026-11-27】105 → 106：xlsx_read（E3-2，read/low ⇒ L0）
-        assert len(tools) == 107, len(tools)
+        # 【2026-11-27】107 → 108：run_orchestration_script（E4-1，execute/high ⇒ L2）
+        assert len(tools) == 108, len(tools)
 
         mismatch = []
         for e in tools:
@@ -1109,7 +1113,8 @@ class TestNoYamlWritesNeeded:
     def test_全部_YAML_仍然零声明(self):
         """本裁决的可复核形式：YAML 侧不写该字段，且这不影响任何判定"""
         metas = _committed_metas()
-        assert len(metas) == 107, len(metas)  # 2026-11-27：+terminal/docx_read/xlsx_read/pptx_read
+        # 2026-11-27：+terminal/docx_read/xlsx_read/pptx_read；+run_orchestration_script（E4-1）
+        assert len(metas) == 108, len(metas)
         declared = {k: v.confirm_level for k, v in metas.items() if v.confirm_level}
         assert declared == {}, f"若要写进 YAML 就属于口径变更，必须同时更新本裁决：{declared}"
 

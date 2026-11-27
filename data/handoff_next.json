@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-27T01:35:00+08:00",
+ "updated_at": "2026-11-27T18:31:03+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。 【接手入口】交接文档（仓外 yunshu_session_handoff_20261024.md）文件头写了最新一节与代码/CI/服务读数，文末「独立提示词」一节可直接复制（2026-11-26 起见 docs/handoff/2026-11-26_e2_e13_收口与新会话提示词.md）。",
  "items": [
   {
@@ -1572,7 +1572,7 @@
    "priority": "P2",
    "title": "Phase 4 编排与生态：Workflow JS、PTC、MCP resources/prompts、插件市场索引/推荐、平台集成（ACP/SDK/LiveShare/Inspector/worktree/forge/导入）",
    "criteria": "E4-1 脚本编排（沙箱 JS 扇出 subagent，保留模板路径）；E4-2 PTC（程序化调工具、状态保留、资源上限）；E4-3 MCP resources/prompts；E4-4 市场索引 + Discover + 推荐 + 组合安装（不绕过签名/白名单）；E4-5 ACP/SDK/headless/LiveShare/Inspector/worktree/forge/DeepSeek 会话导入（每项独立、默认关）。",
-   "next": "安全设计已出（docs/plan/2026-11-27-p4-编排安全设计.md）且三项已决（2026-11-27，Owner 授权按推荐）：① Node.js 作为可选运行时（缺失 no_node，不降级）；② 网络 fail-closed（探测不到 --allow-net 即拒跑，不提供绕过开关）；③ 高危工具默认不进白名单，将来要进就整 run 一次性授权。⇒ **E4-1 第一期可直接开工**：独立 node 子进程 + JSONL 工具 RPC（宿主执行并过授权/审批/审计）+ 五道资源上限 + 开关 CP_ORCH_SCRIPT_ENABLED（默认 0）。实现时按口径 §3：新工具同批 6 处计数契约 + 分类默认表（tool_router._DEFAULT_TOOL_CATEGORIES）+ 主线 boost + 干净 worktree 派生，新 env 登记 registry.py。"
+   "next": "E4-1 **第一期已交付**（2026-11-27）：run_orchestration_script（独立 node 子进程 + JSONL 工具 RPC 由宿主执行 + 五道资源上限 + 审计三件套），开关 CP_ORCH_SCRIPT_ENABLED 默认 0。实现记录与四处有意偏离见 docs/plan/2026-11-27-p4-编排安全设计.md §12。剩余：① E4-1b —— tool_gate 的 run-scope 授权，让「整 run 一次性授权」覆盖 spawn/fan_out 这类 L2 工具（当前脚本内调用会拿到 needs_approval，fail-closed，不提供绕过）；② E4-2 —— checkpoint 只读投影 + 结果面（/api/background/tasks 口径）；③ E4-3 MCP resources/prompts、E4-4 市场索引/推荐、E4-5 平台集成（各自独立、默认关）。开开关前先看 registry.py 的 B 级说明与整 run 授权缺口；本机 Node v25.8.1 实测可用。"
   },
   {
    "id": "dsh-parity-p5-longterm",
