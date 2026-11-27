@@ -4,6 +4,47 @@
 **分支**: master
 **涵盖范围**: 5 个核心 commit（4608614c → 9977c949）
 
+## [CHG] - 2026-11-27: E4-3 —— MCP resources / prompts 只读读取（mcp_resource）✅
+
+**影响模块**: `agent/tools/mcp_resource_tools.py`（新）、`agent/tools/mcp_connector.py`、
+`mcp_services/mcp_client.py`、`agent/tool_router.py`、`agent/settings/registry.py`、
+`agent/orchestrator/lifecycle_manager.py`、`data/tool_definitions/mcp_resource.yaml`（新）、
+`data/agent_lines/engineering.yaml`、`scripts/backfill_tool_planes.py`
+**关联文档**: `docs/plan/2026-11-27-e4-3-mcp-resources-prompts-design.md`
+
+### Added
+- **一个工具 + action 枚举**：`mcp_resource(action=list_resources | read_resource | list_prompts | get_prompt,
+  connection=..., uri=..., name=..., arguments=...)`。四个动作是同一个连接对象的四种读；
+  拆成四个工具会让索引/清单/BM25 半饱和点/路由 τ 连改四次（与 terminal 同一处置）。
+- **全部只读**：不 `subscribe`、不写资源、不把 prompt 模板自动拼进系统提示词
+  （模板由第三方服务器提供，只作为数据回给模型）。
+- **能力协商必须读回**：stdio 的 `MCPClient.initialize` 早就在存 `capabilities`；
+  HTTP 连接补 `initialize` 并把 `capabilities` 登记到连接对象。缺能力回 `not_supported`
+  （**不是空列表**—— "服务器不支持"与"当前没有条目"对运维含义不同）。
+- **失败码稳定**：`bad_request`（未知 action/缺参/arguments 非对象）、`no_connection`（连接不存在或
+  传输失败）、`not_supported`（附服务器声明的能力清单）、`too_large`、`not_text`（blob/二进制
+  不入上下文）。
+- **大小闸门**：`CP_MCP_RESOURCE_MAX_BYTES`（默认 256KB，夹在 [1KB,16MB]）；超限回 `too_large`
+  且**不落盘**（提示改用分页 uri / 让服务器暴露子资源）。
+- **审计**：每次读写一条 `mcp_resource_access`（action / 连接摘要 / 目标摘要 / 字节数 / 结果码，
+  摘要一律 sha256 前 8 位；uri 可能含租户/凭据片段，原文不入链）。
+- 接线路由：`lifecycle_manager._register_builtin_tools` 增 `reg_mcp_resource`；
+  `source=SOURCE_MCP_ADMIN`（管理面工具，不是 MCP 服务动态工具，断连不会被批量注销）。
+
+### 边界
+- 一期 `enabled: false`（停用观察）：模型可见集里没有它，打开只需改 YAML/UI；
+- engineering 的 boost 已收进（启用后稳定可见），`max_tools` 35 → **36**（离线装配实测：
+  35 时它会挤掉 `run_tests`，36 时零丢失）；
+- 不新增 HTTP 面（一期只做工具面）。
+
+### 实测与派生（干净 worktree）
+- `tests/unit/test_mcp_resource_tool.py` 15 条：四动作全通、uri/name 原样回、缺能力 not_supported、
+  too_large 不落盘、not_text、no_connection（连接缺失/发现服务未初始化）、参数错误、审计摘要不含原文、
+  initialize 把 capabilities 读回（`{"resources": {}}` 也算支持）、HTTP 走同一能力闸门、env 回落。
+- 干净 worktree 派生：tool_index **109** 篇 / 能力清单 **159**（local 133 / remote 26）/
+  主线可见集 **36** / S0 `_BM25_HALF_SATURATION` 5.9246 → **5.9497**
+  （n=11 / p10 2.938 / p90 11.7509 / max 11.9693）/ v1 路由冲突 τ 0.0296 → **0.0295**（28/50）。
+
 ## [CHG] - 2026-11-27: E4-1b —— 编排 run-scope（整 run 一次性授权，L2 窄旁路）✅
 
 **影响模块**: `agent/tool_gate.py`、`agent/orchestration/runtime.py`、
