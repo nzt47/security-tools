@@ -20,11 +20,24 @@ from agent.orchestration import runtime, whitelist
 
 
 def _node_available() -> bool:
-    return shutil.which(runtime.node_binary()) is not None
+    """node 存在**且**支持 --permission/--allow-net 才算可用
+
+    【为什么不能只看 shutil.which】GitHub Actions 的 runner 为 actions 运行时预装了 node
+    （可能是 20.x）—— 它就在 PATH 上，但**没有** --permission/--allow-net。只看 which
+    会让运行时用例在 CI 上真的跑起来并失败（本机 Node 25 当然绿）。设计稿的口径是
+    "node 是可选运行时，CI 不需要它" ⇒ 探针判不可用就跳过。
+    """
+    if shutil.which(runtime.node_binary()) is None:
+        return False
+    try:
+        return bool(runtime.probe_node().get("ok"))
+    except Exception:  # noqa: BLE001 探针异常按不可用处理（跳过而不是假红）
+        return False
 
 
 NODE_ONLY = pytest.mark.skipif(
-    not _node_available(), reason="本机没有 node（CI 不装 node，按设计只跳过运行时用例）")
+    not _node_available(),
+    reason="本机 node 缺失或缺少 --permission/--allow-net（CI 不要求装 node）")
 
 
 @pytest.fixture(autouse=True)

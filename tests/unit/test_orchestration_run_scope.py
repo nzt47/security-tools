@@ -30,7 +30,13 @@ def _enforce(monkeypatch):
 
 
 def _node_available() -> bool:
-    return shutil.which(runtime.node_binary()) is not None
+    """node 存在且支持 --permission/--allow-net（CI 的 node 可能只有 20.x）"""
+    if shutil.which(runtime.node_binary()) is None:
+        return False
+    try:
+        return bool(runtime.probe_node().get("ok"))
+    except Exception:  # noqa: BLE001
+        return False
 
 
 class TestRunScopeGate:
