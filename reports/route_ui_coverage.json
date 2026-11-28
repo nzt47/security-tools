@@ -1,16 +1,16 @@
 {
-  "generated_at": "2026-11-28T11:53:40",
+  "generated_at": "2026-11-28T12:52:41",
   "totals": {
-    "routes": 549,
-    "live": 549,
+    "routes": 550,
+    "live": 550,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 488,
+    "ui": 489,
     "cli_script": 15,
     "runtime_only": 12,
     "unreferenced": 34,
     "live_by_category": {
-      "ui": 488,
+      "ui": 489,
       "cli_script": 15,
       "runtime_only": 12,
       "unreferenced": 34
@@ -18,7 +18,7 @@
     "by_intent": {
       "should_be_in_ui": 447,
       "should_not_be_in_ui": 80,
-      "unclassified": 22
+      "unclassified": 23
     },
     "by_domain": {
       "页面入口": 7,
@@ -27,7 +27,7 @@
       "系统与配置": 51,
       "治理与审批": 47,
       "对话与会话": 53,
-      "资产与文件": 20,
+      "资产与文件": 21,
       "管理与后台": 18,
       "调度与任务": 26,
       "业务与评估": 18,
@@ -37,7 +37,7 @@
       "记忆与知识": 42
     }
   },
-  "frontend_endpoints": 492,
+  "frontend_endpoints": 493,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -1561,7 +1561,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_changes.py:50"
+        "agent/server_routes/routes_changes.py:88"
       ],
       "description": "最近一次（或指定）检查点的逐文件变更（只读）",
       "description_source": "handler",
@@ -3728,7 +3728,8 @@
       "path": "/api/git/worktrees",
       "norm": "/api/git/worktrees",
       "methods": [
-        "GET"
+        "GET",
+        "POST"
       ],
       "category": "ui",
       "live": true,
@@ -3739,9 +3740,35 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_changes.py:106"
+        "agent/server_routes/routes_changes.py:144",
+        "agent/server_routes/routes_changes.py:163"
       ],
       "description": "E4-5：git worktree 的**只读**投影（默认关；不建/不删/不提交）",
+      "description_source": "handler",
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false,
+      "domain": "资产与文件"
+    },
+    {
+      "path": "/api/git/worktrees/commit",
+      "norm": "/api/git/worktrees/commit",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_changes.py:184"
+      ],
+      "description": "在指定 worktree 里本地提交（B 级；默认关；**不推送**）",
       "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
@@ -14073,5 +14100,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "a3e3617b330c0173"
+  "content_hash": "6a424173ba8ecd92"
 }
