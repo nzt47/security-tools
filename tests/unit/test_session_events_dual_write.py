@@ -55,7 +55,8 @@ class TestDefaultOff:
         assert len(manager.get_messages(session_id)) == 1
 
     def test_非法读档回落_off(self, monkeypatch):
-        monkeypatch.setenv(session_events.READ_ENV, "events")
+        # 【2026-11-28】"events" 现在是**合法档**（带白名单闸）；非法值用 bogus 验证回落
+        monkeypatch.setenv(session_events.READ_ENV, "bogus")
         assert session_events.read_mode() == "off"
 
 

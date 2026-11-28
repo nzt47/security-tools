@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-28T10:05:00+08:00",
+ "updated_at": "2026-11-28T10:20:00+08:00",
  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。 【接手入口】交接文档（仓外 yunshu_session_handoff_20261024.md）文件头写了最新一节与代码/CI/服务读数，文末「独立提示词」一节可直接复制（2026-11-26 起见 docs/handoff/2026-11-26_e2_e13_收口与新会话提示词.md）。",
  "items": [
   {
@@ -1580,7 +1580,7 @@
    "priority": "P3",
    "title": "Phase 5 长期质量：事件溯源会话与格式迁移、工作目录/依赖工具",
    "criteria": "E5-1 会话事件溯源 + 版本化格式迁移（与 JSONL/审计并存，先只读投影）；E5-2 working_directory（会话级 cwd）与 load_workspace_dependencies（内置 Python/Node 路径）。 【2026-11-27 Phase A 已执行】scripts/session_events_project.py（只读投影、原子写、幂等）：76 个会话 / 989 行 → 989 个事件，skipped_legacy=0、quarantine=0；二次运行 written=0 且投影字节不变；messages.jsonl 未被改（只 open 读）。报告落 data/session_events/_migration_report.json（运行期，不进 git）；回滚 = 删该目录。测试 tests/unit/test_session_events_project.py 9 条（幂等/隔离/冻结池/只读/dry-run）。设计/记录：docs/plan/2026-11-27-p5-会话事件溯源迁移方案.md §9。",
-   "next": "Phase A（只读影子投影）+ **Phase B 双写（CP_SESSION_EVENTS_WRITE，默认 0）** + **Phase C-shadow（CP_SESSION_EVENTS_READ=off|shadow，默认 off）** 已交付（2026-11-27）；实现记录见 docs/plan/2026-11-27-p5-会话事件溯源迁移方案.md §10。剩余：① READ=events（以事件为准）—— 需按会话白名单 + 连续 30 天 shadow 零差异才放行，并接 §7.5 的回滚演练；② Phase D（messages.jsonl 降级为兼容副本、一个发布周期后才删）—— 需先满足 30 天零差异；③ E5-2（会话级 working_directory / 内置 Python·Node 路径）另出方案。回滚：WRITE=0 / READ=off（默认值）即回今天行为；事件目录可删，messages.jsonl 从未被改写。"
+   "next": "Phase A（只读影子投影）+ **Phase B 双写（CP_SESSION_EVENTS_WRITE，默认 0）** + **Phase C-shadow（CP_SESSION_EVENTS_READ=off|shadow，默认 off）** 已交付（2026-11-27）；实现记录见 docs/plan/2026-11-27-p5-会话事件溯源迁移方案.md §10。**Phase C 第二批已交付（2026-11-28）**：CP_SESSION_EVENTS_READ 新增 events 档（只对 CP_SESSION_EVENTS_READ_SESSIONS 白名单生效，名单外回落 off 并计数；事件为空而 messages 非空时回落 messages 并计数）+ 每日零差异报告 data/session_events/_shadow_daily.json（只存会话摘要，保留 60 天）+ scripts/audit/session_events_shadow_report.py --days 30（退出码 0 = 达放行条件）；运维已在本机 .env 打开 WRITE=1 + READ=shadow 开始计时（A 级，回滚=删两行）。剩余：① READ=events 的**灰度放行**——机制已就绪，等报告满 30 天零差异后按会话写白名单逐个切（并接 §7.5 的回滚演练）；② Phase D（messages.jsonl 降级为兼容副本、一个发布周期后才删）—— 需先满足 30 天零差异；③ E5-2（会话级 working_directory / 内置 Python·Node 路径）另出方案。回滚：WRITE=0 / READ=off（默认值）即回今天行为；事件目录可删，messages.jsonl 从未被改写。"
   },
   {
    "id": "dsh-parity-e0-1-followups",

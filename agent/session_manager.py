@@ -587,18 +587,25 @@ class SessionManager:
             except json.JSONDecodeError:
                 continue
 
-        # ── P5 / E5-1 Phase C（**只做 shadow**）：读 events 对拍 ──────────────
-        # 【为什么在切片之前】对拍要比**全量**（切片后比会因窗口不同而假红）。
-        # 【失败姿态】对拍只读、只记日志/计数，返回值仍是 messages（方案 §3 C 的
-        #   shadow 语义）；events 模式（以事件为准）要按会话白名单 + 30 天零差异才放行，
-        #   本模块本期不实现（非法档位一律回落 off，见 agent/session_events.py）。
+        # ── P5 / E5-1 Phase C：读灰度（shadow 对拍 / events 白名单档）──────────
+        # 【为什么在切片之前】对拍要比**全量**（切片后比会因窗口不同而假红）；
+        #   events 档也要先拿全量再按 offset/limit 切，语义与 messages 完全一致。
+        # 【失败姿态】两条都是旁路：对拍差异只记日志/计数与每日报告；events 档
+        #   **事件为空而消息非空**时回落 messages 并计数 —— 宁可退化，也不让对话凭空消失。
         try:
             from agent import session_events as _session_events
 
-            if _session_events.read_mode() == "shadow":
+            mode = _session_events.read_mode_for(session_id)
+            if mode == "shadow":
                 _session_events.shadow_compare(session_id, messages)
-        except Exception as e:  # noqa: BLE001 对拍是旁路，绝不影响读取
-            logger.debug("会话事件 shadow 对拍失败（旁路）: %s", e)
+            elif mode == "events":
+                from_events = _session_events.messages_from_events(session_id)
+                if from_events:
+                    messages = from_events
+                elif messages:
+                    _session_events.note_read_fallback(session_id)
+        except Exception as e:  # noqa: BLE001 读灰度是旁路，绝不影响读取
+            logger.debug("会话事件读灰度失败（旁路）: %s", e)
 
         if offset > 0:
             messages = messages[offset:]

@@ -4,6 +4,34 @@
 **分支**: master
 **涵盖范围**: 5 个核心 commit（4608614c → 9977c949）
 
+## [CHG] - 2026-11-28: P5 Phase C 第二批 —— events 读档白名单 + 每日零差异报告 ✅
+
+**影响模块**: `agent/session_events.py`、`agent/session_manager.py`（get_messages 读档分支）、
+`agent/settings/registry.py`、`scripts/audit/session_events_shadow_report.py`（新）、`.gitignore`
+**关联文档**: `docs/plan/2026-11-27-p5-会话事件溯源迁移方案.md`
+
+### Added
+- **`CP_SESSION_EVENTS_READ` 新增 `events` 档**：以事件为准，但**只对
+  `CP_SESSION_EVENTS_READ_SESSIONS` 白名单内会话生效**（名单外回落 off 并计数
+  `events_read_denied_count`）；事件为空而 messages 非空时回落 messages 并计数
+  `events_read_fallback_count`（宁可退化，也不让对话凭空消失）。
+- **每日零差异报告** `data/session_events/_shadow_daily.json`（gitignore）：shadow 每轮对拍
+  累进「当天多少个会话、多少次对拍、多少次差异」，只存会话 id 的 sha256 前 16 位；保留最近 60 天。
+- **`scripts/audit/session_events_shadow_report.py`**：读该报告回答「连续 N 天零差异？」——
+  `--days 30`（默认）/ `--json` / `--soft`；退出码 0 = 已达放行条件，1 = 未达。
+- 新 env `CP_SESSION_EVENTS_READ_SESSIONS`（A 级、默认空 = 谁都不读 events），登记 registry；
+  `CP_SESSION_EVENTS_READ` 的选项说明补 `events` 档与放行条件。
+
+### 边界
+- 读档切换仍**默认 off**；放行 `events` 需要「白名单 + 连续 30 天 shadow 零差异」，报告负责取证。
+- 报告是旁路：写失败只记 debug 日志，绝不影响读链路；不存正文、不存原会话 id。
+- 不改 messages.jsonl、不新增路由/工具（工具 114 / 清单 159 / S0 / τ 不变）。
+
+### 实测
+- `tests/unit/test_session_events_read_modes.py` 15 条（白名单解析/上限、模式矩阵、事件还原排序、
+  白名单内以事件为准、名单外读 messages、事件为空回落、每日报告记干净/记差异/汇总/保留窗口/不建空文件）
+  + `test_session_events_dual_write.py` 11 条（更新「非法档位」用例：events 现在是合法档）。
+
 ## [CHG] - 2026-11-28: E4-5 第五批 —— ACP server（stdio-only，默认关）✅
 
 **影响模块**: `scripts/yunshu_acp.py`（新）、`tests/unit/test_yunshu_acp.py`（新）

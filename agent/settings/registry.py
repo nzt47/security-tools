@@ -660,13 +660,20 @@ _REGISTRY_ROWS: List[SettingSpec] = [
        owner="agent/session_events.py"),
     _mk("CP_SESSION_EVENTS_READ", CAT_ORCHESTRATION, "off",
         "会话读链路的**灰度档**：off（默认，读 messages.jsonl）/ shadow（读 events 仅对拍，"
-        "差异只记日志与计数，返回值仍是 messages）；events 档需按会话白名单 + 30 天零差异后才放行，"
-        "本期未实现（非法值回落 off）",
+        "差异只记日志、计数与「每日零差异报告」，返回值仍是 messages）/ events（**以事件为准**，"
+        "只对 CP_SESSION_EVENTS_READ_SESSIONS 白名单内会话生效；放行条件 = 白名单 + 连续 30 天"
+        "shadow 零差异，见 scripts/audit/session_events_shadow_report.py；非法值回落 off）",
         owner="agent/session_events.py",
-        validator=_enum("off", "shadow", notes={
+        validator=_enum("off", "shadow", "events", notes={
             "off": "读 messages.jsonl（今天的行为）。",
-            "shadow": "同时读 events 做对拍：差异只记 session_events 日志与计数，输出不变。",
+            "shadow": "同时读 events 做对拍：差异只记 session_events 日志/计数/每日报告，输出不变。",
+            "events": "以 events 为准（仅白名单会话）；事件为空而消息非空时回落 messages 并计数。",
         })),
+    _mk("CP_SESSION_EVENTS_READ_SESSIONS", CAT_ORCHESTRATION, "",
+        "events 档的**会话白名单**（逗号分隔的 sess_* id；空 = 谁都不读 events）。"
+        "名单外的会话即使 CP_SESSION_EVENTS_READ=events 也一律回落 messages.jsonl",
+        owner="agent/session_events.py",
+        validator=Validator("str")),
     # ── E4-5 Inspector 会话轨迹（2026-11-28）────────────────────────────
     # 【为什么是 A 级】纯只读查看器：关 = 今天的行为（路由回 disabled、不读会话）；
     #   打开也不改任何写入/权限，只把既有消息按白名单投影出来。回滚 = 关开关。
