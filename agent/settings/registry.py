@@ -688,7 +688,7 @@ _REGISTRY_ROWS: List[SettingSpec] = [
        "worktree 写路径（建 worktree + 本地提交，不推送）：与只读面板分开的第二把钥匙；默认关",
        owner="agent/server_routes/routes_changes.py",
        impact="影响面：服务进程会在仓库 .worktrees/ 下建目录与分支、在该 worktree 里创建提交；"
-              "不涉及远程推送与删除")
+              "不涉及远程推送与删除"),
     _mk("CP_INSPECTOR_ENABLED", CAT_OBSERVABILITY, False,
         "会话轨迹 Inspector：GET /api/sessions/<sid>/trajectory 只读回消息与步骤摘要；"
         "默认关（关时前端显示未启用）",
