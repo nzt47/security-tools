@@ -1,24 +1,24 @@
 {
-  "generated_at": "2026-11-28T12:52:41",
+  "generated_at": "2026-11-28T13:09:20",
   "totals": {
-    "routes": 550,
-    "live": 550,
+    "routes": 552,
+    "live": 552,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 489,
+    "ui": 491,
     "cli_script": 15,
     "runtime_only": 12,
     "unreferenced": 34,
     "live_by_category": {
-      "ui": 489,
+      "ui": 491,
       "cli_script": 15,
       "runtime_only": 12,
       "unreferenced": 34
     },
     "by_intent": {
-      "should_be_in_ui": 447,
+      "should_be_in_ui": 448,
       "should_not_be_in_ui": 80,
-      "unclassified": 23
+      "unclassified": 24
     },
     "by_domain": {
       "页面入口": 7,
@@ -26,7 +26,7 @@
       "观测与诊断": 84,
       "系统与配置": 51,
       "治理与审批": 47,
-      "对话与会话": 53,
+      "对话与会话": 54,
       "资产与文件": 21,
       "管理与后台": 18,
       "调度与任务": 26,
@@ -34,10 +34,11 @@
       "技能与工具": 136,
       "认知与学习": 6,
       "开发与内部": 14,
-      "记忆与知识": 42
+      "记忆与知识": 42,
+      "未归类": 1
     }
   },
-  "frontend_endpoints": 493,
+  "frontend_endpoints": 495,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -63,7 +64,7 @@
         "scripts/_check_page.py"
       ],
       "where": [
-        "app_server.py:2222"
+        "app_server.py:2232"
       ],
       "description": "首页：重定向到统一工作台（2026-10-03 R0-b legacy 收敛）。",
       "description_source": "handler",
@@ -1927,6 +1928,31 @@
         "plugins/memory.py:205"
       ],
       "description": "获取当前上下文使用状态（**已迁移到统一信封**）。",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "会话侧/工作区",
+      "intent_note": "上下文管理。",
+      "ui_pending": false,
+      "domain": "对话与会话"
+    },
+    {
+      "path": "/api/context/translate",
+      "norm": "/api/context/translate",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_voice.py:68"
+      ],
+      "description": "思考/步骤文本翻译（默认关；只读二次加工，不改对话）",
       "description_source": "handler",
       "intent": "should_be_in_ui",
       "intent_area": "会话侧/工作区",
@@ -4111,7 +4137,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:1900"
+        "app_server.py:1910"
       ],
       "description": "混合检索器（embedding worker）健康状态（**只读**；永不 500）。",
       "description_source": "handler",
@@ -12037,7 +12063,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2378"
+        "app_server.py:2388"
       ],
       "description": "测试端点：测试除法运算（正常情况）",
       "description_source": "handler",
@@ -12062,7 +12088,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2354"
+        "app_server.py:2364"
       ],
       "description": "测试端点：触发除零错误以验证堆栈捕获",
       "description_source": "handler",
@@ -12087,7 +12113,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2367"
+        "app_server.py:2377"
       ],
       "description": "测试端点：触发空指针错误以验证堆栈捕获",
       "description_source": "handler",
@@ -12816,6 +12842,31 @@
       "intent_note": "可视化工作流：保存/草稿。",
       "ui_pending": false,
       "domain": "技能与工具"
+    },
+    {
+      "path": "/api/voice/transcribe",
+      "norm": "/api/voice/transcribe",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_voice.py:47"
+      ],
+      "description": "音频 -> 文本（默认关；音频只在内存里，不落盘）",
+      "description_source": "handler",
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false,
+      "domain": "未归类"
     },
     {
       "path": "/api/web/clean",
@@ -13677,7 +13728,7 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2269"
+        "app_server.py:2279"
       ],
       "description": "云枢 React SPA 入口（build:flask 同步自 yunshu-ui/dist → templates/yunshu.html）。",
       "description_source": "handler",
@@ -14038,7 +14089,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2333"
+        "app_server.py:2343"
       ],
       "description": "[简易] 用户行为回放页面",
       "description_source": "handler",
@@ -14063,7 +14114,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2325"
+        "app_server.py:2335"
       ],
       "description": "搜索引擎状态监控页面",
       "description_source": "handler",
@@ -14089,7 +14140,7 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2306"
+        "app_server.py:2316"
       ],
       "description": "云枢 Web 应用 — 感知底座 + 数字生命对话",
       "description_source": "module",
@@ -14100,5 +14151,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "6a424173ba8ecd92"
+  "content_hash": "9ff6490d86fad07a"
 }
