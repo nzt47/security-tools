@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-11-26T18:51:17",
+  "generated_at": "2026-11-28T11:53:42",
   "entry": "yunshu-ui/src/main.tsx",
   "scanned": {
-    "source_modules": 326,
-    "reachable_modules": 318,
-    "page_files": 113
+    "source_modules": 334,
+    "reachable_modules": 326,
+    "page_files": 114
   },
   "unreachable": [],
   "orphan_default": [],
-  "content_hash": "c44baa194abf372d",
+  "content_hash": "e027408c5ff29d9e",
   "page_files": [
     "yunshu-ui/src/pages/Export/index.tsx",
     "yunshu-ui/src/pages/Login/index.tsx",
@@ -103,6 +103,7 @@
     "yunshu-ui/src/pages/hub/workshop/exemption.tsx",
     "yunshu-ui/src/pages/hub/workshop/line-assembly.tsx",
     "yunshu-ui/src/pages/hub/workshop/replicate.tsx",
+    "yunshu-ui/src/pages/live/index.tsx",
     "yunshu-ui/src/pages/prompt-lab/CustomFactorForm.tsx",
     "yunshu-ui/src/pages/prompt-lab/FactorCard.tsx",
     "yunshu-ui/src/pages/prompt-lab/FactorControl.tsx",
