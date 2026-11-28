@@ -230,3 +230,42 @@ class TestApply:
         assert r.status_code == 500 and r.get_json()["code"] == "import_failed"
         assert "SECRET-BOOM" not in json.dumps(r.get_json(), ensure_ascii=False)
         assert mgr.current == "sess_orig"
+
+class TestRealSessionManager:
+    """与**真实** SessionManager 的集成（不桩会话库）：建会话/写消息/元数据/当前会话恢复。"""
+
+    def test_真实会话库_建会话与消息落盘(self, monkeypatch, tmp_path):
+        from agent.session_manager import SessionManager
+
+        mgr = SessionManager(sessions_dir=str(tmp_path / "sessions"))
+        # 先建一个"原当前会话"：导入必须把它恢复回去（生产里总有当前会话）
+        original = mgr.create_session(title="原会话")["id"]
+        mgr.set_current(original)
+        monkeypatch.setenv("CP_SESSION_IMPORT_ENABLED", "1")
+        monkeypatch.setenv("CP_SESSION_IMPORT_WRITE_ENABLED", "1")
+        monkeypatch.setitem(sys.modules, "app_server",
+                            types.SimpleNamespace(_session_mgr=mgr))
+        monkeypatch.setattr(mod, "_data_dir", lambda: tmp_path / "import")
+        app = Flask(__name__)
+        app.config.update(TESTING=True)
+        mod.register_routes(app)
+        client = app.test_client()
+
+        body = _upload(client, _json(SAMPLE), mode="apply", confirm="1").get_json()
+        assert body["ok"] is True and body["created_count"] == 1
+        session_id = body["created"][0]["id"]
+
+        messages_path = tmp_path / "sessions" / session_id / "messages.jsonl"
+        rows = [json.loads(line) for line in
+                messages_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+        assert [(row["role"], row["content"]) for row in rows] == [
+            ("user", "第一问"), ("assistant", "第一答")]
+        assert rows[0]["timestamp"] == "2026-11-20T10:00:00Z"
+        meta = json.loads((tmp_path / "sessions" / session_id / "meta.json")
+                          .read_text(encoding="utf-8"))
+        assert meta["title"] == "导入的会话"
+        assert meta["imported"]["messages"] == 2
+        index = json.loads((tmp_path / "sessions" / "sessions.json").read_text(encoding="utf-8"))
+        imported_row = [row for row in index if row["id"] == session_id][0]
+        assert imported_row["message_count"] == 2
+        assert mgr.get_current_id() == original, "导入后必须恢复原来的当前会话"
