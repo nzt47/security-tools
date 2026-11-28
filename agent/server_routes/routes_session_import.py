@@ -116,6 +116,28 @@ def _mgr():
     return _session_mgr
 
 
+def _still_exists(mgr, session_id: Any) -> bool:
+    """台账记录的那个会话还在不在（读不到就按"还在"处理：宁可少导一次，也不重复导）。"""
+    if not session_id:
+        return False
+    try:
+        return mgr.get_session(str(session_id)) is not None
+    except Exception:  # noqa: BLE001 会话库读失败不该让去重失效
+        return True
+
+
+def _live_fingerprints(fingerprints, known_map: Dict[str, Dict[str, Any]], mgr) -> set:
+    """台账里**对应会话仍然存在**的指纹（用户删了导入的会话 ⇒ 允许重新导入同一份导出）。"""
+    live = set()
+    for fingerprint in fingerprints:
+        row = known_map.get(fingerprint)
+        if not isinstance(row, dict):
+            continue
+        if _still_exists(mgr, row.get("session_id")):
+            live.add(fingerprint)
+    return live
+
+
 def _error(code: str, detail: str, status: int = 400):
     return jsonify({"ok": False, "code": code, "error": detail}), status
 
@@ -123,7 +145,9 @@ def _error(code: str, detail: str, status: int = 400):
 def _apply(doc: Dict[str, Any], safe_name: str, mgr) -> Dict[str, Any]:
     """把解析结果写成会话（调用方已持锁、已过两道开关 + confirm 校验）。"""
     ledger = _read_ledger()
-    known = set(ledger["items"])
+    # 【去重要"活"】台账只拦**会话仍在**的指纹：用户删掉导入的会话后，同一份导出应能再导一次
+    doc_fingerprints = [_import.fingerprint(conv) for conv in (doc.get("sessions") or ())]
+    known = _live_fingerprints(doc_fingerprints, ledger["items"], mgr)
     created: List[Dict[str, Any]] = []
     skipped = 0
     previous_current = None
@@ -209,7 +233,10 @@ def register_routes(app, state=None):
             return _error("parse_failed", "解析时出错，详见服务日志", 500)
         write_enabled = _flag(WRITE_ENV)
         if mode == "preview":
-            body = _import.preview(doc, known=set(_read_ledger()["items"]))
+            ledger_items = _read_ledger()["items"]
+            fingerprints = [_import.fingerprint(conv) for conv in (doc.get("sessions") or ())]
+            known = _live_fingerprints(fingerprints, ledger_items, _mgr())
+            body = _import.preview(doc, known=known)
             return jsonify({"ok": True, "write_enabled": write_enabled,
                             "filename": safe_name, **body})
         if not write_enabled:

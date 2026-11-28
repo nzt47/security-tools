@@ -64,6 +64,18 @@ class _FakeMgr:
         self.meta.setdefault(session_id, {}).update(fields)
         return True
 
+    def get_session(self, session_id):
+        for row in self.sessions:
+            if row["id"] == session_id:
+                return dict(row)
+        return None
+
+    def delete_session(self, session_id):
+        before = len(self.sessions)
+        self.sessions = [row for row in self.sessions if row["id"] != session_id]
+        self.messages.pop(session_id, None)
+        return len(self.sessions) != before
+
 
 @pytest.fixture
 def make_client(monkeypatch, tmp_path):
@@ -211,6 +223,19 @@ class TestApply:
         assert second["created_count"] == 0 and second["skipped_duplicates"] == 1
         assert len(mgr.sessions) == 1
 
+    def test_删除已导入的会话后_同一份导出可再导(self, make_client, monkeypatch):
+        """台账只拦"会话仍在"的指纹：用户删了导入的会话 ⇒ 允许重新导入。"""
+        monkeypatch.setenv("CP_SESSION_IMPORT_ENABLED", "1")
+        monkeypatch.setenv("CP_SESSION_IMPORT_WRITE_ENABLED", "1")
+        client, mgr = make_client()
+        first = _upload(client, _json(SAMPLE), mode="apply", confirm="1").get_json()
+        assert first["created_count"] == 1
+        assert mgr.delete_session(first["created"][0]["id"]) is True
+        preview = _upload(client, _json(SAMPLE)).get_json()
+        assert preview["duplicates"] == 0 and preview["sessions"][0]["duplicate"] is False
+        again = _upload(client, _json(SAMPLE), mode="apply", confirm="1").get_json()
+        assert again["created_count"] == 1 and again["skipped_duplicates"] == 0
+
     def test_改名后再导仍算重复(self, make_client, monkeypatch):
         monkeypatch.setenv("CP_SESSION_IMPORT_ENABLED", "1")
         monkeypatch.setenv("CP_SESSION_IMPORT_WRITE_ENABLED", "1")
@@ -269,3 +294,9 @@ class TestRealSessionManager:
         imported_row = [row for row in index if row["id"] == session_id][0]
         assert imported_row["message_count"] == 2
         assert mgr.get_current_id() == original, "导入后必须恢复原来的当前会话"
+
+        # 删掉导入的会话后再导一次：台账不再拦（否则用户会永远导不回来）
+        assert mgr.delete_session(session_id) is True
+        again = _upload(client, _json(SAMPLE), mode="apply", confirm="1").get_json()
+        assert again["created_count"] == 1 and again["skipped_duplicates"] == 0
+        client.delete("/api/sessions/" + again["created"][0]["id"], headers={})
