@@ -29,7 +29,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } fro
 import type { ReactElement } from 'react';
 import { Mosaic, MosaicWindow } from 'react-mosaic-component';
 import type { MosaicNode, MosaicPath } from 'react-mosaic-component';
-import { Cloud, MessageSquare, PanelLeft, PanelRight, RotateCcw } from 'lucide-react';
+import { Cloud, MessageSquare, PanelLeft, PanelRight, RotateCcw, Settings } from 'lucide-react';
 import { Button } from '@/components/ui';
 import {
   DEFAULT_LAYOUT,
@@ -49,6 +49,9 @@ import { useInRouterContext } from 'react-router-dom';
 import Toaster from './components/Toaster';
 import AlarmBell from './components/AlarmBell'
 import LlmGateControl from './components/workbench/LlmGateControl';
+import GeneralSettingsDialog, { type SettingsSectionId } from './components/settings/GeneralSettingsDialog';
+import ServiceUpdateNotice from './components/settings/ServiceUpdateNotice';
+import { useGlobalShortcuts } from './components/settings/useGlobalShortcuts';
 import { renderPanel } from './components/workbench/panels/renderPanel';
 import { startCrossWindowSync } from './electron/sync';
 
@@ -150,6 +153,19 @@ export default function WorkbenchApp() {
   // 而 useLocation() 在 Router 之外会**抛异常**（渲染期整棵子树失败）。
   // React 的 hook 规则不允许条件调用 useLocation，故在父组件判上下文、在子组件里调 hooks。
   const inRouter = useInRouterContext();
+
+  // ─── 通用设置（2026-11-28）：顶栏入口 + Ctrl/⌘+, 全局快捷键 ───
+  // 偏好全部镜像既有 store（useChatPrefsStore），本组件只负责"入口 + 分区"。
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsSection, setSettingsSection] = useState<SettingsSectionId>('general');
+  const openSettings = useCallback((section: SettingsSectionId) => {
+    setSettingsSection(section);
+    setSettingsOpen(true);
+  }, []);
+  useGlobalShortcuts({
+    onToggleSettings: () => setSettingsOpen((prev) => !prev),
+    onOpenShortcutHelp: () => openSettings('shortcuts'),
+  });
 
   // 边缘停靠区高亮（拖拽面板到窗口边缘时显示）
   const [detachEdge, setDetachEdge] = useState<'top' | 'bottom' | 'left' | 'right' | null>(null);
@@ -263,6 +279,14 @@ export default function WorkbenchApp() {
       {/* 全局 Toast 容器：系统管理（admin/*，复用 pages/system）等 Hub 页面操作
           失败/成功提示在此可见（缺陷 ①）；单例幂等，可多处挂载 */}
       <Toaster />
+      {/* 通用设置弹窗 + 「服务已更新」提示（全局各页可用） */}
+      <GeneralSettingsDialog
+        open={settingsOpen}
+        section={settingsSection}
+        onSectionChange={setSettingsSection}
+        onClose={() => setSettingsOpen(false)}
+      />
+      <ServiceUpdateNotice />
       {/* 可观测性浮层（DevConsole + StateInspector）：lazy 独立 chunk；
           是否显示由 VITE_OBSERVABILITY_ENABLED 构建期 gate 控制——
           dev 默认启用；生产构建设 VITE_OBSERVABILITY_ENABLED=true 亦启用，
@@ -343,6 +367,17 @@ export default function WorkbenchApp() {
           </div>
           {/* LLM 禁用时段（2026-11-20）：顶栏开关 + 时段配置弹窗。 */}
           <LlmGateControl />
+          {/* 通用设置（2026-11-28）：用户偏好统一入口；Ctrl/⌘+, 同效。 */}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="通用设置"
+            title="通用设置（Ctrl+,）"
+            onClick={() => openSettings('general')}
+          >
+            <Settings size={14} />
+          </Button>
           {/* 报警器：系统运行期问题的汇报入口（读 /api/alarms，与消息中心同一张台账）。
               「查看全部」由这里注入导航动作 —— 组件本身不认识路由。 */}
           <AlarmBell onOpenAll={() => useWorkbenchNav.getState().setActiveKey('admin/notifications')} />

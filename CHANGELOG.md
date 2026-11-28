@@ -4,6 +4,32 @@
 **分支**: master
 **涵盖范围**: 5 个核心 commit（4608614c → 9977c949）
 
+## [CHG] - 2026-11-28: 通用设置 —— 用户偏好统一入口 + 服务版本提示（借鉴 DSH）✅
+
+**影响模块**: `yunshu-ui/src/components/settings/*`（新）、`yunshu-ui/src/WorkbenchApp.tsx`
+
+### Added
+- **通用设置**（顶栏齿轮 / `Ctrl/⌘+,`）：分区 通用（对话模式、权限档位、思考/工具显示）/
+  外观（输出格式、对话主题、气泡样式、对话字号）/ 快捷键 / 关于。
+  内容全部镜像既有 `useChatPrefsStore` —— **不新增持久化键、不新增路由、不新增环境变量**
+  （因此不动 registry / route_domains / 覆盖派生）。
+- **关于**：只读消费 `GET /api/version`（commit / build_commit / bundle / pid / 启动时间），
+  并直接给出「页面与服务端 bundle 是否同版」，不再只有构建戳时间。
+- **服务已更新提示**：页面正在执行的 bundle ≠ 服务端当前 bundle 时弹窗
+  （立即刷新 / 稍后；同一服务端版本只提示一次；页面隐藏后回到前台会补查一次）。
+- 快捷键表唯一事实源 `settings/shortcuts.ts`；`Ctrl/⌘+/` 直接打开「快捷键」分区。
+
+### 边界
+- **不做「界面主题 亮/暗」**：云枢目前只有一套深色 token（index.css 无 `.dark` 覆盖块），
+  点了没效果的开关不做，等浅色 token 落地再加。
+- 版本探测失败静默（401/断网都不打断使用）；dev / 测试环境没有 `index-*.js` ⇒ 不轮询、不提示。
+- 入口只挂主工作台（`WorkbenchApp`）；独立窗口（`DetachedChatApp`）不重复挂。
+
+### 实测
+- `GeneralSettingsDialog.test.tsx` 6 条 + `ServiceUpdateNotice.test.tsx` 4 条 + `shortcuts.test.ts` 3 条；
+  `Toaster.mount.test.tsx` / `PanelChrome.test.tsx` 回归通过；
+  `npm run ui:check` 全绿（tsc + eslint + 3 guards + 量具，raw_button/select/input/textarea/arbitrary_text/硬编码色 均为 0）。
+
 ## [CHG] - 2026-11-28: E3-1 开关开通 —— 持久终端进主线 boost（max_tools 37）✅
 
 **影响模块**: `data/agent_lines/engineering.yaml`、`tests/unit/test_capability_spec.py`、`tests/unit/test_tool_pruning.py`
