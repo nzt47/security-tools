@@ -162,6 +162,11 @@ def _build_llm(timeout: int = 0):
         return None
 
 
+def build_llm(timeout: int = 0):
+    """公开构造器：E3-4 的 CoT 翻译与标题生成同口径（同一套 env / 同一个 LLMService）"""
+    return _build_llm(timeout=timeout)
+
+
 def _ask_llm(llm, messages: List[Dict[str, Any]]) -> str:
     """让模型给一个标题；失败返回空串（调用方走回退）。"""
     rows = build_messages(messages)

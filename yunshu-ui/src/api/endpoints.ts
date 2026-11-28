@@ -199,6 +199,10 @@ export const sessionStats = (id: string) => `/api/sessions/${encodeURIComponent(
 /** 轨迹（E4-5 Inspector，只读；?limit=&offset=，默认关） */
 export const sessionTrajectory = (id: string, limit = 50, offset = 0) =>
   `/api/sessions/${encodeURIComponent(id)}/trajectory?limit=${limit}&offset=${offset}`;
+/** 语音输入（E3-4）：multipart audio → 文本（CP_STT_ENABLED；未配置回 503） */
+export const VOICE_TRANSCRIBE = '/api/voice/transcribe';
+/** 思考过程翻译（E3-4）：POST {text,target} → {text}（CP_COT_TRANSLATE_ENABLED；不改对话） */
+export const CONTEXT_TRANSLATE = '/api/context/translate';
 /** 会话分享（E4-5 第六批）：管理面照常登录态（GET 状态 / POST 建 / DELETE 撤销） */
 export const sessionShares = (id: string) => `/api/sessions/${encodeURIComponent(id)}/share`;
 /** 公开只读读面（持分享令牌；令牌走 X-LiveShare-Token 头，不进 URL） */

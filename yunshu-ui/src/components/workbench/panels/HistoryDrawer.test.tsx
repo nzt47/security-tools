@@ -94,6 +94,9 @@ const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => 
   if (method === 'GET' && url.includes('/trajectory')) {
     return jsonResponse(trajectoryPayload);
   }
+  if (method === 'POST' && url === '/api/context/translate') {
+    return jsonResponse({ ok: true, text: '译文：这一步读到了 ok', target: 'zh', cached: false });
+  }
   if (method === 'GET' && url.includes('/export')) {
     return {
       ok: true,
@@ -131,6 +134,43 @@ function renderDrawer(sessionId = 's1') {
   const view = render(<HistoryDrawer sessionId={sessionId} onClose={onClose} />);
   return { onClose, ...view };
 }
+
+describe('HistoryDrawer · E3-4 思考步骤翻译', () => {
+  beforeEach(() => {
+    serverEntries = ENTRIES.map((e) => ({ ...e }));
+    trajectoryPayload = {
+      ok: true, session_id: 's1', title: '检查点', total: 1, offset: 0, limit: 50,
+      truncated: false,
+      entries: [{
+        index: 0, role: 'assistant', ts: '2026-06-27T11:41:06+08:00', chars: 3, body: '好',
+        steps: [{ id: 't1', title: '工具调用：read_file', status: 'done', detail: '结果: ok', at: '' }],
+      }],
+    };
+    vi.stubGlobal('fetch', fetchMock);
+    resetStore();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    resetStore();
+  });
+
+  it('点「译」调 /api/context/translate 并显示译文，再点回原文', async () => {
+    renderDrawer();
+    await waitFor(() => expect(screen.getByTestId('session-trajectory-toggle')).toBeTruthy());
+    fireEvent.click(screen.getByTestId('session-trajectory-toggle'));
+    await waitFor(() => expect(screen.getByTestId('session-trajectory-list')).toBeTruthy());
+    const button = screen.getAllByTestId('step-translate')[0];
+    fireEvent.click(button);
+    await waitFor(() => expect(screen.getByText(/这一步读到了 ok/)).toBeTruthy());
+    const calls = (fetch as unknown as { mock: { calls: [string, RequestInit][] } }).mock.calls;
+    const translateCall = calls.find((c) => String(c[0]) === '/api/context/translate');
+    expect(translateCall).toBeTruthy();
+    expect(String(translateCall?.[1]?.body)).toContain('"target":"zh"');
+    fireEvent.click(screen.getAllByTestId('step-translate')[0]);
+    await waitFor(() => expect(screen.queryByText(/这一步读到了 ok/)).toBeNull());
+  });
+});
 
 describe('HistoryDrawer 历史问话侧滑面板', () => {
   beforeEach(() => {

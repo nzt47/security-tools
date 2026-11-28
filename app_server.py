@@ -1640,6 +1640,16 @@ try:
 except Exception as e:
     _record_route_failure("会话分享路由", e)
 
+# ════════════════════════════════════════════════════════════
+#  E3-4 语音输入 + 思考过程翻译（/api/voice/transcribe、/api/context/translate；默认关）
+# ════════════════════════════════════════════════════════════
+try:
+    from agent.server_routes.routes_voice import register_routes as reg_voice
+    reg_voice(app, lambda: None)
+    logger.info("语音/翻译路由已注册 (/api/voice/transcribe + /api/context/translate)")
+except Exception as e:
+    _record_route_failure("语音/翻译路由", e)
+
 
 # ════════════════════════════════════════════════════════════
 #  工作流学习系统路由（/api/workflow-learning/*）

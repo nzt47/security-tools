@@ -24,6 +24,7 @@ import {
   Check,
   Copy,
   History,
+  Languages,
   Loader2,
   RefreshCw,
   Search,
@@ -32,6 +33,7 @@ import {
 } from 'lucide-react';
 import { Button, Input } from '@/components/ui';
 import { historyApi, type HistoryEntry } from '../../../lib/historyApi';
+import { translateCot } from '../../../lib/cotTranslateApi';
 import {
   downloadSession,
   getOutline,
@@ -103,6 +105,10 @@ export function HistoryDrawer({ sessionId, onClose }: HistoryDrawerProps) {
   const [statsDoc, setStatsDoc] = useState<SessionStats | null>(null);
   // E4-5 Inspector：轨迹只读投影（默认关；关时 doc.ok=false + code=disabled）
   const [trajectoryDoc, setTrajectoryDoc] = useState<SessionTrajectory | null>(null);
+  // E3-4：思考/步骤文本的按需翻译（键 = 消息序号 + 步骤序号；只读二次加工，不改对话）
+  const [stepZh, setStepZh] = useState<Record<string, string>>({});
+  const [stepBusyKey, setStepBusyKey] = useState<string>('');
+  const [stepErr, setStepErr] = useState<string>('');
   const [insightBusy, setInsightBusy] = useState(false);
   const [exportBusy, setExportBusy] = useState(false);
   const mountedRef = useRef(true);
@@ -185,6 +191,32 @@ export function HistoryDrawer({ sessionId, onClose }: HistoryDrawerProps) {
       );
     } finally {
       setInsightBusy(false);
+    }
+  };
+
+  /** E3-4：把某一步的原文译成中文（再点一次回到原文）——只读二次加工，不改会话 */
+  const toggleStepTranslate = async (key: string, detail: string) => {
+    if (stepZh[key]) {
+      setStepZh((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+      return;
+    }
+    setStepBusyKey(key);
+    setStepErr('');
+    try {
+      const body = await translateCot(detail, 'zh');
+      if (body.ok === false) {
+        setStepErr(body.error || '翻译失败');
+        return;
+      }
+      if (body.text) setStepZh((prev) => ({ ...prev, [key]: body.text as string }));
+    } catch (e) {
+      setStepErr(e instanceof Error ? e.message : '翻译失败');
+    } finally {
+      setStepBusyKey('');
     }
   };
 
@@ -426,6 +458,11 @@ export function HistoryDrawer({ sessionId, onClose }: HistoryDrawerProps) {
                 {trajectoryDoc.error || '轨迹查看未启用（CP_INSPECTOR_ENABLED=0）'}
               </div>
             )}
+            {insight === 'trajectory' && stepErr ? (
+              <div className="mb-1 text-micro text-rose-400" data-testid="step-translate-error">
+                {stepErr}
+              </div>
+            ) : null}
             {insight === 'trajectory' && trajectoryDoc?.ok && (
               <ol className="flex flex-col gap-1.5" data-testid="session-trajectory-list">
                 {[...(trajectoryDoc.entries ?? [])].reverse().map((row) => (
@@ -451,18 +488,40 @@ export function HistoryDrawer({ sessionId, onClose }: HistoryDrawerProps) {
                     </div>
                     {row.steps.length > 0 && (
                       <ul className="mt-0.5 flex flex-col gap-0.5">
-                        {row.steps.map((step, stepIndex) => (
-                          <li
-                            key={`${step.id || step.title || 'step'}-${stepIndex}`}
-                            className="truncate text-micro text-slate-500"
-                            title={step.detail}
-                          >
-                            {step.title || step.id || '步骤'}
-                            {step.detail
-                              ? ' · ' + (step.detail.length > 90 ? `${step.detail.slice(0, 90)}…` : step.detail)
-                              : ''}
-                          </li>
-                        ))}
+                        {row.steps.map((step, stepIndex) => {
+                          const key = `${row.index}-${stepIndex}`;
+                          const translated = stepZh[key];
+                          return (
+                            <li
+                              key={`${step.id || step.title || 'step'}-${stepIndex}`}
+                              className="flex items-start gap-1 text-micro text-slate-500"
+                              title={step.detail}
+                            >
+                              <span className="min-w-0 flex-1 truncate">
+                                {step.title || step.id || '步骤'}
+                                {step.detail
+                                  ? ' · ' + (translated
+                                      ? (translated.length > 90 ? `${translated.slice(0, 90)}…` : translated)
+                                      : (step.detail.length > 90 ? `${step.detail.slice(0, 90)}…` : step.detail))
+                                  : ''}
+                              </span>
+                              {step.detail ? (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon-xs"
+                                  data-testid="step-translate"
+                                  disabled={stepBusyKey === key}
+                                  aria-label="翻译这一步"
+                                  title="把这一步的原文译成中文（只读，不改对话）"
+                                  onClick={() => void toggleStepTranslate(key, step.detail)}
+                                >
+                                  {stepBusyKey === key ? <Loader2 size={10} className="animate-spin" /> : <Languages size={10} />}
+                                </Button>
+                              ) : null}
+                            </li>
+                          );
+                        })}
                       </ul>
                     )}
                   </li>

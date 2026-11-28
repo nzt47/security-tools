@@ -704,6 +704,25 @@ _REGISTRY_ROWS: List[SettingSpec] = [
     _mk("CP_SESSION_IMPORT_WRITE_ENABLED", CAT_ORCHESTRATION, False,
         "会话导入的**写路径**：仅当此开关打开且请求带 confirm=1 时才建会话 + 写消息；默认关",
         owner="agent/server_routes/routes_session_import.py"),
+    # ── E3-4 语音输入（STT）与思考过程翻译（CoT）（2026-11-28）──────────
+    # 【为什么是 A 级】两者都是"旁路增强"：默认关 = 今天的行为；打开后只增加
+    #   一个外发音频的入口（STT）与一个额外花 token 的只读翻译（CoT），不改权限。
+    _mk("CP_STT_ENABLED", CAT_ORCHESTRATION, False,
+        "语音输入（POST /api/voice/transcribe）：音频 -> 文本；默认关，关时路由回 disabled",
+        owner="agent/voice/stt.py"),
+    _mk("CP_STT_BASE_URL", CAT_ORCHESTRATION, "",
+        "语音识别上游的 OpenAI 兼容端点（如 https://api.openai.com/v1）；空 = 未配置",
+        owner="agent/voice/stt.py"),
+    _mk("CP_STT_MODEL", CAT_ORCHESTRATION, "whisper-1",
+        "语音识别模型名（缺省 whisper-1）", owner="agent/voice/stt.py"),
+    _secret("CP_STT_API_KEY", CAT_ORCHESTRATION,
+            "语音识别上游密钥（只从 env/.env 读；UI 只显示是否已配置）",
+            owner="agent/voice/stt.py"),
+    _mk("CP_STT_LANGUAGE", CAT_ORCHESTRATION, "zh",
+        "语音识别语言提示（空 = 交给上游自动判断）", owner="agent/voice/stt.py"),
+    _mk("CP_COT_TRANSLATE_ENABLED", CAT_ORCHESTRATION, False,
+        "思考过程翻译（POST /api/context/translate）：把思考/步骤文本译成 zh/en（内存缓存、不改对话）；默认关",
+        owner="agent/context/cot_translate.py"),
     # ── E4-5 第六批 会话分享 LiveShare（2026-11-28）──────────────────────
     # 【为什么是 A 级】默认关 = 今天的行为（公开读面 404、管理面 disabled）；
     #   打开后只增加一个**只读、按令牌、可撤销、有 TTL** 的公开读面，

@@ -4,6 +4,35 @@
 **分支**: master
 **涵盖范围**: 5 个核心 commit（4608614c → 9977c949）
 
+## [CHG] - 2026-11-28: E3-4 —— 语音输入（STT）+ 思考过程翻译（CoT）（默认关）✅
+
+**影响模块**: `agent/voice/stt.py`（新）、`agent/context/cot_translate.py`（新）、
+`agent/server_routes/routes_voice.py`（新）、`agent/context/session_title.py`（公开 build_llm）、
+`app_server.py`、`agent/settings/registry.py`、`yunshu-ui/src/components/workbench/chat/VoiceInputButton.tsx`（新）、
+`src/lib/cotTranslateApi.ts`（新）、`ChatPanel.tsx`、`HistoryDrawer.tsx`
+
+### Added
+- **`POST /api/voice/transcribe`**（multipart `audio`）：OpenAI 兼容 `/audio/transcriptions` 的最小客户端；
+  `CP_STT_ENABLED` 默认关，未配置上游时如实回 `503 stt_unavailable`；只收 `audio/*`、单次 ≤10 MiB、
+  **音频只在内存不落盘**、文本截 4000 字符；上游错误只回稳定码（`stt_failed` / `stt_timeout`）。
+- **`POST /api/context/translate`**（JSON `{text,target}`）：把思考/步骤文本译成 zh/en（只读二次加工、不改对话）；
+  `CP_COT_TRANSLATE_ENABLED` 默认关；关 thinking、输入截 2000、输出截 4000、内存 LRU 64；
+  没有可用 LLM 时回 `503 llm_unavailable`。
+- **前端**：输入区新增麦克风按钮（MediaRecorder → 转写 → 回填；不支持录音/未启用/未配置只给稳定中文提示）；
+  历史问话「轨迹」每一步新增「译」按钮（再点回原文）。
+- 新 env：`CP_STT_ENABLED` / `CP_STT_BASE_URL` / `CP_STT_MODEL` / `CP_STT_API_KEY`（secret）/
+  `CP_STT_LANGUAGE` / `CP_COT_TRANSLATE_ENABLED`，全部登记 registry。
+
+### 边界
+- STT 会把音频外发到**你配置的上游**；不配置就用不了（不做内置离线 ASR）。
+- CoT 翻译只翻译给定文本，不做总结/改写；缓存只在内存（键 = sha256(target|text)），不落盘、不进日志。
+- 两条都是旁路增强：关掉即完全回落原文/原始输入。
+
+### 实测
+- `tests/unit/test_voice_stt.py` 20 条 + `test_cot_translate.py` 10 条 + `test_voice_routes.py` 11 条；
+  `VoiceInputButton.test.tsx` 3 条 + `HistoryDrawer.test.tsx` 新增 1 条；`npm run ui:check` 全绿。
+- 工具 / 清单 / S0 / τ 不变（114 / 159 / 5.9497 / 0.0295）。
+
 ## [CHG] - 2026-11-28: E4-5 第六批 —— LiveShare 只读分享（默认关）✅
 
 **影响模块**: `agent/liveshare.py`（新）、`agent/server_routes/routes_liveshare.py`（新）、

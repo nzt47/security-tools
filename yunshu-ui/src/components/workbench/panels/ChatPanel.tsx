@@ -15,6 +15,7 @@ import { chatStyleVars, useChatPrefsStore } from '../../../stores/useChatPrefsSt
 import { MessageItem, isToolStep } from '../chat/MessageItem';
 import { MessageInput } from '../chat/MessageInput';
 import { AttachmentPicker, buildAttachmentManifest, type AttachmentMeta } from '../chat/AttachmentPicker';
+import { VoiceInputButton } from '../chat/VoiceInputButton';
 import { ChatStyleMenu } from '../chat/ChatStyleMenu';
 import { ChatModeMenu } from '../chat/ChatModeMenu';
 import { PermissionModeMenu } from '../chat/PermissionModeMenu';
@@ -507,12 +508,19 @@ export function ChatPanel() {
             ))}
           </div>
         )}
-        <AttachmentPicker
-          sessionId={activeSessionId ?? undefined}
-          value={attachments}
-          onChange={setAttachments}
-          disabled={streaming}
-        />
+        <div className="flex items-center gap-2">
+          <AttachmentPicker
+            sessionId={activeSessionId ?? undefined}
+            value={attachments}
+            onChange={setAttachments}
+            disabled={streaming}
+          />
+          {/* E3-4：语音输入（录音 → 转写 → 回填输入框；未启用时只给提示） */}
+          <VoiceInputButton
+            disabled={streaming}
+            onText={(text) => setInput((prev) => (prev ? prev + ' ' + text : text))}
+          />
+        </div>
         <MessageInput
           value={input}
           onChange={setInput}
