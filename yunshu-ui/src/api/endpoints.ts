@@ -502,6 +502,8 @@ export const MODULES_TOPOLOGY = '/api/modules/topology';
 export const modulesDetail = (id: string) => `/api/modules/${encodeURIComponent(id)}/detail`;
 export const MODULES_ACTIONS = (id: string) => `/api/modules/${encodeURIComponent(id)}/actions`;
 export const STATUS = '/api/status';
+// 服务版本读数（commit / build_commit / bundle / pid / 启动时间；通用设置·关于与"服务已更新"提示共用）
+export const SERVICE_VERSION = '/api/version';
 // 运行模式（label / description / can_accept_tasks）
 export const MODE = '/api/mode';
 // 学习有效性度量（评估样本 + KPI）

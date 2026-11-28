@@ -13,6 +13,7 @@
  * pageBundle() 返回 null ⇒ 全部判定降级为「不提示」，不打扰本地开发。
  */
 import { request } from '@/lib/apiClient'
+import { SERVICE_VERSION } from '@/api/endpoints'
 
 /** 后端读数的形状（只声明前端用到的字段；其余字段允许存在） */
 export interface BackendInfo {
@@ -51,7 +52,7 @@ export const VERSION_POLL_MS = 5 * 60 * 1000
 
 /** 读取服务版本；非 2xx / 信封缺 data 时抛错，由调用方决定怎么降级 */
 export async function fetchServiceVersion(): Promise<ServiceVersion> {
-  const payload = await request<{ code?: number; data?: ServiceVersion }>('/api/version')
+  const payload = await request<{ code?: number; data?: ServiceVersion }>(SERVICE_VERSION)
   if (!payload || typeof payload !== 'object' || !payload.data) {
     throw new Error('版本接口返回为空')
   }
