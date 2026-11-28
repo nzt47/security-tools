@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-11-28T11:53:48",
+  "generated_at": "2026-11-28T12:43:15",
   "scope": "仓库可复现口径：data/tool_definitions/*.yaml + data/skill_callability.yaml + data/skills_repo/*/skill.md + data/permission_policies.json + 注册点静态扫描（不含 .gitignore 里的运行时技能目录/台账）",
   "runtime_only_declarations": [
     "global-core-principles",
@@ -340,6 +340,7 @@
       "pptx_read",
       "shell_execute",
       "submit_task",
+      "terminal",
       "ui_guard_check",
       "xlsx_read",
       "apply_patch",
@@ -374,13 +375,14 @@
       "ui_guard_fix",
       "write_file",
       "shell_execute",
+      "terminal",
       "apply_patch",
       "decompress",
       "fan_out",
       "git",
       "run_sandbox"
     ],
-    "max_tools": 36,
+    "max_tools": 37,
     "note": ""
   },
   "performance_note": "性能列（avg_ms / p99_ms / dpm）**一律未采集**：仓库现有实测只有一次 HTTP 压测（p50=15.84s），且进程内计时冒充压测的产物已确认不可引用（见 TASK-00 §0.2b）。清单**不提供估算值**；采集方案与 TASK-08 对接。",
@@ -453,9 +455,9 @@
       "planning": 0
     },
     "by_main_line_status": {
-      "not_assembled": 62,
+      "not_assembled": 61,
       "n/a": 50,
-      "visible": 36,
+      "visible": 37,
       "denied_by_effect": 8,
       "muted": 3
     },
@@ -11171,7 +11173,7 @@
       "confirm_level_reason": "",
       "internal": false,
       "enabled": true,
-      "main_line_status": "not_assembled"
+      "main_line_status": "visible"
     },
     {
       "tool_name": "todo_write",
@@ -27266,7 +27268,7 @@
       "confirm_level_reason": "",
       "internal": false,
       "enabled": true,
-      "main_line_status": "not_assembled"
+      "main_line_status": "visible"
     },
     {
       "tool_name": "todo_write",
