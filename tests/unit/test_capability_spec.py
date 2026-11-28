@@ -451,7 +451,8 @@ class TestMainLine:
         #   离线装配实测：34 它会挤掉 run_tests，35 找回 run_tests、零丢失）
         # 【2026-11-27 E4-3】35 → 36：mcp_resource 进 boost（max_tools 36；离线装配实测：
         #   35 会挤掉 run_tests，36 零丢失）
-        assert len(line["visible"]) == 36, f"engineering 主线可见集应为 36 条，实得 {len(line['visible'])}"
+        # 【2026-11-28 E3-1 开关开通】36 → 37：terminal 进 boost（preview 实测 36 挤掉 run_tests、37 零丢失）
+        assert len(line["visible"]) == 37, f"engineering 主线可见集应为 37 条，实得 {len(line['visible'])}"
         assert set(line["muted"]) == {"web_extract", "web_search", "web_batch"}
         assert "connect_mcp" in line["denied_by_effect"]
 
