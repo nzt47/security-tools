@@ -1,22 +1,22 @@
 {
-  "generated_at": "2026-11-28T03:37:01",
+  "generated_at": "2026-11-28T08:43:29",
   "totals": {
-    "routes": 546,
-    "live": 546,
+    "routes": 547,
+    "live": 547,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 485,
+    "ui": 486,
     "cli_script": 15,
     "runtime_only": 12,
     "unreferenced": 34,
     "live_by_category": {
-      "ui": 485,
+      "ui": 486,
       "cli_script": 15,
       "runtime_only": 12,
       "unreferenced": 34
     },
     "by_intent": {
-      "should_be_in_ui": 445,
+      "should_be_in_ui": 446,
       "should_not_be_in_ui": 80,
       "unclassified": 21
     },
@@ -26,7 +26,7 @@
       "观测与诊断": 84,
       "系统与配置": 51,
       "治理与审批": 47,
-      "对话与会话": 50,
+      "对话与会话": 51,
       "资产与文件": 20,
       "管理与后台": 18,
       "调度与任务": 26,
@@ -37,7 +37,7 @@
       "记忆与知识": 42
     }
   },
-  "frontend_endpoints": 489,
+  "frontend_endpoints": 490,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -63,7 +63,7 @@
         "scripts/_check_page.py"
       ],
       "where": [
-        "app_server.py:2198"
+        "app_server.py:2208"
       ],
       "description": "首页：重定向到统一工作台（2026-10-03 R0-b legacy 收敛）。",
       "description_source": "handler",
@@ -4083,7 +4083,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:1876"
+        "app_server.py:1886"
       ],
       "description": "混合检索器（embedding worker）健康状态（**只读**；永不 500）。",
       "description_source": "handler",
@@ -8712,6 +8712,31 @@
       "domain": "对话与会话"
     },
     {
+      "path": "/api/sessions/import",
+      "norm": "/api/sessions/import",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_session_import.py:181"
+      ],
+      "description": "导入外部会话导出：默认只预览；真写要 confirm=1 且写开关打开",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "会话管理",
+      "intent_note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。",
+      "ui_pending": false,
+      "domain": "对话与会话"
+    },
+    {
       "path": "/api/skills",
       "norm": "/api/skills",
       "methods": [
@@ -11931,7 +11956,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2354"
+        "app_server.py:2364"
       ],
       "description": "测试端点：测试除法运算（正常情况）",
       "description_source": "handler",
@@ -11956,7 +11981,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2330"
+        "app_server.py:2340"
       ],
       "description": "测试端点：触发除零错误以验证堆栈捕获",
       "description_source": "handler",
@@ -11981,7 +12006,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2343"
+        "app_server.py:2353"
       ],
       "description": "测试端点：触发空指针错误以验证堆栈捕获",
       "description_source": "handler",
@@ -13571,7 +13596,7 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2245"
+        "app_server.py:2255"
       ],
       "description": "云枢 React SPA 入口（build:flask 同步自 yunshu-ui/dist → templates/yunshu.html）。",
       "description_source": "handler",
@@ -13932,7 +13957,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2309"
+        "app_server.py:2319"
       ],
       "description": "[简易] 用户行为回放页面",
       "description_source": "handler",
@@ -13957,7 +13982,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2301"
+        "app_server.py:2311"
       ],
       "description": "搜索引擎状态监控页面",
       "description_source": "handler",
@@ -13983,7 +14008,7 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2282"
+        "app_server.py:2292"
       ],
       "description": "云枢 Web 应用 — 感知底座 + 数字生命对话",
       "description_source": "module",
@@ -13994,5 +14019,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "19f1a7fe1c7f13bc"
+  "content_hash": "21eb5e3196994287"
 }
