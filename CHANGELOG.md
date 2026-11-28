@@ -4,6 +4,25 @@
 **分支**: master
 **涵盖范围**: 5 个核心 commit（4608614c → 9977c949）
 
+## [CHG] - 2026-11-28: 服务连接指示 —— 顶栏「不可达 · 重试」药丸（借鉴 DSH 连接恢复控件）✅
+
+**影响模块**: `yunshu-ui/src/components/workbench/ServiceHealthPill.tsx`（新）、`yunshu-ui/src/WorkbenchApp.tsx`
+
+### Added
+- 顶栏新增服务连接指示：探测免令牌的 `GET /api/health`（30s 轮询 + 回到前台补查）。
+- 健康时**静默**；失败才出现黄色「服务不可达 · 重试」，点击立即重试；
+  重试期间「重新连接中…」至少可见 800ms；恢复后绿色「连接已恢复」驻留 2s 再消失。
+- 浏览器离线（`offline` 事件）优先显示「网络已断开」，且不发请求。
+- 同一时刻只跑一个探针（轮询与回到前台撞车时不并发）；探测失败只落本地状态，不进日志、不弹窗。
+
+### 边界
+- 只提示「服务端连通性」，不代表业务健康（业务问题看运行监控/报警器）。
+- 不新增路由 / 环境变量 / 持久化键；`/api/health` 是既有免令牌探针。
+
+### 实测
+- `ServiceHealthPill.test.tsx` 4 条（静默 / 不可达 / 重试转绿并消失 / 离线优先）；
+  `npm run ui:check` 全绿（raw_* 均 0）。
+
 ## [CHG] - 2026-11-28: 通用设置 —— 用户偏好统一入口 + 服务版本提示（借鉴 DSH）✅
 
 **影响模块**: `yunshu-ui/src/components/settings/*`（新）、`yunshu-ui/src/WorkbenchApp.tsx`

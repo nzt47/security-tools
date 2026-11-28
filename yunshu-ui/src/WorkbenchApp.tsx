@@ -51,6 +51,7 @@ import AlarmBell from './components/AlarmBell'
 import LlmGateControl from './components/workbench/LlmGateControl';
 import GeneralSettingsDialog, { type SettingsSectionId } from './components/settings/GeneralSettingsDialog';
 import ServiceUpdateNotice from './components/settings/ServiceUpdateNotice';
+import ServiceHealthPill from './components/workbench/ServiceHealthPill';
 import { useGlobalShortcuts } from './components/settings/useGlobalShortcuts';
 import { renderPanel } from './components/workbench/panels/renderPanel';
 import { startCrossWindowSync } from './electron/sync';
@@ -365,6 +366,8 @@ export default function WorkbenchApp() {
               </Button>
             )}
           </div>
+          {/* 服务连接指示（2026-11-28）：正常静默，不可达时才出现并可点击重试。 */}
+          <ServiceHealthPill />
           {/* LLM 禁用时段（2026-11-20）：顶栏开关 + 时段配置弹窗。 */}
           <LlmGateControl />
           {/* 通用设置（2026-11-28）：用户偏好统一入口；Ctrl/⌘+, 同效。 */}
