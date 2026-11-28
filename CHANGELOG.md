@@ -4,6 +4,42 @@
 **分支**: master
 **涵盖范围**: 5 个核心 commit（4608614c → 9977c949）
 
+## [CHG] - 2026-11-28: E3-1 开关开通 —— 持久终端进主线 boost（max_tools 37）✅
+
+**影响模块**: `data/agent_lines/engineering.yaml`、`tests/unit/test_capability_spec.py`、`tests/unit/test_tool_pruning.py`
+
+Owner 2026-11-28 拍板打开持久终端（B 级），按纪律先量 preview：
+- 只加 `terminal` 不动上限：max_tools **36 会挤掉 run_tests**；**37 零丢失**（added=[terminal]、lost=[]）。
+- boost 加 `terminal`，`max_tools` 36 → 37；主线可见集 36 → 37（能力清单派生同步）。
+- 运维（不进制）：本机 `.env` 置 `CP_TERMINAL_ENABLED=1`（同批还开了 `CP_ORCH_SCRIPT_ENABLED=1`，两者都是 Owner 点头的 B 级开关）。
+- 真机探针 `.local/verify_switches.py` **6/6**：终端开关开、PTY 后端可用、开会话 → echo 回显读到标记 → 关闭后会话消失；
+  脚本编排开关生效值为真。
+
+## [CHG] - 2026-11-28: E4-5 第六批续 —— worktree 写路径（建 + 本地提交，不开推送）✅
+
+**影响模块**: `agent/git_worktree.py`、`agent/server_routes/routes_changes.py`、`agent/settings/registry.py`、
+`yunshu-ui/src/pages/hub/local/index.tsx`、`yunshu-ui/src/api/endpoints.ts`
+
+### Added
+- **`POST /api/git/worktrees`**（建 worktree）与 **`POST /api/git/worktrees/commit`**（本地提交）：
+  Owner 拍板只开「创建 + 提交到新分支」，**不推送、不改远程、不删 worktree**。
+- 名字白名单（`^[a-z0-9][a-z0-9-]{0,39}$`），路径只能由 `<repo>/.worktrees/<name>` 派生或来自
+  `git worktree list` 的**等值匹配**；提交信息去控制符/折叠空白/≤200 字符；分支固定前缀 `yunshu/`。
+- 两把钥匙：`CP_WORKTREE_PANEL_ENABLED`（看）+ **`CP_WORKTREE_WRITE_ENABLED`**（写，B 级、默认关）；
+  失败码 → HTTP 映射固定（403/400/409/404/503/500），异常不回原文。
+- 前端：工作区 Tab 的「建 worktree」输入 + 脏 worktree 行的「提交」弹窗（明示"只提交到该 worktree 本地分支、不推送"）。
+
+### 实测
+- `tests/unit/test_git_worktree_write.py` 16 条（含真实仓库建/改/提交/空提交/未知名字）+ `test_worktree_route.py` 新增 9 条 +
+  `local/index.test.tsx` 新增 3 条；真机探针 `.local/verify_worktree_write.py` **8/8**（建→改→提交→再提交 409→非法名字 400→清理）。
+- 派生：route_ui_coverage +1 路由（/api/git/worktrees/commit），pending 仍 0；能力清单 159 不变。
+
+## [CHG] - 2026-11-28: fix —— registry 少一个逗号导致 app_server 拒绝启动 ✅
+
+- `CP_WORKTREE_WRITE_ENABLED` 的 `_b(...)` 调用缺逗号 ⇒ `registry.py` SyntaxError ⇒ 开关中心路由装配失败 ⇒
+  启动期严格模式**拒绝启动**（本机部署实测：/api/health 180s 未就绪、进程退出）。
+- 补逗号；`import agent.settings.registry` 通过；重新部署后 health/version/chat 200。
+
 ## [CHG] - 2026-11-28: E3-4 —— 语音输入（STT）+ 思考过程翻译（CoT）（默认关）✅
 
 **影响模块**: `agent/voice/stt.py`（新）、`agent/context/cot_translate.py`（新）、
@@ -31,6 +67,8 @@
 ### 实测
 - `tests/unit/test_voice_stt.py` 20 条 + `test_cot_translate.py` 10 条 + `test_voice_routes.py` 11 条；
   `VoiceInputButton.test.tsx` 3 条 + `HistoryDrawer.test.tsx` 新增 1 条；`npm run ui:check` 全绿。
+- 真机探针 `.local/verify_e34.py` **6/6**：CoT 用真实 LLM 把英文译成中文（二次命中缓存）、target 非法 400、
+  STT 未配置上游如实回 `stt_unavailable`（不 404/500）、非音频 415。
 - 工具 / 清单 / S0 / τ 不变（114 / 159 / 5.9497 / 0.0295）。
 
 ## [CHG] - 2026-11-28: E4-5 第六批 —— LiveShare 只读分享（默认关）✅
