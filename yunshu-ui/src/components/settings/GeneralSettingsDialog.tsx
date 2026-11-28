@@ -19,14 +19,20 @@ import {
   CHAT_FORMATS,
   CHAT_MODES,
   CHAT_THEMES,
+  COLLAPSE_TIMINGS,
+  FOLDED_REPLIES,
   PERMISSION_MODES,
+  TRANSCRIPT_VIEW_MODES,
   useChatPrefsStore,
   type ChatBubbleKey,
   type ChatFontKey,
   type ChatFormat,
   type ChatMode,
   type ChatThemeKey,
+  type CollapseTiming,
+  type FoldedReplies,
   type PermissionMode,
+  type TranscriptViewMode,
 } from '@/stores/useChatPrefsStore'
 import AboutSection from './AboutSection'
 import { SHORTCUT_ITEMS } from './shortcuts'
@@ -79,6 +85,12 @@ export default function GeneralSettingsDialog({
   const setMode = useChatPrefsStore((s) => s.setMode)
   const permissionMode = useChatPrefsStore((s) => s.permissionMode)
   const setPermissionMode = useChatPrefsStore((s) => s.setPermissionMode)
+  const transcriptView = useChatPrefsStore((s) => s.transcriptView)
+  const setTranscriptView = useChatPrefsStore((s) => s.setTranscriptView)
+  const collapseTiming = useChatPrefsStore((s) => s.collapseTiming)
+  const setCollapseTiming = useChatPrefsStore((s) => s.setCollapseTiming)
+  const foldedReplies = useChatPrefsStore((s) => s.foldedReplies)
+  const setFoldedReplies = useChatPrefsStore((s) => s.setFoldedReplies)
   const format = useChatPrefsStore((s) => s.format)
   const theme = useChatPrefsStore((s) => s.theme)
   const bubbleStyle = useChatPrefsStore((s) => s.bubbleStyle)
@@ -128,14 +140,44 @@ export default function GeneralSettingsDialog({
                 onChange={(value) => setPermissionMode(value as PermissionMode)}
               />
             </Row>
-            <Row title="显示思考过程" description="对话里展示模型的思考/推理片段（💭）。">
+            <Row title="工作细节" description={TRANSCRIPT_VIEW_MODES[transcriptView]?.hint}>
+              <Select
+                aria-label="工作细节"
+                className="w-40"
+                size="sm"
+                options={toOptions(TRANSCRIPT_VIEW_MODES)}
+                value={transcriptView}
+                onChange={(value) => setTranscriptView(value as TranscriptViewMode)}
+              />
+            </Row>
+            <Row title="折叠时机" description={COLLAPSE_TIMINGS[collapseTiming]?.hint}>
+              <Select
+                aria-label="折叠时机"
+                className="w-40"
+                size="sm"
+                options={toOptions(COLLAPSE_TIMINGS)}
+                value={collapseTiming}
+                onChange={(value) => setCollapseTiming(value as CollapseTiming)}
+              />
+            </Row>
+            <Row title="折叠保留" description={FOLDED_REPLIES[foldedReplies]?.hint}>
+              <Select
+                aria-label="折叠保留"
+                className="w-40"
+                size="sm"
+                options={toOptions(FOLDED_REPLIES)}
+                value={foldedReplies}
+                onChange={(value) => setFoldedReplies(value as FoldedReplies)}
+              />
+            </Row>
+            <Row title="显示思考过程" description="总闸：关掉后整块思考过程都不渲染（与档位正交）。">
               <Switch
                 checked={showThinking}
                 onCheckedChange={(next) => setDisplay('thinking', next)}
                 label="显示思考过程"
               />
             </Row>
-            <Row title="显示工具调用" description="对话里展示工具调用步骤与结果（🔧）。">
+            <Row title="显示工具调用" description="总闸：关掉后整块工具调用都不渲染（与档位正交）。">
               <Switch
                 checked={showToolCalls}
                 onCheckedChange={(next) => setDisplay('toolcalls', next)}

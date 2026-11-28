@@ -806,6 +806,36 @@ body,
   color: var(--wbp-accent-text);
 }
 
+/* 工作细节 · 折叠行（完成的轮次把「思考 + 工具」收成一行；点开还原） */
+.wb-fold-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--wbp-text-muted) 28%, transparent);
+  background: transparent;
+  color: var(--wb-text-dim);
+  font-family: inherit;
+  font-size: var(--text-caption);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.wb-fold-chip:hover {
+  border-color: color-mix(in srgb, var(--wbp-accent) 45%, transparent);
+  color: var(--wbp-accent-text);
+}
+.wb-fold-preview {
+  max-width: 280px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-family: var(--wb-mono);
+  font-size: var(--text-micro);
+  color: var(--wb-text-dim);
+}
+
 /* ─── 引用回跳（E3-3 尾巴）：用户消息里那段 "> 引用" 可点 ─── */
 .wb-quoted-ref {
   display: inline-flex;

@@ -13,6 +13,7 @@ import { Badge, Button } from '@/components/ui';
 import { isHistoryMessageId, subscribeStreamLog, useLayoutStore } from '../../../stores/useLayoutStore';
 import { chatStyleVars, useChatPrefsStore } from '../../../stores/useChatPrefsStore';
 import { MessageItem, isToolStep } from '../chat/MessageItem';
+import { computeTurnMeta, shouldFoldProcess, shouldHideIntermediateReply } from '../chat/transcriptFold';
 import { MessageInput } from '../chat/MessageInput';
 import { AttachmentPicker, buildAttachmentManifest, type AttachmentMeta } from '../chat/AttachmentPicker';
 import { VoiceInputButton } from '../chat/VoiceInputButton';
@@ -122,7 +123,14 @@ export function ChatPanel() {
   const theme = useChatPrefsStore((s) => s.theme);
   const bubbleStyle = useChatPrefsStore((s) => s.bubbleStyle);
   const fontSize = useChatPrefsStore((s) => s.fontSize);
+  const transcriptView = useChatPrefsStore((s) => s.transcriptView);
+  const collapseTiming = useChatPrefsStore((s) => s.collapseTiming);
+  const foldedReplies = useChatPrefsStore((s) => s.foldedReplies);
   const styleVars = chatStyleVars({ theme, bubbleStyle, fontSize });
+
+  // 轮次信息（每条消息属于哪一轮、这一轮是否已"翻篇"、是否轮内最后一条回复）：
+  // 折叠时机「下次输入时折叠」与「仅最终回复」都依赖它，见 chat/transcriptFold.ts
+  const turnMeta = useMemo(() => computeTurnMeta(messages), [messages]);
 
   // 本对话可显隐的步骤数（思考链 / 工具调用）——用于在开关上给出可感知的状态：
   // 计数为 0 时说明"当前没有可显隐的内容"，避免用户以为开关坏了。
@@ -438,14 +446,28 @@ export function ChatPanel() {
         ) : (
           <div className="mx-auto flex max-w-3xl flex-col gap-5">
             <AnimatePresence initial={false}>
-              {messages.map((m) => (
-                <MessageItem
-                  key={m.id}
-                  message={m}
-                  highlighted={m.id === highlightMsgId}
-                  onQuote={setQuoted}
-                />
-              ))}
+              {messages.map((m, index) => {
+                const meta = turnMeta[index];
+                // 「折叠保留 = 仅最终回复」：折叠掉的中间回复整条不渲染（过程与正文一起收）
+                const foldedProcess = m.role === 'assistant' && shouldFoldProcess({
+                  mode: transcriptView,
+                  timing: collapseTiming,
+                  status: m.status,
+                  isHistory: isHistoryMessageId(m.id),
+                  turnClosed: meta?.turnClosed ?? false,
+                  hasSteps: (m.steps ?? []).length > 0,
+                });
+                if (shouldHideIntermediateReply(foldedReplies, foldedProcess, meta)) return null;
+                return (
+                  <MessageItem
+                    key={m.id}
+                    message={m}
+                    highlighted={m.id === highlightMsgId}
+                    onQuote={setQuoted}
+                    turnMeta={meta}
+                  />
+                );
+              })}
             </AnimatePresence>
             <div ref={bottomRef} />
             {changes && <ChangeCard changes={changes} scope={changeScope} onScopeChange={setChangeScope} />}

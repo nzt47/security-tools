@@ -201,6 +201,49 @@ export const CHAT_BUBBLE_STYLES: Record<ChatBubbleKey, {
   },
 }
 
+// ─── 工作细节（对齐 DSH「工作细节」：四档密度 + 折叠时机 + 折叠保留） ─────
+// 【四档到底差在哪】不是"显示多少文字"，而是三个能力位的组合（与 DSH 同构）：
+//   foldCompletedTurns  完成的轮次是否把过程收成一行；
+//   liveDetail          折叠行是否带"最后动作/首行推理"这类可扫读的细节；
+//   historyOnly         是否只折叠历史轮次（当前/新产生的轮次保持展开）。
+// 旧的两个显隐开关（showThinking / showToolCalls）保留为**总闸**：关掉＝整块不渲染，
+// 与档位正交（档位管"怎么收"，总闸管"要不要"）。
+
+export type TranscriptViewMode = 'compact' | 'standard' | 'detailed' | 'verbose'
+
+export const TRANSCRIPT_VIEW_MODES: Record<TranscriptViewMode, { label: string; hint: string }> = {
+  compact: {
+    label: '紧凑',
+    hint: '完成的轮次把过程收成一行（只留步数）；点一下可展开。最省版面',
+  },
+  standard: {
+    label: '标准',
+    hint: '同紧凑，但折叠行带最后动作/首行推理，扫一眼就知道刚做了什么',
+  },
+  detailed: {
+    label: '详细',
+    hint: '只有历史轮次折叠；本次会话新产生的轮次保持展开（默认，最接近改版前）',
+  },
+  verbose: {
+    label: '冗长',
+    hint: '永不自动折叠：思考与工具逐条展开（与改版前完全一致）',
+  },
+}
+
+export type CollapseTiming = 'completion' | 'next-input'
+
+export const COLLAPSE_TIMINGS: Record<CollapseTiming, { label: string; hint: string }> = {
+  completion: { label: '完成即折叠', hint: '这一轮一结束就收起来（默认）' },
+  'next-input': { label: '下次输入时折叠', hint: '完成后先留着看，等你发下一条消息再收起' },
+}
+
+export type FoldedReplies = 'all' | 'final'
+
+export const FOLDED_REPLIES: Record<FoldedReplies, { label: string; hint: string }> = {
+  all: { label: '全部回复', hint: '折叠只收过程，回复一条不少（默认）' },
+  final: { label: '仅最终回复', hint: '折叠时连同一轮里的中间回复一起收起，只留最后一条' },
+}
+
 export type ChatFontKey = 'small' | 'normal' | 'large'
 
 export const CHAT_FONT_SIZES: Record<ChatFontKey, { label: string; value: string }> = {
@@ -222,6 +265,12 @@ interface ChatPrefsState {
   mode: ChatMode
   /** 权限档位（决定工具要不要逐条审批；随请求体 permission_mode 发给后端） */
   permissionMode: PermissionMode
+  /** 工作细节密度（四档；见 TRANSCRIPT_VIEW_MODES） */
+  transcriptView: TranscriptViewMode
+  /** 折叠时机（完成即折叠 / 下次输入时折叠） */
+  collapseTiming: CollapseTiming
+  /** 折叠时保留哪些回复（全部 / 仅最终） */
+  foldedReplies: FoldedReplies
   theme: ChatThemeKey
   bubbleStyle: ChatBubbleKey
   fontSize: ChatFontKey
@@ -231,6 +280,9 @@ interface ChatPrefsState {
   setStyle: (patch: Partial<Pick<ChatPrefsState, 'format' | 'theme' | 'bubbleStyle' | 'fontSize'>>) => void
   setMode: (mode: ChatMode) => void
   setPermissionMode: (mode: PermissionMode) => void
+  setTranscriptView: (mode: TranscriptViewMode) => void
+  setCollapseTiming: (timing: CollapseTiming) => void
+  setFoldedReplies: (replies: FoldedReplies) => void
   resetStyle: () => void
 }
 
@@ -240,6 +292,10 @@ export const DEFAULT_STYLE = {
   mode: 'plain' as ChatMode,
   // 默认自动审查：与"加这个档位之前"的行为一致（该确认的才确认）
   permissionMode: 'auto' as PermissionMode,
+  // 默认「详细」：只有历史轮次折叠，新产生的轮次保持展开 —— 与改版前最接近
+  transcriptView: 'detailed' as TranscriptViewMode,
+  collapseTiming: 'completion' as CollapseTiming,
+  foldedReplies: 'all' as FoldedReplies,
   theme: 'midnight' as ChatThemeKey,
   bubbleStyle: 'rounded' as ChatBubbleKey,
   fontSize: 'normal' as ChatFontKey,
@@ -263,6 +319,9 @@ export const useChatPrefsStore = create<ChatPrefsState>()(
       setStyle: (patch) => set(patch),
       setMode: (mode) => set({ mode }),
       setPermissionMode: (mode) => set({ permissionMode: mode }),
+      setTranscriptView: (mode) => set({ transcriptView: mode }),
+      setCollapseTiming: (timing) => set({ collapseTiming: timing }),
+      setFoldedReplies: (replies) => set({ foldedReplies: replies }),
       resetStyle: () => set({ ...DEFAULT_STYLE }),
     }),
     {
@@ -275,6 +334,9 @@ export const useChatPrefsStore = create<ChatPrefsState>()(
         format: s.format,
         mode: s.mode,
         permissionMode: s.permissionMode,
+        transcriptView: s.transcriptView,
+        collapseTiming: s.collapseTiming,
+        foldedReplies: s.foldedReplies,
         theme: s.theme,
         bubbleStyle: s.bubbleStyle,
         fontSize: s.fontSize,

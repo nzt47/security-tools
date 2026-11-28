@@ -4,6 +4,29 @@
 **分支**: master
 **涵盖范围**: 5 个核心 commit（4608614c → 9977c949）
 
+## [CHG] - 2026-11-28: 工作细节 —— 四档密度 + 折叠时机 + 折叠保留（对齐 DSH）✅
+
+**影响模块**: `yunshu-ui/src/stores/useChatPrefsStore.ts`、`components/workbench/chat/transcriptFold.ts`（新）、
+`chat/MessageItem.tsx`、`panels/ChatPanel.tsx`、`components/settings/GeneralSettingsDialog.tsx`、`styles/workbench.css`
+
+### Added
+- **四档工作细节**（通用设置）：紧凑 / 标准 / 详细（默认）/ 冗长。
+  判定矩阵与 DSH `presentation-policy` 同构（见 `transcriptFold.ts` 头注）：
+  紧凑、标准对**完成的轮**一律折叠；详细只折叠**历史轮**（新产生的轮保持展开）；冗长永不折叠（= 改版前）。
+- **折叠时机**：完成即折叠（默认）/ 下次输入时折叠（该轮完成后留着看，发下一条消息才收）。
+- **折叠保留**：全部回复（默认）/ 仅最终回复（折叠时同一轮的中间 assistant 回复一并收起）。
+- 折叠行是「过程 · N 步 + 最后动作预览」，点开还原；标准/详细带预览，紧凑只留步数。
+- 旧的两个显隐开关保留为**总闸**（关掉＝整块不渲染），与档位正交；两个都关时不折叠，继续给"已隐藏 N 步"提示。
+
+### 边界
+- 云枢一轮通常只有一条 assistant 回复，因此「仅最终回复」多数时候无差别；只有在历史里同一轮出现多条回复时才可见。
+- 不新增路由 / 环境变量；偏好仍只存本地 `yunshu:chat:prefs:v1`（新增三个字段，旧数据按默认值合并）。
+
+### 实测
+- `transcriptFold.test.ts` 9 条（轮次切分 / 四档 × 时机矩阵 / 预览截断 / 中间回复判定）+
+  `transcriptFold.render.test.tsx` 3 条（折叠、点开还原、详细档不折叠、冗长档不折叠）；
+  chat + settings 全量 **173 条**通过；`npm run ui:check` 全绿。
+
 ## [CHG] - 2026-11-28: 服务连接指示 —— 顶栏「不可达 · 重试」药丸（借鉴 DSH 连接恢复控件）✅
 
 **影响模块**: `yunshu-ui/src/components/workbench/ServiceHealthPill.tsx`（新）、`yunshu-ui/src/WorkbenchApp.tsx`
