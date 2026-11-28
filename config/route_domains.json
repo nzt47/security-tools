@@ -22,7 +22,8 @@
         "/api/projects",
         "/api/session-groups",
         "/api/session-search",
-        "/api/sessions"
+        "/api/sessions",
+        "/api/voice"
       ]
     },
     {
