@@ -4,6 +4,30 @@
 **分支**: master
 **涵盖范围**: 5 个核心 commit（4608614c → 9977c949）
 
+## [CHG] - 2026-11-28: E4-5 第五批 —— ACP server（stdio-only，默认关）✅
+
+**影响模块**: `scripts/yunshu_acp.py`（新）、`tests/unit/test_yunshu_acp.py`（新）
+**关联文档**: `docs/plan/2026-11-28-e4-5-acp-server-design.md`
+
+### Added
+- **`python scripts/yunshu_acp.py`**：ACP v1 最小集 over **stdio**（JSON-RPC 2.0，一行一条）——
+  `initialize` / `session/new` / `session/prompt` / `session/cancel` 通知 + `session/update`
+  （`agent_message_chunk`）；后端复用既有 REST（`POST /api/sessions`、`POST /api/chat`）。
+- **默认关** `YUNSHU_ACP_ENABLED`：不为真时退出码 2；回滚 = 不启动（客户端脚本，删掉对线上零影响）。
+- 错误码：`-32700` 坏 JSON / `-32600` 非对象 / `-32601` 未知方法 / `-32602` 参数缺失 /
+  `-32603` 后端失败（只回脱敏短句，单条失败不断连接）。
+
+### 边界
+- stdio-only：不开监听面、不引入第二套令牌；令牌只从 `YUNSHU_API_TOKEN` / `.env` 读，永不打印。
+- 不做 `session/load|resume|list`、不转发工具调用/权限请求、不连 MCP、不流式（整轮后分块发）。
+- 取消是协作式的（轮次边界生效）；会话 id 直接复用云枢 `sess_*`。
+
+### 实测
+- `tests/unit/test_yunshu_acp.py` 20 条（initialize 形状/版本回落、新建会话标题、prompt 通知顺序与
+  多块拼接、分块同一 messageId、错误码矩阵、连接不断、后端失败脱敏、取消、未启用退出码 2、
+  RestTransport 路径/载荷/令牌）；干净 worktree 全量 pytest 见交接卡。
+- 不改服务端：无新路由 / 无新工具 / 无新 env 进 registry；工具 114 / 清单 159 / S0 / τ 不变。
+
 ## [CHG] - 2026-11-28: E4-5 第四批 —— 会话导入（只读预览 + 显式导入，默认关）✅
 
 **影响模块**: `agent/session_import.py`（新）、`agent/server_routes/routes_session_import.py`（新）、
