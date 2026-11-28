@@ -696,6 +696,18 @@ _REGISTRY_ROWS: List[SettingSpec] = [
     _mk("CP_SESSION_IMPORT_WRITE_ENABLED", CAT_ORCHESTRATION, False,
         "会话导入的**写路径**：仅当此开关打开且请求带 confirm=1 时才建会话 + 写消息；默认关",
         owner="agent/server_routes/routes_session_import.py"),
+    # ── E4-5 第六批 会话分享 LiveShare（2026-11-28）──────────────────────
+    # 【为什么是 A 级】默认关 = 今天的行为（公开读面 404、管理面 disabled）；
+    #   打开后只增加一个**只读、按令牌、可撤销、有 TTL** 的公开读面，
+    #   不新增写面（写/管理仍在登录态下）。回滚 = 关开关（分享记录可留可删）。
+    _mk("CP_LIVESHARE_ENABLED", CAT_ORCHESTRATION, False,
+        "会话分享（LiveShare）：GET /api/liveshare/messages 公开只读（持分享令牌；"
+        "鉴权中间件按 /api/liveshare/* 前缀放行）+ 登录态的建/撤销/查状态；默认关",
+        owner="agent/server_routes/routes_liveshare.py"),
+    _mk("CP_LIVESHARE_TTL_SECONDS", CAT_ORCHESTRATION, 86400,
+        "会话分享的默认有效期（秒，300–604800）；请求可用 ttl_seconds 覆盖，最终仍夹在该区间",
+        owner="agent/liveshare.py",
+        validator=_range_validator(300, 604800, kind="int")),
     # ── E0-2③ 图片/截图 offload（2026-11-26）─────────────────────────────
     # 【为什么是 A 级】只改"图片以什么形态进上下文"，不改权限；关掉 = 回到把 base64
     #   塞进上下文（一次截图就可能顶穿窗口，这条开关是事故时的回滚位）。

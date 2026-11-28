@@ -62,6 +62,7 @@ data/uploads/
 data/orchestration/
 data/session_import/
 data/session_events/
+data/liveshare/
 
 # 审批库运行期本体：正确位置由 .env 的 APPROVAL_RECORDS_PATH 指定（agent/data/ 下），
 # 属运行期状态而非源码，不入库（测试守卫另有专门判据，见 tests/conftest.py）

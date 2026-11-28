@@ -37,6 +37,8 @@ import WorkbenchApp from '@/WorkbenchApp'
 // 归档/次要页面：懒加载（Code Splitting）
 const PromptLab = lazy(() => import('@/pages/prompt-lab'))
 const LoginPage = lazy(() => import('@/pages/Login'))
+// E4-5 第六批：会话分享只读页（公开；令牌在 hash 里，不发往服务器）
+const LiveSharePage = lazy(() => import('@/pages/live'))
 const Profile = lazy(() => import('@/pages/Profile'))
 import LoginLayout from '@/layouts/LoginLayout'
 import ForbiddenPage from '@/pages/error/ForbiddenPage'
@@ -94,6 +96,8 @@ export default function AppRouter() {
 
           {/* 既有独立页面：不套布局，保持原有渲染行为 */}
           <Route path="/profile" element={<Profile />} />
+          {/* E4-5 第六批：分享只读页（公开，不需要登录；令牌在 # 之后） */}
+          <Route path="/live/:token" element={<LiveSharePage />} />
           <Route path="/detached/:panelId" element={<DetachedPanelRoute />} />
 
           {/* 403 无权限页：保留原行为（手输 URL 可访问） */}

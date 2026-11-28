@@ -4,6 +4,36 @@
 **分支**: master
 **涵盖范围**: 5 个核心 commit（4608614c → 9977c949）
 
+## [CHG] - 2026-11-28: E4-5 第六批 —— LiveShare 只读分享（默认关）✅
+
+**影响模块**: `agent/liveshare.py`（新）、`agent/server_routes/routes_liveshare.py`（新）、
+`app_server.py`（注册 + 鉴权豁免）、`agent/settings/registry.py`、`config/route_domains.json`、
+`yunshu-ui/src/api/endpoints.ts`、`ShareSessionDialog.tsx`（新）、`src/pages/live/index.tsx`（新）、`router/index.tsx`
+**关联文档**: `docs/plan/2026-11-28-e4-5-liveshare-design.md` §8
+
+### Added
+- **`GET /api/liveshare/messages?after=&limit=`**：公开**只读**读面，持 `X-LiveShare-Token` 头访问；
+  分页投影只回 `seq/role/content/chars/truncated/timestamp`（正文截 2000 字符、单页 ≤50）；
+  令牌无效/过期/撤销/功能关/会话不存在 **统一 404 同形**；单 IP 60 次/分钟限流。
+- **`POST|GET|DELETE /api/sessions/<sid>/share`**（登录态）：建分享（回一次性明文令牌 + 地址）、
+  查状态（**不含令牌/摘要**）、按会话整体撤销。
+- **`agent/liveshare.py`**：令牌 `token_urlsafe(32)`，盘上**只存 sha256**（`data/liveshare/shares.json`，gitignore）；
+  TTL 默认 24h / 最小 5min / 上限 7d（`CP_LIVESHARE_TTL_SECONDS` 可调）；过期/撤销超 7 天自动清理。
+- **前端**：工作台页头「分享」→ 对话框（有效期选择 / 一次性链接 / 复制 / 全部撤销）；
+  公开只读页 `#/live/<token>`（令牌在 hash 里、不进服务器日志；2s 轮询增量；失效与网络错误各有稳定提示）。
+- **开关** `CP_LIVESHARE_ENABLED`（A 级、默认关）：关 ⇒ 公开面 404、管理面 `disabled`。
+
+### 边界
+- 只读；不投影工具步骤/附件路径/系统提示词；一枚令牌只对应一个会话；不枚举（统一 404）。
+- 鉴权豁免只针对 `/api/liveshare/*` 这条公开 GET（路由内自校验令牌）；管理面仍在登录态。
+- 本机 `.env` 的 `CP_API_AUTH_ALLOW` 需同步补 `/api/liveshare/*`（默认值已加，显式清单会覆盖）。
+
+### 实测
+- `tests/unit/test_liveshare.py` 20 条 + `test_liveshare_route.py` 12 条（令牌只存摘要 / TTL 夹取 /
+  过期与撤销 / 统一 404 / 限流 / 字段白名单 / 游标分页 / 异常脱敏）；
+  `ShareSessionDialog.test.tsx` 4 条 + `pages/live/index.test.tsx` 4 条；`npm run ui:check` 全绿。
+- 工具 / 清单 / S0 / τ 不变（114 / 159 / 5.9497 / 0.0295）。
+
 ## [CHG] - 2026-11-28: P5 Phase C 第二批 —— events 读档白名单 + 每日零差异报告 ✅
 
 **影响模块**: `agent/session_events.py`、`agent/session_manager.py`（get_messages 读档分支）、

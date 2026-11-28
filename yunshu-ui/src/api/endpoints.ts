@@ -199,6 +199,10 @@ export const sessionStats = (id: string) => `/api/sessions/${encodeURIComponent(
 /** 轨迹（E4-5 Inspector，只读；?limit=&offset=，默认关） */
 export const sessionTrajectory = (id: string, limit = 50, offset = 0) =>
   `/api/sessions/${encodeURIComponent(id)}/trajectory?limit=${limit}&offset=${offset}`;
+/** 会话分享（E4-5 第六批）：管理面照常登录态（GET 状态 / POST 建 / DELETE 撤销） */
+export const sessionShares = (id: string) => `/api/sessions/${encodeURIComponent(id)}/share`;
+/** 公开只读读面（持分享令牌；令牌走 X-LiveShare-Token 头，不进 URL） */
+export const LIVESHARE_MESSAGES = '/api/liveshare/messages';
 /** 导入外部会话导出（E4-5 第四批，multipart：file + mode=preview|apply + confirm；默认关） */
 export const SESSIONS_IMPORT = '/api/sessions/import';
 /** 导出（E1-4c；?format=md|zip，文件名由服务端按 sha256 派生） */

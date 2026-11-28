@@ -62,3 +62,46 @@
 1. 允许「持分享令牌即可读、免登录」吗？（不允许 ⇒ 本功能价值减半，建议不做）
 2. 分享范围 = 整段对话 + 后续新消息？
 3. 默认有效期 24h / 上限 7d / 可撤销，够不够？
+## 8. 实施记录（2026-11-28，Owner 拍板后）
+
+Owner 2026-11-28 答复：① **允许**免登录持令牌读；② 分享**整段对话 + 之后的新消息**；③ 有效期由实现方定
+（本实现取：默认 **24h**、最小 5min、上限 **7d**、随时可整体撤销、记录保留 7 天后清理）。
+
+### 8.1 最终口径
+
+| 项 | 结论 |
+|---|---|
+| 鉴权 | `/api/liveshare/*` 进入鉴权中间件**默认豁免**（本机 `.env` 的 `CP_API_AUTH_ALLOW` 需同步补）；该前缀下**只有一条**公开 GET，路由内自校验令牌（fail-closed） |
+| 令牌 | `secrets.token_urlsafe(32)`，一次性返回；盘上只存 **sha256**（`data/liveshare/shares.json`，gitignore）；日志只记 sha256 前 8 位 |
+| 传输 | 浏览器 `#/live/<token>` 页面每 **2s 轮询** `GET /api/liveshare/messages?after=<seq>`（不用 SSE/WebSocket） |
+| 读面投影 | 只回 `seq/role/content/chars/truncated/timestamp`；正文截 2000 字符、单页 ≤50 条 |
+| 失效口径 | 令牌无效/过期/撤销/功能关/会话不存在 **统一 404 同形**，不给枚举信号 |
+| 限流 | 单 IP 60 次/分钟（进程内滑动窗口，超限 429） |
+| 开关 | `CP_LIVESHARE_ENABLED`（A 级、默认关）+ `CP_LIVESHARE_TTL_SECONDS`（默认 86400，300–604800） |
+
+### 8.2 实现清单
+
+| 文件 | 内容 |
+|---|---|
+| `agent/liveshare.py` | 分享记录（建/解析/撤销/列表/清理）、TTL 夹取、只读投影 `project()` |
+| `agent/server_routes/routes_liveshare.py` | 公开读面 + 三条登录态管理面 + 限流 + 统一 404 |
+| `app_server.py` | 注册路由；`_API_AUTH_ALLOW` 默认加 `/api/liveshare/*` |
+| `agent/settings/registry.py` | 两个新 env（A 级） |
+| `yunshu-ui/src/pages/live/index.tsx` + `router/index.tsx` | 公开只读页 `#/live/:token` |
+| `ShareSessionDialog.tsx` + 工作台页头「分享」 | 建/复制/撤销 |
+| `ShareSessionDialog.test.tsx` / `pages/live/index.test.tsx` | 4 + 4 条前端用例 |
+
+### 8.3 判据（已验）
+
+1. 开关关：公开面 404（同形）、管理面 `disabled`，且不读分享文件；
+2. 令牌只回一次、盘上无明文；TTL 夹取；过期/撤销立即失效；
+3. 读面字段白名单（工具步骤与 tool_calls 不出现）、游标增量、正文截断；
+4. 缺令牌/错令牌/会话被删/读失败各有稳定表现（404 同形 / 500 固定文案，不含异常原文）；
+5. 限流 429；管理面状态不含令牌与摘要；
+6. `npm run ui:check` 绿；两份覆盖率产物重派生。
+
+### 8.4 未做（如实）
+
+- **P2/P3**：SSE/WebSocket 推送、多人观看/水印、只读终端共享；
+- 不按"单条消息"撤销（只有按会话整体撤销）；
+- 不做分享访问审计（只在创建/撤销时记日志）。

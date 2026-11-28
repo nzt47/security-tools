@@ -16,7 +16,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { FileText, FolderOpen, History, Lightbulb, MessageSquare, RotateCcw, X } from 'lucide-react'
+import { FileText, FolderOpen, History, Lightbulb, MessageSquare, RotateCcw, Share2, X } from 'lucide-react'
 import { Badge, Button } from '@/components/ui'
 import { ChatPanel } from '../components/workbench/panels/ChatPanel'
 import { ContextManagerBar } from '../components/workbench/panels/ContextManagerBar'
@@ -29,6 +29,7 @@ import { SessionAgentMenu } from '../components/workbench/chat/SessionAgentMenu'
 import { BackgroundTasksMenu } from '../components/workbench/chat/BackgroundTasksMenu'
 import { LlmHealthMenu } from '../components/workbench/chat/LlmHealthMenu'
 import { SessionRail } from '../components/workbench/sessions/SessionRail'
+import { ShareSessionDialog } from '../components/workbench/panels/ShareSessionDialog'
 import { WorkspaceDrawer } from '../components/workbench/sessions/WorkspaceDrawer'
 import {
   pickSessionId,
@@ -89,6 +90,8 @@ export default function WorkbenchChatPage() {
   const [historyOpen, setHistoryOpen] = useState(false)
   /** 交接文档面板（就地展开，不新开抽屉：它只产出一份 Markdown，不需要遮蔽对话） */
   const [handoffOpen, setHandoffOpen] = useState(false)
+  // E4-5 第六批：会话分享（只读链接；默认关，关时对话框如实提示未启用）
+  const [shareOpen, setShareOpen] = useState(false)
   const [wsSession, setWsSession] = useState<SessionMeta | null>(null)
   const [skillGenOpen, setSkillGenOpen] = useState(false)
   const [genIntent, setGenIntent] = useState<string>('')
@@ -585,6 +588,19 @@ export default function WorkbenchChatPage() {
               <FileText size={11} />
               交接文档
             </Button>
+            <Button
+              type="button"
+              onClick={() => setShareOpen(true)}
+              title="分享这个会话：只读链接（免登录、可随时撤销、默认 24h 过期）"
+              aria-expanded={shareOpen}
+              data-testid="session-share-open"
+              variant="accent"
+              size="xs"
+              disabled={!sessionId}
+            >
+              <Share2 size={11} />
+              分享
+            </Button>
           </div>
         </div>
 
@@ -612,6 +628,14 @@ export default function WorkbenchChatPage() {
           </div>
         )}
       </div>
+
+      {/* E4-5 第六批：会话分享（只读链接的建/复制/撤销） */}
+      <ShareSessionDialog
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        sessionId={sessionId}
+        sessionTitle={activeTitle}
+      />
 
       {/* 历史问话侧滑面板 */}
       <AnimatePresence>

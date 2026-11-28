@@ -804,8 +804,12 @@ _API_AUTH_ALLOW = tuple(
         #   注意**不**纳入 /api/skills-mgmt/assess/stream：它带 @require_token，纳入豁免
         #   只会成为"影子豁免"（不生效且误导，见 find_shadowed_exemptions），
         #   正确修法是前端补 Authorization 头（本轮已修 yunshu-ui 的裸 fetch）。
+        # 【2026-11-28 会话分享公开读面】Owner 拍板"允许免登录持令牌读"：
+        #   /api/liveshare/* 下**只有一条** GET，且它在路由内自己校验分享令牌（fail-closed）；
+        #   写/管理面在 /api/sessions/<id>/share（不在豁免里，仍要登录令牌）。
+        #   本机 .env 显式设了 CP_API_AUTH_ALLOW，会覆盖这里的默认值 ⇒ 部署时要同步补进 .env。
         "/api/health,/metrics,/api/business/prometheus,"
-        "/api/context/status,/api/background/tasks")).split(",") if p.strip()
+        "/api/context/status,/api/background/tasks,/api/liveshare/*")).split(",") if p.strip()
 )
 _MUTATING = frozenset({"POST", "PUT", "DELETE", "PATCH"})
 
@@ -1625,6 +1629,16 @@ try:
     logger.info("会话导入路由已注册 (/api/sessions/import)")
 except Exception as e:
     _record_route_failure("会话导入路由", e)
+
+# ════════════════════════════════════════════════════════════
+#  E4-5 第六批 会话分享路由（/api/liveshare/* 公开只读 + /api/sessions/<id>/share 管理）
+# ════════════════════════════════════════════════════════════
+try:
+    from agent.server_routes.routes_liveshare import register_routes as reg_liveshare
+    reg_liveshare(app, lambda: None)
+    logger.info("会话分享路由已注册 (/api/liveshare/messages + /api/sessions/<id>/share)")
+except Exception as e:
+    _record_route_failure("会话分享路由", e)
 
 
 # ════════════════════════════════════════════════════════════
