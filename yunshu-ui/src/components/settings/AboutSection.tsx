@@ -3,10 +3,14 @@
  * ------------------------------------------------------------------
  * 数据全部来自既有 GET /api/version（agent/build_info.py），本组件不新增
  * 任何路由、环境变量或持久化键；取不到就如实显示错误，不假装"同版"。
+ *
+ * 【为什么不上「工作区有未提交改动」徽章】backend.dirty 把 data/ 运行期脏文件
+ * 与未跟踪噪声一起算进去，本机恒为 true —— 常亮且误导（看起来像"代码没提交"）。
+ * dirty_files 里混着运行期状态，无法在前端可靠区分，故整条不展示。
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
-import { Badge, Button, Notice } from '@/components/ui'
+import { Button, Notice } from '@/components/ui'
 import {
   fetchServiceVersion,
   formatIso,
@@ -82,9 +86,6 @@ export default function AboutSection() {
         </InfoRow>
         <InfoRow label="服务端 commit">
           <span className="font-mono">{shortCommit(version?.backend?.commit)}</span>
-          {version?.backend?.dirty ? (
-            <Badge tone="warning" size="sm" className="ml-2">工作区有未提交改动</Badge>
-          ) : null}
         </InfoRow>
         <InfoRow label="提交说明">{version?.backend?.commit_subject || '—'}</InfoRow>
         <InfoRow label="提交时间">{formatIso(version?.backend?.committed_at)}</InfoRow>
