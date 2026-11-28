@@ -199,6 +199,8 @@ export const sessionStats = (id: string) => `/api/sessions/${encodeURIComponent(
 /** 轨迹（E4-5 Inspector，只读；?limit=&offset=，默认关） */
 export const sessionTrajectory = (id: string, limit = 50, offset = 0) =>
   `/api/sessions/${encodeURIComponent(id)}/trajectory?limit=${limit}&offset=${offset}`;
+/** 导入外部会话导出（E4-5 第四批，multipart：file + mode=preview|apply + confirm；默认关） */
+export const SESSIONS_IMPORT = '/api/sessions/import';
 /** 导出（E1-4c；?format=md|zip，文件名由服务端按 sha256 派生） */
 export const sessionExport = (id: string, format: 'md' | 'zip' = 'md') =>
   `/api/sessions/${encodeURIComponent(id)}/export?format=${format}`;

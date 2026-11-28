@@ -1616,6 +1616,16 @@ try:
 except Exception as e:
     _record_route_failure("会话智能路由", e)
 
+# ════════════════════════════════════════════════════════════
+#  E4-5 会话导入路由（POST /api/sessions/import；默认关）
+# ════════════════════════════════════════════════════════════
+try:
+    from agent.server_routes.routes_session_import import register_routes as reg_session_import
+    reg_session_import(app, lambda: None)
+    logger.info("会话导入路由已注册 (/api/sessions/import)")
+except Exception as e:
+    _record_route_failure("会话导入路由", e)
+
 
 # ════════════════════════════════════════════════════════════
 #  工作流学习系统路由（/api/workflow-learning/*）

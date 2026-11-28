@@ -678,6 +678,17 @@ _REGISTRY_ROWS: List[SettingSpec] = [
         "会话轨迹 Inspector：GET /api/sessions/<sid>/trajectory 只读回消息与步骤摘要；"
         "默认关（关时前端显示未启用）",
         owner="agent/server_routes/routes_session_insight.py"),
+    # ── E4-5 会话导入（2026-11-28）─────────────────────────────────────
+    # 【为什么是 A 级】默认关 = 今天的行为（路由回 disabled，**连上传文件都不读**）；
+    #   打开预览也只是解析内存里的导出并回计数，不写会话库；真写另有一道
+    #   CP_SESSION_IMPORT_WRITE_ENABLED。回滚 = 关开关（已导入的会话可单独删除）。
+    _mk("CP_SESSION_IMPORT_ENABLED", CAT_ORCHESTRATION, False,
+        "会话导入（POST /api/sessions/import）：解析外部导出（白名单格式 "
+        "yunshu.session.v1 / deepseek.export.v1）并只读预览；默认关",
+        owner="agent/server_routes/routes_session_import.py"),
+    _mk("CP_SESSION_IMPORT_WRITE_ENABLED", CAT_ORCHESTRATION, False,
+        "会话导入的**写路径**：仅当此开关打开且请求带 confirm=1 时才建会话 + 写消息；默认关",
+        owner="agent/server_routes/routes_session_import.py"),
     # ── E0-2③ 图片/截图 offload（2026-11-26）─────────────────────────────
     # 【为什么是 A 级】只改"图片以什么形态进上下文"，不改权限；关掉 = 回到把 base64
     #   塞进上下文（一次截图就可能顶穿窗口，这条开关是事故时的回滚位）。

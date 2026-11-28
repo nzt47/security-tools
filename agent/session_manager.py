@@ -486,7 +486,8 @@ class SessionManager:
                     tool_calls: list | None = None,
                     tool_steps: list | None = None,
                     reasoning: str | None = None,
-                    steps: list | None = None) -> dict:
+                    steps: list | None = None,
+                    timestamp: str | None = None) -> dict:
         """添加消息到会话
 
         Args:
@@ -494,6 +495,8 @@ class SessionManager:
                 形状 [{id,title,detail,status,at}]）。落盘后**刷新页面/切换会话仍能恢复
                 内联显示** —— 否则用户会看到"思考与工具先出现、刷新或切会话后就没了"。
                 与 legacy 的 ``tool_steps``（tool_call/tool_result 形状）无关，两者并存。
+            timestamp: 【E4-5 会话导入】历史消息的原始时间戳（ISO 串）；为空才用"现在"。
+                导入的是一条**历史**对话，拿 now 冒充会把时间轴整体压平。
         """
         session_dir = self._sessions_dir / session_id
         if not session_dir.exists():
@@ -502,7 +505,7 @@ class SessionManager:
         msg = {
             "role": role,
             "content": content or "",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": str(timestamp or "") or datetime.now(timezone.utc).isoformat(),
         }
         if tool_calls:
             msg["tool_calls"] = tool_calls

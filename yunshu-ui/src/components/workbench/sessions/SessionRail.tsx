@@ -26,11 +26,13 @@ import {
   Plus,
   Search,
   Trash2,
+  Upload,
   X,
 } from 'lucide-react';
 import { Badge, Button, Input, MenuPanel, ModalBase, Notice, RowButton, Select, Switch } from '@/components/ui';
 import type { Project, SessionGroup, SessionMeta } from '../../../lib/sessionApi';
 import { searchSessions, type SessionSearchHit } from '../../../lib/sessionSearchApi';
+import { SessionImportDialog } from './SessionImportDialog';
 
 export interface SessionRailProps {
   sessions: SessionMeta[];
@@ -62,6 +64,8 @@ export interface SessionRailProps {
   }) => Promise<Project | void> | Project | void;
   /** 把会话移到项目（projectId=null → 未归属项目） */
   onMoveProject?: (sessionId: string, projectId: string | null) => void | Promise<void>;
+  /** 导入完成（E4-5 第四批）：回调新会话 id，调用方据此刷新列表 */
+  onImported?: (sessionIds: string[]) => void;
 }
 
 /** 未分组分区专用 key */
@@ -136,6 +140,7 @@ export function SessionRail({
   onSelectProject,
   onCreateProject,
   onMoveProject,
+  onImported,
 }: SessionRailProps) {
   const [query, setQuery] = useState('');
   // E1-4b：全库「历史命中」（服务端 FTS5 检索结果；与本地标题过滤是两件事）
@@ -158,6 +163,9 @@ export function SessionRail({
   // 会话行操作菜单（单触发点，参照 DSH）：menuFor = 当前打开菜单的会话 id
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const menuAnchor = useRef<HTMLElement | null>(null);
+
+  // E4-5 第四批：会话导入对话框（默认关；预览零写入，写路径另有开关）
+  const [importOpen, setImportOpen] = useState(false);
 
   // E1-4b：搜索框输入 300ms 后打一次全库检索（空串直接清空，不发请求）
   useEffect(() => {
@@ -682,16 +690,29 @@ export function SessionRail({
             {scoped.length}
           </Badge>
         </div>
-        <Button
-          type="button"
-          variant="primary"
-          size="icon"
-          onClick={onCreate}
-          title="新建会话（每个会话 = 一个任务，自动拥有独立工作空间）"
-          aria-label="新建会话"
-        >
-          <Plus size={14} />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => setImportOpen(true)}
+            title="导入会话（外部导出：先只读预览，确认后才写入）"
+            aria-label="导入会话"
+            data-testid="session-import-open"
+          >
+            <Upload size={13} />
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            size="icon"
+            onClick={onCreate}
+            title="新建会话（每个会话 = 一个任务，自动拥有独立工作空间）"
+            aria-label="新建会话"
+          >
+            <Plus size={14} />
+          </Button>
+        </div>
       </div>
 
       {/* 项目选择条：当前项目（null = 未归属项目）+ 新建项目 */}
@@ -974,6 +995,16 @@ export function SessionRail({
             </div>
         </ModalBase>
       )}
+
+      {/* E4-5 第四批：会话导入（预览 → 确认 → 写入；开关关时如实显示未启用） */}
+      <SessionImportDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImported={(ids) => {
+          setImportOpen(false);
+          onImported?.(ids);
+        }}
+      />
     </aside>
   );
 }

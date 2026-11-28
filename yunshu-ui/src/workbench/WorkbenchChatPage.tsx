@@ -265,6 +265,24 @@ export default function WorkbenchChatPage() {
     }
   }, [activateSession, activeProjectId, flashError, syncGroupsState])
 
+  /** 导入会话完成（E4-5 第四批）：刷新列表并切到第一个新会话。
+   *  导入的会话未归属项目 ⇒ 先把视图切回「未归属项目」，否则新会话会被项目筛选挡住。 */
+  const handleImportedSessions = useCallback(
+    async (ids: string[]) => {
+      try {
+        const resp = await sessionApi.list()
+        setSessions(Array.isArray(resp.sessions) ? resp.sessions : [])
+      } catch {
+        /* 静默：下次发送/操作会再刷新 */
+      }
+      if (!ids.length) return
+      if (activeProjectId !== null) setActiveProjectId(null)
+      void syncGroupsState(null)
+      activateSession(ids[0], { reload: true })
+    },
+    [activateSession, activeProjectId, syncGroupsState],
+  )
+
   const handleRenameSession = useCallback(
     async (id: string, title: string) => {
       try {
@@ -515,6 +533,7 @@ export default function WorkbenchChatPage() {
         onSelectProject={handleSelectProject}
         onCreateProject={handleCreateProject}
         onMoveProject={(sid, pid) => void handleMoveSessionProject(sid, pid)}
+        onImported={(ids) => void handleImportedSessions(ids)}
       />
 
       {/* ═══ 右栏：对话区 ═══ */}

@@ -4,6 +4,37 @@
 **分支**: master
 **涵盖范围**: 5 个核心 commit（4608614c → 9977c949）
 
+## [CHG] - 2026-11-28: E4-5 第四批 —— 会话导入（只读预览 + 显式导入，默认关）✅
+
+**影响模块**: `agent/session_import.py`（新）、`agent/server_routes/routes_session_import.py`（新）、
+`agent/session_manager.py`（add_message 加时间戳参数）、`agent/settings/registry.py`、
+`app_server.py`、`yunshu-ui/src/api/endpoints.ts`、
+`yunshu-ui/src/components/workbench/sessions/SessionImportDialog.tsx`（新）、`SessionRail.tsx`
+**关联文档**: `docs/plan/2026-11-28-e4-5-session-import-design.md`
+
+### Added
+- **`POST /api/sessions/import`**（multipart）：`mode=preview` 只读预览（会话数 / 条数 / 字符数 /
+  重复标记，**不回正文**）；`mode=apply` 需写开关 + `confirm=1` 才建会话与写消息。
+- **格式白名单**：`yunshu.session.v1`（云枢导出往返）与 `deepseek.export.v1`（DeepSeek 导出，
+  兼容 conversations/chats/data/items 容器与常见字段别名）；其它形状一律 `unsupported_format`。
+- **去重台账** `data/session_import/ledger.json`（gitignore）：内容指纹 = 角色+正文 sha256 前 16 位，
+  **不含标题** —— 改名后再导一次仍跳过。
+- **前端**：会话栏「导入会话」→ 预览列表（含「已导入」徽标）→ 勾选确认 → 导入；
+  成功后刷新列表并打开第一个新会话。
+
+### 边界
+- 只追加，不覆盖/不合并/不删除既有会话；只导入 user/assistant 正文（system/tool 计数后丢弃）。
+- 上传文件**不落盘**（内存解析）、不接受客户端路径、argv 全为常量。
+- 上限：20MiB / ZIP 20 个 .json / 50 会话 / 每会话 5000 条 / 单条 100k 字符（越界截断并计数）。
+- `CP_SESSION_IMPORT_ENABLED` 与 `CP_SESSION_IMPORT_WRITE_ENABLED` 均默认关（A 级）。
+
+### 实测
+- `tests/unit/test_session_import.py` 36 条（格式/别名/时间戳/上限/指纹/预览/错误码）、
+  `test_session_import_route.py` 15 条（默认关不解析 / 预览零写入 / 写闸 / 并发 / 去重 /
+  时间戳保留 / 当前会话恢复 / 异常脱敏）、`SessionImportDialog.test.tsx` 5 条；
+  干净 worktree 全量 pytest 见交接卡。
+- 工具 / 清单 / S0 / τ 不变（159 / 109 / 5.9497 / 0.0295）；`route_ui_coverage` 重派生（+1 路由）。
+
 ## [CHG] - 2026-11-28: E4-5 第三批 —— worktree / forge 只读投影（默认关）✅
 
 **影响模块**: `agent/git_worktree.py`（新）、`agent/server_routes/routes_changes.py`、
