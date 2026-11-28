@@ -16,7 +16,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   FileText, FolderOpen, GitBranch, HardDrive, Loader2, Play, RefreshCw, Search, Trash2, XOctagon,
 } from 'lucide-react'
-import { Button, Checkbox, CodeBlock, ErrorBox, hubGet, hubPost, Input, Notice, PageTabsHeader, Select, Tabs, Textarea } from '../components/ui'
+import { Button, Checkbox, CodeBlock, ErrorBox, hubGet, hubPost, Input, ModalBase, Notice, PageTabsHeader, Select, Tabs, Textarea } from '../components/ui'
 import {
   FILESYSTEM_INFO,
   FILESYSTEM_LIST,
@@ -24,6 +24,7 @@ import {
   FILESYSTEM_SEARCH,
   FILESYSTEM_WRITE,
   GIT_WORKTREES,
+  GIT_WORKTREES_COMMIT,
   PROCESS_START,
   PROCESS_STOP,
   PROCESS_WHITELIST,
@@ -60,6 +61,8 @@ interface WorktreeDoc {
   root?: string
   truncated?: boolean
   worktrees?: WorktreeRow[]
+  /** E4-5 第六批续：写路径是否已开（B 级开关 CP_WORKTREE_WRITE_ENABLED） */
+  write_enabled?: boolean
 }
 
 type Tab = 'files' | 'workspace' | 'process'
@@ -85,6 +88,11 @@ export default function LocalResources() {
 
   // 工作区
   const [wtDoc, setWtDoc] = useState<WorktreeDoc | null>(null)
+  // E4-5 第六批续：worktree 写路径（建 worktree / 本地提交；默认关）
+  const [wtName, setWtName] = useState('')
+  const [commitFor, setCommitFor] = useState<WorktreeRow | null>(null)
+  const [commitMsg, setCommitMsg] = useState('')
+  const [wtBusy, setWtBusy] = useState(false)
   const [wsItems, setWsItems] = useState<FsItem[]>([])
   const [wsInfo, setWsInfo] = useState<Record<string, unknown> | null>(null)
   const [wsPath, setWsPath] = useState('')
@@ -139,6 +147,37 @@ export default function LocalResources() {
       setWtDoc(r)
     } catch (e) { fail('读取工作树失败', e) } finally { setBusy('') }
   }, [])
+
+  /** 建 worktree（B 级写路径；后端还会校验两把钥匙与名字白名单） */
+  const createWorktree = useCallback(async () => {
+    const name = wtName.trim()
+    if (!name) return
+    setWtBusy(true); setErr(''); setMsg('')
+    try {
+      const r = await hubPost<{ ok?: boolean; error?: string; branch?: string }>(
+        GIT_WORKTREES, { name })
+      if (r?.ok === false) { bad('创建 worktree 失败', r); return }
+      setMsg('已创建 worktree：' + (r?.branch || name))
+      setWtName('')
+      await loadWorktrees()
+    } catch (e) { fail('创建 worktree 失败', e) } finally { setWtBusy(false) }
+  }, [wtName, loadWorktrees])
+
+  /** 在 worktree 里本地提交（**不推送**） */
+  const commitWorktree = useCallback(async () => {
+    const name = String(commitFor?.name || '')
+    const message = commitMsg.trim()
+    if (!name || !message) return
+    setWtBusy(true); setErr(''); setMsg('')
+    try {
+      const r = await hubPost<{ ok?: boolean; error?: string; commit?: string }>(
+        GIT_WORKTREES_COMMIT, { name, message })
+      if (r?.ok === false) { bad('提交失败', r); return }
+      setMsg('已提交 ' + (r?.commit || '') + '（仅本地，未推送）')
+      setCommitFor(null); setCommitMsg('')
+      await loadWorktrees()
+    } catch (e) { fail('提交失败', e) } finally { setWtBusy(false) }
+  }, [commitFor, commitMsg, loadWorktrees])
 
   useEffect(() => {
     void loadDir(); void loadWs(); void loadProcess(); void loadWorktrees()
@@ -367,6 +406,37 @@ export default function LocalResources() {
               </Button>
               {wtDoc?.truncated && <span className="text-micro text-amber-400/80">只显示前 20 个</span>}
             </div>
+            {/* E4-5 第六批续：写路径（Owner 2026-11-28 点头；只建 worktree + 本地提交，不推送） */}
+            {wtDoc && wtDoc.ok !== false && (
+              wtDoc.write_enabled ? (
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <Input
+                    size="sm"
+                    className="w-56"
+                    value={wtName}
+                    onChange={(e) => setWtName(e.target.value)}
+                    placeholder="新 worktree 名字（小写/数字/连字符）"
+                    aria-label="新 worktree 名字"
+                    data-testid="worktree-create-name"
+                  />
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="xs"
+                    disabled={wtBusy || !wtName.trim()}
+                    onClick={() => void createWorktree()}
+                    data-testid="worktree-create"
+                  >
+                    建 worktree
+                  </Button>
+                  <span className="text-micro text-slate-500">只建目录与分支（yunshu/&lt;名字&gt;），不推送</span>
+                </div>
+              ) : (
+                <div className="mb-2 text-micro text-slate-500" data-testid="worktree-write-disabled">
+                  worktree 写路径未开启（CP_WORKTREE_WRITE_ENABLED=0）—— 当前只能看
+                </div>
+              )
+            )}
             {wtDoc && wtDoc.ok === false ? (
               <div className="text-micro text-amber-400/90" data-testid="worktree-disabled">
                 {wtDoc.error || 'worktree 面板未启用（CP_WORKTREE_PANEL_ENABLED=0）'}
@@ -388,6 +458,17 @@ export default function LocalResources() {
                         </span>
                         {changed && <span className="font-mono text-micro text-slate-500">{changed}</span>}
                         {w.locked && <span className="text-micro text-slate-500">locked</span>}
+                        {wtDoc?.write_enabled && w.dirty && (
+                          <Button
+                            type="button"
+                            variant="default"
+                            size="xs"
+                            data-testid="worktree-commit-open"
+                            onClick={() => { setCommitFor(w); setCommitMsg('') }}
+                          >
+                            提交
+                          </Button>
+                        )}
                         <span className="ml-auto max-w-[60%] truncate font-mono text-micro text-slate-600" title={w.path}>{w.path}</span>
                       </div>
                       {w.diff_stat && <CodeBlock maxH={96} className="mt-1">{w.diff_stat}</CodeBlock>}
@@ -494,6 +575,47 @@ export default function LocalResources() {
         </div>
       )}
       </div>
+
+      {/* E4-5 第六批续：worktree 本地提交（B 级；不推送） */}
+      <ModalBase
+        open={!!commitFor}
+        onClose={() => setCommitFor(null)}
+        title="在 worktree 里提交"
+        width="max-w-lg"
+        testId="worktree-commit-dialog"
+        closeButton
+      >
+        <div className="flex flex-col gap-2">
+          <p className="text-caption text-muted-foreground">
+            目标：<span className="font-mono text-foreground">{commitFor?.name || '—'}</span>
+            （{commitFor?.branch || 'detached'}）。提交只发生在该 worktree 的本地分支上，
+            <span className="text-foreground">不会推送</span>到任何远程。
+          </p>
+          <Textarea
+            rows={3}
+            aria-label="提交信息"
+            data-testid="worktree-commit-message"
+            placeholder="提交信息（≤200 字符）"
+            value={commitMsg}
+            onChange={(e) => setCommitMsg(e.target.value)}
+          />
+          <div className="flex items-center justify-end gap-2">
+            <Button type="button" variant="default" size="xs" onClick={() => setCommitFor(null)}>
+              取消
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="xs"
+              data-testid="worktree-commit"
+              disabled={wtBusy || !commitMsg.trim()}
+              onClick={() => void commitWorktree()}
+            >
+              提交（仅本地）
+            </Button>
+          </div>
+        </div>
+      </ModalBase>
     </div>
   )
 }

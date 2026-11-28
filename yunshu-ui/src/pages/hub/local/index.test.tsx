@@ -161,3 +161,51 @@ describe('LocalResources', () => {
     await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/process/whitelist/remove', { program: 'git.exe' }))
   })
 })
+describe('LocalResources · E4-5 第六批续 worktree 写路径', () => {
+  it('写路径未开：只提示，不给创建入口', async () => {
+    gets({ ok: true, root: 'C:\\repo', worktrees: [], write_enabled: false })
+    render(<LocalResources />)
+    await screen.findByText('app_server.py')
+    fireEvent.click(screen.getByRole('tab', { name: '工作区' }))
+    await waitFor(() => expect(screen.getByTestId('worktree-write-disabled')).toBeTruthy())
+    expect(screen.queryByTestId('worktree-create')).toBeNull()
+  })
+
+  it('写路径已开：建 worktree 调 POST 并刷新列表', async () => {
+    gets({
+      ok: true, root: 'C:\\repo', write_enabled: true,
+      worktrees: [{ name: 'repo', path: 'C:\\repo', branch: 'master', dirty: false, counts: {} }],
+    })
+    api.hubPost.mockResolvedValue({ ok: true, name: 'probe', branch: 'yunshu/probe' })
+    render(<LocalResources />)
+    await screen.findByText('app_server.py')
+    fireEvent.click(screen.getByRole('tab', { name: '工作区' }))
+    await waitFor(() => expect(screen.getByTestId('worktree-create')).toBeTruthy())
+    fireEvent.change(screen.getByTestId('worktree-create-name'), { target: { value: 'probe' } })
+    fireEvent.click(screen.getByTestId('worktree-create'))
+    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/git/worktrees', { name: 'probe' }))
+    expect(screen.getByText(/已创建 worktree/)).toBeTruthy()
+  })
+
+  it('脏 worktree：提交弹窗调 POST（仅本地）', async () => {
+    gets({
+      ok: true, root: 'C:\\repo', write_enabled: true,
+      worktrees: [{
+        name: 'wt-1', path: 'C:\\repo\\.worktrees\\wt-1', branch: 'yunshu/wt-1',
+        dirty: true, counts: { M: 1 }, diff_stat: 'a.py | 2 +-',
+      }],
+    })
+    api.hubPost.mockResolvedValue({ ok: true, commit: 'abc1234', changed: 1 })
+    render(<LocalResources />)
+    await screen.findByText('app_server.py')
+    fireEvent.click(screen.getByRole('tab', { name: '工作区' }))
+    await waitFor(() => expect(screen.getByTestId('worktree-commit-open')).toBeTruthy())
+    fireEvent.click(screen.getByTestId('worktree-commit-open'))
+    await waitFor(() => expect(screen.getByTestId('worktree-commit-message')).toBeTruthy())
+    fireEvent.change(screen.getByTestId('worktree-commit-message'), { target: { value: 'fix a' } })
+    fireEvent.click(screen.getByTestId('worktree-commit'))
+    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith(
+      '/api/git/worktrees/commit', { name: 'wt-1', message: 'fix a' }))
+    expect(screen.getByText(/仅本地/)).toBeTruthy()
+  })
+})

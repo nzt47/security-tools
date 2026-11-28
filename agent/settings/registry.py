@@ -681,6 +681,14 @@ _REGISTRY_ROWS: List[SettingSpec] = [
         "git worktree 只读面板：GET /api/git/worktrees 回 worktree 列表 + 各自 status 计数与 "
         "diff --stat（只读，不建/不删/不提交）；默认关",
         owner="agent/server_routes/routes_changes.py"),
+    # 【为什么是 B 级】写仓库：POST /api/git/worktrees 建 worktree（分支 yunshu/<name>）、
+    #   POST /api/git/worktrees/commit 在该 worktree 里 git add -A + commit。
+    #   **不推送、不改远程、不删 worktree**；比只读面板多一个量级的爆炸半径 ⇒ 默认关、需 Owner 点头。
+    _b("CP_WORKTREE_WRITE_ENABLED", CAT_SELF_HEALING, False,
+       "worktree 写路径（建 worktree + 本地提交，不推送）：与只读面板分开的第二把钥匙；默认关",
+       owner="agent/server_routes/routes_changes.py",
+       impact="影响面：服务进程会在仓库 .worktrees/ 下建目录与分支、在该 worktree 里创建提交；"
+              "不涉及远程推送与删除")
     _mk("CP_INSPECTOR_ENABLED", CAT_OBSERVABILITY, False,
         "会话轨迹 Inspector：GET /api/sessions/<sid>/trajectory 只读回消息与步骤摘要；"
         "默认关（关时前端显示未启用）",

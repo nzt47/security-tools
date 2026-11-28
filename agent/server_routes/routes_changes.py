@@ -18,6 +18,7 @@ import os
 
 from flask import jsonify, request
 
+from agent.server_auth import require_token
 from agent.server_routes.tracing_decorator import trace_route
 from agent.server_routes._errors import safe_error as _safe
 
@@ -41,6 +42,43 @@ WORKTREE_ENABLED_ENV = "CP_WORKTREE_PANEL_ENABLED"
 def _worktree_enabled() -> bool:
     return str(os.environ.get(WORKTREE_ENABLED_ENV, "") or "").strip().lower() in (
         "1", "true", "yes", "on")
+
+
+#: E4-5 第六批续：worktree 写路径开关（与只读面板分开；默认关，B 级）
+WORKTREE_WRITE_ENABLED_ENV = "CP_WORKTREE_WRITE_ENABLED"
+
+
+def _worktree_write_enabled() -> bool:
+    return str(os.environ.get(WORKTREE_WRITE_ENABLED_ENV, "") or "").strip().lower() in (
+        "1", "true", "yes", "on")
+
+
+def _wt_msg(code: str) -> str:
+    """失败码 → 中文短句（唯一来源在 agent/git_worktree.CODE_MESSAGES）"""
+    try:
+        from agent import git_worktree as _wt
+
+        return _wt.CODE_MESSAGES.get(code, "操作失败（详见服务日志）")
+    except Exception:  # noqa: BLE001
+        return "操作失败（详见服务日志）"
+
+
+def _write_result(result, create: bool = False):
+    """写路径结果 → (JSON, HTTP 状态)：失败码映射固定，前端只认 code"""
+    if result.get("ok"):
+        return jsonify(result), 200
+    code = str(result.get("code") or ("create_failed" if create else "commit_failed"))
+    status = {
+        "write_disabled": 403,
+        "bad_name": 400,
+        "bad_message": 400,
+        "exists": 409,
+        "branch_exists": 409,
+        "nothing_to_commit": 409,
+        "not_found": 404,
+        "no_git": 503,
+    }.get(code, 500)
+    return jsonify({"ok": False, "code": code, "error": _wt_msg(code)}), status
 
 
 
@@ -117,3 +155,49 @@ def register_routes(app, state=None):
         except Exception as exc:  # noqa: BLE001 只读面板：异常只回固定文案
             logger.warning("[worktrees] 读取失败: %s", exc)
             return jsonify({"ok": False, "error": _safe(exc, logger)}), 500
+
+    # ── E4-5 第六批续：worktree 的 B 级写路径（Owner 2026-11-28 已点头）──
+    # 范围只有两件事：建 worktree（分支 yunshu/<name>）、在该 worktree 里本地提交；
+    # **不推送、不改远程、不删 worktree**。两把钥匙：面板开 + 写路径开。
+
+    @app.route("/api/git/worktrees", methods=["POST"])
+    @trace_route("GitWorktreeCreate")
+    @require_token
+    def api_git_worktree_create():
+        """建一个 worktree（B 级；默认关；只建不推）"""
+        if not _worktree_enabled():
+            return jsonify({"ok": False, "code": "disabled",
+                            "error": "worktree 面板未启用（CP_WORKTREE_PANEL_ENABLED=0）"})
+        if not _worktree_write_enabled():
+            return jsonify({"ok": False, "code": "write_disabled",
+                            "error": _wt_msg("write_disabled")}), 403
+        body = request.get_json(silent=True) or {}
+        try:
+            from agent import git_worktree as _wt
+
+            return _write_result(_wt.create(body.get("name")), create=True)
+        except Exception as exc:  # noqa: BLE001 写路径失败不把 git 输出搬给前端
+            logger.warning("[worktrees] 创建失败: %s", exc)
+            return jsonify({"ok": False, "code": "create_failed",
+                            "error": _wt_msg("create_failed")}), 500
+
+    @app.route("/api/git/worktrees/commit", methods=["POST"])
+    @trace_route("GitWorktreeCommit")
+    @require_token
+    def api_git_worktree_commit():
+        """在指定 worktree 里本地提交（B 级；默认关；**不推送**）"""
+        if not _worktree_enabled():
+            return jsonify({"ok": False, "code": "disabled",
+                            "error": "worktree 面板未启用（CP_WORKTREE_PANEL_ENABLED=0）"})
+        if not _worktree_write_enabled():
+            return jsonify({"ok": False, "code": "write_disabled",
+                            "error": _wt_msg("write_disabled")}), 403
+        body = request.get_json(silent=True) or {}
+        try:
+            from agent import git_worktree as _wt
+
+            return _write_result(_wt.commit(body.get("name"), body.get("message")))
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("[worktrees] 提交失败: %s", exc)
+            return jsonify({"ok": False, "code": "commit_failed",
+                            "error": _wt_msg("commit_failed")}), 500
